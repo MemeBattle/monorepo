@@ -1,0 +1,43 @@
+{
+  "name": "memebattle-front",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not ie <= 11",
+    "not op_mini all"
+  ],
+  "devDependencies": {
+    "tslint": "^5.11.0",
+    "tslint-config-airbnb": "^5.11.0",
+    "tslint-config-prettier": "^1.15.0",
+    "tslint-eslint-rules": "^5.4.0",
+    "tslint-react": "^3.6.0",
+    "tslint-react-recommended": "^1.0.15",
+    "typescript-formatter": "^7.2.2"
+  },
+  "dependencies": {
+    "@types/jest": "23.3.9",
+    "@types/node": "10.12.2",
+    "@types/react": "^16.4.18",
+    "@types/react-dom": "^16.0.9",
+    "base-components": "0.0.1",
+    "mobx": "^5.1.2",
+    "mobx-react": "^5.2.8",
+    "mobx-react-router": "^4.0.4",
+    "mobx-state-tree": "^3.4.0",
+    "node-sass": "^4.9.4",
+    "prop-types": "^15.6.1",
+    "react": "^16.7.0-alpha.0",
+    "react-dom": "^16.7.0-alpha.0",
+    "react-scripts": "2.1.1",
+    "typescript": "^3.2.0-dev.20181103"
+  }
+}
