@@ -1,17 +1,12 @@
 {
-  "name": "base-components",
+  "name": "components",
   "version": "0.0.1",
   "description": "> TODO: description",
   "author": "stepandyubin <svd18101997@gmail.com>",
   "homepage": "",
   "license": "MIT",
-  "directories": {
-    "lib": "lib",
-    "src": "src"
-  },
-  "files": [
-    "lib"
-  ],
+  "main": "dist/index.js",
+  "types": "dist/types/index.d.ts",
   "scripts": {
     "tsc": "tsc"
   },

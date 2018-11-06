@@ -1,10 +1,18 @@
-import React from 'react'
+import * as React from 'react'
 
-interface Props {
+
+const defaultProps = {
+    tag: 'div'
+}
+
+type DefaultProps = typeof defaultProps
+
+type Props  = {
   tag: 'div' | 'span' | 'header' | 'main' | 'footer' | 'section',
   className?: string,
   children?: React.ReactNode,
-}
+} & Partial<DefaultProps>
+
 
 export const Box = ({
   tag,
@@ -18,6 +26,3 @@ export const Box = ({
   )
 }
 
-Box.defaultProps = {
-  tag: 'div'
-}

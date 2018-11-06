@@ -1,5 +1,5 @@
 {
-  "name": "memebattle-front",
+  "name": "memebattle",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -28,7 +28,7 @@
     "@types/node": "10.12.2",
     "@types/react": "^16.4.18",
     "@types/react-dom": "^16.0.9",
-    "base-components": "0.0.1",
+    "components": "0.0.1",
     "mobx": "^5.1.2",
     "mobx-react": "^5.2.8",
     "mobx-react-router": "^4.0.4",

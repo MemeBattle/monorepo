@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "declarationDir": "dist/types",
+    "jsx": "preserve",
+    "lib": ["es2015", "es2016", "es2017", "dom"],
+    "module":"commonjs",
+    "outDir": "dist",
+    "strict": true,
+    "target": "es5"
+  },
+  "include": [
+    "src"
+  ]
+}

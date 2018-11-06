@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "outDir": "packages/memebattle/public",
+    "outDir": "public",
     "target": "es5",
     "allowJs": true,
     "skipLibCheck": false,
@@ -13,11 +13,14 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve"
+    "jsx": "preserve",
+    "noEmit": true
   },
-  "exclude": [
-    "node_modules",
-    "dist"
+  "include": [
+    "src"
   ],
-  "extends": "./packages/memebattle/hack-ts.json"
+  "exclude": [
+    "node_modules"
+  ],
+  "extends": "./hack-ts.json"
 }

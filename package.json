@@ -2,9 +2,14 @@
   "name": "memebattle-front",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "bootstrap": "yarn lerna bootstrap",
-    "start": "yarn lerna run start"
+    "tsc": "yarn lerna run tsc",
+    "start": "yarn lerna run start",
+    "build": "yarn lerna run build"
   },
   "browserslist": [
     ">0.2%",
