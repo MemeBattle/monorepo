@@ -38,7 +38,9 @@ const App = () => {
 
               onChange={value => console.log(value)}
             />
-            <Box tag='div' />
+            <Box tag='div'>
+                Hello world
+            </Box>
             <RadioGroup
               id='4'
               value='333'

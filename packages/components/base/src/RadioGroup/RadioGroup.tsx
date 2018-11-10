@@ -1,5 +1,4 @@
-import * as React from 'react'
-const { Fragment } = React
+import React, { Fragment } from 'react'
 
 interface RadioItemProp<T> {
   value: T,
