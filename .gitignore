@@ -24,4 +24,4 @@ yarn-error.log*
 *.log
 
 .idea
-lib
+dist

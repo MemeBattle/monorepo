@@ -5,7 +5,7 @@ import {
   Textarea,
   RadioGroup,
   CheckBox,
-} from 'components'
+} from '@components/base'
 
 const App = () => {
   return (
@@ -16,7 +16,7 @@ const App = () => {
                 type='text'
                 placeholder='input'
                 label={
-                    <Box className='qwewqe'/>
+                    <Box tag='div' className='qwewqe'/>
                 }
                 onInput={value => console.log(value)}
             />
@@ -25,7 +25,7 @@ const App = () => {
                 value=''
                 placeholder='textarea'
                 label={
-                    <Box/>
+                    <Box tag='div' />
                 }
                 onInput={value => console.log(value)}
             />
@@ -33,12 +33,12 @@ const App = () => {
               id='3'
               value={false}
               label={
-                <Box/>
+                <Box tag='div' />
               }
 
               onChange={value => console.log(value)}
             />
-            <Box />
+            <Box tag='div' />
             <RadioGroup
               id='4'
               value='333'
