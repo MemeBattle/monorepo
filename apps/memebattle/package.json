@@ -1,5 +1,5 @@
 {
-  "name": "memebattle",
+  "name": "@memebattle/memebattle",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -15,20 +15,20 @@
     "not op_mini all"
   ],
   "dependencies": {
+    "@components/base": "0.0.1",
     "@types/jest": "23.3.9",
     "@types/node": "10.12.2",
     "@types/react": "^16.4.18",
     "@types/react-dom": "^16.0.9",
-    "@components/base": "0.0.1",
     "mobx": "^5.1.2",
     "mobx-react": "^5.2.8",
     "mobx-react-router": "^4.0.4",
     "mobx-state-tree": "^3.4.0",
     "node-sass": "^4.9.4",
     "prop-types": "^15.6.1",
-    "react": "^16.7.0-alpha.0",
-    "react-dom": "^16.7.0-alpha.0",
+    "react": "^16.7.0",
+    "react-dom": "^16.7.0",
     "react-scripts": "2.1.1",
-    "typescript": "^3.2.0-dev.20181103"
+    "typescript": "^3.2.4"
   }
 }
