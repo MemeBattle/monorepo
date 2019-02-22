@@ -1,1 +1,1 @@
-export const useFormInput = () => {}
+export const useFormInput = () => null
