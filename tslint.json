@@ -18,7 +18,8 @@
     ],
     "no-implicit-dependencies": false,
     "no-submodule-imports": false,
-    "jsx-no-lambda": false
+    "jsx-no-lambda": false,
+    "jsx-boolean-value": false
   },
   "rulesDirectory": [
     "node_modules/tslint-eslint-rules/dist/rules"
