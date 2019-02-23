@@ -1,23 +1,17 @@
 import * as React from 'react'
 import { Button, Form } from '@components/base'
-import { AuthInput, AuthCheckbox } from 'components/auth'
-import styles from './AuthStyles.module.scss'
+import { AuthInput, AuthCheckbox } from 'components/auth/index'
+import styles from '../styles/AuthStyles.module.scss'
 
 interface Props {
   userName: string
   password: string
   rule: boolean
-  handleChange: (value: any) => any
+  handleChange: (name: string, value: any) => any
   handleSubmit: () => any
 }
 
-const LoginForm: React.FC<Props> = ({
-  userName,
-  password,
-  rule,
-  handleSubmit,
-  handleChange,
-}) => (
+const LoginForm: React.FC<Props> = ({ userName, password, rule, handleSubmit, handleChange }) => (
   <Form onSubmit={handleSubmit} className={styles.authForm}>
     <AuthInput
       value={userName}

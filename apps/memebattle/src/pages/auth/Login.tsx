@@ -1,17 +1,11 @@
 import * as React from 'react'
 import { Box } from '@components/base'
-import { LoginForm } from 'components/auth'
+import { Login } from 'components/auth'
 
-const Login: React.FC = () => (
+const LoginPage: React.FC = () => (
   <Box is="div">
-    <LoginForm
-      userName="Meme"
-      password="asdasd"
-      rule={false}
-      handleChange={console.log}
-      handleSubmit={console.log}
-    />
+    <Login />
   </Box>
 )
 
-export default Login
+export default LoginPage
