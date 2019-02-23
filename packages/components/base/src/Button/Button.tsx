@@ -1,13 +1,13 @@
 import React from 'react'
 
 interface Props {
+  onClick?: () => any
   type: 'submit' | 'button' | 'reset'
   className: string
   children: React.ReactNode
-  onClick: () => any
 }
 
-export const Button = ({ type, className, children, onClick }: Props) => {
+export const Button: React.FC<Props> = ({ type, className, children, onClick }) => {
   return (
     <button onClick={onClick} className={className} type={type}>
       {children}
@@ -17,4 +17,5 @@ export const Button = ({ type, className, children, onClick }: Props) => {
 
 Button.defaultProps = {
   type: 'button',
+  onClick: () => undefined,
 }

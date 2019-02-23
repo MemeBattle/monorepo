@@ -1,15 +1,24 @@
 import React from 'react'
 
 interface Props {
+  placeholder?: string
+  className?: string
+  label?: React.ReactNode
   id: string
   value: any
   type: string
-  placeholder: string
-  label: React.ReactNode
   onInput: (value: string) => any
 }
 
-export const Input = ({ id, value, label, type, onInput, placeholder }: Props) => {
+export const Input: React.FC<Props> = ({
+  id,
+  value,
+  label,
+  type,
+  onInput,
+  placeholder,
+  className,
+}) => {
   return (
     <>
       <label htmlFor={id}>{label}</label>
@@ -17,9 +26,15 @@ export const Input = ({ id, value, label, type, onInput, placeholder }: Props) =
         id={id}
         type={type}
         value={value}
+        className={className}
         onInput={(e: React.ChangeEvent<HTMLInputElement>) => onInput(e.target.value)}
         placeholder={placeholder}
       />
     </>
   )
+}
+
+Input.defaultProps = {
+  label: '',
+  placeholder: '',
 }

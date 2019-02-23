@@ -1,0 +1,61 @@
+@import '../../../assets/style/color';
+@import '../../../assets/style/variable';
+
+
+.authForm
+{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+
+    &Input
+    {
+        font-size: 20px;
+
+        display: block;
+
+        width: 100%;
+        margin-bottom: 15px;
+        padding: 5px 15px;
+
+        transition: $defaultAnimationTime;
+
+        color: $white;
+        border: none;
+        border-bottom: 2px solid $white;
+        outline: none;
+        background: transparent;
+
+        &:focus
+        {
+            border-bottom: 2px solid $red;
+        }
+    }
+
+    &SubmitButtom
+    {
+        font-size: 26px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        width: 100%;
+        max-width: 200px;
+        height: 40px;
+        padding: 5px;
+
+        cursor: pointer;
+        transition: $defaultAnimationTime;
+
+        border: none;
+        border-radius: 20px;
+        outline: none;
+        background: $blue;
+
+        &:hover
+        {
+            background: darken($blue, 10);
+        }
+    }
+}
