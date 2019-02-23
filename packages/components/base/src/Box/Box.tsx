@@ -1,7 +1,7 @@
 import * as React from 'react'
 
 const defaultProps = {
-  tag: 'div',
+  is: 'div',
 }
 
 type DefaultProps = typeof defaultProps

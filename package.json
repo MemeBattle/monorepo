@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "bootstrap": "yarn lerna bootstrap",
+    "bootstrap": "yarn lerna bootstrap && yarn tsc",
     "tsc": "yarn lerna run tsc",
     "start": "yarn lerna run start",
     "build": "yarn lerna run build"

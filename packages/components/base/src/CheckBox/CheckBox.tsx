@@ -3,7 +3,7 @@ import React from 'react'
 interface Props {
   label?: React.ReactNode
   id: string
-  className: string
+  className?: string
   value: any
   onChange: (value: boolean) => any
 }

@@ -9,23 +9,23 @@ const App = () => {
         value=""
         type="text"
         placeholder="input"
-        label={<Box tag="div" className="qwewqe" />}
+        label={<Box is="div" className="qwewqe" />}
         onInput={value => console.log(value)}
       />
       <Textarea
         id="2"
         value=""
         placeholder="textarea"
-        label={<Box tag="div" />}
+        label={<Box is="div" />}
         onInput={value => console.log(value)}
       />
       <CheckBox
         id="3"
         value={false}
-        label={<Box tag="div" />}
+        label={<Box is="div" />}
         onChange={value => console.log(value)}
       />
-      <Box tag="div">Hello world</Box>
+      <Box is="div">Hello world</Box>
       <RadioGroup
         id="4"
         value="333"
@@ -37,8 +37,8 @@ const App = () => {
         label={123123}
         onChange={value => console.log(value)}
       />
-      <Box tag="div">qweqwewq</Box>
-      <Box tag="header">qweqwewq</Box>
+      <Box is="div">qweqwewq</Box>
+      <Box is="header">qweqwewq</Box>
     </>
   )
 }
