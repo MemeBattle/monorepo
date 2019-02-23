@@ -14,9 +14,12 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "noEmit": true
+    "noEmit": true,
+    "lib": [
+      "es2018",
+      "dom"
+    ]
   },
-  "lib": ["es5","es2015.promise"],
   "include": [
     "src"
   ],
