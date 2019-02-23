@@ -16,6 +16,7 @@
     "jsx": "preserve",
     "noEmit": true
   },
+  "lib": ["es5","es2015.promise"],
   "include": [
     "src"
   ],
