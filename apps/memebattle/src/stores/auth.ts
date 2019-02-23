@@ -1,16 +1,16 @@
-import { types } from 'mobx-state-tree'
+import { types, flow } from 'mobx-state-tree'
 
 const AuthStore = types
   .model('AuthStore', {
     isAuthenticated: types.boolean,
   })
   .actions(self => ({
-    async signIn() {
+    signIn: flow(function*() {
       try {
-        await Promise.resolve(null)
-        self.isAuthenticated = true
+        self.isAuthenticated = yield SignInRequest()
       } catch (errors) {
-        self.isAuthenticated = false
+        console.log(errors)
       }
-    },
+      return self.isAuthenticated
+    }),
   }))
