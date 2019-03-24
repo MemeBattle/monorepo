@@ -1,5 +1,5 @@
 import { types, flow } from 'mobx-state-tree'
-const User = types.model('User', {
+const Model = types.model('Model', {
   id: types.number,
   name: types.string,
   secondName: types.string,
@@ -8,15 +8,19 @@ const User = types.model('User', {
 })
 const UserStore = types
   .model('UserStore', {
-    user: types.map(User),
+    user: types.maybeNull(types.map(Model)),
   })
   .actions(self => ({
     getUser: flow(function*() {
       try {
         // self.user = yield getUserRequest()
       } catch (errors) {
-        console.log(errors)
+        // console.log(errors)
       }
       return self.user
     }),
   }))
+
+const initialState = { user: null }
+
+export default UserStore.create(initialState)

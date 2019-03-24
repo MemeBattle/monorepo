@@ -3,6 +3,7 @@ import { Box, CheckBox } from '@components/base'
 import styles from './styles/AuthStyles.module.scss'
 
 interface Props {
+  className: string
   label?: React.ReactNode
   id: string
   value: any
