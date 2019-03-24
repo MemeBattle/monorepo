@@ -7,7 +7,7 @@ const AuthStore = types
   .actions(self => ({
     signIn: flow(function*() {
       try {
-        self.isAuthenticated = yield SignInRequest()
+        // self.isAuthenticated = yield SignInRequest()
       } catch (errors) {
         console.log(errors)
       }

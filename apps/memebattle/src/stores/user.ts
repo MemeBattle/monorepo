@@ -13,7 +13,7 @@ const UserStore = types
   .actions(self => ({
     getUser: flow(function*() {
       try {
-        self.user = yield getUserRequest()
+        // self.user = yield getUserRequest()
       } catch (errors) {
         console.log(errors)
       }
