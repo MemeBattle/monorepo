@@ -7,6 +7,8 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
+    min-height: 100vh;
+    background: url('/assets/images/design/background.jpg') repeat scroll center center;
 
     &Input
     {
