@@ -1,21 +1,11 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import { Provider } from 'mobx-react'
-import createBrowserHistory from 'history/createBrowserHistory'
 import './stylesheets/index.css'
 import * as serviceWorker from './serviceWorker'
-import { RouterStore, syncHistoryWithStore } from 'mobx-react-router'
 import { Router } from 'react-router'
 import { AppComponent } from './components/app'
-
-const browserHistory = createBrowserHistory()
-const routingStore = new RouterStore()
-
-const stores = {
-  routing: routingStore,
-}
-
-const history = syncHistoryWithStore(browserHistory, routingStore)
+import stores, { history } from 'stores'
 
 ReactDOM.render(
   <Provider {...stores}>

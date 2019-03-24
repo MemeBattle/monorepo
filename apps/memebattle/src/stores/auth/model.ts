@@ -1,5 +1,9 @@
 import { types } from 'mobx-state-tree'
 
+const initialState = {
+  isAuthenticated: false,
+}
+
 const AuthStore = types
   .model('AuthStore', {
     isAuthenticated: types.boolean,
@@ -14,3 +18,5 @@ const AuthStore = types
       }
     },
   }))
+
+export default AuthStore.create(initialState)

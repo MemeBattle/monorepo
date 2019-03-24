@@ -2,7 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { routes } from 'constants.ts'
 
-const App: React.FC = () => {
+const MainPage: React.FC = () => {
   return (
     <>
       Work in progress, <Link to={routes.SIGN_IN}>check</Link>
@@ -10,4 +10,4 @@ const App: React.FC = () => {
   )
 }
 
-export default App
+export default MainPage
