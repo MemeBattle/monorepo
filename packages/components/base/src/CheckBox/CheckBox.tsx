@@ -5,7 +5,7 @@ interface Props {
   id: string
   className?: string
   value: any
-  onChange: (value: boolean) => any
+  onChange: (name: string, value: boolean) => any
 }
 
 export const CheckBox: React.FC<Props> = ({ id, value, label, onChange, className }) => {
@@ -18,7 +18,9 @@ export const CheckBox: React.FC<Props> = ({ id, value, label, onChange, classNam
         type="checkbox"
         checked={value}
         className={className}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.checked)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          onChange(e.target.name, e.target.checked)
+        }
       />
     </>
   )

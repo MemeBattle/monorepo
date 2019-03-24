@@ -1,14 +1,14 @@
 import * as React from 'react'
 import { Button, Form } from '@components/base'
-import { AuthInput, AuthCheckbox } from 'components/auth'
-import styles from './AuthStyles.module.scss'
+import { AuthInput } from 'components/auth'
+import styles from '../styles/AuthStyles.module.scss'
 
 interface Props {
   email: string
   userName: string
   password: string
   repeatPassword: string
-  handleChange: (value: any) => any
+  handleChange: (name: string, value: any) => any
   handleSubmit: () => any
 }
 

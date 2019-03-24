@@ -7,7 +7,7 @@ interface Props {
   id: string
   value: any
   type: string
-  onInput: (value: string) => any
+  onInput: (name: string, value: string) => any
 }
 
 export const Input: React.FC<Props> = ({
@@ -27,7 +27,7 @@ export const Input: React.FC<Props> = ({
         type={type}
         value={value}
         className={className}
-        onInput={(e: React.ChangeEvent<HTMLInputElement>) => onInput(e.target.value)}
+        onInput={(e: React.ChangeEvent<HTMLInputElement>) => onInput(e.target.name, e.target.value)}
         placeholder={placeholder}
       />
     </>
