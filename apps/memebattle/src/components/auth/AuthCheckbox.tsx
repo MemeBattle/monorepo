@@ -4,6 +4,7 @@ import styles from './styles/AuthStyles.module.scss'
 
 interface Props {
   className: string
+  name: string
   label?: React.ReactNode
   id: string
   value: any

@@ -21,11 +21,19 @@ const RegistrationForm: React.FC<Props> = ({
   handleChange,
 }) => (
   <Form onSubmit={handleSubmit} className={styles.authForm}>
-    <AuthInput value={email} type="email" id="email" onInput={handleChange} placeholder="E-Mail" />
+    <AuthInput
+      value={email}
+      type="email"
+      id="email"
+      name="email"
+      onInput={handleChange}
+      placeholder="E-Mail"
+    />
     <AuthInput
       value={userName}
       type="text"
       id="userName"
+      name="userName"
       onInput={handleChange}
       placeholder="User name"
     />
@@ -33,6 +41,7 @@ const RegistrationForm: React.FC<Props> = ({
       value={password}
       type="password"
       id="password"
+      name="password"
       onInput={handleChange}
       placeholder="Password"
     />
@@ -40,6 +49,7 @@ const RegistrationForm: React.FC<Props> = ({
       value={repeatPassword}
       type="password"
       id="repeatPassword"
+      name="repeatPassword"
       onInput={handleChange}
       placeholder="Repeat password"
     />

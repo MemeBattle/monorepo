@@ -6,6 +6,7 @@ interface Props {
   id: string
   value: any
   type: string
+  name: string
   placeholder: string
   onInput: (name: string, value: string) => any
 }

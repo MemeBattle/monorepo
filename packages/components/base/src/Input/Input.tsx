@@ -7,6 +7,7 @@ interface Props {
   id: string
   value: any
   type: string
+  name: string
   onInput: (name: string, value: string) => any
 }
 
@@ -16,6 +17,7 @@ export const Input: React.FC<Props> = ({
   label,
   type,
   onInput,
+  name,
   placeholder,
   className,
 }) => {
@@ -26,6 +28,7 @@ export const Input: React.FC<Props> = ({
         id={id}
         type={type}
         value={value}
+        name={name}
         className={className}
         onInput={(e: React.ChangeEvent<HTMLInputElement>) => onInput(e.target.name, e.target.value)}
         placeholder={placeholder}

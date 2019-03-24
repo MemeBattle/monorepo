@@ -3,12 +3,13 @@ import React from 'react'
 interface Props {
   label?: React.ReactNode
   id: string
+  name: string
   className?: string
   value: any
   onChange: (name: string, value: boolean) => any
 }
 
-export const CheckBox: React.FC<Props> = ({ id, value, label, onChange, className }) => {
+export const CheckBox: React.FC<Props> = ({ id, value, label,name, onChange, className }) => {
   return (
     <>
       <label htmlFor={id}>{label}</label>
@@ -17,6 +18,7 @@ export const CheckBox: React.FC<Props> = ({ id, value, label, onChange, classNam
         value={value}
         type="checkbox"
         checked={value}
+        name={name}
         className={className}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           onChange(e.target.name, e.target.checked)

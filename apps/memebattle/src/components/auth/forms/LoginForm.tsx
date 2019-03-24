@@ -17,6 +17,7 @@ const LoginForm: React.FC<Props> = ({ userName, password, rule, handleSubmit, ha
       value={userName}
       type="text"
       id="userName"
+      name="userName"
       onInput={handleChange}
       placeholder="user name"
     />
@@ -24,10 +25,16 @@ const LoginForm: React.FC<Props> = ({ userName, password, rule, handleSubmit, ha
       value={password}
       type="password"
       id="password"
+      name="password"
       onInput={handleChange}
       placeholder="password"
     />
-    <AuthCheckbox id="rule" value={rule} onChange={handleChange}>
+    <AuthCheckbox
+      id="rule"
+      name="rule"
+      value={rule}
+      onChange={handleChange}
+      className={styles.authFormCheckbox}>
       С правилами ознакомлен
     </AuthCheckbox>
     <Button type="submit" className={styles.authFormSubmitButtom}>
