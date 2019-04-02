@@ -1,0 +1,1 @@
+export { MemeBattleIcon } from './MainIcon'
