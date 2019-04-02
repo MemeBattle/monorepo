@@ -1,0 +1,72 @@
+@keyframes Logo-Size {
+  from {
+    transform: scale(0);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes Subline-move {
+  from {
+    transform: translate(-200px, 150px) rotate(-90deg);
+    opacity: 0;
+  }
+  9% {
+    opacity: 0;
+  }
+  10% {
+    transform: translate(-200px, 150px) rotate(-90deg);
+  }
+  60% {
+    transform: rotate(3deg);
+    opacity: 1;
+  }
+  to {
+    transform: rotate(0);
+  }
+}
+
+
+@keyframes Logo-circle-Size {
+  from {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1);
+  }
+  75% {
+    transform: scale(1.05);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+
+.memebattle-icon {
+  animation: Logo-Size 1.6s;
+  width: 100%;
+  max-height: 100%;
+  max-width: 100%;
+  overflow: overlay;
+}
+
+
+#icon-white-circle {
+  transform-origin: 50% 50%;
+  animation: Logo-circle-Size 1.6s;
+}
+
+#icon-yellow-circle {
+  transform-origin: 50% 50%;
+  animation: Logo-circle-Size 1.6s;
+}
+
+.subline {
+  transform-origin: 0 400%;
+  animation: Subline-move 1.4s;
+}
