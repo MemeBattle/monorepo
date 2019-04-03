@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { Box } from '@components/base'
+import { Box } from '@memebattle/components-base'
 import { routes } from 'constants.ts'
 import { MemeBattleIcon } from 'components/icons'
 import { Text } from 'components/base'

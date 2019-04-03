@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Form } from '@components/base'
+import { Button, Form } from '@memebattle/components-base'
 import { AuthInput, AuthCheckbox } from 'components/auth/index'
 import styles from '../styles/AuthStyles.module.scss'
 

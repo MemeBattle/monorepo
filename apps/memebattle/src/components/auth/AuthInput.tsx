@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Input } from '@components/base'
+import { Input } from '@memebattle/components-base'
 import styles from './styles/AuthStyles.module.scss'
 
 interface Props {

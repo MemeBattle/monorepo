@@ -1,3 +1,3 @@
-import { Text as BaseText } from '@components/base'
+import { Text as BaseText } from '@memebattle/components-base'
 
 export const Text = BaseText

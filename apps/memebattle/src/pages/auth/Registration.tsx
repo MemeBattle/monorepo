@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Box } from '@components/base'
+import { Box } from '@memebattle/components-base'
 import { RegistrationForm } from 'components/auth'
 
 const Registration: React.FC = () => (

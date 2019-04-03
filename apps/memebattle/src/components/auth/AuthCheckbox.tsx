@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Box, CheckBox } from '@components/base'
+import { Box, CheckBox } from '@memebattle/components-base'
 import styles from './styles/AuthStyles.module.scss'
 
 interface Props {
