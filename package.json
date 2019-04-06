@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "private": true,
     "scripts": {
-        "init": "node packages/babel-loader-lerna-cra/bootstrap.js",
+        "init": "yarn lerna bootstrap",
         "bootstrap": "yarn tsc && yarn lerna bootstrap",
         "tsc": "yarn lerna run tsc",
         "start": "yarn lerna run start",
@@ -20,14 +20,14 @@
         "apps": "apps/*"
     },
     "devDependencies": {
-        "@types/node": "^10.12.2",
+        "@types/node": "^11.13.0",
         "lerna": "^3.4.3",
         "prettier": "^1.16.4",
         "tslint": "^5.12.1",
         "tslint-config-prettier": "^1.18.0",
         "tslint-eslint-rules": "^5.4.0",
         "tslint-plugin-prettier": "^2.0.1",
-        "tslint-react": "^3.6.0",
+        "tslint-react": "^4.0.0",
         "tslint-react-recommended": "^1.0.15",
         "typescript": "^3.1.6",
         "typescript-formatter": "^7.2.2"
