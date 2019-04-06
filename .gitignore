@@ -9,7 +9,8 @@ node_modules
 /coverage
 
 # production
-/build
+build
+dist
 
 # misc
 .DS_Store
@@ -24,4 +25,3 @@ yarn-error.log*
 *.log
 
 .idea
-dist

@@ -17,7 +17,7 @@
     ],
     "babel-loader-lerna-cra": {
         "imports": "packages/components/*",
-        "apps":  "apps/*"
+        "apps": "apps/*"
     },
     "devDependencies": {
         "@types/node": "^10.12.2",

@@ -1,13 +1,11 @@
-.authForm
-{
+.authForm {
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     min-width: 30vw;
 
-    .input
-    {
+    .input {
         font-size: 20px;
 
         display: block;
@@ -24,16 +22,12 @@
         outline: none;
         background: transparent;
 
-        &:focus
-        {
+        &:focus {
             border-bottom: 2px solid red;
         }
     }
 
-    .submit
-    {
-        font-size: 26px;
-
+    .submit {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -41,24 +35,20 @@
         width: 100%;
         max-width: 200px;
         height: 40px;
-        padding: 5px;
 
         cursor: pointer;
         transition: 1s;
 
         border: none;
         border-radius: 20px;
-        outline: none;
-        background: blue;
+        //background-color: $color-primary;
 
-        &:hover
-        {
+        &:hover {
             background: darken(blue, 10);
         }
     }
 
-    .rules
-    {
+    .rules {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -79,5 +69,6 @@
   height: 100vh;
   width: 100vw;
 
+  font-family: 'OpenGostTypeATT-Regular', serif;
   background: url('assets/images/design/background.jpg') no-repeat center center;
 }

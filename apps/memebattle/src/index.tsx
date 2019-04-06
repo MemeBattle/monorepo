@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import { Provider } from 'mobx-react'
-import 'assets/styles/index.scss'
+import 'assets/styles/_index.scss'
 import * as serviceWorker from './serviceWorker'
 import { Router } from 'react-router'
 import { AppComponent } from './components/app'

@@ -6,7 +6,6 @@
 	"homepage": "",
 	"license": "MIT",
 	"main": "dist/index.js",
-	"module": "src/index.ts",
 	"types": "dist/types/index.d.ts",
 	"scripts": {
 		"tsc": "tsc"
