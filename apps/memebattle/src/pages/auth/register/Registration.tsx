@@ -1,9 +1,8 @@
 import * as React from 'react'
-import { Box } from '@memebattle/components-base'
-import { RegistrationForm } from 'components/auth'
+import { AuthContent, RegistrationForm } from 'components/auth'
 
 const Registration: React.FC = () => (
-  <Box is="div">
+  <AuthContent>
     <RegistrationForm
       email="memebattle@mems.fun"
       userName="memebattle"
@@ -12,7 +11,7 @@ const Registration: React.FC = () => (
       handleSubmit={console.log}
       handleChange={console.log}
     />
-  </Box>
+  </AuthContent>
 )
 
 export default Registration

@@ -11,6 +11,6 @@ interface Props {
   onInput: (name: string, value: string) => any
 }
 
-const AuthInput: React.FC<Props> = props => <Input {...props} className={styles.authFormInput} />
+const AuthInput: React.FC<Props> = props => <Input {...props} className={styles.input} />
 
 export default React.memo(AuthInput)

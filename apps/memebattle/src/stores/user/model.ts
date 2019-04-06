@@ -11,7 +11,7 @@ const UserStore = types
     user: types.maybeNull(types.map(Model)),
   })
   .actions(self => ({
-    getUser: flow(function*() {
+    fetchUser: flow(function*() {
       try {
         // self.user = yield getUserRequest()
       } catch (errors) {
