@@ -1,9 +1,8 @@
 import LoginForm from './forms/LoginForm'
 import AuthInput from './AuthInput'
-import AuthContent from './AuthContent'
+import AuthPage from './AuthPage'
 import AuthCheckbox from './AuthCheckbox'
 import AuthSubmit from './AuthSubmit'
 import RegistrationForm from './forms/RegistrationForm'
-import Login from './Login'
 
-export { AuthContent, AuthSubmit, LoginForm, RegistrationForm, AuthInput, AuthCheckbox, Login }
+export { AuthPage, AuthSubmit, LoginForm, RegistrationForm, AuthInput, AuthCheckbox }

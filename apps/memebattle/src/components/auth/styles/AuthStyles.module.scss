@@ -1,4 +1,15 @@
-.authForm {
+@import 'assets/styles/_variables.scss';
+
+.authPage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+  font-family: 'OpenGostTypeATT-Regular', serif;
+  background: url('assets/images/design/background.jpg') no-repeat center center;
+
+  .authForm {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -6,69 +17,63 @@
     min-width: 30vw;
 
     .input {
-        font-size: 20px;
+      font-size: 20px;
 
-        display: block;
+      display: block;
 
-        width: 100%;
-        margin-bottom: 15px;
-        padding: 5px 15px;
+      width: 100%;
+      margin-bottom: 15px;
+      padding: 5px 15px;
 
-        transition: 1s;
+      transition: 1s;
 
-        color: white;
-        border: none;
-        border-bottom: 2px solid white;
-        outline: none;
-        background: transparent;
+      color: white;
+      border: none;
+      border-bottom: 2px solid white;
+      outline: none;
+      background: transparent;
 
-        &:focus {
-            border-bottom: 2px solid red;
-        }
+      &:focus {
+        border-bottom: 2px solid red;
+      }
     }
 
     .submit {
-        display: flex;
-        align-items: center;
-        justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
 
-        width: 100%;
-        max-width: 200px;
-        height: 40px;
+      width: 100%;
+      max-width: 200px;
+      height: 40px;
 
-        cursor: pointer;
-        transition: 1s;
+      cursor: pointer;
+      transition: 1s;
 
-        border: none;
-        border-radius: 20px;
-        //background-color: $color-primary;
+      border: none;
+      border-radius: 20px;
+      background-color: $color-primary;
 
-        &:hover {
-            background: darken(blue, 10);
-        }
+      &[disabled] {
+        background-color: $color-disabled;
+      }
+
+      &:hover:enabled {
+        background: $color-primary-active;
+      }
     }
 
     .rules {
-        display: flex;
-        align-items: center;
-        justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
 
-        width: 100%;
-        margin: 10px 0;
+      width: 100%;
+      margin: 10px 0;
     }
 
     .checkbox {
-        display: block;
+      display: block;
     }
-}
-
-.authContent {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  width: 100vw;
-
-  font-family: 'OpenGostTypeATT-Regular', serif;
-  background: url('assets/images/design/background.jpg') no-repeat center center;
+  }
 }

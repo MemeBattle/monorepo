@@ -6,10 +6,10 @@ interface Props {
   children: React.ReactNode
 }
 
-const AuthContent: React.FC<Props> = ({ children }) => (
-  <Box className={styles.authContent} is="main">
+const AuthPage: React.FC<Props> = ({ children }) => (
+  <Box className={styles.authPage} is="main">
     {children}
   </Box>
 )
 
-export default React.memo(AuthContent)
+export default React.memo(AuthPage)

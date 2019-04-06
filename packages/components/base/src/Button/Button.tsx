@@ -5,17 +5,19 @@ export interface Props {
   type: 'submit' | 'button' | 'reset'
   className: string
   children: React.ReactNode
+  disabled: boolean
 }
 
-export const Button: React.FC<Props> = ({ type, className, children, onClick }) => {
+export const Button: React.FC<Props> = ({
+  type = 'button',
+  className,
+  children,
+  onClick,
+  disabled = false,
+}) => {
   return (
-    <button onClick={onClick} className={className} type={type}>
+    <button onClick={onClick} className={className} type={type} disabled={disabled}>
       {children}
     </button>
   )
-}
-
-Button.defaultProps = {
-  type: 'button',
-  onClick: () => undefined,
 }

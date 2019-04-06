@@ -1,8 +1,8 @@
 import * as React from 'react'
-import { AuthContent, RegistrationForm } from 'components/auth'
+import { AuthPage, RegistrationForm } from 'components/auth'
 
 const Registration: React.FC = () => (
-  <AuthContent>
+  <AuthPage>
     <RegistrationForm
       email="memebattle@mems.fun"
       userName="memebattle"
@@ -11,7 +11,7 @@ const Registration: React.FC = () => (
       handleSubmit={console.log}
       handleChange={console.log}
     />
-  </AuthContent>
+  </AuthPage>
 )
 
 export default Registration

@@ -7,7 +7,7 @@ interface Props {
 }
 
 const AuthSubmit: React.FC<Props> = ({ children }) => (
-  <Button type="submit" className={styles.submit}>
+  <Button type="submit" className={styles.submit} disabled>
     {children}
   </Button>
 )

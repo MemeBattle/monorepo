@@ -1,10 +1,10 @@
 import * as React from 'react'
-import { AuthContent, Login } from 'components/auth'
+import { AuthPage, LoginForm } from 'components/auth'
 
 const LoginPage: React.FC = () => (
-  <AuthContent>
-    <Login />
-  </AuthContent>
+  <AuthPage>
+    <LoginForm onSubmit={console.log} />
+  </AuthPage>
 )
 
 export default LoginPage
