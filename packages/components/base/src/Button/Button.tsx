@@ -1,6 +1,6 @@
 import React from 'react'
 
-interface Props {
+export interface Props {
   onClick?: () => any
   type: 'submit' | 'button' | 'reset'
   className: string

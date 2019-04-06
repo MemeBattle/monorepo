@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Button, Form } from '@memebattle/components-base'
-import { AuthInput, AuthCheckbox } from 'components/auth/index'
+import { AuthInput, AuthSubmit, AuthCheckbox } from 'components/auth'
 import styles from '../styles/AuthStyles.module.scss'
 
 interface Props {
@@ -37,9 +37,7 @@ const LoginForm: React.FC<Props> = ({ userName, password, rule, handleSubmit, ha
       className={styles.authFormCheckbox}>
       С правилами ознакомлен
     </AuthCheckbox>
-    <Button type="submit" className={styles.authFormSubmitButtom}>
-      Вход
-    </Button>
+    <AuthSubmit>Вход</AuthSubmit>
   </Form>
 )
 

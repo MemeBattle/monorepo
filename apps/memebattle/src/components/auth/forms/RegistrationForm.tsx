@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Button, Form } from '@memebattle/components-base'
-import { AuthInput } from 'components/auth'
+import { AuthInput, AuthSubmit } from 'components/auth'
 import styles from '../styles/AuthStyles.module.scss'
 
 interface Props {
@@ -53,9 +53,7 @@ const RegistrationForm: React.FC<Props> = ({
       onInput={handleChange}
       placeholder="Repeat password"
     />
-    <Button type="submit" className={styles.authFormSubmitButtom}>
-      Регистрация
-    </Button>
+    <AuthSubmit>Регистрация</AuthSubmit>
   </Form>
 )
 
