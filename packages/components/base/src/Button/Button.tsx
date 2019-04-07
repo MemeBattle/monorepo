@@ -5,7 +5,7 @@ export interface Props {
   type: 'submit' | 'button' | 'reset'
   className: string
   children: React.ReactNode
-  disabled: boolean
+  disabled?: boolean
 }
 
 export const Button: React.FC<Props> = ({

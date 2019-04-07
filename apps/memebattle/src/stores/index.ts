@@ -1,4 +1,4 @@
-import createBrowserHistory from 'history/createBrowserHistory'
+import { createBrowserHistory } from 'history'
 import { syncHistoryWithStore } from 'mobx-react-router'
 import authStore from './auth'
 import routingStore from './routing'

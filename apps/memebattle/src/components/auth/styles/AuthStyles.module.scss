@@ -2,12 +2,27 @@
 
 .authPage {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   height: 100vh;
   width: 100vw;
+  padding: 1rem 0;
   font-family: 'OpenGostTypeATT-Regular', serif;
   background: url('assets/images/design/background.jpg') no-repeat center center;
+
+
+  .authLogo {
+    margin-bottom: 3rem;
+    max-width: 60%;
+  }
+
+  .authTitle {
+    font-family: 'NautilusPompilius', serif;
+    font-size: $font-size-big;
+    color: $color-primary;
+    margin-bottom: 2rem;
+  }
 
   .authForm {
     display: flex;
@@ -38,14 +53,50 @@
       }
     }
 
+    .authCheckbox {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      color: $color-white;
+      font-size: $font-size-small;
+      margin-bottom: 1rem;
+
+      input[type="checkbox"] {
+        display: none;
+      }
+
+      input[type="checkbox"] + label::before {
+        border: 0.2rem solid;
+        border-radius: 3px;
+        display: inline-block;
+        vertical-align: middle;
+        margin: 0 10px 5px 0;
+        width: 1rem;
+        height: 1rem;
+        cursor: pointer;
+        content: "";
+      }
+
+      input[type="checkbox"]:checked + label::before {
+        background: url('assets/images/icons/draw-check-mark.png');
+        background-size: contain;
+      }
+    }
+
+
+
     .submit {
       display: flex;
       align-items: center;
       justify-content: center;
 
+      font-size: $font-size-medium;
+      color: $color-white;
+
       width: 100%;
       max-width: 200px;
       height: 40px;
+      margin-bottom: 1rem;
 
       cursor: pointer;
       transition: 1s;
@@ -62,18 +113,11 @@
         background: $color-primary-active;
       }
     }
-
-    .rules {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      width: 100%;
-      margin: 10px 0;
-    }
-
-    .checkbox {
-      display: block;
-    }
+  }
+  .authTip {
+    text-align: center;
+    font-size: $font-size-small;
+    color: $color-disabled-dark;
+    margin-bottom: 2rem;
   }
 }

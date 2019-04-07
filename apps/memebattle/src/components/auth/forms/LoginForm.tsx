@@ -1,6 +1,5 @@
 import React, { useCallback } from 'react'
-import { Form } from '@memebattle/components-base'
-import { AuthInput, AuthSubmit, AuthCheckbox } from 'components/auth'
+import { AuthForm, AuthInput, AuthSubmit, AuthCheckbox } from 'components/auth'
 import styles from '../styles/AuthStyles.module.scss'
 import { useFormValues } from 'hooks'
 
@@ -28,14 +27,14 @@ const LoginForm: React.FC<Props> = ({ onSubmit }) => {
   ])
 
   return (
-    <Form onSubmit={handleSubmit} className={styles.authForm}>
+    <AuthForm onSubmit={handleSubmit}>
       <AuthInput
         value={userName}
         type="text"
         id="userName"
         name="userName"
         onInput={handleChange}
-        placeholder="user name"
+        placeholder="Логин или e-mail"
       />
       <AuthInput
         value={password}
@@ -43,7 +42,7 @@ const LoginForm: React.FC<Props> = ({ onSubmit }) => {
         id="password"
         name="password"
         onInput={handleChange}
-        placeholder="password"
+        placeholder="Пароль"
       />
       <AuthCheckbox
         id="rule"
@@ -54,7 +53,7 @@ const LoginForm: React.FC<Props> = ({ onSubmit }) => {
         С правилами ознакомлен
       </AuthCheckbox>
       <AuthSubmit>Вход</AuthSubmit>
-    </Form>
+    </AuthForm>
   )
 }
 

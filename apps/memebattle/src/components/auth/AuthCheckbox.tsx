@@ -13,8 +13,8 @@ interface Props {
 }
 
 const AuthInput: React.FC<Props> = ({ children, ...props }) => (
-  <Box is="span" className={styles.rules}>
-    <CheckBox {...props} className={styles.checkbox} />
+  <Box is="span" className={styles.authCheckbox}>
+    <CheckBox {...props} />
     <Box is="span">{children}</Box>
   </Box>
 )

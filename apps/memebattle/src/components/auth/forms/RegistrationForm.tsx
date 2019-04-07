@@ -1,60 +1,70 @@
-import * as React from 'react'
-import { Button, Form } from '@memebattle/components-base'
-import { AuthInput, AuthSubmit } from 'components/auth'
-import styles from '../styles/AuthStyles.module.scss'
+import React, { useCallback } from 'react'
+import { AuthForm, AuthInput, AuthSubmit } from 'components/auth'
+import { useFormValues } from 'hooks'
 
-interface Props {
+interface Values {
   email: string
   userName: string
   password: string
   repeatPassword: string
-  handleChange: (name: string, value: any) => any
-  handleSubmit: () => any
 }
 
-const RegistrationForm: React.FC<Props> = ({
-  email,
-  userName,
-  password,
-  repeatPassword,
-  handleSubmit,
-  handleChange,
-}) => (
-  <Form onSubmit={handleSubmit} className={styles.authForm}>
-    <AuthInput
-      value={email}
-      type="email"
-      id="email"
-      name="email"
-      onInput={handleChange}
-      placeholder="E-Mail"
-    />
-    <AuthInput
-      value={userName}
-      type="text"
-      id="userName"
-      name="userName"
-      onInput={handleChange}
-      placeholder="User name"
-    />
-    <AuthInput
-      value={password}
-      type="password"
-      id="password"
-      name="password"
-      onInput={handleChange}
-      placeholder="Password"
-    />
-    <AuthInput
-      value={repeatPassword}
-      type="password"
-      id="repeatPassword"
-      name="repeatPassword"
-      onInput={handleChange}
-      placeholder="Repeat password"
-    />
-    <AuthSubmit>Регистрация</AuthSubmit>
-  </Form>
-)
+interface Props {
+  onSubmit: (arg: Values) => any
+}
+
+const RegistrationForm: React.FC<Props> = ({ onSubmit }) => {
+  const [{ userName, password, repeatPassword, email }, handleChange] = useFormValues<Values>({
+    email: '',
+    userName: '',
+    password: '',
+    repeatPassword: '',
+  })
+
+  const handleSubmit = useCallback(() => onSubmit({ email, userName, password, repeatPassword }), [
+    email,
+    userName,
+    password,
+    repeatPassword,
+  ])
+
+  return (
+    <AuthForm onSubmit={handleSubmit}>
+      <AuthInput
+        value={email}
+        type="email"
+        id="email"
+        name="email"
+        onInput={handleChange}
+        placeholder="E-Mail"
+      />
+      <AuthInput
+        value={userName}
+        type="text"
+        id="userName"
+        name="userName"
+        onInput={handleChange}
+        placeholder="User name"
+      />
+      <AuthInput
+        value={password}
+        type="password"
+        id="password"
+        name="password"
+        onInput={handleChange}
+        placeholder="Password"
+      />
+      <AuthInput
+        value={repeatPassword}
+        type="password"
+        id="repeatPassword"
+        name="repeatPassword"
+        onInput={handleChange}
+        placeholder="Repeat password"
+      />
+      <AuthSubmit>Регистрация</AuthSubmit>
+    </AuthForm>
+  )
+}
 
 export default RegistrationForm

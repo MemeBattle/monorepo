@@ -9,10 +9,9 @@ interface Props {
   onChange: (name: string, value: boolean) => any
 }
 
-export const CheckBox: React.FC<Props> = ({ id, value, label,name, onChange, className }) => {
+export const CheckBox: React.FC<Props> = ({ id, value, label, name, onChange, className }) => {
   return (
     <>
-      <label htmlFor={id}>{label}</label>
       <input
         id={id}
         value={value}
@@ -24,6 +23,7 @@ export const CheckBox: React.FC<Props> = ({ id, value, label,name, onChange, cla
           onChange(e.target.name, e.target.checked)
         }
       />
+      <label htmlFor={id}>{label}</label>
     </>
   )
 }

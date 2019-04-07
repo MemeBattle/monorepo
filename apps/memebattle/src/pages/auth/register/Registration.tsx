@@ -1,17 +1,12 @@
 import * as React from 'react'
-import { AuthPage, RegistrationForm } from 'components/auth'
+import { AuthTitle, AuthMainLogo, AuthPage, RegistrationForm } from 'components/auth'
 
-const Registration: React.FC = () => (
+const LoginPage: React.FC = () => (
   <AuthPage>
-    <RegistrationForm
-      email="memebattle@mems.fun"
-      userName="memebattle"
-      password="asdasdasd"
-      repeatPassword="asdasdasd"
-      handleSubmit={console.log}
-      handleChange={console.log}
-    />
+    <AuthMainLogo />
+    <AuthTitle>Регистрация</AuthTitle>
+    <RegistrationForm onSubmit={console.log} />
   </AuthPage>
 )
 
-export default Registration
+export default LoginPage
