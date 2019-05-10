@@ -1,5 +1,3 @@
-import { RouterStore } from 'mobx-react-router'
+import { RouterModel } from 'mst-react-router'
 
-const routingStore = new RouterStore()
-
-export default routingStore
+export default RouterModel

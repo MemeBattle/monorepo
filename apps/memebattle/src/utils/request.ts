@@ -1,10 +1,11 @@
-import axios from 'axios'
-import { BASE_URL, APPLICATION_API_KEY, JWT_PREFIX } from '../config'
+import axios, { AxiosPromise } from 'axios'
+import { API_URL, LS_TOKEN_KEY } from '../config'
+
+export interface IRequestPromise<T> extends AxiosPromise<T> {}
 
 const request = axios.create({
-  baseURL: BASE_URL || 'http://localhost:5000',
+  baseURL: API_URL,
   headers: {
-    'X-Application-Key': APPLICATION_API_KEY,
     'Content-Type': 'application/json',
   },
 })
@@ -19,15 +20,15 @@ request.interceptors.request.use(setJWTHeader)
  */
 request.interceptors.response.use(setJWTInLocalStorage)
 
-function setJWTHeader(config) {
+function setJWTHeader(config: any) {
   const newConfig = config
 
-  newConfig.headers.common.Authorization = `${JWT_PREFIX} ${window.localStorage.getItem('key')}`
+  newConfig.headers.common.Authorization = `${window.localStorage.getItem(LS_TOKEN_KEY)}`
 
   return newConfig
 }
 
-function setJWTInLocalStorage(response) {
+function setJWTInLocalStorage(response: any) {
   if (response.data.data.token) {
     window.localStorage.setItem('key', response.data.data.token)
   }

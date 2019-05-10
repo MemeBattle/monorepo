@@ -1,4 +1,6 @@
-import { types, flow } from 'mobx-state-tree'
+import { types, flow, getParent } from 'mobx-state-tree'
+import { authService } from 'services'
+import { IStore } from '..'
 
 const initialState = {
   isAuthenticated: false,
@@ -9,14 +11,17 @@ const AuthStore = types
     isAuthenticated: types.boolean,
   })
   .actions(self => ({
-    signIn: flow(function*() {
+    login: flow(function*() {
       try {
-        // self.isAuthenticated = yield SignInRequest()
+        const { user } = yield authService.login({ login: '', password: '' })
+        self.isAuthenticated = true
+        const userStore = getParent<IStore>(self, 1).user
+        userStore.setUser(user)
       } catch (errors) {
-        console.log(errors)
+        // console.log(errors)
       }
       return self.isAuthenticated
     }),
   }))
 
-export default AuthStore.create(initialState)
+export default types.optional(AuthStore, initialState)

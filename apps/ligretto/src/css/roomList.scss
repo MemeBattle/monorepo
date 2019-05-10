@@ -1,0 +1,118 @@
+.list-room {
+  border-top: 4px solid;
+  height: 465px;
+  overflow: hidden;
+  min-width: 300px;
+  width: 60%;
+  margin: 0 auto;
+  padding: 2.4% 0;
+  margin-bottom: 10px;
+  position: relative;
+  background: rgba(255, 255, 255, 1);
+  .list-group-item {
+    width: 100%;
+  }
+  .list-room-com {
+    width: 100%;
+  }
+
+  div {
+    padding-top: 1%;
+    padding-bottom: 10px;
+    .items {
+      width: 60%;
+      margin-left: 30%;
+      div {
+        margin-bottom: 4px;
+        height: 35px;
+        position: relative;
+        padding-left: 2%;
+      }
+      .createNewRoom {
+        height: auto;
+      }
+    }
+  }
+  .div:last-child {
+    padding-top: 2%;
+  }
+  .room-list-title {
+    width: 100%;
+    font-weight: normal;
+    margin-top: -7.8%;
+    margin-left: -12%;
+    margin-bottom: 2%;
+    text-align: -webkit-center;
+    font-size: 1.0em;
+    padding-top: 2%;
+    color: #000000;
+  }
+  .status-game {
+    color: green;
+    text-align: center;
+    padding: 0px 3px;
+    margin-right: 7%;
+    vertical-align: text-bottom;
+    height: 20px;
+    min-width: 17px;
+    font-weight: bold;
+    font-size: 14px;
+    overflow: hidden;
+    display: inline-block;
+    border-radius: 2px;
+  }
+
+  //.IN_PROCESS{
+  //  border: 1px solid rgba(255, 0 ,0, 0.4);
+  //}
+  //.IN_PROCESS:hover{
+  //  background-color: rgba(255, 0 ,0, 0.4);
+  //}
+  //.WAIT_PLAYERS, .wait{
+  //  cursor: pointer;
+  //  border: 1px solid rgba(144, 238, 144, 1);
+  //}
+  //.WAIT_PLAYERS:hover{
+  //  background-color: rgba(144, 238, 144, 0.9);
+  //}
+  .items {
+    width: 60%;
+    margin: 0 20%;
+    overflow-y: auto;
+    height: 90%;
+    margin-bottom: 0px;
+  }
+  .count {
+    //position: absolute;
+    //left: 73%;
+    font-weight: bold;
+    font-size: 20px;
+    float: right;
+    margin: 0px 10px;
+  }
+  .name {
+    font-weight: bold;
+    font-size: 20px;
+    color: #000;
+    width: 73%;
+    overflow: hidden;
+    display: inline-block;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    .status-new {
+      background: linear-gradient(to top, #e51a1a, #d61c1c);
+      color: white;
+      text-align: center;
+      padding: 0px 3px;
+      margin-right: 7%;
+      vertical-align: text-bottom;
+      height: 20px;
+      min-width: 17px;
+      font-weight: bold;
+      font-size: 14px;
+      overflow: hidden;
+      display: inline-block;
+      border-radius: 2px;
+    }
+  }
+}

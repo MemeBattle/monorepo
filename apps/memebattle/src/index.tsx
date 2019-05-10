@@ -1,18 +1,18 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
-import { Provider } from 'mobx-react'
 import 'assets/styles/_index.scss'
 import * as serviceWorker from './serviceWorker'
 import { Router } from 'react-router'
 import { AppComponent } from './components/app'
+import { StoreContext } from './contexts'
 import stores, { history } from 'stores'
 
 ReactDOM.render(
-  <Provider {...stores}>
+  <StoreContext.Provider value={stores}>
     <Router history={history}>
       <AppComponent />
     </Router>
-  </Provider>,
+  </StoreContext.Provider>,
   document.getElementById('root'),
 )
 

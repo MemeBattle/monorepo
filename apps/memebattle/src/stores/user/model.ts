@@ -1,14 +1,21 @@
-import { types, flow } from 'mobx-state-tree'
-const Model = types.model('Model', {
-  id: types.number,
+import { types, flow, Instance } from 'mobx-state-tree'
+
+const initialState = {
+  user: null,
+  isFetching: true,
+}
+
+const User = types.model('User', {
+  id: types.identifier,
   name: types.string,
   secondName: types.string,
-  login: types.string,
-  password: types.string,
 })
+export interface IUser extends Instance<typeof User> {}
+
 const UserStore = types
   .model('UserStore', {
-    user: types.maybeNull(types.map(Model)),
+    user: types.maybeNull(User),
+    isFetching: types.boolean,
   })
   .actions(self => ({
     fetchUser: flow(function*() {
@@ -19,8 +26,9 @@ const UserStore = types
       }
       return self.user
     }),
+    setUser(user: IUser) {
+      self.user = user
+    },
   }))
 
-const initialState = { user: null }
-
-export default UserStore.create(initialState)
+export default types.optional(UserStore, initialState)
