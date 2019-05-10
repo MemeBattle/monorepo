@@ -1,0 +1,23 @@
+{
+  "name": "vk-redirect-page",
+  "version": "1.0.0",
+  "description": "i dont know what is it",
+  "author": "Artem Zverev <themezv@gmail.com>",
+  "homepage": "",
+  "license": "ISC",
+  "main": "index.ts",
+  "repository": {
+    "type": "git",
+    "url": "ssh://git@gitlab.mems.fun:2224/memebattle/frontend.git"
+  },
+  "scripts": {
+    "build": "parcel build index.html",
+    "dev": "parcel index.html"
+  },
+  "dependencies": {
+    "qs": "^6.7.0"
+  },
+  "devDependencies": {
+    "parcel-bundler": "^1.12.3"
+  }
+}
