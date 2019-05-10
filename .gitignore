@@ -25,5 +25,9 @@ yarn-error.log*
 *.log
 
 .idea
+dist
+
+# vk-redirect-page
+.cache
+
 .next
-.cache/
