@@ -1,15 +1,24 @@
 import { createBrowserHistory } from 'history'
-import { syncHistoryWithStore } from 'mobx-react-router'
-import authStore from './auth'
-import routingStore from './routing'
+import { syncHistoryWithStore } from 'mst-react-router'
+import { types, Instance } from 'mobx-state-tree'
+import AuthStore from './auth'
+import RoutingStore from './routing'
+import UserStore from './user'
 
 const browserHistory = createBrowserHistory()
 
-const stores = {
-  routing: routingStore,
-  auth: authStore,
-}
+const Store = types.model({
+  auth: AuthStore,
+  routing: RoutingStore,
+  user: UserStore,
+})
+
+const routingStore = RoutingStore.create()
 
 export const history = syncHistoryWithStore(browserHistory, routingStore)
 
-export default stores
+export interface IStore extends Instance<typeof Store> {}
+
+export default Store.create({
+  routing: routingStore,
+})

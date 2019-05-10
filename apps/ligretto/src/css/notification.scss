@@ -1,0 +1,31 @@
+.notification {
+  display: inline-block;
+  position: fixed;
+  bottom: 5px;
+  right: 5px;
+  width: 40%;
+  padding: 15px 25px 15px 25px;
+  background-color: rgba(255, 255, 255, 0.76);
+  border-radius: 10px;
+  border: 1px solid rgba(6, 6, 6, 0.46);
+  color: #12844d;
+  box-shadow: 0 1px 18px 0 black;
+  z-index: 15000;
+}
+
+.notification:hover {
+  background-color: rgba(255, 255, 255, 0.86);
+}
+
+.notification > * {
+  margin: 0;
+}
+
+.notification button {
+  //color: #323232;
+  //border-radius: 5px;
+  //background-color: #ad9161;
+  border: 0px solid;//rgba(6, 6, 6, 0.46);
+  margin-right: 5px;
+  margin-top: 10px;
+}
