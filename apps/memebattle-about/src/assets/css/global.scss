@@ -1,0 +1,37 @@
+@import "scroll";
+@import '../../../../../packages/assets/styles/normalize';
+
+body {
+  background: #d0be40;
+  background-image: url("../../../../../packages/assets/images/design/background.jpg");
+  overflow-x: hidden;
+}
+
+//@import url('../../../../../packages/assets/fonts/nautilus-pompilius-converted/NautilusPompilius.scss');
+
+$colors: (
+        text: #FFF,
+        background: #333,
+  // map inception
+        primary: (
+                base: #FFBB00,
+                light: lighten(#FFBB00, 15%),
+                dark: darken(#FFBB00, 15%)
+        ),
+        secondary: (
+                base: #0969A2,
+                light: lighten(#0969A2, 15%),
+                dark: darken(#0969A2, 15%)
+        )
+);
+
+// retrieve color from map ie. `color(primary, base)`
+@function color($color-name, $color-variant:null) {
+  // color variant is optional
+  @if ($color-variant != null) {
+    // map inception
+    @return map-get(map-get($colors, $color-name), $color-variant);
+  } @else {
+    @return map-get($colors, $color-name);
+  }
+}

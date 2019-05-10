@@ -1,0 +1,15 @@
+/**
+* Base styles
+*/
+@import 'variables';
+@import 'normalize';
+
+/**
+* Get fonts
+*/
+@import url('../fonts/nautilus-pompilius-converted/NautilusPompilius.scss');
+@import url('../fonts/open-gost-converted/OpenGostTypeATT-Regular.scss');
+
+* {
+  box-sizing: border-box;
+}

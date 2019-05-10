@@ -1,0 +1,39 @@
+{
+	"name": "@memebattle/components-icons",
+	"version": "0.1.0",
+	"description": "> TODO: description",
+	"author": "themezv <themezv@gmail.com>",
+	"homepage": "",
+	"license": "MIT",
+	"main": "dist/index.js",
+	"types": "dist/types/index.d.ts",
+	"scripts": {
+		"tsc": "tsc",
+		"build": "parcel build src/index.ts && tsc -d"
+	},
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not ie <= 11",
+		"not op_mini all"
+	],
+	"dependencies": {
+		"@types/jest": "24.0.11",
+		"@types/node": "11.13.0",
+		"@types/react": "^16.4.18",
+		"@types/react-dom": "^16.0.9",
+		"react": "^16.7.0-alpha.0",
+		"react-dom": "^16.7.0-alpha.0",
+		"react-scripts": "2.1.8",
+		"typescript": "^3.2.0-dev.20181103"
+	},
+	"devDependencies": {
+		"@babel/core": "^7.4.3",
+		"@babel/preset-react": "^7.0.0",
+		"parcel-bundler": "^1.12.3",
+		"parcel-plugin-typed-css-modules": "^1.1.0",
+		"parcel-plugin-typescript": "^1.0.0",
+		"postcss-modules": "^1.4.1",
+		"sass": "^1.19.0"
+	}
+}
