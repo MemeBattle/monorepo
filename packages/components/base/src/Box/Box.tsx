@@ -4,8 +4,9 @@ interface Props {
   is?: 'div' | 'span' | 'header' | 'main' | 'footer' | 'section' | 'aside'
   className?: string
   children?: React.ReactNode
+  style?: React.CSSProperties
 }
 
-export const Box = ({ is = 'div', children, ...restProps }: Props) => {
-  return React.createElement(is, restProps, children)
-}
+export const Box = React.forwardRef(({ is = 'div', children, ...restProps }: Props, ref) => {
+  return React.createElement(is, { ...restProps, ref }, children)
+})

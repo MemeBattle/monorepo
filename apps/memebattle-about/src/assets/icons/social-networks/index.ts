@@ -1,0 +1,7 @@
+export { default as vk } from './vk.svg'
+export { default as twitter } from './twitter.svg'
+export { default as fb } from './facebook.svg'
+export { default as instagram } from './instagram.svg'
+export { default as linkedin } from './linkedin.svg'
+export { default as behance } from './behance.svg'
+export { default as tg } from './tg.svg'

@@ -13,13 +13,14 @@
     "object-literal-sort-keys": false,
     "ordered-imports": false,
     "interface-name": [
-      true,
+      false,
       "never-prefix"
     ],
     "no-implicit-dependencies": false,
     "no-submodule-imports": false,
     "jsx-no-lambda": false,
-    "jsx-boolean-value": false
+    "jsx-boolean-value": false,
+    "no-console": false
   },
   "rulesDirectory": [
     "node_modules/tslint-eslint-rules/dist/rules"

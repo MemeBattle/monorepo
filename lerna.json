@@ -1,6 +1,7 @@
 {
   "packages": [
     "packages/components/*",
+    "packages/assets",
     "apps/*"
   ],
   "version": "independent",

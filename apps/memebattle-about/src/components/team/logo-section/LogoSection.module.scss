@@ -1,0 +1,18 @@
+.logo {
+  max-width: 14rem;
+  margin: 0 auto;
+  transition: transform 1s;
+  transform: scale(0.8);
+  &:hover {
+    transform: scale(1);
+  }
+}
+
+.textHeader {
+  text-align: center;
+  font-size: 4rem;
+  margin: 2rem 0 2rem;
+  color: #0d2f39;
+  text-shadow: 0 0 1.5rem 0.3rem rgba(13, 47, 57, 0.19);
+  max-width: 100%;
+}
