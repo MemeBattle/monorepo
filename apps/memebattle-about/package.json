@@ -1,6 +1,6 @@
 {
   "name": "memebattle-about",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "engines": {
     "node": "^10.15.3"
   },
@@ -27,9 +27,9 @@
     "start": "next start"
   },
   "dependencies": {
-    "@memebattle/assets": "^0.1.0",
-    "@memebattle/components-base": "^0.1.0",
-    "@memebattle/components-icons": "^0.1.0",
+    "@memebattle/assets": "^0.1.1",
+    "@memebattle/components-base": "^0.1.1",
+    "@memebattle/components-icons": "^0.1.1",
     "@types/classnames": "^2.2.7",
     "@zeit/next-css": "^1.0.1",
     "classnames": "^2.2.6",
