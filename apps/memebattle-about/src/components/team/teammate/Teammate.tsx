@@ -43,7 +43,9 @@ export const Teammate: React.FC<Props> = ({ teammate }) => {
         </Box>
         <CircleImage src={teammate.photoUrl} className={styles.photo} />
       </Box>
-      <Text className={styles.name}>{teammate.name}</Text>
+      <Text is="p" className={styles.name}>
+        {teammate.name}
+      </Text>
     </Box>
   )
 }
