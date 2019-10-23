@@ -1,0 +1,14 @@
+.ligrettoPack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title {
+  margin-top: 1rem;
+}
+
+.cardWrapper {
+  border-radius: 10px;
+  box-shadow: 3px 3px 2px #000;
+}

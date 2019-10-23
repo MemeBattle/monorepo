@@ -1,0 +1,10 @@
+.opponentCards {
+  display: flex;
+  flex-direction: row;
+  width: max-content;
+  transform: rotate(90deg) scale(0.5);
+}
+
+.card {
+  margin: 0.2rem;
+}

@@ -20,23 +20,13 @@ export const Teammate: React.FC<Props> = ({ teammate }) => {
   const isMobile = useMedia('(min-width: 320px) and (max-width: 480px)')
 
   return (
-    <Box
-      className={classNames(styles.teammate, { [styles.teammateInView]: inView && isMobile })}
-      ref={ref}>
+    <Box className={classNames(styles.teammate, { [styles.teammateInView]: inView && isMobile })} ref={ref}>
       <Box className={styles.photoWrapper}>
         <Box className={styles.socialNetworks}>
           {teammate.socialNetworks.map(({ type, link }, index, { length }) => (
             <a key={index} href={link}>
-              <Box
-                className={classNames(
-                  styles.iconWrapper,
-                  styles[`iconWrapper-${index}-${length}`],
-                )}>
-                <Image
-                  src={socialNetworkLogoByType[type]}
-                  alt={`${teammate.name} ${type}`}
-                  className={styles.icon}
-                />
+              <Box className={classNames(styles.iconWrapper, styles[`iconWrapper-${index}-${length}`])}>
+                <Image src={socialNetworkLogoByType[type]} alt={`${teammate.name} ${type}`} className={styles.icon} />
               </Box>
             </a>
           ))}

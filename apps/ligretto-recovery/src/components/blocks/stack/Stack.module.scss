@@ -1,0 +1,7 @@
+.stack {
+  display: flex;
+  flex-direction: row;
+  :first-child {
+    margin-right: 0.3rem;
+  }
+}

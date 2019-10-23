@@ -1,7 +1,7 @@
 import React from 'react'
 import { Box } from '@memebattle/components-base'
 
-export interface ICircleImage {
+export interface CircleImage {
   src: string
   className?: string
 }

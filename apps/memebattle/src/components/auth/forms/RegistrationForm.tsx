@@ -21,39 +21,13 @@ const RegistrationForm: React.FC<Props> = ({ onSubmit }) => {
     repeatPassword: '',
   })
 
-  const handleSubmit = useCallback(() => onSubmit({ email, userName, password, repeatPassword }), [
-    email,
-    userName,
-    password,
-    repeatPassword,
-  ])
+  const handleSubmit = useCallback(() => onSubmit({ email, userName, password, repeatPassword }), [email, userName, password, repeatPassword])
 
   return (
     <AuthForm onSubmit={handleSubmit}>
-      <AuthInput
-        value={email}
-        type="email"
-        id="email"
-        name="email"
-        onInput={handleChange}
-        placeholder="E-Mail"
-      />
-      <AuthInput
-        value={userName}
-        type="text"
-        id="userName"
-        name="userName"
-        onInput={handleChange}
-        placeholder="User name"
-      />
-      <AuthInput
-        value={password}
-        type="password"
-        id="password"
-        name="password"
-        onInput={handleChange}
-        placeholder="Password"
-      />
+      <AuthInput value={email} type="email" id="email" name="email" onInput={handleChange} placeholder="E-Mail" />
+      <AuthInput value={userName} type="text" id="userName" name="userName" onInput={handleChange} placeholder="User name" />
+      <AuthInput value={password} type="password" id="password" name="password" onInput={handleChange} placeholder="Password" />
       <AuthInput
         value={repeatPassword}
         type="password"

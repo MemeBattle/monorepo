@@ -19,7 +19,8 @@ export const TeamList: React.FC = observer(() => {
           key={teammate.id}
           href={{ pathname: '/teammate', query: { username: teammate.username } }}
           as={`/teammate/${teammate.username}`}
-          is="div">
+          is="div"
+        >
           <Teammate teammate={teammate} />
         </Link>
       ))}

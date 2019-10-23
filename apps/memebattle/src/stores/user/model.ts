@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-interface */
 import { types, flow, Instance } from 'mobx-state-tree'
 
 const initialState = {
@@ -10,7 +11,7 @@ const User = types.model('User', {
   name: types.string,
   secondName: types.string,
 })
-export interface IUser extends Instance<typeof User> {}
+export interface User extends Instance<typeof User> {}
 
 const UserStore = types
   .model('UserStore', {

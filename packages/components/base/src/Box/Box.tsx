@@ -7,6 +7,4 @@ interface Props {
   style?: React.CSSProperties
 }
 
-export const Box = React.forwardRef(({ is = 'div', children, ...restProps }: Props, ref) => {
-  return React.createElement(is, { ...restProps, ref }, children)
-})
+export const Box = React.forwardRef(({ is = 'div', children, ...restProps }: Props, ref) => React.createElement(is, { ...restProps, ref }, children))

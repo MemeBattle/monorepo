@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Card Should render 1`] = `
+<div
+  className="card empty"
+  onClick={[Function]}
+>
+  <div
+    className="value"
+  />
+</div>
+`;

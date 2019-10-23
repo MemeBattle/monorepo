@@ -1,0 +1,26 @@
+.cardsPanel {
+  display: flex;
+  flex-direction: row;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.cardsWrapper {
+  display: flex;
+  flex-direction: row;
+  :nth-child(2) {
+    margin: 0 0.5rem;
+  }
+}
+
+.ligrettoPackWrapper {
+  margin-left: 1rem;
+}
+
+.stackWrapper {
+  margin-right: 4rem;
+}

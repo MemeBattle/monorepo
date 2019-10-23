@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-interface */
 import { types, flow, Instance, SnapshotIn, SnapshotOut } from 'mobx-state-tree'
 import { socialNetworkTypesMap } from '🏠/utils/socialNetworks'
 
@@ -14,9 +15,9 @@ export const Teammate = types.model({
   socialNetworks: types.optional(types.array(SocialNetwork), []),
 })
 
-export interface ITeammate extends Instance<typeof Teammate> {}
-export interface ITeammateSnapshotIn extends SnapshotIn<typeof Teammate> {}
-export interface ITeammateSnapshotOut extends SnapshotOut<typeof Teammate> {}
+export interface Teammate extends Instance<typeof Teammate> {}
+export interface TeammateSnapshotIn extends SnapshotIn<typeof Teammate> {}
+export interface TeammateSnapshotOut extends SnapshotOut<typeof Teammate> {}
 
 const teammatesMock = [
   {

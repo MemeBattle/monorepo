@@ -1,0 +1,13 @@
+.header {
+  display: flex;
+  justify-content: center;
+  //background-color: rgba(27, 42, 35, 0.85);
+  padding: 1.5em 1.5rem 0;
+  margin-top: -1.7em;
+
+
+  transform: skewY(2deg);
+  box-shadow: 1px 9px 20px -3px black;
+  border-bottom: 4px solid #0000009c;
+  background: radial-gradient(circle farthest-corner at 53% 59%, rgba(214, 169, 68, 0.85) 0%, rgba(125, 108, 53, 0.83) 80%), radial-gradient(circle farthest-corner at 46% 45%, rgba(0, 0, 0, 0) 59%, #000000 70%);
+}

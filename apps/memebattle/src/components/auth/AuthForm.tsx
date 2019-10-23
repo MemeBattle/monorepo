@@ -6,12 +6,10 @@ interface Props {
   onSubmit: () => any
 }
 
-const AuthForm: React.FC<Props> = ({ children, onSubmit }) => {
-  return (
-    <Form onSubmit={onSubmit} className={styles.authForm}>
-      {children}
-    </Form>
-  )
-}
+const AuthForm: React.FC<Props> = ({ children, onSubmit }) => (
+  <Form onSubmit={onSubmit} className={styles.authForm}>
+    {children}
+  </Form>
+)
 
 export default AuthForm
