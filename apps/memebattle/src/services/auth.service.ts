@@ -1,22 +1,22 @@
-import request, { IRequestPromise } from 'utils/request'
+import request, { RequestPromise } from 'utils/request'
 
-export interface ILoginRequest {
+export interface LoginRequest {
   login: string
   password: string
 }
 
-export interface IRegisterRequest {
+export interface RegisterRequest {
   login: string
   email: string
   password: string
 }
 
-export interface ILoginResponse {
+export interface LoginResponse {
   token: string
   user: object
 }
 
-export interface IRegisterResponse {
+export interface RegisterResponse {
   token: string
   user: object
 }

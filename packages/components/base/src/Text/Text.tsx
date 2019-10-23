@@ -6,6 +6,4 @@ interface Props {
   children?: React.ReactNode
 }
 
-export const Text = ({ is = 'span', children, ...restProps }: Props) => {
-  return React.createElement(is, restProps, children)
-}
+export const Text = ({ is = 'span', children, ...restProps }: Props) => React.createElement(is, restProps, children)

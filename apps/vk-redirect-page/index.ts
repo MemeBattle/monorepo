@@ -4,7 +4,8 @@ if (window.location.hash) {
   if (window.opener) {
     window.opener.postMessage(parse(window.location.hash.slice(1)), '*')
   } else {
-    console.error('Opener does not exist') // tslint:disable-line: no-console
+    // eslint-disable-next-line no-console
+    console.error('Opener does not exist')
   }
   window.close()
 }

@@ -11,31 +11,20 @@ interface Props {
   onInput: (name: string, value: string) => any
 }
 
-export const Input: React.FC<Props> = ({
-  id,
-  value,
-  label,
-  type,
-  onInput,
-  name,
-  placeholder,
-  className,
-}) => {
-  return (
-    <>
-      <label htmlFor={id}>{label}</label>
-      <input
-        id={id}
-        type={type}
-        value={value}
-        name={name}
-        className={className}
-        onInput={(e: React.ChangeEvent<HTMLInputElement>) => onInput(e.target.name, e.target.value)}
-        placeholder={placeholder}
-      />
-    </>
-  )
-}
+export const Input: React.FC<Props> = ({ id, value, label, type, onInput, name, placeholder, className }) => (
+  <>
+    <label htmlFor={id}>{label}</label>
+    <input
+      id={id}
+      type={type}
+      value={value}
+      name={name}
+      className={className}
+      onInput={(e: React.ChangeEvent<HTMLInputElement>) => onInput(e.target.name, e.target.value)}
+      placeholder={placeholder}
+    />
+  </>
+)
 
 Input.defaultProps = {
   label: '',

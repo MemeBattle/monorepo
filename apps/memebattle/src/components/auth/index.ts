@@ -9,15 +9,4 @@ import AuthMainLogo from './AuthMainLogo'
 import AuthTitle from './AuthTitle'
 import RegistrationForm from './forms/RegistrationForm'
 
-export {
-  AuthPage,
-  AuthForm,
-  AuthMainLogo,
-  AuthTitle,
-  AuthSubmit,
-  LoginForm,
-  RegistrationForm,
-  AuthInput,
-  AuthCheckbox,
-  AuthTip,
-}
+export { AuthPage, AuthForm, AuthMainLogo, AuthTitle, AuthSubmit, LoginForm, RegistrationForm, AuthInput, AuthCheckbox, AuthTip }

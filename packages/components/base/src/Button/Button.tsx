@@ -8,16 +8,8 @@ export interface Props {
   disabled?: boolean
 }
 
-export const Button: React.FC<Props> = ({
-  type = 'button',
-  className,
-  children,
-  onClick,
-  disabled = false,
-}) => {
-  return (
-    <button onClick={onClick} className={className} type={type} disabled={disabled}>
-      {children}
-    </button>
-  )
-}
+export const Button: React.FC<Props> = ({ type = 'button', className, children, onClick, disabled = false }) => (
+  <button onClick={onClick} className={className} type={type} disabled={disabled}>
+    {children}
+  </button>
+)

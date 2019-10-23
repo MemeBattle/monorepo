@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-empty-interface */
 import axios, { AxiosPromise } from 'axios'
 import { API_URL, LS_TOKEN_KEY } from '../config'
 
-export interface IRequestPromise<T> extends AxiosPromise<T> {}
+export interface RequestPromise<T> extends AxiosPromise<T> {}
 
 const request = axios.create({
   baseURL: API_URL,

@@ -3,14 +3,12 @@ import { observer } from 'mobx-react-lite'
 import { TeamList, LogoSection } from '🏠/components/team'
 import { ENFC } from '🏠/types'
 
-const Team: ENFC = () => {
-  return (
-    <>
-      <LogoSection />
-      <TeamList />
-    </>
-  )
-}
+const Team: ENFC = () => (
+  <>
+    <LogoSection />
+    <TeamList />
+  </>
+)
 
 Team.getInitialProps = async ({ store }) => {
   await store.team.loadTeam()

@@ -20,36 +20,13 @@ const LoginForm: React.FC<Props> = ({ onSubmit }) => {
     rule: false,
   })
 
-  const handleSubmit = useCallback(() => onSubmit({ userName, password, rule }), [
-    userName,
-    password,
-    rule,
-  ])
+  const handleSubmit = useCallback(() => onSubmit({ userName, password, rule }), [userName, password, rule])
 
   return (
     <AuthForm onSubmit={handleSubmit}>
-      <AuthInput
-        value={userName}
-        type="text"
-        id="userName"
-        name="userName"
-        onInput={handleChange}
-        placeholder="Логин или e-mail"
-      />
-      <AuthInput
-        value={password}
-        type="password"
-        id="password"
-        name="password"
-        onInput={handleChange}
-        placeholder="Пароль"
-      />
-      <AuthCheckbox
-        id="rule"
-        name="rule"
-        value={rule}
-        onChange={handleChange}
-        className={styles.authFormCheckbox}>
+      <AuthInput value={userName} type="text" id="userName" name="userName" onInput={handleChange} placeholder="Логин или e-mail" />
+      <AuthInput value={password} type="password" id="password" name="password" onInput={handleChange} placeholder="Пароль" />
+      <AuthCheckbox id="rule" name="rule" value={rule} onChange={handleChange} className={styles.authFormCheckbox}>
         С правилами ознакомлен
       </AuthCheckbox>
       <AuthSubmit>Вход</AuthSubmit>

@@ -1,0 +1,19 @@
+{
+  "typescript.tsdk": "./node_modules/typescript/lib",
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "cSpell.enabled": true,
+  "files.exclude": {
+    "tsconfig.build.json": true
+  },
+  "files.trimTrailingWhitespace": true,
+  "eslint.autoFixOnSave": true,
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    { "language": "typescript", "autoFix": true },
+    { "language": "typescriptreact", "autoFix": true }
+  ],
+  "npm.packageManager": "yarn",
+  "cSpell.words": ["injectable", "nestjs", "postgres", "styleguide", "typeorm"],
+  "gitlens.advanced.blame.customArguments": []
+}
