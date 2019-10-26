@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.dev.js"></script>
+</head>
+<body>
+<script>
+  const socket = io.connect('http://localhost:3005')
+
+  socket.on('connect', function () {
+    console.log('client connected')
+    socket.emit('qweqwe');
+  });
+
+</script>
+</body>
+</html>

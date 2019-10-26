@@ -3,3 +3,4 @@ import * as cardsSelectors from './selectors'
 
 export { cardsReducer } from './reducer'
 export { cardsActions, cardsSelectors }
+export { cardsRootSaga } from './sagas'

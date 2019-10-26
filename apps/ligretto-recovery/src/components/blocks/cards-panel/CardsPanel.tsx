@@ -11,9 +11,9 @@ export const CardsPanel = () => (
       <Stack />
     </div>
     <div className={styles.cardsWrapper}>
-      <CardContainer cardPosition={CardPositions.w} />
       <CardContainer cardPosition={CardPositions.e} />
       <CardContainer cardPosition={CardPositions.r} />
+      <CardContainer cardPosition={CardPositions.t} />
     </div>
     <div className={styles.ligrettoPackWrapper}>
       <LigrettoPack count={10} />

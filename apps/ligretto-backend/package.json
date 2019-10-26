@@ -4,11 +4,13 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "test:watch": "tsc && ava --watch --color --verbose"
+    "test:watch": "tsc && ava --watch --color --verbose",
+    "start:dev": "nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/socketIoServer.ts"
   },
   "devDependencies": {
     "@types/node": "^12.7.3",
     "ava": "^2.3.0",
+    "nodemon": "^1.19.4",
     "prettier": "^1.18.2",
     "tap-nyan": "^1.1.0",
     "ts-node": "^8.3.0",
@@ -25,8 +27,10 @@
   },
   "dependencies": {
     "@types/lodash": "^4.14.138",
+    "@types/socket.io": "^2.1.4",
     "inversify": "^5.0.1",
     "lodash": "^4.17.15",
-    "reflect-metadata": "^0.1.13"
+    "reflect-metadata": "^0.1.13",
+    "socket.io": "^2.3.0"
   }
 }
