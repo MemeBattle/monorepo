@@ -5,7 +5,8 @@
   "license": "MIT",
   "scripts": {
     "test:watch": "tsc && ava --watch --color --verbose",
-    "start:dev": "nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/socketIoServer.ts"
+    "start:dev": "nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/index.ts",
+    "env": "cp .env.default .env"
   },
   "devDependencies": {
     "@types/node": "^12.7.3",
@@ -26,8 +27,10 @@
     ]
   },
   "dependencies": {
+    "@types/dotenv": "^6.1.1",
     "@types/lodash": "^4.14.138",
     "@types/socket.io": "^2.1.4",
+    "dotenv": "^8.2.0",
     "inversify": "^5.0.1",
     "lodash": "^4.17.15",
     "reflect-metadata": "^0.1.13",
