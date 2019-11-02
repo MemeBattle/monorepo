@@ -2,27 +2,31 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { injectable } from 'inversify'
-import { range } from 'lodash'
-import { Card } from './card'
+import { range, last } from 'lodash'
+import { Card } from '../../types'
+import { database } from '../../database/database'
 
 @injectable()
 export class CardsDeckRepository {
-  private cards: Card[] = []
-
-  getCards() {
-    return this.cards
+  async getCards(gameId: string, deckPosition: number) {
+    return await database.get(storage => storage.games[gameId].playground.decks[deckPosition].cards)
   }
 
-  addCards(cards: Card[]) {
-    this.cards.push(...cards)
-
-    return this.cards
+  getTopCard() {
+    return last(this.cards);
   }
 
   pushCard(card: Card) {
     this.cards.push(card)
 
     return card
+  }
+
+
+  async putCardOnDeck(gameId: string, position: number, card: Card) {
+    return await database.set((storage => {
+      storage.games[gameId].playground.decks[position].cards.push(card)
+    }))
   }
 
   popCard() {
