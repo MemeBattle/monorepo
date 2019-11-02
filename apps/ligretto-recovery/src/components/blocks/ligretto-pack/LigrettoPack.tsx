@@ -9,7 +9,7 @@ interface LigrettoPack {
 export const LigrettoPack: React.FC<LigrettoPack> = ({ count }) => (
   <div className={styles.ligrettoPack}>
     <div className={styles.cardWrapper}>
-      <CardContainer cardPosition={CardPositions.w} />
+      <CardContainer cardPosition={CardPositions.a} />
     </div>
     <span className={styles.title}>Осталось в колоде: {count} </span>
   </div>

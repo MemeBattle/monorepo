@@ -59,12 +59,16 @@ function* socketSendSaga(socket: SocketIOClient.Socket): SagaIterator {
       console.warn('Websocket: Cannot send message')
     }
 
-    socket.emit('event', socketAction.payload)
+    socket.emit('message', socketAction.payload)
   }
 }
 
 export function* socketSaga() {
   const socket = io(WEBSOCKET_URL)
+  // @ts-ignore
+  window.emitEcho = data => {
+    socket.emit('echo', data)
+  }
 
   yield all([call(socketSendSaga, socket), call(socketReceiveSaga, socket)])
 }

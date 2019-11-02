@@ -9,6 +9,9 @@
   font-size: 7rem;
   color: #efffe6;
 
+  cursor: default;
+  user-select: none;
+
   &:hover {
     text-shadow: 3px 3px 4px rgba(255, 255, 255, 0.7);
   }
