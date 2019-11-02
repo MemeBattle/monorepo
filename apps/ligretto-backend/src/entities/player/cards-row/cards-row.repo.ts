@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
-import { Card } from '../../cards-deck'
+import { Card } from '../../playground'
 import { injectable } from 'inversify'
 
 type RowPositions = [1, 2, 3, 4, 5]

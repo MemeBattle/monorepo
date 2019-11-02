@@ -25,6 +25,5 @@ export enum CardPositions {
 }
 export interface Card {
   color: CardColors
-  value: string
-  position?: CardPositions
+  value: number
 }
