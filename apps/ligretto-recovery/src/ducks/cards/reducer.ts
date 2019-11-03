@@ -9,7 +9,7 @@ const defaultCard: Card = {
 }
 
 export const createCardsInitialState = (): Store.Cards =>
-  Object.values(CardPositions).reduce((acc, cardPosition) => ({ ...acc, [cardPosition]: defaultCard }), {})
+  Object.values(CardPositions).reduce((acc, cardPosition) => ({ ...acc, [cardPosition]: defaultCard }), {}) as Store.Cards
 
 export const cardsInitialState: Store.Cards = createCardsInitialState()
 
