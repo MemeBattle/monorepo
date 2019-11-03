@@ -1,11 +1,12 @@
 {
   "name": "@memebattle/ligretto-shared",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Ligretto shared package",
   "main": "index.ts",
   "author": "MemeBattle",
   "license": "MIT",
   "dependencies": {
     "typescript": "^3.6.4"
-  }
+  },
+  "gitHead": "50afc9f39532b37c83e5eca316a309feda1893dd"
 }

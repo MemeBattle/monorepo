@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify'
 import { Socket } from 'socket.io'
 import { TYPES } from '../types'
-import { GameController } from '../controllers/gameController'
+import { GameplayController } from '../controllers/gameplay-controller'
 
 export interface WebSocketHandler {
   connectionHandler(socket: Socket): void
@@ -9,7 +9,7 @@ export interface WebSocketHandler {
 
 @injectable()
 export class WebSocketHandler implements WebSocketHandler {
-  @inject(TYPES.GameController) private gameController: GameController
+  @inject(TYPES.GameController) private gameController: GameplayController
 
   public connectionHandler(socket: Socket): void {
     socket.on('message', data => {

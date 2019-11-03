@@ -1,6 +1,6 @@
 {
-  "name": "@memebattle/ligretto-backend",
-  "version": "1.0.1",
+  "name": "ligretto-backend",
+  "version": "1.0.2",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
@@ -36,5 +36,6 @@
     "lodash": "^4.17.15",
     "reflect-metadata": "^0.1.13",
     "socket.io": "^2.3.0"
-  }
+  },
+  "gitHead": "50afc9f39532b37c83e5eca316a309feda1893dd"
 }
