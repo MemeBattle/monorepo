@@ -12,7 +12,7 @@ export class Gameplay {
   ) {}
 
   async startGame(gameId: string) {
-    return await this.gameService.initGame(gameId)
+    return await this.gameService.startGame(gameId)
   }
 
   async playerPutCard(gameId: string, playerColor: string, cardPosition: number, deckPosition: number) {
