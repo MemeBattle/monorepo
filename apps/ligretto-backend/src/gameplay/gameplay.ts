@@ -12,7 +12,11 @@ export class Gameplay {
   ) {}
 
   async startGame(gameId: string) {
-    return await this.gameService.startGame(gameId)
+    try {
+      await this.gameService.startGame(gameId);
+    } catch (e) {
+      console.log(e);
+    }
   }
 
   async playerPutCard(gameId: string, playerColor: string, cardPosition: number, deckPosition: number) {
