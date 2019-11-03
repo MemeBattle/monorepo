@@ -1,2 +1,2 @@
-export const logo: string
-export const textHeader: string
+export const logo: string;
+export const textHeader: string;
