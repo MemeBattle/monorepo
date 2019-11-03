@@ -35,5 +35,6 @@
 		"parcel-plugin-typescript": "^1.0.0",
 		"postcss-modules": "^1.4.1",
 		"sass": "^1.19.0"
-	}
+	},
+	"gitHead": "50afc9f39532b37c83e5eca316a309feda1893dd"
 }

@@ -19,5 +19,6 @@
   },
   "devDependencies": {
     "parcel-bundler": "^1.12.3"
-  }
+  },
+  "gitHead": "50afc9f39532b37c83e5eca316a309feda1893dd"
 }

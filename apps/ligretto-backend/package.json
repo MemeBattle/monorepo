@@ -36,5 +36,6 @@
     "lodash": "^4.17.15",
     "reflect-metadata": "^0.1.13",
     "socket.io": "^2.3.0"
-  }
+  },
+  "gitHead": "50afc9f39532b37c83e5eca316a309feda1893dd"
 }
