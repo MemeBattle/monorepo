@@ -1,12 +1,11 @@
 import { Playground } from './playground'
-import { CardColors } from './card'
 import { Player } from './player'
 
 export interface Game {
   players: {
-    [color: string]: Player
+    [player: string]: Player
   }
-  playground: Playground,
+  playground: Playground
   config: {
     cardsCount: number
   }
