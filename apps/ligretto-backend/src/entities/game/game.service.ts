@@ -8,6 +8,7 @@ const emptyGame: Game = {
   playground: {
     decks: [],
   },
+  config: { cardsCount: 3 },
 }
 
 @injectable()
