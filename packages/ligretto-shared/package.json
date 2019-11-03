@@ -7,5 +7,6 @@
   "license": "MIT",
   "dependencies": {
     "typescript": "^3.6.4"
-  }
+  },
+  "gitHead": "50afc9f39532b37c83e5eca316a309feda1893dd"
 }

@@ -65,5 +65,6 @@
     "fork-ts-checker-webpack-plugin": "^1.0.1",
     "ts-node-dev": "^1.0.0-pre.32",
     "typings-for-css-modules-loader": "^1.7.0"
-  }
+  },
+  "gitHead": "50afc9f39532b37c83e5eca316a309feda1893dd"
 }

@@ -39,5 +39,6 @@
 		"react-dom": "^16.7.0-alpha.0",
 		"react-scripts": "2.1.8",
 		"typescript": "^3.2.0-dev.20181103"
-	}
+	},
+	"gitHead": "50afc9f39532b37c83e5eca316a309feda1893dd"
 }
