@@ -1,9 +1,9 @@
 import { NextContext } from 'next'
 import React from 'react'
-import { IStore } from '🏠/stores'
+import { Store } from '🏠/stores'
 
 export interface NextContextWithStore extends NextContext {
-  store: IStore
+  store: Store
 }
 
 export interface ENFC<P = {}> extends React.FC<P> {

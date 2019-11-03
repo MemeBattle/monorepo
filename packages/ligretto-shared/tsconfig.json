@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["es6"],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmit": true,
+    "outDir": "build"
+  }
+}
