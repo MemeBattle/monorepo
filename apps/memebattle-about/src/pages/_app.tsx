@@ -1,13 +1,13 @@
 import App, { Container } from 'next/app'
 import * as React from 'react'
 import { getSnapshot } from 'mobx-state-tree'
-import { initializeStore, IStore } from '🏠/stores'
+import { initializeStore, Store } from '🏠/stores'
 import { StoreContext } from '🏠/contexts'
 import { loadPolyfills } from '🏠/utils/loadPolyfills'
 import '🏠/assets/css/global.scss'
 
 class MyApp extends App {
-  protected store: IStore
+  protected store: Store
 
   public static async getInitialProps({ Component, router, ctx }) {
     const store = initializeStore()
@@ -24,7 +24,7 @@ class MyApp extends App {
 
   constructor(props) {
     super(props)
-    this.store = initializeStore(props.initialState) as IStore
+    this.store = initializeStore(props.initialState) as Store
   }
 
   public render() {

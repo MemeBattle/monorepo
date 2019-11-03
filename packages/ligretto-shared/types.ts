@@ -24,7 +24,9 @@ export enum CardPositions {
   t5 = 't5',
 }
 export interface Card {
-  color: CardColors
-  value: string
+  color?: CardColors
+  value?: string
   position?: CardPositions
+  disabled?: boolean
+  hidden?: boolean
 }
