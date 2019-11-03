@@ -1,6 +1,6 @@
 {
 	"name": "@memebattle/memebattle",
-	"version": "0.1.3",
+	"version": "0.1.4",
 	"private": true,
 	"scripts": {
 		"start": "react-scripts start",
@@ -24,8 +24,8 @@
 		"@types/react-router-dom": "^4.3.1"
 	},
 	"dependencies": {
-		"@memebattle/components-base": "^0.1.2",
-		"@memebattle/components-icons": "^0.1.1",
+		"@memebattle/components-base": "^0.1.4",
+		"@memebattle/components-icons": "^0.1.3",
 		"axios": "^0.18.0",
 		"history": "^4.7.2",
 		"mobx": "^5.1.2",
