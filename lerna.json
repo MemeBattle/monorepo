@@ -1,9 +1,16 @@
 {
   "packages": [
-    "packages/components/*",
-    "packages/assets",
-    "apps/*"
+    "packages/**",
+    "apps/**"
   ],
+  "npmClient": "yarn",
+  "useWorkspaces": true,
   "version": "independent",
-  "npmClient": "yarn"
+  "command": {
+    "publish": {
+      "allowBranch": "master",
+      "conventionalCommits": true,
+      "message": "chore(release): updated release notes and package versions"
+    }
+  }
 }

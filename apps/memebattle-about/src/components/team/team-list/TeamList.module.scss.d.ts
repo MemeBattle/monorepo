@@ -1,2 +1,2 @@
-export const teamList: string
-export const teamListItem: string
+export const teamList: string;
+export const teamListItem: string;
