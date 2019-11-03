@@ -1,6 +1,6 @@
 {
   "name": "@memebattle/ligretto-shared",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Ligretto shared package",
   "main": "index.ts",
   "author": "MemeBattle",
