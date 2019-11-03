@@ -1,6 +1,6 @@
 {
   "name": "ligretto-recovery",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "devDependencies": {
     "@types/classnames": "^2.2.9",
@@ -21,7 +21,7 @@
     "redux-devtools-extension": "^2.13.8"
   },
   "dependencies": {
-    "@memebattle/ligretto-shared": "^1.0.1",
+    "@memebattle/ligretto-shared": "^1.0.2",
     "axios": "^0.19.0",
     "classnames": "^2.2.6",
     "connected-react-router": "^6.5.2",
