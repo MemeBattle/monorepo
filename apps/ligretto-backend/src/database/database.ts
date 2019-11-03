@@ -6,14 +6,14 @@ const storage: Storage = {
   users: {},
 }
 
-type Accessor<T = undefined> = (storage: Storage) => ReturnType<T>
+type Accessor<T> = (storage: Storage) => T
 type Setter = (storage: Storage) => void
 
 export const database = {
-  get(accessor: Accessor): ReturnType<Accessor> {
-    return Promise.resolve(() => accessor(storage))
+  get<T>(accessor: Accessor<T>) {
+    return Promise.resolve(accessor(storage))
   },
   set(setter: Setter) {
-    return Promise.resolve(() => setter(storage));
+    return Promise.resolve(setter(storage))
   },
 };
