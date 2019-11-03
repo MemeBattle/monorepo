@@ -8,6 +8,7 @@ const emptyGame: Game = {
   playground: {
     decks: [],
   },
+  config: { cardsCount: 3 },
 }
 
 @injectable()
@@ -20,10 +21,22 @@ export class GameService {
     return this.gameRepository.addGame(gameId, emptyGame)
   }
 
-  async initGame(gameId: string) {
+  async startGame(gameId: string) {
     return this.gameRepository.updateGame(gameId, (game => {
+      const players: Game['players'] = {}
+      for (const player in game.players) {
+        players[player] = {
+          ...game.players[player],
+          cards: [/* Карты */],
+          stackDeck: { cards: [/* Колода */], isHidden: false },
+          stackOpenDeck: { cards: [], isHidden: false },
+        }
+      }
+
       return {
         ...game,
+        players,
+        playground: { decks: [] },
       }
     }))
   }
@@ -38,6 +51,10 @@ export class GameService {
         }
       }
     })
+  }
+
+  async getGame(gameId: string) {
+    await this.gameRepository.getGame(gameId);
   }
 
   async getResult(gameId: string) {}

@@ -2,7 +2,7 @@ import 'reflect-metadata'
 import { Container } from 'inversify'
 import { TYPES } from './types'
 import { GameService } from './entities/game/game.service'
-import { GameController } from './controllers/gameController'
+import { GameController } from './controllers/game-controller'
 
 const IOC = new Container()
 IOC.bind<GameService>(TYPES.GameService).to(GameService)

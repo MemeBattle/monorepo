@@ -1,6 +1,6 @@
 import * as SocketIo from 'socket.io'
 import { SOCKET_PORT } from './config'
-import { WebSocketHandler } from './webSocketHandlers'
+import { WebSocketHandler } from './websocket-handlers'
 
 const server = SocketIo(SOCKET_PORT)
 

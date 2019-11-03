@@ -11,7 +11,7 @@
       "allowBranch": "master",
       "conventionalCommits": true,
       "message": "chore(release): updated release notes and package versions",
-      "regestry": "@memebattle:registry=http://npm.mems.fun:4873"
+      "registry": "http://npm.mems.fun:4873"
     }
   }
 }

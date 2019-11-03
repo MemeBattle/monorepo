@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { injectable } from 'inversify'
-import { CardsDeck } from '../../types'
 import { database } from '../../database/database'
 import { Game } from '../../types/game'
 
