@@ -1,5 +1,5 @@
 {
-  "name": "ligretto-recovery",
+  "name": "@memebattle/ligretto-recovery",
   "version": "0.1.2",
   "private": true,
   "devDependencies": {
