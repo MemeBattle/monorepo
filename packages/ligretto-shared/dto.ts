@@ -1,4 +1,4 @@
-import { CardPositions, CardColors } from '../../apps/ligretto-recovery/src/types/entities/card-model'
+import { CardPositions, CardColors } from './types'
 
 export class TapCard {
   cardPosition!: CardPositions
