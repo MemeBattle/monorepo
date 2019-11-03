@@ -21,6 +21,7 @@
     "redux-devtools-extension": "^2.13.8"
   },
   "dependencies": {
+    "@memebattle/ligretto-shared": "1.0.0",
     "axios": "^0.19.0",
     "classnames": "^2.2.6",
     "connected-react-router": "^6.5.2",

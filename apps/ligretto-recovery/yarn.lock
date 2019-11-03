@@ -1004,6 +1004,13 @@
     "@types/istanbul-reports" "^1.1.1"
     "@types/yargs" "^12.0.9"
 
+"@memebattle/ligretto-shared@1.0.0":
+  version "1.0.0"
+  resolved "http://npm.mems.fun:4873/@memebattle%2fligretto-shared/-/ligretto-shared-1.0.0.tgz#a871624bff70862fc0b3b8a0e6fe0e35ed68910e"
+  integrity sha512-39oPPUOPvnkZP7M3/UBU4K5CBN/hzG7QBCCdL8SlP+DDcU68w5yC4/4t9xwtacPa0LjJ1juYTlUEAefoMr3cMQ==
+  dependencies:
+    typescript "^3.6.4"
+
 "@mrmlnc/readdir-enhanced@^2.2.1":
   version "2.2.1"
   resolved "https://registry.yarnpkg.com/@mrmlnc/readdir-enhanced/-/readdir-enhanced-2.2.1.tgz#524af240d1a360527b730475ecfa1344aa540dde"
@@ -10192,6 +10199,11 @@ typescript@3.5.3:
   version "3.5.3"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.5.3.tgz#c830f657f93f1ea846819e929092f5fe5983e977"
   integrity sha512-ACzBtm/PhXBDId6a6sDJfroT2pOWt/oOnk4/dElG5G33ZL776N3Y6/6bKZJBFpd+b05F3Ct9qDjMeJmRWtE2/g==
+
+typescript@^3.6.4:
+  version "3.6.4"
+  resolved "http://npm.mems.fun:4873/typescript/-/typescript-3.6.4.tgz#b18752bb3792bc1a0281335f7f6ebf1bbfc5b91d"
+  integrity sha512-unoCll1+l+YK4i4F8f22TaNVPRHcD9PA3yCuZ8g5e0qGqlVlJ/8FSateOLLSagn+Yg5+ZwuPkL8LFUc0Jcvksg==
 
 uglify-js@3.4.x:
   version "3.4.10"

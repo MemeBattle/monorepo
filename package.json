@@ -1,14 +1,26 @@
 {
-  "name": "memebattle",
-  "version": "0.1.0",
+  "name": "meme-battle",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
-    "init": "yarn lerna bootstrap",
-    "bootstrap": "yarn tsc && yarn lerna bootstrap",
-    "lint": "eslint --ignore-path .gitignore . --ext .js,.jsx,.ts,.tsx",
-    "tsc": "yarn lerna run tsc",
-    "start": "yarn lerna run start",
-    "build": "yarn lerna run build"
+    "bootstrap": "lerna bootstrap --use-workspaces",
+    "postbootstrap": "lerna run build --scope=$(node --no-warnings ./scripts/get-packages.js ./packages)",
+    "lint:js": "eslint --ext .js,.vue,.jsx,.ts,.tsx --ignore-path .gitignore .",
+    "test": "lerna run --no-bail test --ignore-path .gitignore",
+    "lerna-publish": "lerna publish",
+    "lerna-ci-publish": "lerna publish --yes --no-git-reset"
+  },
+  "engines": {
+    "node": ">=10"
+  },
+  "workspaces": [
+    "packages/**",
+    "apps/**"
+  ],
+  "command": {
+    "publish": {
+      "npmClient": "npm"
+    }
   },
   "eslintConfig": {
     "extends": "react-app"
