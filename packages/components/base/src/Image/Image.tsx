@@ -6,4 +6,4 @@ export interface Image {
   alt?: string
 }
 
-export const Image = (restProps: IImage) => React.createElement('img', restProps)
+export const Image = (restProps: Image) => React.createElement('img', restProps)

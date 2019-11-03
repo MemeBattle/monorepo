@@ -1,13 +1,13 @@
 import React from 'react'
 import { observer } from 'mobx-react-lite'
-import { IStore } from '🏠/stores'
+import { Store } from '🏠/stores'
 import { ITeammate } from '🏠/stores/TeamStore'
 import { useStore } from '🏠/hooks'
 import { Box, Link } from '🏠/components/base'
 import { Teammate } from '🏠/components/team'
 import styles from './TeamList.module.scss'
 
-const selectTeammates = (store: IStore) => store.team.teammates
+const selectTeammates = (store: Store) => store.team.teammates
 
 export const TeamList: React.FC = observer(() => {
   const teammates = useStore(selectTeammates)
