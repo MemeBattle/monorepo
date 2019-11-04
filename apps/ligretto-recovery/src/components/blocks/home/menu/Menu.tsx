@@ -28,13 +28,11 @@ const menuItems = [
 ]
 
 const Menu = () => (
-  <main className={styles.menu}>
-    <ul>
-      {menuItems.map(item => (
-        <MenuItem {...item} />
-      ))}
-    </ul>
-  </main>
+  <ul className={styles.menu}>
+    {menuItems.map(item => (
+      <MenuItem key={item.title} {...item} />
+    ))}
+  </ul>
 )
 
 export default Menu

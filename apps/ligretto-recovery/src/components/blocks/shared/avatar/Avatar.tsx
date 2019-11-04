@@ -1,7 +1,16 @@
 import React from 'react'
 
-interface Avatar {
-  src: string
+const heightBySize = {
+  small: '70px',
+  medium: '140px',
+  large: '210px',
 }
 
-const Avatar: React.FC<Avatar> = ({ src }) => <img src={src} />
+interface Avatar {
+  src: string
+  size?: keyof typeof heightBySize
+}
+
+const Avatar: React.FC<Avatar> = ({ src, size = 'medium' }) => <img src={src} height={heightBySize[size]} />
+
+export default Avatar
