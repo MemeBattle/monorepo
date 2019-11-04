@@ -7,14 +7,18 @@
 /**
 * Get fonts
 */
-@import url('../fonts/nautilus-pompilius-converted/NautilusPompilius.scss');
-@import url('../fonts/open-gost-converted/OpenGostTypeATT-Regular.scss');
+//@import url('../fonts/nautilus-pompilius-converted/NautilusPompilius.scss');
+//@import url('../fonts/open-gost-converted/OpenGostTypeATT-Regular.scss');
 
 * {
   box-sizing: border-box;
 }
 
 @font-face {
-  font-family: "armonela";
-  src: url("../fonts/armonela/ArmonelaBlack.ttf") format("truetype");
+  font-family: "segoeUI";
+  src: url("../fonts/segoe-ui.ttf") format("truetype");
+}
+
+body {
+  font-family: "segoeUI", serif;
 }
