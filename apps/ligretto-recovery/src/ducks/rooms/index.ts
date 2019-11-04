@@ -1,0 +1,1 @@
+export { roomsReducer } from './reducer'
