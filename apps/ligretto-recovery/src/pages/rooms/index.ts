@@ -1,0 +1,1 @@
+export { RoomsPage } from './Rooms'

@@ -1,0 +1,45 @@
+@import "assets/styles/_variables.scss";
+
+.searchInputWrapper {
+  height: 50px;
+  width: 360px;
+  display: inline-flex;
+
+
+  .icon {
+    display: inline-flex;
+    justify-content: center;
+    background: $color-primary;
+    height: 100%;
+    width: 50px;
+    cursor: pointer;
+  }
+
+  &.disabled {
+    color: $color-disabled;
+
+    .icon {
+      background: $color-disabled;
+      cursor: default;
+    }
+
+    .searchInput::placeholder {
+      color: $color-disabled;
+    }
+  }
+
+  .searchInput {
+
+    border: 0;
+    padding-left: 22px;
+    height: 100%;
+    width: 100%;
+
+    color: $color-primary;
+
+    &::placeholder {
+      color: $color-primary-lighten;
+    }
+  }
+}
+
