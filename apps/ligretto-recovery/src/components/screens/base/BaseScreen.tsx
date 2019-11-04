@@ -6,4 +6,4 @@ interface Props {
   className?: string
 }
 
-export const BaseScreen: React.FC<Props> = ({ className, children }) => <div className={classNames(styles.screen, className)}>{children}</div>
+export const BaseScreen: React.FC<Props> = ({ className, children }) => <main className={classNames(styles.screen, className)}>{children}</main>
