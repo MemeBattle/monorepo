@@ -1,7 +1,7 @@
 import React from 'react'
 import { observer } from 'mobx-react-lite'
 import { Store } from '🏠/stores'
-import { ITeammate } from '🏠/stores/TeamStore'
+import { Teammate as ITeammate } from '🏠/stores/TeamStore'
 import { useStore } from '🏠/hooks'
 import { Box, Link } from '🏠/components/base'
 import { Teammate } from '🏠/components/team'

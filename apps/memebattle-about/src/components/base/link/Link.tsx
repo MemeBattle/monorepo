@@ -2,8 +2,8 @@ import React from 'react'
 import NextLink, { LinkProps } from 'next/link'
 
 export interface LinkP extends LinkProps {
-  children: React.ReactElement
   is?: string
+  className?: string
 }
 
 const Element = ({ is = 'a', ...rest }) => React.createElement(is, rest)
