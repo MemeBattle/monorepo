@@ -2,7 +2,7 @@ import React from 'react'
 
 import { Logo } from 'components/blocks/shared/logo'
 import UserHeaderCardContainer from 'containers/user/UserHeaderCard'
-import { LOGO_CAPTURE } from '../../../constants' // TODO: make normal path resolver
+import { LOGO_CAPTURE } from 'utils/constants'
 
 import styles from './Home.module.scss'
 
