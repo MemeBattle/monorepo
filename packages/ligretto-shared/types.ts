@@ -30,3 +30,10 @@ export interface Card {
   disabled?: boolean
   hidden?: boolean
 }
+
+export interface Room {
+  uuid: string
+  name: string
+  playersCount: number
+  playersMaxCount: number
+}
