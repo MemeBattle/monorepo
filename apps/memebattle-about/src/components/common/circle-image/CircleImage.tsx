@@ -6,7 +6,7 @@ export interface CircleImage {
   className?: string
 }
 
-export const CircleImage: React.FC<ICircleImage> = ({ src, ...props }) => (
+export const CircleImage: React.FC<CircleImage> = ({ src, ...props }) => (
   <Box
     style={{
       backgroundImage: `url(${src})`,

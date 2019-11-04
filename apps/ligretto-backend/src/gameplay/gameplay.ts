@@ -13,9 +13,9 @@ export class Gameplay {
 
   async startGame(gameId: string) {
     try {
-      await this.gameService.startGame(gameId);
+      await this.gameService.startGame(gameId)
     } catch (e) {
-      console.log(e);
+      console.log(e)
     }
   }
 
