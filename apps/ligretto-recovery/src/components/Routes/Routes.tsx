@@ -1,13 +1,14 @@
 import React from 'react'
 import { Switch, Route } from 'react-router-dom'
 
+import { routes } from 'utils/constants'
 import { GamePage, HomePage, RoomsPage } from 'pages'
 
 const Router = () => (
   <Switch>
-    <Route path="/" component={HomePage} exact />
-    <Route path="/game" component={GamePage} exact />
-    <Route path="/rooms" component={RoomsPage} exact />
+    <Route path={routes.HOME} component={HomePage} exact />
+    <Route path={routes.GAME} component={GamePage} exact />
+    <Route path={routes.ROOMS} component={RoomsPage} exact />
   </Switch>
 )
 
