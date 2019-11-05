@@ -23,8 +23,8 @@ $photoRadius: 5;
 $photoDiameter: $photoRadius * 2;
 
 .photo {
-  height: $photoDiameter+rem;
-  width: $photoDiameter+rem;
+  height: $photoDiameter + rem;
+  width: $photoDiameter + rem;
   transition: box-shadow 1s;
   box-shadow: 0 0 1.5rem 0.3rem rgba(13, 47, 57, 0.19);
 }
@@ -48,7 +48,7 @@ $iconHeight: 1.5;
   position: absolute;
   top: calc(50% - #{$iconHeight / 2}rem);
   left: calc(50% - #{$iconHeight / 2}rem);
-  height: $iconHeight+rem;
+  height: $iconHeight + rem;
   transform: scale(0);
   transition: transform 1s;
 }
@@ -70,10 +70,10 @@ $degByTotalCountMap: (
   1: 90,
   2: 90,
   3: 0,
-  4: 45
+  4: 45,
 );
 
-@function getDegByTotalCount($total){
+@function getDegByTotalCount($total) {
   @if map-has-key($degByTotalCountMap, $total) {
     @return map-get($degByTotalCountMap, $total);
   }
@@ -81,19 +81,19 @@ $degByTotalCountMap: (
 }
 
 @function calc-angle($current, $total) {
-  @return ((360 / $total) * $current) + getDegByTotalCount($total)
+  @return ((360 / $total) * $current) + getDegByTotalCount($total);
 }
 
 @function calc-position-x($current, $total) {
-  @return ($photoRadius + $iconOffset) * cos(calc-angle($current, $total) + 1deg)
+  @return ($photoRadius + $iconOffset) * cos(calc-angle($current, $total) + 1deg);
 }
 
 @function calc-position-y($current, $total) {
-  @return ($photoRadius + $iconOffset) * sin(calc-angle($current, $total) + 1deg)
+  @return ($photoRadius + $iconOffset) * sin(calc-angle($current, $total) + 1deg);
 }
 
-.teammateInView, .teammate:hover {
-
+.teammateInView,
+.teammate:hover {
   .name {
     transform: translateY(0);
   }
@@ -106,14 +106,13 @@ $degByTotalCountMap: (
     transform: scale(1.1);
 
     .iconWrapper {
-
       @for $maxLength from 0 to $maxSocials {
         @for $index from 0 to $maxLength {
           &-#{$index}-#{$maxLength} {
             transform: scale(1) translate(#{calc-position-y($index, $maxLength)}rem, #{calc-position-x($index, $maxLength)}rem);
           }
         }
-      };
+      }
     }
   }
 
@@ -121,4 +120,3 @@ $degByTotalCountMap: (
     box-shadow: 0 0 2rem 1rem rgba(13, 47, 57, 0.19);
   }
 }
-
