@@ -1,5 +1,14 @@
 @import 'assets/styles/_variables.scss';
 
+@keyframes input-icon-rotation {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-359deg);
+  }
+}
+
 .searchInputWrapper {
   height: 50px;
   width: 360px;
@@ -12,6 +21,11 @@
     height: 100%;
     width: 50px;
     cursor: pointer;
+
+    &.isLoading img {
+      width: 16px;
+      animation: input-icon-rotation 2s infinite linear;
+    }
   }
 
   &.disabled {
