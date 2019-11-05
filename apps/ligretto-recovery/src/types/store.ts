@@ -16,6 +16,7 @@ export type Rooms = {
     [uuid: string]: Room
   }
   ids: string[]
+  isLoading: boolean
 }
 
 export interface All {

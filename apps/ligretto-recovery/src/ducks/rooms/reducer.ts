@@ -41,6 +41,7 @@ const initialState: Rooms = {
     },
   },
   ids: ['room1', 'room2', 'room3', 'room4', 'room5', 'room6'],
+  isLoading: false,
 }
 
 export const roomsReducer = (state: Rooms = initialState, action: RoomsActions) => {

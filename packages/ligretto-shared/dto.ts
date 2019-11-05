@@ -1,16 +1,25 @@
-import { CardPositions, CardColors } from './types'
+import { CardPositions, CardColors, Room } from './types'
 
-export class TapCard {
-  cardPosition!: CardPositions
+export interface TapCard {
+  cardPosition: CardPositions
   newPosition?: CardPositions
 }
 
-export class ChangeCard {
-  cardPosition!: CardPositions
-  value!: 'string'
-  color!: CardColors
+export interface ChangeCard {
+  cardPosition: CardPositions
+  value: 'string'
+  color: CardColors
 }
 
-export class ChangeCards {
-  cards!: ChangeCard[]
+export interface ChangeCards {
+  cards: ChangeCard[]
+}
+
+export interface SearchRooms {
+  search: string
+}
+
+export interface SearchRoomsFinish {
+  search: string
+  rooms: Room[]
 }

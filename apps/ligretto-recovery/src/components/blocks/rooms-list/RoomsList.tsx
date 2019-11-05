@@ -13,7 +13,7 @@ interface RoomsProps {
 }
 
 export const RoomsList: React.FC<RoomsProps> = ({ rooms, onClick, className }) => {
-  const onClickRoom = React.useCallback((roomUuid: string) => () => onClick({ roomUuid }), [])
+  const onClickRoom = React.useCallback((roomUuid: string) => () => onClick({ roomUuid }), [onClick])
 
   return (
     <div className={cn(styles.rooms, className)}>
