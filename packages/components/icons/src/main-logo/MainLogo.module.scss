@@ -30,7 +30,6 @@
   }
 }
 
-
 @keyframes logoCircleSize {
   from {
     transform: scale(1);
@@ -46,15 +45,13 @@
   }
 }
 
-
 .memebattleIcon {
   animation: logoSize 1.6s;
   width: 100%;
   max-height: 100%;
   max-width: 100%;
-  overflow: overlay!important;
+  overflow: overlay !important;
 }
-
 
 #iconWhiteCircle {
   transform-origin: 50% 50%;

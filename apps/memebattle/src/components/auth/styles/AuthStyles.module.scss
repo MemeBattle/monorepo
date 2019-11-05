@@ -11,7 +11,6 @@
   font-family: 'OpenGostTypeATT-Regular', serif;
   background: url('assets/images/design/background.jpg') no-repeat center center;
 
-
   .authLogo {
     margin-bottom: 3rem;
     max-width: 60%;
@@ -61,11 +60,11 @@
       font-size: $font-size-small;
       margin-bottom: 1rem;
 
-      input[type="checkbox"] {
+      input[type='checkbox'] {
         display: none;
       }
 
-      input[type="checkbox"] + label::before {
+      input[type='checkbox'] + label::before {
         border: 0.2rem solid;
         border-radius: 3px;
         display: inline-block;
@@ -74,16 +73,14 @@
         width: 1rem;
         height: 1rem;
         cursor: pointer;
-        content: "";
+        content: '';
       }
 
-      input[type="checkbox"]:checked + label::before {
+      input[type='checkbox']:checked + label::before {
         background: url('assets/images/icons/draw-check-mark.png');
         background-size: contain;
       }
     }
-
-
 
     .submit {
       display: flex;
