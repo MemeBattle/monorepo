@@ -4,13 +4,17 @@ import { GameCoverScreen } from 'components/screens/game-cover-screen/GameCoverS
 import styles from './Rooms.module.scss'
 import { PageHeader } from 'components/base/page-header'
 import { SearchRooms } from 'containers/rooms/SearchRooms'
+import { LinkBack } from 'components/base/link-back'
 
 export const RoomsPage = () => (
   <GameCoverScreen>
     <div className={styles.roomsPage}>
       <PageHeader>Enter to room</PageHeader>
       <SearchRooms className={styles.search} />
-      <RoomsList />
+      <div>
+        <RoomsList />
+        <LinkBack className={styles.goBack} />
+      </div>
     </div>
   </GameCoverScreen>
 )
