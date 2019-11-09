@@ -2,14 +2,13 @@ import { inject, injectable } from 'inversify'
 import { PlayerService } from '../entities/player/player.service'
 import { PlaygroundService } from '../entities/playground'
 import { GameService } from '../entities/game/game.service'
+import { TYPES } from '../types'
 
 @injectable()
 export class Gameplay {
-  constructor(
-    @inject(GameService) private gameService: GameService,
-    @inject(PlayerService) private playerService: PlayerService,
-    @inject(PlaygroundService) private playgroundService: PlaygroundService,
-  ) {}
+  @inject(TYPES.GameService) private gameService: GameService
+  @inject(TYPES.PlayerService) private playerService: PlayerService
+  @inject(TYPES.PlaygroundService) private playgroundService: PlaygroundService
 
   async startGame(gameId: string) {
     try {

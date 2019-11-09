@@ -1,5 +1,5 @@
-import { inject } from 'inversify'
-import { Socket } from 'socket.io'
+import { injectable, inject } from 'inversify'
+import { Server, Socket } from 'socket.io'
 import { TYPES } from '../types'
 import { GameplayController } from '../controllers/gameplay-controller'
 
@@ -7,12 +7,17 @@ export interface WebSocketHandler {
   connectionHandler(socket: Socket): void
 }
 
+@injectable()
 export class WebSocketHandler implements WebSocketHandler {
-  @inject(TYPES.GameController) private gameController: GameplayController
+  @inject(TYPES.GameplayController) private gameplayController: GameplayController
+
+  connect(socketServer: Server) {
+    socketServer.on('connection', socket => this.connectionHandler(socket))
+  }
 
   public connectionHandler(socket: Socket): void {
     socket.on('message', data => {
-      if (!data.hasOwnProperty('type') || typeof data.type !== 'string') {
+      if (!data || !data.hasOwnProperty('type') || typeof data.type !== 'string') {
         console.error('data should contain type')
         return
       }
@@ -26,7 +31,6 @@ export class WebSocketHandler implements WebSocketHandler {
   }
 
   private messageHandler(socket: Socket, data: { type: string; payload: any }) {
-    console.log(socket, data)
-    this.gameController.handleMessage(socket, data)
+    this.gameplayController.handleMessage(socket, data)
   }
 }
