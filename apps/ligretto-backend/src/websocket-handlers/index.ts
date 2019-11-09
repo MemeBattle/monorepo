@@ -1,4 +1,4 @@
-import { injectable, inject } from 'inversify'
+import { inject } from 'inversify'
 import { Socket } from 'socket.io'
 import { TYPES } from '../types'
 import { GameplayController } from '../controllers/gameplay-controller'
@@ -7,7 +7,6 @@ export interface WebSocketHandler {
   connectionHandler(socket: Socket): void
 }
 
-@injectable()
 export class WebSocketHandler implements WebSocketHandler {
   @inject(TYPES.GameController) private gameController: GameplayController
 
@@ -17,7 +16,7 @@ export class WebSocketHandler implements WebSocketHandler {
         console.error('data should contain type')
         return
       }
-      this.messageHandler(data)
+      this.messageHandler(socket, data)
     })
 
     socket.on('echo', data => {
@@ -26,10 +25,8 @@ export class WebSocketHandler implements WebSocketHandler {
     })
   }
 
-  private messageHandler(data: { type: string; payload: any }) {
-    switch (data.type) {
-      default:
-        console.error('Unhandled type', data.type)
-    }
+  private messageHandler(socket: Socket, data: { type: string; payload: any }) {
+    console.log(socket, data)
+    this.gameController.handleMessage(socket, data)
   }
 }
