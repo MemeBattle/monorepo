@@ -9,7 +9,7 @@ import { LinkBack } from 'components/base/link-back'
 export const RoomsPage = () => (
   <GameCoverScreen>
     <div className={styles.roomsPage}>
-      <PageHeader>Enter to room</PageHeader>
+      <PageHeader className={styles.header}>Enter to room</PageHeader>
       <SearchRooms className={styles.search} />
       <div>
         <RoomsList />
