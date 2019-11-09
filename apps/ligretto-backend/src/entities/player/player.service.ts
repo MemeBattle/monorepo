@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { inject, injectable } from 'inversify'
 import { last, shuffle } from 'lodash'
-
 import { PlayerRepository } from './player.repo'
 import { Card } from '../../types/card'
+import { TYPES } from '../../types'
 
 @injectable()
 export class PlayerService {
-  constructor(@inject(PlayerRepository) private playerRepository: PlayerRepository) {}
+  @inject(TYPES.PlayerRepository) private playerRepository: PlayerRepository
 
   async getPlayer(gameId: string, color: string) {
     return await this.playerRepository.getPlayer(gameId, color)

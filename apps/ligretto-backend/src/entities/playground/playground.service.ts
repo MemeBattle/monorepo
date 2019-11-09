@@ -1,12 +1,12 @@
 import { inject, injectable } from 'inversify'
 import { last } from 'lodash'
-
 import { PlaygroundRepository } from './playground.repo'
 import { Card } from '../../types/card'
+import { TYPES } from '../../types'
 
 @injectable()
 export class PlaygroundService {
-  constructor(@inject(PlaygroundRepository) private playgroundRepository: PlaygroundRepository) {}
+  @inject(TYPES.PlaygroundRepository) private playgroundRepository: PlaygroundRepository
 
   async getAllDecks(gameId: string) {
     return await this.playgroundRepository.getDecks(gameId)

@@ -1,4 +1,5 @@
 import { Socket } from 'socket.io'
+import { injectable } from 'inversify'
 
 export const onAction = (type: string) => {
   return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
@@ -8,6 +9,7 @@ export const onAction = (type: string) => {
   }
 }
 
+@injectable()
 export class Controller {
   private handlers: { [actionType: string]: string } = {}
 
@@ -19,6 +21,8 @@ export class Controller {
 
   handleMessage(socket: Socket, action: { type: string; payload: any }): void {
     const handler = this.getHandler(action.type)
+    console.log(this.handlers)
+    console.log(action)
 
     if (handler && typeof handler === 'function') {
       return handler(socket, action)
