@@ -67,7 +67,7 @@ export function* socketSaga() {
   const socket = io(WEBSOCKET_URL)
   // @ts-ignore
   window.emitEcho = data => {
-    socket.emit('echo', data)
+    socket.emit('message', data)
   }
 
   yield all([call(socketSendSaga, socket), call(socketReceiveSaga, socket)])

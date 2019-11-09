@@ -3,7 +3,7 @@ import { inject, injectable } from 'inversify'
 import { last, shuffle } from 'lodash'
 
 import { PlayerRepository } from './player.repo'
-import { Card } from '../../types'
+import { Card } from '../../types/card'
 
 @injectable()
 export class PlayerService {

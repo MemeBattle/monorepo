@@ -1,12 +1,20 @@
 import { injectable, inject } from 'inversify'
-import { GameService } from '../entities/game/game.service'
 import { TYPES } from '../types'
-
-export interface GameplayController {
-  initGame(): void
-}
+import { Gameplay } from '../gameplay/gameplay'
+import { Controller, onAction } from './controller'
+import { Socket } from 'socket.io'
 
 @injectable()
-export class GameplayController implements GameplayController {
-  @inject(TYPES.GameService) private gameService: GameService
+export class GameplayController extends Controller {
+  @inject(TYPES.Gameplay) private gameplay: Gameplay
+
+  @onAction('START_GAME')
+  startGame(socket: Socket, action: any) {
+    console.log('START_GAME handler')
+  }
+
+  @onAction('PUT_CARD')
+  putCard(socket: Socket, action: any) {
+    console.log('START_GAME handler')
+  }
 }
