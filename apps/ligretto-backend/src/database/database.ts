@@ -1,10 +1,10 @@
-import { get, set } from 'lodash'
 import { Storage } from './storage'
+import { observable } from 'mobx'
 
-const storage: Storage = {
+export const storage: Storage = observable({
   games: {},
   users: {},
-}
+})
 
 type Accessor<T> = (storage: Storage) => T
 type Setter = (storage: Storage) => void
@@ -16,4 +16,4 @@ export const database = {
   set(setter: Setter) {
     return Promise.resolve(setter(storage))
   },
-};
+}
