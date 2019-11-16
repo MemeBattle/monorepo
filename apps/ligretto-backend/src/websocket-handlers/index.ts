@@ -1,2 +1,2 @@
 export { WebSocketHandler } from './handler'
-export { Emmiter } from './emmiter'
+export { Emitter } from './emitter'

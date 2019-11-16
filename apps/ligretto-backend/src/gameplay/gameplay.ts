@@ -57,6 +57,7 @@ export class Gameplay {
       console.log(e)
     }
   }
+
   async playerTakeFromStackDeck(gameId: string, playerColor: string) {
     try {
       await this.playerService.takeFromStackDeck(gameId, playerColor)
