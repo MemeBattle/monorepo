@@ -3,9 +3,9 @@ import { User } from '../types/user'
 
 export interface Storage {
   games: {
-    [id: string]: Game,
+    [id: string]: Game
   }
   users: {
-    [id: string]: User,
+    [id: string]: User
   }
 }
