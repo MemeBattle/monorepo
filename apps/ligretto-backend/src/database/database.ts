@@ -17,8 +17,8 @@ export interface Database {
 
 @injectable()
 export class Database implements Database {
-  constructor(initialState = storage) {
-    this.storage = initialState
+  constructor() {
+    this.storage = {} as Storage // TODO: Тут надо что-то сделать
   }
 
   public get<T>(accessor: Accessor<T>) {
