@@ -18,7 +18,10 @@ export interface Database {
 @injectable()
 export class Database implements Database {
   constructor() {
-    this.storage = {} as Storage // TODO: Тут надо что-то сделать
+    this.storage = {
+      games: {},
+      users: {},
+    }
   }
 
   public get<T>(accessor: Accessor<T>) {
