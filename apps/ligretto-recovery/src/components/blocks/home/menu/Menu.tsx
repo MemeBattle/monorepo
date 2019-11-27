@@ -10,7 +10,7 @@ const menuItems = [
   // TODO: add correct "to" for every item
   {
     title: 'Create game',
-    to: '/',
+    to: routes.NEW_ROOM,
   },
   {
     title: 'Enter room',

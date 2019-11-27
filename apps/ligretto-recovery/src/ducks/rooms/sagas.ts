@@ -1,6 +1,6 @@
 import { takeLatest, take, put } from 'redux-saga/effects'
-import { RoomsTypes, SearchRoomsAction, SearchRoomsFinishAction } from './types'
-import { searchRoomsEmitAction, updateRoomsAction } from './actions'
+import { CreateRoomAction, RoomsTypes, SearchRoomsAction, SearchRoomsFinishAction } from './types'
+import { searchRoomsEmitAction, updateRoomsAction, createRoomEmitAction } from './actions'
 
 /**
  * Сага могла стрельнуть "запрос" на поиск комнат, но ответ еще не успел придти.
@@ -24,6 +24,11 @@ function* searchRoomsSaga(action: SearchRoomsAction) {
   }
 }
 
+function* createRoomSaga(action: CreateRoomAction) {
+  yield put(createRoomEmitAction({ ...action.payload, type: 'CREATE_NEW_ROOM' }))
+}
+
 export function* roomsRootSaga() {
   yield takeLatest(RoomsTypes.SEARCH_ROOMS, searchRoomsSaga)
+  yield takeLatest(RoomsTypes.CREATE_ROOM, createRoomSaga)
 }

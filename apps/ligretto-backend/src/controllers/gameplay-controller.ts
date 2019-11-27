@@ -14,14 +14,9 @@ export class GameplayController extends Controller {
     ['START_GAME']: (socket, action) => this.startGame(socket, action),
   }
 
-  private startGame(socket: Socket, action: any) {
-    console.log('START_GAME handler')
-    console.log(action)
-    console.log(this)
-    this.gameService.createGame('123')
-  }
-
-  putCard(socket: Socket, action: any) {
-    console.log('START_GAME handler')
+  private async startGame(socket: Socket, action: any) {
+    console.log('action', action)
+    const game = await this.gameService.createGame('123')
+    socket.emit('Game created', game)
   }
 }
