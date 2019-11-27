@@ -60,8 +60,8 @@ export class GameService {
     })
   }
 
-  async getGame(gameId: string) {
-    await this.gameRepository.getGame(gameId)
+  getGame(gameId: string) {
+    return this.gameRepository.getGame(gameId)
   }
 
   async getResult(gameId: string) {}
