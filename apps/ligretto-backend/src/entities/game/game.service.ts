@@ -17,11 +17,12 @@ const emptyGame: Game = {
 export class GameService {
   @inject(TYPES.GameRepository) private gameRepository: GameRepository
 
-  async createGame(gameId: string) {
-    return this.gameRepository.addGame(gameId, emptyGame)
+  createGame(name: string) {
+    const gameId = String(Math.random()).slice(5)
+    return this.gameRepository.addGame(gameId, { ...emptyGame, name })
   }
 
-  async startGame(gameId: string) {
+  startGame(gameId: string) {
     return this.gameRepository.updateGame(gameId, game => {
       const players: Game['players'] = {}
       // eslint-disable-next-line
@@ -49,7 +50,7 @@ export class GameService {
     })
   }
 
-  async addPlayer(gameId: string, player: Player) {
+  addPlayer(gameId: string, player: Player) {
     return this.gameRepository.updateGame(gameId, game => {
       return {
         ...game,
@@ -65,7 +66,7 @@ export class GameService {
     return this.gameRepository.getGame(gameId)
   }
 
-  async getResult(gameId: string) {}
+  getResult(gameId: string) {}
 
   async endGame(gameId: string) {
     const result = this.getResult(gameId)

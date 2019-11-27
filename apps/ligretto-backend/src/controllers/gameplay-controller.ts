@@ -11,10 +11,10 @@ export class GameplayController extends Controller {
   @inject(TYPES.GameService) private gameService: GameService
 
   handlers = {
-    ['START_GAME']: (socket, action) => this.startGame(socket, action),
+    ['CREATE_NEW_ROOM']: (socket, action) => this.createGame(socket, action),
   }
 
-  private async startGame(socket: Socket, action: any) {
+  private async createGame(socket: Socket, action: any) {
     console.log('action', action)
     const game = await this.gameService.createGame('123')
     socket.emit('Game created', game)
