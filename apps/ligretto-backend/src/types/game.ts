@@ -2,6 +2,7 @@ import { Playground } from './playground'
 import { Player } from './player'
 
 export interface Game {
+  name: string
   players: {
     [player: string]: Player
   }

@@ -1,0 +1,1 @@
+export { NewRoomPage } from './NewRoom'

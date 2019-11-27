@@ -5,6 +5,7 @@ import { Player } from '../../types/player'
 import { TYPES } from '../../types'
 
 const emptyGame: Game = {
+  name: 'BaseRoom',
   players: {},
   playground: {
     decks: [],

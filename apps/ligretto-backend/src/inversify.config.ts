@@ -4,7 +4,7 @@ import { TYPES } from './types'
 import { GameService } from './entities/game/game.service'
 import { GameplayController } from './controllers/gameplay-controller'
 import { Gameplay } from './gameplay/gameplay'
-import { WebSocketHandler, Emitter } from './websocket-handlers'
+import { WebSocketHandler } from './websocket-handlers'
 import { GameRepository } from './entities/game/game.repo'
 import { PlaygroundRepository, PlaygroundService } from './entities/playground'
 import { PlayerRepository } from './entities/player/player.repo'
@@ -22,5 +22,4 @@ IOC.bind<PlayerRepository>(TYPES.PlayerRepository).to(PlayerRepository)
 IOC.bind<PlayerService>(TYPES.PlayerService).to(PlayerService)
 IOC.bind<Gameplay>(TYPES.Gameplay).to(Gameplay)
 IOC.bind<GameplayController>(TYPES.GameplayController).to(GameplayController)
-IOC.bind<Emitter>(TYPES.Emitter).to(Emitter)
 IOC.bind<Database>(TYPES.Database).to(Database)

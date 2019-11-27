@@ -23,3 +23,8 @@ export interface SearchRoomsFinish {
   search: string
   rooms: Room[]
 }
+
+export interface CreateGame {
+  name: string
+  type: 'CREATE_NEW_ROOM'
+}
