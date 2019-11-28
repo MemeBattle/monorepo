@@ -16,10 +16,12 @@ export interface ChangeCards {
 }
 
 export interface SearchRooms {
+  type: 'SEARCH_ROOMS'
   search: string
 }
 
 export interface SearchRoomsFinish {
+  type: 'SEARCH_ROOM_FINISH'
   search: string
   rooms: Room[]
 }

@@ -14,7 +14,7 @@ import { searchRoomsEmitAction, updateRoomsAction, createRoomEmitAction } from '
  * @param action
  */
 function* searchRoomsSaga(action: SearchRoomsAction) {
-  yield put(searchRoomsEmitAction(action.payload))
+  yield put(searchRoomsEmitAction({ search: action.payload.search, type: 'SEARCH_ROOMS' }))
   while (true) {
     const finishAction: SearchRoomsFinishAction = yield take(RoomsTypes.SEARCH_ROOMS_FINISH)
     if (finishAction.payload.search === action.payload.search) {
