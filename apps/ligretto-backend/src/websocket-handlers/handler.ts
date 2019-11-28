@@ -18,7 +18,7 @@ export class WebSocketHandler implements WebSocketHandler {
   public connectionHandler(socket: Socket): void {
     socket.on('message', data => {
       if (!data || !data.hasOwnProperty('type') || typeof data.type !== 'string') {
-        console.error('data should contain type')
+        console.error('data should contain type', data)
         return
       }
       this.messageHandler(socket, data)

@@ -5,6 +5,7 @@ import { Player } from '../../types/player'
 import { TYPES } from '../../types'
 
 const emptyGame: Game = {
+  id: 'base',
   name: 'BaseRoom',
   players: {},
   playground: {
@@ -19,7 +20,7 @@ export class GameService {
 
   createGame(name: string) {
     const gameId = String(Math.random()).slice(5)
-    return this.gameRepository.addGame(gameId, { ...emptyGame, name })
+    return this.gameRepository.addGame(gameId, { ...emptyGame, name, id: gameId })
   }
 
   startGame(gameId: string) {
@@ -72,5 +73,9 @@ export class GameService {
     const result = this.getResult(gameId)
     await this.gameRepository.removeGame(gameId)
     return result
+  }
+
+  findGames(pattern: string) {
+    return this.gameRepository.filterGames(pattern)
   }
 }
