@@ -8,6 +8,7 @@ export const TYPES = {
   PlayerRepository: Symbol.for('PlayerRepository'),
   Gameplay: Symbol.for('Gameplay'),
   GameplayController: Symbol.for('GameplayController'),
+  GamesController: Symbol.for('GamesController'),
   RoomRepository: Symbol.for('RoomRepository'),
   RoomService: Symbol.for('RoomService'),
   Emitter: Symbol.for('Emitter'),

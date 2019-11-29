@@ -11,7 +11,7 @@ const emptyGame: Game = {
   playground: {
     decks: [],
   },
-  config: { cardsCount: 3 },
+  config: { cardsCount: 3, playersMaxCount: 4 },
 }
 
 @injectable()

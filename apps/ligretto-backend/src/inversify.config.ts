@@ -3,6 +3,7 @@ import { Container } from 'inversify'
 import { TYPES } from './types'
 import { GameService } from './entities/game/game.service'
 import { GameplayController } from './controllers/gameplay-controller'
+import { GamesController } from './controllers/games-controller'
 import { Gameplay } from './gameplay/gameplay'
 import { WebSocketHandler } from './websocket-handlers'
 import { GameRepository } from './entities/game/game.repo'
@@ -22,4 +23,7 @@ IOC.bind<PlayerRepository>(TYPES.PlayerRepository).to(PlayerRepository)
 IOC.bind<PlayerService>(TYPES.PlayerService).to(PlayerService)
 IOC.bind<Gameplay>(TYPES.Gameplay).to(Gameplay)
 IOC.bind<GameplayController>(TYPES.GameplayController).to(GameplayController)
-IOC.bind<Database>(TYPES.Database).to(Database)
+IOC.bind<GamesController>(TYPES.GamesController).to(GamesController)
+IOC.bind<Database>(TYPES.Database)
+  .to(Database)
+  .inSingletonScope()

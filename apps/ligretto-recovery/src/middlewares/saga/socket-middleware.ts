@@ -38,6 +38,7 @@ function* socketReceiveSaga(socket: SocketIOClient.Socket): SagaIterator {
   try {
     while (true) {
       const action: AnyAction = yield take(channel)
+      console.log('action:', action)
       yield put(action)
     }
   } finally {
