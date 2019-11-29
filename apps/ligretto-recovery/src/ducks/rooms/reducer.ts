@@ -1,51 +1,29 @@
 import { Rooms } from 'types/store'
-import { RoomsActions } from './types'
+import { RoomsTypes, RoomsActions } from './types'
+import { Room } from '@memebattle/ligretto-shared'
 
 const initialState: Rooms = {
-  byId: {
-    room1: {
-      name: 'Room1',
-      uuid: 'qweqwe',
-      playersCount: 2,
-      playersMaxCount: 3,
-    },
-    room2: {
-      name: 'Room2',
-      uuid: 'qweqwe',
-      playersCount: 3,
-      playersMaxCount: 3,
-    },
-    room3: {
-      name: 'Room3 qwf qwfqw fqw qwf qwf qwf qwf qwff wqfqwf qwf ',
-      uuid: 'qweqwe',
-      playersCount: 1,
-      playersMaxCount: 3,
-    },
-    room4: {
-      name: 'Room4',
-      uuid: 'qweqwe',
-      playersCount: 0,
-      playersMaxCount: 3,
-    },
-    room5: {
-      name: 'Room5',
-      uuid: 'qweqwe',
-      playersCount: 3,
-      playersMaxCount: 3,
-    },
-    room6: {
-      name: 'Room6',
-      uuid: 'qweqwe',
-      playersCount: 3,
-      playersMaxCount: 3,
-    },
-  },
-  ids: ['room1', 'room2', 'room3', 'room4', 'room5', 'room6'],
+  byId: {},
+  ids: [],
   isLoading: false,
 }
 
 export const roomsReducer = (state: Rooms = initialState, action: RoomsActions) => {
   switch (action.type) {
+    case RoomsTypes.SEARCH_ROOMS:
+      return {
+        ...state,
+        isLoading: true,
+      }
+    case RoomsTypes.UPDATE_ROOMS:
+      const { byId, ids } = action.payload.rooms.reduce<{ byId: { [roomId: string]: Room }; ids: string[] }>(
+        ({ byId, ids }, room) => ({ byId: { ...byId, [room.uuid]: room }, ids: [...ids, room.uuid] }),
+        {
+          byId: {},
+          ids: [],
+        },
+      )
+      return { ...state, byId, ids, isLoading: false }
     default:
       return state
   }
