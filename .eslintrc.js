@@ -6,7 +6,12 @@ module.exports = {
   },
   parser: '@typescript-eslint/parser',
   parserOptions: {
-    project: ['./apps/ligretto-recovery/tsconfig.json', './apps/ligretto-backend/tsconfig.json', './packages/ligretto-shared/tsconfig.json'],
+    project: [
+      './apps/ligretto-recovery/tsconfig.json',
+      './apps/ligretto-backend/tsconfig.json',
+      './packages/ligretto-shared/tsconfig.json',
+      './packages/redux-utils/tsconfig.json'
+    ],
     sourceType: 'module',
     createDefaultProgram: true // TODO: waiting for normal fix in @typescript-eslint/parser
   },

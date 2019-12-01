@@ -1,6 +1,7 @@
 import { takeLatest, take, put } from 'redux-saga/effects'
 import { CreateRoomAction, RoomsTypes, SearchRoomsAction, SearchRoomsFinishAction } from './types'
-import { searchRoomsEmitAction, updateRoomsAction, createRoomEmitAction } from './actions'
+import { updateRoomsAction } from './actions'
+import { createRoomEmitAction, searchRoomsEmitAction } from '@memebattle/ligretto-shared'
 
 /**
  * Сага могла стрельнуть "запрос" на поиск комнат, но ответ еще не успел придти.
@@ -14,10 +15,10 @@ import { searchRoomsEmitAction, updateRoomsAction, createRoomEmitAction } from '
  * @param action
  */
 function* searchRoomsSaga(action: SearchRoomsAction) {
-  yield put(searchRoomsEmitAction({ search: action.payload.search, type: 'SEARCH_ROOMS' }))
+  const a = searchRoomsEmitAction({ search: action.payload.search })
+  yield put(a)
   while (true) {
     const finishAction: SearchRoomsFinishAction = yield take(RoomsTypes.SEARCH_ROOMS_FINISH)
-    console.log('action', finishAction)
     if (finishAction.payload.search === action.payload.search) {
       yield put(updateRoomsAction(finishAction.payload))
       return
@@ -26,7 +27,7 @@ function* searchRoomsSaga(action: SearchRoomsAction) {
 }
 
 function* createRoomSaga(action: CreateRoomAction) {
-  yield put(createRoomEmitAction({ ...action.payload, type: 'CREATE_NEW_ROOM' }))
+  yield put(createRoomEmitAction({ ...action.payload }))
 }
 
 export function* roomsRootSaga() {

@@ -1,4 +1,4 @@
-import { Action } from 'types/actions'
+import { Action } from '@memebattle/redux-utils'
 import { CardPositions, Card } from 'types/entities/card-model'
 import { dto } from '@memebattle/ligretto-shared'
 
