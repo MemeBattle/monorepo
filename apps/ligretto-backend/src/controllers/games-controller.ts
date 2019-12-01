@@ -28,17 +28,15 @@ export class GamesController extends Controller {
     const games = await this.gameService.findGames(action.search)
     const payload: dto.SearchRoomsFinish = {
       type: '@@rooms/SEARCH_ROOMS_FINISH',
-      payload: {
-        search: action.search,
-        rooms: games.map(
-          (game): Room => ({
-            uuid: game.id,
-            name: game.name,
-            playersCount: Object.keys(game.players).length,
-            playersMaxCount: game.config.playersMaxCount,
-          }),
-        ),
-      },
+      search: action.search,
+      rooms: games.map(
+        (game): Room => ({
+          uuid: game.id,
+          name: game.name,
+          playersCount: Object.keys(game.players).length,
+          playersMaxCount: game.config.playersMaxCount,
+        }),
+      ),
     }
     socket.emit('event', payload)
   }
