@@ -21,14 +21,10 @@ export interface SearchRooms {
 }
 
 export interface SearchRoomsFinish {
-  type: '@@rooms/SEARCH_ROOMS_FINISH'
-  payload: {
-    search: string
-    rooms: Room[]
-  }
+  search: string
+  rooms: Room[]
 }
 
 export interface CreateGame {
   name: string
-  type: 'CREATE_NEW_ROOM'
 }

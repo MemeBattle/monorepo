@@ -17,6 +17,7 @@ function* searchRoomsSaga(action: SearchRoomsAction) {
   yield put(searchRoomsEmitAction({ search: action.payload.search, type: 'SEARCH_ROOMS' }))
   while (true) {
     const finishAction: SearchRoomsFinishAction = yield take(RoomsTypes.SEARCH_ROOMS_FINISH)
+    console.log('action', finishAction)
     if (finishAction.payload.search === action.payload.search) {
       yield put(updateRoomsAction(finishAction.payload))
       return
