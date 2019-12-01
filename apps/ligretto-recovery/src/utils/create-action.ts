@@ -1,6 +1,6 @@
-import { AnyAction } from '../types/actions'
+import { Action, LookupStringTypeField } from '../types/actions'
 
-export const createAction = <ActionType extends AnyAction>(type: ActionType['type']) => (payload?: object) => ({
+export const createAction = <A extends Action<LookupStringTypeField<A, 'type'>, A['payload']>>(type: A['type']) => (payload: A['payload']) => ({
   type,
   payload,
 })
