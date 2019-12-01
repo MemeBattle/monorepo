@@ -1,4 +1,4 @@
-import { createAction } from 'utils/create-action'
+import { createAction } from '@memebattle/redux-utils'
 import { CardsTypes, PushCardAction, TapCardAction, TapCardEmitAction } from './types'
 
 export const pushCardAction = createAction<PushCardAction>(CardsTypes.PUSH_CARD)

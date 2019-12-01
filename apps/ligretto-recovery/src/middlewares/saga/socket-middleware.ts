@@ -1,9 +1,8 @@
 import { eventChannel, END, SagaIterator, EventChannel, Unsubscribe } from 'redux-saga'
 import { all, race, actionChannel, take, put, call } from 'redux-saga/effects'
 import io from 'socket.io-client'
-import { Action, AnyAction } from 'types/actions'
+import { Action, AnyAction, createAction } from '@memebattle/redux-utils'
 import { WEBSOCKET_URL } from '../../config'
-import { createAction } from '../../utils/create-action'
 
 export enum WebsocketActionNames {
   Cancel = '@@websockets/WEBSOCKET_CLOSED',
@@ -59,7 +58,7 @@ function* socketSendSaga(socket: SocketIOClient.Socket): SagaIterator {
       console.warn('Websocket: Cannot send message')
     }
 
-    socket.emit('message', socketAction.payload)
+    socket.emit('message', socketAction)
   }
 }
 

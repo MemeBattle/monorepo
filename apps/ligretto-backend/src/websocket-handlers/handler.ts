@@ -32,7 +32,8 @@ export class WebSocketHandler implements WebSocketHandler {
     })
   }
 
-  private messageHandler(socket: Socket, data: { type: string; payload: any }) {
+  private messageHandler(socket: Socket, data: { type: string; payload: unknown }) {
+    console.log('Action', data)
     this.gameplayController.handleMessage(socket, data)
     this.gamesController.handleMessage(socket, data)
   }

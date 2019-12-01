@@ -1,4 +1,4 @@
-import { Action, ErrorAction } from 'types/actions'
+import { Action, ErrorAction } from '@memebattle/redux-utils'
 
 export enum UserTypeNames {
   GET_PROFILE_REQUEST = '@@user/GET_PROFILE_REQUEST',

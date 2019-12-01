@@ -1,4 +1,4 @@
-import { createAction } from 'utils/create-action'
+import { createAction } from '@memebattle/redux-utils'
 import { GetProfileErrorAction, GetProfileRequestAction, GetProfileSuccessAction, UserTypeNames } from './types'
 
 export const getProfileRequest = createAction<GetProfileRequestAction>(UserTypeNames.GET_PROFILE_REQUEST)
