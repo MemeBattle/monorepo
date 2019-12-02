@@ -5,6 +5,7 @@ import styles from './Rooms.module.scss'
 import { PageHeader } from 'components/base/page-header'
 import { SearchRooms } from 'containers/rooms/SearchRooms'
 import { LinkBack } from 'components/base/link-back'
+import { Button } from 'components/base/button'
 
 export const RoomsPage = () => (
   <GameCoverScreen>
@@ -13,7 +14,10 @@ export const RoomsPage = () => (
       <SearchRooms className={styles.search} />
       <div>
         <RoomsList />
-        <LinkBack className={styles.goBack} />
+        <div>
+          <LinkBack className={styles.goBack} />
+          <Button>Create</Button>
+        </div>
       </div>
     </div>
   </GameCoverScreen>
