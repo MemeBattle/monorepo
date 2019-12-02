@@ -12,10 +12,10 @@ export const RoomsPage = () => (
     <div className={styles.roomsPage}>
       <PageHeader className={styles.header}>Enter to room</PageHeader>
       <SearchRooms className={styles.search} />
-      <div>
+      <div className={styles.content}>
         <RoomsList />
-        <div>
-          <LinkBack className={styles.goBack} />
+        <div className={styles.bottomButtons}>
+          <LinkBack />
           <Button>Create</Button>
         </div>
       </div>
