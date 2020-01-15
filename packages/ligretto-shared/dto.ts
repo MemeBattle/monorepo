@@ -31,3 +31,7 @@ export interface UpdateRooms {
 export interface CreateGame {
   name: string
 }
+
+export interface ConnectToRoom {
+  roomUuid: string
+}

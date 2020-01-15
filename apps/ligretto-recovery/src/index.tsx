@@ -7,7 +7,7 @@ import 'assets/styles/_index.scss'
 
 import { store, history } from './store'
 import * as serviceWorker from './serviceWorker'
-import { Routes } from 'components/Routes'
+import { Routes } from 'components/routes'
 
 ReactDOM.render(
   <Provider store={store}>
