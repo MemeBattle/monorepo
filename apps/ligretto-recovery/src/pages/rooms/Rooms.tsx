@@ -5,7 +5,8 @@ import styles from './Rooms.module.scss'
 import { PageHeader } from 'components/base/page-header'
 import { SearchRooms } from 'containers/rooms/SearchRooms'
 import { LinkBack } from 'components/base/link-back'
-import { Button } from 'components/base/button'
+import { ButtonLink } from 'components/base/button-link'
+import { routes } from 'utils/constants'
 
 export const RoomsPage = () => (
   <GameCoverScreen>
@@ -16,7 +17,7 @@ export const RoomsPage = () => (
         <RoomsList />
         <div className={styles.bottomButtons}>
           <LinkBack />
-          <Button>Create</Button>
+          <ButtonLink to={routes.NEW_ROOM}>Create</ButtonLink>
         </div>
       </div>
     </div>
