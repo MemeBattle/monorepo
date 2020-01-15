@@ -1,6 +1,6 @@
 export const routes = {
   HOME: '/',
-  GAME: '/game',
+  GAME: '/game/:roomUuid',
   ROOMS: '/rooms',
   NEW_ROOM: '/create',
 }

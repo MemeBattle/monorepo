@@ -1,6 +1,6 @@
 import { takeLatest, take, put } from 'redux-saga/effects'
-import { CreateRoomAction, RoomsTypes, SearchRoomsAction, SearchRoomsFinishAction } from './types'
-import { updateRoomsAction } from './actions'
+import { ConnectToRoomAction, CreateRoomAction, RoomsTypes, SearchRoomsAction, SearchRoomsFinishAction } from './types'
+import { connectToRoomEmitAction, updateRoomsAction } from './actions'
 import { createRoomEmitAction, searchRoomsEmitAction } from '@memebattle/ligretto-shared'
 
 /**
@@ -30,7 +30,12 @@ function* createRoomSaga(action: CreateRoomAction) {
   yield put(createRoomEmitAction({ ...action.payload }))
 }
 
+function* connectToRoomSaga(action: ConnectToRoomAction) {
+  yield put(connectToRoomEmitAction(action.payload))
+}
+
 export function* roomsRootSaga() {
   yield takeLatest(RoomsTypes.SEARCH_ROOMS, searchRoomsSaga)
   yield takeLatest(RoomsTypes.CREATE_ROOM, createRoomSaga)
+  yield takeLatest(RoomsTypes.CONNECT_TO_ROOM, connectToRoomSaga)
 }

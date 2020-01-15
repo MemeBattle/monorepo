@@ -1,19 +1,21 @@
 import * as React from 'react'
+import classNames from 'classnames/bind'
+import { useHistory, generatePath } from 'react-router-dom'
 import { Room } from '@memebattle/ligretto-shared'
+import { routes } from 'utils/constants'
 import styles from './Rooms.module.scss'
 import playIcon from 'assets/icons/play.svg'
-import * as classNames from 'classnames/bind'
 
 const cn = classNames.bind(styles)
 
 interface RoomsProps {
   rooms: Room[]
-  onClick: ({ roomUuid }: { roomUuid: string }) => void
   className?: string
 }
 
-export const RoomsList: React.FC<RoomsProps> = ({ rooms, onClick, className }) => {
-  const onClickRoom = React.useCallback((roomUuid: string) => () => onClick({ roomUuid }), [onClick])
+export const RoomsList: React.FC<RoomsProps> = ({ rooms, className }) => {
+  const history = useHistory()
+  const onClickRoom = React.useCallback((roomUuid: string) => () => history.push(generatePath(routes.GAME, { roomUuid })), [])
 
   return (
     <div className={cn(styles.rooms, className)}>
