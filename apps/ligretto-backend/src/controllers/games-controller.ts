@@ -3,7 +3,14 @@ import { TYPES } from '../types'
 import { Controller } from './controller'
 import { Socket } from 'socket.io'
 import { GameService } from '../entities/game/game.service'
-import { searchRoomsFinishAction, RoomsTypes, CreateRoomEmitAction, SearchRoomsEmitAction, updateRooms } from '@memebattle/ligretto-shared'
+import {
+  searchRoomsFinishAction,
+  RoomsTypes,
+  CreateRoomEmitAction,
+  SearchRoomsEmitAction,
+  ConnectToRoomEmitAction,
+  updateRooms,
+} from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
 
@@ -14,6 +21,7 @@ export class GamesController extends Controller {
   handlers = {
     [RoomsTypes.CREATE_ROOM_EMIT]: (socket, action) => this.createGame(socket, action),
     [RoomsTypes.SEARCH_ROOMS_EMIT]: (socket, action) => this.searchRooms(socket, action),
+    [RoomsTypes.CONNECT_TO_ROOM_EMIT]: (socket, action) => this.joinGame(socket, action),
   }
 
   private async createGame(socket: Socket, action: CreateRoomEmitAction) {
@@ -31,5 +39,23 @@ export class GamesController extends Controller {
       rooms: games.map(gameToRoom),
     })
     socket.emit('event', message)
+  }
+
+  /**
+   * Connect to room handler.
+   * Add socket to room. Leave from lobby
+   * Notify players in room about new player
+   * Notify new player about players in room
+   *
+   * @param socket
+   * @param action
+   */
+  private async joinGame(socket: Socket, action: ConnectToRoomEmitAction) {
+    const roomUuid = action.payload.roomUuid
+    socket.join(roomUuid)
+    socket.leave(SOCKET_ROOM_LOBBY)
+    socket.to(roomUuid).emit('event', { message: 'zhopa' })
+    socket.emit('event', { message: 'connected to room' })
+    console.log(socket.rooms)
   }
 }
