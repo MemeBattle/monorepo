@@ -6,6 +6,7 @@ export enum RoomsTypes {
   CREATE_ROOM_EMIT = '@@rooms/WEBSOCKET/CREATE_ROOM',
   SEARCH_ROOMS_EMIT = '@@rooms/WEBSOCKET/SEARCH_ROOMS',
   UPDATE_ROOMS = '@@rooms/UPDATE_ROOMS',
+  CONNECT_TO_ROOM_EMIT = '@@rooms/WEBSOCKET/CONNECT_TO_ROOM',
 }
 
 export type SearchRoomsFinishAction = Action<RoomsTypes.SEARCH_ROOMS_FINISH, dto.SearchRoomsFinish>
@@ -19,3 +20,6 @@ export const searchRoomsEmitAction = createAction<SearchRoomsEmitAction>(RoomsTy
 
 export type UpdateRooms = Action<RoomsTypes.UPDATE_ROOMS, dto.UpdateRooms>
 export const updateRooms = createAction<UpdateRooms>(RoomsTypes.UPDATE_ROOMS)
+
+export type ConnectToRoomEmitAction = Action<RoomsTypes.CONNECT_TO_ROOM_EMIT, dto.ConnectToRoom>
+export const connectToRoomEmitAction = createAction<ConnectToRoomEmitAction>(RoomsTypes.CONNECT_TO_ROOM_EMIT)

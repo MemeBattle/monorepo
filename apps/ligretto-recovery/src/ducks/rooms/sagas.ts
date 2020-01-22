@@ -1,7 +1,10 @@
 import { takeLatest, take, put } from 'redux-saga/effects'
 import { ConnectToRoomAction, CreateRoomAction, RoomsTypes, SearchRoomsAction, SearchRoomsFinishAction } from './types'
-import { connectToRoomEmitAction, updateRoomsAction } from './actions'
-import { createRoomEmitAction, searchRoomsEmitAction } from '@memebattle/ligretto-shared'
+import { connectToRoomAction, updateRoomsAction } from './actions'
+import { createRoomEmitAction, searchRoomsEmitAction, connectToRoomEmitAction } from '@memebattle/ligretto-shared'
+import { LocationChangeAction, LOCATION_CHANGE } from 'connected-react-router'
+import { matchPath } from 'react-router-dom'
+import { routes } from '../../utils/constants'
 
 /**
  * Сага могла стрельнуть "запрос" на поиск комнат, но ответ еще не успел придти.
@@ -34,8 +37,16 @@ function* connectToRoomSaga(action: ConnectToRoomAction) {
   yield put(connectToRoomEmitAction(action.payload))
 }
 
+function* routerWatcher(action: LocationChangeAction) {
+  const match = matchPath<{ roomUuid: string }>(action.payload.location.pathname, routes.GAME)
+  if (match) {
+    yield put(connectToRoomAction({ roomUuid: match.params.roomUuid }))
+  }
+}
+
 export function* roomsRootSaga() {
   yield takeLatest(RoomsTypes.SEARCH_ROOMS, searchRoomsSaga)
   yield takeLatest(RoomsTypes.CREATE_ROOM, createRoomSaga)
   yield takeLatest(RoomsTypes.CONNECT_TO_ROOM, connectToRoomSaga)
+  yield takeLatest(LOCATION_CHANGE, routerWatcher)
 }
