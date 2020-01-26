@@ -2,10 +2,10 @@ import * as dto from './dto'
 import { createAction, Action } from '@memebattle/redux-utils'
 
 export enum RoomsTypes {
-  SEARCH_ROOMS_FINISH = '@@rooms/SEARCH_ROOMS_FINISH',
+  SEARCH_ROOMS_FINISH = '@@rooms/SERVER/SEARCH_ROOMS_FINISH',
   CREATE_ROOM_EMIT = '@@rooms/WEBSOCKET/CREATE_ROOM',
   SEARCH_ROOMS_EMIT = '@@rooms/WEBSOCKET/SEARCH_ROOMS',
-  UPDATE_ROOMS = '@@rooms/UPDATE_ROOMS',
+  UPDATE_ROOMS_LIST = '@@rooms/SERVER/UPDATE_ROOMS_LIST',
   CONNECT_TO_ROOM_EMIT = '@@rooms/WEBSOCKET/CONNECT_TO_ROOM',
 }
 
@@ -18,8 +18,8 @@ export const createRoomEmitAction = createAction<CreateRoomEmitAction>(RoomsType
 export type SearchRoomsEmitAction = Action<RoomsTypes.SEARCH_ROOMS_EMIT, dto.SearchRooms>
 export const searchRoomsEmitAction = createAction<SearchRoomsEmitAction>(RoomsTypes.SEARCH_ROOMS_EMIT)
 
-export type UpdateRooms = Action<RoomsTypes.UPDATE_ROOMS, dto.UpdateRooms>
-export const updateRooms = createAction<UpdateRooms>(RoomsTypes.UPDATE_ROOMS)
+export type UpdateRooms = Action<RoomsTypes.UPDATE_ROOMS_LIST, dto.UpdateRooms>
+export const updateRooms = createAction<UpdateRooms>(RoomsTypes.UPDATE_ROOMS_LIST)
 
 export type ConnectToRoomEmitAction = Action<RoomsTypes.CONNECT_TO_ROOM_EMIT, dto.ConnectToRoom>
 export const connectToRoomEmitAction = createAction<ConnectToRoomEmitAction>(RoomsTypes.CONNECT_TO_ROOM_EMIT)
