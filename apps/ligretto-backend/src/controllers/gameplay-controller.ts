@@ -9,6 +9,9 @@ import { SOCKET_ROOM_LOBBY } from '../config'
 
 @injectable()
 export class GameplayController extends Controller {
+  /**
+   * Тут всё гавно. Можно удалять
+   */
   @inject(TYPES.Gameplay) private gameplay: Gameplay
   @inject(TYPES.GameService) private gameService: GameService
 
