@@ -42,20 +42,25 @@ export interface Playground {
   decks: CardsDeck[]
 }
 
-export interface Player {
+export interface BasePlayer {
   user: string
-  color: string
+}
+
+export interface PlayerInGame extends BasePlayer {
+  color: CardColors
   cards: Card[]
   ligrettoDeck: CardsDeck
   stackOpenDeck: CardsDeck
   stackDeck: CardsDeck
 }
 
+export type Player = BasePlayer | PlayerInGame
+
 export interface Game {
   id: string
   name: string
   players: {
-    [player: string]: Player
+    [player: string]: PlayerInGame
   }
   playground: Playground
   config: {
