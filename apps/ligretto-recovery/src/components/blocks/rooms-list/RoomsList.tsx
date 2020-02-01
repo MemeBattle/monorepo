@@ -5,7 +5,6 @@ import { Room } from '@memebattle/ligretto-shared'
 import { routes } from 'utils/constants'
 import styles from './Rooms.module.scss'
 import playIcon from 'assets/icons/play.svg'
-import { LinkBack } from '../../base/link-back'
 import { ButtonLink } from '../../base/button-link'
 
 const cn = classNames.bind(styles)
