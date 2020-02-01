@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { NewRoom } from 'components/blocks/new-room'
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { useDispatch } from 'react-redux'
 import { createRoomAction } from 'ducks/rooms/actions'
 
