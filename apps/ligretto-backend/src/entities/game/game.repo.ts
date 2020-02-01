@@ -1,6 +1,6 @@
 import { injectable, inject } from 'inversify'
 import { Database } from '../../database'
-import { Game } from '../../types/game'
+import { Game } from '@memebattle/ligretto-shared'
 import { TYPES } from '../../types'
 
 @injectable()

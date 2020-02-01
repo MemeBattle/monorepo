@@ -1,7 +1,6 @@
 import { inject, injectable } from 'inversify'
 import { GameRepository } from './game.repo'
-import { Game } from '../../types/game'
-import { Player } from '../../types/player'
+import { Game, Player } from '@memebattle/ligretto-shared'
 import { TYPES } from '../../types'
 
 const emptyGame: Game = {
