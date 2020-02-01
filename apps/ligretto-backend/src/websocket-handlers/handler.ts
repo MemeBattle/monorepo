@@ -37,4 +37,8 @@ export class WebSocketHandler implements WebSocketHandler {
     this.gameplayController.handleMessage(socket, data)
     this.gamesController.handleMessage(socket, data)
   }
+
+  private outputMessaging() {
+
+  }
 }
