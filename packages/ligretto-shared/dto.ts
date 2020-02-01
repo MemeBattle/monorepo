@@ -29,3 +29,5 @@ export interface ConnectToRoom {
 export interface ConnectToRoomSuccess {
   game: Game
 }
+
+export interface GameState extends Game {}
