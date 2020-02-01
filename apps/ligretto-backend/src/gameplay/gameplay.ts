@@ -3,12 +3,14 @@ import { PlayerService } from '../entities/player/player.service'
 import { PlaygroundService } from '../entities/playground'
 import { GameService } from '../entities/game/game.service'
 import { TYPES } from '../types'
+import { GameplayOutput } from './gameplay-output'
 
 @injectable()
 export class Gameplay {
   @inject(TYPES.GameService) private gameService: GameService
   @inject(TYPES.PlayerService) private playerService: PlayerService
   @inject(TYPES.PlaygroundService) private playgroundService: PlaygroundService
+  @inject(TYPES.GameplayOutput) private gameplayOutput: GameplayOutput
 
   async startGame(gameId: string) {
     try {

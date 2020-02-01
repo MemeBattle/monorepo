@@ -10,6 +10,10 @@ export enum RoomsTypes {
   CONNECT_TO_ROOM_SUCCESS = '@@rooms/SERVER/CONNECT_TO_ROOM_SUCCESS',
 }
 
+export enum GameTypes {
+  UPDATE_GAME = '@@rooms/SERVER/UPDATE_GAME',
+}
+
 export type SearchRoomsFinishAction = Action<RoomsTypes.SEARCH_ROOMS_FINISH, dto.SearchRoomsFinish>
 export const searchRoomsFinishAction = createAction<SearchRoomsFinishAction>(RoomsTypes.SEARCH_ROOMS_FINISH)
 
@@ -27,3 +31,6 @@ export const connectToRoomEmitAction = createAction<ConnectToRoomEmitAction>(Roo
 
 export type ConnectToRoomSuccessAction = Action<RoomsTypes.CONNECT_TO_ROOM_SUCCESS, dto.ConnectToRoomSuccess>
 export const connectToRoomSuccessAction = createAction<ConnectToRoomSuccessAction>(RoomsTypes.CONNECT_TO_ROOM_SUCCESS)
+
+// export type UpdateGame = Action<GameTypes.UPDATE_GAME, dto>
+//
