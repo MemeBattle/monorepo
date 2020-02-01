@@ -17,6 +17,7 @@ import {
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
+import { GameplayOutput } from '../gameplay/gameplay-output'
 
 const emptyPlayer: Player = {
   user: 'empty',
@@ -37,6 +38,7 @@ const emptyPlayer: Player = {
 export class GamesController extends Controller {
   @inject(TYPES.GameService) private gameService: GameService
   @inject(TYPES.PlayerService) private playerService: PlayerService
+  @inject(TYPES.GameplayOutput) private gameplayOutput: GameplayOutput
 
   handlers = {
     [RoomsTypes.CREATE_ROOM_EMIT]: (socket, action) => this.createGame(socket, action),
@@ -73,6 +75,7 @@ export class GamesController extends Controller {
   private async joinGame(socket: Socket, action: ConnectToRoomEmitAction) {
     const roomUuid = action.payload.roomUuid
     socket.join(roomUuid)
+    this.gameplayOutput.listenGame(roomUuid)
     socket.leave(SOCKET_ROOM_LOBBY)
     await this.gameService.addPlayer(roomUuid, { ...emptyPlayer, user: socket.id })
     const game = await this.gameService.getGame(roomUuid)
