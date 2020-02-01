@@ -6,11 +6,15 @@
   "author": "MemeBattle",
   "license": "MIT",
   "scripts": {
-    "build": "tsc index.ts"
+    "build": "tsc index.ts",
+    "start:dev": "nodemon"
   },
   "dependencies": {
     "@memebattle/redux-utils": "^1.0.0",
     "typescript": "^3.6.4"
   },
-  "gitHead": "50afc9f39532b37c83e5eca316a309feda1893dd"
+  "gitHead": "50afc9f39532b37c83e5eca316a309feda1893dd",
+  "devDependencies": {
+    "nodemon": "^2.0.2"
+  }
 }
