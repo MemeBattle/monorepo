@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import { GameRepository } from './game.repo'
-import { BasePlayer, Game, Player, PlayerInGame } from '@memebattle/ligretto-shared'
+import { Game, Player } from '@memebattle/ligretto-shared'
 import { TYPES } from '../../types'
 
 const emptyGame: Game = {
@@ -50,7 +50,7 @@ export class GameService {
     })
   }
 
-  async addPlayer(gameId: string, player: PlayerInGame) {
+  async addPlayer(gameId: string, player: Player) {
     const color = await this.gameRepository.getAvailableColor(gameId)
     return this.gameRepository.updateGame(gameId, game => ({
       ...game,
