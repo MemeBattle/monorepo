@@ -5,12 +5,13 @@
   "license": "MIT",
   "scripts": {
     "test:watch": "tsc && ava --watch --color --verbose",
-    "start:dev": "nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec ts-node src/index.ts",
+    "start:dev": "nodemon",
     "start": "ts-node src/index.ts",
     "env": "cp .env.default .env",
     "prestart": "ts-node src/cli/check-env.ts"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.149",
     "@types/node": "^12.7.3",
     "ava": "^2.3.0",
     "nodemon": "^1.19.4",
