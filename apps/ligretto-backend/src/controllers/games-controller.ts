@@ -3,6 +3,7 @@ import { TYPES } from '../types'
 import { Controller } from './controller'
 import { Socket } from 'socket.io'
 import { GameService } from '../entities/game/game.service'
+import { PlayerService } from '../entities/player/player.service'
 import {
   searchRoomsFinishAction,
   RoomsTypes,
@@ -10,13 +11,32 @@ import {
   SearchRoomsEmitAction,
   ConnectToRoomEmitAction,
   updateRooms,
+  connectToRoomSuccessAction,
+  PlayerInGame,
+  CardColors,
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
 
+const emptyPlayer: PlayerInGame = {
+  user: 'empty',
+  stackDeck: {
+    isHidden: true,
+    cards: [],
+  },
+  color: CardColors.empty,
+  cards: [],
+  ligrettoDeck: { isHidden: true, cards: [] },
+  stackOpenDeck: {
+    isHidden: true,
+    cards: [],
+  },
+}
+
 @injectable()
 export class GamesController extends Controller {
   @inject(TYPES.GameService) private gameService: GameService
+  @inject(TYPES.PlayerService) private playerService: PlayerService
 
   handlers = {
     [RoomsTypes.CREATE_ROOM_EMIT]: (socket, action) => this.createGame(socket, action),
@@ -54,8 +74,8 @@ export class GamesController extends Controller {
     const roomUuid = action.payload.roomUuid
     socket.join(roomUuid)
     socket.leave(SOCKET_ROOM_LOBBY)
-    socket.to(roomUuid).emit('event', { message: 'zhopa' })
-    socket.emit('event', { message: 'connected to room' })
-    console.log(socket.rooms)
+    await this.gameService.addPlayer(roomUuid, { ...emptyPlayer, user: socket.id })
+    const game = await this.gameService.getGame(roomUuid)
+    socket.to(roomUuid).emit('event', connectToRoomSuccessAction({ game }))
   }
 }

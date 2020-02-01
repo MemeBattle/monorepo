@@ -8,6 +8,7 @@ const initialState: Rooms = {
   ids: [],
   isLoading: false,
   search: '',
+  isRoomLoading: true,
 }
 
 export const roomsReducer = (state: Rooms = initialState, action: RoomsActions) => {

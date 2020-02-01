@@ -1,0 +1,11 @@
+{
+  "ignore": [
+    "src/**/*.spec.ts"
+  ],
+  "watch": [
+    "src"
+  ],
+  "ext": "ts",
+  "exec": "ts-node src/index.ts",
+  "ignoreRoot": [".git"]
+}
