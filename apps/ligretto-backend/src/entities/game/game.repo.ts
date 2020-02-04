@@ -16,9 +16,9 @@ export class GameRepository {
     return this.database.get(storage => storage.games[gameId])
   }
 
-  async updateGame(gameId: string, updater: (game: Game) => Game) {
+  async updateGame(gameId: string, updater: (game: Game) => Game): Promise<Game> {
     const game = await this.getGame(gameId)
-    return this.database.set(storage => (storage.games[gameId] = updater(game)))
+    return this.database.set<Game>(storage => (storage.games[gameId] = updater(game)))
   }
 
   removeGame(gameId: string) {

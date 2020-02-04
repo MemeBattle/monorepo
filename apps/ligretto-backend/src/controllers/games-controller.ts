@@ -14,6 +14,7 @@ import {
   connectToRoomSuccessAction,
   CardColors,
   Player,
+  Game,
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
@@ -48,7 +49,6 @@ export class GamesController extends Controller {
 
   private async createGame(socket: Socket, action: CreateRoomEmitAction) {
     const game = await this.gameService.createGame(action.payload.name)
-    socket.emit('Game created', game) // Надо заэмитить успешное создание комнаты
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(game)] }))
   }
 
@@ -77,8 +77,7 @@ export class GamesController extends Controller {
     socket.join(roomUuid)
     this.gameplayOutput.listenGame(roomUuid)
     socket.leave(SOCKET_ROOM_LOBBY)
-    await this.gameService.addPlayer(roomUuid, { ...emptyPlayer, user: socket.id })
-    const game = await this.gameService.getGame(roomUuid)
+    const game: Game = await this.gameService.addPlayer(roomUuid, { ...emptyPlayer, user: socket.id })
     socket.to(roomUuid).emit('event', connectToRoomSuccessAction({ game }))
     socket.emit('event', connectToRoomSuccessAction({ game }))
   }
