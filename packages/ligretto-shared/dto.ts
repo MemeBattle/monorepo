@@ -1,18 +1,8 @@
-import { CardPositions, CardColors, Room } from './types'
+import { CardPositions, Room, Game } from './types'
 
 export interface TapCard {
   cardPosition: CardPositions
   newPosition?: CardPositions
-}
-
-export interface ChangeCard {
-  cardPosition: CardPositions
-  value: 'string'
-  color: CardColors
-}
-
-export interface ChangeCards {
-  cards: ChangeCard[]
 }
 
 export interface SearchRooms {
@@ -35,3 +25,9 @@ export interface CreateGame {
 export interface ConnectToRoom {
   roomUuid: string
 }
+
+export interface ConnectToRoomSuccess {
+  game: Game
+}
+
+export interface GameState extends Game {}

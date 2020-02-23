@@ -10,7 +10,7 @@
     "test": "lerna run --no-bail test --ignore-path .gitignore",
     "lerna-publish": "lerna publish",
     "lerna-ci-publish": "lerna publish --yes --no-git-reset",
-    "ligretto:start": "lerna run --parallel --scope ligretto-backend --scope ligretto-recovery start:dev"
+    "ligretto:start": "lerna run --parallel --scope @memebattle/ligretto-shared --scope ligretto-backend --scope ligretto-recovery start:dev"
   },
   "engines": {
     "node": ">=10"

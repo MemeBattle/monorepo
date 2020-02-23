@@ -9,6 +9,8 @@
 
 .content {
   height: 100%;
+  width: 70%;
+  align-items: center;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -22,6 +24,7 @@
   display: flex;
   margin-bottom: 15px;
   justify-content: space-between;
+  width: 100%;
 }
 
 .header {
