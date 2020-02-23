@@ -9,7 +9,7 @@ const tableCardsPositions = new Array(MAX_CARDS_ON_TABLE).fill(1).map((_, index)
 export const TableCards: React.FC = () => (
   <div className={styles.tableCards}>
     {tableCardsPositions.map(cardPosition => (
-      <CardContainer cardPosition={cardPosition as CardPositions} key={cardPosition} />
+      <CardContainer className={styles.card} cardPosition={cardPosition as CardPositions} key={cardPosition} />
     ))}
   </div>
 )
