@@ -1,16 +1,18 @@
 import { CardsActions, CardsTypes } from './types'
 import * as Store from 'types/store'
-import { CardPositions, CardColors, Card } from 'types/entities/card-model'
+import { Card, CardColors, CardPositions } from 'types/entities/card-model'
+import sample from 'lodash/sample'
+import random from 'lodash/random'
 
-const defaultCard: Card = {
-  color: CardColors.red,
+const createRandomCard = (): Card => ({
+  color: sample([CardColors.yellow, CardColors.red, CardColors.blue, CardColors.green]),
+  value: `${random(1, 9)}`,
   disabled: false,
-  value: '7',
-}
+})
 
 export const createCardsInitialState = (): Store.Cards =>
   Object.values(CardPositions).reduce((acc: Partial<Store.Cards>, cardPosition) => {
-    acc[cardPosition] = defaultCard
+    acc[cardPosition] = createRandomCard()
     return acc
   }, {}) as Store.Cards
 
