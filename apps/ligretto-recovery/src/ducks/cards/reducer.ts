@@ -5,7 +5,7 @@ import { CardPositions, CardColors, Card } from 'types/entities/card-model'
 const defaultCard: Card = {
   color: CardColors.red,
   disabled: false,
-  value: '9',
+  value: '7',
 }
 
 export const createCardsInitialState = (): Store.Cards =>

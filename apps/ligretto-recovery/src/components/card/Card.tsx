@@ -5,16 +5,22 @@ import cn from 'classnames'
 
 interface CardProps extends CardModel {
   onClick?: () => void
+  className?: string
 }
 
 export const CardValue: React.FC<{ value?: string }> = ({ value }) => <div className={styles.value}>{value}</div>
 
-export const Card: React.FC<CardProps> = ({ value, disabled, onClick, color, hidden }) => (
+export const Card: React.FC<CardProps> = ({ value, disabled, onClick, color, hidden, className }) => (
   <div
-    className={cn(styles.card, styles[color || CardColors.empty], {
-      [styles.disabled]: disabled,
-      [styles.hidden]: hidden,
-    })}
+    className={cn(
+      styles.card,
+      styles[color || CardColors.empty],
+      {
+        [styles.disabled]: disabled,
+        [styles.hidden]: hidden,
+      },
+      className,
+    )}
     onClick={!disabled ? onClick : () => null}
   >
     {color !== CardColors.empty ? <CardValue value={value} /> : null}
