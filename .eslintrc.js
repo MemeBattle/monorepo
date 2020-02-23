@@ -88,5 +88,6 @@ module.exports = {
     'space-before-function-paren': 'off',
     'use-isnan': 'error',
     'valid-typeof': 'off',
+    '@typescript-eslint/no-explicit-any': 2
   },
 }
