@@ -4,13 +4,11 @@ import { CardsPanel } from 'components/blocks/cards-panel'
 import { OpponentCards, PositionOnTable } from 'components/blocks/opponent-cards'
 import { TableCards } from 'components/blocks/table-cards'
 
-const HomePage: React.FC = () => (
+export const GamePage: React.FC = () => (
   <GameCoverScreen>
     <OpponentCards positionOnTable={PositionOnTable.LeftTopCorner} />
     <OpponentCards positionOnTable={PositionOnTable.RightTopCorner} />
-    {/*<TableCards />*/}
-    {/*<CardsPanel />*/}
+    <TableCards />
+    <CardsPanel />
   </GameCoverScreen>
 )
-
-export default HomePage
