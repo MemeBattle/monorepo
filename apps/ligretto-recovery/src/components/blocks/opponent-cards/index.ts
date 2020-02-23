@@ -1,1 +1,1 @@
-export { OpponentCards } from './OpponentCards'
+export { OpponentCards, PositionOnTable } from './OpponentCards'
