@@ -1,6 +1,5 @@
 import { inject, injectable } from 'inversify'
-import { Card } from '../../types/card'
-import { CardsDeck } from '../../types/cards-deck'
+import { Card, CardsDeck } from '@memebattle/ligretto-shared'
 import { Database } from '../../database'
 import { TYPES } from '../../types'
 

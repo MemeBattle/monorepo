@@ -25,7 +25,7 @@ export enum CardPositions {
 }
 export interface Card {
   color?: CardColors
-  value?: string
+  value?: number
   position?: CardPositions
   disabled?: boolean
   hidden?: boolean
@@ -36,4 +36,35 @@ export interface Room {
   name: string
   playersCount: number
   playersMaxCount: number
+}
+
+export interface Playground {
+  decks: CardsDeck[]
+}
+
+export interface Player {
+  user: string
+  color: CardColors
+  cards: Card[]
+  ligrettoDeck: CardsDeck
+  stackOpenDeck: CardsDeck
+  stackDeck: CardsDeck
+}
+
+export interface Game {
+  id: string
+  name: string
+  players: {
+    [player: string]: Player
+  }
+  playground: Playground
+  config: {
+    cardsCount: number
+    playersMaxCount: number
+  }
+}
+
+export interface CardsDeck {
+  isHidden: boolean
+  cards: Card[]
 }

@@ -17,6 +17,8 @@ export type Rooms = {
   }
   ids: string[]
   isLoading: boolean
+  search: string
+  isRoomLoading: boolean
 }
 
 export interface All {

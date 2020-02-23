@@ -1,10 +1,18 @@
-import { takeLatest, take, put } from 'redux-saga/effects'
-import { ConnectToRoomAction, CreateRoomAction, RoomsTypes, SearchRoomsAction, SearchRoomsFinishAction } from './types'
-import { connectToRoomAction, updateRoomsAction } from './actions'
-import { createRoomEmitAction, searchRoomsEmitAction, connectToRoomEmitAction } from '@memebattle/ligretto-shared'
+import { takeLatest, take, put, select } from 'redux-saga/effects'
+import { ConnectToRoomAction, CreateRoomAction, RoomsTypes, SearchRoomsAction } from './types'
+import { connectToRoomAction, searchRoomsAction, updateRoomsAction, setRoomsAction } from './actions'
+import {
+  createRoomEmitAction,
+  searchRoomsEmitAction,
+  connectToRoomEmitAction,
+  SearchRoomsFinishAction,
+  RoomsTypes as RoomsTypesShared,
+  UpdateRooms as UpdateRoomsFromServer,
+} from '@memebattle/ligretto-shared'
 import { LocationChangeAction, LOCATION_CHANGE } from 'connected-react-router'
 import { matchPath } from 'react-router-dom'
 import { routes } from '../../utils/constants'
+import { selectSearch } from './selectors'
 
 /**
  * Сага могла стрельнуть "запрос" на поиск комнат, но ответ еще не успел придти.
@@ -18,12 +26,11 @@ import { routes } from '../../utils/constants'
  * @param action
  */
 function* searchRoomsSaga(action: SearchRoomsAction) {
-  const a = searchRoomsEmitAction({ search: action.payload.search })
-  yield put(a)
+  yield put(searchRoomsEmitAction({ search: action.payload.search }))
   while (true) {
-    const finishAction: SearchRoomsFinishAction = yield take(RoomsTypes.SEARCH_ROOMS_FINISH)
+    const finishAction: SearchRoomsFinishAction = yield take(RoomsTypesShared.SEARCH_ROOMS_FINISH)
     if (finishAction.payload.search === action.payload.search) {
-      yield put(updateRoomsAction(finishAction.payload))
+      yield put(setRoomsAction(finishAction.payload))
       return
     }
   }
@@ -37,16 +44,32 @@ function* connectToRoomSaga(action: ConnectToRoomAction) {
   yield put(connectToRoomEmitAction(action.payload))
 }
 
-function* routerWatcher(action: LocationChangeAction) {
+function* gameRouteWatcher(action: LocationChangeAction) {
   const match = matchPath<{ roomUuid: string }>(action.payload.location.pathname, routes.GAME)
   if (match) {
     yield put(connectToRoomAction({ roomUuid: match.params.roomUuid }))
   }
 }
 
+function* searchRoomsRouteWatcher(action: LocationChangeAction) {
+  const match = matchPath(action.payload.location.pathname, routes.ROOMS)
+  if (match) {
+    const search: ReturnType<typeof selectSearch> = yield select(selectSearch)
+    yield put(searchRoomsAction({ search }))
+  }
+}
+
+function* updateRoomsFromServerSaga(action: UpdateRoomsFromServer) {
+  const search: ReturnType<typeof selectSearch> = yield select(selectSearch)
+  const rooms = action.payload.rooms.filter(({ name }) => name.includes(search))
+  yield put(updateRoomsAction({ rooms }))
+}
+
 export function* roomsRootSaga() {
   yield takeLatest(RoomsTypes.SEARCH_ROOMS, searchRoomsSaga)
   yield takeLatest(RoomsTypes.CREATE_ROOM, createRoomSaga)
   yield takeLatest(RoomsTypes.CONNECT_TO_ROOM, connectToRoomSaga)
-  yield takeLatest(LOCATION_CHANGE, routerWatcher)
+  yield takeLatest(RoomsTypesShared.UPDATE_ROOMS_LIST, updateRoomsFromServerSaga)
+  yield takeLatest(LOCATION_CHANGE, gameRouteWatcher)
+  yield takeLatest(LOCATION_CHANGE, searchRoomsRouteWatcher)
 }

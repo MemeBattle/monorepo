@@ -11,6 +11,6 @@ interface Avatar {
   size?: keyof typeof heightBySize
 }
 
-const Avatar: React.FC<Avatar> = ({ src, size = 'medium' }) => <img src={src} height={heightBySize[size]} />
+const Avatar: React.FC<Avatar> = ({ src, size = 'medium' }) => <img alt="avatar" src={src} height={heightBySize[size]} />
 
 export default Avatar

@@ -1,4 +1,4 @@
 export interface User {
-  id: string,
-  dataFromCAS: any,
+  id: string
+  dataFromCAS: unknown
 }

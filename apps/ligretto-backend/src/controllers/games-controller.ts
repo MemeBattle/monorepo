@@ -3,6 +3,7 @@ import { TYPES } from '../types'
 import { Controller } from './controller'
 import { Socket } from 'socket.io'
 import { GameService } from '../entities/game/game.service'
+import { PlayerService } from '../entities/player/player.service'
 import {
   searchRoomsFinishAction,
   RoomsTypes,
@@ -10,13 +11,35 @@ import {
   SearchRoomsEmitAction,
   ConnectToRoomEmitAction,
   updateRooms,
+  connectToRoomSuccessAction,
+  CardColors,
+  Player,
+  Game,
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
+import { GameplayOutput } from '../gameplay/gameplay-output'
+
+const emptyPlayer: Player = {
+  user: 'empty',
+  stackDeck: {
+    isHidden: true,
+    cards: [],
+  },
+  color: CardColors.empty,
+  cards: [],
+  ligrettoDeck: { isHidden: true, cards: [] },
+  stackOpenDeck: {
+    isHidden: true,
+    cards: [],
+  },
+}
 
 @injectable()
 export class GamesController extends Controller {
   @inject(TYPES.GameService) private gameService: GameService
+  @inject(TYPES.PlayerService) private playerService: PlayerService
+  @inject(TYPES.GameplayOutput) private gameplayOutput: GameplayOutput
 
   handlers = {
     [RoomsTypes.CREATE_ROOM_EMIT]: (socket, action) => this.createGame(socket, action),
@@ -26,7 +49,6 @@ export class GamesController extends Controller {
 
   private async createGame(socket: Socket, action: CreateRoomEmitAction) {
     const game = await this.gameService.createGame(action.payload.name)
-    socket.emit('Game created', game) // Надо заэмитить успешное создание комнаты
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(game)] }))
   }
 
@@ -53,9 +75,10 @@ export class GamesController extends Controller {
   private async joinGame(socket: Socket, action: ConnectToRoomEmitAction) {
     const roomUuid = action.payload.roomUuid
     socket.join(roomUuid)
+    this.gameplayOutput.listenGame(roomUuid)
     socket.leave(SOCKET_ROOM_LOBBY)
-    socket.to(roomUuid).emit('event', { message: 'zhopa' })
-    socket.emit('event', { message: 'connected to room' })
-    console.log(socket.rooms)
+    const game: Game = await this.gameService.addPlayer(roomUuid, { ...emptyPlayer, user: socket.id })
+    socket.to(roomUuid).emit('event', connectToRoomSuccessAction({ game }))
+    socket.emit('event', connectToRoomSuccessAction({ game }))
   }
 }
