@@ -51,9 +51,15 @@ export interface Player {
   stackDeck: CardsDeck
 }
 
+export enum GameStatus {
+  New = 'New',
+  InGame = 'InGame',
+}
+
 export interface Game {
   id: string
   name: string
+  status: GameStatus
   players: {
     [player: string]: Player
   }
