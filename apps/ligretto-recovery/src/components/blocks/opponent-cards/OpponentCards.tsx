@@ -2,19 +2,12 @@ import React from 'react'
 import cn from 'classnames'
 import { CardContainer } from 'containers/card'
 import { CardPositions } from 'types/entities/card-model'
+import { PositionOnTable } from 'components/base/room-grid'
 import styles from './OpponentCards.module.scss'
 
 const WrappedCard: React.FC<{ cardPosition: CardPositions }> = ({ cardPosition }) => (
   <CardContainer className={styles.card} cardPosition={cardPosition} />
 )
-
-export enum PositionOnTable {
-  Left = 'left',
-  Right = 'right',
-  Top = 'top',
-  LeftTopCorner = 'leftTopCorner',
-  RightTopCorner = 'rightTopCorner',
-}
 
 const stylesByPosition = {
   [PositionOnTable.Left]: styles.positionLeft,
