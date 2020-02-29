@@ -6,11 +6,13 @@ import { OpponentCards } from 'components/blocks/opponent-cards'
 import { OpponentWaiting } from 'components/blocks/opponent-waiting'
 import { RoomGrid, PositionOnTable, RenderChildren, RenderMultiplyChildren, isMultiplyRenderChildren } from 'components/base/room-grid'
 import { TableCards } from 'components/blocks/table-cards'
+import { PlayerReadyButton } from 'components/blocks/player-ready-button'
+import styles from './Game.module.scss'
 
 const opponents = [0, 1, 2]
 
 const renderOpponent: RenderChildren = (positionOnTable: PositionOnTable) => <OpponentCards positionOnTable={positionOnTable} />
-const renderOpponentWaiting: RenderChildren = () => <OpponentWaiting />
+const renderOpponentWaiting: RenderChildren = (positionOnTable: PositionOnTable) => <OpponentWaiting positionOnTable={positionOnTable} />
 
 export const GamePage: React.FC = () => {
   const [isGameStarted, setGameStarted] = React.useState(false)
@@ -28,7 +30,7 @@ export const GamePage: React.FC = () => {
     <GameCoverScreen>
       <RoomGrid renderChildren={renderChildren} />
       {isGameStarted ? <TableCards /> : null}
-      {isGameStarted ? <CardsPanel /> : <button onClick={() => setGameStarted(true)}>Start game</button>}
+      {isGameStarted ? <CardsPanel /> : <PlayerReadyButton className={styles.playerReadyButton} onClick={() => setGameStarted(true)} />}
     </GameCoverScreen>
   )
 }

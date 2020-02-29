@@ -1,0 +1,10 @@
+.playerReadyButton {
+  display: flex;
+  flex-direction: column;
+  width: 10rem;
+
+  .button {
+    width: 100%;
+    cursor: pointer;
+  }
+}
