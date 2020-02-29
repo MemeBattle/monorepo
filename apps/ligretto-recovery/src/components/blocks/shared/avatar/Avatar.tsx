@@ -1,16 +1,20 @@
 import React from 'react'
 
+export enum AvatarSize {
+  Small = 'small',
+  Medium = 'medium',
+  Large = 'large',
+}
+
 const heightBySize = {
-  small: '70px',
-  medium: '140px',
-  large: '210px',
+  [AvatarSize.Small]: '70px',
+  [AvatarSize.Medium]: '140px',
+  [AvatarSize.Large]: '210px',
 }
 
 interface Avatar {
   src: string
-  size?: keyof typeof heightBySize
+  size?: AvatarSize
 }
 
-const Avatar: React.FC<Avatar> = ({ src, size = 'medium' }) => <img alt="avatar" src={src} height={heightBySize[size]} />
-
-export default Avatar
+export const Avatar: React.FC<Avatar> = ({ src, size = AvatarSize.Medium }) => <img alt="avatar" src={src} height={heightBySize[size]} />
