@@ -1,0 +1,1 @@
+export { gameReducer } from './reducer'
