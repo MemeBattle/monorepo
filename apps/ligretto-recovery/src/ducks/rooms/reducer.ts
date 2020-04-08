@@ -1,9 +1,18 @@
-import { Rooms } from 'types/store'
 import { RoomsTypes, RoomsActions } from './types'
 import { Room } from '@memebattle/ligretto-shared'
 import uniq from 'lodash/uniq'
 
-const initialState: Rooms = {
+export type RoomsState = {
+  byId: {
+    [uuid: string]: Room
+  }
+  ids: string[]
+  isLoading: boolean
+  search: string
+  isRoomLoading: boolean
+}
+
+const initialState: RoomsState = {
   byId: {},
   ids: [],
   isLoading: false,
@@ -11,7 +20,7 @@ const initialState: Rooms = {
   isRoomLoading: true,
 }
 
-export const roomsReducer = (state: Rooms = initialState, action: RoomsActions) => {
+export const roomsReducer = (state: RoomsState = initialState, action: RoomsActions) => {
   switch (action.type) {
     case RoomsTypes.SEARCH_ROOMS:
       return {

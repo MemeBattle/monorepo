@@ -1,29 +1,13 @@
-import { UserProfile } from './entities/user'
-import { Card, CardPositions } from 'types/entities/card-model'
-import { Room } from '@memebattle/ligretto-shared'
+import { RoomsState } from '../ducks/rooms/reducer'
+import { GameState } from '../ducks/game/reducer'
+import { UserState } from '../ducks/user/reducer'
+import { CardsState } from '../ducks/cards/reducer'
 import { RouterState } from 'connected-react-router'
 
-export interface User {
-  profile: UserProfile
-}
-
-export type Cards = {
-  [key in CardPositions]: Card
-}
-
-export type Rooms = {
-  byId: {
-    [uuid: string]: Room
-  }
-  ids: string[]
-  isLoading: boolean
-  search: string
-  isRoomLoading: boolean
-}
-
 export interface All {
-  user: User
-  cards: Cards
-  rooms: Rooms
+  user: UserState
+  cards: CardsState
+  rooms: RoomsState
   router: RouterState
+  game: GameState
 }
