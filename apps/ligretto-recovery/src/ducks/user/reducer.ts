@@ -1,8 +1,12 @@
 import { UserAction, UserTypeNames } from './types'
-import * as Store from 'types/store'
 import defaultAvatar from 'assets/icons/avatars/1.svg'
+import { UserProfile } from '../../types/entities/user'
 
-const initialState: Store.User = {
+export interface UserState {
+  profile: UserProfile
+}
+
+const initialState: UserState = {
   profile: {
     id: 0,
     username: 'Guest',
@@ -10,7 +14,7 @@ const initialState: Store.User = {
   },
 }
 
-export default (state = initialState, action: UserAction): Store.User => {
+export default (state = initialState, action: UserAction): UserState => {
   switch (action.type) {
     case UserTypeNames.GET_PROFILE_REQUEST:
       return state

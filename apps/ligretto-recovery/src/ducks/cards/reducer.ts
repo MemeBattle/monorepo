@@ -1,8 +1,11 @@
 import { CardsActions, CardsTypes } from './types'
-import * as Store from 'types/store'
 import { Card, CardColors, CardPositions } from 'types/entities/card-model'
 import sample from 'lodash/sample'
 import random from 'lodash/random'
+
+export type CardsState = {
+  [key in CardPositions]: Card
+}
 
 const createRandomCard = (): Card => ({
   color: sample([CardColors.yellow, CardColors.red, CardColors.blue, CardColors.green]),
@@ -10,15 +13,15 @@ const createRandomCard = (): Card => ({
   disabled: false,
 })
 
-export const createCardsInitialState = (): Store.Cards =>
-  Object.values(CardPositions).reduce((acc: Partial<Store.Cards>, cardPosition) => {
+export const createCardsInitialState = (): CardsState =>
+  Object.values(CardPositions).reduce((acc: Partial<CardsState>, cardPosition) => {
     acc[cardPosition] = createRandomCard()
     return acc
-  }, {}) as Store.Cards
+  }, {}) as CardsState
 
-export const cardsInitialState: Store.Cards = createCardsInitialState()
+export const cardsInitialState: CardsState = createCardsInitialState()
 
-export const cardsReducer = (state = cardsInitialState, action: CardsActions): Store.Cards => {
+export const cardsReducer = (state = cardsInitialState, action: CardsActions): CardsState => {
   switch (action.type) {
     case CardsTypes.PUSH_CARD:
       return { ...state, [action.payload.cardPosition]: action.payload.card }
