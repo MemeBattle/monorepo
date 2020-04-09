@@ -78,6 +78,7 @@ export class GamesController extends Controller {
     this.gameplayOutput.listenGame(roomUuid)
     socket.leave(SOCKET_ROOM_LOBBY)
     const game: Game = await this.gameService.addPlayer(roomUuid, { ...emptyPlayer, user: socket.id })
+    socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(game)] }))
     socket.to(roomUuid).emit('event', connectToRoomSuccessAction({ game }))
     socket.emit('event', connectToRoomSuccessAction({ game }))
   }
