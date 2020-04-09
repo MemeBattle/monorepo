@@ -21,7 +21,7 @@ const initialState: GameState = {
 export const gameReducer = (state: GameState = initialState, action: UpdateGameAction) => {
   switch (action.type) {
     case GameTypes.UPDATE_GAME:
-      return state
+      return { ...state, ...action.payload }
     default:
       return state
   }
