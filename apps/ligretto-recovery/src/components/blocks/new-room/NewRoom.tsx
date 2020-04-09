@@ -12,15 +12,18 @@ interface NewRoomProps {
 export const NewRoom: React.FC<NewRoomProps> = ({ onCreateRoomButtonClick }) => {
   const [name, setName] = useState('')
 
-  const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setName(e.target.value)
-  }, [])
+  const handleNameChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setName(e.target.value)
+    },
+    [setName],
+  )
 
   const handleButtonClick = useCallback(
     name => () => {
       onCreateRoomButtonClick(name)
     },
-    [],
+    [onCreateRoomButtonClick],
   )
 
   return (

@@ -30,4 +30,4 @@ export interface ConnectToRoomSuccess {
   game: Game
 }
 
-export interface GameState extends Game {}
+export type GameState = Game

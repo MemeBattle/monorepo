@@ -32,5 +32,5 @@ export const connectToRoomEmitAction = createAction<ConnectToRoomEmitAction>(Roo
 export type ConnectToRoomSuccessAction = Action<RoomsTypes.CONNECT_TO_ROOM_SUCCESS, dto.ConnectToRoomSuccess>
 export const connectToRoomSuccessAction = createAction<ConnectToRoomSuccessAction>(RoomsTypes.CONNECT_TO_ROOM_SUCCESS)
 
-// export type UpdateGame = Action<GameTypes.UPDATE_GAME, dto>
-//
+export type UpdateGameAction = Action<GameTypes.UPDATE_GAME, dto.GameState>
+export const updateGameAction = createAction<UpdateGameAction>(GameTypes.UPDATE_GAME)
