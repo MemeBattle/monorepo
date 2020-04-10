@@ -51,8 +51,9 @@ export class GameService {
     })
   }
 
-  async addPlayer(gameId: string, player: Player) {
+  async addPlayer(gameId: string, playerData: Partial<Player>) {
     const color = await this.gameRepository.getAvailableColor(gameId)
+    const player = await this.gameRepository.createPlayer({ ...playerData, color })
     return this.gameRepository.updateGame(gameId, game => ({
       ...game,
       players: {

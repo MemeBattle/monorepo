@@ -1,5 +1,4 @@
 import { injectable } from 'inversify'
-import { isEqual } from 'lodash'
 import { Storage } from './storage'
 
 export const storage: Storage = {
