@@ -12,28 +12,11 @@ import {
   ConnectToRoomEmitAction,
   updateRooms,
   connectToRoomSuccessAction,
-  CardColors,
-  Player,
   Game,
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
 import { GameplayOutput } from '../gameplay/gameplay-output'
-
-const emptyPlayer: Player = {
-  user: 'empty',
-  stackDeck: {
-    isHidden: true,
-    cards: [],
-  },
-  color: CardColors.empty,
-  cards: [],
-  ligrettoDeck: { isHidden: true, cards: [] },
-  stackOpenDeck: {
-    isHidden: true,
-    cards: [],
-  },
-}
 
 @injectable()
 export class GamesController extends Controller {
@@ -77,7 +60,7 @@ export class GamesController extends Controller {
     socket.join(roomUuid)
     this.gameplayOutput.listenGame(roomUuid)
     socket.leave(SOCKET_ROOM_LOBBY)
-    const game: Game = await this.gameService.addPlayer(roomUuid, { ...emptyPlayer, user: socket.id })
+    const game: Game = await this.gameService.addPlayer(roomUuid, { user: socket.id })
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(game)] }))
     socket.to(roomUuid).emit('event', connectToRoomSuccessAction({ game }))
     socket.emit('event', connectToRoomSuccessAction({ game }))
