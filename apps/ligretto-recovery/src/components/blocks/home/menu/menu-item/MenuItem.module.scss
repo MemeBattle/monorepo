@@ -1,0 +1,43 @@
+@import 'assets/styles/_variables';
+
+.menuItem {
+  display: flex;
+
+  width: 20rem;
+  height: 2rem;
+  margin-bottom: 0.3rem;
+  border-radius: 0.2rem;
+
+  & > a {
+    text-decoration: none;
+    color: white;
+    font-weight: 600;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-items: center;
+    justify-content: center;
+    &:hover,
+    &:active,
+    &:focus {
+      border: solid 0.1rem white;
+      outline: white;
+    }
+  }
+
+  background: $color-primary-darken;
+
+  &.disabled {
+    & > a {
+      cursor: default;
+      color: $color-disabled;
+      &:hover,
+      &:active,
+      &:focus {
+        border: none;
+        outline: none;
+      }
+    }
+  }
+}
