@@ -19,14 +19,17 @@ const menuItems = [
   {
     title: 'Leaders board',
     to: '/',
+    disabled: true,
   },
   {
     title: 'Game rules',
     to: '/',
+    disabled: true,
   },
   {
     title: 'News',
     to: '/',
+    disabled: true,
   },
 ]
 
