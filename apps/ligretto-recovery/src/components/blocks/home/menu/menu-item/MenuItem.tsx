@@ -8,18 +8,14 @@ import { routes } from 'utils/constants'
 
 type ValueOf<T> = T[keyof T]
 
-interface MenuItemProps {
+export interface MenuItemProps {
   title: string
   to: ValueOf<typeof routes>
   disabled?: boolean
 }
 
-// TODO: Need correction to design
-
-const MenuItem: React.FC<MenuItemProps> = ({ title, to, disabled }) => (
+export const MenuItem: React.FC<MenuItemProps> = ({ title, to, disabled }) => (
   <li className={cn(styles.menuItem, { [styles.disabled]: disabled })}>
     <Link to={to}> {title} </Link>
   </li>
 )
-
-export default MenuItem

@@ -1,1 +1,1 @@
-export { default as UserAvatarContainer } from './UserHeaderCard'
+export { UserHeaderCardContainer } from './UserHeaderCard'

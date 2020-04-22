@@ -1,1 +1,1 @@
-export { default as AvatarSelect } from './AvatarSelect'
+export { AvatarSelect } from './AvatarSelect'

@@ -1,1 +1,1 @@
-export { default as UserInfo } from './UserInfo'
+export { UserInfo } from './UserInfo'

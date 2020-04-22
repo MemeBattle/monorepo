@@ -2,11 +2,11 @@ import React from 'react'
 
 import { routes } from 'utils/constants'
 
-import { MenuItem } from './menu-item'
+import { MenuItem, MenuItemProps } from './menu-item'
 
 import styles from './Menu.module.scss'
 
-const menuItems = [
+const menuItems: MenuItemProps[] = [
   // TODO: add correct "to" for every item
   {
     title: 'Create game',
@@ -33,12 +33,10 @@ const menuItems = [
   },
 ]
 
-const Menu = () => (
+export const Menu = () => (
   <ul className={styles.menu}>
     {menuItems.map(item => (
       <MenuItem key={item.title} {...item} />
     ))}
   </ul>
 )
-
-export default Menu

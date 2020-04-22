@@ -4,10 +4,8 @@ import userAvatar from 'assets/icons/avatars/1.svg' // TODO: get avatar from ava
 
 import { Avatar } from 'components/blocks/shared/avatar'
 
-const AvatarSelect = () => (
+export const AvatarSelect = () => (
   <div>
     <Avatar src={userAvatar} />
   </div>
 )
-
-export default AvatarSelect
