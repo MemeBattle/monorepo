@@ -9,7 +9,6 @@ export type RoomsState = {
   ids: string[]
   isLoading: boolean
   search: string
-  isRoomLoading: boolean
 }
 
 const initialState: RoomsState = {
@@ -17,7 +16,6 @@ const initialState: RoomsState = {
   ids: [],
   isLoading: false,
   search: '',
-  isRoomLoading: true,
 }
 
 export const roomsReducer = (state: RoomsState = initialState, action: RoomsActions) => {
