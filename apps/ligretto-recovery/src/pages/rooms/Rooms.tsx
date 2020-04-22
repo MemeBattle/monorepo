@@ -11,8 +11,10 @@ import { routes } from 'utils/constants'
 export const RoomsPage = () => (
   <MainCoverScreen>
     <div className={styles.roomsPage}>
-      <PageHeader className={styles.header}>Enter to room</PageHeader>
-      <SearchRooms className={styles.search} />
+      <div className={styles.top}>
+        <PageHeader className={styles.header}>Enter to room</PageHeader>
+        <SearchRooms className={styles.search} />
+      </div>
       <div className={styles.content}>
         <RoomsList />
         <div className={styles.bottomButtons}>

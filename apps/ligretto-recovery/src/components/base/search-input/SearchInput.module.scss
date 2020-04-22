@@ -11,6 +11,9 @@
 
 .searchInputWrapper {
   min-height: 50px;
+  max-height: 50px;
+  height: 50px;
+
   width: 360px;
   display: inline-flex;
 
@@ -22,8 +25,11 @@
     width: 50px;
     cursor: pointer;
 
-    &.isLoading img {
+    img {
       width: 16px;
+    }
+
+    &.isLoading img {
       animation: input-icon-rotation 2s infinite linear;
     }
   }

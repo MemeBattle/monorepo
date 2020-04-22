@@ -1,1 +1,1 @@
-export { default as HomePageWrapper } from './HomePageWrapper'
+export { HomePageWrapper } from './HomePageWrapper'

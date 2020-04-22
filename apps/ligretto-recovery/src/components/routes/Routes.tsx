@@ -4,7 +4,7 @@ import { Switch, Route } from 'react-router-dom'
 import { routes } from 'utils/constants'
 import { GamePage, HomePage, RoomsPage, NewRoomPage } from 'pages'
 
-const Router = () => (
+export const Routes = () => (
   <Switch>
     <Route path={routes.HOME} component={HomePage} exact />
     <Route path={routes.GAME} component={GamePage} exact />
@@ -12,5 +12,3 @@ const Router = () => (
     <Route path={routes.NEW_ROOM} component={NewRoomPage} exact />
   </Switch>
 )
-
-export default Router
