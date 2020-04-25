@@ -1,10 +1,10 @@
 import * as React from 'react'
-import { NewRoom } from 'components/blocks/new-room'
+import { CreateRoom } from 'components/blocks/create-room/create-room'
 import { useCallback } from 'react'
 import { useDispatch } from 'react-redux'
 import { createRoomAction } from 'ducks/rooms/actions'
 
-export const NewRoomContainer = () => {
+export const CreateRoomContainer = () => {
   const dispatch = useDispatch()
 
   const onButtonClick = useCallback(
@@ -13,5 +13,5 @@ export const NewRoomContainer = () => {
     },
     [dispatch],
   )
-  return <NewRoom onCreateRoomButtonClick={onButtonClick} />
+  return <CreateRoom onCreateRoomButtonClick={onButtonClick} />
 }

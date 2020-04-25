@@ -1,7 +1,7 @@
 import React from 'react'
 import renderer from 'react-test-renderer'
 
-import { Logo } from '../'
+import { Logo } from '../index'
 
 describe('Logo', () => {
   it('should render correctly', () => {

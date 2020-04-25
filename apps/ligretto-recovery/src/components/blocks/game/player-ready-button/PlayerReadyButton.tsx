@@ -1,7 +1,7 @@
 import React from 'react'
 import cn from 'classnames'
 import opponentAvatar from 'assets/icons/avatars/3.svg' // TODO: get avatar from avatars collection
-import { Avatar, AvatarSize } from '../shared/avatar'
+import { Avatar, AvatarSize } from '../../../shared/avatar'
 import styles from './PlayerReadyButton.module.scss'
 import playIcon from 'assets/icons/play.svg'
 

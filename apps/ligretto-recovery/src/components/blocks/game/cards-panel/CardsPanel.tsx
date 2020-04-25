@@ -1,9 +1,9 @@
 import React from 'react'
 import { CardPositions } from 'types/entities/card-model'
 import { CardContainer } from 'containers/card'
-import { LigrettoPack } from 'components/blocks/ligretto-pack'
+import { LigrettoPack } from 'components/blocks/game/ligretto-pack'
 import styles from './CardsPanel.module.scss'
-import { Stack } from 'components/blocks/stack'
+import { Stack } from 'components/blocks/game/stack'
 
 export const CardsPanel = () => (
   <div className={styles.cardsPanel}>
