@@ -16,7 +16,7 @@ interface RoomsProps {
 
 export const RoomsList: React.FC<RoomsProps> = ({ rooms, className }) => {
   const history = useHistory()
-  const onClickRoom = React.useCallback((roomUuid: string) => () => history.push(generatePath(routes.GAME, { roomUuid })), [])
+  const onClickRoom = React.useCallback((roomUuid: string) => () => history.push(generatePath(routes.GAME, { roomUuid })), [history])
 
   return (
     <div className={cn(styles.rooms, className, { [styles.empty]: rooms.length === 0 })}>
