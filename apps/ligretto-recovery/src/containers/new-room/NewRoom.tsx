@@ -7,8 +7,11 @@ import { createRoomAction } from 'ducks/rooms/actions'
 export const NewRoomContainer = () => {
   const dispatch = useDispatch()
 
-  const onButtonClick = useCallback((name: string) => {
-    dispatch(createRoomAction({ name }))
-  }, [])
+  const onButtonClick = useCallback(
+    (name: string) => {
+      dispatch(createRoomAction({ name }))
+    },
+    [dispatch],
+  )
   return <NewRoom onCreateRoomButtonClick={onButtonClick} />
 }
