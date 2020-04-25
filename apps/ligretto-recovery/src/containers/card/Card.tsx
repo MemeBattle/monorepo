@@ -1,7 +1,7 @@
 import React from 'react'
 import { CardPositions } from 'types/entities/card-model'
 import { useCard } from 'hooks/use-card'
-import { Card } from 'components/card'
+import { Card } from 'components/shared/card'
 
 interface CardContainer {
   cardPosition: CardPositions

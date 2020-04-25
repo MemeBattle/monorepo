@@ -19,7 +19,7 @@ export const RoomsPage = () => (
         <RoomsList />
         <div className={styles.bottomButtons}>
           <LinkBack />
-          <ButtonLink to={routes.NEW_ROOM}>Create</ButtonLink>
+          <ButtonLink to={routes.CREATE_ROOM}>Create</ButtonLink>
         </div>
       </div>
     </div>

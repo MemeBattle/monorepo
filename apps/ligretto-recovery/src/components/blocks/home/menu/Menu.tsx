@@ -10,7 +10,7 @@ const menuItems: MenuItemProps[] = [
   // TODO: add correct "to" for every item
   {
     title: 'Create game',
-    to: routes.NEW_ROOM,
+    to: routes.CREATE_ROOM,
   },
   {
     title: 'Enter room',
