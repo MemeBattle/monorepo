@@ -1,14 +1,14 @@
 //TODO: Divide on separate components
 import React from 'react'
 import { GameCoverScreen } from 'components/screens/game-cover-screen/GameCoverScreen'
-import { CardsPanel } from 'components/blocks/cards-panel'
-import { OpponentCards } from 'components/blocks/opponent-cards'
-import { OpponentWaiting } from 'components/blocks/opponent-waiting'
+import { CardsPanel } from 'components/blocks/game/cards-panel'
+import { OpponentCards } from 'components/blocks/game/opponent-cards'
+import { OpponentWaiting } from 'components/blocks/game/opponent-waiting'
 import { isMultiplyRenderChildren, PositionOnTable, RenderChildren, RenderMultiplyChildren, RoomGrid } from 'components/base/room-grid'
-import { TableCards } from 'components/blocks/table-cards'
-import { PlayerReadyButton } from 'components/blocks/player-ready-button'
+import { TableCards } from 'components/blocks/game/table-cards'
+import { PlayerReadyButton } from 'components/blocks/game/player-ready-button'
 import styles from './Game.module.scss'
-import { OpponentStatus } from '../../components/blocks/opponent-waiting/OpponentWaiting'
+import { OpponentStatus } from '../../components/blocks/game/opponent-waiting/OpponentWaiting'
 
 const opponents = [0, 1, 2]
 

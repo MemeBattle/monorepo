@@ -1,7 +1,7 @@
 import React from 'react'
 import cn from 'classnames'
 import opponentAvatar from 'assets/icons/avatars/2.svg' // TODO: get avatar from avatars collection
-import { Avatar, AvatarSize } from '../shared/avatar'
+import { Avatar, AvatarSize } from '../../../shared/avatar'
 import { PositionOnTable } from 'components/base/room-grid'
 import styles from './OpponentWaiting.module.scss'
 

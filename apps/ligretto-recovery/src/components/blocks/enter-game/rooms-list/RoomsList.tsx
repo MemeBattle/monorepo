@@ -5,7 +5,7 @@ import { Room } from '@memebattle/ligretto-shared'
 import { routes } from 'utils/constants'
 import styles from './Rooms.module.scss'
 import playIcon from 'assets/icons/play.svg'
-import { ButtonLink } from '../../base/button-link'
+import { ButtonLink } from '../../../base/button-link'
 
 const cn = classNames.bind(styles)
 
@@ -32,7 +32,7 @@ export const RoomsList: React.FC<RoomsProps> = ({ rooms, className }) => {
       {rooms.length === 0 ? (
         <div className={styles.notFound}>
           <h2>Rooms not found</h2>
-          <ButtonLink to={routes.NEW_ROOM}>Create</ButtonLink>
+          <ButtonLink to={routes.CREATE_ROOM}>Create</ButtonLink>
         </div>
       ) : null}
     </div>

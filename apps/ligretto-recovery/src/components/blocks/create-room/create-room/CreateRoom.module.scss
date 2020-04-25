@@ -1,0 +1,28 @@
+.createRoomCard {
+  margin: auto;
+
+  width: 700px;
+  padding: 75px 70px;
+
+  border: 1px solid #707070;
+  border-radius: 12px;
+
+  background-color: white;
+}
+
+.gameOption {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  grid-gap: 10px;
+
+  &:not(:last-child) {
+    margin-bottom: 40px;
+  }
+
+  &Name {
+    color: #707070;
+    font-size: 24px;
+    font-weight: bold;
+  }
+}
+
