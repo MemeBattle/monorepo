@@ -19,12 +19,9 @@ export const CreateRoom: React.FC<NewRoomProps> = ({ onCreateRoomButtonClick }) 
     [setName],
   )
 
-  const handleButtonClick = useCallback(
-    name => () => {
-      onCreateRoomButtonClick(name)
-    },
-    [onCreateRoomButtonClick],
-  )
+  const handleButtonClick = useCallback(() => {
+    onCreateRoomButtonClick(name)
+  }, [onCreateRoomButtonClick, name])
 
   return (
     <div className={styles.createRoomCard}>
@@ -44,6 +41,7 @@ export const CreateRoom: React.FC<NewRoomProps> = ({ onCreateRoomButtonClick }) 
           <Input value={name} onChange={handleNameChange} placeholder="Room name" />
         </div>
       </div>
+      <button onClick={handleButtonClick}>Create</button>
     </div>
   )
 }
