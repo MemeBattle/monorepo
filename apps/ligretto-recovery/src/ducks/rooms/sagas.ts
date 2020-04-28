@@ -9,7 +9,7 @@ import {
   RoomsTypes as RoomsTypesShared,
   UpdateRooms as UpdateRoomsFromServer,
 } from '@memebattle/ligretto-shared'
-import { LocationChangeAction, LOCATION_CHANGE } from 'connected-react-router'
+import { LocationChangeAction, LOCATION_CHANGE, replace } from 'connected-react-router'
 import { matchPath } from 'react-router-dom'
 import { routes } from '../../utils/constants'
 import { selectSearch } from './selectors'
@@ -65,11 +65,16 @@ function* updateRoomsFromServerSaga(action: UpdateRoomsFromServer) {
   yield put(updateRoomsAction({ rooms }))
 }
 
+function* connectToRoomError() {
+  yield put(replace(routes.ROOMS))
+}
+
 export function* roomsRootSaga() {
   yield takeLatest(RoomsTypes.SEARCH_ROOMS, searchRoomsSaga)
   yield takeLatest(RoomsTypes.CREATE_ROOM, createRoomSaga)
   yield takeLatest(RoomsTypes.CONNECT_TO_ROOM, connectToRoomSaga)
   yield takeLatest(RoomsTypesShared.UPDATE_ROOMS_LIST, updateRoomsFromServerSaga)
+  yield takeLatest(RoomsTypesShared.CONNECT_TO_ROOM_ERROR, connectToRoomError)
   yield takeLatest(LOCATION_CHANGE, gameRouteWatcher)
   yield takeLatest(LOCATION_CHANGE, searchRoomsRouteWatcher)
 }

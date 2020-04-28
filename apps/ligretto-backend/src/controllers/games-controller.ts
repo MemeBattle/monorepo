@@ -12,6 +12,7 @@ import {
   ConnectToRoomEmitAction,
   updateRooms,
   connectToRoomSuccessAction,
+  connectToRoomErrorAction,
   Game,
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
@@ -57,6 +58,12 @@ export class GamesController extends Controller {
    */
   private async joinGame(socket: Socket, action: ConnectToRoomEmitAction) {
     const roomUuid = action.payload.roomUuid
+
+    const hasGame = (await this.gameService.getGame(roomUuid))!!
+    if (!hasGame) {
+      socket.emit('event', connectToRoomErrorAction())
+      return
+    }
     socket.join(roomUuid)
     this.gameplayOutput.listenGame(roomUuid)
     socket.leave(SOCKET_ROOM_LOBBY)

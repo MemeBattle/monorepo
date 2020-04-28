@@ -44,6 +44,7 @@ export interface Playground {
 
 export interface Player {
   user: string
+  status: PlayerStatus
   color: CardColors
   cards: Card[]
   ligrettoDeck: CardsDeck
@@ -54,6 +55,11 @@ export interface Player {
 export enum GameStatus {
   New = 'New',
   InGame = 'InGame',
+}
+
+export enum PlayerStatus {
+  DontReadyToPlay = 'DontReadyToPlay',
+  ReadyToPlay = 'ReadyToPlay',
 }
 
 export interface Game {
