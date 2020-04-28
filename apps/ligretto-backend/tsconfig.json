@@ -1,12 +1,17 @@
 {
   "compilerOptions": {
-    "target": "es5",
-    "lib": ["es6", "dom"],
+    "rootDir": "src",
+    "target": "es2018",
+    "lib": ["es2018"],
     "types": ["reflect-metadata"],
     "module": "commonjs",
+    "sourceMap": true,
+    "resolveJsonModule": true,
     "moduleResolution": "node",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "noEmit": true
-  }
+    "outDir": "build"
+  },
+  "exclude": ["node_modules", "build"],
+  "include": ["src/**/*"]
 }

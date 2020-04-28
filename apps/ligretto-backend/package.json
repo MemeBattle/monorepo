@@ -8,7 +8,8 @@
     "start:dev": "nodemon",
     "start": "ts-node src/index.ts",
     "env": "cp .env.default .env",
-    "prestart": "ts-node src/cli/check-env.ts"
+    "prestart": "ts-node src/cli/check-env.ts",
+    "build": "tsc"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.149",
