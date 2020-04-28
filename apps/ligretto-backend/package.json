@@ -1,5 +1,5 @@
 {
-  "name": "ligretto-backend",
+  "name": "@memebattle/ligretto-backend",
   "version": "1.0.3",
   "main": "index.js",
   "license": "MIT",
@@ -19,7 +19,7 @@
     "prettier": "^1.18.2",
     "tap-nyan": "^1.1.0",
     "ts-node": "^8.3.0",
-    "typescript": "^3.5.0"
+    "typescript": "^3.8.3"
   },
   "ava": {
     "compileEnhancements": false,
@@ -33,13 +33,16 @@
   "dependencies": {
     "@memebattle/ligretto-shared": "^1.0.4",
     "@types/dotenv": "^8.2.0",
+    "@types/jest": "^24.0.19",
     "@types/lodash": "^4.14.138",
+    "@types/node": "^12.11.5",
     "@types/socket.io": "^2.1.4",
     "dotenv": "^8.2.0",
     "inversify": "^5.0.1",
     "lodash": "^4.17.15",
     "reflect-metadata": "^0.1.13",
-    "socket.io": "^2.3.0"
+    "socket.io": "^2.3.0",
+    "typescript": "^3.6.4"
   },
   "gitHead": "50afc9f39532b37c83e5eca316a309feda1893dd"
 }

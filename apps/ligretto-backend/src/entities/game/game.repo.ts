@@ -1,5 +1,5 @@
 import { inject, injectable } from 'inversify'
-import { CardColors, Game, Player } from '@memebattle/ligretto-shared'
+import { CardColors, Game, Player, PlayerStatus } from '@memebattle/ligretto-shared'
 import { without } from 'lodash'
 import { Database } from '../../database'
 import { TYPES } from '../../types'
@@ -38,9 +38,10 @@ export class GameRepository {
     return without(Object.values(CardColors), ...notAvailableColors, CardColors.empty)[0] ?? null
   }
 
-  createPlayer(playerData: Partial<Player>) {
+  createPlayer(playerData: Partial<Player>): Player {
     return {
       user: 'empty',
+      status: PlayerStatus.DontReadyToPlay,
       stackDeck: {
         isHidden: true,
         cards: [],

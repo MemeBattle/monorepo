@@ -1,5 +1,5 @@
 {
-  "name": "ligretto-recovery",
+  "name": "@memebattle/ligretto-recovery",
   "version": "0.1.4",
   "private": true,
   "devDependencies": {
@@ -18,7 +18,8 @@
     "node-sass": "^4.12.0",
     "react-scripts": "3.2.0",
     "react-test-renderer": "^16.9.0",
-    "redux-devtools-extension": "^2.13.8"
+    "redux-devtools-extension": "^2.13.8",
+    "typescript": "^3.8.3"
   },
   "dependencies": {
     "@memebattle/ligretto-shared": "^1.0.4",

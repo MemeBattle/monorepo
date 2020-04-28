@@ -8,6 +8,7 @@ export enum RoomsTypes {
   UPDATE_ROOMS_LIST = '@@rooms/SERVER/UPDATE_ROOMS_LIST',
   CONNECT_TO_ROOM_EMIT = '@@rooms/WEBSOCKET/CONNECT_TO_ROOM',
   CONNECT_TO_ROOM_SUCCESS = '@@rooms/SERVER/CONNECT_TO_ROOM_SUCCESS',
+  CONNECT_TO_ROOM_ERROR = '@@rooms/SERVER/CONNECT_TO_ROOM_ERROR',
 }
 
 export enum GameTypes {
@@ -34,3 +35,6 @@ export const connectToRoomSuccessAction = createAction<ConnectToRoomSuccessActio
 
 export type UpdateGameAction = Action<GameTypes.UPDATE_GAME, dto.GameState>
 export const updateGameAction = createAction<UpdateGameAction>(GameTypes.UPDATE_GAME)
+
+export type ConnectToRoomErrorAction = Action<RoomsTypes.CONNECT_TO_ROOM_ERROR>
+export const connectToRoomErrorAction = createAction<ConnectToRoomErrorAction>(RoomsTypes.CONNECT_TO_ROOM_ERROR)

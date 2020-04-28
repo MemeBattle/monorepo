@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { inject, injectable } from 'inversify'
 import { last, shuffle } from 'lodash'
 import { PlayerRepository } from './player.repo'
