@@ -2,13 +2,14 @@
   "name": "@memebattle/redux-utils",
   "version": "1.0.0",
   "description": "Utils for redux",
-  "main": "index.ts",
+  "main": "build/index.js",
+  "types": "src/index.ts",
   "author": "MemeBattle",
   "license": "MIT",
   "dependencies": {
     "typescript": "^3.6.4"
   },
   "scripts": {
-    "build": "tsc index.ts"
+    "build": "tsc"
   }
 }

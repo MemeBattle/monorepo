@@ -4,7 +4,7 @@
     "lib": ["es6"],
     "module": "commonjs",
     "moduleResolution": "node",
-    "noEmit": true,
-    "outDir": "build"
+    "outDir": "build",
+    "rootDir": "src"
   }
 }

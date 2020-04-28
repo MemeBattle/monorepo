@@ -2,11 +2,12 @@
   "name": "@memebattle/ligretto-shared",
   "version": "1.0.4",
   "description": "Ligretto shared package",
-  "main": "index.ts",
+  "main": "build/index.js",
+  "types": "src/index.ts",
   "author": "MemeBattle",
   "license": "MIT",
   "scripts": {
-    "build": "tsc index.ts",
+    "build": "tsc",
     "start:dev": "nodemon"
   },
   "dependencies": {
