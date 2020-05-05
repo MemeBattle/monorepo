@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 1.0.6 (2020-05-05)
+
+**Note:** Version bump only for package @memebattle/vk-redirect-page
+
+
+
+
+
 ## [1.0.5](http://gitlab.mems.fun:2224/memebattle/frontend/compare/vk-redirect-page@1.0.4...vk-redirect-page@1.0.5) (2020-05-05)
 
 **Note:** Version bump only for package vk-redirect-page

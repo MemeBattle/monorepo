@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.0.6](http://gitlab.mems.fun:2224/memebattle/frontend/compare/@memebattle/ligretto-shared@1.0.5...@memebattle/ligretto-shared@1.0.6) (2020-05-05)
+
+**Note:** Version bump only for package @memebattle/ligretto-shared
+
+
+
+
+
 ## [1.0.5](http://gitlab.mems.fun:2224/memebattle/frontend/compare/@memebattle/ligretto-shared@1.0.4...@memebattle/ligretto-shared@1.0.5) (2020-05-05)
 
 **Note:** Version bump only for package @memebattle/ligretto-shared
