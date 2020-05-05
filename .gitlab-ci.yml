@@ -10,6 +10,7 @@ build-packages:
     changes:
       - "packages/**/*"
   script:
+    - yarn
     - yarn lerna run --stream --parallel build --since master
 
 publish-packages:
