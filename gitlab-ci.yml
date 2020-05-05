@@ -1,0 +1,19 @@
+stages:
+  - build
+  - publish
+
+build-packages:
+  stage: build
+  only:
+    changes:
+      - "packages/**/*"
+  script:
+    - yarn lerna run --stream --parallel build --since master
+
+publish-packages:
+  stage: build
+  only:
+    changes:
+      - "packages/**/*"
+  script:
+    - yarn lerna-ci-publish
