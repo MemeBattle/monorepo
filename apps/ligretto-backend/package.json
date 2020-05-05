@@ -44,5 +44,5 @@
     "socket.io": "^2.3.0",
     "typescript": "^3.6.4"
   },
-  "gitHead": "05c15ee4e4d6e5ce180affcdd4e6f1b9bd753fb2"
+  "gitHead": "f3a5add4b47944ce5fbe81f004c203af7a79cea0"
 }
