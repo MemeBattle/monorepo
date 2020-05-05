@@ -9,6 +9,8 @@ build-packages:
   only:
     changes:
       - "packages/**/*"
+    refs:
+      - master
   before_script:
     - git fetch origin master:master
   script:
@@ -20,5 +22,7 @@ publish-packages:
   only:
     changes:
       - "packages/**/*"
+    refs:
+      - master
   script:
     - yarn lerna-ci-publish
