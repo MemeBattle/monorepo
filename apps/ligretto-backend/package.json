@@ -1,6 +1,6 @@
 {
   "name": "@memebattle/ligretto-backend",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
@@ -31,7 +31,7 @@
     ]
   },
   "dependencies": {
-    "@memebattle/ligretto-shared": "^1.0.5",
+    "@memebattle/ligretto-shared": "^1.0.6",
     "@types/dotenv": "^8.2.0",
     "@types/jest": "^24.0.19",
     "@types/lodash": "^4.14.138",
