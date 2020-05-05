@@ -9,6 +9,8 @@ build-packages:
   only:
     changes:
       - "packages/**/*"
+  before_script:
+    - git fetch origin master:master
   script:
     - yarn
     - yarn lerna run --stream --parallel build --since master
