@@ -1,8 +1,21 @@
 image: node:12
 
 stages:
+  - prepare-dependecies
   - build
   - publish
+
+install_dependencies:
+  stage: prepare-dependecies
+  cache:
+    key: $CI_COMMIT_REF_SLUG-$CI_PROJECT_DIR
+    paths:
+      - node_modules
+  script:
+    - yarn
+  only:
+    changes:
+      - yarn.lock
 
 build-packages:
   stage: build
@@ -11,11 +24,19 @@ build-packages:
       - "packages/**/*"
     refs:
       - master
+  cache:
+    key: $CI_COMMIT_REF_SLUG-$CI_PROJECT_DIR
+    paths:
+      - node_modules
+    policy: pull
   before_script:
     - git fetch origin master:master
   script:
     - yarn
     - yarn lerna run --stream --parallel build --since master
+  artifacts:
+    paths:
+      - build
 
 publish-packages:
   stage: publish
