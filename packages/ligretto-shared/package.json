@@ -1,6 +1,6 @@
 {
   "name": "@memebattle/ligretto-shared",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Ligretto shared package",
   "main": "build/index.js",
   "types": "src/index.ts",
@@ -11,7 +11,7 @@
     "start:dev": "nodemon"
   },
   "dependencies": {
-    "@memebattle/redux-utils": "^1.0.0",
+    "@memebattle/redux-utils": "^1.0.1",
     "typescript": "^3.6.4"
   },
   "gitHead": "50afc9f39532b37c83e5eca316a309feda1893dd",
