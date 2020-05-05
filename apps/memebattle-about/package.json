@@ -1,5 +1,5 @@
 {
-  "name": "memebattle-about",
+  "name": "@memebattle/memebattle-about",
   "version": "1.1.7",
   "engines": {
     "node": ">=10"
@@ -66,5 +66,5 @@
     "ts-node-dev": "^1.0.0-pre.32",
     "typings-for-css-modules-loader": "^1.7.0"
   },
-  "gitHead": "50afc9f39532b37c83e5eca316a309feda1893dd"
+  "gitHead": "87efdba92b2c76992cef4ac77e60126b685b8193"
 }
