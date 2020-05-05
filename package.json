@@ -8,8 +8,8 @@
     "lint:js": "eslint --ext .js,.vue,.jsx,.ts,.tsx --ignore-path .gitignore .",
     "lint:styles": "stylelint --ignore-path .gitignore {apps,packages}/**/*.scss",
     "test": "lerna run --no-bail test --ignore-path .gitignore",
-    "lerna-publish": "lerna publish",
-    "lerna-ci-publish": "lerna publish --yes --no-git-reset",
+    "lerna-publish": "lerna publish from-package",
+    "lerna-ci-publish": "lerna publish --yes --no-git-reset from-package",
     "ligretto:start": "lerna run --parallel --scope @memebattle/ligretto-shared --scope @memebattle/ligretto-backend --scope @memebattle/ligretto-recovery start:dev"
   },
   "engines": {
