@@ -1,5 +1,5 @@
 {
-  "name": "vk-redirect-page",
+  "name": "@memebattle/vk-redirect-page",
   "version": "1.0.5",
   "description": "i dont know what is it",
   "author": "Artem Zverev <themezv@gmail.com>",
@@ -20,5 +20,5 @@
   "devDependencies": {
     "parcel-bundler": "^1.12.3"
   },
-  "gitHead": "50afc9f39532b37c83e5eca316a309feda1893dd"
+  "gitHead": "87efdba92b2c76992cef4ac77e60126b685b8193"
 }

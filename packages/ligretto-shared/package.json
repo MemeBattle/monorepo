@@ -14,7 +14,7 @@
     "@memebattle/redux-utils": "^1.0.1",
     "typescript": "^3.6.4"
   },
-  "gitHead": "50afc9f39532b37c83e5eca316a309feda1893dd",
+  "gitHead": "87efdba92b2c76992cef4ac77e60126b685b8193",
   "devDependencies": {
     "nodemon": "^2.0.2"
   }
