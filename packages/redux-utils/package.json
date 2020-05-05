@@ -1,6 +1,6 @@
 {
   "name": "@memebattle/redux-utils",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Utils for redux",
   "main": "build/index.js",
   "types": "src/index.ts",
