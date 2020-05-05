@@ -8,7 +8,7 @@ stages:
 install_dependencies:
   stage: prepare-dependecies
   cache:
-    key: $CI_COMMIT_REF_SLUG-$CI_PROJECT_DIR
+    key: $CI_COMMIT_REF_SLUG
     paths:
       - node_modules
   script:
@@ -16,6 +16,8 @@ install_dependencies:
   only:
     changes:
       - yarn.lock
+    refs:
+      - master
 
 build-packages:
   stage: build
@@ -25,21 +27,25 @@ build-packages:
     refs:
       - master
   cache:
-    key: $CI_COMMIT_REF_SLUG-$CI_PROJECT_DIR
+    key: $CI_COMMIT_REF_SLUG
     paths:
       - node_modules
     policy: pull
   before_script:
     - git fetch origin master:master
   script:
-    - yarn
     - yarn lerna run --stream --parallel build --since master
   artifacts:
     paths:
-      - build
+      - node_modules
 
 publish-packages:
   stage: publish
+  cache:
+    key: $CI_COMMIT_REF_SLUG
+    paths:
+      - node_modules
+    policy: pull
   only:
     changes:
       - "packages/**/*"
