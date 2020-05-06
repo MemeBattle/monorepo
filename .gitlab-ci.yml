@@ -1,3 +1,5 @@
+image: docker:dind
+
 stages:
   - prepare-dependecies
   - build
