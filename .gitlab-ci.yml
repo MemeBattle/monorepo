@@ -1,55 +1,14 @@
-image: node:12
-
 stages:
   - prepare-dependecies
   - build
   - publish
 
-install_dependencies:
+prepare-base-image:
   stage: prepare-dependecies
-  cache:
-    key: $CI_COMMIT_REF_SLUG
-    paths:
-      - node_modules
   script:
-    - yarn
+    - docker login gitlab.mems.fun:5005
+    - docker build -t gitlab.mems.fun:5005/memebattle/frontend:base .
+    - docker push gitlab.mems.fun:5005/memebattle/frontend:base
   only:
-    changes:
-      - yarn.lock
     refs:
       - master
-
-build-packages:
-  stage: build
-  only:
-    changes:
-      - "packages/**/*"
-    refs:
-      - master
-  cache:
-    key: $CI_COMMIT_REF_SLUG
-    paths:
-      - node_modules
-    policy: pull
-  before_script:
-    - git fetch origin master:master
-  script:
-    - yarn lerna run --stream --parallel build --since master
-  artifacts:
-    paths:
-      - node_modules
-
-publish-packages:
-  stage: publish
-  cache:
-    key: $CI_COMMIT_REF_SLUG
-    paths:
-      - node_modules
-    policy: pull
-  only:
-    changes:
-      - "packages/**/*"
-    refs:
-      - master
-  script:
-    - yarn lerna-ci-publish
