@@ -1,7 +1,6 @@
-FROM node:12
+FROM gitlab.mems.fun:5005/memebattle/frontend:base
 
-COPY "./" "/ligretto"
-WORKDIR "/ligretto"
+WORKDIR /memebattle/apps/ligretto-backend
 
-RUN yarn
-RUN
+RUN yarn build
+CMD node build/index.js
