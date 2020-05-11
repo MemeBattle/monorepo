@@ -4,4 +4,4 @@ COPY ./ /memebattle
 WORKDIR /memebattle
 
 RUN yarn
-RUN yarn run ligretto:shared:build
+RUN yarn run common-packages:build
