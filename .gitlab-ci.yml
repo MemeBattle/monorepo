@@ -35,7 +35,7 @@ ligretto-frontend-update-swarm:
     refs:
       - master
     changes:
-      - apps/ligretto-frontend/**/*
+      - apps/ligretto-recovery/**/*
 
 ligretto-backend-image:
   stage: update-package-image
