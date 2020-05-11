@@ -24,7 +24,7 @@ ligretto-frontend-image:
     refs:
       - master
     changes:
-      - ./apps/ligretto-recovery
+      - apps/ligretto-recovery/**/*
 
 ligretto-backend-image:
   stage: update-package-image
@@ -35,5 +35,5 @@ ligretto-backend-image:
     refs:
       - master
     changes:
-      - ./apps/ligretto-backend
+      - apps/ligretto-backend/**/*
 
