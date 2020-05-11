@@ -5,6 +5,7 @@ import { IOC } from './inversify.config'
 import { TYPES } from './types'
 
 export const server = SocketIo(SOCKET_PORT)
+server.origins('*:*')
 
 export const webSocketHandler = IOC.get<WebSocketHandler>(TYPES.WebSocketHandler)
 
