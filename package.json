@@ -11,7 +11,7 @@
     "lerna-publish": "lerna publish from-package",
     "lerna-ci-publish": "yarn lerna publish --yes --no-git-reset from-package",
     "ligretto:start": "yarn lerna run --parallel --scope @memebattle/ligretto-shared --scope @memebattle/redux-utils --scope @memebattle/ligretto-backend --scope @memebattle/ligretto-recovery start:dev",
-    "common-packages:build": "yarn lerna run --parallel --scope @memebattle/redux-utils @memebattle/ligretto-shared build"
+    "common-packages:build": "yarn lerna run --parallel --scope @memebattle/redux-utils --scope @memebattle/ligretto-shared build"
   },
   "engines": {
     "node": ">=10"
