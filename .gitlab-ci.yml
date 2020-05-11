@@ -3,8 +3,8 @@ before_script:
 
 stages:
   - prepare-dependecies
-  - build
-  - publish
+  - update-package-image
+  - notify-swarm
 
 prepare-base-image:
   stage: prepare-dependecies
@@ -14,3 +14,26 @@ prepare-base-image:
   only:
     refs:
       - master
+
+ligretto-frontend-image:
+  stage: update-package-image
+  script:
+    - docker build -t gitlab.mems.fun:5005/memebattle/frontend:ligretto-frontend ./apps/ligretto-recovery
+    - docker push gitlab.mems.fun:5005/memebattle/frontend:ligretto-frontend
+  only:
+    refs:
+      - master
+    changes:
+      - apps/ligretto-recovery
+
+ligretto-backend-image:
+  stage: update-package-image
+  script:
+    - docker build -t gitlab.mems.fun:5005/memebattle/frontend:ligretto-backend ./apps/ligretto-backend
+    - docker push gitlab.mems.fun:5005/memebattle/frontend:ligretto-backend
+  only:
+    refs:
+      - master
+    changes:
+      - apps/ligretto-backend
+
