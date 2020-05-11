@@ -1,6 +1,6 @@
 {
   "name": "@memebattle/ligretto-recovery",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "private": true,
   "devDependencies": {
     "@types/classnames": "^2.2.9",
