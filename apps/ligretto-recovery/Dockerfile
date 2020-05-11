@@ -5,3 +5,5 @@ RUN yarn build
 
 FROM nginx:latest
 COPY --from Build /memebattle/apps/ligretto-recovery/build /ligretto-frontend/
+COPY --from Build /memebattle/apps/ligretto-recovery/ligretto-front.conf /etc/nginx/conf.d/
+EXPOSE 80
