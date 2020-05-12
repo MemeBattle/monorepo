@@ -3,4 +3,4 @@ export const routes = {
   GAME: '/game/:roomUuid',
   ROOMS: '/rooms',
   CREATE_ROOM: '/create',
-}
+} as const

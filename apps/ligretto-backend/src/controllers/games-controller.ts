@@ -13,6 +13,7 @@ import {
   updateRooms,
   connectToRoomSuccessAction,
   connectToRoomErrorAction,
+  createRoomSuccessAction,
   Game,
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
@@ -33,6 +34,8 @@ export class GamesController extends Controller {
 
   private async createGame(socket: Socket, action: CreateRoomEmitAction) {
     const game = await this.gameService.createGame(action.payload.name)
+    await this.gameService.addPlayer(game.id, { isHost: true, user: socket.id })
+    socket.emit('event', createRoomSuccessAction({ game }))
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(game)] }))
   }
 

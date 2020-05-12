@@ -41,6 +41,7 @@ export class GameRepository {
   createPlayer(playerData: Partial<Player>): Player {
     return {
       user: 'empty',
+      isHost: false,
       status: PlayerStatus.DontReadyToPlay,
       stackDeck: {
         isHidden: true,
