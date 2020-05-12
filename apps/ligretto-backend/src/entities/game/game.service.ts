@@ -26,7 +26,8 @@ export class GameService {
   startGame(gameId: string) {
     return this.gameRepository.updateGame(gameId, game => {
       const players: Game['players'] = {}
-      // eslint-disable-next-line
+
+      // eslint-disable-next-line guard-for-in
       for (const player in game.players) {
         players[player] = {
           ...game.players[player],

@@ -30,4 +30,8 @@ export interface ConnectToRoomSuccess {
   game: Game
 }
 
+export interface CreateRoomSuccess {
+  game: Game
+}
+
 export type GameState = Game
