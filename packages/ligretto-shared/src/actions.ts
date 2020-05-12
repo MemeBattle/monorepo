@@ -4,6 +4,7 @@ import { createAction, Action } from '@memebattle/redux-utils'
 export enum RoomsTypes {
   SEARCH_ROOMS_FINISH = '@@rooms/SERVER/SEARCH_ROOMS_FINISH',
   CREATE_ROOM_EMIT = '@@rooms/WEBSOCKET/CREATE_ROOM',
+  CREATE_ROOM_SUCCESS = '@@rooms/WEBSOCKET/CREATE_ROOM_SUCCESS',
   SEARCH_ROOMS_EMIT = '@@rooms/WEBSOCKET/SEARCH_ROOMS',
   UPDATE_ROOMS_LIST = '@@rooms/SERVER/UPDATE_ROOMS_LIST',
   CONNECT_TO_ROOM_EMIT = '@@rooms/WEBSOCKET/CONNECT_TO_ROOM',
@@ -38,3 +39,6 @@ export const updateGameAction = createAction<UpdateGameAction>(GameTypes.UPDATE_
 
 export type ConnectToRoomErrorAction = Action<RoomsTypes.CONNECT_TO_ROOM_ERROR>
 export const connectToRoomErrorAction = createAction<ConnectToRoomErrorAction>(RoomsTypes.CONNECT_TO_ROOM_ERROR)
+
+export type CreateRoomSuccessAction = Action<RoomsTypes.CREATE_ROOM_SUCCESS, dto.CreateRoomSuccess>
+export const createRoomSuccessAction = createAction<CreateRoomSuccessAction>(RoomsTypes.CREATE_ROOM_SUCCESS)

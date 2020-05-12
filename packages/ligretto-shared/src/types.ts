@@ -50,6 +50,7 @@ export interface Player {
   ligrettoDeck: CardsDeck
   stackOpenDeck: CardsDeck
   stackDeck: CardsDeck
+  isHost: boolean
 }
 
 export enum GameStatus {

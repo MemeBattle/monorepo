@@ -8,9 +8,10 @@ import {
   SearchRoomsFinishAction,
   RoomsTypes as RoomsTypesShared,
   UpdateRooms as UpdateRoomsFromServer,
+  CreateRoomSuccessAction,
 } from '@memebattle/ligretto-shared'
-import { LocationChangeAction, LOCATION_CHANGE, replace } from 'connected-react-router'
-import { matchPath } from 'react-router-dom'
+import { LocationChangeAction, LOCATION_CHANGE, replace, push } from 'connected-react-router'
+import { matchPath, generatePath } from 'react-router-dom'
 import { routes } from '../../utils/constants'
 import { selectSearch } from './selectors'
 
@@ -46,7 +47,7 @@ function* connectToRoomSaga(action: ConnectToRoomAction) {
 
 function* gameRouteWatcher(action: LocationChangeAction) {
   const match = matchPath<{ roomUuid: string }>(action.payload.location.pathname, routes.GAME)
-  if (match) {
+  if (match && action.payload.isFirstRendering) {
     yield put(connectToRoomAction({ roomUuid: match.params.roomUuid }))
   }
 }
@@ -69,6 +70,10 @@ function* connectToRoomError() {
   yield put(replace(routes.ROOMS))
 }
 
+function* createRoomSuccessSaga(action: CreateRoomSuccessAction) {
+  yield put(push(generatePath(routes.GAME, { roomUuid: action.payload.game.id })))
+}
+
 export function* roomsRootSaga() {
   yield takeLatest(RoomsTypes.SEARCH_ROOMS, searchRoomsSaga)
   yield takeLatest(RoomsTypes.CREATE_ROOM, createRoomSaga)
@@ -77,4 +82,5 @@ export function* roomsRootSaga() {
   yield takeLatest(RoomsTypesShared.CONNECT_TO_ROOM_ERROR, connectToRoomError)
   yield takeLatest(LOCATION_CHANGE, gameRouteWatcher)
   yield takeLatest(LOCATION_CHANGE, searchRoomsRouteWatcher)
+  yield takeLatest(RoomsTypesShared.CREATE_ROOM_SUCCESS, createRoomSuccessSaga)
 }
