@@ -1,7 +1,7 @@
 import React from 'react'
 import cn from 'classnames'
 import { CardContainer } from 'containers/card'
-import { CardPositions } from 'types/entities/card-model'
+import { CardPositions } from '@memebattle/ligretto-shared'
 import { PositionOnTable } from 'components/base/room-grid'
 import styles from './OpponentCards.module.scss'
 
@@ -23,10 +23,10 @@ export interface OpponentCardsProps {
 }
 export const OpponentCards: React.FC<OpponentCardsProps> = ({ positionOnTable, className }) => (
   <div className={cn(styles.opponentCards, stylesByPosition[positionOnTable], className)}>
-    <WrappedCard cardPosition={CardPositions.a} />
-    <WrappedCard cardPosition={CardPositions.b} />
-    <WrappedCard cardPosition={CardPositions.c} />
-    <WrappedCard cardPosition={CardPositions.d} />
+    <WrappedCard cardPosition={CardPositions.r1} />
+    <WrappedCard cardPosition={CardPositions.r2} />
+    <WrappedCard cardPosition={CardPositions.r3} />
+    <WrappedCard cardPosition={CardPositions.r0} />
   </div>
 )
 

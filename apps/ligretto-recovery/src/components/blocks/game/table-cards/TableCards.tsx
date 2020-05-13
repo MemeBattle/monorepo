@@ -1,6 +1,6 @@
 import React from 'react'
 import { CardContainer } from 'containers/card'
-import { CardPositions } from 'types/entities/card-model'
+import { CardPositions } from '@memebattle/ligretto-shared'
 import { MAX_CARDS_ON_TABLE, TABLE_CARDS_PREFIX } from 'config'
 import styles from './TableCards.module.scss'
 

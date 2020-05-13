@@ -1,4 +1,4 @@
-import { CardPositions, Card } from 'types/entities/card-model'
+import { CardPositions, Card } from '@memebattle/ligretto-shared'
 import { useSelector, useDispatch } from 'react-redux'
 import { cardsSelectors, cardsActions } from 'ducks/cards'
 import * as Store from 'types/store'
