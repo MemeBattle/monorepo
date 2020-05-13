@@ -1,5 +1,5 @@
 import React from 'react'
-import { CardPositions } from 'types/entities/card-model'
+import { CardPositions } from '@memebattle/ligretto-shared'
 import { CardContainer } from 'containers/card'
 import { LigrettoPack } from 'components/blocks/game/ligretto-pack'
 import styles from './CardsPanel.module.scss'

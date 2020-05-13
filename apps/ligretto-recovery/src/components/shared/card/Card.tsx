@@ -1,6 +1,6 @@
 import React from 'react'
 import styles from './Card.module.scss'
-import { Card as CardModel, CardColors } from 'types/entities/card-model'
+import { Card as CardModel, CardColors } from '@memebattle/ligretto-shared'
 import cn from 'classnames'
 
 interface CardProps extends CardModel {
@@ -8,7 +8,7 @@ interface CardProps extends CardModel {
   className?: string
 }
 
-export const CardValue: React.FC<{ value?: string }> = ({ value }) => <div className={styles.value}>{value}</div>
+export const CardValue: React.FC<{ value?: string | number }> = ({ value }) => <div className={styles.value}>{value}</div>
 
 export const Card: React.FC<CardProps> = ({ value, disabled, onClick, color, hidden, className }) => (
   <div

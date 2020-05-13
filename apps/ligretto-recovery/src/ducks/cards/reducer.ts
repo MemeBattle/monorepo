@@ -1,5 +1,5 @@
 import { CardsActions, CardsTypes } from './types'
-import { Card, CardColors, CardPositions } from 'types/entities/card-model'
+import { Card, CardColors, CardPositions } from '@memebattle/ligretto-shared'
 import sample from 'lodash/sample'
 import random from 'lodash/random'
 
@@ -9,7 +9,7 @@ export type CardsState = {
 
 const createRandomCard = (): Card => ({
   color: sample([CardColors.yellow, CardColors.red, CardColors.blue, CardColors.green]),
-  value: `${random(1, 9)}`,
+  value: random(1, 9),
   disabled: false,
 })
 
@@ -23,8 +23,8 @@ export const cardsInitialState: CardsState = createCardsInitialState()
 
 export const cardsReducer = (state = cardsInitialState, action: CardsActions): CardsState => {
   switch (action.type) {
-    case CardsTypes.PUSH_CARD:
-      return { ...state, [action.payload.cardPosition]: action.payload.card }
+    case CardsTypes.PUSH_CARDS:
+      return { ...state, ...action.payload }
     default:
       return state
   }
