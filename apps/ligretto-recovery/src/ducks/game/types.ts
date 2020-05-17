@@ -2,6 +2,7 @@ import { Action } from '@memebattle/redux-utils'
 import { Game } from '@memebattle/ligretto-shared'
 export enum GameTypes {
   UPDATE_GAME = '@@game/UPDATE_GAME',
+  TOGGLE_PLAYER_STATUS = '@@game/TOGGLE_PLAYER_STATUS',
 }
 
 export type UpdateGameAction = Action<
@@ -14,4 +15,6 @@ export type UpdateGameAction = Action<
   }
 >
 
-export type GameAction = UpdateGameAction
+export type TogglePlayerStatusAction = Action<GameTypes.TOGGLE_PLAYER_STATUS>
+
+export type GameAction = UpdateGameAction | TogglePlayerStatusAction

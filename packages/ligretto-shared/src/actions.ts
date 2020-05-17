@@ -14,6 +14,7 @@ export enum RoomsTypes {
 
 export enum GameTypes {
   UPDATE_GAME = '@@rooms/SERVER/UPDATE_GAME',
+  SET_PLAYER_STATUS_EMIT = '@@rooms/WEBSOCKET/SET_PLAYER_STATUS',
 }
 
 export type SearchRoomsFinishAction = Action<RoomsTypes.SEARCH_ROOMS_FINISH, dto.SearchRoomsFinish>
@@ -42,3 +43,6 @@ export const connectToRoomErrorAction = createAction<ConnectToRoomErrorAction>(R
 
 export type CreateRoomSuccessAction = Action<RoomsTypes.CREATE_ROOM_SUCCESS, dto.CreateRoomSuccess>
 export const createRoomSuccessAction = createAction<CreateRoomSuccessAction>(RoomsTypes.CREATE_ROOM_SUCCESS)
+
+export type SetPlayerStatusEmitAction = Action<GameTypes.SET_PLAYER_STATUS_EMIT, dto.PlayerStatusInGame>
+export const setPlayerStatusEmitActions = createAction<SetPlayerStatusEmitAction>(GameTypes.SET_PLAYER_STATUS_EMIT)

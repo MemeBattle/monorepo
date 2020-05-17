@@ -1,23 +1,19 @@
 import React from 'react'
 import cn from 'classnames'
+import { PlayerStatus } from '@memebattle/ligretto-shared'
 import opponentAvatar from 'assets/icons/avatars/2.svg' // TODO: get avatar from avatars collection
 import { Avatar, AvatarSize } from '../../../shared/avatar'
 import { PositionOnTable } from 'components/base/room-grid'
 import styles from './OpponentWaiting.module.scss'
 
-export enum OpponentStatus {
-  Waiting = 'waiting',
-  Ready = 'ready',
-}
-
 export interface OpponentWaitingProps {
   positionOnTable: PositionOnTable
-  opponentStatus: OpponentStatus
+  opponentStatus: PlayerStatus
 }
 
 const classNameByStatus = {
-  [OpponentStatus.Ready]: styles.ready,
-  [OpponentStatus.Waiting]: styles.waiting,
+  [PlayerStatus.ReadyToPlay]: styles.ready,
+  [PlayerStatus.DontReadyToPlay]: styles.waiting,
 }
 
 const classNameByPositionOnTable = {
@@ -31,6 +27,6 @@ const classNameByPositionOnTable = {
 export const OpponentWaiting: React.FC<OpponentWaitingProps> = ({ positionOnTable, opponentStatus }) => (
   <div className={cn(styles.opponentWaiting, classNameByPositionOnTable[positionOnTable], classNameByStatus[opponentStatus])}>
     <Avatar src={opponentAvatar} size={AvatarSize.Small} />
-    {opponentStatus === OpponentStatus.Ready ? <div>Ready</div> : null}
+    {opponentStatus === PlayerStatus.ReadyToPlay ? <div>Ready</div> : null}
   </div>
 )
