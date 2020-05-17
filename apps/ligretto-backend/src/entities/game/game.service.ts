@@ -77,6 +77,6 @@ export class GameService {
   }
 
   findGames(pattern: string) {
-    return this.gameRepository.filterGames(pattern)
+    return this.gameRepository.getGames(pattern)
   }
 }
