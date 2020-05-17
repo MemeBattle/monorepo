@@ -26,6 +26,8 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
   switch (action.type) {
     case GameTypes.UPDATE_GAME:
       return { ...state, ...action.payload }
+    case GameTypes.SET_PLAYER_COLOR:
+      return { ...state, playerColor: action.payload }
     default:
       return state
   }
