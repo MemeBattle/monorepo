@@ -4,7 +4,7 @@ import { createAction, Action } from '@memebattle/redux-utils'
 export enum RoomsTypes {
   SEARCH_ROOMS_FINISH = '@@rooms/SERVER/SEARCH_ROOMS_FINISH',
   CREATE_ROOM_EMIT = '@@rooms/WEBSOCKET/CREATE_ROOM',
-  CREATE_ROOM_SUCCESS = '@@rooms/WEBSOCKET/CREATE_ROOM_SUCCESS',
+  CREATE_ROOM_SUCCESS = '@@rooms/SERVER/CREATE_ROOM_SUCCESS',
   SEARCH_ROOMS_EMIT = '@@rooms/WEBSOCKET/SEARCH_ROOMS',
   UPDATE_ROOMS_LIST = '@@rooms/SERVER/UPDATE_ROOMS_LIST',
   CONNECT_TO_ROOM_EMIT = '@@rooms/WEBSOCKET/CONNECT_TO_ROOM',
@@ -13,8 +13,8 @@ export enum RoomsTypes {
 }
 
 export enum GameTypes {
-  UPDATE_GAME = '@@rooms/SERVER/UPDATE_GAME',
-  SET_PLAYER_STATUS_EMIT = '@@rooms/WEBSOCKET/SET_PLAYER_STATUS',
+  UPDATE_GAME = '@@game/SERVER/UPDATE_GAME',
+  SET_PLAYER_STATUS_EMIT = '@@game/WEBSOCKET/SET_PLAYER_STATUS',
 }
 
 export enum GameplayTypes {

@@ -14,7 +14,10 @@ import {
   connectToRoomSuccessAction,
   connectToRoomErrorAction,
   createRoomSuccessAction,
+  updateGameAction,
+  GameTypes,
   Game,
+  SetPlayerStatusEmitAction,
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
@@ -30,13 +33,15 @@ export class GamesController extends Controller {
     [RoomsTypes.CREATE_ROOM_EMIT]: (socket, action) => this.createGame(socket, action),
     [RoomsTypes.SEARCH_ROOMS_EMIT]: (socket, action) => this.searchRooms(socket, action),
     [RoomsTypes.CONNECT_TO_ROOM_EMIT]: (socket, action) => this.joinGame(socket, action),
+    [GameTypes.SET_PLAYER_STATUS_EMIT]: (socket, action) => this.setPlayerStatus(socket, action),
   }
 
   private async createGame(socket: Socket, action: CreateRoomEmitAction) {
-    const game = await this.gameService.createGame(action.payload.name)
-    await this.gameService.addPlayer(game.id, { isHost: true, user: socket.id })
-    socket.emit('event', createRoomSuccessAction({ game }))
+    const newGame = await this.gameService.createGame(action.payload.name)
+    const { game, player } = await this.gameService.addPlayer(newGame.id, { isHost: true, user: socket.id })
+    socket.emit('event', createRoomSuccessAction({ game, playerColor: player.color }))
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(game)] }))
+    socket.join(game.id)
   }
 
   private async searchRooms(socket: Socket, action: SearchRoomsEmitAction) {
@@ -62,15 +67,25 @@ export class GamesController extends Controller {
   private async joinGame(socket: Socket, action: ConnectToRoomEmitAction) {
     const roomUuid = action.payload.roomUuid
 
-    const hasGame = (await this.gameService.getGame(roomUuid))!!
-    if (!hasGame) {
+    const game: Game = await this.gameService.getGame(roomUuid)
+    if (!game || Object.keys(game.players).length > 3) {
       socket.emit('event', connectToRoomErrorAction())
       return
     }
     socket.join(roomUuid)
-    const game: Game = await this.gameService.addPlayer(roomUuid, { user: socket.id })
-    socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(game)] }))
-    socket.to(roomUuid).emit('event', connectToRoomSuccessAction({ game }))
-    socket.emit('event', connectToRoomSuccessAction({ game }))
+    const { game: updatedGame, player } = await this.gameService.addPlayer(roomUuid, { user: socket.id })
+    socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(updatedGame)] }))
+    socket.to(roomUuid).emit('event', updateGameAction(updatedGame))
+    socket.emit('event', connectToRoomSuccessAction({ game: updatedGame, playerColor: player.color }))
+    socket.emit('event', updateGameAction(updatedGame))
+    socket.leave(SOCKET_ROOM_LOBBY)
+  }
+
+  private async setPlayerStatus(socket: Socket, { payload }: SetPlayerStatusEmitAction) {
+    const { gameId, status } = payload
+
+    const game = await this.gameService.updateGamePlayer(gameId, socket.id, { status })
+    socket.to(gameId).emit('event', updateGameAction(game))
+    socket.emit('event', updateGameAction(game))
   }
 }
