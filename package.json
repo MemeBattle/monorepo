@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "bootstrap": "lerna bootstrap --use-workspaces",
-    "postbootstrap": "lerna run build --scope=$(node --no-warnings ./scripts/get-packages.js ./packages)",
     "lint:js": "eslint --ext .js,.vue,.jsx,.ts,.tsx --ignore-path .gitignore .",
     "lint:styles": "stylelint --ignore-path .gitignore {apps,packages}/**/*.scss",
     "test": "lerna run --no-bail test --ignore-path .gitignore",
