@@ -12,8 +12,11 @@ import {
   PlayerStatus,
   setPlayerStatusEmitActions,
   UpdateGameAction,
+  RoomsTypes as SharedRoomTypes,
+  ConnectToRoomSuccessAction,
+  CreateRoomSuccessAction,
 } from '@memebattle/ligretto-shared'
-import { updateGameAction } from './actions'
+import { updateGameAction, setPlayerColorAction } from './actions'
 import { selectGameId, selectPlayerColor, selectPlayerStatus } from './selectors'
 import { cardsActions } from 'ducks/cards'
 import { GameTypes } from './types'
@@ -49,8 +52,8 @@ function* gameCardsUpdate(game: Game) {
 }
 
 function* gameUpdateSaga(action: UpdateGameAction) {
-  const { status, config, id, name } = action.payload
-  yield put(updateGameAction({ status, config, id, name }))
+  const { status, config, id, name, players } = action.payload
+  yield put(updateGameAction({ status, config, id, name, players }))
 
   if (status === GameStatus.InGame) {
     yield call(gameCardsUpdate, action.payload)
@@ -66,7 +69,12 @@ function* togglePlayerStatusSaga() {
   yield put(setPlayerStatusEmitActions({ status, gameId }))
 }
 
+function* connectToRoomSuccessSaga(action: ConnectToRoomSuccessAction | CreateRoomSuccessAction) {
+  yield put(setPlayerColorAction(action.payload.playerColor))
+}
+
 export function* gameRootSaga() {
   yield takeLatest(SharedGameTypes.UPDATE_GAME, gameUpdateSaga)
   yield takeLatest(GameTypes.TOGGLE_PLAYER_STATUS, togglePlayerStatusSaga)
+  yield takeLatest([SharedRoomTypes.CONNECT_TO_ROOM_SUCCESS, SharedRoomTypes.CREATE_ROOM_SUCCESS], connectToRoomSuccessSaga)
 }

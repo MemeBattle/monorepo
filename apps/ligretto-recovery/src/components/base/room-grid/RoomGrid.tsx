@@ -6,11 +6,11 @@ export type RenderChildren = (positionOnTable: PositionOnTable) => React.ReactEl
 export type RenderMultiplyChildren = [RenderChildren] | [RenderChildren, RenderChildren] | [RenderChildren, RenderChildren, RenderChildren]
 
 export function isMultiplyRenderChildren(arg: RenderMultiplyChildren | RenderChildren[]): arg is RenderMultiplyChildren {
-  return arg.length < 4 && arg.length > 0
+  return arg.length > 0 && arg.length < 4
 }
 
 export interface RoomGridProps {
-  renderChildren: RenderMultiplyChildren
+  renderChildren: RenderChildren[]
 }
 
 export enum PositionOnTable {
@@ -38,20 +38,19 @@ export const positionOnTableByIndexByLength = {
 export const RoomGrid: React.FC<RoomGridProps> = ({ renderChildren }) => {
   const elementsCount = renderChildren.length
 
-  if (!isMultiplyRenderChildren(renderChildren)) {
-    throw Error('renderChildren is not MultiplyRenderChildren')
-  }
-
   return (
     <div className={styles.room}>
-      {renderChildren.map((child, index) => {
-        const position = positionOnTableByIndexByLength[elementsCount][index]
-        return (
-          <div className={stylesByPosition[position]} key={index}>
-            {child(position)}
-          </div>
-        )
-      })}
+      {elementsCount !== 0 && isMultiplyRenderChildren(renderChildren)
+        ? renderChildren.map((child, index) => {
+            const renderElementsCount = renderChildren.length
+            const position = positionOnTableByIndexByLength[renderElementsCount][index]
+            return (
+              <div className={stylesByPosition[position]} key={index}>
+                {child(position)}
+              </div>
+            )
+          })
+        : null}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify'
 import { Socket } from 'socket.io'
 import { Controller } from './controller'
-import { GameplayTypes } from '@memebattle/ligretto-shared'
+import { GameplayTypes, updateGameAction } from '@memebattle/ligretto-shared'
 import { TYPES } from '../types'
 import { Gameplay } from '../gameplay/gameplay'
 import { GameplayOutput } from '../gameplay/gameplay-output'
@@ -17,21 +17,21 @@ export class GameplayController extends Controller {
   }
 
   private async startGame(socket: Socket, action) {
-    const gameId = action.payload.gameId;
+    const gameId = action.payload.gameId
 
     this.gameplayOutput.listenGame(gameId, game => {
-      socket.to(gameId).emit('event', game);
+      socket.to(gameId).emit('event', updateGameAction(game))
     })
 
-    await this.gameplay.startGame(gameId);
+    await this.gameplay.startGame(gameId)
   }
 
   private async endGame(socket: Socket, action) {
-    const gameId = action.payload.gameId;
+    const gameId = action.payload.gameId
 
-    this.gameplayOutput.unlistenGame(action.payload.gameId);
-    const results = await this.gameplay.endGame(gameId);
+    this.gameplayOutput.unlistenGame(action.payload.gameId)
+    const results = await this.gameplay.endGame(gameId)
 
-    socket.to(gameId).emit('event', results);
+    socket.to(gameId).emit('event', results)
   }
 }
