@@ -25,12 +25,14 @@ export class GameRepository {
     return this.database.set(storage => delete storage.games[gameId])
   }
 
-  filterGames(pattern: string): Promise<Game[]> {
-    return this.database.get(storage =>
-      Object.entries(storage.games)
-        .filter(([gameId, game]) => game.name.includes(pattern) || gameId.includes(pattern))
-        .map(([, game]) => game),
-    )
+  getGames(pattern?: string): Promise<Game[]> {
+    return pattern
+      ? this.database.get(storage =>
+          Object.entries(storage.games)
+            .filter(([gameId, game]) => game.name.includes(pattern) || gameId.includes(pattern))
+            .map(([, game]) => game),
+        )
+      : this.database.get(storage => Object.values(storage.games))
   }
 
   async getAvailableColor(gameId: string): Promise<CardColors | null> {

@@ -1,16 +1,14 @@
 import React, { useCallback, useState } from 'react'
 import styles from './CreateRoom.module.scss'
-import { Input } from 'components/base/input'
+import { Input, Button, PasswordInput } from 'components/base'
 
 interface NewRoomProps {
-  onCreateRoomButtonClick: (name: string) => void
+  onCreateRoomButtonClick: (options: { name: string; password: string }) => void
 }
 
-/**
- * Тут дерьмо какое-то, чисто для тестов
- */
 export const CreateRoom: React.FC<NewRoomProps> = ({ onCreateRoomButtonClick }) => {
   const [name, setName] = useState('')
+  const [password, setPassword] = useState('')
 
   const handleNameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -19,9 +17,16 @@ export const CreateRoom: React.FC<NewRoomProps> = ({ onCreateRoomButtonClick }) 
     [setName],
   )
 
+  const handlePasswordChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setPassword(e.target.value)
+    },
+    [setPassword],
+  )
+
   const handleButtonClick = useCallback(() => {
-    onCreateRoomButtonClick(name)
-  }, [onCreateRoomButtonClick, name])
+    onCreateRoomButtonClick({ name, password })
+  }, [onCreateRoomButtonClick, name, password])
 
   return (
     <div className={styles.createRoomCard}>
@@ -30,18 +35,12 @@ export const CreateRoom: React.FC<NewRoomProps> = ({ onCreateRoomButtonClick }) 
         <Input value={name} onChange={handleNameChange} placeholder="Room name" />
       </div>
       <div className={styles.gameOption}>
-        <span className={styles.gameOptionName}>Bots:</span>
+        <span className={styles.gameOptionName}>Password:</span>
         <div>
-          <Input value={name} onChange={handleNameChange} placeholder="Room name" />
+          <PasswordInput value={password} onChange={handlePasswordChange} placeholder="Password" />
         </div>
       </div>
-      <div className={styles.gameOption}>
-        <span className={styles.gameOptionName}>Bots:</span>
-        <div>
-          <Input value={name} onChange={handleNameChange} placeholder="Room name" />
-        </div>
-      </div>
-      <button onClick={handleButtonClick}>Create</button>
+      <Button onClick={handleButtonClick}>Create</Button>
     </div>
   )
 }
