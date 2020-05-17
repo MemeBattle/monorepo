@@ -17,16 +17,23 @@ const stylesByPosition = {
   [PositionOnTable.Top]: styles.positionTop,
 }
 
+const cardsPositionsByPositionOnTable: { [position in PositionOnTable]: CardPositions[] } = {
+  [PositionOnTable.Left]: [CardPositions.l0, CardPositions.l1, CardPositions.l2, CardPositions.l3],
+  [PositionOnTable.Right]: [CardPositions.r0, CardPositions.r1, CardPositions.r2, CardPositions.r3],
+  [PositionOnTable.Top]: [CardPositions.o0, CardPositions.o1, CardPositions.o2, CardPositions.o3],
+  [PositionOnTable.LeftTopCorner]: [CardPositions.l0, CardPositions.l1, CardPositions.l2, CardPositions.l3],
+  [PositionOnTable.RightTopCorner]: [CardPositions.r0, CardPositions.r1, CardPositions.r2, CardPositions.r3],
+}
+
 export interface OpponentCardsProps {
   positionOnTable: PositionOnTable
   className?: string
 }
 export const OpponentCards: React.FC<OpponentCardsProps> = ({ positionOnTable, className }) => (
   <div className={cn(styles.opponentCards, stylesByPosition[positionOnTable], className)}>
-    <WrappedCard cardPosition={CardPositions.r1} />
-    <WrappedCard cardPosition={CardPositions.r2} />
-    <WrappedCard cardPosition={CardPositions.r3} />
-    <WrappedCard cardPosition={CardPositions.r0} />
+    {cardsPositionsByPositionOnTable[positionOnTable].map(cardPosition => (
+      <WrappedCard cardPosition={cardPosition} />
+    ))}
   </div>
 )
 

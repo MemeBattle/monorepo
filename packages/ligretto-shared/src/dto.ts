@@ -1,4 +1,4 @@
-import { CardPositions, Room, Game } from './types'
+import { CardPositions, Room, Game, PlayerStatus } from './types'
 
 export interface TapCard {
   cardPosition: CardPositions
@@ -35,3 +35,8 @@ export interface CreateRoomSuccess {
 }
 
 export type GameState = Game
+
+export interface PlayerStatusInGame {
+  gameId: Game['id']
+  status: PlayerStatus
+}
