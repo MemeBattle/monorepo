@@ -1,18 +1,23 @@
 import { inject, injectable } from 'inversify'
 import { TYPES } from '../types'
 import { Database } from '../database'
+import { Game } from '@memebattle/ligretto-shared'
 
 @injectable()
 export class GameplayOutput {
   @inject(TYPES.Database) private database: Database
 
-  public listenGame(gameId: string) {
+  public listenGame(gameId: string, callback: (game: Game) => void) {
     this.database.addUpdateListener(
-      'gameplay-output',
+      `game-${gameId}`,
       storage => storage.games[gameId],
       changes => {
         console.log('changes', changes)
       },
     )
+  }
+
+  public unlistenGame(gameId: string) {
+    this.database.removeUpdateListener(`game-${gameId}`)
   }
 }
