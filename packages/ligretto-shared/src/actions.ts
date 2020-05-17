@@ -17,6 +17,18 @@ export enum GameTypes {
   SET_PLAYER_STATUS_EMIT = '@@rooms/WEBSOCKET/SET_PLAYER_STATUS',
 }
 
+export enum GameplayTypes {
+  START_GAME = '@@gameplay/START_GAME',
+  END_GAME = '@@gameplay/END_GAME',
+  UPDATE_GAME = '@@gameplay/SERVER/UPDATE_GAME',
+
+  PUT_CARD = '@@gameplay/PUT_CARD',
+  PUT_CARD_FROM_STACK_OPEN_DECK = '@@gameplay/PUT_CARD_FROM_STACK_OPEN_DECK',
+  SHUFFLE_STACK_DECK = '@@gameplay/SHUFFLE_STACK_DECK',
+  TAKE_FROM_STACK_DECK = '@@gameplay/TAKE_FROM_STACK_DECK',
+  TAKE_FROM_LIGRETTO_DECK = '@@gameplay/TAKE_FROM_LIGRETTO_DECK',
+}
+
 export type SearchRoomsFinishAction = Action<RoomsTypes.SEARCH_ROOMS_FINISH, dto.SearchRoomsFinish>
 export const searchRoomsFinishAction = createAction<SearchRoomsFinishAction>(RoomsTypes.SEARCH_ROOMS_FINISH)
 

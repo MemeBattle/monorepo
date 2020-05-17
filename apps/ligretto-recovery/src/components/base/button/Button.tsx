@@ -1,15 +1,19 @@
 import * as React from 'react'
 import styles from './Button.module.scss'
-import classNamesBind from 'classnames/bind'
+import classNames from 'classnames'
 
-const cx = classNamesBind.bind(styles)
 export enum ButtonColors {
   Red = 'red',
   Green = 'green',
 }
+
 export interface ButtonProps {
   color?: ButtonColors
+  onClick?: (e: React.MouseEvent) => void
 }
-export const Button: React.FC<ButtonProps> = ({ children, color = ButtonColors.Green }) => (
-  <button className={cx(styles.button, color)}>{children}</button>
+
+export const Button: React.FC<ButtonProps> = ({ children, color = ButtonColors.Green, onClick }) => (
+  <button onClick={onClick} className={classNames(styles.button, color)}>
+    {children}
+  </button>
 )
