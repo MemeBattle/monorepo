@@ -88,4 +88,9 @@ export class GamesController extends Controller {
     socket.to(gameId).emit('event', updateGameAction(game))
     socket.emit('event', updateGameAction(game))
   }
+
+  public async disconnectionHandler(socket: Socket, reason: string) {
+    console.log('disconnectionHandler', reason)
+    console.log('socket rooms', socket.id, socket.rooms)
+  }
 }
