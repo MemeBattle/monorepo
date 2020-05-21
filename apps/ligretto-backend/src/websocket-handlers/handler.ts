@@ -30,6 +30,8 @@ export class WebSocketHandler implements WebSocketHandler {
       console.log('ECHO', data)
       socket.emit(data.type, data.payload)
     })
+
+    socket.on('disconnecting', reason => this.gamesController.disconnectionHandler(socket, reason))
   }
 
   private messageHandler(socket: Socket, data: { type: string; payload: unknown }) {
