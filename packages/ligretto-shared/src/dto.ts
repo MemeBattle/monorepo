@@ -38,6 +38,10 @@ export interface CreateRoomSuccess {
 
 export type GameState = Game
 
+export interface StartGame {
+  gameId: Game['id']
+}
+
 export interface PlayerStatusInGame {
   gameId: Game['id']
   status: PlayerStatus
