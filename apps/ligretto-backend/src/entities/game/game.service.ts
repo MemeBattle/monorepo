@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import { GameRepository } from './game.repo'
-import { Game, Player, GameStatus } from '@memebattle/ligretto-shared'
+import { Game, GameStatus, Player } from '@memebattle/ligretto-shared'
 import { TYPES } from '../../types'
 
 const emptyGame: Game = {
@@ -46,6 +46,7 @@ export class GameService {
 
       return {
         ...game,
+        status: GameStatus.InGame,
         players,
         playground: { decks: [] },
       }

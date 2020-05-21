@@ -8,13 +8,7 @@ export class GameplayOutput {
   @inject(TYPES.Database) private database: Database
 
   public listenGame(gameId: string, callback: (game: Game) => void) {
-    this.database.addUpdateListener(
-      `game-${gameId}`,
-      storage => storage.games[gameId],
-      changes => {
-        console.log('changes', changes)
-      },
-    )
+    this.database.addUpdateListener(`game-${gameId}`, storage => storage.games[gameId], callback)
   }
 
   public unlistenGame(gameId: string) {
