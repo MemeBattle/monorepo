@@ -1,9 +1,12 @@
 import { Action } from '@memebattle/redux-utils'
 import { Game, Player } from '@memebattle/ligretto-shared'
+
 export enum GameTypes {
   UPDATE_GAME = '@@game/UPDATE_GAME',
   TOGGLE_PLAYER_STATUS = '@@game/TOGGLE_PLAYER_STATUS',
   SET_PLAYER_COLOR = '@@game/SET_PLAYER_COLOR',
+  START_GAME = '@@game/START_GAME',
+  SET_GAME_LOADED = '@@game/SET_GAME_LOADED',
 }
 
 export type UpdateGameAction = Action<
@@ -21,4 +24,8 @@ export type SetPlayerColor = Action<GameTypes.SET_PLAYER_COLOR, Player['color']>
 
 export type TogglePlayerStatusAction = Action<GameTypes.TOGGLE_PLAYER_STATUS>
 
-export type GameAction = UpdateGameAction | TogglePlayerStatusAction | SetPlayerColor
+export type StartGameAction = Action<GameTypes.START_GAME>
+
+export type SetGameLoadedAction = Action<GameTypes.SET_GAME_LOADED, boolean>
+
+export type GameAction = UpdateGameAction | TogglePlayerStatusAction | SetPlayerColor | StartGameAction | SetGameLoadedAction
