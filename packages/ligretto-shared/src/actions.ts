@@ -18,7 +18,7 @@ export enum GameTypes {
 }
 
 export enum GameplayTypes {
-  START_GAME = '@@gameplay/START_GAME',
+  START_GAME = '@@gameplay/WEBSOCKET/START_GAME',
   END_GAME = '@@gameplay/END_GAME',
   UPDATE_GAME = '@@gameplay/SERVER/UPDATE_GAME',
 
@@ -57,4 +57,7 @@ export type CreateRoomSuccessAction = Action<RoomsTypes.CREATE_ROOM_SUCCESS, dto
 export const createRoomSuccessAction = createAction<CreateRoomSuccessAction>(RoomsTypes.CREATE_ROOM_SUCCESS)
 
 export type SetPlayerStatusEmitAction = Action<GameTypes.SET_PLAYER_STATUS_EMIT, dto.PlayerStatusInGame>
-export const setPlayerStatusEmitActions = createAction<SetPlayerStatusEmitAction>(GameTypes.SET_PLAYER_STATUS_EMIT)
+export const setPlayerStatusEmitAction = createAction<SetPlayerStatusEmitAction>(GameTypes.SET_PLAYER_STATUS_EMIT)
+
+export type StartGameEmitAction = Action<GameplayTypes.START_GAME, dto.StartGame>
+export const startGameEmitAction = createAction<StartGameEmitAction>(GameplayTypes.START_GAME)

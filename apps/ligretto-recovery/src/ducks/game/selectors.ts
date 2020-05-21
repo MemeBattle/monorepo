@@ -9,6 +9,7 @@ export const selectGameStatus = (state: All) => state.game.status
 export const selectPlayers = (state: All) => state.game.players
 export const selectPlayer = (state: All) => selectPlayers(state)[selectPlayerColor(state)]
 export const selectPlayerStatus = (state: All) => selectPlayer(state).status
+export const selectIsGameLoaded = (state: All) => state.game.isGameLoaded
 
 export const selectOpponents = createSelector([selectPlayers, selectPlayerColor], (players, playerColor) =>
   playersSortByColor(

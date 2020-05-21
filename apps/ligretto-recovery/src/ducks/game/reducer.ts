@@ -1,5 +1,5 @@
 import { CardColors, Game, GameStatus } from '@memebattle/ligretto-shared'
-import { GameTypes, GameAction } from './types'
+import { GameAction, GameTypes } from './types'
 
 export type GameState = {
   name: Game['name']
@@ -8,6 +8,7 @@ export type GameState = {
   status: Game['status']
   players: Game['players']
   playerColor: CardColors
+  isGameLoaded: boolean
 }
 
 const initialState: GameState = {
@@ -20,6 +21,7 @@ const initialState: GameState = {
   },
   players: {},
   playerColor: CardColors.empty,
+  isGameLoaded: false,
 }
 
 export const gameReducer = (state: GameState = initialState, action: GameAction) => {
@@ -28,6 +30,8 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return { ...state, ...action.payload }
     case GameTypes.SET_PLAYER_COLOR:
       return { ...state, playerColor: action.payload }
+    case GameTypes.SET_GAME_LOADED:
+      return { ...state, isGameLoaded: action.payload }
     default:
       return state
   }

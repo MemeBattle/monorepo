@@ -1,3 +1,5 @@
 export { CardsPanel } from './cards-panel'
 export { TableCards } from './table-cards'
 export { Stack } from './stack'
+export { StartGameButton } from './start-game-button'
+export { OpponentWaiting } from './opponent-waiting'

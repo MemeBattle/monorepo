@@ -8,10 +8,11 @@ import playIcon from 'assets/icons/play.svg'
 export interface PlayerReadyButtonProps {
   onClick: () => void
   className?: string
+  hideButton?: boolean
 }
-export const PlayerReadyButton: React.FC<PlayerReadyButtonProps> = ({ className, onClick }) => (
+export const PlayerReadyButton: React.FC<PlayerReadyButtonProps> = ({ className, onClick, hideButton }) => (
   <div className={cn(styles.playerReadyButton, className)}>
     <Avatar src={opponentAvatar} size={AvatarSize.Large} />
-    <img src={playIcon} alt="Ready to play" className={styles.button} onClick={onClick} />
+    {hideButton ? null : <img src={playIcon} alt="Ready to play" className={styles.button} onClick={onClick} />}
   </div>
 )
