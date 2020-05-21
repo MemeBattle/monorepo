@@ -78,8 +78,7 @@ function* connectToRoomSuccessSaga(action: ConnectToRoomSuccessAction | CreateRo
 
 function* startGameSaga() {
   const gameId = yield select(selectGameId)
-
-  yield put(startGameEmitAction(gameId))
+  yield put(startGameEmitAction({ gameId }))
 }
 
 export function* gameRootSaga() {
