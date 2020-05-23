@@ -31,16 +31,15 @@ export class GameService {
       // eslint-disable-next-line guard-for-in
       for (const player in game.players) {
         const allCards = createInitialPlayerCards()
-        console.log('allCards', allCards)
 
         players[player] = {
           ...game.players[player],
           cards: allCards.splice(0, 3),
           ligrettoDeck: { cards: allCards.splice(0, 10), isHidden: true },
-          stackOpenDeck: { cards: [], isHidden: true },
+          stackOpenDeck: { cards: [], isHidden: false },
           stackDeck: {
             cards: allCards,
-            isHidden: false,
+            isHidden: true,
           },
         }
       }

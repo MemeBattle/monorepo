@@ -25,7 +25,7 @@ const positionConfigByOpponentPositions = {
 export const opponentToCardsMapper = (opponent: Player, position: OpponentPositions): Partial<Record<CardPositions, Card>> => {
   const positionConfig = positionConfigByOpponentPositions[position]
   const cardsByPosition: Partial<Record<CardPositions, Card>> = {
-    [positionConfig.stackOpenDeck]: opponent.stackOpenDeck.cards[0],
+    [positionConfig.stackOpenDeck]: { ...opponent.stackOpenDeck.cards[0], isHidden: opponent.stackOpenDeck.isHidden },
   }
   positionConfig.cards.forEach((cardPosition, index) => {
     cardsByPosition[cardPosition] = opponent.cards[index]
@@ -39,8 +39,10 @@ export const opponentToCardsMapper = (opponent: Player, position: OpponentPositi
  * @param player
  */
 export const playerToCardsMapper = (player: Player): Partial<Record<CardPositions, Card>> => ({
-  [CardPositions.q]: player.stackOpenDeck.cards[0],
-  [CardPositions.w]: player.cards[0],
-  [CardPositions.e]: player.cards[1],
-  [CardPositions.r]: player.cards[2],
+  [CardPositions.q]: { ...player.stackOpenDeck.cards[0], hidden: player.stackOpenDeck.isHidden },
+  [CardPositions.w]: { ...player.stackDeck.cards[0], hidden: player.stackDeck.isHidden },
+  [CardPositions.e]: player.cards[0],
+  [CardPositions.r]: player.cards[1],
+  [CardPositions.t]: player.cards[2],
+  [CardPositions.y]: { ...player.ligrettoDeck.cards[0], hidden: true },
 })
