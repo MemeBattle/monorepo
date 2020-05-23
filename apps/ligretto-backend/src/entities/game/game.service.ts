@@ -1,6 +1,7 @@
 import { inject, injectable } from 'inversify'
 import { GameRepository } from './game.repo'
 import { Game, GameStatus, Player } from '@memebattle/ligretto-shared'
+import { createInitialPlayerCards } from '../../utils/create-initial-player-cards'
 import { TYPES } from '../../types'
 
 const emptyGame: Game = {
@@ -29,18 +30,18 @@ export class GameService {
 
       // eslint-disable-next-line guard-for-in
       for (const player in game.players) {
+        const allCards = createInitialPlayerCards()
+        console.log('allCards', allCards)
+
         players[player] = {
           ...game.players[player],
-          cards: [
-            /* Карты */
-          ],
+          cards: allCards.splice(0, 3),
+          ligrettoDeck: { cards: allCards.splice(0, 10), isHidden: true },
+          stackOpenDeck: { cards: [], isHidden: true },
           stackDeck: {
-            cards: [
-              /* Колода */
-            ],
+            cards: allCards,
             isHidden: false,
           },
-          stackOpenDeck: { cards: [], isHidden: false },
         }
       }
 
