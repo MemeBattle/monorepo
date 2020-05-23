@@ -23,6 +23,6 @@ export const Card: React.FC<CardProps> = ({ value, disabled, onClick, color, hid
     )}
     onClick={!disabled ? onClick : () => null}
   >
-    {color !== CardColors.empty ? <CardValue value={value} /> : null}
+    {color !== CardColors.empty && !hidden ? <CardValue value={value} /> : null}
   </div>
 )
