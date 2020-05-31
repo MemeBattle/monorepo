@@ -6,7 +6,7 @@ import { isMultiplyRenderChildren, PositionOnTable, RenderChildren, RoomGrid } f
 import { OpponentCards } from 'components/blocks/game/opponent-cards'
 import { TableCards, CardsPanel } from 'components/blocks/game'
 
-const renderOpponent: RenderChildren = (positionOnTable: PositionOnTable) => <OpponentCards positionOnTable={positionOnTable} />
+const renderOpponent: RenderChildren = (positionOnTable: PositionOnTable) => <OpponentCards key={positionOnTable} positionOnTable={positionOnTable} />
 
 const createRenderChildren = (opponents: Player[]) => {
   const renderChild = opponents.map<RenderChildren>(() => renderOpponent)

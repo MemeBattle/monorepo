@@ -32,7 +32,7 @@ export interface OpponentCardsProps {
 export const OpponentCards: React.FC<OpponentCardsProps> = ({ positionOnTable, className }) => (
   <div className={cn(styles.opponentCards, stylesByPosition[positionOnTable], className)}>
     {cardsPositionsByPositionOnTable[positionOnTable].map(cardPosition => (
-      <WrappedCard cardPosition={cardPosition} />
+      <WrappedCard key={cardPosition} cardPosition={cardPosition} />
     ))}
   </div>
 )
