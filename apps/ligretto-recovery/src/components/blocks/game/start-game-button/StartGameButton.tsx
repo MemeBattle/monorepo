@@ -8,5 +8,5 @@ interface StartGameButtonProps {
   disabled: boolean
 }
 export const StartGameButton: React.FC<StartGameButtonProps> = ({ onClick, disabled }) => (
-  <img src={playIcon} alt="Ready to play" className={cn(styles.button, { [styles.disabled]: disabled })} onClick={onClick} />
+  <img src={playIcon} alt="Ready to play" className={cn(styles.button, { [styles.disabled]: disabled })} onClick={disabled ? undefined : onClick} />
 )
