@@ -7,7 +7,7 @@ import { StartGameButton, OpponentWaiting } from 'components/blocks/game'
 import { selectOpponents, togglePlayerStatusAction, startGameAction, selectPlayer } from 'ducks/game'
 
 const renderOpponent: (opponent: Player) => RenderChildren = ({ status }) => (positionOnTable: PositionOnTable) => (
-  <OpponentWaiting opponentStatus={status} positionOnTable={positionOnTable} />
+  <OpponentWaiting key={positionOnTable} opponentStatus={status} positionOnTable={positionOnTable} />
 )
 
 export const GameLobby = () => {
