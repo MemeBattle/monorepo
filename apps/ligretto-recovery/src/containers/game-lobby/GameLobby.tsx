@@ -29,7 +29,7 @@ export const GameLobby = () => {
     <>
       <RoomGrid renderChildren={renderChildren} />
       <PlayerReadyButton onClick={handleReadyToPlayButtonClick} hideButton={player.isHost} />
-      {player.isHost ? <StartGameButton onClick={handleStartGameClick} disabled={false} /> : null}
+      {player.isHost ? <StartGameButton onClick={handleStartGameClick} disabled={opponents.length === 0} /> : null}
     </>
   )
 }
