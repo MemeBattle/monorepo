@@ -1,5 +1,5 @@
 import { call, put, select, takeLatest } from 'redux-saga/effects'
-import { opponentToCardsMapper, playerToCardsMapper } from 'utils'
+import { opponentToCardsMapper, playerToCardsMapper, tableCardsMapper } from 'utils'
 import { without } from 'lodash'
 import {
   Card,
@@ -36,6 +36,8 @@ function* gameCardsUpdate(game: Game) {
     return
   }
 
+  const tableCards = tableCardsMapper(game.playground.decks.map(cardDeck => cardDeck.cards[0]))
+
   const opponentsCardsByPositions = without(players, player).reduce(
     (opponentCardsByPositions, opponent, opponentIndex) => ({
       ...opponentCardsByPositions,
@@ -47,16 +49,17 @@ function* gameCardsUpdate(game: Game) {
   const cards: Partial<Record<CardPositions, Card>> = {
     ...playerToCardsMapper(player),
     ...opponentsCardsByPositions,
+    ...tableCards,
   }
 
   yield put(cardsActions.pushCardsAction(cards))
 }
 
 function* gameUpdateSaga(action: UpdateGameAction) {
-  const { status, config, id, name, players } = action.payload
-  yield put(updateGameAction({ status, config, id, name, players }))
+  const game = action.payload
+  yield put(updateGameAction(game))
 
-  if (status === GameStatus.InGame) {
+  if (game.status === GameStatus.InGame) {
     yield call(gameCardsUpdate, action.payload)
   }
 }
