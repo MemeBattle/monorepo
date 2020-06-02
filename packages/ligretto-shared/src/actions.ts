@@ -22,12 +22,17 @@ export enum GameplayTypes {
   END_GAME = '@@gameplay/END_GAME',
   UPDATE_GAME = '@@gameplay/SERVER/UPDATE_GAME',
 
-  PUT_CARD = '@@gameplay/PUT_CARD',
-  PUT_CARD_FROM_STACK_OPEN_DECK = '@@gameplay/PUT_CARD_FROM_STACK_OPEN_DECK',
-  SHUFFLE_STACK_DECK = '@@gameplay/SHUFFLE_STACK_DECK',
-  TAKE_FROM_STACK_DECK = '@@gameplay/TAKE_FROM_STACK_DECK',
-  TAKE_FROM_LIGRETTO_DECK = '@@gameplay/TAKE_FROM_LIGRETTO_DECK',
+  PUT_CARD = '@@gameplay/WEBSOCKET/PUT_CARD',
+  PUT_CARD_FROM_STACK_OPEN_DECK = '@@gameplay/WEBSOCKET/PUT_CARD_FROM_STACK_OPEN_DECK',
+  TAKE_FROM_STACK_DECK = '@@gameplay/WEBSOCKET/TAKE_FROM_STACK_DECK',
+  TAKE_FROM_LIGRETTO_DECK = '@@gameplay/WEBSOCKET/TAKE_FROM_LIGRETTO_DECK',
 }
+
+export type PutCardAction = Action<GameplayTypes.PUT_CARD>
+export const putCardAction = createAction<PutCardAction>(GameplayTypes.PUT_CARD)
+
+export type PutCardFromStackOpenDeck = Action<GameplayTypes.PUT_CARD_FROM_STACK_OPEN_DECK>
+export const putCardFromStackOpenDeck = createAction<PutCardFromStackOpenDeck>(GameplayTypes.PUT_CARD_FROM_STACK_OPEN_DECK)
 
 export type SearchRoomsFinishAction = Action<RoomsTypes.SEARCH_ROOMS_FINISH, dto.SearchRoomsFinish>
 export const searchRoomsFinishAction = createAction<SearchRoomsFinishAction>(RoomsTypes.SEARCH_ROOMS_FINISH)

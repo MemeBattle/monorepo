@@ -1,7 +1,6 @@
 import { CardPositions, Room, Game, PlayerStatus, CardColors } from './types'
 
 export interface TapCard {
-  cardPosition: CardPositions
   newPosition?: CardPositions
 }
 
