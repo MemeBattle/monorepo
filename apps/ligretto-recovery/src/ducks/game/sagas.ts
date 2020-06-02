@@ -1,4 +1,4 @@
-import { call, put, select, takeLatest } from 'redux-saga/effects'
+import { call, put, select, takeLatest, takeEvery } from 'redux-saga/effects'
 import { opponentToCardsMapper, playerToCardsMapper, tableCardsMapper } from 'utils'
 import { without } from 'lodash'
 import {
@@ -16,10 +16,12 @@ import {
   ConnectToRoomSuccessAction,
   CreateRoomSuccessAction,
   startGameEmitAction,
+  putCardAction,
+  putCardFromStackOpenDeck,
 } from '@memebattle/ligretto-shared'
 import { updateGameAction, setPlayerColorAction, setGameLoadedAction } from './actions'
 import { selectGameId, selectPlayerColor, selectPlayerStatus } from './selectors'
-import { cardsActions } from 'ducks/cards'
+import { cardsActions, CardsTypes } from 'ducks/cards'
 import { GameTypes } from './types'
 
 const opponentsPositionsOrder = [OpponentPositions.Left, OpponentPositions.Top, OpponentPositions.Right]
@@ -84,9 +86,20 @@ function* startGameSaga() {
   yield put(startGameEmitAction({ gameId }))
 }
 
+function* handleCardPutSaga(action: CardsTypes.TapCardAction) {
+  switch (action.payload.cardPosition) {
+    case CardPositions.w:
+      yield put(putCardFromStackOpenDeck())
+      break
+    case CardPositions.e:
+      yield put(putCardAction())
+  }
+}
+
 export function* gameRootSaga() {
   yield takeLatest(SharedGameTypes.UPDATE_GAME, gameUpdateSaga)
   yield takeLatest(GameTypes.TOGGLE_PLAYER_STATUS, togglePlayerStatusSaga)
   yield takeLatest(GameTypes.START_GAME, startGameSaga)
+  yield takeEvery(CardsTypes.CardsTypes.TAP_CARD, handleCardPutSaga)
   yield takeLatest([SharedRoomTypes.CONNECT_TO_ROOM_SUCCESS, SharedRoomTypes.CREATE_ROOM_SUCCESS], connectToRoomSuccessSaga)
 }
