@@ -20,7 +20,7 @@ export type UpdateGameAction = Action<
   }
 >
 
-export type SetPlayerColor = Action<GameTypes.SET_PLAYER_ID, Player['socketId']>
+export type SetPlayerColor = Action<GameTypes.SET_PLAYER_ID, Player['id']>
 
 export type TogglePlayerStatusAction = Action<GameTypes.TOGGLE_PLAYER_STATUS>
 

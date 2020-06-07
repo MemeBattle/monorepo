@@ -1,4 +1,5 @@
 import { inject, injectable } from 'inversify'
+import { omit } from 'lodash'
 import { GameRepository } from './game.repo'
 import { Game, GameStatus, Player } from '@memebattle/ligretto-shared'
 import { createInitialPlayerCards } from '../../utils/create-initial-player-cards'
@@ -53,21 +54,25 @@ export class GameService {
     })
   }
 
-  async addPlayer(gameId: string, playerData: Partial<Player> & { socketId: Player['socketId'] }) {
+  pauseGame(gameId: string) {
+    return this.gameRepository.updateGame(gameId, game => ({ ...game, status: GameStatus.Pause }))
+  }
+
+  async addPlayer(gameId: string, playerData: Partial<Player> & { id: Player['id'] }) {
     const player = await this.gameRepository.createPlayer({ ...playerData })
     return {
       game: await this.gameRepository.updateGame(gameId, game => ({
         ...game,
         players: {
           ...game.players,
-          [player.socketId]: player,
+          [player.id]: player,
         },
       })),
       player,
     }
   }
 
-  async updateGamePlayer(gameId: Game['id'], socketId: Player['socketId'], playerData: Partial<Player>) {
+  async updateGamePlayer(gameId: Game['id'], socketId: Player['id'], playerData: Partial<Player>) {
     const game = await this.gameRepository.getGame(gameId)
     if (!game) {
       throw Error('Game not found')
@@ -82,7 +87,7 @@ export class GameService {
       ...game,
       players: {
         ...game.players,
-        [player.socketId]: {
+        [player.id]: {
           ...player,
           ...playerData,
         },
@@ -104,5 +109,30 @@ export class GameService {
 
   findGames(pattern: string) {
     return this.gameRepository.getGames(pattern)
+  }
+
+  async leaveGame(gameId: string, playerId: Player['id']): Promise<Game | null> {
+    const game = await this.gameRepository.updateGame(gameId, game => {
+      const isHostLeaving = game.players[playerId].isHost
+      return {
+        ...game,
+        players: Object.entries(omit(game.players, playerId)).reduce(
+          (players, [playerId, player], index): Game['players'] => ({ [playerId]: { ...player, isHost: isHostLeaving && index === 0 } }),
+          {},
+        ),
+      }
+    })
+    if (!game) {
+      return
+    }
+    const playersCount = Object.keys(game.players).length
+    if (playersCount === 0) {
+      await this.endGame(game.id)
+      return null
+    }
+    if (playersCount === 1) {
+      await this.pauseGame(gameId)
+    }
+    return game
   }
 }

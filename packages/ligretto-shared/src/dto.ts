@@ -23,12 +23,12 @@ export interface ConnectToRoom {
 
 export interface ConnectToRoomSuccess {
   game: Game
-  playerId: Player['socketId']
+  playerId: Player['id']
 }
 
 export interface CreateRoomSuccess {
   game: Game
-  playerId: Player['socketId']
+  playerId: Player['id']
 }
 
 export type GameState = Game

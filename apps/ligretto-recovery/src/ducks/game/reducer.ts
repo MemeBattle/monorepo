@@ -7,7 +7,7 @@ export type GameState = {
   config: Game['config']
   status: Game['status']
   players: Game['players']
-  playerId: Player['socketId']
+  playerId: Player['id']
   isGameLoaded: boolean
 }
 

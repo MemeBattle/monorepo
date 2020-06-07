@@ -1,4 +1,5 @@
 export interface User {
   socketId: string
-  dataFromCAS: unknown
+  currentGameId?: string
+  dataFromCAS?: unknown
 }
