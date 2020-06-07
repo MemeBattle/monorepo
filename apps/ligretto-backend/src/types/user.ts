@@ -1,4 +1,4 @@
 export interface User {
-  id: string
+  socketId: string
   dataFromCAS: unknown
 }

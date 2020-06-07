@@ -1,8 +1,4 @@
-import { CardPositions, Room, Game, PlayerStatus, CardColors } from './types'
-
-export interface TapCard {
-  newPosition?: CardPositions
-}
+import { Room, Game, PlayerStatus, Player } from './types'
 
 export interface SearchRooms {
   search: string
@@ -27,12 +23,12 @@ export interface ConnectToRoom {
 
 export interface ConnectToRoomSuccess {
   game: Game
-  playerColor: CardColors
+  playerId: Player['socketId']
 }
 
 export interface CreateRoomSuccess {
   game: Game
-  playerColor: CardColors
+  playerId: Player['socketId']
 }
 
 export type GameState = Game
