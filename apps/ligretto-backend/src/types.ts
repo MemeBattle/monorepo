@@ -14,4 +14,6 @@ export const TYPES = {
   RoomService: Symbol.for('RoomService'),
   Emitter: Symbol.for('Emitter'),
   Database: Symbol.for('Database'),
+  UserRepository: Symbol.for('UserRepository'),
+  UserService: Symbol.for('UserService'),
 }
