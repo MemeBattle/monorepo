@@ -3,7 +3,7 @@ import { opponentToCardsMapper, playerToCardsMapper, tableCardsMapper } from 'ut
 import { without } from 'lodash'
 import {
   Card,
-  CardColors,
+  Player,
   CardPositions,
   Game,
   GameStatus,
@@ -19,8 +19,8 @@ import {
   putCardAction,
   putCardFromStackOpenDeck,
 } from '@memebattle/ligretto-shared'
-import { updateGameAction, setPlayerColorAction, setGameLoadedAction } from './actions'
-import { selectGameId, selectPlayerColor, selectPlayerStatus } from './selectors'
+import { updateGameAction, setPlayerIdAction, setGameLoadedAction } from './actions'
+import { selectGameId, selectPlayerId, selectPlayerStatus } from './selectors'
 import { cardsActions, CardsTypes } from 'ducks/cards'
 import { GameTypes } from './types'
 
@@ -30,10 +30,10 @@ const opponentsPositionsOrder = [OpponentPositions.Left, OpponentPositions.Top, 
  * @draft - maybe id instead of color usage will be correctly
  */
 function* gameCardsUpdate(game: Game) {
-  const playerColor: CardColors = yield select(selectPlayerColor)
+  const playerId: Player['socketId'] = yield select(selectPlayerId)
 
   const players = Object.values(game.players)
-  const player = players.find(player => player.color === playerColor)
+  const player = game.players[playerId]
   if (player === undefined) {
     return
   }
@@ -77,7 +77,7 @@ function* togglePlayerStatusSaga() {
 
 function* connectToRoomSuccessSaga(action: ConnectToRoomSuccessAction | CreateRoomSuccessAction) {
   yield put(updateGameAction(action.payload.game))
-  yield put(setPlayerColorAction(action.payload.playerColor))
+  yield put(setPlayerIdAction(action.payload.playerId))
   yield put(setGameLoadedAction(true))
 }
 

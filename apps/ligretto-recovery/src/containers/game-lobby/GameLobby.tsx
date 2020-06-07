@@ -25,6 +25,10 @@ export const GameLobby = () => {
 
   const renderChildren = React.useMemo(() => opponents.map<RenderChildren>(renderOpponent), [opponents])
 
+  if (!player) {
+    return <>Loading</>
+  }
+
   return (
     <>
       <RoomGrid renderChildren={renderChildren} />

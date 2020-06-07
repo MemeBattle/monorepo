@@ -1,4 +1,4 @@
-import { CardColors, Game, GameStatus } from '@memebattle/ligretto-shared'
+import { Game, GameStatus, Player } from '@memebattle/ligretto-shared'
 import { GameAction, GameTypes } from './types'
 
 export type GameState = {
@@ -7,7 +7,7 @@ export type GameState = {
   config: Game['config']
   status: Game['status']
   players: Game['players']
-  playerColor: CardColors
+  playerId: Player['socketId']
   isGameLoaded: boolean
 }
 
@@ -20,16 +20,16 @@ const initialState: GameState = {
     playersMaxCount: 4,
   },
   players: {},
-  playerColor: CardColors.empty,
   isGameLoaded: false,
+  playerId: '',
 }
 
 export const gameReducer = (state: GameState = initialState, action: GameAction) => {
   switch (action.type) {
     case GameTypes.UPDATE_GAME:
       return { ...state, ...action.payload }
-    case GameTypes.SET_PLAYER_COLOR:
-      return { ...state, playerColor: action.payload }
+    case GameTypes.SET_PLAYER_ID:
+      return { ...state, playerId: action.payload }
     case GameTypes.SET_GAME_LOADED:
       return { ...state, isGameLoaded: action.payload }
     default:

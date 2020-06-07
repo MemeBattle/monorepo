@@ -53,28 +53,27 @@ export class GameService {
     })
   }
 
-  async addPlayer(gameId: string, playerData: Partial<Player>) {
-    const color = await this.gameRepository.getAvailableColor(gameId)
-    const player = await this.gameRepository.createPlayer({ ...playerData, color })
+  async addPlayer(gameId: string, playerData: Partial<Player> & { socketId: Player['socketId'] }) {
+    const player = await this.gameRepository.createPlayer({ ...playerData })
     return {
       game: await this.gameRepository.updateGame(gameId, game => ({
         ...game,
         players: {
           ...game.players,
-          [color]: player,
+          [player.socketId]: player,
         },
       })),
       player,
     }
   }
 
-  async updateGamePlayer(gameId: Game['id'], userId: Player['user'], playerData: Partial<Player>) {
+  async updateGamePlayer(gameId: Game['id'], socketId: Player['socketId'], playerData: Partial<Player>) {
     const game = await this.gameRepository.getGame(gameId)
     if (!game) {
       throw Error('Game not found')
     }
 
-    const player = Object.values(game.players).find(player => player.user === userId)
+    const player = game.players[socketId]
     if (!player) {
       throw Error('Player not found in game')
     }
@@ -83,7 +82,7 @@ export class GameService {
       ...game,
       players: {
         ...game.players,
-        [player.color]: {
+        [player.socketId]: {
           ...player,
           ...playerData,
         },

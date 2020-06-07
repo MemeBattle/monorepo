@@ -1,6 +1,5 @@
 import { inject, injectable } from 'inversify'
-import { CardColors, Game, Player, PlayerStatus } from '@memebattle/ligretto-shared'
-import { without } from 'lodash'
+import { Game, Player, PlayerStatus } from '@memebattle/ligretto-shared'
 import { Database } from '../../database'
 import { TYPES } from '../../types'
 
@@ -35,21 +34,15 @@ export class GameRepository {
       : this.database.get(storage => Object.values(storage.games))
   }
 
-  async getAvailableColor(gameId: string): Promise<CardColors | null> {
-    const notAvailableColors = await this.database.get(storage => Object.values(storage.games[gameId].players).map(player => player.color))
-    return without(Object.values(CardColors), ...notAvailableColors, CardColors.empty)[0] ?? null
-  }
-
   createPlayer(playerData: Partial<Player>): Player {
     return {
-      user: 'empty',
+      socketId: 'empty',
       isHost: false,
       status: PlayerStatus.DontReadyToPlay,
       stackDeck: {
         isHidden: true,
         cards: [],
       },
-      color: CardColors.empty,
       cards: [],
       ligrettoDeck: { isHidden: true, cards: [] },
       stackOpenDeck: {

@@ -4,7 +4,7 @@ import { Game, Player } from '@memebattle/ligretto-shared'
 export enum GameTypes {
   UPDATE_GAME = '@@game/UPDATE_GAME',
   TOGGLE_PLAYER_STATUS = '@@game/TOGGLE_PLAYER_STATUS',
-  SET_PLAYER_COLOR = '@@game/SET_PLAYER_COLOR',
+  SET_PLAYER_ID = '@@game/SET_PLAYER_ID',
   START_GAME = '@@game/START_GAME',
   SET_GAME_LOADED = '@@game/SET_GAME_LOADED',
 }
@@ -20,7 +20,7 @@ export type UpdateGameAction = Action<
   }
 >
 
-export type SetPlayerColor = Action<GameTypes.SET_PLAYER_COLOR, Player['color']>
+export type SetPlayerColor = Action<GameTypes.SET_PLAYER_ID, Player['socketId']>
 
 export type TogglePlayerStatusAction = Action<GameTypes.TOGGLE_PLAYER_STATUS>
 

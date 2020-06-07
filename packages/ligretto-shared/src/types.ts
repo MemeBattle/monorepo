@@ -65,9 +65,8 @@ export interface Playground {
 }
 
 export interface Player {
-  user: string
+  socketId: string
   status: PlayerStatus
-  color: CardColors
   cards: Card[]
   ligrettoDeck: CardsDeck
   stackOpenDeck: CardsDeck
@@ -90,7 +89,7 @@ export interface Game {
   name: string
   status: GameStatus
   players: {
-    [player: string]: Player
+    [socketId: string]: Player
   }
   playground: Playground
   config: {
