@@ -65,7 +65,7 @@ export interface Playground {
 }
 
 export interface Player {
-  socketId: string
+  id: string
   status: PlayerStatus
   cards: Card[]
   ligrettoDeck: CardsDeck
@@ -77,6 +77,7 @@ export interface Player {
 export enum GameStatus {
   New = 'New',
   InGame = 'InGame',
+  Pause = 'Pause',
 }
 
 export enum PlayerStatus {

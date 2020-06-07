@@ -17,6 +17,10 @@ export class GameRepository {
 
   async updateGame(gameId: string, updater: (game: Game) => Game): Promise<Game> {
     const game = await this.getGame(gameId)
+    console.log('updateGame', game)
+    if (!game) {
+      return
+    }
     return this.database.set<Game>(storage => (storage.games[gameId] = updater(game)))
   }
 
@@ -36,7 +40,7 @@ export class GameRepository {
 
   createPlayer(playerData: Partial<Player>): Player {
     return {
-      socketId: 'empty',
+      id: 'empty',
       isHost: false,
       status: PlayerStatus.DontReadyToPlay,
       stackDeck: {

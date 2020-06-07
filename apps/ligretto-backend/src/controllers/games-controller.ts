@@ -4,6 +4,7 @@ import { Controller } from './controller'
 import { Socket } from 'socket.io'
 import { GameService } from '../entities/game/game.service'
 import { PlayerService } from '../entities/player/player.service'
+import { UserService } from '../entities/user'
 import {
   searchRoomsFinishAction,
   RoomsTypes,
@@ -28,6 +29,7 @@ export class GamesController extends Controller {
   @inject(TYPES.GameService) private gameService: GameService
   @inject(TYPES.PlayerService) private playerService: PlayerService
   @inject(TYPES.GameplayOutput) private gameplayOutput: GameplayOutput
+  @inject(TYPES.UserService) private userService: UserService
 
   handlers = {
     [RoomsTypes.CREATE_ROOM_EMIT]: (socket, action) => this.createGame(socket, action),
@@ -38,7 +40,8 @@ export class GamesController extends Controller {
 
   private async createGame(socket: Socket, action: CreateRoomEmitAction) {
     const newGame = await this.gameService.createGame(action.payload.name)
-    const { game, player } = await this.gameService.addPlayer(newGame.id, { isHost: true, socketId: socket.id })
+    const { game } = await this.gameService.addPlayer(newGame.id, { isHost: true, id: socket.id })
+    await this.userService.enterGame(socket.id, game.id)
     socket.emit('event', createRoomSuccessAction({ game, playerId: socket.id }))
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(game)] }))
     socket.join(game.id)
@@ -73,7 +76,8 @@ export class GamesController extends Controller {
       return
     }
     socket.join(roomUuid)
-    const { game: updatedGame, player } = await this.gameService.addPlayer(roomUuid, { socketId: socket.id })
+    await this.userService.enterGame(socket.id, roomUuid)
+    const { game: updatedGame } = await this.gameService.addPlayer(roomUuid, { id: socket.id })
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(updatedGame)] }))
     socket.to(roomUuid).emit('event', updateGameAction(updatedGame))
     socket.emit('event', connectToRoomSuccessAction({ game: updatedGame, playerId: socket.id }))
@@ -89,8 +93,17 @@ export class GamesController extends Controller {
     socket.emit('event', updateGameAction(game))
   }
 
-  public async disconnectionHandler(socket: Socket, reason: string) {
-    console.log('disconnectionHandler', reason)
-    console.log('socket rooms', socket.id, socket.rooms)
+  public async disconnectionHandler(socket: Socket) {
+    console.log('Disconnection')
+    const user = await this.userService.getUser(socket.id)
+    console.log('User', user)
+    if (!user) {
+      return
+    }
+    const game: Game | null | undefined = await this.gameService.leaveGame(user.currentGameId, user.socketId)
+    console.log('game', game)
+    if (game) {
+      socket.to(user.currentGameId).emit('event', updateGameAction(game))
+    }
   }
 }

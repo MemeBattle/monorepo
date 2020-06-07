@@ -30,7 +30,7 @@ const opponentsPositionsOrder = [OpponentPositions.Left, OpponentPositions.Top, 
  * @draft - maybe id instead of color usage will be correctly
  */
 function* gameCardsUpdate(game: Game) {
-  const playerId: Player['socketId'] = yield select(selectPlayerId)
+  const playerId: Player['id'] = yield select(selectPlayerId)
 
   const players = Object.values(game.players)
   const player = game.players[playerId]

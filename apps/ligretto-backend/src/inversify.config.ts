@@ -12,6 +12,7 @@ import { PlayerRepository } from './entities/player/player.repo'
 import { PlayerService } from './entities/player/player.service'
 import { Database } from './database'
 import { GameplayOutput } from './gameplay/gameplay-output'
+import { UserService, UserRepository } from './entities/user'
 
 export const IOC = new Container()
 
@@ -22,6 +23,8 @@ IOC.bind<PlaygroundRepository>(TYPES.PlaygroundRepository).to(PlaygroundReposito
 IOC.bind<PlaygroundService>(TYPES.PlaygroundService).to(PlaygroundService)
 IOC.bind<PlayerRepository>(TYPES.PlayerRepository).to(PlayerRepository)
 IOC.bind<PlayerService>(TYPES.PlayerService).to(PlayerService)
+IOC.bind<UserService>(TYPES.UserService).to(UserService)
+IOC.bind<UserRepository>(TYPES.UserRepository).to(UserRepository)
 IOC.bind<Gameplay>(TYPES.Gameplay).to(Gameplay)
 IOC.bind<GameplayController>(TYPES.GameplayController).to(GameplayController)
 IOC.bind<GameplayOutput>(TYPES.GameplayOutput).to(GameplayOutput)
