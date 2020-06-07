@@ -38,8 +38,8 @@ export class GamesController extends Controller {
 
   private async createGame(socket: Socket, action: CreateRoomEmitAction) {
     const newGame = await this.gameService.createGame(action.payload.name)
-    const { game, player } = await this.gameService.addPlayer(newGame.id, { isHost: true, user: socket.id })
-    socket.emit('event', createRoomSuccessAction({ game, playerColor: player.color }))
+    const { game, player } = await this.gameService.addPlayer(newGame.id, { isHost: true, socketId: socket.id })
+    socket.emit('event', createRoomSuccessAction({ game, playerId: socket.id }))
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(game)] }))
     socket.join(game.id)
   }
@@ -73,10 +73,10 @@ export class GamesController extends Controller {
       return
     }
     socket.join(roomUuid)
-    const { game: updatedGame, player } = await this.gameService.addPlayer(roomUuid, { user: socket.id })
+    const { game: updatedGame, player } = await this.gameService.addPlayer(roomUuid, { socketId: socket.id })
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(updatedGame)] }))
     socket.to(roomUuid).emit('event', updateGameAction(updatedGame))
-    socket.emit('event', connectToRoomSuccessAction({ game: updatedGame, playerColor: player.color }))
+    socket.emit('event', connectToRoomSuccessAction({ game: updatedGame, playerId: socket.id }))
     socket.emit('event', updateGameAction(updatedGame))
     socket.leave(SOCKET_ROOM_LOBBY)
   }
