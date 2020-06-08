@@ -13,7 +13,7 @@ const createRenderChildren = (opponents: Player[]) => {
   if (isMultiplyRenderChildren(renderChild)) {
     return renderChild
   } else {
-    throw Error('Opponents are not valid')
+    return null
   }
 }
 
@@ -24,7 +24,7 @@ export const Game = () => {
 
   return (
     <>
-      <RoomGrid renderChildren={renderChildren} />
+      {renderChildren ? <RoomGrid renderChildren={renderChildren} /> : null}
       <TableCards />
       <CardsPanel />
     </>
