@@ -117,11 +117,15 @@ export class GameService {
       return {
         ...game,
         players: Object.entries(omit(game.players, playerId)).reduce(
-          (players, [playerId, player], index): Game['players'] => ({ [playerId]: { ...player, isHost: isHostLeaving && index === 0 } }),
+          (players, [playerId, player], index): Game['players'] => ({
+            ...players,
+            [playerId]: { ...player, isHost: isHostLeaving && index === 0 ? true : player.isHost },
+          }),
           {},
         ),
       }
     })
+    console.log('New game state', game)
     if (!game) {
       return
     }
