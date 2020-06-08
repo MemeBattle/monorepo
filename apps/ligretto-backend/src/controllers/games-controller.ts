@@ -94,16 +94,10 @@ export class GamesController extends Controller {
   }
 
   public async disconnectionHandler(socket: Socket) {
-    console.log('Disconnection')
     const user = await this.userService.getUser(socket.id)
-    console.log('User', user)
     if (!user) {
       return
     }
-    const game: Game | null | undefined = await this.gameService.leaveGame(user.currentGameId, user.socketId)
-    console.log('game', game)
-    if (game) {
-      socket.to(user.currentGameId).emit('event', updateGameAction(game))
-    }
+    await this.gameService.leaveGame(user.currentGameId, user.socketId)
   }
 }
