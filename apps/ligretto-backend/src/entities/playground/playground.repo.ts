@@ -17,7 +17,9 @@ export class PlaygroundRepository {
 
   addDeck(gameId: string, cardsDeck: CardsDeck) {
     return this.database.set(storage => {
-      storage.games[gameId].playground.decks.push(cardsDeck)
+      const decks = storage.games[gameId].playground.decks
+      decks.push(cardsDeck)
+      return decks
     })
   }
 
