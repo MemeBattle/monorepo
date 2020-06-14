@@ -41,3 +41,8 @@ export interface PlayerStatusInGame {
   gameId: Game['id']
   status: PlayerStatus
 }
+
+export interface PutCard {
+  cardIndex: number
+  gameId: Game['id']
+}

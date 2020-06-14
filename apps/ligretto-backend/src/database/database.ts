@@ -54,7 +54,7 @@ export class Database implements Database {
     return Promise.resolve(accessor(this.storage))
   }
 
-  public set(setter: Setter) {
+  public set<S>(setter: Setter<S>): Promise<S> {
     return Promise.resolve(setter(this.storage)).then(result => {
       this.notifyListeners()
       return result

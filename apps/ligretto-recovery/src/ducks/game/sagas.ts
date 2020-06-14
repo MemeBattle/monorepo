@@ -1,25 +1,26 @@
-import { call, put, select, takeLatest, takeEvery } from 'redux-saga/effects'
+import { call, put, select, takeEvery, takeLatest } from 'redux-saga/effects'
 import { opponentToCardsMapper, playerToCardsMapper, tableCardsMapper } from 'utils'
 import { without } from 'lodash'
 import {
   Card,
-  Player,
   CardPositions,
+  ConnectToRoomSuccessAction,
+  CreateRoomSuccessAction,
   Game,
   GameStatus,
   GameTypes as SharedGameTypes,
   OpponentPositions,
+  Player,
   PlayerStatus,
-  setPlayerStatusEmitAction,
-  UpdateGameAction,
-  RoomsTypes as SharedRoomTypes,
-  ConnectToRoomSuccessAction,
-  CreateRoomSuccessAction,
-  startGameEmitAction,
   putCardAction,
   putCardFromStackOpenDeck,
+  RoomsTypes as SharedRoomTypes,
+  setPlayerStatusEmitAction,
+  startGameEmitAction,
+  UpdateGameAction,
+  takeFromLigrettoDeckAction,
 } from '@memebattle/ligretto-shared'
-import { updateGameAction, setPlayerIdAction, setGameLoadedAction } from './actions'
+import { setGameLoadedAction, setPlayerIdAction, updateGameAction } from './actions'
 import { selectGameId, selectPlayerId, selectPlayerStatus } from './selectors'
 import { cardsActions, CardsTypes } from 'ducks/cards'
 import { GameTypes } from './types'
@@ -38,7 +39,7 @@ function* gameCardsUpdate(game: Game) {
     return
   }
 
-  const tableCards = tableCardsMapper(game.playground.decks.map(cardDeck => cardDeck.cards[0]))
+  const tableCards = tableCardsMapper(game.playground.decks.map(cardDeck => cardDeck.cards[cardDeck.cards.length - 1]))
 
   const opponentsCardsByPositions = without(players, player).reduce(
     (opponentCardsByPositions, opponent, opponentIndex) => ({
@@ -87,12 +88,22 @@ function* startGameSaga() {
 }
 
 function* handleCardPutSaga(action: CardsTypes.TapCardAction) {
+  const gameId = yield select(selectGameId)
   switch (action.payload.cardPosition) {
     case CardPositions.w:
       yield put(putCardFromStackOpenDeck())
       break
     case CardPositions.e:
-      yield put(putCardAction())
+      yield put(putCardAction({ cardIndex: 0, gameId }))
+      break
+    case CardPositions.r:
+      yield put(putCardAction({ cardIndex: 1, gameId }))
+      break
+    case CardPositions.t:
+      yield put(putCardAction({ cardIndex: 2, gameId }))
+      break
+    case CardPositions.y:
+      yield put(takeFromLigrettoDeckAction())
   }
 }
 
