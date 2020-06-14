@@ -28,7 +28,7 @@ export enum GameplayTypes {
   TAKE_FROM_LIGRETTO_DECK = '@@gameplay/WEBSOCKET/TAKE_FROM_LIGRETTO_DECK',
 }
 
-export type PutCardAction = Action<GameplayTypes.PUT_CARD>
+export type PutCardAction = Action<GameplayTypes.PUT_CARD, dto.PutCard>
 export const putCardAction = createAction<PutCardAction>(GameplayTypes.PUT_CARD)
 
 export type PutCardFromStackOpenDeck = Action<GameplayTypes.PUT_CARD_FROM_STACK_OPEN_DECK>
@@ -66,3 +66,6 @@ export const setPlayerStatusEmitAction = createAction<SetPlayerStatusEmitAction>
 
 export type StartGameEmitAction = Action<GameplayTypes.START_GAME, dto.StartGame>
 export const startGameEmitAction = createAction<StartGameEmitAction>(GameplayTypes.START_GAME)
+
+export type TakeFromLigrettoDeckAction = Action<GameplayTypes.TAKE_FROM_LIGRETTO_DECK>
+export const takeFromLigrettoDeckAction = createAction<TakeFromLigrettoDeckAction>(GameplayTypes.TAKE_FROM_LIGRETTO_DECK)
