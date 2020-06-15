@@ -103,7 +103,7 @@ function* handleCardPutSaga(action: CardsTypes.TapCardAction) {
       yield put(putCardAction({ cardIndex: 2, gameId }))
       break
     case CardPositions.y:
-      yield put(takeFromLigrettoDeckAction())
+      yield put(takeFromLigrettoDeckAction({ gameId }))
   }
 }
 

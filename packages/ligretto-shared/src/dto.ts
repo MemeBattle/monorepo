@@ -46,3 +46,7 @@ export interface PutCard {
   cardIndex: number
   gameId: Game['id']
 }
+
+export interface TakeCardFromLigrettoDeck {
+  gameId: Game['id']
+}
