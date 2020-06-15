@@ -19,6 +19,7 @@ import {
   startGameEmitAction,
   UpdateGameAction,
   takeFromLigrettoDeckAction,
+  takeFromStackDeckAction,
 } from '@memebattle/ligretto-shared'
 import { setGameLoadedAction, setPlayerIdAction, updateGameAction } from './actions'
 import { selectGameId, selectPlayerId, selectPlayerStatus } from './selectors'
@@ -90,8 +91,11 @@ function* startGameSaga() {
 function* handleCardPutSaga(action: CardsTypes.TapCardAction) {
   const gameId = yield select(selectGameId)
   switch (action.payload.cardPosition) {
+    case CardPositions.q:
+      yield put(putCardFromStackOpenDeck({ gameId }))
+      break
     case CardPositions.w:
-      yield put(putCardFromStackOpenDeck())
+      yield put(takeFromStackDeckAction({ gameId }))
       break
     case CardPositions.e:
       yield put(putCardAction({ cardIndex: 0, gameId }))

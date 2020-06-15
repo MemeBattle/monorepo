@@ -31,7 +31,7 @@ export enum GameplayTypes {
 export type PutCardAction = Action<GameplayTypes.PUT_CARD, dto.PutCard>
 export const putCardAction = createAction<PutCardAction>(GameplayTypes.PUT_CARD)
 
-export type PutCardFromStackOpenDeck = Action<GameplayTypes.PUT_CARD_FROM_STACK_OPEN_DECK>
+export type PutCardFromStackOpenDeck = Action<GameplayTypes.PUT_CARD_FROM_STACK_OPEN_DECK, dto.PutCardFromStackOpenDeck>
 export const putCardFromStackOpenDeck = createAction<PutCardFromStackOpenDeck>(GameplayTypes.PUT_CARD_FROM_STACK_OPEN_DECK)
 
 export type SearchRoomsFinishAction = Action<RoomsTypes.SEARCH_ROOMS_FINISH, dto.SearchRoomsFinish>
@@ -69,3 +69,6 @@ export const startGameEmitAction = createAction<StartGameEmitAction>(GameplayTyp
 
 export type TakeFromLigrettoDeckAction = Action<GameplayTypes.TAKE_FROM_LIGRETTO_DECK, dto.TakeCardFromLigrettoDeck>
 export const takeFromLigrettoDeckAction = createAction<TakeFromLigrettoDeckAction>(GameplayTypes.TAKE_FROM_LIGRETTO_DECK)
+
+export type TakeFromStackDeckAction = Action<GameplayTypes.TAKE_FROM_STACK_DECK, dto.TakeCardFromStackDeck>
+export const takeFromStackDeckAction = createAction<TakeFromStackDeckAction>(GameplayTypes.TAKE_FROM_STACK_DECK)

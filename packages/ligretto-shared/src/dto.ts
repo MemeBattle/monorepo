@@ -50,3 +50,11 @@ export interface PutCard {
 export interface TakeCardFromLigrettoDeck {
   gameId: Game['id']
 }
+
+export interface PutCardFromStackOpenDeck {
+  gameId: Game['id']
+}
+
+export interface TakeCardFromStackDeck {
+  gameId: Game['id']
+}

@@ -1,7 +1,15 @@
 import { injectable, inject } from 'inversify'
 import { Socket } from 'socket.io'
 import { Controller } from './controller'
-import { GameplayTypes, updateGameAction, StartGameEmitAction, PutCardAction, TakeFromLigrettoDeckAction } from '@memebattle/ligretto-shared'
+import {
+  GameplayTypes,
+  updateGameAction,
+  StartGameEmitAction,
+  PutCardAction,
+  TakeFromLigrettoDeckAction,
+  TakeFromStackDeckAction,
+  PutCardFromStackOpenDeck,
+} from '@memebattle/ligretto-shared'
 import { TYPES } from '../types'
 import { Gameplay } from '../gameplay/gameplay'
 import { GameplayOutput } from '../gameplay/gameplay-output'
@@ -16,6 +24,8 @@ export class GameplayController extends Controller {
     [GameplayTypes.END_GAME]: (socket: Socket, action) => this.endGame(socket, action),
     [GameplayTypes.PUT_CARD]: (socket: Socket, action) => this.putCard(socket, action),
     [GameplayTypes.TAKE_FROM_LIGRETTO_DECK]: (socket: Socket, action) => this.takeCardFromLigrettoDeck(socket, action),
+    [GameplayTypes.PUT_CARD_FROM_STACK_OPEN_DECK]: (socket: Socket, action) => this.putCardFromStackOpenDeck(socket, action),
+    [GameplayTypes.TAKE_FROM_STACK_DECK]: (socket: Socket, action) => this.takeCardFromStackDeck(socket, action),
   }
 
   private async startGame(socket: Socket, action: StartGameEmitAction) {
@@ -49,5 +59,18 @@ export class GameplayController extends Controller {
     const { gameId } = action.payload
 
     this.gameplay.playerTakeFromLigrettoDeck(gameId, socket.id)
+  }
+
+  private async takeCardFromStackDeck(socket: Socket, action: TakeFromStackDeckAction) {
+    const { gameId } = action.payload
+
+    console.log('takeCardFromStackDeck', action)
+    this.gameplay.playerTakeFromStackDeck(gameId, socket.id)
+  }
+
+  private async putCardFromStackOpenDeck(socket: Socket, action: PutCardFromStackOpenDeck) {
+    const { gameId } = action.payload
+    console.log('putCardFromStackOpenDeck', action)
+    this.gameplay.playerPutFromStackOpenDeck(gameId, socket.id)
   }
 }
