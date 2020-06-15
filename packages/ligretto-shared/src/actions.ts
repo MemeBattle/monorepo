@@ -67,5 +67,5 @@ export const setPlayerStatusEmitAction = createAction<SetPlayerStatusEmitAction>
 export type StartGameEmitAction = Action<GameplayTypes.START_GAME, dto.StartGame>
 export const startGameEmitAction = createAction<StartGameEmitAction>(GameplayTypes.START_GAME)
 
-export type TakeFromLigrettoDeckAction = Action<GameplayTypes.TAKE_FROM_LIGRETTO_DECK>
+export type TakeFromLigrettoDeckAction = Action<GameplayTypes.TAKE_FROM_LIGRETTO_DECK, dto.TakeCardFromLigrettoDeck>
 export const takeFromLigrettoDeckAction = createAction<TakeFromLigrettoDeckAction>(GameplayTypes.TAKE_FROM_LIGRETTO_DECK)
