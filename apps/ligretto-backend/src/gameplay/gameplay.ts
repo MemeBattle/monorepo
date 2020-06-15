@@ -50,7 +50,7 @@ export class Gameplay {
     }
   }
 
-  async playerPutFromStackOpenDeck(gameId: string, playerColor: string, deckPosition: number) {
+  async playerPutFromStackOpenDeck(gameId: string, playerColor: string, deckPosition?: number) {
     try {
       const card = await this.playerService.getCardFromStackOpenDeck(gameId, playerColor)
       await this.playgroundService.putCard(gameId, card, deckPosition)
