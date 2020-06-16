@@ -76,7 +76,7 @@ export class PlayerService {
 
     await this.playerRepository.updateStackOpenDeck(gameId, color, stackOpenDeck => ({
       ...stackOpenDeck,
-      cards: stackOpenDeck.cards.concat(cards),
+      cards,
     }))
   }
 
