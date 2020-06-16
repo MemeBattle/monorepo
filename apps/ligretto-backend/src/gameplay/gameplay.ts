@@ -36,10 +36,8 @@ export class Gameplay {
         }
       }
       finalDeckPosition = await this.playgroundService.findAvailableDeckIndex(gameId, card)
-      console.log('finalDeckPosition', finalDeckPosition)
       if (finalDeckPosition === -1 && card.value === 1) {
         const updatedDecks = await this.playgroundService.createEmptyDeck(gameId)
-        console.log('updatedDecks', updatedDecks)
         finalDeckPosition = updatedDecks.length - 1
       }
 
@@ -53,7 +51,26 @@ export class Gameplay {
   async playerPutFromStackOpenDeck(gameId: string, playerColor: string, deckPosition?: number) {
     try {
       const card = await this.playerService.getCardFromStackOpenDeck(gameId, playerColor)
-      await this.playgroundService.putCard(gameId, card, deckPosition)
+
+      /** TODO: тупо скопировал код сверху.
+       * Если deckPosition пришел, то проверяем, что туда можно положить карту.
+       * Если не пришел, то ищем доступную колоду или создаем
+       */
+      let finalDeckPosition
+      if (deckPosition !== undefined) {
+        if (await this.playgroundService.checkIsDeckAvailable(gameId, card, deckPosition)) {
+          finalDeckPosition = deckPosition
+        } else {
+          return
+        }
+      }
+      finalDeckPosition = await this.playgroundService.findAvailableDeckIndex(gameId, card)
+      if (finalDeckPosition === -1 && card.value === 1) {
+        const updatedDecks = await this.playgroundService.createEmptyDeck(gameId)
+        finalDeckPosition = updatedDecks.length - 1
+      }
+
+      await this.playgroundService.putCard(gameId, card, finalDeckPosition)
       await this.playerService.removeCardFromStackOpenDeck(gameId, playerColor)
     } catch (e) {
       console.log(e)
