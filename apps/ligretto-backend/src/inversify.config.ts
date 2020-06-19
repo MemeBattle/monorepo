@@ -13,6 +13,7 @@ import { PlayerService } from './entities/player/player.service'
 import { Database } from './database'
 import { GameplayOutput } from './gameplay/gameplay-output'
 import { UserService, UserRepository } from './entities/user'
+import { TechController } from './controllers/tech-controller'
 
 export const IOC = new Container()
 
@@ -29,6 +30,7 @@ IOC.bind<Gameplay>(TYPES.Gameplay).to(Gameplay)
 IOC.bind<GameplayController>(TYPES.GameplayController).to(GameplayController)
 IOC.bind<GameplayOutput>(TYPES.GameplayOutput).to(GameplayOutput)
 IOC.bind<GamesController>(TYPES.GamesController).to(GamesController)
+IOC.bind<TechController>(TYPES.TechController).to(TechController)
 IOC.bind<Database>(TYPES.Database)
   .to(Database)
   .inSingletonScope()

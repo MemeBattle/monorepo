@@ -6,6 +6,7 @@ import { userReducer } from 'ducks/user'
 import { cardsReducer } from 'ducks/cards'
 import { roomsReducer } from 'ducks/rooms'
 import { gameReducer } from 'ducks/game'
+import { techReducer } from 'ducks/tech'
 
 export default (history: History) =>
   combineReducers<All>({
@@ -14,4 +15,5 @@ export default (history: History) =>
     cards: cardsReducer,
     rooms: roomsReducer,
     game: gameReducer,
+    tech: techReducer,
   })

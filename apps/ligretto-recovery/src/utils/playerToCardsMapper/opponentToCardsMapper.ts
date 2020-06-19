@@ -1,4 +1,5 @@
 import { Card, CardPositions, OpponentPositions, Player } from '@memebattle/ligretto-shared'
+import { last } from 'lodash'
 
 const positionConfigByOpponentPositions = {
   [OpponentPositions.Left]: {
@@ -39,7 +40,7 @@ export const opponentToCardsMapper = (opponent: Player, position: OpponentPositi
  * @param player
  */
 export const playerToCardsMapper = (player: Player): Partial<Record<CardPositions, Card>> => ({
-  [CardPositions.q]: { ...player.stackOpenDeck.cards[0], hidden: player.stackOpenDeck.isHidden },
+  [CardPositions.q]: { ...last(player.stackOpenDeck.cards), hidden: player.stackOpenDeck.isHidden },
   [CardPositions.w]: { ...player.stackDeck.cards[0], hidden: player.stackDeck.isHidden },
   [CardPositions.e]: player.cards[0],
   [CardPositions.r]: player.cards[1],
