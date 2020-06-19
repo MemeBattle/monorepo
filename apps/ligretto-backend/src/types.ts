@@ -10,6 +10,7 @@ export const TYPES = {
   GameplayController: Symbol.for('GameplayController'),
   GameplayOutput: Symbol.for('GameplayOutput'),
   GamesController: Symbol.for('GamesController'),
+  TechController: Symbol.for('TechController'),
   RoomRepository: Symbol.for('RoomRepository'),
   RoomService: Symbol.for('RoomService'),
   Emitter: Symbol.for('Emitter'),

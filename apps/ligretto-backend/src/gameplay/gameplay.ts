@@ -51,7 +51,7 @@ export class Gameplay {
   async playerPutFromStackOpenDeck(gameId: string, playerColor: string, deckPosition?: number) {
     try {
       const card = await this.playerService.getCardFromStackOpenDeck(gameId, playerColor)
-
+      console.log('card', card)
       /** TODO: тупо скопировал код сверху.
        * Если deckPosition пришел, то проверяем, что туда можно положить карту.
        * Если не пришел, то ищем доступную колоду или создаем
@@ -65,8 +65,11 @@ export class Gameplay {
         }
       }
       finalDeckPosition = await this.playgroundService.findAvailableDeckIndex(gameId, card)
+      console.log('finalDeckPosition', finalDeckPosition)
       if (finalDeckPosition === -1 && card.value === 1) {
+        console.log('finalDeckPosition === -1 && card.value === 1', finalDeckPosition === -1 && card.value === 1)
         const updatedDecks = await this.playgroundService.createEmptyDeck(gameId)
+        console.log('updatedDecks', updatedDecks.length)
         finalDeckPosition = updatedDecks.length - 1
       }
 
