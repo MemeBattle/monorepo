@@ -8,7 +8,7 @@ const positionConfigByOpponentPositions = {
   },
   [OpponentPositions.Right]: {
     stackOpenDeck: CardPositions.r0,
-    cards: [CardPositions.r1, CardPositions.r2, CardPositions.r2],
+    cards: [CardPositions.r1, CardPositions.r2, CardPositions.r3],
   },
   [OpponentPositions.Top]: {
     stackOpenDeck: CardPositions.o0,
