@@ -44,32 +44,44 @@ export class PlayerService {
   }
 
   async shuffleStackDeck(gameId: string, color: string) {
-    const stackOpenDeck = await this.playerRepository.getStackOpenDeck(gameId, color)
     const stackDeck = await this.playerRepository.getStackDeck(gameId, color)
-
     if (stackDeck.cards.length !== 0) {
       return
     }
 
+    const droppedStackDeck = await this.playerRepository.getDroppedStackDeck(gameId, color)
+    const stackOpenDeck = await this.playerRepository.getStackOpenDeck(gameId, color)
+
     await this.playerRepository.updateStackDeck(gameId, color, stackDeck => ({
       ...stackDeck,
-      cards: shuffle(stackOpenDeck.cards),
+      cards: shuffle([...droppedStackDeck.cards, ...stackOpenDeck.cards]),
     }))
 
-    await this.playerRepository.updateStackOpenDeck(gameId, color, stackOpenDeck => ({
+    await this.playerRepository.updateDroppedStackDeck(gameId, color, stackOpenDeck => ({
       ...stackOpenDeck,
       cards: [],
     }))
   }
 
   async takeFromStackDeck(gameId: string, color: string) {
+    const stackOpenDeck = await this.playerRepository.getStackOpenDeck(gameId, color)
+    const stackDeck = await this.playerRepository.getStackDeck(gameId, color)
+    if (stackDeck.cards.length === 0) {
+      await this.shuffleStackDeck(gameId, color)
+    } else {
+      await this.playerRepository.updateDroppedStackDeck(gameId, color, cardsDeck => ({
+        ...cardsDeck,
+        cards: cardsDeck.cards.concat(stackOpenDeck.cards),
+      }))
+    }
+
     let cards = []
 
     await this.playerRepository.updateStackDeck(gameId, color, stackDeck => {
       cards = stackDeck.cards.slice(-3)
 
       return {
-        ...stackDeck,
+        isHidden: stackDeck.cards.slice(0, -3).length !== 0,
         cards: stackDeck.cards.slice(0, -3),
       }
     })
