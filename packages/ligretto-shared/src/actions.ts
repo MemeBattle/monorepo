@@ -28,6 +28,13 @@ export enum GameplayTypes {
   TAKE_FROM_LIGRETTO_DECK = '@@gameplay/WEBSOCKET/TAKE_FROM_LIGRETTO_DECK',
 }
 
+export enum TechTypes {
+  CONNECT_TO_GAME = '@@tech/WEBSOCKET/CONNECT_TO_GAME',
+}
+
+export type TechConnectToGame = Action<TechTypes.CONNECT_TO_GAME, dto.TechConnectToGame>
+export const techConnectToGame = createAction<TechConnectToGame>(TechTypes.CONNECT_TO_GAME)
+
 export type PutCardAction = Action<GameplayTypes.PUT_CARD, dto.PutCard>
 export const putCardAction = createAction<PutCardAction>(GameplayTypes.PUT_CARD)
 

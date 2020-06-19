@@ -1,0 +1,1 @@
+export { techReducer } from './reducer'

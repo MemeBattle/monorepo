@@ -58,3 +58,7 @@ export interface PutCardFromStackOpenDeck {
 export interface TakeCardFromStackDeck {
   gameId: Game['id']
 }
+
+export interface TechConnectToGame {
+  gameId: Game['id']
+}
