@@ -34,11 +34,12 @@ export class Gameplay {
         } else {
           return
         }
-      }
-      finalDeckPosition = await this.playgroundService.findAvailableDeckIndex(gameId, card)
-      if (finalDeckPosition === -1 && card.value === 1) {
-        const updatedDecks = await this.playgroundService.createEmptyDeck(gameId)
-        finalDeckPosition = updatedDecks.length - 1
+      } else {
+        finalDeckPosition = await this.playgroundService.findAvailableDeckIndex(gameId, card)
+        if (finalDeckPosition === -1 && card.value === 1) {
+          const updatedDecks = await this.playgroundService.createEmptyDeck(gameId)
+          finalDeckPosition = updatedDecks.length - 1
+        }
       }
 
       await this.playgroundService.putCard(gameId, card, finalDeckPosition)
@@ -63,26 +64,17 @@ export class Gameplay {
         } else {
           return
         }
-      }
-      finalDeckPosition = await this.playgroundService.findAvailableDeckIndex(gameId, card)
-      console.log('finalDeckPosition', finalDeckPosition)
-      if (finalDeckPosition === -1 && card.value === 1) {
-        console.log('finalDeckPosition === -1 && card.value === 1', finalDeckPosition === -1 && card.value === 1)
-        const updatedDecks = await this.playgroundService.createEmptyDeck(gameId)
-        console.log('updatedDecks', updatedDecks.length)
-        finalDeckPosition = updatedDecks.length - 1
+      } else {
+        finalDeckPosition = await this.playgroundService.findAvailableDeckIndex(gameId, card)
+
+        if (finalDeckPosition === -1 && card.value === 1) {
+          const updatedDecks = await this.playgroundService.createEmptyDeck(gameId)
+          finalDeckPosition = updatedDecks.length - 1
+        }
       }
 
       await this.playgroundService.putCard(gameId, card, finalDeckPosition)
       await this.playerService.removeCardFromStackOpenDeck(gameId, playerColor)
-    } catch (e) {
-      console.log(e)
-    }
-  }
-
-  async playerShuffleStackDeck(gameId: string, playerColor: string) {
-    try {
-      await this.playerService.shuffleStackDeck(gameId, playerColor)
     } catch (e) {
       console.log(e)
     }
