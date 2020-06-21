@@ -32,6 +32,7 @@ export class GameplayController extends Controller {
     const gameId = action.payload.gameId
 
     this.gameplayOutput.listenGame(gameId, game => {
+      console.log('updateGame', game)
       const action = updateGameAction(game)
       socket.to(gameId).emit('event', action)
       socket.emit('event', action)
@@ -52,25 +53,25 @@ export class GameplayController extends Controller {
   private async putCard(socket: Socket, action: PutCardAction) {
     const { gameId, cardIndex } = action.payload
 
-    this.gameplay.playerPutCard(gameId, socket.id, cardIndex)
+    await this.gameplay.playerPutCard(gameId, socket.id, cardIndex)
   }
 
   private async takeCardFromLigrettoDeck(socket: Socket, action: TakeFromLigrettoDeckAction) {
     const { gameId } = action.payload
 
-    this.gameplay.playerTakeFromLigrettoDeck(gameId, socket.id)
+    await this.gameplay.playerTakeFromLigrettoDeck(gameId, socket.id)
   }
 
   private async takeCardFromStackDeck(socket: Socket, action: TakeFromStackDeckAction) {
     const { gameId } = action.payload
 
     console.log('takeCardFromStackDeck', action)
-    this.gameplay.playerTakeFromStackDeck(gameId, socket.id)
+    await this.gameplay.playerTakeFromStackDeck(gameId, socket.id)
   }
 
   private async putCardFromStackOpenDeck(socket: Socket, action: PutCardFromStackOpenDeck) {
     const { gameId } = action.payload
     console.log('putCardFromStackOpenDeck', action)
-    this.gameplay.playerPutFromStackOpenDeck(gameId, socket.id)
+    await this.gameplay.playerPutFromStackOpenDeck(gameId, socket.id)
   }
 }

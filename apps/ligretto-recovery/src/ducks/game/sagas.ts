@@ -40,7 +40,9 @@ function* gameCardsUpdate(game: Game) {
     return
   }
 
-  const tableCards = tableCardsMapper(game.playground.decks.map(cardDeck => cardDeck.cards[cardDeck.cards.length - 1]))
+  const tableCards = tableCardsMapper(
+    game.playground.decks.filter(cardsDeck => !cardsDeck.isHidden).map(cardDeck => cardDeck.cards[cardDeck.cards.length - 1]),
+  )
 
   const opponentsCardsByPositions = without(players, player).reduce(
     (opponentCardsByPositions, opponent, opponentIndex) => ({

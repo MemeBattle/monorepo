@@ -33,7 +33,9 @@ export class PlaygroundRepository {
     const deck = await this.getDeck(gameId, position)
 
     return this.database.set(storage => {
-      storage.games[gameId].playground.decks[position] = updater(deck)
+      const updated = updater(deck)
+      console.log('Updated deck', position, updated)
+      storage.games[gameId].playground.decks[position] = updated
     })
   }
 }

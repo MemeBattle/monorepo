@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify'
 import { omit } from 'lodash'
 import { GameRepository } from './game.repo'
-import { CardsDeck, Game, GameStatus, Player } from '@memebattle/ligretto-shared'
+import { CardColors, Game, GameStatus, Player } from '@memebattle/ligretto-shared'
 import { createInitialPlayerCards } from '../../utils/create-initial-player-cards'
 import { TYPES } from '../../types'
 
@@ -49,7 +49,16 @@ export class GameService {
         ...game,
         status: GameStatus.InGame,
         players,
-        playground: { decks: [] },
+        playground: {
+          decks: [
+            { isHidden: false, cards: [{ value: 9, color: CardColors.yellow }] },
+            {
+              isHidden: false,
+              cards: [{ value: 9, color: CardColors.red }],
+            },
+            { isHidden: false, cards: [{ value: 9, color: CardColors.green }] },
+          ],
+        },
       }
     })
   }
