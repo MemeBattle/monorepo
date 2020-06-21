@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react'
 import styles from './CreateRoom.module.scss'
-import { Input, Button, PasswordInput } from 'components/base'
+import { Input, PasswordInput } from 'components/base'
+import { Button } from '@memebattle/ligretto-ui'
 
 interface NewRoomProps {
   onCreateRoomButtonClick: (options: { name: string; password: string }) => void
