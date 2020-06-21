@@ -23,7 +23,7 @@
   },
   "scripts": {
     "build": "rollup --config rollup.config.js",
-    "start": "rollup --watch --config rollup.config.js"
+    "start:dev": "rollup --watch --config rollup.config.js"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^13.0.0",
