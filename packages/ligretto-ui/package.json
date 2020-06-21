@@ -1,0 +1,41 @@
+{
+  "name": "@memebattle/ligretto-ui",
+  "version": "1.0.0",
+  "description": "> TODO: description",
+  "keywords": [
+    "ligretto",
+    "ui",
+    "material"
+  ],
+  "author": "Artem Zverev <themezv@gmail.com>",
+  "homepage": "",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/types/index.d.ts",
+  "files": ["dist"],
+  "publishConfig": {
+    "registry": "http://npm.mems.fun:4873"
+  },
+  "repository": {
+    "type": "git",
+    "url": "ssh://git@gitlab.mems.fun:2224/memebattle/frontend.git"
+  },
+  "scripts": {
+    "build": "rollup --config rollup.config.js",
+    "start": "rollup --watch --config rollup.config.js"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^13.0.0",
+    "@rollup/plugin-node-resolve": "^8.0.1",
+    "react": "^16.8.0",
+    "react-dom": "^16.8.0",
+    "rollup": "^2.17.1",
+    "rollup-plugin-typescript2": "^0.27.1",
+    "typescript": "^3.9.5"
+  },
+  "peerDependencies": {
+    "react": "^16.8.0",
+    "react-dom": "^16.8.0"
+  }
+}
