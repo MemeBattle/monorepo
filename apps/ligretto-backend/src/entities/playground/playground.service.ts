@@ -6,7 +6,7 @@ import { TYPES } from '../../types'
 
 const isDeckAvailable = (deck: CardsDeck, card) => {
   const topCard: Card | undefined = last(deck.cards)
-  console.log('findAvailableDeckIndex', topCard)
+  console.log('isDeckAvailable', topCard, card)
   if (!topCard) {
     return card.value === 1
   }
@@ -39,6 +39,7 @@ export class PlaygroundService {
           cards: [...deck.cards, card],
         }
       }
+      return deck
     })
   }
 
