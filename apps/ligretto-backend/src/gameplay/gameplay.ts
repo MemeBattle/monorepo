@@ -23,23 +23,13 @@ export class Gameplay {
   async playerPutCard(gameId: string, playerColor: string, cardPosition: number, deckPosition?: number) {
     try {
       const card = await this.playerService.getCard(gameId, playerColor, cardPosition)
-      /**
-       * Если deckPosition пришел, то проверяем, что туда можно положить карту.
-       * Если не пришел, то ищем доступную колоду или создаем
-       */
-      let finalDeckPosition
-      if (deckPosition !== undefined) {
-        if (await this.playgroundService.checkIsDeckAvailable(gameId, card, deckPosition)) {
-          finalDeckPosition = deckPosition
-        } else {
-          return
-        }
-      } else {
-        finalDeckPosition = await this.playgroundService.findAvailableDeckIndex(gameId, card)
-        if (finalDeckPosition === -1 && card.value === 1) {
-          const updatedDecks = await this.playgroundService.createEmptyDeck(gameId)
-          finalDeckPosition = updatedDecks.length - 1
-        }
+      if (!card) {
+        return
+      }
+
+      const finalDeckPosition = await this.playgroundService.checkOrCreateDeck(gameId, card, deckPosition)
+      if (finalDeckPosition === undefined || finalDeckPosition === -1) {
+        return
       }
 
       await this.playgroundService.putCard(gameId, card, finalDeckPosition)
@@ -52,25 +42,13 @@ export class Gameplay {
   async playerPutFromStackOpenDeck(gameId: string, playerColor: string, deckPosition?: number) {
     try {
       const card = await this.playerService.getCardFromStackOpenDeck(gameId, playerColor)
-      console.log('card', card)
-      /** TODO: тупо скопировал код сверху.
-       * Если deckPosition пришел, то проверяем, что туда можно положить карту.
-       * Если не пришел, то ищем доступную колоду или создаем
-       */
-      let finalDeckPosition
-      if (deckPosition !== undefined) {
-        if (await this.playgroundService.checkIsDeckAvailable(gameId, card, deckPosition)) {
-          finalDeckPosition = deckPosition
-        } else {
-          return
-        }
-      } else {
-        finalDeckPosition = await this.playgroundService.findAvailableDeckIndex(gameId, card)
+      if (!card) {
+        return
+      }
+      const finalDeckPosition = await this.playgroundService.checkOrCreateDeck(gameId, card, deckPosition)
 
-        if (finalDeckPosition === -1 && card.value === 1) {
-          const updatedDecks = await this.playgroundService.createEmptyDeck(gameId)
-          finalDeckPosition = updatedDecks.length - 1
-        }
+      if (finalDeckPosition === -1 || finalDeckPosition === undefined) {
+        return
       }
 
       await this.playgroundService.putCard(gameId, card, finalDeckPosition)

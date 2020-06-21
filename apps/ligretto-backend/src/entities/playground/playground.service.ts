@@ -1,16 +1,21 @@
 import { inject, injectable } from 'inversify'
 import { last } from 'lodash'
 import { PlaygroundRepository } from './playground.repo'
-import { Card } from '@memebattle/ligretto-shared'
+import { Card, CardsDeck, Game } from '@memebattle/ligretto-shared'
 import { TYPES } from '../../types'
+
+const isDeckAvailable = (deck: CardsDeck, card) => {
+  const topCard: Card | undefined = last(deck.cards)
+  console.log('findAvailableDeckIndex', topCard)
+  if (!topCard) {
+    return card.value === 1
+  }
+  return topCard.color === card.color && topCard.value + 1 === card.value
+}
 
 @injectable()
 export class PlaygroundService {
   @inject(TYPES.PlaygroundRepository) private playgroundRepository: PlaygroundRepository
-
-  getAllDecks(gameId: string) {
-    return this.playgroundRepository.getDecks(gameId)
-  }
 
   async getActiveDecks(gameId: string) {
     return (await this.playgroundRepository.getDecks(gameId)).filter(deck => !deck.isHidden)
@@ -19,28 +24,20 @@ export class PlaygroundService {
   async findAvailableDeckIndex(gameId: string, card: Card) {
     const activeDecks = await this.getActiveDecks(gameId)
     console.log('activeDecks', activeDecks)
-    return activeDecks.findIndex(deck => {
-      const topCard: Card | undefined = last(deck.cards)
-      console.log('findAvailableDeckIndex', topCard)
-      return topCard.color === card.color && (topCard.value === card.value - 1 || (card.value === 1 && deck.cards.length === 0))
-    })
+    return activeDecks.findIndex(deck => isDeckAvailable(deck, card))
   }
 
   async putCard(gameId: string, card: Card, deckIndex: number) {
     console.log('putCard', deckIndex)
-    console.log('decks', await this.getAllDecks(gameId))
     await this.playgroundRepository.updateDeck(gameId, deckIndex, deck => {
       console.log('putCard deck', deck)
-      const topCard: Card | undefined = last(deck.cards)
 
-      if ((topCard === undefined && card.value === 1) || (topCard.color === card.color && topCard.value + 1 === card.value)) {
+      if (isDeckAvailable(deck, card)) {
         return {
           ...deck,
           isHidden: card.value === 10,
           cards: [...deck.cards, card],
         }
-      } else {
-        throw new Error()
       }
     })
   }
@@ -69,5 +66,28 @@ export class PlaygroundService {
     const result = await this.playgroundRepository.addDeck(gameId, { cards: [], isHidden: false })
     console.log('CreateEmptyDeck', result)
     return result
+  }
+
+  /**
+   * Если deckPosition пришел, то проверяем, что туда можно положить карту.
+   * Если не пришел, то ищем доступную колоду или создаем
+   */
+  async checkOrCreateDeck(gameId: Game['id'], card: Card, deckPosition?: number): Promise<number | undefined> {
+    let finalDeckPosition
+    if (deckPosition !== undefined) {
+      if (await this.checkIsDeckAvailable(gameId, card, deckPosition)) {
+        finalDeckPosition = deckPosition
+      } else {
+        return undefined
+      }
+    } else {
+      finalDeckPosition = await this.findAvailableDeckIndex(gameId, card)
+
+      if (finalDeckPosition === -1 && card.value === 1) {
+        const updatedDecks = await this.createEmptyDeck(gameId)
+        finalDeckPosition = updatedDecks.length - 1
+      }
+    }
+    return finalDeckPosition
   }
 }
