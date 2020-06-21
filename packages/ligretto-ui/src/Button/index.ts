@@ -1,1 +1,1 @@
-export { Button } from './Button'
+export { Button, ButtonProps, returnReact } from './Button'
