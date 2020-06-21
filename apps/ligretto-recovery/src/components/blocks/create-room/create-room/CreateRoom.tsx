@@ -1,7 +1,9 @@
 import React, { useCallback, useState } from 'react'
 import styles from './CreateRoom.module.scss'
 import { Input, PasswordInput } from 'components/base'
-import { Button } from '@memebattle/ligretto-ui'
+import { Button, returnReact } from '@memebattle/ligretto-ui'
+
+console.log('returnReact', returnReact(), React, returnReact() === React)
 
 interface NewRoomProps {
   onCreateRoomButtonClick: (options: { name: string; password: string }) => void
@@ -41,7 +43,9 @@ export const CreateRoom: React.FC<NewRoomProps> = ({ onCreateRoomButtonClick }) 
           <PasswordInput value={password} onChange={handlePasswordChange} placeholder="Password" />
         </div>
       </div>
-      <Button onClick={handleButtonClick}>Create</Button>
+      <Button variant="contained" color="primary" onClick={handleButtonClick}>
+        Create
+      </Button>
     </div>
   )
 }
