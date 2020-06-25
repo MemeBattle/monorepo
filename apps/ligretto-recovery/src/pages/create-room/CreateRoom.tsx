@@ -1,9 +1,9 @@
 import * as React from 'react'
-import { GameCoverScreen } from 'components/screens/game-cover-screen/GameCoverScreen'
+import { MainCoverScreen } from 'components/screens/main-cover-screen/MainCoverScreen'
 import { CreateRoomContainer } from 'containers/create-room'
 
 export const CreateRoomPage = () => (
-  <GameCoverScreen>
+  <MainCoverScreen>
     <CreateRoomContainer />
-  </GameCoverScreen>
+  </MainCoverScreen>
 )
