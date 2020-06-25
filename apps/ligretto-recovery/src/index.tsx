@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import { Provider } from 'react-redux'
 import { ConnectedRouter } from 'connected-react-router'
+import { ThemeProvider, theme } from '@memebattle/ligretto-ui'
 
 import 'assets/styles/_index.scss'
 
@@ -12,7 +13,9 @@ import { Routes } from 'components/routes'
 ReactDOM.render(
   <Provider store={store}>
     <ConnectedRouter history={history}>
-      <Routes />
+      <ThemeProvider theme={theme}>
+        <Routes />
+      </ThemeProvider>
     </ConnectedRouter>
   </Provider>,
   document.getElementById('root'),
