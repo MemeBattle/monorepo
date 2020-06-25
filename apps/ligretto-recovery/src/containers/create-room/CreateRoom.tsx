@@ -8,8 +8,8 @@ export const CreateRoomContainer = () => {
   const dispatch = useDispatch()
 
   const onButtonClick = useCallback(
-    ({ name, password }: { name: string, password: string }) => {
-      dispatch(createRoomAction({ name, password }))
+    ({ name }: { name: string }) => {
+      dispatch(createRoomAction({ name }))
     },
     [dispatch],
   )

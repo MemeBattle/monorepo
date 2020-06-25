@@ -13,6 +13,6 @@ export type ConnectToRoomAction = Action<RoomsTypes.CONNECT_TO_ROOM, { roomUuid:
 export type SearchRoomsAction = Action<RoomsTypes.SEARCH_ROOMS, { search: string }>
 export type UpdateRoomsAction = Action<RoomsTypes.UPDATE_ROOMS, { rooms: Room[] }>
 export type SetRoomsAction = Action<RoomsTypes.SET_ROOMS, { rooms: Room[] }>
-export type CreateRoomAction = Action<RoomsTypes.CREATE_ROOM, { name: string, password: string }>
+export type CreateRoomAction = Action<RoomsTypes.CREATE_ROOM, { name: string }>
 
 export type RoomsActions = ConnectToRoomAction | SearchRoomsAction | UpdateRoomsAction | CreateRoomAction | SetRoomsAction
