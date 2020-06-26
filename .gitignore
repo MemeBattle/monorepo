@@ -33,3 +33,5 @@ dist
 .cache
 
 .next
+
+!rollup.config.js
