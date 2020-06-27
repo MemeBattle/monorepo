@@ -57,3 +57,14 @@ ligretto-backend-update-swarm:
       - master
     changes:
       - apps/ligretto-backend/**/*
+
+ligretto-ui-image:
+  stage: update-package-image
+  script:
+    - docker build -t gitlab.mems.fun:5005/memebattle/frontend:ligretto-ui ./packages/ligretto-ui
+    - docker push gitlab.mems.fun:5005/memebattle/frontend:ligretto-ui
+  only:
+    refs:
+      - master
+    changes:
+      - packages/ligretto-ui/**/*
