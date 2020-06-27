@@ -17,14 +17,14 @@ const isDeckAvailable = (deck: CardsDeck, card) => {
 export class PlaygroundService {
   @inject(TYPES.PlaygroundRepository) private playgroundRepository: PlaygroundRepository
 
-  async getActiveDecks(gameId: string) {
-    return (await this.playgroundRepository.getDecks(gameId)).filter(deck => !deck.isHidden)
+  async getDecks(gameId: string) {
+    return await this.playgroundRepository.getDecks(gameId)
   }
 
   async findAvailableDeckIndex(gameId: string, card: Card) {
-    const activeDecks = await this.getActiveDecks(gameId)
-    console.log('activeDecks', activeDecks)
-    return activeDecks.findIndex(deck => isDeckAvailable(deck, card))
+    const decks = await this.getDecks(gameId)
+    console.log('activeDecks', decks)
+    return decks.findIndex(deck => isDeckAvailable(deck, card))
   }
 
   async putCard(gameId: string, card: Card, deckIndex: number) {
