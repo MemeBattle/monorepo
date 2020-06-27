@@ -68,3 +68,13 @@ ligretto-ui-image:
       - master
     changes:
       - packages/ligretto-ui/**/*
+
+ligretto-ui-update-swarm:
+  stage: notify-swarm
+  script:
+    - curl -d '' http://ligretto.app:9000/api/webhooks/ffbd15df-e5f6-4b6b-ac2c-cb736032006a
+  only:
+    refs:
+      - master
+    changes:
+      - packages/ligretto-ui/**/*
