@@ -10,12 +10,14 @@ module.exports = {
       './apps/ligretto-recovery/tsconfig.json',
       './apps/ligretto-backend/tsconfig.json',
       './packages/ligretto-shared/tsconfig.json',
-      './packages/redux-utils/tsconfig.json'
+      './packages/redux-utils/tsconfig.json',
+      './packages/ligretto-ui/tsconfig.json',
     ],
     sourceType: 'module',
-    createDefaultProgram: true // TODO: waiting for normal fix in @typescript-eslint/parser
+    createDefaultProgram: true, // TODO: waiting for normal fix in @typescript-eslint/parser
   },
   plugins: ['@typescript-eslint', 'react-app', 'prettier'],
+  extends: ['plugin:@typescript-eslint/recommended'],
   rules: {
     'prettier/prettier': 'error',
     '@typescript-eslint/adjacent-overload-signatures': 'error',
@@ -35,7 +37,6 @@ module.exports = {
     '@typescript-eslint/member-delimiter-style': 'off',
     '@typescript-eslint/member-ordering': 'off',
     '@typescript-eslint/no-empty-interface': 'error',
-    '@typescript-eslint/no-explicit-any': 'off',
     '@typescript-eslint/no-misused-new': 'error',
     '@typescript-eslint/no-namespace': 'error',
     '@typescript-eslint/no-parameter-properties': 'off',
@@ -88,6 +89,9 @@ module.exports = {
     'space-before-function-paren': 'off',
     'use-isnan': 'error',
     'valid-typeof': 'off',
-    '@typescript-eslint/no-explicit-any': 2
+    '@typescript-eslint/no-explicit-any': 2,
+    '@typescript-eslint/camelcase': 'off',
+    'no-unused-expressions': 'off',
+    '@typescript-eslint/no-unused-expressions': ['error'],
   },
 }

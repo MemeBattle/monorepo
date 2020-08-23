@@ -4,5 +4,5 @@
   ],
   "ext": "ts",
   "exec": "yarn build",
-  "ignoreRoot": ["../../.gitignore"]
+  "ignoreRoot": [".git"]
 }

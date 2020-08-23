@@ -16,6 +16,6 @@
   },
   "gitHead": "c0f6bd6a4648db4b6372684434c65cad8ae280c4",
   "devDependencies": {
-    "nodemon": "^2.0.2"
+    "nodemon": "^2.0.4"
   }
 }

@@ -24,7 +24,7 @@
 		"@types/react-dom": "^16.0.9",
 		"react": "^16.7.0-alpha.0",
 		"react-dom": "^16.7.0-alpha.0",
-		"react-scripts": "3.2.0",
+		"react-scripts": "3.4.0",
 		"typescript": "^3.2.0-dev.20181103"
 	},
 	"devDependencies": {
