@@ -19,7 +19,7 @@
     "react-scripts": "3.4.0",
     "react-test-renderer": "^16.9.0",
     "redux-devtools-extension": "^2.13.8",
-    "typescript": "^3.8.3"
+    "typescript": "^4.0.2"
   },
   "dependencies": {
     "@memebattle/ligretto-shared": "^1.0.6",
@@ -39,8 +39,7 @@
     "redux": "^4.0.4",
     "redux-saga": "^1.0.5",
     "reselect": "^4.0.0",
-    "socket.io-client": "^2.2.0",
-    "typescript": "3.6.4"
+    "socket.io-client": "^2.2.0"
   },
   "scripts": {
     "start:dev": "react-scripts start",
