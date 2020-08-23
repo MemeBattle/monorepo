@@ -16,14 +16,13 @@ module.exports = {
     sourceType: 'module',
     createDefaultProgram: true, // TODO: waiting for normal fix in @typescript-eslint/parser
   },
-  plugins: ['@typescript-eslint', 'react-app', 'prettier'],
-  extends: ['plugin:@typescript-eslint/recommended'],
+  plugins: ['@typescript-eslint', 'react-app', 'prettier', 'react'],
+  extends: ['plugin:@typescript-eslint/recommended', 'plugin:react/recommended'],
   rules: {
     'prettier/prettier': 'error',
     '@typescript-eslint/adjacent-overload-signatures': 'error',
     '@typescript-eslint/array-type': 'error',
     '@typescript-eslint/ban-types': 'error',
-    '@typescript-eslint/class-name-casing': 'error',
     '@typescript-eslint/explicit-member-accessibility': [
       'off',
       {
@@ -33,7 +32,6 @@ module.exports = {
       },
     ],
     '@typescript-eslint/indent': 'off',
-    '@typescript-eslint/interface-name-prefix': 'error',
     '@typescript-eslint/member-delimiter-style': 'off',
     '@typescript-eslint/member-ordering': 'off',
     '@typescript-eslint/no-empty-interface': 'error',
