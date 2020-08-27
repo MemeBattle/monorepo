@@ -1,4 +1,4 @@
-import { Room, Game, PlayerStatus, Player } from './types'
+import { Room, Game, PlayerStatus, Player, GameResults } from './types'
 
 export interface SearchRooms {
   search: string
@@ -62,3 +62,5 @@ export interface TakeCardFromStackDeck {
 export interface TechConnectToGame {
   gameId: Game['id']
 }
+
+export type GameResultsDTO = GameResults

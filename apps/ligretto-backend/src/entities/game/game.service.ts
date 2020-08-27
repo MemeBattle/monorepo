@@ -1,9 +1,9 @@
 import { inject, injectable } from 'inversify'
-import { omit } from 'lodash'
+import { groupBy, mergeWith, omit } from 'lodash'
 import { GameRepository } from './game.repo'
-import { CardColors, Game, GameStatus, Player } from '@memebattle/ligretto-shared'
+import { Game, GameStatus, Player } from '@memebattle/ligretto-shared'
 import { createInitialPlayerCards } from '../../utils/create-initial-player-cards'
-import { TYPES } from '../../types'
+import { IOC_TYPES } from '../../IOC_TYPES'
 
 const emptyGame: Game = {
   id: 'base',
@@ -18,7 +18,7 @@ const emptyGame: Game = {
 
 @injectable()
 export class GameService {
-  @inject(TYPES.GameRepository) private gameRepository: GameRepository
+  @inject(IOC_TYPES.GameRepository) private gameRepository: GameRepository
 
   createGame(name: string) {
     const gameId = String(Math.random()).slice(5)
@@ -31,12 +31,12 @@ export class GameService {
 
       // eslint-disable-next-line guard-for-in
       for (const player in game.players) {
-        const allCards = createInitialPlayerCards()
+        const allCards = createInitialPlayerCards(player)
 
         players[player] = {
           ...game.players[player],
           cards: allCards.splice(0, 3),
-          ligrettoDeck: { cards: allCards.splice(0, 10), isHidden: true },
+          ligrettoDeck: { cards: allCards.splice(0, 2), isHidden: true },
           stackOpenDeck: { cards: [], isHidden: false },
           stackDeck: {
             cards: allCards,
@@ -50,14 +50,7 @@ export class GameService {
         status: GameStatus.InGame,
         players,
         playground: {
-          decks: [
-            { isHidden: false, cards: [{ value: 9, color: CardColors.yellow }] },
-            {
-              isHidden: false,
-              cards: [{ value: 9, color: CardColors.red }],
-            },
-            { isHidden: false, cards: [{ value: 9, color: CardColors.green }] },
-          ],
+          decks: [],
         },
       }
     })
@@ -108,12 +101,41 @@ export class GameService {
     return this.gameRepository.getGame(gameId)
   }
 
-  getResult(gameId: string) {}
+  async getResult(gameId: string) {
+    const game = await this.getGame(gameId)
+
+    const initialScoresByPlayer = Object.keys(game.players).reduce<Record<string, 0>>((scores, playerId) => ({ ...scores, [playerId]: 0 }), {})
+
+    const droppedCardsCount = game.playground.decks.reduce<Record<string, number>>((acc, deck) => {
+      const groupedDeckCards = groupBy(deck.cards, card => card.playerId)
+      return mergeWith(acc, groupedDeckCards, (playerScore, playerDroppedCards) => playerScore + playerDroppedCards.length)
+    }, initialScoresByPlayer)
+
+    const ligrettoStackCardsCount = Object.entries(game.players).reduce<Record<string, number>>(
+      (counts, [playerId, player]) => ({
+        ...counts,
+        [playerId]: player.ligrettoDeck.cards.length,
+      }),
+      {},
+    )
+
+    return mergeWith(
+      ligrettoStackCardsCount,
+      droppedCardsCount,
+      (ligrettoCardsCount, droppedCardsCount) => droppedCardsCount - 2 * ligrettoCardsCount,
+    )
+  }
 
   async endGame(gameId: string) {
     const result = this.getResult(gameId)
     await this.gameRepository.removeGame(gameId)
     return result
+  }
+
+  async endRound(gameId: string): Promise<[Game, Record<string, number>]> {
+    const result = await this.getResult(gameId)
+    const game = await this.pauseGame(gameId)
+    return [game, result]
   }
 
   findGames(pattern: string) {

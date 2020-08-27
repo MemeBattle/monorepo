@@ -2,7 +2,7 @@ import { inject, injectable } from 'inversify'
 import { last } from 'lodash'
 import { PlaygroundRepository } from './playground.repo'
 import { Card, CardsDeck, Game } from '@memebattle/ligretto-shared'
-import { TYPES } from '../../types'
+import { IOC_TYPES } from '../../IOC_TYPES'
 
 const isDeckAvailable = (deck: CardsDeck, card) => {
   const topCard: Card | undefined = last(deck.cards)
@@ -15,7 +15,7 @@ const isDeckAvailable = (deck: CardsDeck, card) => {
 
 @injectable()
 export class PlaygroundService {
-  @inject(TYPES.PlaygroundRepository) private playgroundRepository: PlaygroundRepository
+  @inject(IOC_TYPES.PlaygroundRepository) private playgroundRepository: PlaygroundRepository
 
   async getDecks(gameId: string) {
     return await this.playgroundRepository.getDecks(gameId)

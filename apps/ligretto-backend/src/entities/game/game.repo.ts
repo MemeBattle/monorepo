@@ -1,11 +1,11 @@
 import { inject, injectable } from 'inversify'
 import { Game, Player, PlayerStatus } from '@memebattle/ligretto-shared'
 import { Database } from '../../database'
-import { TYPES } from '../../types'
+import { IOC_TYPES } from '../../IOC_TYPES'
 
 @injectable()
 export class GameRepository {
-  @inject(TYPES.Database) private database: Database
+  @inject(IOC_TYPES.Database) private database: Database
 
   addGame(gameId: string, game: Game) {
     return this.database.set<Game>(storage => (storage.games[gameId] = game))
