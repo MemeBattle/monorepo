@@ -2,15 +2,16 @@ import { inject, injectable } from 'inversify'
 import { PlayerService } from '../entities/player/player.service'
 import { PlaygroundService } from '../entities/playground'
 import { GameService } from '../entities/game/game.service'
-import { TYPES } from '../types'
+import { IOC_TYPES } from '../IOC_TYPES'
 import { GameplayOutput } from './gameplay-output'
+import { GameResults, Game } from '@memebattle/ligretto-shared'
 
 @injectable()
 export class Gameplay {
-  @inject(TYPES.GameService) private gameService: GameService
-  @inject(TYPES.PlayerService) private playerService: PlayerService
-  @inject(TYPES.PlaygroundService) private playgroundService: PlaygroundService
-  @inject(TYPES.GameplayOutput) private gameplayOutput: GameplayOutput
+  @inject(IOC_TYPES.GameService) private gameService: GameService
+  @inject(IOC_TYPES.PlayerService) private playerService: PlayerService
+  @inject(IOC_TYPES.PlaygroundService) private playgroundService: PlaygroundService
+  @inject(IOC_TYPES.GameplayOutput) private gameplayOutput: GameplayOutput
 
   async startGame(gameId: string) {
     try {
@@ -58,13 +59,16 @@ export class Gameplay {
     }
   }
 
-  async playerTakeFromLigrettoDeck(gameId: string, playerColor: string) {
+  async playerTakeFromLigrettoDeck(gameId: string, playerColor: string): Promise<[Game, Record<string, number> | null]> {
     try {
       const remaining = await this.playerService.takeFromLigrettoDeck(gameId, playerColor)
 
       if (remaining === 0) {
-        return this.endGame(gameId)
+        return this.gameService.endRound(gameId)
       }
+
+      const game = await this.gameService.getGame(gameId)
+      return [game, null]
     } catch (e) {
       console.log(e)
     }
@@ -83,7 +87,7 @@ export class Gameplay {
       const results = await this.gameService.getResult(gameId)
       await this.gameService.endGame(gameId)
 
-      return results
+      return { results }
     } catch (e) {
       console.log(e)
     }

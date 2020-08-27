@@ -1,4 +1,4 @@
-export const TYPES = {
+export const IOC_TYPES = {
   WebSocketHandler: Symbol.for('WebSocketHandler'),
   GameService: Symbol.for('GameService'),
   GameRepository: Symbol.for('GameRepository'),

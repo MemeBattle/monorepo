@@ -1,11 +1,11 @@
 import { inject, injectable } from 'inversify'
-import { TYPES } from '../../types'
+import { IOC_TYPES } from '../../IOC_TYPES'
 import { UserRepository } from './user.repo'
 import { User } from '../../types/user'
 
 @injectable()
 export class UserService {
-  @inject(TYPES.UserRepository) private userRepository: UserRepository
+  @inject(IOC_TYPES.UserRepository) private userRepository: UserRepository
 
   addUser(userId: User['socketId']) {
     return this.userRepository.addUser({ socketId: userId })

@@ -1,11 +1,11 @@
 import { inject, injectable } from 'inversify'
-import { TYPES } from '../types'
+import { IOC_TYPES } from '../IOC_TYPES'
 import { Database } from '../database'
 import { Game } from '@memebattle/ligretto-shared'
 
 @injectable()
 export class GameplayOutput {
-  @inject(TYPES.Database) private database: Database
+  @inject(IOC_TYPES.Database) private database: Database
 
   public listenGame(gameId: string, callback: (game: Game) => void) {
     this.database.addUpdateListener(`game-${gameId}`, storage => storage.games[gameId], callback)

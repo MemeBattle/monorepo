@@ -1,11 +1,11 @@
 import { inject, injectable } from 'inversify'
 import { CardsDeck } from '@memebattle/ligretto-shared'
 import { Database } from '../../database/database'
-import { TYPES } from '../../types'
+import { IOC_TYPES } from '../../IOC_TYPES'
 
 @injectable()
 export class PlaygroundRepository {
-  @inject(TYPES.Database) private database: Database
+  @inject(IOC_TYPES.Database) private database: Database
 
   getDecks(gameId: string) {
     return this.database.get(storage => storage.games[gameId].playground.decks)
