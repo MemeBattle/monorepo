@@ -1,5 +1,6 @@
 import { injectable, inject } from 'inversify'
 import { Socket } from 'socket.io'
+import { mapValues } from 'lodash'
 import { Controller } from './controller'
 import {
   GameplayTypes,
@@ -9,27 +10,28 @@ import {
   TakeFromLigrettoDeckAction,
   TakeFromStackDeckAction,
   PutCardFromStackOpenDeck,
+  endRoundAction,
+  Game,
 } from '@memebattle/ligretto-shared'
-import { TYPES } from '../types'
+import { IOC_TYPES } from '../IOC_TYPES'
 import { Gameplay } from '../gameplay/gameplay'
 import { GameService } from '../entities/game/game.service'
 
 @injectable()
 export class GameplayController extends Controller {
-  @inject(TYPES.Gameplay) private gameplay: Gameplay
-  @inject(TYPES.GameService) private gameService: GameService
+  @inject(IOC_TYPES.Gameplay) private gameplay: Gameplay
+  @inject(IOC_TYPES.GameService) private gameService: GameService
 
   handlers = {
     [GameplayTypes.START_GAME]: (socket, action) => this.startGame(socket, action),
-    [GameplayTypes.END_GAME]: (socket: Socket, action) => this.endGame(socket, action),
     [GameplayTypes.PUT_CARD]: (socket: Socket, action) => this.putCard(socket, action),
     [GameplayTypes.TAKE_FROM_LIGRETTO_DECK]: (socket: Socket, action) => this.takeCardFromLigrettoDeck(socket, action),
     [GameplayTypes.PUT_CARD_FROM_STACK_OPEN_DECK]: (socket: Socket, action) => this.putCardFromStackOpenDeck(socket, action),
     [GameplayTypes.TAKE_FROM_STACK_DECK]: (socket: Socket, action) => this.takeCardFromStackDeck(socket, action),
   }
 
-  private async updateGame(socket: Socket, gameId: string) {
-    const game = await this.gameService.getGame(gameId)
+  private async updateGame(socket: Socket, gameId: string, gameState?: Game) {
+    const game = gameState || (await this.gameService.getGame(gameId))
     const action = updateGameAction(game)
     socket.to(gameId).emit('event', action)
     socket.emit('event', action)
@@ -43,14 +45,6 @@ export class GameplayController extends Controller {
     await this.updateGame(socket, gameId)
   }
 
-  private async endGame(socket: Socket, action) {
-    const gameId = action.payload.gameId
-
-    const results = await this.gameplay.endGame(gameId)
-
-    socket.to(gameId).emit('event', results)
-  }
-
   private async putCard(socket: Socket, action: PutCardAction) {
     const { gameId, cardIndex } = action.payload
 
@@ -61,8 +55,14 @@ export class GameplayController extends Controller {
   private async takeCardFromLigrettoDeck(socket: Socket, action: TakeFromLigrettoDeckAction) {
     const { gameId } = action.payload
 
-    await this.gameplay.playerTakeFromLigrettoDeck(gameId, socket.id)
-    await this.updateGame(socket, gameId)
+    const [game, roundResults] = await this.gameplay.playerTakeFromLigrettoDeck(gameId, socket.id)
+    await this.updateGame(socket, gameId, game)
+    console.log(roundResults)
+    if (roundResults) {
+      const action = endRoundAction(mapValues(roundResults, roundScore => ({ roundScore, gameScore: roundScore })))
+      socket.to(gameId).emit('event', action)
+      socket.emit('event', action)
+    }
   }
 
   private async takeCardFromStackDeck(socket: Socket, action: TakeFromStackDeckAction) {

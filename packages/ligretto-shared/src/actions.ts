@@ -19,8 +19,9 @@ export enum GameTypes {
 
 export enum GameplayTypes {
   START_GAME = '@@gameplay/WEBSOCKET/START_GAME',
-  END_GAME = '@@gameplay/END_GAME',
   UPDATE_GAME = '@@gameplay/SERVER/UPDATE_GAME',
+
+  END_ROUND = '@@gameplay/SERVER/END_ROUND',
 
   PUT_CARD = '@@gameplay/WEBSOCKET/PUT_CARD',
   PUT_CARD_FROM_STACK_OPEN_DECK = '@@gameplay/WEBSOCKET/PUT_CARD_FROM_STACK_OPEN_DECK',
@@ -79,3 +80,6 @@ export const takeFromLigrettoDeckAction = createAction<TakeFromLigrettoDeckActio
 
 export type TakeFromStackDeckAction = Action<GameplayTypes.TAKE_FROM_STACK_DECK, dto.TakeCardFromStackDeck>
 export const takeFromStackDeckAction = createAction<TakeFromStackDeckAction>(GameplayTypes.TAKE_FROM_STACK_DECK)
+
+export type EndRoundAction = Action<GameplayTypes.END_ROUND, dto.GameResultsDTO>
+export const endRoundAction = createAction<EndRoundAction>(GameplayTypes.END_ROUND)

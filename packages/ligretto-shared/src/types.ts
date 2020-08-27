@@ -45,12 +45,14 @@ export enum OpponentPositions {
   Top = 'Top',
 }
 
+// TODO: Fix required fields
 export interface Card {
   color?: CardColors
   value?: number
   position?: CardPositions
   disabled?: boolean
   hidden?: boolean
+  playerId?: string
 }
 
 export interface Room {
@@ -104,3 +106,11 @@ export interface CardsDeck {
   isHidden: boolean
   cards: Card[]
 }
+
+export type GameResults = Record<
+  Player['id'],
+  {
+    roundScore: number
+    gameScore: number
+  }
+>

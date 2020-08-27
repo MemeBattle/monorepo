@@ -2,11 +2,11 @@ import { inject, injectable } from 'inversify'
 import { last, shuffle } from 'lodash'
 import { PlayerRepository } from './player.repo'
 import { Card } from '@memebattle/ligretto-shared'
-import { TYPES } from '../../types'
+import { IOC_TYPES } from '../../IOC_TYPES'
 
 @injectable()
 export class PlayerService {
-  @inject(TYPES.PlayerRepository) private playerRepository: PlayerRepository
+  @inject(IOC_TYPES.PlayerRepository) private playerRepository: PlayerRepository
 
   async getPlayer(gameId: string, color: string) {
     return await this.playerRepository.getPlayer(gameId, color)
