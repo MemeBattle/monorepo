@@ -60,6 +60,10 @@ export class GameService {
     return this.gameRepository.updateGame(gameId, game => ({ ...game, status: GameStatus.Pause }))
   }
 
+  roundFinished(gameId: string) {
+    return this.gameRepository.updateGame(gameId, game => ({ ...game, status: GameStatus.RoundFinished }))
+  }
+
   async addPlayer(gameId: string, playerData: Partial<Player> & { id: Player['id'] }) {
     const player = await this.gameRepository.createPlayer({ ...playerData })
     return {
@@ -134,7 +138,7 @@ export class GameService {
 
   async endRound(gameId: string): Promise<[Game, Record<string, number>]> {
     const result = await this.getResult(gameId)
-    const game = await this.pauseGame(gameId)
+    const game = await this.roundFinished(gameId)
     return [game, result]
   }
 
