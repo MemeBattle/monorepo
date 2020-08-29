@@ -81,6 +81,7 @@ export enum GameStatus {
   New = 'New',
   InGame = 'InGame',
   Pause = 'Pause',
+  RoundFinished = 'RoundFinished',
 }
 
 export enum PlayerStatus {
