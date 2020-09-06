@@ -2,9 +2,9 @@ name: 'Build base docker image action'
 
 on:
   push:
-    branches: [ master ]
+    branches: [ configure_ci/cd ]
   pull_request:
-    branches: [ master ]
+    branches: [ configure_ci/cd ]
 
 jobs:
 
