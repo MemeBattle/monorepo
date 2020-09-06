@@ -1,8 +1,9 @@
 import { createAction } from '@memebattle/redux-utils'
-import { GameTypes, SetGameLoadedAction, SetPlayerColor, StartGameAction, TogglePlayerStatusAction, UpdateGameAction } from './types'
+import { GameTypes, SetGameLoadedAction, SetPlayerColor, StartGameAction, TogglePlayerStatusAction, UpdateGameAction, SetResultAction } from './types'
 
 export const updateGameAction = createAction<UpdateGameAction>(GameTypes.UPDATE_GAME)
 export const togglePlayerStatusAction = createAction<TogglePlayerStatusAction>(GameTypes.TOGGLE_PLAYER_STATUS)
 export const setPlayerIdAction = createAction<SetPlayerColor>(GameTypes.SET_PLAYER_ID)
 export const startGameAction = createAction<StartGameAction>(GameTypes.START_GAME)
 export const setGameLoadedAction = createAction<SetGameLoadedAction>(GameTypes.SET_GAME_LOADED)
+export const setResultAction = createAction<SetResultAction>(GameTypes.SET_RESULT)
