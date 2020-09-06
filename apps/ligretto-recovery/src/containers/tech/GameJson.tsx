@@ -16,7 +16,7 @@ export const GameJson = () => {
       return
     }
     dispatch(techConnectToGame({ gameId }))
-  }, [gameId])
+  }, [dispatch, gameId])
 
   return <>{game ? <ReactJson collapsed src={game} /> : 'Game not loaded'}</>
 }

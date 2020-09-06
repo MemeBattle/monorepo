@@ -36,11 +36,9 @@ export const positionOnTableByIndexByLength = {
 } as const
 
 export const RoomGrid: React.FC<RoomGridProps> = ({ renderChildren }) => {
-  const elementsCount = renderChildren.length
-
   return (
     <div className={styles.room}>
-      {elementsCount !== 0 && isMultiplyRenderChildren(renderChildren)
+      {renderChildren && renderChildren.length !== 0 && isMultiplyRenderChildren(renderChildren)
         ? renderChildren.map((child, index) => {
             const renderElementsCount = renderChildren.length
             const position = positionOnTableByIndexByLength[renderElementsCount][index]

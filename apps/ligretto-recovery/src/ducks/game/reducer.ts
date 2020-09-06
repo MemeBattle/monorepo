@@ -1,4 +1,4 @@
-import { Game, GameStatus, Player } from '@memebattle/ligretto-shared'
+import { Game, GameResults, GameStatus, Player } from '@memebattle/ligretto-shared'
 import { GameAction, GameTypes } from './types'
 
 export type GameState = {
@@ -8,6 +8,7 @@ export type GameState = {
   status: Game['status']
   players: Game['players']
   playerId: Player['id']
+  results?: GameResults
   isGameLoaded: boolean
 }
 
@@ -22,6 +23,7 @@ const initialState: GameState = {
   players: {},
   isGameLoaded: false,
   playerId: '',
+  results: undefined,
 }
 
 export const gameReducer = (state: GameState = initialState, action: GameAction) => {
@@ -32,6 +34,8 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return { ...state, playerId: action.payload }
     case GameTypes.SET_GAME_LOADED:
       return { ...state, isGameLoaded: action.payload }
+    case GameTypes.SET_RESULT:
+      return { ...state, results: action.payload }
     default:
       return state
   }
