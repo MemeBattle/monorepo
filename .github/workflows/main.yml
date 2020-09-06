@@ -1,4 +1,4 @@
-name: 'Build base docker image action'
+name: 'Build, push and deploy docker images'
 
 on:
   push:
@@ -8,11 +8,15 @@ on:
 
 jobs:
 
-  build:
+  prepare-base-image:
 
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
-    - name: Build the Docker image
+    - name: Login to docker registry
+      run: docker login -u yerlankussainov -p kolbasa21 docker.io
+    - name: Build base docker image
       run: docker build -t yerlankussainov/test-repo:base .
+    - name: Push base docker image
+      run: docker push yerlankussainov/test-repo:base
