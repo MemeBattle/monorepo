@@ -1,4 +1,4 @@
-FROM gitlab.mems.fun:5005/memebattle/frontend:base as Build
+FROM yerlankussainov/test-repo:base as Build
 
 WORKDIR /memebattle/packages/ligretto-ui/
 RUN yarn build-storybook
