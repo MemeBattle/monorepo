@@ -34,7 +34,7 @@ export const gameReducer = (state: GameState = initialState, action: GameAction)
       return { ...state, playerId: action.payload }
     case GameTypes.SET_GAME_LOADED:
       return { ...state, isGameLoaded: action.payload }
-    case GameTypes.SET_RESULT:
+    case GameTypes.SET_GAME_RESULT:
       return { ...state, results: action.payload }
     default:
       return state
