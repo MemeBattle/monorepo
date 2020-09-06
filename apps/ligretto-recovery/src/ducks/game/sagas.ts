@@ -12,6 +12,7 @@ import {
   OpponentPositions,
   Player,
   PlayerStatus,
+  GameplayTypes,
   putCardAction,
   putCardFromStackOpenDeck,
   RoomsTypes as SharedRoomTypes,
@@ -113,10 +114,16 @@ function* handleCardPutSaga(action: CardsTypes.TapCardAction) {
   }
 }
 
+function* endRoundSaga() {
+
+
+}
+
 export function* gameRootSaga() {
   yield takeLatest(SharedGameTypes.UPDATE_GAME, gameUpdateSaga)
   yield takeLatest(GameTypes.TOGGLE_PLAYER_STATUS, togglePlayerStatusSaga)
   yield takeLatest(GameTypes.START_GAME, startGameSaga)
   yield takeEvery(CardsTypes.CardsTypes.TAP_CARD, handleCardPutSaga)
+  yield takeEvery(GameplayTypes.END_ROUND, endRoundSaga)
   yield takeLatest([SharedRoomTypes.CONNECT_TO_ROOM_SUCCESS, SharedRoomTypes.CREATE_ROOM_SUCCESS], connectToRoomSuccessSaga)
 }
