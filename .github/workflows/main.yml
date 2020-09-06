@@ -56,6 +56,6 @@ jobs:
     - name: Login to docker registry
       run: docker login -u yerlankussainov -p kolbasa21 docker.io
     - name: Build base docker image
-      run: docker ui -t yerlankussainov/test-repo:ligretto-ui ./apps/ligretto-ui
+      run: docker build -t yerlankussainov/test-repo:ligretto-ui ./apps/ligretto-ui
     - name: Push base docker image
-      run: docker ui yerlankussainov/test-repo:ligretto-ui
+      run: docker push yerlankussainov/test-repo:ligretto-ui
