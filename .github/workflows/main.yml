@@ -29,9 +29,9 @@ jobs:
     - uses: actions/checkout@v2
     - name: Login to docker registry
       run: docker login -u yerlankussainov -p kolbasa21 docker.io
-    - name: Build base docker image
+    - name: Build frontend docker image
       run: docker build -t yerlankussainov/test-repo:ligretto-frontend ./apps/ligretto-recovery
-    - name: Push base docker image
+    - name: Push frontend docker image
       run: docker push yerlankussainov/test-repo:ligretto-frontend
 
   ligretto-backend-image:
@@ -42,9 +42,9 @@ jobs:
     - uses: actions/checkout@v2
     - name: Login to docker registry
       run: docker login -u yerlankussainov -p kolbasa21 docker.io
-    - name: Build base docker image
+    - name: Build backend docker image
       run: docker build -t yerlankussainov/test-repo:ligretto-backend ./apps/ligretto-backend
-    - name: Push base docker image
+    - name: Push backend docker image
       run: docker push yerlankussainov/test-repo:ligretto-backend
 
   ligretto-ui-image:
@@ -56,6 +56,6 @@ jobs:
     - name: Login to docker registry
       run: docker login -u yerlankussainov -p kolbasa21 docker.io
     - name: Build base docker image
-      run: docker build -t yerlankussainov/test-repo:ligretto-ui ./apps/ligretto-ui
+      run: docker ui -t yerlankussainov/test-repo:ligretto-ui ./apps/ligretto-ui
     - name: Push base docker image
-      run: docker push yerlankussainov/test-repo:ligretto-ui
+      run: docker ui yerlankussainov/test-repo:ligretto-ui
