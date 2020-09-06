@@ -13,6 +13,7 @@ import {
   Player,
   PlayerStatus,
   GameplayTypes,
+  EndRoundAction,
   putCardAction,
   putCardFromStackOpenDeck,
   RoomsTypes as SharedRoomTypes,
@@ -22,7 +23,13 @@ import {
   takeFromLigrettoDeckAction,
   takeFromStackDeckAction,
 } from '@memebattle/ligretto-shared'
-import { setGameLoadedAction, setPlayerIdAction, updateGameAction } from './actions'
+import {
+  setGameLoadedAction,
+  setGameResultAction,
+  setPlayerIdAction,
+  setResultAction,
+  updateGameAction,
+} from './actions'
 import { selectGameId, selectPlayerId, selectPlayerStatus } from './selectors'
 import { cardsActions, CardsTypes } from 'ducks/cards'
 import { GameTypes } from './types'
@@ -114,8 +121,8 @@ function* handleCardPutSaga(action: CardsTypes.TapCardAction) {
   }
 }
 
-function* endRoundSaga() {
-
+function* endRoundSaga({ payload }: EndRoundAction) {
+  yield put(setGameResultAction(payload));
 
 }
 
