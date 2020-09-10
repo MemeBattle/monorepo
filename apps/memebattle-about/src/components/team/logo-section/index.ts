@@ -1,1 +1,0 @@
-export { LogoSection } from './LogoSection'
