@@ -8,29 +8,29 @@ on:
 
 jobs:
 
-  prepare-base-image:
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Build and push
-      uses: docker/build-push-action@v1.1.0
-      with:
-        # Username used to log in to a Docker registry. If not set then no login will occur
-        username: ${{ secrets.DOCKER_USERNAME }}
-        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        # Docker repository to tag the image with
-        repository: themezv/memebattle-docker-repo
-        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: monorepobase
-        push: true
+#  prepare-base-image:
+#
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#    - name: Checkout
+#      uses: actions/checkout@v2
+#    - name: Build and push
+#      uses: docker/build-push-action@v1.1.0
+#      with:
+#        # Username used to log in to a Docker registry. If not set then no login will occur
+#        username: ${{ secrets.DOCKER_USERNAME }}
+#        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+#        password: ${{ secrets.DOCKER_PASSWORD }}
+#        # Docker repository to tag the image with
+#        repository: themezv/memebattle-docker-repo
+#        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+#        tags: monorepobase
+#        push: true
 
   ligretto-frontend-image:
 
-    needs: prepare-base-image
+#    needs: prepare-base-image
 
     runs-on: ubuntu-latest
 
@@ -56,7 +56,7 @@ jobs:
 
   ligretto-backend-image:
 
-    needs: prepare-base-image
+#    needs: prepare-base-image
 
     runs-on: ubuntu-latest
 
@@ -82,7 +82,7 @@ jobs:
 
   ligretto-ui-image:
 
-    needs: prepare-base-image
+#    needs: prepare-base-image
 
     runs-on: ubuntu-latest
 
