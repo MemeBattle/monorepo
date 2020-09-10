@@ -1,4 +1,4 @@
-FROM gitlab.mems.fun:5005/memebattle/frontend:base
+FROM themezv/memebattle-docker-repo:monorepobase
 
 WORKDIR /memebattle/apps/ligretto-backend
 

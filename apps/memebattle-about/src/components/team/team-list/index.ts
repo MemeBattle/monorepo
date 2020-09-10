@@ -1,1 +1,0 @@
-export { TeamList } from './TeamList'

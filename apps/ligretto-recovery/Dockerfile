@@ -1,4 +1,4 @@
-FROM gitlab.mems.fun:5005/memebattle/frontend:base as Build
+FROM themezv/memebattle-docker-repo:monorepobase as Build
 
 ENV REACT_APP_WEBSOCKET_HOST=https://api-new.ligretto.app
 WORKDIR /memebattle/apps/ligretto-recovery/
