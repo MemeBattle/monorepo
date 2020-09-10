@@ -13,49 +13,101 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Login to docker registry
-      run: docker login -u yerlankussainov -p kolbasa21 docker.io
-    - name: Build base docker image
-      run: docker build -t yerlankussainov/test-repo:base .
-    - name: Push base docker image
-      run: docker push yerlankussainov/test-repo:base
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Build and push
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: ${{ secrets.DOCKER_USERNAME }}
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        # Docker repository to tag the image with
+        repository: themezv/memebattle-docker-repo
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: monorepobase
+        push: true
 
   ligretto-frontend-image:
 
+    needs: prepare-base-image
+
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
-    - name: Login to docker registry
-      run: docker login -u yerlankussainov -p kolbasa21 docker.io
-    - name: Build frontend docker image
-      run: docker build -t yerlankussainov/test-repo:ligretto-frontend ./apps/ligretto-recovery
-    - name: Push frontend docker image
-      run: docker push yerlankussainov/test-repo:ligretto-frontend
+    - name: Build and push
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: ${{ secrets.DOCKER_USERNAME }}
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        # Docker repository to tag the image with
+        repository: themezv/memebattle-docker-repo
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: ligretto-frontend
+        # Path to the build context
+        path: # optional, default is .
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        dockerfile: {path}/apps/ligretto-recovery/Dockerfile'
+        # Comma-delimited list of images to consider as cache sources
+        cache_froms: themezv/memebattle-docker-repo
+        # Whether to push the image
+        push: true
 
   ligretto-backend-image:
 
+    needs: prepare-base-image
+
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
-    - name: Login to docker registry
-      run: docker login -u yerlankussainov -p kolbasa21 docker.io
-    - name: Build backend docker image
-      run: docker build -t yerlankussainov/test-repo:ligretto-backend ./apps/ligretto-backend
-    - name: Push backend docker image
-      run: docker push yerlankussainov/test-repo:ligretto-backend
+    - name: Build and push
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: ${{ secrets.DOCKER_USERNAME }}
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        # Docker repository to tag the image with
+        repository: themezv/memebattle-docker-repo
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: ligretto-backend
+        # Path to the build context
+        path: # optional, default is .
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        dockerfile: {path}/apps/ligretto-backend/Dockerfile'
+        # Comma-delimited list of images to consider as cache sources
+        cache_froms: themezv/memebattle-docker-repo
+        # Whether to push the image
+        push: true
 
   ligretto-ui-image:
 
+    needs: prepare-base-image
+
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
-    - name: Login to docker registry
-      run: docker login -u yerlankussainov -p kolbasa21 docker.io
-    - name: Build base docker image
-      run: docker build -t yerlankussainov/test-repo:ligretto-ui ./packages/ligretto-ui
-    - name: Push base docker image
-      run: docker push yerlankussainov/test-repo:ligretto-ui
+    - name: Build and push
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: ${{ secrets.DOCKER_USERNAME }}
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        # Docker repository to tag the image with
+        repository: themezv/memebattle-docker-repo
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: ligretto-ui
+        # Path to the build context
+        path: # optional, default is .
+        # Path to the Dockerfile (Default is '{path}/Dockerfile')
+        dockerfile: {path}/packages/ligretto-ui/Dockerfile'
+        # Comma-delimited list of images to consider as cache sources
+        cache_froms: themezv/memebattle-docker-repo
+        # Whether to push the image
+        push: true
