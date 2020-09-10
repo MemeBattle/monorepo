@@ -48,7 +48,7 @@ jobs:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: ligretto-frontend
         # Path to the build context
-        dockerfile: '{path}/apps/ligretto-recovery/Dockerfile'
+        dockerfile: './apps/ligretto-recovery/Dockerfile'
         # Comma-delimited list of images to consider as cache sources
         cache_froms: themezv/memebattle-docker-repo
         # Whether to push the image
@@ -74,7 +74,7 @@ jobs:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: ligretto-backend
         # Path to the build context
-        dockerfile: '{path}/apps/ligretto-backend/Dockerfile'
+        dockerfile: './apps/ligretto-backend/Dockerfile'
         # Comma-delimited list of images to consider as cache sources
         cache_froms: themezv/memebattle-docker-repo
         # Whether to push the image
@@ -100,7 +100,7 @@ jobs:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: ligretto-ui
         # Path to the build context
-        dockerfile: '{path}/packages/ligretto-ui/Dockerfile'
+        dockerfile: './packages/ligretto-ui/Dockerfile'
         # Comma-delimited list of images to consider as cache sources
         cache_froms: themezv/memebattle-docker-repo
         # Whether to push the image
