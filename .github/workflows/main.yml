@@ -2,35 +2,33 @@ name: 'Build, push and deploy docker images'
 
 on:
   push:
-    branches: [ configure_ci/cd ]
-  pull_request:
-    branches: [ configure_ci/cd ]
+    branches: [ master ]
 
 jobs:
 
-#  prepare-base-image:
-#
-#    runs-on: ubuntu-latest
-#
-#    steps:
-#    - name: Checkout
-#      uses: actions/checkout@v2
-#    - name: Build and push
-#      uses: docker/build-push-action@v1.1.0
-#      with:
-#        # Username used to log in to a Docker registry. If not set then no login will occur
-#        username: ${{ secrets.DOCKER_USERNAME }}
-#        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
-#        password: ${{ secrets.DOCKER_PASSWORD }}
-#        # Docker repository to tag the image with
-#        repository: themezv/memebattle-docker-repo
-#        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-#        tags: monorepobase
-#        push: true
+  prepare-base-image:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Build and push
+      uses: docker/build-push-action@v1.1.0
+      with:
+        # Username used to log in to a Docker registry. If not set then no login will occur
+        username: ${{ secrets.DOCKER_USERNAME }}
+        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        # Docker repository to tag the image with
+        repository: themezv/memebattle-docker-repo
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: monorepobase
+        push: true
 
   ligretto-frontend-image:
 
-#    needs: prepare-base-image
+    needs: prepare-base-image
 
     runs-on: ubuntu-latest
 
@@ -44,19 +42,19 @@ jobs:
         # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
         password: ${{ secrets.DOCKER_PASSWORD }}
         # Docker repository to tag the image with
-        repository: themezv/memebattle-docker-repo
+        repository: ${{ secrets.DOCKER_REGISTRY }}
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: ligretto-frontend
         # Path to the build context
         dockerfile: './apps/ligretto-recovery/Dockerfile'
         # Comma-delimited list of images to consider as cache sources
-        cache_froms: themezv/memebattle-docker-repo
+        cache_froms: ${{ secrets.DOCKER_REGISTRY }}:monorepobase
         # Whether to push the image
         push: true
 
   ligretto-backend-image:
 
-#    needs: prepare-base-image
+    needs: prepare-base-image
 
     runs-on: ubuntu-latest
 
@@ -70,19 +68,19 @@ jobs:
         # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
         password: ${{ secrets.DOCKER_PASSWORD }}
         # Docker repository to tag the image with
-        repository: themezv/memebattle-docker-repo
+        repository: ${{ secrets.DOCKER_REGISTRY }}
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: ligretto-backend
         # Path to the build context
         dockerfile: './apps/ligretto-backend/Dockerfile'
         # Comma-delimited list of images to consider as cache sources
-        cache_froms: themezv/memebattle-docker-repo
+        cache_froms: ${{ secrets.DOCKER_REGISTRY }}:monorepobase
         # Whether to push the image
         push: true
 
   ligretto-ui-image:
 
-#    needs: prepare-base-image
+    needs: prepare-base-image
 
     runs-on: ubuntu-latest
 
@@ -96,12 +94,12 @@ jobs:
         # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
         password: ${{ secrets.DOCKER_PASSWORD }}
         # Docker repository to tag the image with
-        repository: themezv/memebattle-docker-repo
+        repository: ${{ secrets.DOCKER_REGISTRY }}
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tags: ligretto-ui
         # Path to the build context
         dockerfile: './packages/ligretto-ui/Dockerfile'
         # Comma-delimited list of images to consider as cache sources
-        cache_froms: themezv/memebattle-docker-repo
+        cache_froms: ${{ secrets.DOCKER_REGISTRY }}:monorepobase
         # Whether to push the image
         push: true
