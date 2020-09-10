@@ -50,7 +50,7 @@ jobs:
         # Path to the build context
         path: # optional, default is .
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        dockerfile: {path}/apps/ligretto-recovery/Dockerfile'
+        dockerfile: {path}/apps/ligretto-recovery/Dockerfile
         # Comma-delimited list of images to consider as cache sources
         cache_froms: themezv/memebattle-docker-repo
         # Whether to push the image
@@ -78,7 +78,7 @@ jobs:
         # Path to the build context
         path: # optional, default is .
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        dockerfile: {path}/apps/ligretto-backend/Dockerfile'
+        dockerfile: {path}/apps/ligretto-backend/Dockerfile
         # Comma-delimited list of images to consider as cache sources
         cache_froms: themezv/memebattle-docker-repo
         # Whether to push the image
@@ -106,7 +106,7 @@ jobs:
         # Path to the build context
         path: # optional, default is .
         # Path to the Dockerfile (Default is '{path}/Dockerfile')
-        dockerfile: {path}/packages/ligretto-ui/Dockerfile'
+        dockerfile: {path}/packages/ligretto-ui/Dockerfile
         # Comma-delimited list of images to consider as cache sources
         cache_froms: themezv/memebattle-docker-repo
         # Whether to push the image
