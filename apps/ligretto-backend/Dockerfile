@@ -1,4 +1,4 @@
-FROM yerlankussainov/test-repo:base
+FROM themezv/memebattle-docker-repo:monorepobase
 
 WORKDIR /memebattle/apps/ligretto-backend
 

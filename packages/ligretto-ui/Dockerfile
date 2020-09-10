@@ -1,4 +1,4 @@
-FROM yerlankussainov/test-repo:base as Build
+FROM themezv/memebattle-docker-repo:monorepobase as Build
 
 WORKDIR /memebattle/packages/ligretto-ui/
 RUN yarn build-storybook
