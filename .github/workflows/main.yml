@@ -51,6 +51,11 @@ jobs:
         cache_froms: ${{ secrets.DOCKER_REGISTRY }}:monorepobase
         # Whether to push the image
         push: true
+    - name: Notify swarm
+      uses: fjogeleit/http-request-action@v1.4.1
+      with:
+        # Request URL
+        url: http://mems.fun:9000/api/webhooks/8b2a2edb-3154-47bc-be6e-8847c70e48f0
 
   ligretto-backend-image:
 
@@ -77,6 +82,11 @@ jobs:
         cache_froms: ${{ secrets.DOCKER_REGISTRY }}:monorepobase
         # Whether to push the image
         push: true
+    - name: Notify swarm
+      uses: fjogeleit/http-request-action@v1.4.1
+      with:
+        # Request URL
+        url: http://mems.fun:9000/api/webhooks/cbb9c4e0-d13c-431c-868e-b7a95138f9af
 
   ligretto-ui-image:
 
@@ -103,3 +113,8 @@ jobs:
         cache_froms: ${{ secrets.DOCKER_REGISTRY }}:monorepobase
         # Whether to push the image
         push: true
+    - name: Notify swarm
+      uses: fjogeleit/http-request-action@v1.4.1
+      with:
+        # Request URL
+        url: http://mems.fun:9000/api/webhooks/ffbd15df-e5f6-4b6b-ac2c-cb736032006a
