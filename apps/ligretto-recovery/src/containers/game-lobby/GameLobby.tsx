@@ -1,11 +1,12 @@
 import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Player } from '@memebattle/ligretto-shared'
-import { PositionOnTable, RenderChildren, RoomGrid } from 'components/base/room-grid'
+import { PositionOnTable, RenderChildren, RoomGrid } from '@memebattle/ligretto-ui'
 import { PlayerReadyButton } from 'components/blocks/game/player-ready-button'
 import { StartGameButton, OpponentWaiting } from 'components/blocks/game'
 import { selectOpponents, togglePlayerStatusAction, startGameAction, selectPlayer } from 'ducks/game'
 
+// eslint-disable-next-line react/display-name
 const renderOpponent: (opponent: Player) => RenderChildren = ({ status }) => (positionOnTable: PositionOnTable) => (
   <OpponentWaiting key={positionOnTable} opponentStatus={status} positionOnTable={positionOnTable} />
 )

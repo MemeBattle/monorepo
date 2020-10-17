@@ -2,7 +2,7 @@ import React from 'react'
 import cn from 'classnames'
 import { CardContainer } from 'containers/card'
 import { CardPositions } from '@memebattle/ligretto-shared'
-import { PositionOnTable } from 'components/base/room-grid'
+import { PositionOnTable } from '@memebattle/ligretto-ui'
 import styles from './OpponentCards.module.scss'
 
 const WrappedCard: React.FC<{ cardPosition: CardPositions }> = ({ cardPosition }) => (
