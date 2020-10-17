@@ -3,7 +3,7 @@ import cn from 'classnames'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import opponentAvatar from 'assets/icons/avatars/2.svg' // TODO: get avatar from avatars collection
 import { Avatar, AvatarSize } from '../../../shared/avatar'
-import { PositionOnTable } from 'components/base/room-grid'
+import { PositionOnTable } from '@memebattle/ligretto-ui'
 import styles from './OpponentWaiting.module.scss'
 
 export interface OpponentWaitingProps {
