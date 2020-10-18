@@ -1,14 +1,36 @@
 import React from 'react'
-import { createStyles, makeStyles, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@material-ui/core'
+import { createStyles, makeStyles, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, PaperProps } from '@material-ui/core'
 
 export interface ResultsTableProps {
   /** Players results */
   players: Array<{ position: number; username: string; roundPoints: number; totalPoints: number }>
 }
 
-const useStyles = makeStyles(
+const useStyles = makeStyles(theme =>
   createStyles({
-    resultsTable: {},
+    resultsTable: {
+      borderRadius: '10px',
+    },
+    tableBody: {},
+    tableHead: {
+      background: theme.palette.common.white,
+    },
+    winnerRow: {
+      background: theme.palette.primary.dark,
+    },
+    otherRow: {
+      background: theme.palette.grey['700'],
+    },
+    tableHeaderCell: {
+      fontSize: '1rem',
+      fontWeight: 600,
+      color: theme.palette.grey['700'],
+    },
+    tableBodyCell: {
+      color: theme.palette.common.white,
+      fontWeight: 600,
+      fontSize: '2rem',
+    },
   }),
 )
 
@@ -16,23 +38,23 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ players }) => {
   const classes = useStyles()
 
   return (
-    <TableContainer component={Paper}>
+    <TableContainer className={classes.resultsTable}>
       <Table>
-        <TableHead>
+        <TableHead className={classes.tableHead}>
           <TableRow>
-            <TableCell>Position</TableCell>
-            <TableCell>Player</TableCell>
-            <TableCell>Round points</TableCell>
-            <TableCell>Total points</TableCell>
+            <TableCell className={classes.tableHeaderCell}>Position</TableCell>
+            <TableCell className={classes.tableHeaderCell}>Player</TableCell>
+            <TableCell className={classes.tableHeaderCell}>Round points</TableCell>
+            <TableCell className={classes.tableHeaderCell}>Total points</TableCell>
           </TableRow>
         </TableHead>
-        <TableBody>
+        <TableBody className={classes.tableBody}>
           {players.map(({ position, username, roundPoints, totalPoints }, index) => (
-            <TableRow key={index}>
-              <TableCell>{position}</TableCell>
-              <TableCell>{username}</TableCell>
-              <TableCell>{roundPoints}</TableCell>
-              <TableCell>{totalPoints}</TableCell>
+            <TableRow className={position === 1 ? classes.winnerRow : classes.otherRow} key={index}>
+              <TableCell className={classes.tableBodyCell}>{position}</TableCell>
+              <TableCell className={classes.tableBodyCell}>{username}</TableCell>
+              <TableCell className={classes.tableBodyCell}>{roundPoints}</TableCell>
+              <TableCell className={classes.tableBodyCell}>{totalPoints}</TableCell>
             </TableRow>
           ))}
         </TableBody>
