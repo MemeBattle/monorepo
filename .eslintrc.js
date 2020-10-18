@@ -21,7 +21,7 @@ module.exports = {
   rules: {
     'prettier/prettier': 'error',
     '@typescript-eslint/adjacent-overload-signatures': 'error',
-    '@typescript-eslint/array-type': 'error',
+    '@typescript-eslint/array-type': 'off',
     '@typescript-eslint/ban-types': 'error',
     '@typescript-eslint/explicit-member-accessibility': [
       'off',

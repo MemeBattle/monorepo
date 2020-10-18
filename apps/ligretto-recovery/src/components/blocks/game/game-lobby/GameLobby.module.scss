@@ -1,0 +1,17 @@
+.playerReadyButton {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.resultsTableWrapper {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.resultsTable {
+  width: 70%;
+}

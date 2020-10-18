@@ -18,7 +18,7 @@ const useStyles = makeStyles(
     room: {
       width: '100%',
       height: '100%',
-      position: 'relative',
+      position: 'absolute',
     },
     left: {
       position: 'absolute',
