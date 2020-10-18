@@ -12,7 +12,7 @@ export interface PlayerReadyButtonProps {
 }
 export const PlayerReadyButton: React.FC<PlayerReadyButtonProps> = ({ className, onClick, hideButton }) => (
   <div className={cn(styles.playerReadyButton, className)}>
-    <Avatar src={opponentAvatar} size={AvatarSize.Large} />
+    <Avatar src={opponentAvatar} size={AvatarSize.Medium} />
     {hideButton ? null : <img src={playIcon} alt="Ready to play" className={styles.button} onClick={onClick} />}
   </div>
 )
