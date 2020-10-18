@@ -1,12 +1,23 @@
 import * as React from 'react'
 import { RoomGrid, RenderChildren } from './RoomGrid'
 import { FC } from 'react'
+import { createStyles, makeStyles } from '@material-ui/core'
 
 export default {
   title: 'RoomGrid',
 }
 
-const Background: FC = ({ children }) => <div style={{ width: 500, height: 500, background: 'yellow' }}>{children}</div>
+const useStyles = makeStyles(theme =>
+  createStyles({
+    background: { width: 500, height: 500, background: theme.palette.primary.main, position: 'relative' },
+  }),
+)
+
+const Background: FC = ({ children }) => {
+  const classes = useStyles()
+
+  return <div className={classes.background}>{children}</div>
+}
 
 const renderChildren: RenderChildren = position => <span>{position}</span>
 

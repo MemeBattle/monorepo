@@ -1,5 +1,6 @@
 import React from 'react'
 import { ResultsTable } from './ResultsTable'
+import { createStyles, makeStyles } from '@material-ui/core'
 
 export default {
   title: 'ResultsTable',
@@ -12,4 +13,21 @@ const players = [
   { position: 4, username: 'ThemeZV4', roundPoints: 1, totalPoints: 2 },
 ]
 
-export const DefaultView = () => <ResultsTable players={players} />
+const useStyles = makeStyles(theme =>
+  createStyles({
+    background: {
+      background: theme.palette.primary.dark,
+      padding: '4rem',
+    },
+  }),
+)
+
+export const DefaultView = () => {
+  const classes = useStyles()
+
+  return (
+    <div className={classes.background}>
+      <ResultsTable players={players} />
+    </div>
+  )
+}
