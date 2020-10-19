@@ -36,7 +36,7 @@ export class GameService {
         players[player] = {
           ...game.players[player],
           cards: allCards.splice(0, 3),
-          ligrettoDeck: { cards: allCards.splice(0, 2), isHidden: true },
+          ligrettoDeck: { cards: allCards.splice(0, 10), isHidden: true },
           stackOpenDeck: { cards: [], isHidden: false },
           stackDeck: {
             cards: allCards,

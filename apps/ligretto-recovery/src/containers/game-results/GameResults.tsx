@@ -9,7 +9,7 @@ const selectGameResultsForTable = createSelector(
   selectGameResults,
   gameResults =>
     gameResults &&
-    sortBy(Object.entries(gameResults), [([_, playerResults]) => playerResults.gameScore]).map(([playerId, playerResults], index) => ({
+    sortBy(Object.entries(gameResults), [([_, playerResults]) => -playerResults.gameScore]).map(([playerId, playerResults], index) => ({
       position: index + 1,
       username: playerId,
       roundPoints: playerResults.roundScore,
