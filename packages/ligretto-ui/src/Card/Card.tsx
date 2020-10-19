@@ -26,6 +26,14 @@ const colorByCardColors: Record<CardColors, string> = {
 
 const useStyles = makeStyles(
   createStyles({
+    cardWrapper: {
+      height: '120px',
+      width: '84px',
+    },
+    button: {
+      height: '120px',
+      width: '84px',
+    },
     card: {
       height: '120px',
       width: '84px',
@@ -46,6 +54,9 @@ const useStyles = makeStyles(
       fontSize: '5rem',
       textAlign: 'center',
       fontWeight: 'bold',
+      '&::nth-letter(1)': {
+        transform: 'translateX(-4px)',
+      },
     },
   }),
 )
@@ -54,10 +65,12 @@ export const Card: React.FC<CardProps> = ({ value, disabled, onClick, color, hid
   const classes = useStyles({ disabled, hidden, color })
 
   return (
-    <ButtonBase className={className} disabled={disabled} draggable>
-      <Paper classes={{ root: classes.card }} onClick={!disabled ? onClick : () => null}>
-        {color !== CardColors.empty && !hidden ? <div className={classes.value}>{value}</div> : null}
-      </Paper>
-    </ButtonBase>
+    <div className={classes.cardWrapper}>
+      <ButtonBase className={classes.button} disabled={disabled} draggable>
+        <Paper classes={{ root: classes.card }} onClick={!disabled ? onClick : () => null}>
+          {color !== CardColors.empty && !hidden ? <div className={classes.value}>{value}</div> : null}
+        </Paper>
+      </ButtonBase>
+    </div>
   )
 }
