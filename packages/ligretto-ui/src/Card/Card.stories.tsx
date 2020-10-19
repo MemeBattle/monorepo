@@ -8,7 +8,7 @@ export default {
 }
 
 export const CardsColor = () => (
-  <Box width="50%" justifyContent="space-evenly" display="flex">
+  <Box width="50%" justifyContent="space-evenly" display="flex" height={'10rem'}>
     <Card color={CardColors.blue} value={1} />
     <Card color={CardColors.red} value={2} />
     <Card color={CardColors.yellow} value={3} />
