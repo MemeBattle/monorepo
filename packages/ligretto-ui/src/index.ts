@@ -8,3 +8,5 @@ export * from './Card'
 export * from './RoomGrid'
 
 export * from './ResultsTable'
+
+export * from './CardsRow'
