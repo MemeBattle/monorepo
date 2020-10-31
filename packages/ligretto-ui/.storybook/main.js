@@ -1,9 +1,15 @@
 const path = require('path')
 
 module.exports = {
-  addons: ['@storybook/addon-docs'],
+  addons: ['@storybook/addon-docs', '@storybook/addon-viewport'],
   stories: ['../src/**/*.stories.[tj]sx'],
   webpackFinal: async config => {
+    config.module.rules.push({
+      test: /\.(png|woff|woff2|eot|ttf|svg)$/,
+      use: [
+        'file-loader',
+      ],
+    })
     config.module.rules.push({
       test: /\.(ts|tsx)$/,
       loader: require.resolve('babel-loader'),
