@@ -5,9 +5,7 @@ import { CardPositions } from '@memebattle/ligretto-shared'
 import { PositionOnTable } from '@memebattle/ligretto-ui'
 import styles from './OpponentCards.module.scss'
 
-const WrappedCard: React.FC<{ cardPosition: CardPositions }> = ({ cardPosition }) => (
-  <CardContainer className={styles.card} cardPosition={cardPosition} />
-)
+const WrappedCard: React.FC<{ cardPosition: CardPositions }> = ({ cardPosition }) => <CardContainer cardPosition={cardPosition} />
 
 const stylesByPosition = {
   [PositionOnTable.Left]: styles.positionLeft,

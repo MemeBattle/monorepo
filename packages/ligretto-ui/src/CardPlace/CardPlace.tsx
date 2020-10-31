@@ -1,7 +1,10 @@
 import React from 'react'
 import { createStyles, makeStyles } from '@material-ui/core'
+import clsx from 'clsx'
 
-export interface CardPlaceProps {}
+export interface CardPlaceProps {
+  className?: string
+}
 
 const useStyles = makeStyles(
   createStyles({
@@ -10,14 +13,24 @@ const useStyles = makeStyles(
       width: '84px',
       borderRadius: '4px',
       border: 'white solid 12px',
+      position: 'relative',
+    },
+    card: {
+      position: 'absolute',
+      top: '-12px',
+      left: '-12px',
     },
   }),
 )
 
-export const CardPlace: React.FC<CardPlaceProps> = ({ children }) => {
+export const CardPlace: React.FC<CardPlaceProps> = ({ children, className }) => {
   const classes = useStyles()
 
-  return <div className={classes.cardPlace}>{children}</div>
+  return (
+    <div className={clsx(classes.cardPlace, className)}>
+      <div className={classes.card}>{children}</div>
+    </div>
+  )
 }
 
 CardPlace.displayName = 'CardPlace'

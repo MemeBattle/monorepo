@@ -5,11 +5,10 @@ import { Card } from '@memebattle/ligretto-ui'
 
 interface CardContainer {
   cardPosition: CardPositions
-  className?: string
 }
 
-export const CardContainer: React.FC<CardContainer> = ({ cardPosition, className }) => {
+export const CardContainer: React.FC<CardContainer> = ({ cardPosition }) => {
   const card = useCard(cardPosition)
 
-  return <Card {...card} className={className} />
+  return <Card {...card} />
 }
