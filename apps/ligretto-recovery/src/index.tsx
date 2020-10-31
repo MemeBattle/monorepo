@@ -2,9 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import { Provider } from 'react-redux'
 import { ConnectedRouter } from 'connected-react-router'
-import { ThemeProvider, theme } from '@memebattle/ligretto-ui'
-
-import 'assets/styles/_index.scss'
+import { ThemeProvider, theme, CssBaseline } from '@memebattle/ligretto-ui'
 
 import { store, history } from './store'
 import * as serviceWorker from './serviceWorker'
@@ -14,6 +12,7 @@ ReactDOM.render(
   <Provider store={store}>
     <ConnectedRouter history={history}>
       <ThemeProvider theme={theme}>
+        <CssBaseline />
         <Routes />
       </ThemeProvider>
     </ConnectedRouter>

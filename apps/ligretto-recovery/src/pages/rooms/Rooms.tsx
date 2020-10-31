@@ -2,7 +2,7 @@ import * as React from 'react'
 import { RoomsList } from 'containers/rooms'
 import { MainCoverScreen } from 'components/screens/main-cover-screen/MainCoverScreen'
 import styles from './Rooms.module.scss'
-import { PageHeader } from 'components/base/page-header'
+import { PageHeader } from '@memebattle/ligretto-ui'
 import { SearchRooms } from 'containers/rooms/SearchRooms'
 import { LinkBack } from 'components/base/link-back'
 import { ButtonLink } from 'components/base/button-link'
@@ -12,7 +12,7 @@ export const RoomsPage = () => (
   <MainCoverScreen>
     <div className={styles.roomsPage}>
       <div className={styles.top}>
-        <PageHeader className={styles.header}>Enter to room</PageHeader>
+        <PageHeader>Enter to room</PageHeader>
         <SearchRooms className={styles.search} />
       </div>
       <div className={styles.content}>
