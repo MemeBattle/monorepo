@@ -4,10 +4,6 @@ import { createStyles, makeStyles, Paper, ButtonBase } from '@material-ui/core'
 
 interface CardProps extends CardModel {
   onClick?: () => void
-  /**
-   * @deprecated
-   */
-  className?: string
 }
 
 interface StylesProps {
@@ -29,6 +25,7 @@ const useStyles = makeStyles(
     cardWrapper: {
       height: '120px',
       width: '84px',
+      visibility: ({ color }) => (color === CardColors.empty ? 'hidden' : 'visible'),
     },
     button: {
       height: '120px',
@@ -61,7 +58,7 @@ const useStyles = makeStyles(
   }),
 )
 
-export const Card: React.FC<CardProps> = ({ value, disabled, onClick, color, hidden, className }) => {
+export const Card: React.FC<CardProps> = ({ value, disabled, onClick, color, hidden }) => {
   const classes = useStyles({ disabled, hidden, color })
 
   return (

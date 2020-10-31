@@ -5,8 +5,12 @@ export * from './Input'
 
 export * from './Card'
 
+export * from './CardPlace'
+
 export * from './RoomGrid'
 
 export * from './ResultsTable'
 
 export * from './CardsRow'
+
+export * from './utils'
