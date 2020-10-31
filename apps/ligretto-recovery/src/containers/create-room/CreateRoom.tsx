@@ -1,17 +1,27 @@
 import * as React from 'react'
-import { CreateRoom } from 'components/blocks/create-room/create-room'
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { createRoomAction } from 'ducks/rooms/actions'
+import { CreateRoom } from '@memebattle/ligretto-ui'
 
 export const CreateRoomContainer = () => {
   const dispatch = useDispatch()
 
+  const [name, setName] = useState('')
+
+  const handleNameChange = useCallback<React.ChangeEventHandler<HTMLInputElement>>(
+    (e) => {
+      setName(e.target.value)
+    },
+    [setName],
+  )
+
   const onButtonClick = useCallback(
-    ({ name }: { name: string }) => {
+    () => {
       dispatch(createRoomAction({ name }))
     },
-    [dispatch],
+    [dispatch, name],
   )
-  return <CreateRoom onCreateRoomButtonClick={onButtonClick} />
+
+  return <CreateRoom onRoomNameChange={handleNameChange} onCreateClick={onButtonClick} />
 }

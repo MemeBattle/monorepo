@@ -10,6 +10,9 @@ const useStyles = makeStyles(
       color: theme.palette.common.white,
       fontSize: '4rem',
       fontWeight: 'bold',
+      [theme.breakpoints.down('md')] :{
+        fontSize: '3rem',
+      }
     },
   }),
 )
