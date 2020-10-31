@@ -9,7 +9,7 @@ export default {
 
 const useStyles = makeStyles(theme =>
   createStyles({
-    background: { width: 500, height: 500, background: theme.palette.primary.main, position: 'relative' },
+    background: { height: 500, background: theme.palette.primary.main, position: 'relative' },
   }),
 )
 
