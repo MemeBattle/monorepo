@@ -15,4 +15,6 @@ export * from './CardsRow'
 
 export * from './PageHeader'
 
+export * from './CreateRoom'
+
 export * from './utils'
