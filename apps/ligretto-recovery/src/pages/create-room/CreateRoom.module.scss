@@ -3,4 +3,10 @@
   height: 100%;
   align-items: center;
   justify-content: center;
+
+  @media all and (min-width: 320px) {
+    & {
+      padding: 2rem;
+    }
+  }
 }
