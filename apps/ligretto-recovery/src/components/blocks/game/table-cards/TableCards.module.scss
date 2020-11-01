@@ -1,14 +1,24 @@
-.tableCards {
+.tableCardsWrapper {
+  position: relative;
   display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
+  height: 100%;
+  align-items: center;
   justify-content: center;
-  position: absolute;
-  top: 30%;
-  left: 50%;
-  transform: translate(-50%);
+}
 
-  .card {
-    margin: 0.2rem;
+.tableCards {
+  width: 28rem;
+}
+
+@media all and (max-width: 375px) {
+  .tableCards {
+    transform: scale(0.5);
+  }
+}
+
+@media all and (max-width: 732px) and (min-width: 376px) {
+  .tableCards {
+    width: 20rem;
+    transform: scale(0.7);
   }
 }
