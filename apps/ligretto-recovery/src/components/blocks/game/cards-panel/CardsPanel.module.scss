@@ -16,3 +16,54 @@
 .stackWrapper {
   margin-right: 4rem;
 }
+
+@media all and (max-width: 732px) and (min-width: 560px) {
+  .stackWrapper {
+    margin-right: 2rem;
+  }
+
+  .ligrettoPackWrapper {
+    margin-left: 0.5rem;
+  }
+}
+
+@media all and (max-width: 560px) and (min-width: 460px) {
+  .cardsPanel {
+    transform: scale(0.8);
+    margin-bottom: 0;
+  }
+
+  .stackWrapper {
+    margin-right: 0.7rem;
+  }
+
+  .ligrettoPackWrapper {
+    margin-left: 0.3rem;
+  }
+}
+
+@media all and (max-width: 460px) and (min-width: 374px) {
+  .cardsPanel {
+    transform: scale(0.7);
+    margin-bottom: 0;
+  }
+
+  .stackWrapper {
+    margin-right: 0.5rem;
+  }
+
+  .ligrettoPackWrapper {
+    margin-left: 0.3rem;
+  }
+}
+
+@media all and (max-width: 375px) {
+  .cardsPanel {
+    transform: scale(0.55);
+    margin-bottom: 0;
+  }
+
+  .stackWrapper {
+    margin-right: 0.7rem;
+  }
+}
