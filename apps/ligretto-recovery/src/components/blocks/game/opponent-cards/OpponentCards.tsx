@@ -2,10 +2,8 @@ import React from 'react'
 import cn from 'classnames'
 import { CardContainer } from 'containers/card'
 import { CardPositions } from '@memebattle/ligretto-shared'
-import { PositionOnTable } from '@memebattle/ligretto-ui'
+import { PositionOnTable, CardsRow } from '@memebattle/ligretto-ui'
 import styles from './OpponentCards.module.scss'
-
-const WrappedCard: React.FC<{ cardPosition: CardPositions }> = ({ cardPosition }) => <CardContainer cardPosition={cardPosition} />
 
 const stylesByPosition = {
   [PositionOnTable.Left]: styles.positionLeft,
@@ -25,13 +23,14 @@ const cardsPositionsByPositionOnTable: { [position in PositionOnTable]: CardPosi
 
 export interface OpponentCardsProps {
   positionOnTable: PositionOnTable
-  className?: string
 }
-export const OpponentCards: React.FC<OpponentCardsProps> = ({ positionOnTable, className }) => (
-  <div className={cn(styles.opponentCards, stylesByPosition[positionOnTable], className)}>
-    {cardsPositionsByPositionOnTable[positionOnTable].map(cardPosition => (
-      <WrappedCard key={cardPosition} cardPosition={cardPosition} />
-    ))}
+export const OpponentCards: React.FC<OpponentCardsProps> = ({ positionOnTable }) => (
+  <div className={stylesByPosition[positionOnTable]}>
+    <CardsRow>
+      {cardsPositionsByPositionOnTable[positionOnTable].map(cardPosition => (
+        <CardContainer key={cardPosition} cardPosition={cardPosition} />
+      ))}
+    </CardsRow>
   </div>
 )
 

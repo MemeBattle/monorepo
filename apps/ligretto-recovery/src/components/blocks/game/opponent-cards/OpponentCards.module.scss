@@ -1,25 +1,50 @@
-.opponentCards {
-  display: flex;
-  flex-direction: row;
-  width: max-content;
+.opponentCards {}
 
-  &.positionTop {
-    transform: rotate(180deg) translate(50%);
+.positionTop {
+  margin-top: 1rem;
+  transform: rotate(180deg) translate(50%);
+}
+
+.positionLeft {
+  transform: translate(-6rem, -6rem) rotate(90deg);
+}
+
+.positionRight {
+  transform: translate(6rem, -6rem) rotate(270deg);
+}
+
+.positionLeftTopCorner {
+  transform: translate(-3.5rem, 4rem) rotate(-45deg) scale(0.7);
+}
+
+.positionRightTopCorner {
+  transform: translate(3.5rem, 4rem) rotate(45deg) scale(0.7);
+}
+
+@media all and (max-width: 732px) and (min-width: 376px) {
+  .positionLeft {
+    transform: translate(-8rem, -6rem) rotate(90deg) scale(0.7);
   }
 
-  &.positionLeft {
-    transform: rotate(90deg) translate(-50%);
+  .positionRight {
+    transform: translate(8rem, -6rem) rotate(270deg) scale(0.7);
   }
 
-  &.positionRight {
-    transform: rotate(270deg) translate(50%);
+  .positionTop {
+    transform: rotate(180deg) translate(50%) scale(0.7);
+  }
+}
+
+@media all and (max-width: 375px) {
+  .positionLeft {
+    transform: translate(-9rem, -6rem) rotate(90deg) scale(0.5)
   }
 
-  &.positionLeftTopCorner {
-    transform: rotate(-45deg);
+  .positionRight {
+    transform: translate(9rem, -6rem) rotate(270deg) scale(0.5);
   }
 
-  &.positionRightTopCorner {
-    transform: rotate(45deg);
+  .positionTop {
+    transform: rotate(180deg) translate(50%, 1.5rem) scale(0.5);
   }
 }
