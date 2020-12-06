@@ -6,8 +6,6 @@ export interface Action<Type extends string, Payload = void> extends ReduxAction
   payload: Payload
 }
 
-export type AnyAction = Action<any, any>
-
 type StingTypeField = {
   type: string
 }
@@ -15,7 +13,7 @@ type StingTypeField = {
 export type LookupStringTypeField<T, K> = K extends keyof T ? (T extends StingTypeField ? T[K] : never) : never
 
 export interface ErrorPayload {
-  error: any
+  error: unknown
 }
 
 export type ErrorAction<Type extends string> = Action<Type, ErrorPayload>

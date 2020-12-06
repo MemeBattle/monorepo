@@ -1,5 +1,4 @@
 import React from 'react'
-import cn from 'classnames'
 import { CardContainer } from 'containers/card'
 import { CardPositions } from '@memebattle/ligretto-shared'
 import { PositionOnTable, CardsRow } from '@memebattle/ligretto-ui'

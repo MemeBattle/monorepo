@@ -13,11 +13,8 @@ const players = [
   { position: 4, username: 'ThemeZV4', roundPoints: 1, totalPoints: 2 },
 ]
 
-
-export const DefaultView = () => {
-  return (
-    <Background padding={4}>
-      <ResultsTable players={players} />
-    </Background>
-  )
-}
+export const DefaultView = () => (
+  <Background padding={4}>
+    <ResultsTable players={players} />
+  </Background>
+)

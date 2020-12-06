@@ -16,6 +16,11 @@ module.exports = {
     sourceType: 'module',
     createDefaultProgram: true, // TODO: waiting for normal fix in @typescript-eslint/parser
   },
+  settings: {
+    react: {
+      version: 'detect',
+    },
+  },
   plugins: ['@typescript-eslint', 'react-app', 'prettier', 'react'],
   extends: ['plugin:@typescript-eslint/recommended', 'plugin:react/recommended'],
   rules: {
@@ -91,6 +96,7 @@ module.exports = {
     '@typescript-eslint/camelcase': 'off',
     'no-unused-expressions': 'off',
     '@typescript-eslint/no-unused-expressions': ['error'],
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     'react/prop-types': 'off',
   },

@@ -6,9 +6,9 @@ export const segoeUI = {
     local('Segoe UI'),
     local('"Segoe UI"'),
     url(${SegoeUIttf}) format('truetype')
-  `
+  `,
 }
 
 export const typography = {
-  fontFamily: '"Segoe UI"'
+  fontFamily: '"Segoe UI"',
 }

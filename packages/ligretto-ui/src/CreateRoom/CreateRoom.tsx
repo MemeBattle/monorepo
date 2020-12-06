@@ -3,7 +3,7 @@ import { createStyles, makeStyles } from '@material-ui/core'
 import { Paper, TextField, Button, Grid, Hidden, Box } from '@material-ui/core'
 
 export interface CreateRoomProps {
-  onRoomNameChange: React.ChangeEventHandler<HTMLInputElement>;
+  onRoomNameChange: React.ChangeEventHandler<HTMLInputElement>
   onCreateClick: () => void
 }
 
@@ -16,7 +16,7 @@ const useStyles = makeStyles(theme =>
       display: 'flex',
       flexDirection: 'column',
       [theme.breakpoints.up('lg')]: {
-        maxWidth: '700px'
+        maxWidth: '700px',
       },
     },
     roomNameRow: {
@@ -30,7 +30,7 @@ const useStyles = makeStyles(theme =>
   }),
 )
 
-export const CreateRoom: React.FC<CreateRoomProps> = ({onCreateClick, onRoomNameChange}) => {
+export const CreateRoom: React.FC<CreateRoomProps> = ({ onCreateClick, onRoomNameChange }) => {
   const classes = useStyles()
 
   return (

@@ -13,7 +13,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({ className, isLoading, 
   const inputRef = React.useRef<HTMLInputElement>(null)
 
   const onIconClick = React.useCallback(() => {
-    inputRef.current!.focus()
+    inputRef.current?.focus()
   }, [])
 
   return (

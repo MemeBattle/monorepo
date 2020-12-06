@@ -1,5 +1,5 @@
 import React from 'react'
-import { createStyles, makeStyles, Paper } from '@material-ui/core'
+import { createStyles, makeStyles } from '@material-ui/core'
 import PlayCircleOutlineOutlinedIcon from '@material-ui/icons/PlayCircleOutlineOutlined'
 import clsx from 'clsx'
 
