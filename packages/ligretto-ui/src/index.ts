@@ -20,3 +20,5 @@ export * from './CreateRoom'
 export * from './TableCards'
 
 export * from './utils'
+
+export * from './RoomsList'

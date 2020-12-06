@@ -1,18 +1,22 @@
 import { Box, createStyles, makeStyles, BoxProps } from '@material-ui/core'
 import React, { FC } from 'react'
 
-const useStyles = makeStyles(
-  (theme) =>
-    createStyles({
-      background: {
-        background: theme.palette.primary.main,
-      },
-    }),
+type BgColors = 'main' | 'dark'
+
+const useStyles = makeStyles(theme =>
+  createStyles({
+    background: {
+      background: ({ bgColor }: { bgColor: BgColors }) => theme.palette.primary[bgColor],
+    },
+  }),
 )
 
-export const Background: FC<BoxProps> = ({children, ...props}) => {
+export const Background: FC<BoxProps & { bgColor?: BgColors }> = ({ children, bgColor, ...props }) => {
+  const classes = useStyles({ bgColor: bgColor || 'main' })
 
-  const classes = useStyles()
-
-  return <Box className={classes.background} {...props}>{children}</Box>
+  return (
+    <Box className={classes.background} {...props}>
+      {children}
+    </Box>
+  )
 }
