@@ -1,14 +1,24 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Room } from '@memebattle/ligretto-shared'
-import { RoomsList as RoomsListComponent } from 'components/blocks/enter-game/rooms-list'
+import { RoomsList as RoomsListComponent, RoomsListProps } from '@memebattle/ligretto-ui'
 import { selectRoomsList, connectToRoomAction } from 'ducks/rooms'
 
 export const RoomsList = () => {
   const dispatch = useDispatch()
   const rooms = useSelector(selectRoomsList)
 
-  const handleRoomClick = React.useCallback((roomUuid: Room['uuid']) => () => dispatch(connectToRoomAction({ roomUuid })), [dispatch])
+  const roomsProps = useMemo<RoomsListProps['rooms']>(
+    () =>
+      rooms.map(({ uuid, name, playersCount, playersMaxCount }) => ({
+        id: uuid,
+        name,
+        playersCount,
+        playersMaxCount,
+        onClick: playersCount === playersMaxCount ? undefined : () => dispatch(connectToRoomAction({ roomUuid: uuid })),
+        isDisabled: playersCount === playersMaxCount,
+      })),
+    [rooms, dispatch],
+  )
 
-  return <RoomsListComponent rooms={rooms} onRoomClick={handleRoomClick} />
+  return <RoomsListComponent rooms={roomsProps} />
 }
