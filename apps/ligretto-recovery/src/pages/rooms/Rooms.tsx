@@ -6,13 +6,10 @@ import styles from './Rooms.module.scss'
 import { PageHeader } from '@memebattle/ligretto-ui'
 import { SearchRooms } from 'containers/rooms/SearchRooms'
 import { LinkBack } from 'components/base/link-back'
-import { ButtonLink } from 'components/base/button-link'
-import { routes } from 'utils/constants'
 import { selectIsRoomsListEmpty } from 'ducks/rooms'
 import { useSelector } from 'react-redux'
 
 export const RoomsPage = () => {
-
   const isRoomsListEmpty = useSelector(selectIsRoomsListEmpty)
 
   return (
@@ -23,7 +20,7 @@ export const RoomsPage = () => {
           <SearchRooms className={styles.search} />
         </div>
         <div className={styles.content}>
-          {isRoomsListEmpty ? <CreateRoomContainer /> : <RoomsList /> }
+          {isRoomsListEmpty ? <CreateRoomContainer /> : <RoomsList />}
           <div className={styles.bottomButtons}>
             <LinkBack />
           </div>

@@ -14,7 +14,7 @@ export const DefaultView = () => (
         { id: '2', name: 'Room name 2', onClick: () => null, playersCount: 4, playersMaxCount: 4 },
         { id: '3', name: 'Room name 2', onClick: () => null, playersCount: 4, playersMaxCount: 4 },
         { id: '4', name: 'Room name 2', onClick: () => null, playersCount: 4, playersMaxCount: 4 },
-        { id: '5', name: 'Room name 2', onClick: () => null, playersCount: 4, playersMaxCount: 4, isDisabled: true, },
+        { id: '5', name: 'Room name 2', onClick: () => null, playersCount: 4, playersMaxCount: 4, isDisabled: true },
       ]}
     />
   </Background>

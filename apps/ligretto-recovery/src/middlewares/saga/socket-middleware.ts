@@ -1,7 +1,7 @@
 import { eventChannel, END, SagaIterator, EventChannel, Unsubscribe } from 'redux-saga'
 import { all, race, actionChannel, take, put, call } from 'redux-saga/effects'
 import io from 'socket.io-client'
-import { Action, AnyAction, createAction } from '@memebattle/redux-utils'
+import { Action, createAction } from '@memebattle/redux-utils'
 import { WEBSOCKET_URL } from '../../config'
 
 export enum WebsocketActionNames {
@@ -12,10 +12,10 @@ type CancelAction = Action<WebsocketActionNames.Cancel>
 
 const cancel = createAction<CancelAction>(WebsocketActionNames.Cancel)
 
-function socketChannel(socket: SocketIOClient.Socket): EventChannel<any> {
-  return eventChannel<any>(
+function socketChannel(socket: SocketIOClient.Socket): EventChannel<unknown> {
+  return eventChannel<unknown>(
     (emitter): Unsubscribe => {
-      socket.on('event', (data: any) => {
+      socket.on('event', (data: unknown) => {
         emitter(data)
       })
 
@@ -36,7 +36,7 @@ function* socketReceiveSaga(socket: SocketIOClient.Socket): SagaIterator {
 
   try {
     while (true) {
-      const action: AnyAction = yield take(channel)
+      const action = yield take(channel)
       yield put(action)
     }
   } finally {
@@ -64,10 +64,6 @@ function* socketSendSaga(socket: SocketIOClient.Socket): SagaIterator {
 
 export function* socketSaga() {
   const socket = io(WEBSOCKET_URL)
-  // @ts-ignore
-  window.emitEcho = data => {
-    socket.emit('message', data)
-  }
 
   yield all([call(socketSendSaga, socket), call(socketReceiveSaga, socket)])
 }

@@ -10,18 +10,15 @@ export const CreateRoomContainer = () => {
   const [name, setName] = useState('')
 
   const handleNameChange = useCallback<React.ChangeEventHandler<HTMLInputElement>>(
-    (e) => {
+    e => {
       setName(e.target.value)
     },
     [setName],
   )
 
-  const onButtonClick = useCallback(
-    () => {
-      dispatch(createRoomAction({ name }))
-    },
-    [dispatch, name],
-  )
+  const onButtonClick = useCallback(() => {
+    dispatch(createRoomAction({ name }))
+  }, [dispatch, name])
 
   return <CreateRoom onRoomNameChange={handleNameChange} onCreateClick={onButtonClick} />
 }

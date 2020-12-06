@@ -12,10 +12,12 @@ type Setter<T = void> = (storage: Storage) => T
 export interface Database {
   get<T>(accessor: Accessor<T>): Promise<T>
   set<T>(setter: Setter<T>): Promise<T>
+  // eslint-disable-next-line @typescript-eslint/ban-types
   addUpdateListener(key: string, getter: (storage: Storage) => object, callback: (changes: object | undefined) => void): void
   removeUpdateListener(key: string): void
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-types
 const createChangesWatcher = <T extends {}>(obj: T) => {
   let oldValue = JSON.stringify(obj)
 
@@ -61,6 +63,7 @@ export class Database implements Database {
     })
   }
 
+  // eslint-disable-next-line @typescript-eslint/ban-types
   public addUpdateListener(key: string, getter: (storage: Storage) => object, callback: (changes: object | undefined) => void) {
     const watched = getter(this.storage)
     const getChanges = createChangesWatcher(watched)

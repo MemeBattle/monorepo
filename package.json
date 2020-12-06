@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "bootstrap": "lerna bootstrap --use-workspaces",
-    "lint:js": "eslint --ext .js,.vue,.jsx,.ts,.tsx --ignore-path .gitignore .",
-    "lint:styles": "stylelint --ignore-path .gitignore {apps,packages}/**/*.scss",
+    "lint:js": "eslint --ext .js,.vue,.jsx,.ts,.tsx .",
+    "lint:js:fix": "yarn lint:js --fix",
+    "lint:styles": "stylelint {apps,packages}/**/*.scss",
     "test": "lerna run --no-bail test --ignore-path .gitignore",
     "lerna-publish": "lerna publish from-package",
     "lerna-ci-publish": "yarn lerna publish --yes --no-git-reset from-package",

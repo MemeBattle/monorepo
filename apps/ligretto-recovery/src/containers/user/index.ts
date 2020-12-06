@@ -1,1 +1,0 @@
-export { UserHeaderCardContainer } from './UserHeaderCard'
