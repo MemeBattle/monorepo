@@ -1,1 +1,1 @@
-export { TableCards, TableCardsProps } from './TableCards'
+export { TableCards } from './TableCards'

@@ -4,7 +4,7 @@ import { PlaygroundService } from '../entities/playground'
 import { GameService } from '../entities/game/game.service'
 import { IOC_TYPES } from '../IOC_TYPES'
 import { GameplayOutput } from './gameplay-output'
-import { GameResults, Game } from '@memebattle/ligretto-shared'
+import { Game } from '@memebattle/ligretto-shared'
 
 @injectable()
 export class Gameplay {

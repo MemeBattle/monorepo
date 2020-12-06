@@ -1,5 +1,5 @@
 import React from 'react'
-import { createStyles, makeStyles, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, PaperProps } from '@material-ui/core'
+import { createStyles, makeStyles, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@material-ui/core'
 
 export interface ResultsTableProps {
   /** Players results */

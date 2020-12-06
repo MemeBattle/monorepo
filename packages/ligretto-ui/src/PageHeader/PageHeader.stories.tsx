@@ -6,4 +6,8 @@ export default {
   title: 'PageHeader',
 }
 
-export const DefaultView = () => <Background><PageHeader>Create new room</PageHeader></Background>
+export const DefaultView = () => (
+  <Background>
+    <PageHeader>Create new room</PageHeader>
+  </Background>
+)
