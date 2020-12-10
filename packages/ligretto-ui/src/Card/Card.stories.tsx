@@ -5,6 +5,7 @@ import { Box } from '@material-ui/core'
 
 export default {
   title: 'Card',
+  component: Card,
 }
 
 export const CardsColor = () => (

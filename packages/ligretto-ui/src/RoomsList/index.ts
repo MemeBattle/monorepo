@@ -1,1 +1,2 @@
-export { RoomsList, RoomsListProps } from './RoomsList'
+export { RoomsList } from './RoomsList'
+export type { RoomsListProps } from './RoomsList'

@@ -1,1 +1,2 @@
-export { ResultsTable, ResultsTableProps } from './ResultsTable'
+export { ResultsTable } from './ResultsTable'
+export type { ResultsTableProps } from './ResultsTable'
