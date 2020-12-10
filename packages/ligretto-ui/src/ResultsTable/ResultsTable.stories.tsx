@@ -4,6 +4,7 @@ import { Background } from '../story-components'
 
 export default {
   title: 'ResultsTable',
+  component: ResultsTable,
 }
 
 const players = [
