@@ -1,1 +1,2 @@
-export { CardPlace, CardPlaceProps } from './CardPlace'
+export { CardPlace } from './CardPlace'
+export type { CardPlaceProps } from './CardPlace'

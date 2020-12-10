@@ -1,1 +1,2 @@
-export { CardsRow, CardsRowProps } from './CardsRow'
+export { CardsRow } from './CardsRow'
+export type { CardsRowProps } from './CardsRow'

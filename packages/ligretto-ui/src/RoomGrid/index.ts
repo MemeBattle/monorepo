@@ -1,1 +1,2 @@
-export { RoomGrid, PositionOnTable, RenderChildren, isMultiplyRenderChildren, RoomGridProps } from './RoomGrid'
+export { RoomGrid, PositionOnTable, isMultiplyRenderChildren } from './RoomGrid'
+export type { RenderChildren, RoomGridProps } from './RoomGrid'

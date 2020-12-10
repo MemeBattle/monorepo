@@ -34,7 +34,7 @@ const useStyles = makeStyles(theme =>
   }),
 )
 
-export const ResultsTable: React.FC<ResultsTableProps> = ({ players }) => {
+export const ResultsTable: React.FC<ResultsTableProps> = ({ players }: ResultsTableProps) => {
   const classes = useStyles()
 
   return (

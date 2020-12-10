@@ -3,6 +3,7 @@ import { Card as CardModel, CardColors } from '@memebattle/ligretto-shared'
 import { createStyles, makeStyles, Paper, ButtonBase } from '@material-ui/core'
 
 interface CardProps extends CardModel {
+  /** Callback on click **/
   onClick?: () => void
 }
 
