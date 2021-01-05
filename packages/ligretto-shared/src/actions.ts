@@ -29,6 +29,11 @@ export enum GameplayTypes {
   TAKE_FROM_LIGRETTO_DECK = '@@gameplay/WEBSOCKET/TAKE_FROM_LIGRETTO_DECK',
 }
 
+export enum BotTypes {
+  ADD_BOT_EMIT = '@@bot/WEBSOCKET/ADD_BOT',
+  REMOVE_BOT_EMIT = '@@bot/WEBSOCKET/REMOVE_BOT_EMIT',
+}
+
 export enum TechTypes {
   CONNECT_TO_GAME = '@@tech/WEBSOCKET/CONNECT_TO_GAME',
 }
@@ -83,3 +88,9 @@ export const takeFromStackDeckAction = createAction<TakeFromStackDeckAction>(Gam
 
 export type EndRoundAction = Action<GameplayTypes.END_ROUND, dto.GameResultsDTO>
 export const endRoundAction = createAction<EndRoundAction>(GameplayTypes.END_ROUND)
+
+export type AddBotAction = Action<BotTypes.ADD_BOT_EMIT, dto.AddBotDTO>
+export const addBotAction = createAction<AddBotAction>(BotTypes.ADD_BOT_EMIT)
+
+export type RemoveBotAction = Action<BotTypes.REMOVE_BOT_EMIT, dto.RemoveBotDTO>
+export const removeBotAction = createAction<RemoveBotAction>(BotTypes.REMOVE_BOT_EMIT)
