@@ -75,12 +75,16 @@ export class GamesController extends Controller {
       socket.emit('event', connectToRoomErrorAction())
       return
     }
+
     socket.join(roomUuid)
     await this.userService.enterGame(socket.id, roomUuid)
-    const { game: updatedGame } = await this.gameService.addPlayer(roomUuid, { id: socket.id })
+
+    const playerId = action.payload.playerId || socket.id
+    const { game: updatedGame } = await this.gameService.addPlayer(roomUuid, { id: playerId })
+
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(updatedGame)] }))
     socket.to(roomUuid).emit('event', updateGameAction(updatedGame))
-    socket.emit('event', connectToRoomSuccessAction({ game: updatedGame, playerId: socket.id }))
+    socket.emit('event', connectToRoomSuccessAction({ game: updatedGame, playerId}))
     socket.emit('event', updateGameAction(updatedGame))
     socket.leave(SOCKET_ROOM_LOBBY)
   }
