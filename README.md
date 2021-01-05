@@ -1,12 +1,16 @@
 # MEMEBATTLE
-
-
-```
-yarn bootstrap
-```
+### https://ligretto.atlassian.net/jira/software/projects/LIG/boards/1
 
 ```
-yarn start
+yarn
+```
+
+```
+yarn common-packages:build
+```
+
+```
+yarn ligretto:start
 ```
 
 ```
