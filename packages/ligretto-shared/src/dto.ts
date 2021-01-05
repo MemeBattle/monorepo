@@ -19,6 +19,7 @@ export interface CreateGame {
 
 export interface ConnectToRoom {
   roomUuid: string
+  playerId?: Player['id']
 }
 
 export interface ConnectToRoomSuccess {
@@ -64,3 +65,12 @@ export interface TechConnectToGame {
 }
 
 export type GameResultsDTO = GameResults
+
+export interface AddBotDTO {
+  gameId: Game['id']
+}
+
+export interface RemoveBotDTO {
+  gameId: Game['id']
+  botId: Player['id']
+}
