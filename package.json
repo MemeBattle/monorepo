@@ -1,9 +1,8 @@
-{
+  {
   "name": "@memebattle/memebattle",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "bootstrap": "lerna bootstrap --use-workspaces",
     "lint:js": "eslint --ext .js,.vue,.jsx,.ts,.tsx .",
     "lint:js:fix": "yarn lint:js --fix",
     "lint:styles": "stylelint {apps,packages}/**/*.scss",
