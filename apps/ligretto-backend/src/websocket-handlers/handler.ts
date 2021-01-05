@@ -5,6 +5,7 @@ import { GameplayController } from '../controllers/gameplay-controller'
 import { GamesController } from '../controllers/games-controller'
 import { TechController } from '../controllers/tech-controller'
 import { UserService } from '../entities/user'
+import { BotContoller } from '../controllers/bot-controller'
 
 export interface WebSocketHandler {
   connectionHandler(socket: Socket): void
@@ -14,6 +15,7 @@ export interface WebSocketHandler {
 export class WebSocketHandler implements WebSocketHandler {
   @inject(IOC_TYPES.GameplayController) private gameplayController: GameplayController
   @inject(IOC_TYPES.GamesController) private gamesController: GamesController
+  @inject(IOC_TYPES.BotController) private botController: BotContoller
   @inject(IOC_TYPES.UserService) private userService: UserService // Возможно нужен контроллер, но пока хз
   @inject(IOC_TYPES.TechController) private techController: TechController // Возможно нужен контроллер, но пока хз
 
@@ -48,5 +50,6 @@ export class WebSocketHandler implements WebSocketHandler {
     this.gameplayController.handleMessage(socket, data)
     this.gamesController.handleMessage(socket, data)
     this.techController.handleMessage(socket, data)
+    this.botController.handleMessage(socket, data)
   }
 }
