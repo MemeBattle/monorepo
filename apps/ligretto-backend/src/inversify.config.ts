@@ -15,6 +15,7 @@ import { GameplayOutput } from './gameplay/gameplay-output'
 import { UserService, UserRepository } from './entities/user'
 import { TechController } from './controllers/tech-controller'
 import { AuthService } from './entities/auth'
+import { BotController } from './controllers/bot-controller'
 
 export const IOC = new Container()
 
@@ -32,5 +33,6 @@ IOC.bind<GameplayController>(IOC_TYPES.GameplayController).to(GameplayController
 IOC.bind<GameplayOutput>(IOC_TYPES.GameplayOutput).to(GameplayOutput)
 IOC.bind<GamesController>(IOC_TYPES.GamesController).to(GamesController)
 IOC.bind<TechController>(IOC_TYPES.TechController).to(TechController)
+IOC.bind<BotController>(IOC_TYPES.BotController).to(BotController)
 IOC.bind<Database>(IOC_TYPES.Database).to(Database).inSingletonScope()
 IOC.bind<AuthService>(IOC_TYPES.AuthService).to(AuthService).inSingletonScope()

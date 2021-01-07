@@ -1,15 +1,15 @@
 import React, { FC, memo } from 'react'
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom'
 import { Paper } from '../components/Paper'
 import { Button, Container, Input, PasswordInput } from '@memebattle/ligretto-ui'
 import { t } from '../utils/i18n'
 import { ROUTES } from '../constants/routes'
 
 export const RegisterPage: FC = memo(() => (
-  <Container component='main' maxWidth="xs">
+  <Container component="main" maxWidth="xs">
     <Paper>
       <Input
-        variant='outlined'
+        variant="outlined"
         margin="normal"
         required
         fullWidth
@@ -19,18 +19,9 @@ export const RegisterPage: FC = memo(() => (
         autoComplete="username"
         autoFocus
       />
-      <Input
-        variant='outlined'
-        margin="normal"
-        required
-        fullWidth
-        id="email"
-        label={t.register.email}
-        name="email"
-        autoComplete="email"
-      />
+      <Input variant="outlined" margin="normal" required fullWidth id="email" label={t.register.email} name="email" autoComplete="email" />
       <PasswordInput
-        variant='outlined'
+        variant="outlined"
         margin="normal"
         required
         fullWidth
@@ -39,20 +30,21 @@ export const RegisterPage: FC = memo(() => (
         id="password"
         autoComplete="current-password"
       />
-      <br/>
-      <Button
-        type="submit"
+      <PasswordInput
+        variant="outlined"
+        margin="normal"
+        required
         fullWidth
-        variant="contained"
-        color="primary"
-        size="large"
-      >
+        name="confirm password"
+        label={t.register.confirmPassword}
+        id="password2"
+      />
+      <br />
+      <Button type="submit" fullWidth variant="contained" color="primary" size="large">
         {t.register.submit}
       </Button>
-      <br/>
-      <Link to={ROUTES.LOGIN}>
-        {t.register.linkToLogin}
-      </Link>
+      <br />
+      <Link to={ROUTES.LOGIN}>{t.register.linkToLogin}</Link>
     </Paper>
   </Container>
-));
+))
