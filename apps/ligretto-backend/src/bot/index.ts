@@ -15,26 +15,29 @@ import { nanoid } from 'nanoid'
 const botIntervalsByBotId = {}
 
 const makeTurn = (socket: Socket, botId: string) => {
-   botIntervalsByBotId[botId] = setInterval(() => makeTurn(socket, botId), 300)
+  botIntervalsByBotId[botId] = setInterval(() => makeTurn(socket, botId), 300)
 }
 
 const makeBot = (socket: Socket) => {
-   const botId = nanoid()
+  const botId = nanoid()
 
-   makeTurn(socket, botId)
+  makeTurn(socket, botId)
 
   return { botId }
 }
 
 export const initBot = (socket: Socket, gameId: string) => {
-   const bot = makeBot(socket)
+  const bot = makeBot(socket)
 
-   socket.emit('event', connectToRoomEmitAction({
+  socket.emit(
+    'event',
+    connectToRoomEmitAction({
       roomUuid: gameId,
-      playerId: bot.botId
-   }))
+      playerId: bot.botId,
+    }),
+  )
 }
 
 export const stopBot = (botId: string) => {
-   clearInterval(botIntervalsByBotId[botId])
+  clearInterval(botIntervalsByBotId[botId])
 }
