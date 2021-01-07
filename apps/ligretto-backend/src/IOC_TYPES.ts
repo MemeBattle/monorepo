@@ -17,5 +17,6 @@ export const IOC_TYPES = {
   Database: Symbol.for('Database'),
   UserRepository: Symbol.for('UserRepository'),
   UserService: Symbol.for('UserService'),
+  BotController: Symbol.for('BotController')
   AuthService: Symbol.for('AuthService'),
 }
