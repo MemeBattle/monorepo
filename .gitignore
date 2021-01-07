@@ -41,3 +41,6 @@ dist
 storybook-static
 !/.storybook/main.js
 !/.storybook/preview.js
+
+.npmrc
+*.pem

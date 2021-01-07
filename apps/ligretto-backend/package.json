@@ -4,6 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
+    "init:partner": "node node_modules/@memebattle/cas-services/dist/scripts/init-partner",
     "test:watch": "tsc && ava --watch --color --verbose",
     "start:dev": "nodemon",
     "start": "ts-node src/index.ts",
@@ -31,6 +32,7 @@
     ]
   },
   "dependencies": {
+    "@memebattle/cas-services": "^1.2.0",
     "@memebattle/ligretto-shared": "^1.0.6",
     "@types/dotenv": "^8.2.0",
     "@types/jest": "^24.0.19",
