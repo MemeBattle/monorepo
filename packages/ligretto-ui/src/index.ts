@@ -1,7 +1,10 @@
 export { ThemeProvider, CssBaseline } from '@material-ui/core'
 export { theme } from './themes/default'
 export * from './Button'
+export * from './Container'
+export * from './Grid'
 export * from './Input'
+export * from './PasswordInput'
 
 export * from './Card'
 
