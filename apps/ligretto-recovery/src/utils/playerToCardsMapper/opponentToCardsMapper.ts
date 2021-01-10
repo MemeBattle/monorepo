@@ -1,4 +1,5 @@
-import { Card, CardPositions, OpponentPositions, Player } from '@memebattle/ligretto-shared'
+import type { Card, Player } from '@memebattle/ligretto-shared'
+import { CardPositions, OpponentPositions } from '@memebattle/ligretto-shared'
 import { last } from 'lodash'
 
 const positionConfigByOpponentPositions = {

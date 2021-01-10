@@ -1,11 +1,11 @@
 import { injectable, inject } from 'inversify'
-import { Server, Socket } from 'socket.io'
+import type { Server, Socket } from 'socket.io'
 import { IOC_TYPES } from '../IOC_TYPES'
-import { GameplayController } from '../controllers/gameplay-controller'
-import { GamesController } from '../controllers/games-controller'
-import { TechController } from '../controllers/tech-controller'
-import { UserService } from '../entities/user'
-import { BotController } from '../controllers/bot-controller'
+import type { GameplayController } from '../controllers/gameplay-controller'
+import type { GamesController } from '../controllers/games-controller'
+import type { TechController } from '../controllers/tech-controller'
+import type { UserService } from '../entities/user'
+import type { BotController } from '../controllers/bot-controller'
 
 export interface WebSocketHandler {
   connectionHandler(socket: Socket): void

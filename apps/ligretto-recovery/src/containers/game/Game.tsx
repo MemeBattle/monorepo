@@ -1,8 +1,9 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
-import { Player } from '@memebattle/ligretto-shared'
+import type { Player } from '@memebattle/ligretto-shared'
 import { selectOpponents } from 'ducks/game'
-import { isMultiplyRenderChildren, PositionOnTable, RenderChildren, RoomGrid } from '@memebattle/ligretto-ui'
+import type { PositionOnTable, RenderChildren } from '@memebattle/ligretto-ui'
+import { isMultiplyRenderChildren, RoomGrid } from '@memebattle/ligretto-ui'
 import { OpponentCards } from 'components/blocks/game/opponent-cards'
 import { TableCards, CardsPanel } from 'components/blocks/game'
 

@@ -1,9 +1,5 @@
-import React, { FC, memo } from 'react'
+import React, { memo } from 'react'
 
-import styles from './Paper.module.scss';
+import styles from './Paper.module.scss'
 
-export const Paper: FC = memo(({ children }) => (
-  <div className={styles.paper}>
-    {children}
-  </div>
-))
+export const Paper = memo(({ children }) => <div className={styles.paper}>{children}</div>)

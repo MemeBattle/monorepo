@@ -1,4 +1,4 @@
-import { Room, Game, PlayerStatus, Player, GameResults } from './types'
+import type { Room, Game, PlayerStatus, Player, GameResults } from './types'
 
 export interface SearchRooms {
   search: string

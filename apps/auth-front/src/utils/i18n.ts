@@ -3,7 +3,8 @@ export const t = {
     usernameOrEmail: 'Email or Username',
     password: 'Password',
     submit: 'Sign in',
-    linkToRegister: "Don't have an account? Sign up",
+    // eslint-disable-next-line
+    linkToRegister: 'Don\'t have an account? Sign up',
   },
   register: {
     username: 'Username',

@@ -1,5 +1,5 @@
 import React from 'react'
-import { CardPositions } from '@memebattle/ligretto-shared'
+import type { CardPositions } from '@memebattle/ligretto-shared'
 import { useCard } from 'hooks/use-card'
 import { Card } from '@memebattle/ligretto-ui'
 

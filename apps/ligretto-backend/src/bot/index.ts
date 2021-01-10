@@ -1,5 +1,5 @@
 import { connectToRoomEmitAction } from '@memebattle/ligretto-shared'
-import { Socket } from 'socket.io'
+import type { Socket } from 'socket.io'
 import { nanoid } from 'nanoid'
 
 /**

@@ -1,4 +1,4 @@
-import { Card } from '@memebattle/ligretto-shared'
+import type { Card } from '@memebattle/ligretto-shared'
 import { shuffle } from 'lodash'
 
 /**

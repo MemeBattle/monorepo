@@ -6,14 +6,7 @@ module.exports = {
   },
   parser: '@typescript-eslint/parser',
   parserOptions: {
-    project: [
-      './apps/ligretto-recovery/tsconfig.json',
-      './apps/ligretto-backend/tsconfig.json',
-      './packages/ligretto-shared/tsconfig.json',
-      './packages/redux-utils/tsconfig.json',
-      './packages/ligretto-ui/tsconfig.json',
-      './apps/auth-front/tsconfig.json',
-    ],
+    project: ['./apps/*/tsconfig.json', './packages/*/tsconfig.json'],
     sourceType: 'module',
     createDefaultProgram: true, // TODO: waiting for normal fix in @typescript-eslint/parser
   },
@@ -100,5 +93,15 @@ module.exports = {
     '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     'react/prop-types': 'off',
+    'react/display-name': 'off',
+    '@typescript-eslint/consistent-type-imports': [
+      'error',
+      {
+        prefer: 'type-imports',
+        disallowTypeAnnotations: false,
+      },
+    ],
+    'react/jsx-uses-react': 'off',
+    'react/react-in-jsx-scope': 'off',
   },
 }

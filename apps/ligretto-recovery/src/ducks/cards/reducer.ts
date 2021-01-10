@@ -1,5 +1,7 @@
-import { CardsActions, CardsTypes } from './types'
-import { Card, CardColors, CardPositions } from '@memebattle/ligretto-shared'
+import type { CardsActions } from './types'
+import { CardsTypes } from './types'
+import type { Card } from '@memebattle/ligretto-shared'
+import { CardColors, CardPositions } from '@memebattle/ligretto-shared'
 import sample from 'lodash/sample'
 import random from 'lodash/random'
 

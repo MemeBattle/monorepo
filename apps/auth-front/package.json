@@ -2,6 +2,8 @@
   "name": "@memebattle/auth-front",
   "version": "0.1.0",
   "private": true,
+  "main": "./public/index.js",
+  "module": "./public/index.js",
   "dependencies": {
     "@memebattle/ligretto-ui": "^1.0.1",
     "@types/node": "^14.14.20",
