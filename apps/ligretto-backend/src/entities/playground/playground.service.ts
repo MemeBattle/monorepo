@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify'
 import { last } from 'lodash'
-import { PlaygroundRepository } from './playground.repo'
-import { Card, CardsDeck, Game } from '@memebattle/ligretto-shared'
+import type { PlaygroundRepository } from './playground.repo'
+import type { Card, CardsDeck, Game } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
 const isDeckAvailable = (deck: CardsDeck, card) => {

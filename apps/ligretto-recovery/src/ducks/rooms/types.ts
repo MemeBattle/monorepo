@@ -1,5 +1,5 @@
-import { Action } from '@memebattle/redux-utils'
-import { Room } from '@memebattle/ligretto-shared'
+import type { Action } from '@memebattle/redux-utils'
+import type { Room } from '@memebattle/ligretto-shared'
 
 export enum RoomsTypes {
   CREATE_ROOM = '@@rooms/CREATE_ROOM',

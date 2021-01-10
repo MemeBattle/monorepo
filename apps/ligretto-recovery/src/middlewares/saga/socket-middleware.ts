@@ -1,7 +1,9 @@
-import { eventChannel, END, SagaIterator, EventChannel, Unsubscribe } from 'redux-saga'
+import type { SagaIterator, EventChannel, Unsubscribe } from 'redux-saga'
+import { eventChannel, END } from 'redux-saga'
 import { all, race, actionChannel, take, put, call } from 'redux-saga/effects'
 import io from 'socket.io-client'
-import { Action, createAction } from '@memebattle/redux-utils'
+import type { Action } from '@memebattle/redux-utils'
+import { createAction } from '@memebattle/redux-utils'
 import { WEBSOCKET_URL } from '../../config'
 
 export enum WebsocketActionNames {

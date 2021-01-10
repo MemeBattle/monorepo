@@ -1,6 +1,6 @@
 import * as SocketIo from 'socket.io'
 import { SOCKET_PORT } from './config'
-import { WebSocketHandler } from './websocket-handlers'
+import type { WebSocketHandler } from './websocket-handlers'
 import { IOC } from './inversify.config'
 import { IOC_TYPES } from './IOC_TYPES'
 

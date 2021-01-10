@@ -17,5 +17,6 @@
     "isolatedModules": true,
     "noImplicitAny": true
   },
-  "include": ["src"]
+  "include": ["./src"],
+  "exclude": ["public", "node_modules"]
 }

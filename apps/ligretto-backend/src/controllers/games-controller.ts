@@ -1,28 +1,30 @@
 import { injectable, inject } from 'inversify'
 import { IOC_TYPES } from '../IOC_TYPES'
 import { Controller } from './controller'
-import { Socket } from 'socket.io'
-import { GameService } from '../entities/game/game.service'
-import { PlayerService } from '../entities/player/player.service'
-import { UserService } from '../entities/user'
-import {
-  searchRoomsFinishAction,
-  RoomsTypes,
+import type { Socket } from 'socket.io'
+import type { GameService } from '../entities/game/game.service'
+import type { PlayerService } from '../entities/player/player.service'
+import type { UserService } from '../entities/user'
+import type {
   CreateRoomEmitAction,
   SearchRoomsEmitAction,
   ConnectToRoomEmitAction,
+  Game,
+  SetPlayerStatusEmitAction,
+} from '@memebattle/ligretto-shared'
+import {
+  searchRoomsFinishAction,
+  RoomsTypes,
   updateRooms,
   connectToRoomSuccessAction,
   connectToRoomErrorAction,
   createRoomSuccessAction,
   updateGameAction,
   GameTypes,
-  Game,
-  SetPlayerStatusEmitAction,
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
-import { GameplayOutput } from '../gameplay/gameplay-output'
+import type { GameplayOutput } from '../gameplay/gameplay-output'
 
 @injectable()
 export class GamesController extends Controller {
@@ -84,7 +86,7 @@ export class GamesController extends Controller {
 
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(updatedGame)] }))
     socket.to(roomUuid).emit('event', updateGameAction(updatedGame))
-    socket.emit('event', connectToRoomSuccessAction({ game: updatedGame, playerId}))
+    socket.emit('event', connectToRoomSuccessAction({ game: updatedGame, playerId }))
     socket.emit('event', updateGameAction(updatedGame))
     socket.leave(SOCKET_ROOM_LOBBY)
   }

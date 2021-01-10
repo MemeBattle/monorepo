@@ -1,25 +1,27 @@
 import { call, put, select, takeEvery, takeLatest } from 'redux-saga/effects'
 import { opponentToCardsMapper, playerToCardsMapper, tableCardsMapper } from 'utils'
 import { without } from 'lodash'
-import {
+import type {
   Card,
-  CardPositions,
   ConnectToRoomSuccessAction,
   CreateRoomSuccessAction,
   Game,
+  Player,
+  EndRoundAction,
+  UpdateGameAction,
+} from '@memebattle/ligretto-shared'
+import {
+  CardPositions,
   GameStatus,
   GameTypes as SharedGameTypes,
   OpponentPositions,
-  Player,
   PlayerStatus,
   GameplayTypes,
-  EndRoundAction,
   putCardAction,
   putCardFromStackOpenDeck,
   RoomsTypes as SharedRoomTypes,
   setPlayerStatusEmitAction,
   startGameEmitAction,
-  UpdateGameAction,
   takeFromLigrettoDeckAction,
   takeFromStackDeckAction,
 } from '@memebattle/ligretto-shared'

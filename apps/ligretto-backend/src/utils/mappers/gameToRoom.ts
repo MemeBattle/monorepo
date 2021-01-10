@@ -1,4 +1,4 @@
-import { Room, Game } from '@memebattle/ligretto-shared'
+import type { Room, Game } from '@memebattle/ligretto-shared'
 
 export const gameToRoom = (game: Game): Room => ({
   uuid: game.id,

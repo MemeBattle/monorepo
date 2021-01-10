@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 
 import styles from './MenuItem.module.scss'
 
-import { routes } from 'utils/constants'
+import type { routes } from 'utils/constants'
 
 type ValueOf<T> = T[keyof T]
 

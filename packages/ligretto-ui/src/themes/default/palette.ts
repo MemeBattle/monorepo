@@ -1,4 +1,4 @@
-import { Palette } from '@material-ui/core/styles/createPalette'
+import type { Palette } from '@material-ui/core/styles/createPalette'
 
 export const palette: Partial<Palette> = {
   primary: {

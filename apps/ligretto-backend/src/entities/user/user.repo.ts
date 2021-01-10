@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify'
 import { IOC_TYPES } from '../../IOC_TYPES'
-import { Database } from '../../database'
-import { User } from '../../types/user'
+import type { Database } from '../../database'
+import type { User } from '../../types/user'
 import { omit } from 'lodash'
 
 @injectable()

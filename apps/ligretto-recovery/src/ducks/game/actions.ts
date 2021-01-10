@@ -1,13 +1,6 @@
 import { createAction } from '@memebattle/redux-utils'
-import {
-  GameTypes,
-  SetGameLoadedAction,
-  SetPlayerColor,
-  StartGameAction,
-  TogglePlayerStatusAction,
-  UpdateGameAction,
-  SetGameResultAction,
-} from './types'
+import type { SetGameLoadedAction, SetPlayerColor, StartGameAction, TogglePlayerStatusAction, UpdateGameAction, SetGameResultAction } from './types'
+import { GameTypes } from './types'
 
 export const updateGameAction = createAction<UpdateGameAction>(GameTypes.UPDATE_GAME)
 export const togglePlayerStatusAction = createAction<TogglePlayerStatusAction>(GameTypes.TOGGLE_PLAYER_STATUS)

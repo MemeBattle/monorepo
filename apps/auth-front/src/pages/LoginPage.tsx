@@ -1,15 +1,15 @@
-import React, { FC, memo } from 'react'
+import { memo } from 'react'
 import { Input, PasswordInput, Container, Button } from '@memebattle/ligretto-ui'
-import { Paper } from '../components/Paper';
+import { Paper } from '../components/Paper'
 import { t } from '../utils/i18n'
 import { ROUTES } from '../constants/routes'
 import { Link } from 'react-router-dom'
 
-export const LoginPage: FC = memo(() => (
-  <Container component='main' maxWidth="xs">
+export const LoginPage = memo(() => (
+  <Container component="main" maxWidth="xs">
     <Paper>
       <Input
-        variant='outlined'
+        variant="outlined"
         margin="normal"
         required
         fullWidth
@@ -20,7 +20,7 @@ export const LoginPage: FC = memo(() => (
         autoFocus
       />
       <PasswordInput
-        variant='outlined'
+        variant="outlined"
         margin="normal"
         required
         fullWidth
@@ -29,20 +29,12 @@ export const LoginPage: FC = memo(() => (
         id="password"
         autoComplete="current-password"
       />
-      <br/>
-      <Button
-        type="submit"
-        fullWidth
-        variant="contained"
-        color="primary"
-        size="large"
-      >
+      <br />
+      <Button type="submit" fullWidth variant="contained" color="primary" size="large">
         {t.login.submit}
       </Button>
-      <br/>
-      <Link to={ROUTES.REGISTER}>
-        {t.login.linkToRegister}
-      </Link>
+      <br />
+      <Link to={ROUTES.REGISTER}>{t.login.linkToRegister}</Link>
     </Paper>
   </Container>
-));
+))

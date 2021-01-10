@@ -1,5 +1,5 @@
-import { Action } from '@memebattle/redux-utils'
-import { Game, GameResults, Player } from '@memebattle/ligretto-shared'
+import type { Action } from '@memebattle/redux-utils'
+import type { Game, GameResults, Player } from '@memebattle/ligretto-shared'
 
 export enum GameTypes {
   UPDATE_GAME = '@@game/UPDATE_GAME',

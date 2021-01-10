@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { RoomsList as RoomsListComponent, RoomsListProps } from '@memebattle/ligretto-ui'
+import type { RoomsListProps } from '@memebattle/ligretto-ui'
+import { RoomsList as RoomsListComponent } from '@memebattle/ligretto-ui'
 import { selectRoomsList, connectToRoomAction } from 'ducks/rooms'
 
 export const RoomsList = () => {

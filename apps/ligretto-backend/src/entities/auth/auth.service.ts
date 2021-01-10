@@ -1,5 +1,6 @@
 import { injectable } from 'inversify'
-import { createCasServices, LoginCredentials, SignUpCredentials, SuccessLoginData, SuccessSignUpData } from '@memebattle/cas-services'
+import type { LoginCredentials, SignUpCredentials, SuccessLoginData, SuccessSignUpData } from '@memebattle/cas-services'
+import { createCasServices } from '@memebattle/cas-services'
 import { CAS_URL, PARTNER_ID, PUBLIC_KEY } from '../../config'
 
 @injectable()

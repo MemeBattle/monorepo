@@ -1,5 +1,7 @@
-import { Game, GameResults, GameStatus, Player } from '@memebattle/ligretto-shared'
-import { GameAction, GameTypes } from './types'
+import type { Game, GameResults, Player } from '@memebattle/ligretto-shared'
+import { GameStatus } from '@memebattle/ligretto-shared'
+import type { GameAction } from './types'
+import { GameTypes } from './types'
 
 export type GameState = {
   name: Game['name']

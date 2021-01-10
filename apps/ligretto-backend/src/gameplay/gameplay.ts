@@ -1,10 +1,10 @@
 import { inject, injectable } from 'inversify'
-import { PlayerService } from '../entities/player/player.service'
-import { PlaygroundService } from '../entities/playground'
-import { GameService } from '../entities/game/game.service'
+import type { PlayerService } from '../entities/player/player.service'
+import type { PlaygroundService } from '../entities/playground'
+import type { GameService } from '../entities/game/game.service'
 import { IOC_TYPES } from '../IOC_TYPES'
-import { GameplayOutput } from './gameplay-output'
-import { Game } from '@memebattle/ligretto-shared'
+import type { GameplayOutput } from './gameplay-output'
+import type { Game } from '@memebattle/ligretto-shared'
 
 @injectable()
 export class Gameplay {

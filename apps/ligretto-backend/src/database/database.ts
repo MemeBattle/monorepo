@@ -1,5 +1,5 @@
 import { injectable } from 'inversify'
-import { Storage } from './storage'
+import type { Storage } from './storage'
 
 export const storage: Storage = {
   games: {},

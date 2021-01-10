@@ -1,8 +1,8 @@
-import { RoomsState } from '../ducks/rooms/reducer'
-import { GameState } from '../ducks/game/reducer'
-import { CardsState } from '../ducks/cards/reducer'
-import { TechState } from '../ducks/tech/reducer'
-import { RouterState } from 'connected-react-router'
+import type { RoomsState } from '../ducks/rooms/reducer'
+import type { GameState } from '../ducks/game/reducer'
+import type { CardsState } from '../ducks/cards/reducer'
+import type { TechState } from '../ducks/tech/reducer'
+import type { RouterState } from 'connected-react-router'
 
 export interface All {
   cards: CardsState
