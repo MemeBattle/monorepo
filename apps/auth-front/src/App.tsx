@@ -1,10 +1,10 @@
-import React from 'react';
-import { BrowserRouter, Switch, Route, Redirect } from 'react-router-dom';
+import React from 'react'
+import { BrowserRouter, Switch, Route, Redirect } from 'react-router-dom'
 import { ROUTES } from './constants/routes'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 
-import './styles.css';
+import './styles.css'
 
 function App() {
   return (
@@ -19,7 +19,7 @@ function App() {
         <Redirect to={ROUTES.LOGIN} />
       </Switch>
     </BrowserRouter>
-  );
+  )
 }
 
-export default App;
+export default App

@@ -1,7 +1,7 @@
 import { createSelector } from 'reselect'
 import omit from 'lodash/omit'
-import { Player } from '@memebattle/ligretto-shared'
-import { All } from '../../types/store'
+import type { Player } from '@memebattle/ligretto-shared'
+import type { All } from '../../types/store'
 
 export const selectPlayerId = (state: All) => state.game.playerId
 export const selectGameId = (state: All) => state.game.id

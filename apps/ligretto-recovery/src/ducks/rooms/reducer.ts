@@ -1,5 +1,6 @@
-import { RoomsTypes, RoomsActions } from './types'
-import { Room } from '@memebattle/ligretto-shared'
+import type { RoomsActions } from './types'
+import { RoomsTypes } from './types'
+import type { Room } from '@memebattle/ligretto-shared'
 import uniq from 'lodash/uniq'
 
 export type RoomsState = {

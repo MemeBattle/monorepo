@@ -1,4 +1,5 @@
-import { Card, CardColors } from '@memebattle/ligretto-shared'
+import type { Card } from '@memebattle/ligretto-shared'
+import { CardColors } from '@memebattle/ligretto-shared'
 import { shuffleCards } from '../shuffle-cards'
 
 const valuesArray: number[] = [...Array(10).keys()]

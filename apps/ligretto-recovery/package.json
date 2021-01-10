@@ -2,6 +2,8 @@
   "name": "@memebattle/ligretto-recovery",
   "version": "0.2.7",
   "private": true,
+  "main": "./public/index.js",
+  "module": "./public/index.js",
   "devDependencies": {
     "@types/classnames": "^2.2.9",
     "@types/enzyme": "^3.10.3",

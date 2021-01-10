@@ -1,5 +1,5 @@
-import { Action } from '@memebattle/redux-utils'
-import { CardPositions, Card } from '@memebattle/ligretto-shared'
+import type { Action } from '@memebattle/redux-utils'
+import type { CardPositions, Card } from '@memebattle/ligretto-shared'
 
 export enum CardsTypes {
   PUSH_CARDS = '@@cards/PUSH_CARDS',

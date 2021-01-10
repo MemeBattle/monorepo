@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify'
 import { last, shuffle } from 'lodash'
-import { PlayerRepository } from './player.repo'
-import { Card } from '@memebattle/ligretto-shared'
+import type { PlayerRepository } from './player.repo'
+import type { Card } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
 @injectable()

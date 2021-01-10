@@ -1,5 +1,6 @@
 import * as React from 'react'
-import { RoomGrid, RenderChildren } from './RoomGrid'
+import type { RenderChildren } from './RoomGrid'
+import { RoomGrid } from './RoomGrid'
 
 import { Background } from '../story-components'
 

@@ -1,5 +1,14 @@
-declare module "@ioc:CasServices" {
-  import { LoginCredentials, SignUpCredentials, SuccessLogin, ErrorLogin, ErrorSignUp, SuccessSignUp, VerifyTokenSuccess, VerifyTokenError } from "@memebattle/cas-services"
+declare module '@ioc:CasServices' {
+  import type {
+    LoginCredentials,
+    SignUpCredentials,
+    SuccessLogin,
+    ErrorLogin,
+    ErrorSignUp,
+    SuccessSignUp,
+    VerifyTokenSuccess,
+    VerifyTokenError,
+  } from '@memebattle/cas-services'
 
   export type Login = (credentials: LoginCredentials) => Promise<SuccessLogin | ErrorLogin>
 
@@ -14,9 +23,9 @@ declare module "@ioc:CasServices" {
   declare const verifyToken: VerifyToken
 
   export type Services = {
-    login: Login,
-    signUp: SignUp,
-    verifyToken: VerifyToken,
+    login: Login
+    signUp: SignUp
+    verifyToken: VerifyToken
   }
 
   export { login, signUp, verifyToken }

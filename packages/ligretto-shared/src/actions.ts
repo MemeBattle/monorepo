@@ -1,5 +1,6 @@
-import * as dto from './dto'
-import { createAction, Action } from '@memebattle/redux-utils'
+import type * as dto from './dto'
+import type { Action } from '@memebattle/redux-utils'
+import { createAction } from '@memebattle/redux-utils'
 
 export enum RoomsTypes {
   SEARCH_ROOMS_FINISH = '@@rooms/SERVER/SEARCH_ROOMS_FINISH',

@@ -1,11 +1,12 @@
-import React, { FC, memo } from 'react'
+import { memo } from 'react'
 import { Link } from 'react-router-dom'
 import { Paper } from '../components/Paper'
 import { Button, Container, Input, PasswordInput } from '@memebattle/ligretto-ui'
 import { t } from '../utils/i18n'
 import { ROUTES } from '../constants/routes'
 
-export const RegisterPage: FC = memo(() => (
+// eslint-disable-next-line react/display-name
+export const RegisterPage = memo(() => (
   <Container component="main" maxWidth="xs">
     <Paper>
       <Input

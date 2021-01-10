@@ -1,5 +1,6 @@
 import React from 'react'
-import { Card as CardModel, CardColors } from '@memebattle/ligretto-shared'
+import type { Card as CardModel } from '@memebattle/ligretto-shared'
+import { CardColors } from '@memebattle/ligretto-shared'
 import { createStyles, makeStyles, Paper, ButtonBase } from '@material-ui/core'
 
 interface CardProps extends CardModel {
