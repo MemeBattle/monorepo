@@ -12,6 +12,7 @@ module.exports = {
       './packages/ligretto-shared/tsconfig.json',
       './packages/redux-utils/tsconfig.json',
       './packages/ligretto-ui/tsconfig.json',
+      './apps/auth-front/tsconfig.json',
     ],
     sourceType: 'module',
     createDefaultProgram: true, // TODO: waiting for normal fix in @typescript-eslint/parser
