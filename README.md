@@ -9,6 +9,12 @@ yarn
 yarn common-packages:build
 ```
 
+In ligretto-backend package run init:partner
+```
+cd apps/ligretto-backend
+yarn run init:partner
+```
+
 ```
 yarn ligretto:start
 ```
