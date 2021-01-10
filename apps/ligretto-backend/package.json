@@ -4,12 +4,13 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "init:partner": "node node_modules/@memebattle/cas-services/dist/scripts/init-partner",
+    "init:partner": "init-partner",
     "test:watch": "tsc && ava --watch --color --verbose",
     "start:dev": "nodemon",
     "start": "ts-node src/index.ts",
     "env": "cp .env.default .env",
     "prestart": "ts-node src/cli/check-env.ts",
+    "prestart:dev": "ts-node src/cli/check-env.ts",
     "build": "tsc"
   },
   "devDependencies": {
@@ -32,7 +33,7 @@
     ]
   },
   "dependencies": {
-    "@memebattle/cas-services": "^1.3.0",
+    "@memebattle/cas-services": "^1.4.0",
     "@memebattle/ligretto-shared": "^1.0.6",
     "@types/dotenv": "^8.2.0",
     "@types/jest": "^24.0.19",
