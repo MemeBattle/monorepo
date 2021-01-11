@@ -5,15 +5,22 @@ import reportWebVitals from './reportWebVitals'
 
 import { ThemeProvider, theme, CssBaseline } from '@memebattle/ligretto-ui'
 
-ReactDOM.render(
+const rootNode = document.getElementById('root')
+
+const AppJSX = (
   <React.StrictMode>
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <App />
     </ThemeProvider>
-  </React.StrictMode>,
-  document.getElementById('root'),
+  </React.StrictMode>
 )
+
+if (rootNode?.hasChildNodes()) {
+  ReactDOM.hydrate(AppJSX, rootNode)
+} else {
+  ReactDOM.render(AppJSX, rootNode)
+}
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
