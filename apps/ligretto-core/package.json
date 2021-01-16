@@ -18,7 +18,7 @@
   "dependencies": {
     "@adonisjs/core": "^5.0.4-preview-rc",
     "@adonisjs/repl": "^1.0.0",
-    "@memebattle/cas-services": "^1.2.0",
+    "@memebattle/cas-services": "^2.0.1",
     "proxy-addr": "^2.0.6",
     "reflect-metadata": "^0.1.13",
     "source-map-support": "^0.5.19"
