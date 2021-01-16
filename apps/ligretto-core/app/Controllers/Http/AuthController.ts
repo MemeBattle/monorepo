@@ -7,20 +7,12 @@ export default class AuthController {
   async login({ request }: HttpContextContract) {
     const data = await request.validate(LoginValidator)
     const loginResult = await login(data)
-    if (loginResult.success) {
-      return loginResult.data
-    } else {
-      throw Error
-    }
+    return loginResult
   }
 
   async signUp({ request }: HttpContextContract) {
     const data = await request.validate(SignUpValidator)
     const signUpResult = await signUp({ username: data.email, email: data.email, password: data.password })
-    if (signUpResult.success) {
-      return signUpResult.data
-    } else {
-      throw Error
-    }
+    return signUpResult
   }
 }

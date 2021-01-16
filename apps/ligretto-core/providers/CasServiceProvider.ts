@@ -1,7 +1,5 @@
-import type { LoginCredentials, SignUpCredentials } from '@memebattle/cas-services'
 import { createCasServices } from '@memebattle/cas-services'
 import type { ApplicationContract } from '@ioc:Adonis/Core/Application'
-import Logger from '@ioc:Adonis/Core/Logger'
 import type { Services } from '@ioc:CasServices'
 
 /*
@@ -40,29 +38,11 @@ export default class CasServiceProvider {
       'CasServices',
       (): Services => {
         const services = createCasServices({ partnerId, casURI, publicKey })
-        const login = async (credentials: LoginCredentials) => {
-          try {
-            const result = await services.loginService(credentials)
+        const login = services.loginService
 
-            return result.data
-          } catch (e) {
-            Logger.error(e)
-            throw Error(e)
-          }
-        }
+        const signUp = services.signUpService
 
-        const signUp = async (credentials: SignUpCredentials) => {
-          try {
-            const result = await services.signUpService(credentials)
-
-            return result.data
-          } catch (e) {
-            Logger.error(e)
-            throw Error(e)
-          }
-        }
-
-        const verifyToken = (token: string) => services.verifyToken(token)
+        const verifyToken = services.verifyToken
 
         return { login, signUp, verifyToken }
       },
