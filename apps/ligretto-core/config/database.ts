@@ -62,5 +62,5 @@ const databaseConfig: DatabaseConfig & { orm: Partial<OrmConfig> } = {
   */
   orm: {},
 }
-console.log(databaseConfig.connections)
+
 export default databaseConfig
