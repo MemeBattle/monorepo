@@ -21,6 +21,12 @@ export default Env.rules({
   APP_NAME: Env.schema.string(),
   NODE_ENV: Env.schema.enum(['development', 'production', 'testing'] as const),
   PARTNER_ID: Env.schema.string(),
-  CAS_PUBLIC_KEY: Env.schema.string(),
+  CAS_PUBLIC_KEY: Env.schema.string({ message: 'run init-partner script from cas-services to load key' }),
   CAS_URI: Env.schema.string(),
+  DB_CONNECTION: Env.schema.enum(['pg'] as const),
+  PG_HOST: Env.schema.string({ format: 'host' }),
+  PG_PORT: Env.schema.number(),
+  PG_USER: Env.schema.string(),
+  PG_PASSWORD: Env.schema.string(),
+  PG_DB_NAME: Env.schema.string(),
 })
