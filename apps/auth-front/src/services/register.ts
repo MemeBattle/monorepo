@@ -17,4 +17,4 @@ interface SuccessSignup {
 }
 
 export const register = ({ username, email, password }: RegisterCredentials) =>
-  request.post<SuccessSignup>('/register', { username, email, password })
+  request.post<SuccessSignup>('/auth/signup', { username, email, password })
