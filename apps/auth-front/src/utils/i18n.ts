@@ -4,7 +4,7 @@ export const t = {
     password: 'Password',
     submit: 'Sign in',
     // eslint-disable-next-line
-    linkToRegister: 'Don\'t have an account? Sign up',
+    linkToRegister: "Don't have an account? Sign up",
   },
   register: {
     username: 'Username',
@@ -13,5 +13,8 @@ export const t = {
     confirmPassword: 'Confirm Password',
     submit: 'Sign up',
     linkToLogin: 'Already have an Ligretto account? Sign in',
+  },
+  createdByInfo: {
+    text: 'Created by:',
   },
 }
