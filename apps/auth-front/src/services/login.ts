@@ -26,4 +26,4 @@ interface FailedAnswer {
   }
 }
 
-export const login = (credentials: LoginCredentials) => request.post<SuccessAnswer | FailedAnswer>('/login', credentials)
+export const login = (credentials: LoginCredentials) => request.post<SuccessAnswer | FailedAnswer>('/auth/login', credentials)
