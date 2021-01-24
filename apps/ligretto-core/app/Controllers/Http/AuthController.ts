@@ -10,25 +10,21 @@ export default class AuthController {
     const data = await request.validate(LoginValidator)
     const loginResult = await login(data)
     if(loginResult.success) {
-      const user = await UserModel.findBy('casId', loginResult.data.user._id)
-      if(!user) {
-        return response.badRequest()
-      }
-      return {...loginResult.data, profile: user}
+      const user = await UserModel.firstOrCreate({casId: loginResult.data.user._id}, {})
+      return {...loginResult, data: { ...loginResult.data, profile: user }}
     }
-    return {...loginResult}
+    return response.badRequest(loginResult)
   }
 
   async signUp({ request, response }: HttpContextContract) {
     const data = await request.validate(SignUpValidator)
     const signUpResult = await signUp({ username: data.email, email: data.email, password: data.password })
     if(signUpResult.success) {
-      Logger.info(signUpResult.data._id)
       const user = await UserModel.firstOrCreate({casId: signUpResult.data._id}, { casId: signUpResult.data._id })
-      return user
+      return {...signUpResult.data, profile: user}
     } else {
       Logger.info(signUpResult.error.errorMessage)
-      return response.badRequest(signUpResult.error)
+      return response.json(signUpResult)
     }
   }
 }

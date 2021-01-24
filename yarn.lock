@@ -4025,10 +4025,10 @@
     chalk-animation "^1.6.0"
     jsonwebtoken "^8.5.0"
 
-"@memebattle/cas-services@^2.0.1":
-  version "2.0.1"
-  resolved "https://npm.pkg.github.com/download/@memebattle/cas-services/2.0.1/9e50d884a4cbc6c424578fc2a621e9d346426b2699641fd4ac6a0421bc9effa3#7289bd1fb10d22a904c584d184314ec65bd695aa"
-  integrity sha512-WE7SPtoHLwrP7Pez/GyjXK3shcXp3486qiu/nAnf0NumMYIwMZdlSMMz7NhEAIcEbkhw+TYPmO6OKib8D1RAfg==
+"@memebattle/cas-services@^2.2.0":
+  version "2.2.0"
+  resolved "https://npm.pkg.github.com/download/@memebattle/cas-services/2.2.0/1ecc4134110fa9e2b814d19612c37c0d8fe96059717eb894c5ee37bb7e002af2#b5aac80a9dd88088b0b7cd6ad26d096b248337c7"
+  integrity sha512-X1/B0DzWOzu0BPUpdu6k5IdID0GQ5G5pQ0cx3Fm0ALmNrO7rU4Ct9QDCpM0i1GEerViOirqBuuK5IkjaInA/cA==
   dependencies:
     axios "^0.21.1"
     chalk "^2.4.2"
