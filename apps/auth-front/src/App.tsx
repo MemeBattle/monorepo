@@ -1,5 +1,5 @@
 import React from 'react'
-import { BrowserRouter, Switch, Route, Redirect } from 'react-router-dom'
+import { HashRouter, Switch, Route, Redirect } from 'react-router-dom'
 import { ROUTES } from './constants/routes'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -7,9 +7,9 @@ import { ConfirmEmailPage } from './pages/ConfirmEmailPage'
 
 import './styles.css'
 
-function App() {
+export function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Switch>
         <Route path={ROUTES.LOGIN} exact>
           <LoginPage />
@@ -22,8 +22,6 @@ function App() {
         </Route>
         <Redirect to={ROUTES.LOGIN} />
       </Switch>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
-
-export default App
