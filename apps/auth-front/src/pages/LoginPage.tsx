@@ -3,12 +3,14 @@ import { Form, Field } from 'react-final-form'
 import { Input, PasswordInput, Container, Button } from '@memebattle/ligretto-ui'
 import { Paper } from '../components/Paper'
 import { CreatedByInfo } from '../components/CreatedByInfo'
+import { Header } from '../components/Header'
 import { t } from '../utils/i18n'
 import { ROUTES } from '../constants/routes'
 import { Link } from 'react-router-dom'
 
 export const LoginPage = memo(() => (
   <Container component="main" maxWidth="xs">
+    <Header />
     <Form
       onSubmit={value => console.log(value)}
       initialValues={{ username: 'sss', password: 'qweqwe' }}
