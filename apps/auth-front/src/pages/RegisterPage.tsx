@@ -5,6 +5,7 @@ import { Paper } from '../components/Paper'
 import { Button, Container, Input, PasswordInput } from '@memebattle/ligretto-ui'
 import { t } from '../utils/i18n'
 import { ROUTES } from '../constants/routes'
+import { CreatedByInfo } from '../components/CreatedByInfo'
 
 export const RegisterPage = memo(() => (
   <Container component="main" maxWidth="xs">
@@ -88,5 +89,9 @@ export const RegisterPage = memo(() => (
         </form>
       )}
     />
+    <br />
+    <br />
+    <br />
+    <CreatedByInfo />
   </Container>
 ))
