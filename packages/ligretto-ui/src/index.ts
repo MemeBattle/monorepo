@@ -27,3 +27,5 @@ export * from './utils'
 export * from './RoomsList'
 
 export * from './MemebattleLogo'
+
+export * from './Typography'
