@@ -5,7 +5,7 @@ import { t } from '../../utils/i18n'
 export const CreatedByInfo = () => (
   <Grid container spacing={2}>
     <Grid container item alignItems="center" justify="flex-end" xs={8}>
-      <Typography>{t.createdByInfo.text}</Typography>
+      <Typography variant="caption">{t.createdByInfo.text}</Typography>
     </Grid>
     <Grid xs={4} item>
       <MemebattleLogo />

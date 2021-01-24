@@ -6,9 +6,11 @@ import { Button, Container, Input, PasswordInput } from '@memebattle/ligretto-ui
 import { t } from '../utils/i18n'
 import { ROUTES } from '../constants/routes'
 import { CreatedByInfo } from '../components/CreatedByInfo'
+import { Header } from '../components/Header'
 
 export const RegisterPage = memo(() => (
   <Container component="main" maxWidth="xs">
+    <Header />
     <Form
       onSubmit={values => console.log(values)}
       render={({ handleSubmit }) => (

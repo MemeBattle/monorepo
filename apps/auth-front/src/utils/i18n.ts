@@ -17,4 +17,5 @@ export const t = {
   createdByInfo: {
     text: 'Created by:',
   },
+  header: 'Ligretto',
 }
