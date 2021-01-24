@@ -6,4 +6,15 @@ interface RegisterCredentials {
   password: string
 }
 
-export const register = ({ username, email, password }: RegisterCredentials) => request.post('/register', { username, email, password })
+interface SuccessSignup {
+  user: {
+    activated: boolean
+    username: string
+    _id: string
+    email: string
+    partnerId: string
+  }
+}
+
+export const register = ({ username, email, password }: RegisterCredentials) =>
+  request.post<SuccessSignup>('/register', { username, email, password })

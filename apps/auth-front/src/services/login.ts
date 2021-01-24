@@ -1,8 +1,29 @@
 import { request } from '../utils/request'
 
 interface LoginCredentials {
-  username: string
+  login: string
   password: string
 }
 
-export const login = ({ username, password }: LoginCredentials) => request.post('/login', { username, password })
+interface SuccessAnswer {
+  token: string
+  user: {
+    activated: boolean
+    username: string
+    _id: string
+    email: string
+  }
+  profile: {
+    id: number
+  }
+}
+
+interface FailedAnswer {
+  success: false
+  error: {
+    errorCode: number
+    errorMessage: string
+  }
+}
+
+export const login = (credentials: LoginCredentials) => request.post<SuccessAnswer | FailedAnswer>('/login', credentials)
