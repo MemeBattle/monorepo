@@ -11,7 +11,7 @@ export default class AuthController {
     const loginResult = await login(data)
     if(loginResult.success) {
       const user = await UserModel.firstOrCreate({casId: loginResult.data.user._id}, {})
-      return {...loginResult, data: { ...loginResult.data, profile: user }}
+      return { ...loginResult.data, profile: user }
     }
     return response.badRequest(loginResult)
   }
@@ -21,10 +21,10 @@ export default class AuthController {
     const signUpResult = await signUp({ username: data.email, email: data.email, password: data.password })
     if(signUpResult.success) {
       const user = await UserModel.firstOrCreate({casId: signUpResult.data._id}, { casId: signUpResult.data._id })
-      return {...signUpResult.data, profile: user}
+      return {user: signUpResult.data, profile: user}
     } else {
       Logger.info(signUpResult.error.errorMessage)
-      return response.json(signUpResult)
+      return response.status(signUpResult.error.errorCode).json(signUpResult.error)
     }
   }
 }
