@@ -1,9 +1,9 @@
 import React from 'react'
 import { HashRouter, Switch, Route, Redirect } from 'react-router-dom'
 import { ROUTES } from './constants/routes'
-import { LoginPage } from './pages/LoginPage'
-import { RegisterPage } from './pages/RegisterPage'
-import { ConfirmEmailPage } from './pages/ConfirmEmailPage'
+import { LoginPage } from './pages/login/LoginPage'
+import { RegisterPage } from './pages/register/RegisterPage'
+import { ConfirmEmailPage } from './pages/confirm/ConfirmEmailPage'
 
 import './styles.css'
 
