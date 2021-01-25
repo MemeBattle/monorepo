@@ -53,6 +53,7 @@
     "react-snap": "^1.23.0",
     "rollup": "^2.26.8",
     "rollup-plugin-peer-deps-external": "^2.2.2",
+    "rollup-plugin-postcss-modules": "^2.0.2",
     "rollup-plugin-scss": "2.6.1",
     "rollup-plugin-typescript2": "0.29.0"
   }

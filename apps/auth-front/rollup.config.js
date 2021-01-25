@@ -3,7 +3,7 @@ import peerDepsExternal from 'rollup-plugin-peer-deps-external'
 import typescript from 'rollup-plugin-typescript2'
 import commonjs from '@rollup/plugin-commonjs'
 import scss from 'rollup-plugin-scss'
-// import url from '@rollup/plugin-url'
+import postCss from 'rollup-plugin-postcss-modules'
 
 export default {
   input: 'src/module.ts',
@@ -21,10 +21,10 @@ export default {
   ],
   plugins: [
     peerDepsExternal(),
-    resolve(),
+    resolve({preferBuiltins: true, browser: true}),
     commonjs(),
-    scss(),
-    // url(),
+    // scss(),
+    postCss(),
     typescript(),
   ],
 }
