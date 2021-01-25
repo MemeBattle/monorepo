@@ -1,6 +1,6 @@
 import { Container, Typography } from '@memebattle/ligretto-ui'
 
-import { t } from '../utils/i18n'
+import { t } from '../../utils/i18n'
 
 export const ConfirmEmailPage = () => {
   const email = 'todo@mems.fun'
