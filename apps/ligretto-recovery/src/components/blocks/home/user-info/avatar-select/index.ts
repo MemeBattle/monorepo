@@ -1,1 +1,0 @@
-export { AvatarSelect } from './AvatarSelect'

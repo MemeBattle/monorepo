@@ -12,9 +12,16 @@ module.exports = {
   },
   webpackFinal: async config => {
     config.module.rules.push({
-      test: /\.(png|woff|woff2|eot|ttf|svg)$/,
+      test: /\.(woff|woff2|eot|ttf)$/,
       use: [
         'file-loader',
+      ],
+    })
+    config.module.rules.push({
+      test: /\.(woff|woff2|eot|ttf)$/,
+      use: [
+        'file-loader',
+        'image-webpack-loader'
       ],
     })
     return config
