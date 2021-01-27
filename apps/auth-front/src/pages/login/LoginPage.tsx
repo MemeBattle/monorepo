@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom'
 import type { LoginFormSubmissionError, LoginFormValues } from './LoginPage.types'
 // import { FORM_ERROR } from 'final-form'
 import { login } from '../../services/login'
+import { CreatedByInfo } from '../../components/CreatedByInfo'
 
 export const LoginPage = memo(() => {
   const initialValues = useMemo<LoginFormValues>(
@@ -90,6 +91,10 @@ export const LoginPage = memo(() => {
           </form>
         )}
       />
+      <br />
+      <br />
+      <br />
+      <CreatedByInfo />
     </Container>
   )
 })
