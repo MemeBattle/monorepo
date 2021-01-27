@@ -46,6 +46,7 @@
     "@types/react": "^17.0.0",
     "babel-loader": "^8.1.0",
     "hygen": "^6.0.4",
+    "image-webpack-loader": "^7.0.1",
     "react-docgen-typescript-loader": "^3.7.2",
     "react-docgen-typescript-plugin": "^0.7.0",
     "rollup": "^2.26.8",
