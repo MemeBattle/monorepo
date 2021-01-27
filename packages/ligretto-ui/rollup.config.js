@@ -24,7 +24,7 @@ export default {
     peerDepsExternal(),
     resolve(),
     commonjs(),
-    url({ include: ['src/assets/**/*.ttf'] }),
+    url({ include: ['src/assets/**/*.ttf', 'src/**/*.svg'] }),
     typescript({
       tsconfig: 'tsconfig.json',
       useTsconfigDeclarationDir: true,
