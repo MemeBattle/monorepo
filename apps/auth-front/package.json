@@ -10,6 +10,7 @@
     "@types/react": "^17.0.0",
     "@types/react-dom": "^17.0.0",
     "axios": "^0.21.1",
+    "email-validator": "^2.0.4",
     "final-form": "^4.20.1",
     "react-final-form": "^6.5.2",
     "react-router": "^5.2.0",

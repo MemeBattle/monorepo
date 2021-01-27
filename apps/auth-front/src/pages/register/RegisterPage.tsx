@@ -9,6 +9,7 @@ import { ROUTES } from '../../constants/routes'
 import type { RegisterFormSubmissionErrors, RegisterFormValues } from './RegisterPage.types'
 import { register } from '../../services/register'
 import { Header } from '../../components/Header'
+import { useRegisterValidation } from './useRegisterValidation'
 
 export const RegisterPage = memo(() => {
   const initialValues = useMemo<RegisterFormValues>(
@@ -16,6 +17,7 @@ export const RegisterPage = memo(() => {
       username: '',
       email: '',
       password: '',
+      confirmPassword: '',
     }),
     [],
   )
@@ -38,14 +40,17 @@ export const RegisterPage = memo(() => {
     }
   }, [])
 
+  const validate = useRegisterValidation()
+
   return (
     <Container component="main" maxWidth="xs">
       <Header />
       <Form<RegisterFormValues>
         initialValues={initialValues}
         onSubmit={handleSubmit}
+        validate={validate}
         render={({ handleSubmit, submitError }) => (
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} autoComplete="off">
             <Paper>
               <Field
                 name="username"
@@ -72,6 +77,7 @@ export const RegisterPage = memo(() => {
                   <Input
                     {...input}
                     variant="outlined"
+                    type="email"
                     margin="normal"
                     required
                     fullWidth
@@ -79,14 +85,14 @@ export const RegisterPage = memo(() => {
                     label={t.register.email}
                     name="email"
                     autoComplete="email"
-                    error={Boolean(meta.error || meta.submitError)}
+                    error={meta.error || meta.submitError || meta.invalid}
                     helperText={meta.error}
                   />
                 )}
               />
               <Field
                 name="password"
-                render={({ input }) => (
+                render={({ input, meta }) => (
                   <PasswordInput
                     {...input}
                     variant="outlined"
@@ -97,21 +103,25 @@ export const RegisterPage = memo(() => {
                     label={t.login.password}
                     id="password"
                     autoComplete="current-password"
+                    error={meta.error || meta.submitError || meta.invalid}
+                    helperText={meta.error}
                   />
                 )}
               />
               <Field
                 name="confirmPassword"
-                render={({ input }) => (
+                render={({ input, meta }) => (
                   <PasswordInput
                     {...input}
                     variant="outlined"
                     margin="normal"
                     required
                     fullWidth
-                    name="confirm password"
+                    name="confirmPassword"
                     label={t.register.confirmPassword}
-                    id="password2"
+                    id="confirmPassword"
+                    error={(meta.touched && meta.error) || meta.submitError || meta.invalid}
+                    helperText={meta.touched && meta.error}
                   />
                 )}
               />
