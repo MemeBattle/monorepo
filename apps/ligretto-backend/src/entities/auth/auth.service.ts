@@ -15,8 +15,8 @@ export class AuthService {
     this.loginService = async (credentials: LoginCredentials) => {
       try {
         const response = await loginService(credentials)
-        if (response.data.success) {
-          return response.data.data
+        if (response.success) {
+          return response.data
         } else {
           return null
         }
@@ -29,8 +29,8 @@ export class AuthService {
     this.signUpService = async (credentials: SignUpCredentials) => {
       try {
         const response = await signUpService(credentials)
-        if (response.data.success) {
-          return response.data.data
+        if (response.success) {
+          return response.data
         } else {
           return null
         }
