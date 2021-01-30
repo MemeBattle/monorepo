@@ -1,6 +1,7 @@
 import { createCasServices } from '@memebattle/cas-services'
 import type { ApplicationContract } from '@ioc:Adonis/Core/Application'
 import type { Services } from '@ioc:CasServices'
+import { readFile } from 'fs/promises'
 
 /*
 |--------------------------------------------------------------------------
@@ -31,7 +32,8 @@ export default class CasServiceProvider {
   public async register() {
     const Env = (await import('@ioc:Adonis/Core/Env')).default
     const partnerId = Env.get('PARTNER_ID')
-    const publicKey = Env.get('CAS_PUBLIC_KEY')
+    const publicKeyPath = Env.get('CAS_PUBLIC_KEY_PATH')
+    const publicKey = (await readFile(publicKeyPath)).toString()
     const casURI = Env.get('CAS_URI')
 
     this.application.container.bind(
