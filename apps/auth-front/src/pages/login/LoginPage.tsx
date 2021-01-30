@@ -26,7 +26,8 @@ export const LoginPage = memo(() => {
 
       console.log(data)
     } catch (e) {
-      return { username: 'Invalid login or password' }
+      console.log(e.response.status)
+      return { username: 'Invalid login or password', password: 'Invalid login or password' }
     }
   }, [])
 
