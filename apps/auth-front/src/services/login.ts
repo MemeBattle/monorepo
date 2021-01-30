@@ -18,12 +18,9 @@ interface SuccessAnswer {
   }
 }
 
-interface FailedAnswer {
-  success: false
-  error: {
-    errorCode: number
-    errorMessage: string
-  }
+export interface FailedAnswer {
+  errorCode: number
+  errorMessage: string
 }
 
-export const login = (credentials: LoginCredentials) => request.post<SuccessAnswer | FailedAnswer>('/auth/login', credentials)
+export const login = (credentials: LoginCredentials) => request.post<SuccessAnswer>('/auth/login', credentials)
