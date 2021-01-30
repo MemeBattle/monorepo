@@ -1,3 +1,3 @@
 import axios from 'axios'
 
-export const request = axios.create({ baseURL: 'localhost:3000/' })
+export const request = axios.create({ baseURL: 'http://localhost:3333/' })
