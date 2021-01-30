@@ -22,14 +22,9 @@ export const LoginPage = memo(() => {
 
   const handleSubmit = useCallback(async (values: LoginFormValues): Promise<LoginFormSubmissionError | undefined> => {
     try {
-      return { username: 'Invalid login or password' }
-
       const { data } = await login({ login: values.username, password: values.password })
 
-      /** Invalid login or  password */
-      if (data) {
-        return { username: 'Invalid login or password' }
-      }
+      console.log(data)
     } catch (e) {
       return { username: 'Invalid login or password' }
     }
