@@ -10,5 +10,5 @@ export const UserInfoContainer = () => {
     push(routes.AUTH)
   }, [])
 
-  return <UserInfo buttonText="sign up" onButtonClick={onButtonClick} onClick={onButtonClick} />
+  return <UserInfo buttonText="sign in" onButtonClick={onButtonClick} onClick={onButtonClick} />
 }
