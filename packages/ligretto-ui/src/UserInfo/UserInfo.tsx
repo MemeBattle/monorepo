@@ -25,7 +25,7 @@ const useStyles = makeStyles(theme =>
     },
     mainUserAvatar: {
       width: '12rem',
-      height: 'auto',
+      height: '12rem',
       maxHeight: '12rem',
       display: 'flex',
       cursor: 'pointer',
