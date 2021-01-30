@@ -26,4 +26,9 @@ export const t = {
       Also, please verify that you entered a valid email address in our sign-up form.
       If you need assistance, please contact us.`,
   },
+  profile: {
+    save: 'Save',
+    email: 'Email',
+    username: 'Username',
+  },
 } as const
