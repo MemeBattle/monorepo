@@ -20,7 +20,6 @@
     "node-sass": "^4.12.0",
     "react-scripts": "3.4.0",
     "react-test-renderer": "^16.9.0",
-    "redux-devtools-extension": "^2.13.8",
     "typescript": "^4.0.2"
   },
   "dependencies": {
@@ -28,6 +27,7 @@
     "@memebattle/ligretto-shared": "^1.0.6",
     "@memebattle/ligretto-ui": "^1.0.0",
     "@memebattle/redux-utils": "^1.0.2",
+    "@reduxjs/toolkit": "^1.5.0",
     "classnames": "^2.2.6",
     "connected-react-router": "^6.5.2",
     "history": "^4.9.0",
