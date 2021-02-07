@@ -1,1 +1,1 @@
-export { techReducer } from './reducer'
+export { techReducer } from './slice'
