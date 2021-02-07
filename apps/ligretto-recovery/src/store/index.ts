@@ -1,18 +1,26 @@
-import { applyMiddleware, createStore } from 'redux'
+import { configureStore, getDefaultMiddleware } from '@reduxjs/toolkit'
 import { routerMiddleware } from 'connected-react-router'
 import { createBrowserHistory } from 'history'
-import { composeWithDevTools } from 'redux-devtools-extension'
 import createSagaMiddleware from 'redux-saga'
 
-import createRootReducer from './root-reducer'
-import rootSaga from './root-saga'
+import createRootReducer from './rootReducer'
+import rootSaga from './rootSaga'
 
 const sagaMiddleware = createSagaMiddleware()
 
 export const history = createBrowserHistory()
 
-const middlewares = [routerMiddleware(history), sagaMiddleware]
+const middleware = [...getDefaultMiddleware({ serializableCheck: false, thunk: false }), routerMiddleware(history), sagaMiddleware]
 
-export const store = createStore(createRootReducer(history), {}, composeWithDevTools(applyMiddleware(...middlewares)))
+export const store = configureStore({ reducer: createRootReducer(history), devTools: process.env.NODE_ENV === 'development', middleware })
+
+if (process.env.NODE_ENV === 'development' && module.hot) {
+  module.hot.accept('./rootReducer', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const newRootReducer = require('./rootReducer').default
+
+    store.replaceReducer(newRootReducer)
+  })
+}
 
 sagaMiddleware.run(rootSaga)
