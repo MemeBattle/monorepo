@@ -1,5 +1,11 @@
 # MEMEBATTLE
 ### https://ligretto.atlassian.net/jira/software/projects/LIG/boards/1
+```
+cp .npmrc.example .npmrc
+Generate token 'https://github.com/settings/tokens' and enable write:packages
+```
+
+
 
 ```
 yarn
