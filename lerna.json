@@ -1,6 +1,6 @@
 {
   "packages": [
-    "apps/*",
+    "apps/**",
     "packages/**"
   ],
   "npmClient": "yarn",
