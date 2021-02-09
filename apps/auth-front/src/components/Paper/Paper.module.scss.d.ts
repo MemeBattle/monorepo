@@ -1,1 +1,1 @@
-export const paper: string;
+export const paper: string
