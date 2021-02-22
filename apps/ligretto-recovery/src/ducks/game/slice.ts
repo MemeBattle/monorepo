@@ -1,6 +1,6 @@
 import type { Game, GameResults, Player } from '@memebattle/ligretto-shared'
 import { GameStatus } from '@memebattle/ligretto-shared'
-import type { GameAction } from './types'
+import type {SetGameLoadedAction, SetGameResultAction, SetPlayerColor, UpdateGameAction} from './types'
 import { GameTypes } from './types'
 import { createSlice } from '@reduxjs/toolkit'
 
@@ -34,16 +34,16 @@ const gameReducerSlice = createSlice({
   initialState,
   reducers: {},
   extraReducers: (builder) => {
-    builder.addCase(GameTypes.UPDATE_GAME, (state, action: GameAction) => {
-      state.status = action.payload
+    builder.addCase(GameTypes.UPDATE_GAME, (state, action: UpdateGameAction) => {
+      action.payload
     })
-    builder.addCase(GameTypes.SET_PLAYER_ID, (state, action: GameAction) => {
+    builder.addCase(GameTypes.SET_PLAYER_ID, (state, action: SetPlayerColor) => {
       state.playerId = action.payload
     })
-    builder.addCase(GameTypes.SET_GAME_LOADED, (state, action: GameAction) => {
+    builder.addCase(GameTypes.SET_GAME_LOADED, (state, action: SetGameLoadedAction) => {
       state.isGameLoaded = action.payload
     })
-    builder.addCase(GameTypes.SET_GAME_RESULT, (state, action: GameAction) => {
+    builder.addCase(GameTypes.SET_GAME_RESULT, (state, action: SetGameResultAction) => {
       state.results = action.payload
     })
   },
