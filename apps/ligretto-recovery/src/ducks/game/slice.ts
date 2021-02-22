@@ -43,8 +43,10 @@ const gameReducerSlice = createSlice({
     builder.addCase(GameTypes.SET_GAME_LOADED, (state, action: GameAction) => {
       state.isGameLoaded = action.payload
     })
-    builder.addCase(GameTypes.SET_GAME_RESULT, (state, action:GameAction) => {
+    builder.addCase(GameTypes.SET_GAME_RESULT, (state, action: GameAction) => {
       state.results = action.payload
     })
   },
 })
+
+export const gameReducer = gameReducerSlice.reducer

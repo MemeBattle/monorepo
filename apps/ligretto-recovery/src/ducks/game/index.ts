@@ -1,4 +1,4 @@
-export { gameReducer } from './reducer'
+export { gameReducer } from './slice'
 export { gameRootSaga } from './sagas'
 export * from './selectors'
 export * from './actions'
