@@ -1,8 +1,16 @@
 import type { Game, GameResults, Player } from '@memebattle/ligretto-shared'
 import { GameStatus } from '@memebattle/ligretto-shared'
-import type {SetGameLoadedAction, SetGameResultAction, SetPlayerColor, UpdateGameAction} from './types'
-import { GameTypes } from './types'
-import { createSlice } from '@reduxjs/toolkit'
+import type { Action, PayloadAction } from '@reduxjs/toolkit'
+import { createAction, createSlice } from '@reduxjs/toolkit'
+
+export enum GameTypes {
+  UPDATE_GAME = '@@game/UPDATE_GAME',
+  TOGGLE_PLAYER_STATUS = '@@game/TOGGLE_PLAYER_STATUS',
+  SET_PLAYER_ID = '@@game/SET_PLAYER_ID',
+  START_GAME = '@@game/START_GAME',
+  SET_GAME_LOADED = '@@game/SET_GAME_LOADED',
+  SET_GAME_RESULT = '@@game/SET_GAME_RESULT',
+}
 
 export type GameState = {
   name: Game['name']
@@ -14,6 +22,8 @@ export type GameState = {
   results?: GameResults
   isGameLoaded: boolean
 }
+export type StartGameAction = Action<GameTypes.START_GAME>
+export type TogglePlayerStatusAction = Action<GameTypes.TOGGLE_PLAYER_STATUS>
 
 const initialState: GameState = {
   status: GameStatus.New,
@@ -28,25 +38,34 @@ const initialState: GameState = {
   playerId: '',
   results: undefined,
 }
+export const togglePlayerStatusAction = createAction<TogglePlayerStatusAction>(GameTypes.TOGGLE_PLAYER_STATUS)
+export const startGameAction = createAction<StartGameAction>(GameTypes.START_GAME)
 
 const gameReducerSlice = createSlice({
   name: 'gameReducer',
   initialState,
-  reducers: {},
-  extraReducers: (builder) => {
-    builder.addCase(GameTypes.UPDATE_GAME, (state, action: UpdateGameAction) => {
-      action.payload
-    })
-    builder.addCase(GameTypes.SET_PLAYER_ID, (state, action: SetPlayerColor) => {
+  reducers: {
+    setPlayerIdAction: (state, action: PayloadAction<string>) => {
       state.playerId = action.payload
-    })
-    builder.addCase(GameTypes.SET_GAME_LOADED, (state, action: SetGameLoadedAction) => {
+    },
+    updateGameAction: (
+      state,
+      action: PayloadAction<{
+        name: Game['name']
+        id: Game['id']
+        status: Game['status']
+        config: Game['config']
+        players: Game['players']
+      }>,
+    ) => ({ ...state, ...action.payload }),
+    setGameLoadedAction: (state, action: PayloadAction<boolean>) => {
       state.isGameLoaded = action.payload
-    })
-    builder.addCase(GameTypes.SET_GAME_RESULT, (state, action: SetGameResultAction) => {
+    },
+    setGameResultAction: (state, action: PayloadAction<GameResults>) => {
       state.results = action.payload
-    })
+    },
   },
 })
 
+export const { setPlayerIdAction, updateGameAction, setGameLoadedAction, setGameResultAction } = gameReducerSlice.actions
 export const gameReducer = gameReducerSlice.reducer
