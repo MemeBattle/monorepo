@@ -25,10 +25,10 @@ import {
   takeFromLigrettoDeckAction,
   takeFromStackDeckAction,
 } from '@memebattle/ligretto-shared'
-import { setGameLoadedAction, setGameResultAction, setPlayerIdAction, updateGameAction } from './actions'
+import { setGameLoadedAction, setGameResultAction, setPlayerIdAction, updateGameAction } from './slice'
 import { selectGameId, selectPlayerId, selectPlayerStatus } from './selectors'
 import { cardsActions, CardsTypes } from 'ducks/cards'
-import { GameTypes } from './types'
+import { GameTypes } from './slice'
 
 const opponentsPositionsOrder = [OpponentPositions.Left, OpponentPositions.Top, OpponentPositions.Right]
 
