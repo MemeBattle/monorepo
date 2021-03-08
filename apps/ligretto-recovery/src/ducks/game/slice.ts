@@ -40,8 +40,8 @@ const initialState: GameState = {
   playerId: '',
   results: undefined,
 }
-export const togglePlayerStatusAction = createAction('@@game/TOGGLE_PLAYER_STATUS')
-export const startGameAction = createAction('@@game/START_GAME')
+export const togglePlayerStatusAction = createAction('TogglePlayerStatusAction')
+export const startGameAction = createAction('StartGameAction')
 
 const gameSlice = createSlice({
   name: 'game',
