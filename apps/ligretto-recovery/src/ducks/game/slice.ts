@@ -2,7 +2,7 @@ import type { Game, GameResults, Player } from '@memebattle/ligretto-shared'
 import { GameStatus } from '@memebattle/ligretto-shared'
 import type { Action, PayloadAction } from '@reduxjs/toolkit'
 import { createAction, createSlice } from '@reduxjs/toolkit'
-
+/*
 export enum GameTypes {
   UPDATE_GAME = '@@game/UPDATE_GAME',
   TOGGLE_PLAYER_STATUS = '@@game/TOGGLE_PLAYER_STATUS',
@@ -11,6 +11,8 @@ export enum GameTypes {
   SET_GAME_LOADED = '@@game/SET_GAME_LOADED',
   SET_GAME_RESULT = '@@game/SET_GAME_RESULT',
 }
+Delete Enum
+ */
 
 export type GameState = {
   name: Game['name']
@@ -22,8 +24,8 @@ export type GameState = {
   results?: GameResults
   isGameLoaded: boolean
 }
-export type StartGameAction = Action<GameTypes.START_GAME>
-export type TogglePlayerStatusAction = Action<GameTypes.TOGGLE_PLAYER_STATUS>
+export type StartGameAction = Action<'@@game/START_GAME'>
+export type TogglePlayerStatusAction = Action<'@@game/TOGGLE_PLAYER_STATUS'>
 
 const initialState: GameState = {
   status: GameStatus.New,
@@ -38,11 +40,11 @@ const initialState: GameState = {
   playerId: '',
   results: undefined,
 }
-export const togglePlayerStatusAction = createAction<TogglePlayerStatusAction>(GameTypes.TOGGLE_PLAYER_STATUS)
-export const startGameAction = createAction<StartGameAction>(GameTypes.START_GAME)
+export const togglePlayerStatusAction = createAction('@@game/TOGGLE_PLAYER_STATUS')
+export const startGameAction = createAction('@@game/START_GAME')
 
-const gameReducerSlice = createSlice({
-  name: 'gameReducer',
+const gameSlice = createSlice({
+  name: 'game',
   initialState,
   reducers: {
     setPlayerIdAction: (state, action: PayloadAction<string>) => {
@@ -67,5 +69,5 @@ const gameReducerSlice = createSlice({
   },
 })
 
-export const { setPlayerIdAction, updateGameAction, setGameLoadedAction, setGameResultAction } = gameReducerSlice.actions
-export const gameReducer = gameReducerSlice.reducer
+export const { setPlayerIdAction, updateGameAction, setGameLoadedAction, setGameResultAction } = gameSlice.actions
+export const gameReducer = gameSlice.reducer
