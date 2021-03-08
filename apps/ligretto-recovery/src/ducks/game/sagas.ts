@@ -28,7 +28,6 @@ import {
 import { setGameLoadedAction, setGameResultAction, setPlayerIdAction, updateGameAction } from './slice'
 import { selectGameId, selectPlayerId, selectPlayerStatus } from './selectors'
 import { cardsActions, CardsTypes } from 'ducks/cards'
-import { GameTypes } from './slice'
 
 const opponentsPositionsOrder = [OpponentPositions.Left, OpponentPositions.Top, OpponentPositions.Right]
 
@@ -123,8 +122,8 @@ function* endRoundSaga({ payload }: EndRoundAction) {
 
 export function* gameRootSaga() {
   yield takeLatest(SharedGameTypes.UPDATE_GAME, gameUpdateSaga)
-  yield takeLatest(GameTypes.TOGGLE_PLAYER_STATUS, togglePlayerStatusSaga)
-  yield takeLatest(GameTypes.START_GAME, startGameSaga)
+  yield takeLatest('@@game/TOGGLE_PLAYER_STATUS', togglePlayerStatusSaga) // hardcode
+  yield takeLatest('@@game/START_GAME', startGameSaga) // hardcode
   yield takeEvery(CardsTypes.CardsTypes.TAP_CARD, handleCardPutSaga)
   yield takeEvery(GameplayTypes.END_ROUND, endRoundSaga)
   yield takeLatest([SharedRoomTypes.CONNECT_TO_ROOM_SUCCESS, SharedRoomTypes.CREATE_ROOM_SUCCESS], connectToRoomSuccessSaga)
