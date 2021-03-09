@@ -122,8 +122,8 @@ function* endRoundSaga({ payload }: EndRoundAction) {
 
 export function* gameRootSaga() {
   yield takeLatest(SharedGameTypes.UPDATE_GAME, gameUpdateSaga)
-  yield takeLatest(togglePlayerStatusAction.type, togglePlayerStatusSaga) // TODO:Need to see
-  yield takeLatest(startGameAction.type, startGameSaga) // TODO:Need to see
+  yield takeLatest(togglePlayerStatusAction.type, togglePlayerStatusSaga)
+  yield takeLatest(startGameAction.type, startGameSaga)
   yield takeEvery(CardsTypes.CardsTypes.TAP_CARD, handleCardPutSaga)
   yield takeEvery(GameplayTypes.END_ROUND, endRoundSaga)
   yield takeLatest([SharedRoomTypes.CONNECT_TO_ROOM_SUCCESS, SharedRoomTypes.CREATE_ROOM_SUCCESS], connectToRoomSuccessSaga)
