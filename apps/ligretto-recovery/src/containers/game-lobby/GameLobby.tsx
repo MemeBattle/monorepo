@@ -10,11 +10,11 @@ export const GameLobby = () => {
   const gameStatus = useSelector(selectGameStatus)
 
   const handleReadyToPlayButtonClick = React.useCallback(() => {
-    dispatch(typeof togglePlayerStatusAction())
+    dispatch(togglePlayerStatusAction())
   }, [dispatch])
 
   const handleStartGameClick = React.useCallback(() => {
-    dispatch(typeof startGameAction())
+    dispatch(startGameAction())
   }, [dispatch])
 
   return (
