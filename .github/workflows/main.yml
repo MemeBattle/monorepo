@@ -26,7 +26,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         registry: docker.pkg.github.com
-        repository: ${{ lowercase(github.repository) }}/base-monorepo
+        repository: ${{ github.repository.lowercase }}/base-monorepo
         tag_with_sha: true
         push: true
 
@@ -44,13 +44,13 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
         registry: docker.pkg.github.com
-        repository: ${{ lowercase(github.repository) }}/ligretto-frontend
+        repository: ${{ github.repository.lowercase }}/ligretto-frontend
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tag_with_sha: true
         # Path to the build context
         dockerfile: './apps/ligretto-recovery/Dockerfile'
         # Comma-delimited list of images to consider as cache sources
-        cache_froms: ${{ lowercase(github.repository) }}/base-monorepo
+        cache_froms: ${{ github.repository.lowercase }}/base-monorepo
         # Whether to push the image
         push: true
 
@@ -68,13 +68,13 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
         registry: docker.pkg.github.com
-        repository: ${{ lowercase(github.repository) }}/ligretto-backend
+        repository: ${{ github.repository.lowercase }}/ligretto-backend
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tag_with_sha: true
         # Path to the build context
         dockerfile: './apps/ligretto-backend/Dockerfile'
         # Comma-delimited list of images to consider as cache sources
-        cache_froms: ${{ lowercase(lowercase(lowercase(github.repository))) }}/base-monorepo
+        cache_froms: ${{ github.repository.lowercase }}/base-monorepo
         # Whether to push the image
         push: true
 
@@ -92,13 +92,13 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
         registry: docker.pkg.github.com
-        repository: ${{ lowercase(lowercase(github.repository)) }}/ligretto-ui
+        repository: ${{ github.repository.lowercase }}/ligretto-ui
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tag_with_sha: true
         # Path to the build context
         dockerfile: './packages/ligretto-ui/Dockerfile'
         # Comma-delimited list of images to consider as cache sources
-        cache_froms: ${{ lowercase(lowercase(github.repository)) }}/base-monorepo
+        cache_froms: ${{ github.repository.lowercase }}/base-monorepo
         # Whether to push the image
         push: true
 
