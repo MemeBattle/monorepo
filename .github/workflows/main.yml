@@ -27,6 +27,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         registry: docker.pkg.github.com
         repository: ${{ github.repository.lowercase }}/base
+        tag_with_sha: true
         push: true
 
 #  ligretto-frontend-image:
