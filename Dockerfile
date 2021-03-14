@@ -4,5 +4,5 @@ COPY ./ /memebattle
 WORKDIR /memebattle
 
 RUN apk add --no-cache git
-RUN yarn
-RUN yarn run common-packages:build
+#RUN yarn
+#RUN yarn run common-packages:build
