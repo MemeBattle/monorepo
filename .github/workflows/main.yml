@@ -39,15 +39,15 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build and push
       uses: docker/build-push-action@v1.1.0
-    with:
-      username: themezv
-      password: ${{ secrets.CI_REGISTRY_TOKEN }}
-      registry: ghcr.io
-      image: ligretto-frontend
-      push: true
-      tags: latest
-      dockerfile: './packages/ligretto-frontend/Dockerfile'
-  #      cache_froms: docker.pkg.github.com/memebattle/monorepo:base
+      with:
+        username: themezv
+        password: ${{ secrets.CI_REGISTRY_TOKEN }}
+        registry: ghcr.io
+        image: ligretto-frontend
+        push: true
+        tags: latest
+        dockerfile: './packages/ligretto-frontend/Dockerfile'
+    #      cache_froms: docker.pkg.github.com/memebattle/monorepo:base
 
   ligretto-backend-image:
 
