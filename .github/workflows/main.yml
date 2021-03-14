@@ -30,7 +30,6 @@ jobs:
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         registry: docker.pkg.github.com
         repository: docker.pkg.github.com/memebattle/monorepo:base
-        tag_with_sha: true
         push: true
 
   ligretto-frontend-image:
