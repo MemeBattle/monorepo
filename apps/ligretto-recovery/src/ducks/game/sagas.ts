@@ -25,10 +25,9 @@ import {
   takeFromLigrettoDeckAction,
   takeFromStackDeckAction,
 } from '@memebattle/ligretto-shared'
-import { setGameLoadedAction, setGameResultAction, setPlayerIdAction, updateGameAction } from './actions'
+import { setGameLoadedAction, setGameResultAction, setPlayerIdAction, startGameAction, togglePlayerStatusAction, updateGameAction } from './slice'
 import { selectGameId, selectPlayerId, selectPlayerStatus } from './selectors'
 import { cardsActions, CardsTypes } from 'ducks/cards'
-import { GameTypes } from './types'
 
 const opponentsPositionsOrder = [OpponentPositions.Left, OpponentPositions.Top, OpponentPositions.Right]
 
@@ -123,8 +122,8 @@ function* endRoundSaga({ payload }: EndRoundAction) {
 
 export function* gameRootSaga() {
   yield takeLatest(SharedGameTypes.UPDATE_GAME, gameUpdateSaga)
-  yield takeLatest(GameTypes.TOGGLE_PLAYER_STATUS, togglePlayerStatusSaga)
-  yield takeLatest(GameTypes.START_GAME, startGameSaga)
+  yield takeLatest(togglePlayerStatusAction.type, togglePlayerStatusSaga)
+  yield takeLatest(startGameAction.type, startGameSaga)
   yield takeEvery(CardsTypes.CardsTypes.TAP_CARD, handleCardPutSaga)
   yield takeEvery(GameplayTypes.END_ROUND, endRoundSaga)
   yield takeLatest([SharedRoomTypes.CONNECT_TO_ROOM_SUCCESS, SharedRoomTypes.CREATE_ROOM_SUCCESS], connectToRoomSuccessSaga)

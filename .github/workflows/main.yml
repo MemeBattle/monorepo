@@ -20,10 +20,10 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
         password: ${{ secrets.DOCKER_PASSWORD }}
-        # Docker repository to tag the image with
-        repository: themezv/memebattle-docker-repo
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: monorepobase
+        registry: docker.pkg.github.com
+        repository: docker.pkg.github.com/memebattle/monorepo/base-monorepo
+        tag_with_sha: true
         push: true
 
   ligretto-frontend-image:
@@ -37,25 +37,18 @@ jobs:
     - name: Build and push
       uses: docker/build-push-action@v1.1.0
       with:
-        # Username used to log in to a Docker registry. If not set then no login will occur
-        username: ${{ secrets.DOCKER_USERNAME }}
-        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        # Docker repository to tag the image with
-        repository: ${{ secrets.DOCKER_REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        registry: docker.pkg.github.com
+        repository: docker.pkg.github.com/memebattle/monorepo/ligretto-frontend
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: ligretto-frontend
+        tag_with_sha: true
         # Path to the build context
         dockerfile: './apps/ligretto-recovery/Dockerfile'
         # Comma-delimited list of images to consider as cache sources
-        cache_froms: ${{ secrets.DOCKER_REGISTRY }}:monorepobase
+        cache_froms: docker.pkg.github.com/memebattle/monorepo/base-monorepo
         # Whether to push the image
         push: true
-    - name: Notify swarm
-      uses: fjogeleit/http-request-action@v1.4.1
-      with:
-        # Request URL
-        url: http://mems.fun:9000/api/webhooks/8b2a2edb-3154-47bc-be6e-8847c70e48f0
 
   ligretto-backend-image:
 
@@ -68,25 +61,18 @@ jobs:
     - name: Build and push
       uses: docker/build-push-action@v1.1.0
       with:
-        # Username used to log in to a Docker registry. If not set then no login will occur
-        username: ${{ secrets.DOCKER_USERNAME }}
-        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        # Docker repository to tag the image with
-        repository: ${{ secrets.DOCKER_REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        registry: docker.pkg.github.com
+        repository: docker.pkg.github.com/memebattle/monorepo/ligretto-backend
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: ligretto-backend
+        tag_with_sha: true
         # Path to the build context
         dockerfile: './apps/ligretto-backend/Dockerfile'
         # Comma-delimited list of images to consider as cache sources
-        cache_froms: ${{ secrets.DOCKER_REGISTRY }}:monorepobase
+        cache_froms: docker.pkg.github.com/memebattle/monorepo/base-monorepo
         # Whether to push the image
         push: true
-    - name: Notify swarm
-      uses: fjogeleit/http-request-action@v1.4.1
-      with:
-        # Request URL
-        url: http://mems.fun:9000/api/webhooks/cbb9c4e0-d13c-431c-868e-b7a95138f9af
 
   ligretto-ui-image:
 
@@ -99,22 +85,35 @@ jobs:
     - name: Build and push
       uses: docker/build-push-action@v1.1.0
       with:
-        # Username used to log in to a Docker registry. If not set then no login will occur
-        username: ${{ secrets.DOCKER_USERNAME }}
-        # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        # Docker repository to tag the image with
-        repository: ${{ secrets.DOCKER_REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        registry: docker.pkg.github.com
+        repository: docker.pkg.github.com/memebattle/monorepo/ligretto-ui
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
-        tags: ligretto-ui
+        tag_with_sha: true
         # Path to the build context
         dockerfile: './packages/ligretto-ui/Dockerfile'
         # Comma-delimited list of images to consider as cache sources
-        cache_froms: ${{ secrets.DOCKER_REGISTRY }}:monorepobase
+        cache_froms: docker.pkg.github.com/memebattle/monorepo/base-monorepo
         # Whether to push the image
         push: true
-    - name: Notify swarm
-      uses: fjogeleit/http-request-action@v1.4.1
-      with:
-        # Request URL
-        url: http://mems.fun:9000/api/webhooks/ffbd15df-e5f6-4b6b-ac2c-cb736032006a
+
+  deploy:
+    needs: [ligretto-frontend-image, ligretto-ui-image, ligretto-backend-image]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout
+      - name: Setup SSH
+        uses: kielabokkie/ssh-key-and-known-hosts-action@v1.1.0
+        with:
+          ssh-private-key: ${{ secrets.AWS_CI_PRIVATE_KEY }}
+          ssh-host: mems.fun
+
+      - name: create docker context
+        run: docker context create remote --docker "host=ssh://ci@mems.fun"
+
+      - name: deploy stack
+        run: |
+          docker context use remote
+          env $(cat .env | grep ^[A-Z] | xargs) docker stack deploy --with-registry-auth --prune -c docker-compose.deploy.yml CAS

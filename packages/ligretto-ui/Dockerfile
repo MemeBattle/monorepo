@@ -1,4 +1,4 @@
-FROM themezv/memebattle-docker-repo:monorepobase as Build
+FROM docker.pkg.github.com/themezv/memebattle-docker-repo:monorepobase as Build
 
 WORKDIR /memebattle/packages/ligretto-ui/
 RUN yarn build-storybook
