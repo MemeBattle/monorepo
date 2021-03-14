@@ -14,8 +14,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Auth npm
-      run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}
-      @memebattle:registry=https://npm.pkg.github.com" >> .npmrc
+      run: |
+        echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
+        echo "@memebattle:registry=https://npm.pkg.github.com" >> .npmrc
+
     - name: CL
       run: cat .npmrc
     - name: Build and push
