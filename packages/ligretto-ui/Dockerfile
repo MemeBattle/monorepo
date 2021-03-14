@@ -1,7 +1,7 @@
-FROM docker.pkg.github.com/themezv/memebattle-docker-repo:monorepobase as Build
+FROM ghcr.io/memebattle/monorepo:latest as Build
 
 WORKDIR /memebattle/packages/ligretto-ui/
-RUN yarn build-storybook
+#RUN yarn build-storybook
 
 FROM nginx:latest
 COPY --from=Build /memebattle/packages/ligretto-ui/storybook-static /ligretto-ui/
