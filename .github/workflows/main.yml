@@ -39,6 +39,8 @@ jobs:
       with:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+        registry: docker.pkg.github.com
+        repository: ${{ github.repository }}/ligretto-frontend
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tag_with_sha: true
         # Path to the build context
@@ -61,6 +63,8 @@ jobs:
       with:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+        registry: docker.pkg.github.com
+        repository: ${{ github.repository }}/ligretto-backend
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tag_with_sha: true
         # Path to the build context
@@ -83,8 +87,8 @@ jobs:
       with:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-        # Docker repository to tag the image with
-        repository: ${{ secrets.DOCKER_REGISTRY }}
+        registry: docker.pkg.github.com
+        repository: ${{ github.repository }}/ligretto-ui
         # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
         tag_with_sha: true
         # Path to the build context
