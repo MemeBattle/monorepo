@@ -24,9 +24,9 @@ jobs:
         username: themezv
         password: ${{ secrets.CI_REGISTRY_TOKEN }}
         registry: ghcr.io
-        image: base
+        image: monorepo
         push: true
-        tags: latest
+        tags: base
 
 
   ligretto-frontend-image:
@@ -43,9 +43,9 @@ jobs:
         username: themezv
         password: ${{ secrets.CI_REGISTRY_TOKEN }}
         registry: ghcr.io
-        image: ligretto-frontend
+        image: monorepo
         push: true
-        tags: latest
+        tags: ligretto-frontend
         dockerfile: './apps/ligretto-recovery/Dockerfile'
     #      cache_froms: docker.pkg.github.com/memebattle/monorepo:base
 
@@ -63,9 +63,9 @@ jobs:
         username: themezv
         password: ${{ secrets.CI_REGISTRY_TOKEN }}
         registry: ghcr.io
-        image: ligretto-backend
+        image: monorepo
         push: true
-        tags: latest
+        tags: ligretto-backend
         dockerfile: './apps/ligretto-backend/Dockerfile'
   #        cache_froms: docker.pkg.github.com/memebattle/monorepo:base
 
@@ -83,9 +83,9 @@ jobs:
         username: themezv
         password: ${{ secrets.CI_REGISTRY_TOKEN }}
         registry: ghcr.io
-        image: ligretto-ui
+        image: monorepo
         push: true
-        tags: latest
+        tags: ligretto-ui
         dockerfile: './packages/ligretto-ui/Dockerfile'
 #        cache_froms: docker.pkg.github.com/memebattle/monorepo:base
 
