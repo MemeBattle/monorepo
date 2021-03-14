@@ -18,15 +18,11 @@ jobs:
         echo "//npm.pkg.github.com/:_authToken=7f09f0bac00cb50a95db24ad0ae3c76812e587f1" >> .npmrc
         echo "@memebattle:registry=https://npm.pkg.github.com" >> .npmrc
 
-    - name: CL
-      run: |
-        cat .npmrc
-        export CR_PAT=${{ secrets.CI_REGISTRY_TOKEN }}
-        echo $CR_PAT | docker login ghcr.io -u themezv --password-stdin
-
     - name: Build and push
       uses: docker/build-push-action@v1.1.0
       with:
+        username: themezv
+        password: ${{ secrets.CI_REGISTRY_TOKEN }}
         registry: ghcr.io
         repository: ghcr.io/memebattle/base
         push: true
