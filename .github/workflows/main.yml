@@ -29,62 +29,65 @@ jobs:
         tags: latest
 
 
-#  ligretto-frontend-image:
-#
-#    needs: prepare-base-image
-#
-#    runs-on: ubuntu-latest
-#
-#    steps:
-#    - uses: actions/checkout@v2
-#    - name: Build and push
-#      uses: docker/build-push-action@v1.1.0
-#      with:
-#        username: ${{ github.actor }}
-#        password: ${{ secrets.GITHUB_TOKEN }}
-#        registry: docker.pkg.github.com
-#        repository: docker.pkg.github.com/memebattle/monorepo:ligretto_frontend
-#        dockerfile: './apps/ligretto-recovery/Dockerfile'
+  ligretto-frontend-image:
+
+    needs: prepare-base-image
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build and push
+      uses: docker/build-push-action@v1.1.0
+    with:
+      username: themezv
+      password: ${{ secrets.CI_REGISTRY_TOKEN }}
+      registry: ghcr.io
+      image: ligretto-frontend
+      push: true
+      tags: latest
+      dockerfile: './packages/ligretto-frontend/Dockerfile'
+  #      cache_froms: docker.pkg.github.com/memebattle/monorepo:base
+
+  ligretto-backend-image:
+
+    needs: prepare-base-image
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build and push
+      uses: docker/build-push-action@v1.1.0
+      with:
+        username: themezv
+        password: ${{ secrets.CI_REGISTRY_TOKEN }}
+        registry: ghcr.io
+        image: ligretto-backend
+        push: true
+        tags: latest
+        dockerfile: './packages/ligretto-backend/Dockerfile'
+  #        cache_froms: docker.pkg.github.com/memebattle/monorepo:base
+
+  ligretto-ui-image:
+
+    needs: prepare-base-image
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build and push
+      uses: docker/build-push-action@v1.1.0
+      with:
+        username: themezv
+        password: ${{ secrets.CI_REGISTRY_TOKEN }}
+        registry: ghcr.io
+        image: ligretto-ui
+        push: true
+        tags: latest
+        dockerfile: './packages/ligretto-ui/Dockerfile'
 #        cache_froms: docker.pkg.github.com/memebattle/monorepo:base
-#        push: true
-#
-#  ligretto-backend-image:
-#
-#    needs: prepare-base-image
-#
-#    runs-on: ubuntu-latest
-#
-#    steps:
-#    - uses: actions/checkout@v2
-#    - name: Build and push
-#      uses: docker/build-push-action@v1.1.0
-#      with:
-#        username: ${{ github.actor }}
-#        password: ${{ secrets.GITHUB_TOKEN }}
-#        registry: docker.pkg.github.com
-#        repository: docker.pkg.github.com/memebattle/monorepo:ligretto_backend
-#        dockerfile: './apps/ligretto-backend/Dockerfile'
-#        cache_froms: docker.pkg.github.com/memebattle/monorepo:base
-#        push: true
-#
-#  ligretto-ui-image:
-#
-#    needs: prepare-base-image
-#
-#    runs-on: ubuntu-latest
-#
-#    steps:
-#    - uses: actions/checkout@v2
-#    - name: Build and push
-#      uses: docker/build-push-action@v1.1.0
-#      with:
-#        username: ${{ github.actor }}
-#        password: ${{ secrets.GITHUB_TOKEN }}
-#        registry: docker.pkg.github.com
-#        repository: docker.pkg.github.com/memebattle/monorepo:ligretto_ui
-#        dockerfile: './packages/ligretto-ui/Dockerfile'
-#        cache_froms: docker.pkg.github.com/memebattle/monorepo:base
-#        push: true
 
 #  deploy:
 #    needs: [ligretto-frontend-image, ligretto-ui-image, ligretto-backend-image]
