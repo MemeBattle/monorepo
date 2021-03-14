@@ -1,4 +1,4 @@
-FROM docker.pkg.github.com/MemeBattle/monorepo/base-monorepo
+FROM docker.pkg.github.com/memebattle/monorepo/base-monorepo
 
 ENV REACT_APP_WEBSOCKET_HOST=https://api-new.ligretto.app
 WORKDIR /memebattle/apps/ligretto-recovery/
