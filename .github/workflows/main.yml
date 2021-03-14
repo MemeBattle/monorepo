@@ -105,22 +105,22 @@ jobs:
         # Whether to push the image
         push: true
 
-  deploy:
-    needs: [ligretto-frontend-image, ligretto-ui-image, ligretto-backend-image]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        name: Checkout
-      - name: Setup SSH
-        uses: kielabokkie/ssh-key-and-known-hosts-action@v1.1.0
-        with:
-          ssh-private-key: ${{ secrets.AWS_CI_PRIVATE_KEY }}
-          ssh-host: mems.fun
-
-      - name: create docker context
-        run: docker context create remote --docker "host=ssh://ci@mems.fun"
-
-      - name: deploy stack
-        run: |
-          docker context use remote
-          env $(cat .env | grep ^[A-Z] | xargs) docker stack deploy --with-registry-auth --prune -c docker-compose.deploy.yml CAS
+#  deploy:
+#    needs: [ligretto-frontend-image, ligretto-ui-image, ligretto-backend-image]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
+#        name: Checkout
+#      - name: Setup SSH
+#        uses: kielabokkie/ssh-key-and-known-hosts-action@v1.1.0
+#        with:
+#          ssh-private-key: ${{ secrets.AWS_CI_PRIVATE_KEY }}
+#          ssh-host: mems.fun
+#
+#      - name: create docker context
+#        run: docker context create remote --docker "host=ssh://ci@mems.fun"
+#
+#      - name: deploy stack
+#        run: |
+#          docker context use remote
+#          env $(cat .env | grep ^[A-Z] | xargs) docker stack deploy --with-registry-auth --prune -c docker-compose.deploy.yml CAS
