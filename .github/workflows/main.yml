@@ -24,7 +24,7 @@ jobs:
         username: themezv
         password: ${{ secrets.CI_REGISTRY_TOKEN }}
         registry: ghcr.io
-        repository: ghcr.io/themezv/base
+        repository: ghcr.io/themezv/base:latest
         push: true
 
 #  ligretto-frontend-image:
