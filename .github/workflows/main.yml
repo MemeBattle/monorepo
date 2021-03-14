@@ -46,7 +46,7 @@ jobs:
         image: ligretto-frontend
         push: true
         tags: latest
-        dockerfile: './packages/ligretto-frontend/Dockerfile'
+        dockerfile: './apps/ligretto-recovery/Dockerfile'
     #      cache_froms: docker.pkg.github.com/memebattle/monorepo:base
 
   ligretto-backend-image:
@@ -66,7 +66,7 @@ jobs:
         image: ligretto-backend
         push: true
         tags: latest
-        dockerfile: './packages/ligretto-backend/Dockerfile'
+        dockerfile: './apps/ligretto-backend/Dockerfile'
   #        cache_froms: docker.pkg.github.com/memebattle/monorepo:base
 
   ligretto-ui-image:
