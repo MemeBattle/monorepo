@@ -1,4 +1,4 @@
-FROM themezv/memebattle-docker-repo:monorepobase
+FROM docker.pkg.github.com/MemeBattle/monorepo/base-monorepo
 
 WORKDIR /memebattle/apps/ligretto-backend
 
