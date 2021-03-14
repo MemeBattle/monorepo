@@ -24,7 +24,7 @@ jobs:
         username: themezv
         password: ${{ secrets.CI_REGISTRY_TOKEN }}
         registry: ghcr.io
-        repository: ghcr.io/memebattle/base
+        repository: ghcr.io/themezv/base
         push: true
 
 #  ligretto-frontend-image:
