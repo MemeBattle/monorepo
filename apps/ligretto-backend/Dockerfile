@@ -1,4 +1,4 @@
-FROM ghcr.io/memebattle/monorepo:latest
+FROM ghcr.io/memebattle/monorepo:base
 
 WORKDIR /memebattle/apps/ligretto-backend
 
@@ -6,5 +6,5 @@ ENV SOCKET_PORT=3005
 
 EXPOSE $SOCKET_PORT
 
-#RUN yarn build
-#CMD node build/index.js
+RUN yarn build
+CMD node build/index.js
