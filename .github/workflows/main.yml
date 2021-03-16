@@ -40,7 +40,7 @@ jobs:
         username: themezv
         password: ${{ secrets.CI_REGISTRY_TOKEN }}
         registry: ghcr.io
-        platforms: linux/arm64,linux/amd64
+        platforms: linux/arm64
         image: monorepo
         push: true
         tags: base
