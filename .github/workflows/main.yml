@@ -29,12 +29,12 @@ jobs:
 #        restore-keys: |
 #          ${{ runner.os }}-buildx-
 
-    - name: Auth npm
-      run: |
-        echo "//npm.pkg.github.com/:_authToken=${{ secrets.CI_REGISTRY_TOKEN }}" >> .npmrc
-        echo "@memebattle:registry=https://npm.pkg.github.com" >> .npmrc
-        cat .npmrc
-        yarn
+#    - name: Auth npm
+#      run: |
+#        echo "//npm.pkg.github.com/:_authToken=${{ secrets.CI_REGISTRY_TOKEN }}" >> .npmrc
+#        echo "@memebattle:registry=https://npm.pkg.github.com" >> .npmrc
+#        cat .npmrc
+#        yarn
 
     - name: Build and push
       uses: docker/build-push-action@v2
@@ -46,6 +46,8 @@ jobs:
         image: monorepo
         push: true
         tags: base
+        secrets: |
+          GIT_AUTH_TOKEN=${{ secrets.CI_REGISTRY_TOKEN }}
 #        cache-from: type=local,src=/tmp/.buildx-cache
 #        cache-to: type=local,dest=/tmp/.buildx-cache-new
 #    - # Temp fix
