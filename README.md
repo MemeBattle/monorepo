@@ -1,32 +1,43 @@
-# MEMEBATTLE
-### https://ligretto.atlassian.net/jira/software/projects/LIG/boards/1
+# Ligretto
+
+## Common information
+Task manager: https://ligretto.atlassian.net/jira/software/projects/LIG/boards/1
+
+## First prepare
+
+### Github credentials
+1. Copy .npmrc.example to .npmrc
 ```
 cp .npmrc.example .npmrc
-Generate token 'https://github.com/settings/tokens' and enable write:packages
 ```
+2. Generate token 'https://github.com/settings/tokens' and enable write:packages
+3. Replace token on yours in .npmrc
 
-
-
+### Common dependencies
+1. Install dependencies
 ```
 yarn
 ```
-
+2. Build common packages
 ```
 yarn common-packages:build
 ```
 
+### Prepare ligretto-backend (optional)
 In ligretto-backend package run init:partner
 ```
 cd apps/ligretto-backend
 yarn run init:partner
 ```
-
+## Start all
+You need prepare all applications before (ligretto-backend, ligretto-frontend)
 ```
 yarn ligretto:start
 ```
 
+## Install new packages
 ```
-lerna add <package> --scope @memebattle/memebattle
+lerna add <package> --scope @memebattle/{{package-name}}
 ```
 
 ## Templates
