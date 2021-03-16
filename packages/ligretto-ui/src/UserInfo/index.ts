@@ -1,1 +1,1 @@
-export { UserInfo, UserInfoProps } from './UserInfo'
+export * from './UserInfo'
