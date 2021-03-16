@@ -31,8 +31,9 @@ jobs:
 
     - name: Auth npm
       run: |
-        echo "//npm.pkg.github.com/:_authToken=7f09f0bac00cb50a95db24ad0ae3c76812e587f1" >> .npmrc
+        echo "//npm.pkg.github.com/:_authToken=${{ secrets.CI_REGISTRY_TOKEN }}" >> .npmrc
         echo "@memebattle:registry=https://npm.pkg.github.com" >> .npmrc
+        cat .npmrc
 
     - name: Build and push
       uses: docker/build-push-action@v2
