@@ -1,5 +1,8 @@
 module.exports = {
   addons: ['@storybook/addon-essentials'],
+  core: {
+    builder: "webpack5",
+  },
   stories: ['../src/**/*.stories.[tj]sx'],
   typescript: {
     reactDocgen: 'react-docgen-typescript',
@@ -21,7 +24,6 @@ module.exports = {
       test: /\.(woff|woff2|eot|ttf)$/,
       use: [
         'file-loader',
-        'image-webpack-loader'
       ],
     })
     return config
