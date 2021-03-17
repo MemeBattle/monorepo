@@ -6,21 +6,19 @@ import type { GameService } from '../entities/game/game.service'
 import type { PlayerService } from '../entities/player/player.service'
 import type { UserService } from '../entities/user'
 import type {
-  CreateRoomEmitAction,
-  SearchRoomsEmitAction,
-  ConnectToRoomEmitAction,
   Game,
-  SetPlayerStatusEmitAction,
 } from '@memebattle/ligretto-shared'
 import {
   searchRoomsFinishAction,
-  RoomsTypes,
   updateRooms,
   connectToRoomSuccessAction,
   connectToRoomErrorAction,
   createRoomSuccessAction,
   updateGameAction,
-  GameTypes,
+  createRoomEmitAction,
+  searchRoomsEmitAction,
+  connectToRoomEmitAction,
+  setPlayerStatusEmitAction
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
@@ -34,13 +32,13 @@ export class GamesController extends Controller {
   @inject(IOC_TYPES.UserService) private userService: UserService
 
   handlers = {
-    [RoomsTypes.CREATE_ROOM_EMIT]: (socket, action) => this.createGame(socket, action),
-    [RoomsTypes.SEARCH_ROOMS_EMIT]: (socket, action) => this.searchRooms(socket, action),
-    [RoomsTypes.CONNECT_TO_ROOM_EMIT]: (socket, action) => this.joinGame(socket, action),
-    [GameTypes.SET_PLAYER_STATUS_EMIT]: (socket, action) => this.setPlayerStatus(socket, action),
+    [createRoomEmitAction.type]: (socket, action) => this.createGame(socket, action),
+    [searchRoomsEmitAction.type]: (socket, action) => this.searchRooms(socket, action),
+    [connectToRoomEmitAction.type]: (socket, action) => this.joinGame(socket, action),
+    [setPlayerStatusEmitAction.type]: (socket, action) => this.setPlayerStatus(socket, action),
   }
 
-  private async createGame(socket: Socket, action: CreateRoomEmitAction) {
+  private async createGame(socket: Socket, action: ReturnType<typeof createRoomEmitAction>) {
     const newGame = await this.gameService.createGame(action.payload.name)
     const { game } = await this.gameService.addPlayer(newGame.id, { isHost: true, id: socket.id })
     await this.userService.enterGame(socket.id, game.id)
@@ -49,7 +47,7 @@ export class GamesController extends Controller {
     socket.join(game.id)
   }
 
-  private async searchRooms(socket: Socket, action: SearchRoomsEmitAction) {
+  private async searchRooms(socket: Socket, action: ReturnType<typeof searchRoomsEmitAction>) {
     socket.join(SOCKET_ROOM_LOBBY)
 
     const games = await this.gameService.findGames(action.payload.search)
@@ -69,7 +67,7 @@ export class GamesController extends Controller {
    * @param socket
    * @param action
    */
-  private async joinGame(socket: Socket, action: ConnectToRoomEmitAction) {
+  private async joinGame(socket: Socket, action: ReturnType<typeof connectToRoomEmitAction>) {
     const roomUuid = action.payload.roomUuid
 
     const game: Game = await this.gameService.getGame(roomUuid)
@@ -91,7 +89,7 @@ export class GamesController extends Controller {
     socket.leave(SOCKET_ROOM_LOBBY)
   }
 
-  private async setPlayerStatus(socket: Socket, { payload }: SetPlayerStatusEmitAction) {
+  private async setPlayerStatus(socket: Socket, { payload }: ReturnType<typeof setPlayerStatusEmitAction>) {
     const { gameId, status } = payload
 
     const game = await this.gameService.updateGamePlayer(gameId, socket.id, { status })
