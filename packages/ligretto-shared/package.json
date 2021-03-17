@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@memebattle/redux-utils": "^1.0.2",
+    "@reduxjs/toolkit": "^1.5.0",
     "typescript": "^4.0.2"
   },
   "gitHead": "c0f6bd6a4648db4b6372684434c65cad8ae280c4",

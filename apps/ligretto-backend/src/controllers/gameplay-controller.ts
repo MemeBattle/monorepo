@@ -3,14 +3,9 @@ import type { Socket } from 'socket.io'
 import { mapValues } from 'lodash'
 import { Controller } from './controller'
 import type {
-  StartGameEmitAction,
-  PutCardAction,
-  TakeFromLigrettoDeckAction,
-  TakeFromStackDeckAction,
-  PutCardFromStackOpenDeck,
   Game,
 } from '@memebattle/ligretto-shared'
-import { GameplayTypes, updateGameAction, endRoundAction } from '@memebattle/ligretto-shared'
+import { updateGameAction, endRoundAction, putCardAction, putCardFromStackOpenDeck, startGameEmitAction, takeFromLigrettoDeckAction, takeFromStackDeckAction } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../IOC_TYPES'
 import type { Gameplay } from '../gameplay/gameplay'
 import type { GameService } from '../entities/game/game.service'
@@ -21,11 +16,11 @@ export class GameplayController extends Controller {
   @inject(IOC_TYPES.GameService) private gameService: GameService
 
   handlers = {
-    [GameplayTypes.START_GAME]: (socket, action) => this.startGame(socket, action),
-    [GameplayTypes.PUT_CARD]: (socket: Socket, action) => this.putCard(socket, action),
-    [GameplayTypes.TAKE_FROM_LIGRETTO_DECK]: (socket: Socket, action) => this.takeCardFromLigrettoDeck(socket, action),
-    [GameplayTypes.PUT_CARD_FROM_STACK_OPEN_DECK]: (socket: Socket, action) => this.putCardFromStackOpenDeck(socket, action),
-    [GameplayTypes.TAKE_FROM_STACK_DECK]: (socket: Socket, action) => this.takeCardFromStackDeck(socket, action),
+    [startGameEmitAction.type]: (socket, action) => this.startGame(socket, action),
+    [putCardAction.type]: (socket: Socket, action) => this.putCard(socket, action),
+    [takeFromLigrettoDeckAction.type]: (socket: Socket, action) => this.takeCardFromLigrettoDeck(socket, action),
+    [putCardFromStackOpenDeck.type]: (socket: Socket, action) => this.putCardFromStackOpenDeck(socket, action),
+    [takeFromStackDeckAction.type]: (socket: Socket, action) => this.takeCardFromStackDeck(socket, action),
   }
 
   private async updateGame(socket: Socket, gameId: string, gameState?: Game) {
@@ -35,7 +30,7 @@ export class GameplayController extends Controller {
     socket.emit('event', action)
   }
 
-  private async startGame(socket: Socket, action: StartGameEmitAction) {
+  private async startGame(socket: Socket, action: ReturnType<typeof startGameEmitAction>) {
     const gameId = action.payload.gameId
 
     await this.gameplay.startGame(gameId)
@@ -43,14 +38,14 @@ export class GameplayController extends Controller {
     await this.updateGame(socket, gameId)
   }
 
-  private async putCard(socket: Socket, action: PutCardAction) {
+  private async putCard(socket: Socket, action: ReturnType<typeof putCardAction>) {
     const { gameId, cardIndex } = action.payload
 
     await this.gameplay.playerPutCard(gameId, socket.id, cardIndex)
     await this.updateGame(socket, gameId)
   }
 
-  private async takeCardFromLigrettoDeck(socket: Socket, action: TakeFromLigrettoDeckAction) {
+  private async takeCardFromLigrettoDeck(socket: Socket, action: ReturnType<typeof takeFromLigrettoDeckAction>) {
     const { gameId } = action.payload
 
     const [game, roundResults] = await this.gameplay.playerTakeFromLigrettoDeck(gameId, socket.id)
@@ -63,7 +58,7 @@ export class GameplayController extends Controller {
     }
   }
 
-  private async takeCardFromStackDeck(socket: Socket, action: TakeFromStackDeckAction) {
+  private async takeCardFromStackDeck(socket: Socket, action: ReturnType<typeof takeFromStackDeckAction>) {
     const { gameId } = action.payload
 
     console.log('takeCardFromStackDeck', action)
@@ -71,7 +66,7 @@ export class GameplayController extends Controller {
     await this.updateGame(socket, gameId)
   }
 
-  private async putCardFromStackOpenDeck(socket: Socket, action: PutCardFromStackOpenDeck) {
+  private async putCardFromStackOpenDeck(socket: Socket, action: ReturnType<typeof putCardFromStackOpenDeck>) {
     const { gameId } = action.payload
     console.log('putCardFromStackOpenDeck', action)
     await this.gameplay.playerPutFromStackOpenDeck(gameId, socket.id)

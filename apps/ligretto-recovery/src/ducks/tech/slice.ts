@@ -1,5 +1,5 @@
-import type { Game, UpdateGameAction } from '@memebattle/ligretto-shared'
-import { GameTypes } from '@memebattle/ligretto-shared'
+import type { Game } from '@memebattle/ligretto-shared'
+import { updateGameAction } from '@memebattle/ligretto-shared'
 import { createSlice } from '@reduxjs/toolkit'
 
 export type TechState = {
@@ -15,7 +15,7 @@ const techSlice = createSlice({
   initialState,
   reducers: {},
   extraReducers: builder => {
-    builder.addCase(GameTypes.UPDATE_GAME, (state, action: UpdateGameAction) => {
+    builder.addCase(updateGameAction.type, (state, action: ReturnType<typeof updateGameAction>) => {
       state.game = action.payload
     })
   },

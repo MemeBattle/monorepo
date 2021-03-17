@@ -2,13 +2,18 @@ import { takeLatest, take, put, select } from 'redux-saga/effects'
 import type { ConnectToRoomAction, CreateRoomAction, SearchRoomsAction } from './types'
 import { RoomsTypes } from './types'
 import { connectToRoomAction, searchRoomsAction, updateRoomsAction, setRoomsAction } from './actions'
-import type {
-  SearchRoomsFinishAction,
-  UpdateRooms as UpdateRoomsFromServer,
-  ConnectToRoomSuccessAction as ConnectToRoomSuccessActionShared,
-  CreateRoomSuccessAction,
+import {
+  createRoomEmitAction,
+  searchRoomsEmitAction,
+  connectToRoomEmitAction,
+  searchRoomsFinishAction,
+  updateRooms as updateRoomsFromServer,
+  connectToRoomSuccessAction as connectToRoomSuccessActionShared,
+  createRoomSuccessAction,
+  updateRooms,
+  connectToRoomErrorAction,
+  connectToRoomSuccessAction,
 } from '@memebattle/ligretto-shared'
-import { createRoomEmitAction, searchRoomsEmitAction, connectToRoomEmitAction, RoomsTypes as RoomsTypesShared } from '@memebattle/ligretto-shared'
 import type { LocationChangeAction } from 'connected-react-router'
 import { LOCATION_CHANGE, replace, push } from 'connected-react-router'
 import { matchPath, generatePath } from 'react-router-dom'
@@ -29,7 +34,7 @@ import { selectSearch } from './selectors'
 function* searchRoomsSaga(action: SearchRoomsAction) {
   yield put(searchRoomsEmitAction({ search: action.payload.search }))
   while (true) {
-    const finishAction: SearchRoomsFinishAction = yield take(RoomsTypesShared.SEARCH_ROOMS_FINISH)
+    const finishAction: ReturnType<typeof searchRoomsFinishAction> = yield take(searchRoomsFinishAction.type)
     if (finishAction.payload.search === action.payload.search) {
       yield put(setRoomsAction(finishAction.payload))
       return
@@ -60,7 +65,7 @@ function* searchRoomsRouteWatcher(action: LocationChangeAction) {
   }
 }
 
-function* updateRoomsFromServerSaga(action: UpdateRoomsFromServer) {
+function* updateRoomsFromServerSaga(action: ReturnType<typeof updateRoomsFromServer>) {
   const search: ReturnType<typeof selectSearch> = yield select(selectSearch)
   const rooms = action.payload.rooms.filter(({ name }) => name.includes(search))
   yield put(updateRoomsAction({ rooms }))
@@ -70,11 +75,11 @@ function* connectToRoomError() {
   yield put(replace(routes.ROOMS))
 }
 
-function* createRoomSuccessSaga(action: CreateRoomSuccessAction) {
+function* createRoomSuccessSaga(action: ReturnType<typeof createRoomSuccessAction>) {
   yield put(push(generatePath(routes.GAME, { roomUuid: action.payload.game.id })))
 }
 
-function* connectToRoomSuccessSaga(action: ConnectToRoomSuccessActionShared) {
+function* connectToRoomSuccessSaga(action: ReturnType<typeof connectToRoomSuccessActionShared>) {
   yield put(push(generatePath(routes.GAME, { roomUuid: action.payload.game.id })))
 }
 
@@ -82,10 +87,10 @@ export function* roomsRootSaga() {
   yield takeLatest(RoomsTypes.SEARCH_ROOMS, searchRoomsSaga)
   yield takeLatest(RoomsTypes.CREATE_ROOM, createRoomSaga)
   yield takeLatest(RoomsTypes.CONNECT_TO_ROOM, connectToRoomSaga)
-  yield takeLatest(RoomsTypesShared.UPDATE_ROOMS_LIST, updateRoomsFromServerSaga)
-  yield takeLatest(RoomsTypesShared.CONNECT_TO_ROOM_ERROR, connectToRoomError)
+  yield takeLatest(updateRooms.type, updateRoomsFromServerSaga)
+  yield takeLatest(connectToRoomErrorAction.type, connectToRoomError)
   yield takeLatest(LOCATION_CHANGE, gameRouteWatcher)
   yield takeLatest(LOCATION_CHANGE, searchRoomsRouteWatcher)
-  yield takeLatest(RoomsTypesShared.CREATE_ROOM_SUCCESS, createRoomSuccessSaga)
-  yield takeLatest(RoomsTypesShared.CONNECT_TO_ROOM_SUCCESS, connectToRoomSuccessSaga)
+  yield takeLatest(createRoomSuccessAction.type, createRoomSuccessSaga)
+  yield takeLatest(connectToRoomSuccessAction.type, connectToRoomSuccessSaga)
 }
