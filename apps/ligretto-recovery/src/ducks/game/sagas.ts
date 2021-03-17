@@ -1,31 +1,31 @@
 import { call, put, select, takeEvery, takeLatest } from 'redux-saga/effects'
 import { opponentToCardsMapper, playerToCardsMapper, tableCardsMapper } from 'utils'
 import { without } from 'lodash'
-import type {
-  Card,
-  ConnectToRoomSuccessAction,
-  CreateRoomSuccessAction,
-  Game,
-  Player,
-  EndRoundAction,
-  UpdateGameAction,
-} from '@memebattle/ligretto-shared'
+import type { Card, Game, Player } from '@memebattle/ligretto-shared'
 import {
   CardPositions,
   GameStatus,
-  GameTypes as SharedGameTypes,
   OpponentPositions,
   PlayerStatus,
-  GameplayTypes,
   putCardAction,
   putCardFromStackOpenDeck,
-  RoomsTypes as SharedRoomTypes,
   setPlayerStatusEmitAction,
   startGameEmitAction,
   takeFromLigrettoDeckAction,
   takeFromStackDeckAction,
+  createRoomSuccessAction,
+  connectToRoomSuccessAction,
+  endRoundAction,
+  updateGameAction,
 } from '@memebattle/ligretto-shared'
-import { setGameLoadedAction, setGameResultAction, setPlayerIdAction, startGameAction, togglePlayerStatusAction, updateGameAction } from './slice'
+import {
+  setGameLoadedAction,
+  setGameResultAction,
+  setPlayerIdAction,
+  startGameAction,
+  togglePlayerStatusAction,
+  updateGameAction as updateGameSliceAction,
+} from './slice'
 import { selectGameId, selectPlayerId, selectPlayerStatus } from './selectors'
 import { cardsActions, CardsTypes } from 'ducks/cards'
 
@@ -64,9 +64,9 @@ function* gameCardsUpdate(game: Game) {
   yield put(cardsActions.pushCardsAction(cards))
 }
 
-function* gameUpdateSaga(action: UpdateGameAction) {
+function* gameUpdateSaga(action: ReturnType<typeof updateGameAction>) {
   const game = action.payload
-  yield put(updateGameAction(game))
+  yield put(updateGameSliceAction(game))
 
   if (game.status === GameStatus.InGame) {
     yield call(gameCardsUpdate, action.payload)
@@ -82,8 +82,8 @@ function* togglePlayerStatusSaga() {
   yield put(setPlayerStatusEmitAction({ status, gameId }))
 }
 
-function* connectToRoomSuccessSaga(action: ConnectToRoomSuccessAction | CreateRoomSuccessAction) {
-  yield put(updateGameAction(action.payload.game))
+function* connectToRoomSuccessSaga(action: ReturnType<typeof connectToRoomSuccessAction> | ReturnType<typeof createRoomSuccessAction>) {
+  yield put(updateGameSliceAction(action.payload.game))
   yield put(setPlayerIdAction(action.payload.playerId))
   yield put(setGameLoadedAction(true))
 }
@@ -116,15 +116,15 @@ function* handleCardPutSaga(action: CardsTypes.TapCardAction) {
   }
 }
 
-function* endRoundSaga({ payload }: EndRoundAction) {
+function* endRoundSaga({ payload }: ReturnType<typeof endRoundAction>) {
   yield put(setGameResultAction(payload))
 }
 
 export function* gameRootSaga() {
-  yield takeLatest(SharedGameTypes.UPDATE_GAME, gameUpdateSaga)
+  yield takeLatest(updateGameAction.type, gameUpdateSaga)
   yield takeLatest(togglePlayerStatusAction.type, togglePlayerStatusSaga)
   yield takeLatest(startGameAction.type, startGameSaga)
   yield takeEvery(CardsTypes.CardsTypes.TAP_CARD, handleCardPutSaga)
-  yield takeEvery(GameplayTypes.END_ROUND, endRoundSaga)
-  yield takeLatest([SharedRoomTypes.CONNECT_TO_ROOM_SUCCESS, SharedRoomTypes.CREATE_ROOM_SUCCESS], connectToRoomSuccessSaga)
+  yield takeEvery(endRoundAction.type, endRoundSaga)
+  yield takeLatest([connectToRoomSuccessAction.type, createRoomSuccessAction.type], connectToRoomSuccessSaga)
 }

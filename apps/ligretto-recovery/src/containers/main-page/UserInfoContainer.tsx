@@ -8,7 +8,7 @@ export const UserInfoContainer = () => {
 
   const onButtonClick = useCallback(() => {
     push(routes.AUTH)
-  }, [])
+  }, [push])
 
   return <UserInfo buttonText="sign in" onButtonClick={onButtonClick} onClick={onButtonClick} />
 }
