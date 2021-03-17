@@ -1,8 +1,7 @@
 import { injectable, inject } from 'inversify'
 import type { Socket } from 'socket.io'
 import { Controller } from './controller'
-import type { TechConnectToGame } from '@memebattle/ligretto-shared'
-import { TechTypes, updateGameAction } from '@memebattle/ligretto-shared'
+import { updateGameAction, techConnectToGame } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../IOC_TYPES'
 import type { GameplayOutput } from '../gameplay/gameplay-output'
 
@@ -11,10 +10,10 @@ export class TechController extends Controller {
   @inject(IOC_TYPES.GameplayOutput) private gameplayOutput: GameplayOutput
 
   handlers = {
-    [TechTypes.CONNECT_TO_GAME]: (socket: Socket, action: TechConnectToGame) => this.techConnectToGame(socket, action),
+    [techConnectToGame.type]: (socket: Socket, action: ReturnType<typeof techConnectToGame>) => this.techConnectToGame(socket, action),
   }
 
-  private async techConnectToGame(socket: Socket, action: TechConnectToGame) {
+  private async techConnectToGame(socket: Socket, action: ReturnType<typeof techConnectToGame>) {
     const gameId = action.payload.gameId
     console.log('techConnectToGame', gameId)
     socket.join(gameId)
