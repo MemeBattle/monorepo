@@ -44,3 +44,11 @@ storybook-static
 
 .npmrc
 *.pem
+
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
