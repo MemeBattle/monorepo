@@ -44,7 +44,7 @@
     "@storybook/builder-webpack5": "^6.2.0-rc.1",
     "@storybook/react": "^6.2.0-rc.1",
     "@types/node": "^14.14.12",
-    "@types/react": "^17.0.0",
+    "@types/react": "^17.0.3",
     "babel-loader": "^8.1.0",
     "hygen": "^6.0.4",
     "react-docgen-typescript-loader": "^3.7.2",
