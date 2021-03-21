@@ -1,5 +1,5 @@
-import type { RoomsActions } from './types'
-import { RoomsTypes } from './types'
+import type { RoomsActions } from './slice'
+import { RoomsTypes } from './typesOLD'
 import type { Room } from '@memebattle/ligretto-shared'
 import uniq from 'lodash/uniq'
 

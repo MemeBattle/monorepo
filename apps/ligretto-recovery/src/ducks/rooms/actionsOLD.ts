@@ -1,6 +1,6 @@
 import { createAction } from '@memebattle/redux-utils'
-import type { ConnectToRoomAction, SearchRoomsAction, UpdateRoomsAction, SetRoomsAction, CreateRoomAction } from './types'
-import { RoomsTypes } from './types'
+import type { ConnectToRoomAction, SearchRoomsAction, UpdateRoomsAction, SetRoomsAction, CreateRoomAction } from './typesOLD'
+import { RoomsTypes } from './typesOLD'
 
 export const connectToRoomAction = createAction<ConnectToRoomAction>(RoomsTypes.CONNECT_TO_ROOM)
 export const searchRoomsAction = createAction<SearchRoomsAction>(RoomsTypes.SEARCH_ROOMS)
