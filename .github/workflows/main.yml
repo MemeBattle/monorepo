@@ -8,113 +8,104 @@ jobs:
 
   prepare-base-image:
 
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v1
-
-    - name: Set up Docker Buildx
-      id: buildx
-      uses: docker/setup-buildx-action@v1
-
-    - name: Cache Docker layers
-      uses: actions/cache@v2
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
-
-    - name: Auth npm
+    - name: Install dependencies
       run: |
-        echo "//npm.pkg.github.com/:_authToken=${{ secrets.CI_REGISTRY_TOKEN }}" >> .npmrc
-        echo "@memebattle:registry=https://npm.pkg.github.com" >> .npmrc
+        yarn
+        yarn common-packages:build
 
-    - name: Build and push
-      uses: docker/build-push-action@v2
-      with:
-        username: themezv
-        password: ${{ secrets.CI_REGISTRY_TOKEN }}
-        registry: ghcr.io
-        platforms: linux/arm64
-        image: monorepo
-        push: true
-        tags: base
-        context: .
-        cache-from: type=local,src=/tmp/.buildx-cache
-        cache-to: type=local,dest=/tmp/.buildx-cache-new
-    - # Temp fix
-      # https://github.com/docker/build-push-action/issues/252
-      # https://github.com/moby/buildkit/issues/1896
-      name: Move cache
-      run: |
-        rm -rf /tmp/.buildx-cache
-        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+#
+#    - name: Auth npm
+#      run: |
+#        echo "//npm.pkg.github.com/:_authToken=${{ secrets.CI_REGISTRY_TOKEN }}" >> .npmrc
+#        echo "@memebattle:registry=https://npm.pkg.github.com" >> .npmrc
+
+#    - name: Build and push
+#      uses: docker/build-push-action@v2
+#      with:
+#        username: themezv
+#        password: ${{ secrets.CI_REGISTRY_TOKEN }}
+#        registry: ghcr.io
+##        platforms: linux/arm64
+#        image: monorepo
+#        push: true
+#        tags: base
+#        context: .
+#        cache-from: type=local,src=/tmp/.buildx-cache
+#        cache-to: type=local,dest=/tmp/.buildx-cache-new
+#    - # Temp fix
+#      # https://github.com/docker/build-push-action/issues/252
+#      # https://github.com/moby/buildkit/issues/1896
+#      name: Move cache
+#      run: |
+#        rm -rf /tmp/.buildx-cache
+#        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
 
-  ligretto-frontend-image:
-
-    needs: prepare-base-image
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build and push
-      uses: docker/build-push-action@v2
-      with:
-        username: themezv
-        password: ${{ secrets.CI_REGISTRY_TOKEN }}
-        registry: ghcr.io
-        platforms: linux/arm64
-        image: monorepo
-        push: true
-        tags: ligretto-frontend
-        file: './apps/ligretto-recovery/Dockerfile'
-
-  ligretto-backend-image:
-
-    needs: prepare-base-image
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build and push
-      uses: ddocker/build-push-action@v2
-      with:
-        username: themezv
-        password: ${{ secrets.CI_REGISTRY_TOKEN }}
-        registry: ghcr.io
-        platforms: linux/arm64
-        image: monorepo
-        push: true
-        tags: ligretto-backend
-        file: './apps/ligretto-backend/Dockerfile'
-
-  ligretto-ui-image:
-
-    needs: prepare-base-image
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build and push
-      uses: docker/build-push-action@v2
-      with:
-        username: themezv
-        password: ${{ secrets.CI_REGISTRY_TOKEN }}
-        registry: ghcr.io
-        platforms: linux/arm64
-        image: monorepo
-        push: true
-        tags: ligretto-ui
-        file: './packages/ligretto-ui/Dockerfile'
+#  ligretto-frontend-image:
+#
+#    needs: prepare-base-image
+#
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#    - uses: actions/checkout@v2
+#    - name: Build and push
+#      uses: docker/build-push-action@v2
+#      with:
+#        username: themezv
+#        password: ${{ secrets.CI_REGISTRY_TOKEN }}
+#        registry: ghcr.io
+#        platforms: linux/arm64
+#        image: monorepo
+#        push: true
+#        tags: ligretto-frontend
+#        file: './apps/ligretto-recovery/Dockerfile'
+#
+#  ligretto-backend-image:
+#
+#    needs: prepare-base-image
+#
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#    - uses: actions/checkout@v2
+#    - name: Build and push
+#      uses: ddocker/build-push-action@v2
+#      with:
+#        username: themezv
+#        password: ${{ secrets.CI_REGISTRY_TOKEN }}
+#        registry: ghcr.io
+#        platforms: linux/arm64
+#        image: monorepo
+#        push: true
+#        tags: ligretto-backend
+#        file: './apps/ligretto-backend/Dockerfile'
+#
+#  ligretto-ui-image:
+#
+#    needs: prepare-base-image
+#
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#    - uses: actions/checkout@v2
+#    - name: Build and push
+#      uses: docker/build-push-action@v2
+#      with:
+#        username: themezv
+#        password: ${{ secrets.CI_REGISTRY_TOKEN }}
+#        registry: ghcr.io
+#        platforms: linux/arm64
+#        image: monorepo
+#        push: true
+#        tags: ligretto-ui
+#        file: './packages/ligretto-ui/Dockerfile'
 
 #  deploy:
 #    needs: [ligretto-frontend-image, ligretto-ui-image, ligretto-backend-image]
