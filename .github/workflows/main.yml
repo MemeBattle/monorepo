@@ -22,6 +22,11 @@ jobs:
     - name: Install yarn
       run: npm install --global yarn
 
+    - name: Auth npm
+      run: |
+        echo "//npm.pkg.github.com/:_authToken=${{ secrets.CI_REGISTRY_TOKEN }}" >> .npmrc
+        echo "@memebattle:registry=https://npm.pkg.github.com" >> .npmrc
+
     - name: Install dependecies
       run: yarn
 
