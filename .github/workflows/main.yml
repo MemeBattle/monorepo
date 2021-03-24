@@ -27,12 +27,6 @@ jobs:
         echo "//npm.pkg.github.com/:_authToken=${{ secrets.CI_REGISTRY_TOKEN }}" >> .npmrc
         echo "@memebattle:registry=https://npm.pkg.github.com" >> .npmrc
 
-    - name: Install dependecies
-      run: yarn
-
-    - name: Build common-packages
-      run: yarn run common-packages:build
-
     - name: Cache node modules
       uses: actions/cache@v2
       with:
@@ -41,6 +35,12 @@ jobs:
           ./apps/*/node_modules
           ./packages/*/node_modules
         key: ${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+
+    - name: Install dependecies
+      run: yarn
+
+    - name: Build common-packages
+      run: yarn run common-packages:build
 
     - name: Upload common packages
       uses: actions/upload-artifact@v2
@@ -68,6 +68,18 @@ jobs:
 
     - name: Install yarn
       run: npm install --global yarn
+
+    - name: Cache node modules
+      uses: actions/cache@v2
+      with:
+        path: |
+          node_modules
+          ./apps/*/node_modules
+          ./packages/*/node_modules
+        key: ${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+
+    - name: Install dependecies
+      run: yarn
 
     - name: Download common packages
       uses: actions/download-artifact@v2
