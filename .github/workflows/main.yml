@@ -61,6 +61,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Install node
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
     - name: Install yarn
       run: npm install --global yarn
 
