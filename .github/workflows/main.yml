@@ -6,7 +6,7 @@ on:
 
 jobs:
 
-  prepare-base-image:
+  prepare-common:
 
     runs-on: self-hosted
 
@@ -33,36 +33,42 @@ jobs:
     - name: Build common-packages
       run: yarn run common-packages:build
 
-#    - name: Build and push
-#      uses: docker/build-push-action@v2
-#      with:
-#        username: themezv
-#        password: ${{ secrets.CI_REGISTRY_TOKEN }}
-#        registry: ghcr.io
-##        platforms: linux/arm64
-#        image: monorepo
-#        push: true
-#        tags: base
-#        context: .
-#        cache-from: type=local,src=/tmp/.buildx-cache
-#        cache-to: type=local,dest=/tmp/.buildx-cache-new
-#    - # Temp fix
-#      # https://github.com/docker/build-push-action/issues/252
-#      # https://github.com/moby/buildkit/issues/1896
-#      name: Move cache
-#      run: |
-#        rm -rf /tmp/.buildx-cache
-#        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+    - name: Cache node modules
+      uses: actions/cache@v2
+      with:
+        path: |
+          node_modules
+          ./apps/*/node_modules
+          ./packages/*/node_modules
+        key: ${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+
+    - name: Upload common packages
+      uses: actions/upload-artifact@v2
+      with:
+        name: packages-builds
+        path: |
+          packages/*/dist
+          packages/*/build
+          apps/auth-front/dist
 
 
-#  ligretto-frontend-image:
-#
-#    needs: prepare-base-image
-#
-#    runs-on: ubuntu-latest
-#
-#    steps:
-#    - uses: actions/checkout@v2
+  ligretto-frontend-image:
+
+    needs: prepare-common
+
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Download common packages
+      uses: actions/download-artifact@v2
+      with:
+        name: packages-builds
+
+    - name: Build frontend
+      run: yarn run ligretto:front:build
+
 #    - name: Build and push
 #      uses: docker/build-push-action@v2
 #      with:
