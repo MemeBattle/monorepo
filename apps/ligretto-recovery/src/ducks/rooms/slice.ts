@@ -26,11 +26,10 @@ export const roomsSlice = createSlice({
   name: 'rooms',
   initialState,
   reducers: {
-    searchRoomsAction: (state, action) => ({
-      ...state,
-      isLoading: true,
-      search: action.payload.search,
-    }),
+    searchRoomsAction: (state, action: PayloadAction<{ search: string }>) => {
+      state.isLoading = true
+      state.search = action.payload.search
+    },
     updateRoomsAction: (state, action: PayloadAction<{ rooms: Room[] }>) => {
       const { byId, ids } = action.payload.rooms.reduce<{ byId: { [roomId: string]: Room }; ids: string[] }>(
         ({ byId, ids }, room) => ({ byId: { ...byId, [room.uuid]: room }, ids: [...ids, room.uuid] }),
