@@ -5,6 +5,12 @@ Task manager: https://ligretto.atlassian.net/jira/software/projects/LIG/boards/1
 
 ## First prepare
 
+### Environment variables
+Copy .env.defaults to .env
+```shell
+cp .env.defaults .env
+```
+
 ### Github credentials
 1. Copy .npmrc.example to .npmrc
 ```

@@ -7,6 +7,9 @@ import { ThemeProvider, theme, CssBaseline } from '@memebattle/ligretto-ui'
 
 const rootNode = document.getElementById('root')
 
+console.log(process.env)
+console.log(process.env.REACT_APP_WEBSOCKET_HOST)
+
 const AppJSX = (
   <React.StrictMode>
     <ThemeProvider theme={theme}>
