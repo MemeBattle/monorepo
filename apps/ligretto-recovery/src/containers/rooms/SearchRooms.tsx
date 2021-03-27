@@ -3,7 +3,7 @@ import type { SearchInputProps } from 'components/base/search-input'
 import { SearchInput } from 'components/base/search-input'
 import { connect } from 'react-redux'
 import { selectIsLoading, selectSearch } from 'ducks/rooms/selectors'
-import { searchRoomsAction } from 'ducks/rooms/actions'
+import { searchRoomsAction } from 'ducks/rooms'
 import type { All } from 'types/store'
 
 interface SearchRoomsProps extends SearchInputProps {
