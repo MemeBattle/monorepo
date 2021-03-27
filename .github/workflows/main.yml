@@ -89,6 +89,13 @@ jobs:
     - name: Build frontend
       run: yarn run ligretto:front:build
 
+    - name: Docker login
+      uses: docker/login-action@v1
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Build and push
       uses: docker/build-push-action@v2
       with:
@@ -96,9 +103,8 @@ jobs:
         password: ${{ secrets.CI_REGISTRY_TOKEN }}
         registry: ghcr.io
         platforms: linux/arm64
-        image: monorepo
         push: true
-        tags: ligretto-frontend-${{github.sha}},ligretto-frontend-latest
+        tags: monorepo:ligretto-frontend-${{github.sha}},monorepo:ligretto-frontend-latest
         context: './apps/ligretto-recovery'
 #
 #  ligretto-backend-image:
