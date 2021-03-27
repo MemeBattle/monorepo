@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useCallback, useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { createRoomAction } from 'ducks/rooms/actions'
+import { createRoomAction } from 'ducks/rooms'
 import { CreateRoom } from '@memebattle/ligretto-ui'
 
 export const CreateRoomContainer = () => {
