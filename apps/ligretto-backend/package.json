@@ -8,7 +8,6 @@
     "test:watch": "tsc && ava --watch --color --verbose",
     "start:dev": "nodemon",
     "start": "ts-node src/index.ts",
-    "env": "cp .env",
     "prestart": "ts-node src/cli/check-env.ts",
     "prestart:dev": "ts-node src/cli/check-env.ts",
     "build": "tsc"
