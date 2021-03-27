@@ -104,7 +104,9 @@ jobs:
         registry: ghcr.io
         platforms: linux/arm64
         push: true
-        tags: monorepo:ligretto-frontend-${{github.sha}},monorepo:ligretto-frontend-latest
+        tags: |
+          ghcr.io/memebattle/monorepo:ligretto-frontend-${{github.sha}}
+          ghcr.io/memebattle/monorepo:ligretto-frontend-latest
         context: './apps/ligretto-recovery'
 #
 #  ligretto-backend-image:
