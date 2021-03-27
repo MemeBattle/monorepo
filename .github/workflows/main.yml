@@ -96,9 +96,9 @@ jobs:
         password: ${{ secrets.CI_REGISTRY_TOKEN }}
         registry: ghcr.io
         platforms: linux/arm64
-        image: ligretto-frontend
+        image: monorepo
         push: true
-        tags: ligretto-frontend-${{github.sha}},latest
+        tags: ligretto-frontend-${{github.sha}},ligretto-frontend-latest
         context: './apps/ligretto-recovery'
 #
 #  ligretto-backend-image:
