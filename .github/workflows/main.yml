@@ -221,7 +221,7 @@ jobs:
           tags: |
             ghcr.io/memebattle/ligretto-ui:${{ github.sha }}
             ghcr.io/memebattle/ligretto-ui:latest
-          context: './apps/ligretto-ui'
+          context: './packages/ligretto-ui'
 
 #  deploy:
 #    needs: [ligretto-frontend-image, ligretto-ui-image, ligretto-backend-image]

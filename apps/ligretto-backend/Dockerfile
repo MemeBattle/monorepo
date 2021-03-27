@@ -1,12 +1,11 @@
 FROM node:14-alpine
 
-COPY ../../. /memebattle
+COPY ./build /ligretto-backend
 
-WORKDIR /memebattle/apps/ligretto-backend
+WORKDIR /ligretto-backend
 
 ENV SOCKET_PORT=3005
 
 EXPOSE $SOCKET_PORT
 
-RUN yarn build
-CMD node build/index.js
+CMD node index.js
