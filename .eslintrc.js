@@ -18,7 +18,12 @@ module.exports = {
   plugins: ['@typescript-eslint', 'react-app', 'prettier', 'react', 'react-hooks'],
   extends: ['plugin:@typescript-eslint/recommended', 'plugin:react/recommended'],
   rules: {
-    'prettier/prettier': 'error',
+    'prettier/prettier': [
+      'error',
+      {
+        endOfLine: 'auto',
+      },
+    ],
     '@typescript-eslint/adjacent-overload-signatures': 'error',
     '@typescript-eslint/array-type': 'off',
     '@typescript-eslint/ban-types': 'error',
