@@ -105,49 +105,123 @@ jobs:
         platforms: linux/arm64
         push: true
         tags: |
-          ghcr.io/memebattle/monorepo:ligretto-frontend-${{github.sha}}
-          ghcr.io/memebattle/monorepo:ligretto-frontend-latest
+          ghcr.io/memebattle/ligretto-frontend:${{github.sha}}
+          ghcr.io/memebattle/ligretto-frontend:latest
         context: './apps/ligretto-recovery'
-#
-#  ligretto-backend-image:
-#
-#    needs: prepare-base-image
-#
-#    runs-on: ubuntu-latest
-#
-#    steps:
-#    - uses: actions/checkout@v2
-#    - name: Build and push
-#      uses: ddocker/build-push-action@v2
-#      with:
-#        username: themezv
-#        password: ${{ secrets.CI_REGISTRY_TOKEN }}
-#        registry: ghcr.io
-#        platforms: linux/arm64
-#        image: monorepo
-#        push: true
-#        tags: ligretto-backend
-#        file: './apps/ligretto-backend/Dockerfile'
-#
-#  ligretto-ui-image:
-#
-#    needs: prepare-base-image
-#
-#    runs-on: ubuntu-latest
-#
-#    steps:
-#    - uses: actions/checkout@v2
-#    - name: Build and push
-#      uses: docker/build-push-action@v2
-#      with:
-#        username: themezv
-#        password: ${{ secrets.CI_REGISTRY_TOKEN }}
-#        registry: ghcr.io
-#        platforms: linux/arm64
-#        image: monorepo
-#        push: true
-#        tags: ligretto-ui
-#        file: './packages/ligretto-ui/Dockerfile'
+
+  ligretto-backend-image:
+
+    needs: prepare-common
+
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install yarn
+        run: npm install --global yarn
+
+      - name: Cache node modules
+        uses: actions/cache@v2
+        with:
+          path: |
+            node_modules
+            ./apps/*/node_modules
+            ./packages/*/node_modules
+          key: ${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+
+      - name: Install dependecies
+        run: yarn
+
+      - name: Download common packages
+        uses: actions/download-artifact@v2
+        with:
+          name: packages-builds
+
+      - name: Build backend
+        run: yarn run ligretto:back:build
+
+      - name: Docker login
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          username: themezv
+          password: ${{ secrets.CI_REGISTRY_TOKEN }}
+          registry: ghcr.io
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ghcr.io/memebattle/ligretto-backend:${{ github.sha }}
+            ghcr.io/memebattle/ligretto-backend:latest
+          context: './apps/ligretto-backend'
+
+  ligretto-ui-image:
+
+    needs: prepare-common
+
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install yarn
+        run: npm install --global yarn
+
+      - name: Cache node modules
+        uses: actions/cache@v2
+        with:
+          path: |
+            node_modules
+            ./apps/*/node_modules
+            ./packages/*/node_modules
+          key: ${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+
+      - name: Install dependecies
+        run: yarn
+
+      - name: Download common packages
+        uses: actions/download-artifact@v2
+        with:
+          name: packages-builds
+
+      - name: Build ligretto ui storybook
+        run: yarn run ligretto:ui:build-storybook
+
+      - name: Docker login
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          username: themezv
+          password: ${{ secrets.CI_REGISTRY_TOKEN }}
+          registry: ghcr.io
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ghcr.io/memebattle/ligretto-ui:${{ github.sha }}
+            ghcr.io/memebattle/ligretto-ui:latest
+          context: './apps/ligretto-ui'
 
 #  deploy:
 #    needs: [ligretto-frontend-image, ligretto-ui-image, ligretto-backend-image]
@@ -167,4 +241,4 @@ jobs:
 #      - name: deploy stack
 #        run: |
 #          docker context use remote
-#          env $(cat .env | grep ^[A-Z] | xargs) docker stack deploy --with-registry-auth --prune -c docker-compose.deploy.yml CAS
+#          env $(cat .env | grep ^[A-Z] | xargs) docker stack deploy --with-registry-auth --prune -c docker-compose.deploy.yml Ligretto
