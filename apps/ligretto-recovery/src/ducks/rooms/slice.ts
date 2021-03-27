@@ -1,7 +1,7 @@
-import type { RoomsActions } from './types'
-import { RoomsTypes } from './types'
 import type { Room } from '@memebattle/ligretto-shared'
 import uniq from 'lodash/uniq'
+import type { PayloadAction } from '@reduxjs/toolkit'
+import { createSlice, createAction } from '@reduxjs/toolkit'
 
 export type RoomsState = {
   byId: {
@@ -19,15 +19,18 @@ const initialState: RoomsState = {
   search: '',
 }
 
-export const roomsReducer = (state: RoomsState = initialState, action: RoomsActions) => {
-  switch (action.type) {
-    case RoomsTypes.SEARCH_ROOMS:
-      return {
-        ...state,
-        isLoading: true,
-        search: action.payload.search,
-      }
-    case RoomsTypes.UPDATE_ROOMS:
+export const connectToRoomAction = createAction<{ roomUuid: string }>('ConnectToRoomType')
+export const createRoomAction = createAction<{ name: string }>('CreateRoomType')
+
+export const roomsSlice = createSlice({
+  name: 'rooms',
+  initialState,
+  reducers: {
+    searchRoomsAction: (state, action: PayloadAction<{ search: string }>) => {
+      state.isLoading = true
+      state.search = action.payload.search
+    },
+    updateRoomsAction: (state, action: PayloadAction<{ rooms: Room[] }>) => {
       const { byId, ids } = action.payload.rooms.reduce<{ byId: { [roomId: string]: Room }; ids: string[] }>(
         ({ byId, ids }, room) => ({ byId: { ...byId, [room.uuid]: room }, ids: [...ids, room.uuid] }),
         {
@@ -36,7 +39,8 @@ export const roomsReducer = (state: RoomsState = initialState, action: RoomsActi
         },
       )
       return { ...state, byId, ids: uniq(ids) }
-    case RoomsTypes.SET_ROOMS:
+    },
+    setRoomsAction: (state, action: PayloadAction<{ rooms: Room[] }>) => {
       const { byId: newById, ids: newIds } = action.payload.rooms.reduce<{ byId: { [roomId: string]: Room }; ids: string[] }>(
         ({ byId, ids }, room) => ({ byId: { ...byId, [room.uuid]: room }, ids: [...ids, room.uuid] }),
         {
@@ -45,7 +49,9 @@ export const roomsReducer = (state: RoomsState = initialState, action: RoomsActi
         },
       )
       return { ...state, byId: newById, ids: newIds, isLoading: false }
-    default:
-      return state
-  }
-}
+    },
+  },
+})
+
+export const { searchRoomsAction, updateRoomsAction, setRoomsAction } = roomsSlice.actions
+export const roomsReducer = roomsSlice.reducer
