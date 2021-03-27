@@ -1,14 +1,14 @@
 import { takeLatest, take, put, select } from 'redux-saga/effects'
-import type { ConnectToRoomAction, CreateRoomAction, SearchRoomsAction } from './types'
-import { RoomsTypes } from './types'
-import { connectToRoomAction, searchRoomsAction, updateRoomsAction, setRoomsAction } from './actions'
+import { connectToRoomAction, createRoomAction, searchRoomsAction, updateRoomsAction, setRoomsAction } from './slice'
+import type {
+  updateRooms as updateRoomsFromServer,
+  connectToRoomSuccessAction as connectToRoomSuccessActionShared,
+} from '@memebattle/ligretto-shared'
 import {
   createRoomEmitAction,
   searchRoomsEmitAction,
   connectToRoomEmitAction,
   searchRoomsFinishAction,
-  updateRooms as updateRoomsFromServer,
-  connectToRoomSuccessAction as connectToRoomSuccessActionShared,
   createRoomSuccessAction,
   updateRooms,
   connectToRoomErrorAction,
@@ -31,7 +31,7 @@ import { selectSearch } from './selectors'
  *
  * @param action
  */
-function* searchRoomsSaga(action: SearchRoomsAction) {
+function* searchRoomsSaga(action: ReturnType<typeof searchRoomsAction>) {
   yield put(searchRoomsEmitAction({ search: action.payload.search }))
   while (true) {
     const finishAction: ReturnType<typeof searchRoomsFinishAction> = yield take(searchRoomsFinishAction.type)
@@ -42,11 +42,11 @@ function* searchRoomsSaga(action: SearchRoomsAction) {
   }
 }
 
-function* createRoomSaga(action: CreateRoomAction) {
+function* createRoomSaga(action: ReturnType<typeof createRoomAction>) {
   yield put(createRoomEmitAction({ ...action.payload }))
 }
 
-function* connectToRoomSaga(action: ConnectToRoomAction) {
+function* connectToRoomSaga(action: ReturnType<typeof connectToRoomAction>) {
   yield put(connectToRoomEmitAction(action.payload))
 }
 
@@ -84,13 +84,13 @@ function* connectToRoomSuccessSaga(action: ReturnType<typeof connectToRoomSucces
 }
 
 export function* roomsRootSaga() {
-  yield takeLatest(RoomsTypes.SEARCH_ROOMS, searchRoomsSaga)
-  yield takeLatest(RoomsTypes.CREATE_ROOM, createRoomSaga)
-  yield takeLatest(RoomsTypes.CONNECT_TO_ROOM, connectToRoomSaga)
-  yield takeLatest(updateRooms.type, updateRoomsFromServerSaga)
-  yield takeLatest(connectToRoomErrorAction.type, connectToRoomError)
+  yield takeLatest(searchRoomsAction, searchRoomsSaga)
+  yield takeLatest(createRoomAction, createRoomSaga)
+  yield takeLatest(connectToRoomAction, connectToRoomSaga)
+  yield takeLatest(updateRooms, updateRoomsFromServerSaga)
+  yield takeLatest(connectToRoomErrorAction, connectToRoomError)
   yield takeLatest(LOCATION_CHANGE, gameRouteWatcher)
   yield takeLatest(LOCATION_CHANGE, searchRoomsRouteWatcher)
-  yield takeLatest(createRoomSuccessAction.type, createRoomSuccessSaga)
-  yield takeLatest(connectToRoomSuccessAction.type, connectToRoomSuccessSaga)
+  yield takeLatest(createRoomSuccessAction, createRoomSuccessSaga)
+  yield takeLatest(connectToRoomSuccessAction, connectToRoomSuccessSaga)
 }
