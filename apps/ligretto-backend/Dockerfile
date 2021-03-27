@@ -1,4 +1,6 @@
-FROM ghcr.io/memebattle/monorepo:base
+FROM node:14-alpine
+
+COPY ../../. /memebattle
 
 WORKDIR /memebattle/apps/ligretto-backend
 

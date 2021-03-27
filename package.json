@@ -11,7 +11,9 @@
     "lerna-ci-publish": "yarn lerna publish --yes --no-git-reset from-package",
     "ligretto:start": "yarn lerna run --parallel --scope @memebattle/ligretto-shared --scope @memebattle/redux-utils --scope @memebattle/ligretto-backend --scope @memebattle/ligretto-recovery --scope @memebattle/ligretto-ui --scope @memebattle/auth-front start:dev",
     "common-packages:build": "yarn lerna run --scope @memebattle/ligretto-shared build && yarn lerna run --parallel --scope @memebattle/redux-utils --scope @memebattle/ligretto-ui build && yarn lerna run --scope @memebattle/auth-front build:module",
-    "ligretto:front:build": "yarn lerna run --stream --scope @memebattle/ligretto-recovery build"
+    "ligretto:front:build": "yarn lerna run --stream --scope @memebattle/ligretto-recovery build",
+    "ligretto:back:build": "yarn lerna run --stream --scope @memebattle/ligretto-backend build",
+    "ligretto:ui:build-storybook": "yarn lerna run --stream --scope @memebattle/ligretto-ui build-storybook"
   },
   "engines": {
     "node": ">=10"
