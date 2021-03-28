@@ -2,6 +2,8 @@ version: '3.3'
 services:
   ligretto-frontend:
     image: ghcr.io/memebattle/ligretto-frontend:latest
+    ports:
+      - "3000:80"
     deploy:
       replicas: 1
       update_config:
@@ -11,8 +13,6 @@ services:
         condition: on-failure
         delay: 10s
         max_attempts: 3
-    ports:
-      - "3000:80"
   ligretto-backend:
     image: ghcr.io/memebattle/ligretto-backend:latest
     ports:
@@ -33,17 +33,17 @@ services:
         max_attempts: 3
   ligretto-ui:
     image: ghcr.io/memebattle/ligretto-ui:latest
-      deploy:
-        replicas: 1
-        update_config:
-          parallelism: 2
-          delay: 10s
-        restart_policy:
-          condition: on-failure
-          delay: 10s
-          max_attempts: 3
-      ports:
-        - "3001:80"
+    ports:
+      - "3001:80"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
 secrets:
   LIGRETTO_CAS_KEY:
     external: true
