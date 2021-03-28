@@ -99,9 +99,6 @@ jobs:
     - name: Build and push
       uses: docker/build-push-action@v2
       with:
-        username: themezv
-        password: ${{ secrets.CI_REGISTRY_TOKEN }}
-        registry: ghcr.io
         platforms: linux/arm64
         push: true
         tags: |
@@ -156,9 +153,6 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
-          username: themezv
-          password: ${{ secrets.CI_REGISTRY_TOKEN }}
-          registry: ghcr.io
           platforms: linux/arm64
           push: true
           tags: |
@@ -213,9 +207,6 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
-          username: themezv
-          password: ${{ secrets.CI_REGISTRY_TOKEN }}
-          registry: ghcr.io
           platforms: linux/arm64
           push: true
           tags: |
