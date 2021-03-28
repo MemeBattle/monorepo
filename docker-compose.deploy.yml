@@ -2,6 +2,9 @@ version: '3.3'
 services:
   ligretto-frontend:
     image: ghcr.io/memebattle/ligretto-frontend:latest
+    environment:
+      - SKIP_PREFLIGHT_CHECK=true
+      - REACT_APP_WEBSOCKET_HOST=https://api.ligretto.app:3005
     deploy:
       replicas: 1
       update_config:
@@ -17,6 +20,11 @@ services:
     image: ghcr.io/memebattle/ligretto-backend:latest
     ports:
       - "3005:3005"
+    secrets:
+      - source: LIGRETTO_CAS_KEY
+        target: /ligretto-backend/key.pem
+    environment:
+      - LIGRETTO_CAS_KEY_PAT=/ligretto-backend/key.pem
     deploy:
       replicas: 1
       update_config:
