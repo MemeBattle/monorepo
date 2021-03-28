@@ -37,6 +37,7 @@ dist
 .next
 
 !rollup.config.js
+!webpack.config.js
 
 storybook-static
 !/.storybook/main.js
