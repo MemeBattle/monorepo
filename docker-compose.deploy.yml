@@ -2,9 +2,6 @@ version: '3.3'
 services:
   ligretto-frontend:
     image: ghcr.io/memebattle/ligretto-frontend:latest
-    environment:
-      - SKIP_PREFLIGHT_CHECK=true
-      - REACT_APP_WEBSOCKET_HOST=https://api.ligretto.app:3005
     deploy:
       replicas: 1
       update_config:
