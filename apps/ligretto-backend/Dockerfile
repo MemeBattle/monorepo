@@ -1,6 +1,6 @@
 FROM node:14-alpine
 
-COPY ./build /ligretto-backend
+COPY build /ligretto-backend
 
 WORKDIR /ligretto-backend
 

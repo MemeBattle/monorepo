@@ -90,7 +90,7 @@ jobs:
       run: yarn run ligretto:front:build
       env:
         SKIP_PREFLIGHT_CHECK: true
-        REACT_APP_WEBSOCKET_HOST: localhost:3005
+        REACT_APP_WEBSOCKET_HOST: https://api.ligretto.app:3005
 
     - name: Docker login
       uses: docker/login-action@v1
