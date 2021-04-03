@@ -10,7 +10,7 @@ export const useRegisterValidation = () =>
       errors.email = t.validation.email
     }
 
-    if (!(values.username.length > 2 && values.username.length < 20)) {
+    if (!(values.username.trim().length >= 2 && values.username.trim().length <= 20)) {
       errors.username = t.validation.username
     }
 

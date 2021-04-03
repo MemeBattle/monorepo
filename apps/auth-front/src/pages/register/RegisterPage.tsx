@@ -10,6 +10,8 @@ import type { RegisterFormSubmissionErrors, RegisterFormValues } from './Registe
 import { register } from '../../services/register'
 import { Header } from '../../components/Header'
 import { useRegisterValidation } from './useRegisterValidation'
+import { Simulate } from 'react-dom/test-utils'
+import error = Simulate.error
 
 export const RegisterPage = memo(() => {
   const initialValues = useMemo<RegisterFormValues>(
@@ -49,7 +51,7 @@ export const RegisterPage = memo(() => {
         initialValues={initialValues}
         onSubmit={handleSubmit}
         validate={validate}
-        render={({ handleSubmit, submitError }) => (
+        render={({ handleSubmit, submitError, submitting }) => (
           <form onSubmit={handleSubmit} autoComplete="off">
             <Paper>
               <Field
@@ -65,9 +67,8 @@ export const RegisterPage = memo(() => {
                     label={t.register.username}
                     name="username"
                     autoComplete="username"
-                    autoFocus
-                    error={meta.submitError || meta.valid || meta.error}
-                    helperText={meta.error}
+                    error={meta.error && meta.touched && meta.error}
+                    helperText={meta.error && meta.touched && meta.error}
                   />
                 )}
               />
@@ -85,8 +86,8 @@ export const RegisterPage = memo(() => {
                     label={t.register.email}
                     name="email"
                     autoComplete="email"
-                    error={meta.error || meta.submitError || meta.invalid}
-                    helperText={meta.error}
+                    error={meta.error && meta.touched && meta.error}
+                    helperText={meta.error && meta.touched && meta.error}
                   />
                 )}
               />
@@ -103,8 +104,8 @@ export const RegisterPage = memo(() => {
                     label={t.login.password}
                     id="password"
                     autoComplete="current-password"
-                    error={meta.error || meta.submitError || meta.invalid}
-                    helperText={meta.error}
+                    error={(meta.error && meta.touched && meta.error) || meta.submitError}
+                    helperText={(meta.error && meta.touched && meta.error) || meta.submitError}
                   />
                 )}
               />
@@ -127,7 +128,7 @@ export const RegisterPage = memo(() => {
               />
               {submitError}
               <br />
-              <Button type="submit" fullWidth variant="contained" color="primary" size="large">
+              <Button type="submit" fullWidth variant="contained" color="primary" size="large" disabled={submitting}>
                 {t.register.submit}
               </Button>
               <br />
