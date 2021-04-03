@@ -8,13 +8,9 @@ import { OpponentCards } from 'components/blocks/game/opponent-cards'
 import { TableCards, CardsPanel } from 'components/blocks/game'
 
 const createRenderChildren = (opponents: Player[]) => {
-  const renderChild = opponents.map(opponent => (positionOnTable: PositionOnTable) => {
-    // [{}] - в случае настройки игры на показ по 3 карты
-    const stackOpenDeckCard = opponent.stackOpenDeck.cards.length ? opponent.stackOpenDeck.cards.slice(-1) : [{}]
-    const cards = [...stackOpenDeckCard, ...opponent.cards]
-
-    return <OpponentCards key={positionOnTable} positionOnTable={positionOnTable} cards={cards} />
-  })
+  const renderChild = opponents.map(opponent => (positionOnTable: PositionOnTable) => (
+    <OpponentCards key={positionOnTable} positionOnTable={positionOnTable} cards={opponent.cards} stackOpenDeckCards={opponent.stackOpenDeck.cards} />
+  ))
 
   if (isMultiplyRenderChildren(renderChild)) {
     return renderChild

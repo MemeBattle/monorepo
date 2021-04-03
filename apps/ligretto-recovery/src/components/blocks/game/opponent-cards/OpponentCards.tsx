@@ -13,19 +13,23 @@ const stylesByPosition = {
 
 export interface OpponentCardsProps {
   positionOnTable: PositionOnTable
+  stackOpenDeckCards: OpponentCard[]
   cards: OpponentCard[]
 }
 
-export const OpponentCards: React.FC<OpponentCardsProps> = ({ positionOnTable, cards }) => (
-  <div className={stylesByPosition[positionOnTable]}>
-    <CardsRow>
-      {cards.map((card, index) => {
-        console.log(index, card)
+export const OpponentCards: React.FC<OpponentCardsProps> = ({ positionOnTable, stackOpenDeckCards, cards }) => {
+  const stackOpenDeckCard = stackOpenDeckCards.length ? stackOpenDeckCards.slice(-1)[0] : {}
 
-        return <Card {...card} key={index} />
-      })}
-    </CardsRow>
-  </div>
-)
+  return (
+    <div className={stylesByPosition[positionOnTable]}>
+      <CardsRow>
+        <Card {...stackOpenDeckCard} />
+        {cards.map((card, index) => (
+          <Card {...card} key={index} />
+        ))}
+      </CardsRow>
+    </div>
+  )
+}
 
 OpponentCards.displayName = 'OpponentCards'
