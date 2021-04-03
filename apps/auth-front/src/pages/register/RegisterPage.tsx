@@ -66,8 +66,8 @@ export const RegisterPage = memo(() => {
                     name="username"
                     autoComplete="username"
                     autoFocus
-                    error={!meta.modifiedSinceLastSubmit && Boolean(meta.error || meta.submitError)}
-                    helperText={!meta.modifiedSinceLastSubmit && meta.submitError}
+                    error={meta.submitError || meta.valid || meta.error}
+                    helperText={meta.error}
                   />
                 )}
               />

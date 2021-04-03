@@ -14,6 +14,12 @@ export const t = {
     submit: 'Sign up',
     linkToLogin: 'Already have an Ligretto account? Sign in',
   },
+  validation: {
+    username: 'The user name must be between 2 and 20 characters long',
+    password: 'Password should contain at least 8 characters',
+    confirmPassword: 'Passwords are not the same',
+    email: 'Email format is incorrect',
+  },
   createdByInfo: {
     text: 'Created by:',
   },
