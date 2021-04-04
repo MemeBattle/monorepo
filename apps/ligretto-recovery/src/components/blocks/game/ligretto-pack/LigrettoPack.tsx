@@ -1,15 +1,17 @@
 import React from 'react'
-import { CardPositions } from '@memebattle/ligretto-shared'
-import { CardContainer } from 'containers/card'
 import styles from './LigrettoPack.module.scss'
+import { Card } from '@memebattle/ligretto-ui'
+import type { Card as PlayerCards } from '@memebattle/ligretto-shared'
 
 interface LigrettoPack {
   count: number
+  ligrettoDeckCards: PlayerCards[]
+  handleLigrettoDeckCardClick: () => void
 }
-export const LigrettoPack: React.FC<LigrettoPack> = ({ count }) => (
+export const LigrettoPack: React.FC<LigrettoPack> = ({ count, ligrettoDeckCards, handleLigrettoDeckCardClick }) => (
   <div className={styles.ligrettoPack}>
     <div className={styles.cardWrapper}>
-      <CardContainer cardPosition={CardPositions.y} />
+      <Card color={ligrettoDeckCards[0]?.color} onClick={() => handleLigrettoDeckCardClick()} />
     </div>
     <span className={styles.title}>Осталось в колоде: {count} </span>
   </div>

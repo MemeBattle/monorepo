@@ -30,6 +30,10 @@ const initialState: GameState = {
 
 export const togglePlayerStatusAction = createAction('@@game/TOGGLE_PLAYER_STATUS')
 export const startGameAction = createAction('@@game/START_GAME')
+export const tapCardAction = createAction<{ cardIndex: number }>('@@game/TapCardAction')
+export const tapStackOpenDeckCardAction = createAction('@@game/TapStackOpenDeckCardAction')
+export const tapStackDeckCardAction = createAction('@@game/TapStackDeckCardAction')
+export const tapLigrettoDeckCardAction = createAction('@@game/TapLigrettoDeckCardAction')
 
 const gameSlice = createSlice({
   name: 'game',

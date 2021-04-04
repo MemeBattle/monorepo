@@ -1,23 +1,47 @@
 import React from 'react'
-import { CardPositions } from '@memebattle/ligretto-shared'
-import { CardsRow } from '@memebattle/ligretto-ui'
-import { CardContainer } from 'containers/card'
+import type { Card as PlayerCards } from '@memebattle/ligretto-shared'
+import { Card, CardsRow } from '@memebattle/ligretto-ui'
 import { LigrettoPack } from 'components/blocks/game/ligretto-pack'
 import styles from './CardsPanel.module.scss'
 import { Stack } from 'components/blocks/game/stack'
 
-export const CardsPanel = () => (
+export interface CardsPanelProps {
+  cards: PlayerCards[]
+  stackOpenDeckCards: PlayerCards[]
+  stackDeckCards: PlayerCards[]
+  ligrettoDeckCards: PlayerCards[]
+  handleCardRowClick: (index: number) => void
+  handleStackOpenDeckCardClick: () => void
+  handleStackDeckCardClick: () => void
+  handleLigrettoDeckCardClick: () => void
+}
+
+export const CardsPanel: React.FC<CardsPanelProps> = ({
+  cards,
+  stackOpenDeckCards,
+  stackDeckCards,
+  ligrettoDeckCards,
+  handleCardRowClick,
+  handleStackOpenDeckCardClick,
+  handleStackDeckCardClick,
+  handleLigrettoDeckCardClick,
+}) => (
   <div className={styles.cardsPanel}>
     <div className={styles.stackWrapper}>
-      <Stack />
+      <Stack
+        stackOpenDeckCards={stackOpenDeckCards}
+        stackDeckCards={stackDeckCards}
+        handleStackOpenDeckCardClick={handleStackOpenDeckCardClick}
+        handleStackDeckCardClick={handleStackDeckCardClick}
+      />
     </div>
     <CardsRow>
-      <CardContainer cardPosition={CardPositions.e} />
-      <CardContainer cardPosition={CardPositions.r} />
-      <CardContainer cardPosition={CardPositions.t} />
+      {cards.map((card, index) => (
+        <Card {...card} key={index} onClick={() => handleCardRowClick(index)} />
+      ))}
     </CardsRow>
     <div className={styles.ligrettoPackWrapper}>
-      <LigrettoPack count={10} />
+      <LigrettoPack count={10} handleLigrettoDeckCardClick={handleLigrettoDeckCardClick} ligrettoDeckCards={ligrettoDeckCards} />
     </div>
   </div>
 )
