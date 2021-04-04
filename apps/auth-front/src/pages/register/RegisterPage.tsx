@@ -51,7 +51,7 @@ export const RegisterPage = memo(() => {
         initialValues={initialValues}
         onSubmit={handleSubmit}
         validate={validate}
-        render={({ handleSubmit, submitError, submitting }) => (
+        render={({ handleSubmit, submitError }) => (
           <form onSubmit={handleSubmit} autoComplete="off">
             <Paper>
               <Field
@@ -128,7 +128,7 @@ export const RegisterPage = memo(() => {
               />
               {submitError}
               <br />
-              <Button type="submit" fullWidth variant="contained" color="primary" size="large" disabled={submitting}>
+              <Button type="submit" fullWidth variant="contained" color="primary" size="large">
                 {t.register.submit}
               </Button>
               <br />
