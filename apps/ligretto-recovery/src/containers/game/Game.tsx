@@ -2,15 +2,16 @@ import React from 'react'
 import { useSelector } from 'react-redux'
 import type { Player } from '@memebattle/ligretto-shared'
 import { selectOpponents } from 'ducks/game'
-import type { PositionOnTable, RenderChildren } from '@memebattle/ligretto-ui'
+import type { PositionOnTable } from '@memebattle/ligretto-ui'
 import { isMultiplyRenderChildren, RoomGrid } from '@memebattle/ligretto-ui'
 import { OpponentCards } from 'components/blocks/game/opponent-cards'
 import { TableCards, CardsPanel } from 'components/blocks/game'
 
-const renderOpponent: RenderChildren = (positionOnTable: PositionOnTable) => <OpponentCards key={positionOnTable} positionOnTable={positionOnTable} />
-
 const createRenderChildren = (opponents: Player[]) => {
-  const renderChild = opponents.map<RenderChildren>(() => renderOpponent)
+  const renderChild = opponents.map(opponent => (positionOnTable: PositionOnTable) => (
+    <OpponentCards key={positionOnTable} positionOnTable={positionOnTable} cards={opponent.cards} stackOpenDeckCards={opponent.stackOpenDeck.cards} />
+  ))
+
   if (isMultiplyRenderChildren(renderChild)) {
     return renderChild
   } else {
