@@ -10,8 +10,6 @@ import type { RegisterFormSubmissionErrors, RegisterFormValues } from './Registe
 import { register } from '../../services/register'
 import { Header } from '../../components/Header'
 import { useRegisterValidation } from './useRegisterValidation'
-import { Simulate } from 'react-dom/test-utils'
-import error = Simulate.error
 
 export const RegisterPage = memo(() => {
   const initialValues = useMemo<RegisterFormValues>(
