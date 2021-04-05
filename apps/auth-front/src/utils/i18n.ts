@@ -16,7 +16,7 @@ export const t = {
   },
   validation: {
     username: 'The user name must be between 2 and 20 characters long',
-    password: 'Password should contain at least 8 characters',
+    password: 'The password must be between 6 and 256 characters long',
     confirmPassword: 'Passwords are not the same',
     email: 'Email format is incorrect',
   },
