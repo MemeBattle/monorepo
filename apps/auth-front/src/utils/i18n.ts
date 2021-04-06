@@ -14,6 +14,12 @@ export const t = {
     submit: 'Sign up',
     linkToLogin: 'Already have an Ligretto account? Sign in',
   },
+  validation: {
+    username: (minLength: number, maxLength: number) => `The user name must be between ${minLength} and ${maxLength} characters long`,
+    password: (minLength: number, maxLength: number) => `The password must be between ${minLength} and ${maxLength} characters long`,
+    confirmPassword: 'Passwords are not the same',
+    email: 'Email format is incorrect',
+  },
   createdByInfo: {
     text: 'Created by:',
   },

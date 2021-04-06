@@ -65,9 +65,8 @@ export const RegisterPage = memo(() => {
                     label={t.register.username}
                     name="username"
                     autoComplete="username"
-                    autoFocus
-                    error={!meta.modifiedSinceLastSubmit && Boolean(meta.error || meta.submitError)}
-                    helperText={!meta.modifiedSinceLastSubmit && meta.submitError}
+                    error={meta.error && meta.touched && meta.error}
+                    helperText={meta.error && meta.touched && meta.error}
                   />
                 )}
               />
@@ -85,8 +84,8 @@ export const RegisterPage = memo(() => {
                     label={t.register.email}
                     name="email"
                     autoComplete="email"
-                    error={meta.error || meta.submitError || meta.invalid}
-                    helperText={meta.error}
+                    error={meta.error && meta.touched && meta.error}
+                    helperText={meta.error && meta.touched && meta.error}
                   />
                 )}
               />
@@ -103,8 +102,8 @@ export const RegisterPage = memo(() => {
                     label={t.login.password}
                     id="password"
                     autoComplete="current-password"
-                    error={meta.error || meta.submitError || meta.invalid}
-                    helperText={meta.error}
+                    error={(meta.error && meta.touched && meta.error) || meta.submitError}
+                    helperText={(meta.error && meta.touched && meta.error) || meta.submitError}
                   />
                 )}
               />
