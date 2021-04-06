@@ -16,11 +16,11 @@ export const useRegisterValidation = () =>
     }
 
     if (!(values.username.trim().length >= USERNAME_MIN_LENGTH && values.username.trim().length <= USERNAME_MAX_LENGTH)) {
-      errors.username = t.validation.username
+      errors.username = t.validation.username(USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH)
     }
 
     if (!(values.password.trim().length >= PASSWORD_MIN_LENGTH && values.password.trim().length <= PASSWORD_MAX_LENGTH)) {
-      errors.password = t.validation.password
+      errors.password = t.validation.password(PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH)
     } else if (values.password !== values.confirmPassword) {
       errors.confirmPassword = t.validation.confirmPassword
     }
