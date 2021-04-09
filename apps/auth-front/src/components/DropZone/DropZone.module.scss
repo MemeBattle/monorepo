@@ -1,0 +1,51 @@
+.img {
+  display: block;
+  width: auto;
+  height: 100%;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  color: #27AE60;
+  max-width: 172px;
+  max-height: 226px;
+
+  &__border {
+    background: #FFFFFF;
+    border: 4px solid #27AE60;
+    border-radius: 6px;
+  }
+  &__border_small {
+    border: 2px solid #27AE60;
+    border-radius: 4px;
+  }
+  &__button {
+    margin-left: 25px !important;
+    margin-right: 25px !important;
+    margin-bottom: 16px !important;
+  }
+  &__img {
+    padding: 22px;
+    width: 100%;
+    height: auto;
+  }
+
+}
+.img {
+  width: 100%;
+  height: auto;
+}
+
+.box {
+ background: #F5F5F5;
+ border: 3px #CFCFCF dashed;
+ color: #828282;
+ text-transform: uppercase;
+ max-width: 282px;
+  &__logo {
+    padding: 44px 87px 34px;
+    width: 100%;
+    height: auto;
+  }
+}
