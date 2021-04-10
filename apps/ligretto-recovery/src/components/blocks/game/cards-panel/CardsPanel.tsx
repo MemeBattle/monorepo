@@ -10,10 +10,10 @@ export interface CardsPanelProps {
   stackOpenDeckCards: PlayerCards[]
   stackDeckCards: PlayerCards[]
   ligrettoDeckCards: PlayerCards[]
-  handleCardRowClick: (index: number) => void
-  handleStackOpenDeckCardClick: () => void
-  handleStackDeckCardClick: () => void
-  handleLigrettoDeckCardClick: () => void
+  onCardRowClick: (index: number) => void
+  onStackOpenDeckCardClick: () => void
+  onStackDeckCardClick: () => void
+  onLigrettoDeckCardClick: () => void
 }
 
 export const CardsPanel: React.FC<CardsPanelProps> = ({
@@ -21,27 +21,27 @@ export const CardsPanel: React.FC<CardsPanelProps> = ({
   stackOpenDeckCards,
   stackDeckCards,
   ligrettoDeckCards,
-  handleCardRowClick,
-  handleStackOpenDeckCardClick,
-  handleStackDeckCardClick,
-  handleLigrettoDeckCardClick,
+  onCardRowClick,
+  onStackOpenDeckCardClick,
+  onStackDeckCardClick,
+  onLigrettoDeckCardClick,
 }) => (
   <div className={styles.cardsPanel}>
     <div className={styles.stackWrapper}>
       <Stack
         stackOpenDeckCards={stackOpenDeckCards}
         stackDeckCards={stackDeckCards}
-        handleStackOpenDeckCardClick={handleStackOpenDeckCardClick}
-        handleStackDeckCardClick={handleStackDeckCardClick}
+        onStackOpenDeckCardClick={onStackOpenDeckCardClick}
+        onStackDeckCardClick={onStackDeckCardClick}
       />
     </div>
     <CardsRow>
       {cards.map((card, index) => (
-        <Card {...card} key={index} onClick={() => handleCardRowClick(index)} />
+        <Card {...card} key={index} onClick={() => onCardRowClick(index)} />
       ))}
     </CardsRow>
     <div className={styles.ligrettoPackWrapper}>
-      <LigrettoPack count={10} handleLigrettoDeckCardClick={handleLigrettoDeckCardClick} ligrettoDeckCards={ligrettoDeckCards} />
+      <LigrettoPack count={10} onLigrettoDeckCardClick={onLigrettoDeckCardClick} ligrettoDeckCards={ligrettoDeckCards} />
     </div>
   </div>
 )

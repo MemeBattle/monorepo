@@ -6,12 +6,12 @@ import type { Card as PlayerCards } from '@memebattle/ligretto-shared'
 interface LigrettoPack {
   count: number
   ligrettoDeckCards: PlayerCards[]
-  handleLigrettoDeckCardClick: () => void
+  onLigrettoDeckCardClick: () => void
 }
-export const LigrettoPack: React.FC<LigrettoPack> = ({ count, ligrettoDeckCards, handleLigrettoDeckCardClick }) => (
+export const LigrettoPack: React.FC<LigrettoPack> = ({ count, ligrettoDeckCards, onLigrettoDeckCardClick }) => (
   <div className={styles.ligrettoPack}>
     <div className={styles.cardWrapper}>
-      <Card color={ligrettoDeckCards[0]?.color} onClick={() => handleLigrettoDeckCardClick()} />
+      <Card color={ligrettoDeckCards[0]?.color} onClick={onLigrettoDeckCardClick} />
     </div>
     <span className={styles.title}>Осталось в колоде: {count} </span>
   </div>
