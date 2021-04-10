@@ -5,7 +5,8 @@ import { selectOpponents } from 'ducks/game'
 import type { PositionOnTable } from '@memebattle/ligretto-ui'
 import { isMultiplyRenderChildren, RoomGrid } from '@memebattle/ligretto-ui'
 import { OpponentCards } from 'components/blocks/game/opponent-cards'
-import { TableCards, CardsPanel } from 'components/blocks/game'
+import { TableCards } from 'components/blocks/game'
+import { CardsPanelContainer } from '../cards-panel'
 
 const createRenderChildren = (opponents: Player[]) => {
   const renderChild = opponents.map(opponent => (positionOnTable: PositionOnTable) => (
@@ -21,14 +22,13 @@ const createRenderChildren = (opponents: Player[]) => {
 
 export const Game = () => {
   const opponents = useSelector(selectOpponents)
-
   const renderChildren = React.useMemo(() => createRenderChildren(opponents), [opponents])
 
   return (
     <>
       {renderChildren ? <RoomGrid renderChildren={renderChildren} /> : null}
       <TableCards />
-      <CardsPanel />
+      <CardsPanelContainer />
     </>
   )
 }
