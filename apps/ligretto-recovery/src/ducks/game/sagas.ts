@@ -125,13 +125,13 @@ function* endRoundSaga({ payload }: ReturnType<typeof endRoundAction>) {
 }
 
 export function* gameRootSaga() {
-  yield takeLatest(updateGameAction.type, gameUpdateSaga)
-  yield takeLatest(togglePlayerStatusAction.type, togglePlayerStatusSaga)
-  yield takeLatest(startGameAction.type, startGameSaga)
-  yield takeEvery(tapCardAction.type, cardsRowPutSaga)
-  yield takeEvery(tapStackOpenDeckCardAction.type, tapStackOpenDeckCardActionSaga)
-  yield takeEvery(tapStackDeckCardAction.type, tapStackDeckCardActionSaga)
-  yield takeEvery(tapLigrettoDeckCardAction.type, tapLigrettoDeckCardActionSaga)
-  yield takeEvery(endRoundAction.type, endRoundSaga)
-  yield takeLatest([connectToRoomSuccessAction.type, createRoomSuccessAction.type], connectToRoomSuccessSaga)
+  yield takeLatest(updateGameAction, gameUpdateSaga)
+  yield takeLatest(togglePlayerStatusAction, togglePlayerStatusSaga)
+  yield takeLatest(startGameAction, startGameSaga)
+  yield takeEvery(tapCardAction, cardsRowPutSaga)
+  yield takeEvery(tapStackOpenDeckCardAction, tapStackOpenDeckCardActionSaga)
+  yield takeEvery(tapStackDeckCardAction, tapStackDeckCardActionSaga)
+  yield takeEvery(tapLigrettoDeckCardAction, tapLigrettoDeckCardActionSaga)
+  yield takeEvery(endRoundAction, endRoundSaga)
+  yield takeLatest([connectToRoomSuccessAction, createRoomSuccessAction], connectToRoomSuccessSaga)
 }
