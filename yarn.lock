@@ -4634,6 +4634,14 @@
     axios "^0.21.1"
     jsonwebtoken "^8.5.0"
 
+"@memebattle/cas-services@^3.0.0":
+  version "3.0.0"
+  resolved "https://npm.pkg.github.com/download/@memebattle/cas-services/3.0.0/891f264b955900682da52564f554df74e13952fd5d01f5407027414d09fb6d84#b7adb6d42afce7a68232dbcf5efd750ba3a00fe4"
+  integrity sha512-uMuc/4jGXIitOBUzVqmwqE28A4ecpEDN4rRi3tj8pBjDfL95a5+ePAU/VLxkZOJkMexJy7cyPOldl82h/yfE5Q==
+  dependencies:
+    axios "^0.21.1"
+    jsonwebtoken "^8.5.0"
+
 "@mrmlnc/readdir-enhanced@^2.2.1":
   version "2.2.1"
   resolved "https://registry.yarnpkg.com/@mrmlnc/readdir-enhanced/-/readdir-enhanced-2.2.1.tgz#524af240d1a360527b730475ecfa1344aa540dde"
