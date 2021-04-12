@@ -1,16 +1,19 @@
 import React from 'react'
-import { CardContainer } from 'containers/card'
 import styles from './TableCards.module.scss'
-import { tablePositions } from 'utils/constants/tableCardsPositions'
-import { CardPlace, TableCards as TableCardsUI } from '@memebattle/ligretto-ui'
+import { Card, CardPlace, TableCards as TableCardsUI } from '@memebattle/ligretto-ui'
+import type { Card as DeskCard } from '@memebattle/ligretto-shared'
 
-export const TableCards: React.FC = () => (
+export interface TableCardsProps {
+  cards: DeskCard[]
+}
+
+export const TableCards: React.FC<TableCardsProps> = ({ cards }) => (
   <div className={styles.tableCardsWrapper}>
     <div className={styles.tableCards}>
       <TableCardsUI>
-        {tablePositions.map(cardPosition => (
-          <CardPlace key={cardPosition}>
-            <CardContainer cardPosition={cardPosition} key={cardPosition} />
+        {cards.map((card, index) => (
+          <CardPlace key={index}>
+            <Card {...card} />
           </CardPlace>
         ))}
       </TableCardsUI>

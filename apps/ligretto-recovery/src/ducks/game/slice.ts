@@ -1,4 +1,4 @@
-import type { Game, GameResults, Player } from '@memebattle/ligretto-shared'
+import type { Game, GameResults, Player, Playground } from '@memebattle/ligretto-shared'
 import { GameStatus } from '@memebattle/ligretto-shared'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createAction, createSlice } from '@reduxjs/toolkit'
@@ -12,6 +12,7 @@ export type GameState = {
   playerId: Player['id']
   results?: GameResults
   isGameLoaded: boolean
+  playground: Playground
 }
 
 const initialState: GameState = {
@@ -26,6 +27,9 @@ const initialState: GameState = {
   isGameLoaded: false,
   playerId: '',
   results: undefined,
+  playground: {
+    decks: [],
+  },
 }
 
 export const togglePlayerStatusAction = createAction('@@game/TOGGLE_PLAYER_STATUS')
