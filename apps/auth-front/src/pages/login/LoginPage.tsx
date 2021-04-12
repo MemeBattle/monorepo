@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo } from 'react'
-import { Form, Field } from 'react-final-form'
-import { Input, PasswordInput, Container, Button } from '@memebattle/ligretto-ui'
+import { Field, Form } from 'react-final-form'
+import { Button, Container, Input, PasswordInput } from '@memebattle/ligretto-ui'
 import { Paper } from '../../components/Paper'
 import { Header } from '../../components/Header'
 import { t } from '../../utils/i18n'
@@ -8,10 +8,12 @@ import { ROUTES } from '../../constants/routes'
 import { Link } from 'react-router-dom'
 import type { LoginFormSubmissionError, LoginFormValues } from './LoginPage.types'
 // import { FORM_ERROR } from 'final-form'
-import { login } from '../../services/login'
 import { CreatedByInfo } from '../../components/CreatedByInfo'
+import { useCasServices } from '../../modules/cas-services'
 
 export const LoginPage = memo(() => {
+  const { loginService } = useCasServices()
+
   const initialValues = useMemo<LoginFormValues>(
     () => ({
       username: '',
@@ -20,16 +22,19 @@ export const LoginPage = memo(() => {
     [],
   )
 
-  const handleSubmit = useCallback(async (values: LoginFormValues): Promise<LoginFormSubmissionError | undefined> => {
-    try {
-      const { data } = await login({ login: values.username, password: values.password })
+  const handleSubmit = useCallback(
+    async (values: LoginFormValues): Promise<LoginFormSubmissionError | undefined> => {
+      try {
+        const answer = await loginService({ login: values.username, password: values.password })
 
-      console.log(data)
-    } catch (e) {
-      console.log(e.response.status)
-      return { username: 'Invalid login or password', password: 'Invalid login or password' }
-    }
-  }, [])
+        console.log(answer)
+      } catch (e) {
+        console.log(e.response.status)
+        return { username: 'Invalid login or password', password: 'Invalid login or password' }
+      }
+    },
+    [loginService],
+  )
 
   return (
     <Container component="main" maxWidth="xs">
