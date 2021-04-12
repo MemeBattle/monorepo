@@ -7,11 +7,13 @@ import { Button, Container, Input, PasswordInput } from '@memebattle/ligretto-ui
 import { t } from '../../utils/i18n'
 import { ROUTES } from '../../constants/routes'
 import type { RegisterFormSubmissionErrors, RegisterFormValues } from './RegisterPage.types'
-import { register } from '../../services/register'
 import { Header } from '../../components/Header'
 import { useRegisterValidation } from './useRegisterValidation'
+import { useCasServices } from '../../modules/cas-services'
 
 export const RegisterPage = memo(() => {
+  const { signUpService } = useCasServices()
+
   const initialValues = useMemo<RegisterFormValues>(
     () => ({
       username: '',
@@ -22,23 +24,27 @@ export const RegisterPage = memo(() => {
     [],
   )
 
-  const handleSubmit = useCallback(async (values: RegisterFormValues): Promise<RegisterFormSubmissionErrors | undefined> => {
-    try {
-      const { data } = await register(values)
+  const handleSubmit = useCallback(
+    async (values: RegisterFormValues): Promise<RegisterFormSubmissionErrors | undefined> => {
+      try {
+        const answer = await signUpService({ username: values.username, email: values.email, password: values.password })
 
-      /** If user already exists */
-      if (!data.user) {
-        return { username: 'User already exists' }
-      }
+        if (answer.success) {
+          return
+        }
 
-      /** If email already confirmed */
-      if (!data.user) {
-        return { email: 'Email is already confirmed' }
+        /** If user already exists */
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        if (answer.error.errorCode === 422) {
+          return { username: 'User already exists' }
+        }
+      } catch (e) {
+        return { [FORM_ERROR]: 'Something went wrong' }
       }
-    } catch (e) {
-      return { [FORM_ERROR]: 'Something went wrong' }
-    }
-  }, [])
+    },
+    [signUpService],
+  )
 
   const validate = useRegisterValidation()
 
