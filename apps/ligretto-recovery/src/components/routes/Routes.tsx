@@ -1,7 +1,7 @@
 import React from 'react'
 import { Switch, Route } from 'react-router-dom'
 
-import { App as AuthApp } from '@memebattle/auth-front'
+import { AuthFrontModule } from '@memebattle/auth-front'
 
 import { routes } from 'utils/constants'
 import { GamePage, HomePage, RoomsPage, CreateRoomPage, TechPage } from 'pages'
@@ -13,6 +13,6 @@ export const Routes = () => (
     <Route path={routes.ROOMS} component={RoomsPage} exact />
     <Route path={routes.CREATE_ROOM} component={CreateRoomPage} exact />
     <Route path={routes.TECH} component={TechPage} exact />
-    <Route path={routes.AUTH} component={AuthApp} />
+    <Route path={routes.AUTH} render={() => <AuthFrontModule partnerId="605fd1f6c2e5310012e1a497" />} />
   </Switch>
 )
