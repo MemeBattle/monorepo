@@ -1,12 +1,13 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
 import type { Player } from '@memebattle/ligretto-shared'
-import { selectOpponents } from 'ducks/game'
+import { selectPlaygroundDecks, selectOpponents } from 'ducks/game'
 import type { PositionOnTable } from '@memebattle/ligretto-ui'
 import { isMultiplyRenderChildren, RoomGrid } from '@memebattle/ligretto-ui'
 import { OpponentCards } from 'components/blocks/game/opponent-cards'
-import { TableCards } from 'components/blocks/game'
+import { Playground } from 'components/blocks/game'
 import { CardsPanelContainer } from '../cards-panel'
+import { createSelector } from 'reselect'
 
 const createRenderChildren = (opponents: Player[]) => {
   const renderChild = opponents.map(opponent => (positionOnTable: PositionOnTable) => (
@@ -20,14 +21,19 @@ const createRenderChildren = (opponents: Player[]) => {
   }
 }
 
+const GameSelector = createSelector([selectOpponents, selectPlaygroundDecks], (opponents, deskCards) => ({
+  opponents,
+  deskCards,
+}))
+
 export const Game = () => {
-  const opponents = useSelector(selectOpponents)
+  const { opponents, deskCards } = useSelector(GameSelector)
   const renderChildren = React.useMemo(() => createRenderChildren(opponents), [opponents])
 
   return (
     <>
       {renderChildren ? <RoomGrid renderChildren={renderChildren} /> : null}
-      <TableCards />
+      <Playground deskCards={deskCards} />
       <CardsPanelContainer />
     </>
   )
