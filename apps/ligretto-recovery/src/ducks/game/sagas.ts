@@ -1,10 +1,5 @@
-import { call, put, select, takeEvery, takeLatest } from 'redux-saga/effects'
-import { opponentToCardsMapper, playerToCardsMapper, tableCardsMapper } from 'utils'
-import { without } from 'lodash'
-import type { Card, Game, Player, CardPositions } from '@memebattle/ligretto-shared'
+import { put, select, takeEvery, takeLatest } from 'redux-saga/effects'
 import {
-  GameStatus,
-  OpponentPositions,
   PlayerStatus,
   putCardAction,
   putCardFromStackOpenDeck,
@@ -29,51 +24,11 @@ import {
   tapStackDeckCardAction,
   tapLigrettoDeckCardAction,
 } from './slice'
-import { selectGameId, selectPlayerId, selectPlayerStatus } from './selectors'
-import { cardsActions } from 'ducks/cards'
-
-const opponentsPositionsOrder = [OpponentPositions.Left, OpponentPositions.Top, OpponentPositions.Right]
-
-/**
- * @draft - maybe id instead of color usage will be correctly
- */
-function* gameCardsUpdate(game: Game) {
-  const playerId: Player['id'] = yield select(selectPlayerId)
-
-  const players = Object.values(game.players)
-  const player = game.players[playerId]
-  if (player === undefined) {
-    return
-  }
-
-  const tableCards = tableCardsMapper(
-    game.playground.decks.filter(cardsDeck => !cardsDeck.isHidden).map(cardDeck => cardDeck.cards[cardDeck.cards.length - 1]),
-  )
-
-  const opponentsCardsByPositions = without(players, player).reduce(
-    (opponentCardsByPositions, opponent, opponentIndex) => ({
-      ...opponentCardsByPositions,
-      ...opponentToCardsMapper(opponent, opponentsPositionsOrder[opponentIndex]),
-    }),
-    {},
-  )
-
-  const cards: Partial<Record<CardPositions, Card>> = {
-    ...playerToCardsMapper(player),
-    ...opponentsCardsByPositions,
-    ...tableCards,
-  }
-
-  yield put(cardsActions.pushCardsAction(cards))
-}
+import { selectGameId, selectPlayerStatus } from './selectors'
 
 function* gameUpdateSaga(action: ReturnType<typeof updateGameAction>) {
   const game = action.payload
   yield put(updateGameSliceAction(game))
-
-  if (game.status === GameStatus.InGame) {
-    yield call(gameCardsUpdate, action.payload)
-  }
 }
 
 function* togglePlayerStatusSaga() {
