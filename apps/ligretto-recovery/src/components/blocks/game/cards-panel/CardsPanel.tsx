@@ -1,23 +1,47 @@
 import React from 'react'
-import { CardPositions } from '@memebattle/ligretto-shared'
-import { CardsRow } from '@memebattle/ligretto-ui'
-import { CardContainer } from 'containers/card'
+import type { Card as PlayerCards } from '@memebattle/ligretto-shared'
+import { Card, CardsRow } from '@memebattle/ligretto-ui'
 import { LigrettoPack } from 'components/blocks/game/ligretto-pack'
 import styles from './CardsPanel.module.scss'
 import { Stack } from 'components/blocks/game/stack'
 
-export const CardsPanel = () => (
+export interface CardsPanelProps {
+  cards: PlayerCards[]
+  stackOpenDeckCards: PlayerCards[]
+  stackDeckCards: PlayerCards[]
+  ligrettoDeckCards: PlayerCards[]
+  onCardRowClick: (index: number) => void
+  onStackOpenDeckCardClick: () => void
+  onStackDeckCardClick: () => void
+  onLigrettoDeckCardClick: () => void
+}
+
+export const CardsPanel: React.FC<CardsPanelProps> = ({
+  cards,
+  stackOpenDeckCards,
+  stackDeckCards,
+  ligrettoDeckCards,
+  onCardRowClick,
+  onStackOpenDeckCardClick,
+  onStackDeckCardClick,
+  onLigrettoDeckCardClick,
+}) => (
   <div className={styles.cardsPanel}>
     <div className={styles.stackWrapper}>
-      <Stack />
+      <Stack
+        stackOpenDeckCards={stackOpenDeckCards}
+        stackDeckCards={stackDeckCards}
+        onStackOpenDeckCardClick={onStackOpenDeckCardClick}
+        onStackDeckCardClick={onStackDeckCardClick}
+      />
     </div>
     <CardsRow>
-      <CardContainer cardPosition={CardPositions.e} />
-      <CardContainer cardPosition={CardPositions.r} />
-      <CardContainer cardPosition={CardPositions.t} />
+      {cards.map((card, index) => (
+        <Card {...card} key={index} onClick={() => onCardRowClick(index)} />
+      ))}
     </CardsRow>
     <div className={styles.ligrettoPackWrapper}>
-      <LigrettoPack count={10} />
+      <LigrettoPack count={10} onLigrettoDeckCardClick={onLigrettoDeckCardClick} ligrettoDeckCards={ligrettoDeckCards} />
     </div>
   </div>
 )

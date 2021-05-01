@@ -1,8 +1,7 @@
 import React from 'react'
-import { CardContainer } from 'containers/card'
-import { CardPositions } from '@memebattle/ligretto-shared'
-import { PositionOnTable, CardsRow } from '@memebattle/ligretto-ui'
+import { PositionOnTable, CardsRow, Card } from '@memebattle/ligretto-ui'
 import styles from './OpponentCards.module.scss'
+import type { Card as OpponentCard } from '@memebattle/ligretto-shared'
 
 const stylesByPosition = {
   [PositionOnTable.Left]: styles.positionLeft,
@@ -12,25 +11,25 @@ const stylesByPosition = {
   [PositionOnTable.Top]: styles.positionTop,
 }
 
-const cardsPositionsByPositionOnTable: { [position in PositionOnTable]: CardPositions[] } = {
-  [PositionOnTable.Left]: [CardPositions.l0, CardPositions.l1, CardPositions.l2, CardPositions.l3],
-  [PositionOnTable.Right]: [CardPositions.r0, CardPositions.r1, CardPositions.r2, CardPositions.r3],
-  [PositionOnTable.Top]: [CardPositions.o0, CardPositions.o1, CardPositions.o2, CardPositions.o3],
-  [PositionOnTable.LeftTopCorner]: [CardPositions.l0, CardPositions.l1, CardPositions.l2, CardPositions.l3],
-  [PositionOnTable.RightTopCorner]: [CardPositions.r0, CardPositions.r1, CardPositions.r2, CardPositions.r3],
-}
-
 export interface OpponentCardsProps {
   positionOnTable: PositionOnTable
+  stackOpenDeckCards: OpponentCard[]
+  cards: OpponentCard[]
 }
-export const OpponentCards: React.FC<OpponentCardsProps> = ({ positionOnTable }) => (
-  <div className={stylesByPosition[positionOnTable]}>
-    <CardsRow>
-      {cardsPositionsByPositionOnTable[positionOnTable].map(cardPosition => (
-        <CardContainer key={cardPosition} cardPosition={cardPosition} />
-      ))}
-    </CardsRow>
-  </div>
-)
+
+export const OpponentCards: React.FC<OpponentCardsProps> = ({ positionOnTable, stackOpenDeckCards, cards }) => {
+  const stackOpenDeckCard = stackOpenDeckCards.length ? stackOpenDeckCards.slice(-1)[0] : {}
+
+  return (
+    <div className={stylesByPosition[positionOnTable]}>
+      <CardsRow>
+        <Card {...stackOpenDeckCard} />
+        {cards.map((card, index) => (
+          <Card {...card} key={index} />
+        ))}
+      </CardsRow>
+    </div>
+  )
+}
 
 OpponentCards.displayName = 'OpponentCards'
