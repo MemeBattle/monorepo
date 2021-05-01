@@ -1,1 +1,0 @@
-export { TableCards } from './TableCards'

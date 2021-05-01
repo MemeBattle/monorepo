@@ -1,1 +1,0 @@
-export { useCard } from './useCard'

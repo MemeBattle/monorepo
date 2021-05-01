@@ -2,17 +2,14 @@ import type { SagaIterator, EventChannel, Unsubscribe } from 'redux-saga'
 import { eventChannel, END } from 'redux-saga'
 import { all, race, actionChannel, take, put, call } from 'redux-saga/effects'
 import io from 'socket.io-client'
-import type { Action } from '@memebattle/redux-utils'
-import { createAction } from '@memebattle/redux-utils'
 import { WEBSOCKET_URL } from '../../config'
+import { createAction } from '@reduxjs/toolkit'
 
 export enum WebsocketActionNames {
   Cancel = '@@websockets/WEBSOCKET_CLOSED',
 }
 
-type CancelAction = Action<WebsocketActionNames.Cancel>
-
-const cancel = createAction<CancelAction>(WebsocketActionNames.Cancel)
+const cancel = createAction(WebsocketActionNames.Cancel)
 
 function socketChannel(socket: SocketIOClient.Socket): EventChannel<unknown> {
   return eventChannel<unknown>(

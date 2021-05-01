@@ -1,1 +1,0 @@
-export { tableCardsMapper } from './tableCardsMapper'
