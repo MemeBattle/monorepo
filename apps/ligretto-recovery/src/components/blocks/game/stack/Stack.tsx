@@ -10,7 +10,7 @@ export interface StackProps {
 }
 
 export const Stack: React.FC<StackProps> = ({ stackOpenDeckCards, stackDeckCards, onStackOpenDeckCardClick, onStackDeckCardClick }) => {
-  const stackOpenDeckCard = stackOpenDeckCards[2] ?? stackOpenDeckCards[1] ?? stackOpenDeckCards[0] ?? {}
+  const stackOpenDeckCard = stackOpenDeckCards[stackOpenDeckCards.length - 1] ? stackOpenDeckCards[stackOpenDeckCards.length - 1] : {}
 
   return (
     <CardsRow>
