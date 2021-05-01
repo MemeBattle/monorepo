@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   tapCardAction,
@@ -27,21 +27,24 @@ export const CardsPanelContainer = () => {
   const dispatch = useDispatch()
   const { playerCards, playerStackOpenDeckCards, playerStackDeckCards, playerLigrettoDeckCards } = useSelector(CardsPanelContainerSelector)
 
-  const onCardRowClick = (index: number) => {
-    dispatch(tapCardAction({ cardIndex: index }))
-  }
+  const onCardRowClick = useCallback(
+    (index: number) => {
+      dispatch(tapCardAction({ cardIndex: index }))
+    },
+    [dispatch],
+  )
 
-  const onStackOpenDeckCardClick = () => {
+  const onStackOpenDeckCardClick = useCallback(() => {
     dispatch(tapStackOpenDeckCardAction())
-  }
+  }, [dispatch])
 
-  const onStackDeckCardClick = () => {
+  const onStackDeckCardClick = useCallback(() => {
     dispatch(tapStackDeckCardAction())
-  }
+  }, [dispatch])
 
-  const onLigrettoDeckCardClick = () => {
+  const onLigrettoDeckCardClick = useCallback(() => {
     dispatch(tapLigrettoDeckCardAction())
-  }
+  }, [dispatch])
 
   const cards = useMemo(() => {
     const newPlayerCardsArr = []

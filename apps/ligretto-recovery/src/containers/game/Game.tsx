@@ -21,19 +21,19 @@ const createRenderChildren = (opponents: Player[]) => {
   }
 }
 
-const GameSelector = createSelector([selectOpponents, selectPlaygroundDecks], (opponents, deskCards) => ({
+const GameSelector = createSelector([selectOpponents, selectPlaygroundDecks], (opponents, cardsDecks) => ({
   opponents,
-  deskCards,
+  cardsDecks,
 }))
 
 export const Game = () => {
-  const { opponents, deskCards } = useSelector(GameSelector)
+  const { opponents, cardsDecks } = useSelector(GameSelector)
   const renderChildren = React.useMemo(() => createRenderChildren(opponents), [opponents])
 
   return (
     <>
       {renderChildren ? <RoomGrid renderChildren={renderChildren} /> : null}
-      <Playground deskCards={deskCards} />
+      <Playground cardsDecks={cardsDecks} />
       <CardsPanelContainer />
     </>
   )
