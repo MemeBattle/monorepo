@@ -4634,10 +4634,10 @@
     axios "^0.21.1"
     jsonwebtoken "^8.5.0"
 
-"@memebattle/cas-services@^3.0.0":
-  version "3.0.0"
-  resolved "https://npm.pkg.github.com/download/@memebattle/cas-services/3.0.0/891f264b955900682da52564f554df74e13952fd5d01f5407027414d09fb6d84#b7adb6d42afce7a68232dbcf5efd750ba3a00fe4"
-  integrity sha512-uMuc/4jGXIitOBUzVqmwqE28A4ecpEDN4rRi3tj8pBjDfL95a5+ePAU/VLxkZOJkMexJy7cyPOldl82h/yfE5Q==
+"@memebattle/cas-services@^3.1.0":
+  version "3.1.0"
+  resolved "https://npm.pkg.github.com/download/@memebattle/cas-services/3.1.0/d8517e290f0cbf228910b80c33b3b363c4c8a6c69804475ab974aa184d5f9261#2755e33ee233c64df9b13a88f840c1c2cd8725f6"
+  integrity sha512-Zo/52vie73j9i1t9B0gItRlM1J5sYZ6YFQTJ+aliEiKC5COOrwkmj/Nnexmp3BGgofKs2+qcLFLVGn8lo6pOMQ==
   dependencies:
     axios "^0.21.1"
     jsonwebtoken "^8.5.0"
