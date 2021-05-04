@@ -10,9 +10,12 @@ import type { RegisterFormSubmissionErrors, RegisterFormValues } from './Registe
 import { Header } from '../../components/Header'
 import { useRegisterValidation } from './useRegisterValidation'
 import { useCasServices } from '../../modules/cas-services'
+import { useHistory } from 'react-router'
 
 export const RegisterPage = memo(() => {
   const { signUpService } = useCasServices()
+
+  const history = useHistory()
 
   const initialValues = useMemo<RegisterFormValues>(
     () => ({
@@ -30,6 +33,9 @@ export const RegisterPage = memo(() => {
         const answer = await signUpService({ username: values.username, email: values.email, password: values.password })
 
         if (answer.success) {
+          const query = new URLSearchParams({ username: values.username, email: values.email })
+
+          history.push(`${ROUTES.CONFIRM_EMAIL}?${query.toString()}`)
           return
         }
 
@@ -43,7 +49,7 @@ export const RegisterPage = memo(() => {
         return { [FORM_ERROR]: 'Something went wrong' }
       }
     },
-    [signUpService],
+    [history, signUpService],
   )
 
   const validate = useRegisterValidation()

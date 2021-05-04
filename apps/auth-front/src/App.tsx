@@ -4,7 +4,7 @@ import { ROUTES } from './constants/routes'
 import { LoginPage } from './pages/login/LoginPage'
 import { RegisterPage } from './pages/register/RegisterPage'
 import { ProfilePage } from './pages/profile/ProfilePage'
-import { ConfirmEmailPage } from './pages/confirm/ConfirmEmailPage'
+import { ConfirmEmailPage } from './pages/confirm'
 
 import './styles.css'
 
