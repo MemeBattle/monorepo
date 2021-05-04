@@ -1,0 +1,15 @@
+version: '3.3'
+services:
+  ligretto-core-pg:
+    image: postgres
+    ports:
+    - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: ligretto_pg_password
+      POSTGRES_USER: ligretto-core-user
+      POSTGRES_DB: ligretto-core
+    volumes:
+    - pg-ligretto:/var/lib/postgresql/data
+
+volumes:
+  pg-ligretto: {}
