@@ -26,8 +26,10 @@ export const t = {
   header: 'Ligretto',
   confirmEmail: {
     header: 'Confirm your email address',
-    message: ({ email }: { email: string }) =>
-      `We have sent an email with a confirmation link to ${email}. In order to complete the sign-up process, please click the confirmation link.
+    message: ({ email }: { email: string | null }) =>
+      `We have sent an email with a confirmation link to ${
+        email || 'your email'
+      }. In order to complete the sign-up process, please click the confirmation link.
       If you do not receive a confirmation email, please check your spam folder.
       Also, please verify that you entered a valid email address in our sign-up form.
       If you need assistance, please contact us.`,
