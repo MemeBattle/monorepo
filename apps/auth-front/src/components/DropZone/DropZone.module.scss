@@ -3,13 +3,32 @@
   width: auto;
   height: 100%;
 }
+.userPhoto {
+  display: flex;
+  margin-top: auto;
+}
+
+.dropZone {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.buttonWrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
+  margin-bottom: 1rem;
+}
 
 .container {
   display: flex;
   flex-direction: column;
   color: #27AE60;
   max-width: 172px;
-  max-height: 226px;
+  height: 226px;
+  min-width: 172px;
+
 
   &__border {
     background: #FFFFFF;
@@ -26,9 +45,11 @@
     margin-bottom: 16px !important;
   }
   &__img {
-    padding: 22px;
-    width: 100%;
-    height: auto;
+    display: flex;
+    max-width: 100%;
+    max-height: 100%;
+    align-self: center;
+    margin-top: auto;
   }
 
 }
@@ -42,10 +63,10 @@
  border: 3px #CFCFCF dashed;
  color: #828282;
  text-transform: uppercase;
- max-width: 282px;
+ flex:1;
+ min-height: 226px;
   &__logo {
-    padding: 44px 87px 34px;
-    width: 100%;
-    height: auto;
+    display: block;
+    margin: 44px auto;
   }
 }

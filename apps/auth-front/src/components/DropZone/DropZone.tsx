@@ -16,10 +16,11 @@ type FilePreview = File & {
 
 export const Dropzone = (props: DropZoneProps) => {
   const [files, setFiles] = useState<FilePreview[]>([])
-  const { getRootProps, getInputProps } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: 'image/*',
     multiple: false,
-    noDrag: true,
+    noDrag: false,
+    onDragEnter: console.log,
     onDrop: acceptedFiles => {
       const files = acceptedFiles.map(file =>
         Object.assign(file, {
@@ -50,27 +51,25 @@ export const Dropzone = (props: DropZoneProps) => {
   )
 
   return (
-    <>
-      <div className={cn(styles.container, styles.container__border)}>
-        {files.length > 0 ? <aside>{thumbs}</aside> : <Logo className={styles.container__img} />}
-        <Button
-          {...getRootProps()}
-          size="medium"
-          variant="outlined"
-          color="inherit"
-          className={styles.container__button}
-          endIcon={<ButtonLogo>send</ButtonLogo>}
-        >
-          UPLOAD
-        </Button>
-        <input {...getInputProps()} />
-      </div>
-      <div {...getRootProps({ className: styles.box })}>
-        <DropLogo className={styles.box__logo} />
-        <Typography variant="subtitle1" align={'center'} gutterBottom color={'inherit'}>
-          Drop avatar here
-        </Typography>
-      </div>
-    </>
+    <div className={styles.dropZone} {...getRootProps({ onClick: undefined })}>
+      <input {...getInputProps()} />
+      {!isDragActive ? (
+        <div className={cn(styles.container, styles.container__border)}>
+          {files.length > 0 ? <div className={styles.userPhoto}>{thumbs}</div> : <Logo className={styles.container__img} />}
+          <div className={styles.buttonWrapper}>
+            <Button size="medium" variant="outlined" color="inherit" endIcon={<ButtonLogo>send</ButtonLogo>}>
+              UPLOAD
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className={styles.box}>
+          <DropLogo className={styles.box__logo} />
+          <Typography variant="subtitle1" align={'center'} gutterBottom color={'inherit'}>
+            Drop avatar here
+          </Typography>
+        </div>
+      )}
+    </div>
   )
 }

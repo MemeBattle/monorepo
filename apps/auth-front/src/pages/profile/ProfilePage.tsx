@@ -7,7 +7,7 @@ import { CreatedByInfo } from '../../components/CreatedByInfo'
 
 import type { ProfileFormValues } from './ProfilePage.types'
 import { useCallback } from 'react'
-import { Dropzone } from '../../components/DropZone';
+import { Dropzone } from '../../components/DropZone'
 
 export const ProfilePage = () => {
   const handleSubmit = useCallback((values): ProfileFormValues => {
