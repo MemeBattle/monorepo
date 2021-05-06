@@ -51,7 +51,7 @@ export const Dropzone = (props: DropZoneProps) => {
   )
 
   return (
-    <div className={styles.dropZone} {...getRootProps({ onClick: undefined })}>
+    <div className={styles.dropZone} {...getRootProps()}>
       <input {...getInputProps()} />
       {!isDragActive ? (
         <div className={cn(styles.container, styles.container__border)}>
