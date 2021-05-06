@@ -25,9 +25,7 @@ Route.get('/', async () => ({ hello: 'world' }))
 
 Route.resource('users', 'UsersController').middleware({ '*': 'casAuth' }).apiOnly()
 
-Route.post('/auth/login', 'AuthController.login')
-
-Route.post('/auth/signup', 'AuthController.signUp')
+Route.post('/auth/me', 'AuthController.me')
 
 Route.get('health', async ({ response }) => {
   const report = await HealthCheck.getReport()
