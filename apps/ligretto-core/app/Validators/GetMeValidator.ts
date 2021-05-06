@@ -1,7 +1,7 @@
-import { schema, rules } from '@ioc:Adonis/Core/Validator'
+import { schema } from '@ioc:Adonis/Core/Validator'
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 
-export default class SignUpValidator {
+export default class GetMeValidator {
   constructor(protected ctx: HttpContextContract) {}
 
   /*
@@ -24,8 +24,7 @@ export default class SignUpValidator {
    *    ```
    */
   public schema = schema.create({
-    email: schema.string({}, [rules.email()]),
-    password: schema.string({ trim: true }, [rules.minLength(8)]),
+    token: schema.string(),
   })
 
   /**

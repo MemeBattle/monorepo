@@ -8,15 +8,12 @@ export default class User extends BaseModel {
 
   public static connection = 'pg'
 
-  @column({ isPrimary: true })
-  public id: number
-
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime
 
-  @column({ columnName: 'casId' })
+  @column({ columnName: 'casId', isPrimary: true })
   public casId: string
 }
