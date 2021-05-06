@@ -1,6 +1,7 @@
 import { Button, Container, Input } from '@memebattle/ligretto-ui'
 import type { FormApi } from 'final-form'
-import { useCallback, useMemo } from 'react'
+import { FORM_ERROR } from 'final-form'
+import { memo, useCallback, useMemo } from 'react'
 
 import { Paper } from '../../components/Paper'
 import { Header } from '../../components/Header'
@@ -12,7 +13,11 @@ import type { ProfileFormValues } from './ProfilePage.types'
 import { useCasServices } from '../../modules/cas-services'
 import { useProfileRequest } from './useProfileRequest'
 
-export const ProfilePage = () => {
+interface ProfilePageProps {
+  onLoginSucceeded: ({ token }: { token: string }) => void
+}
+
+export const ProfilePage = memo<ProfilePageProps>(({ onLoginSucceeded }) => {
   const { updateUserProfileService } = useCasServices()
 
   const [profile, isProfileLoading] = useProfileRequest()
@@ -30,18 +35,22 @@ export const ProfilePage = () => {
 
   const handleSubmit = useCallback(
     async ({ username }: ProfileFormValues, form: FormApi<ProfileFormValues>) => {
-      if (profile && form.getState().dirty) {
+      if (!profile) {
+        return { [FORM_ERROR]: 'Something went wrong' }
+      }
+
+      if (form.getState().dirty) {
         await updateUserProfileService({
           userId: profile.id,
           token: profile.token,
           username,
           avatar: new File([], 'FilenameAvatar.png'),
         })
-      } else {
-        console.log('Form wasnt modified')
       }
+
+      onLoginSucceeded({ token: profile.token })
     },
-    [updateUserProfileService, profile],
+    [updateUserProfileService, profile, onLoginSucceeded],
   )
 
   return !isProfileLoading ? (
@@ -90,4 +99,4 @@ export const ProfilePage = () => {
       <CreatedByInfo />
     </Container>
   ) : null
-}
+})

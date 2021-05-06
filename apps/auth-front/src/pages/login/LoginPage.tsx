@@ -10,11 +10,12 @@ import type { LoginFormSubmissionError, LoginFormValues } from './LoginPage.type
 import { FORM_ERROR } from 'final-form'
 import { CreatedByInfo } from '../../components/CreatedByInfo'
 import { useCasServices } from '../../modules/cas-services'
-import { useHistory } from 'react-router'
 
-export const LoginPage = memo(() => {
-  const history = useHistory()
+interface LoginPageProps {
+  onLoginSucceeded: ({ token }: { token: string }) => void
+}
 
+export const LoginPage = memo<LoginPageProps>(({ onLoginSucceeded }) => {
   const { loginService } = useCasServices()
 
   const initialValues = useMemo<LoginFormValues>(
@@ -31,7 +32,7 @@ export const LoginPage = memo(() => {
         const response = await loginService({ login: values.username, password: values.password })
 
         if (response.success) {
-          history.push(`${ROUTES.PROFILE}?token=${response.data.token}`)
+          onLoginSucceeded({ token: response.data.token })
           return
         }
 
@@ -42,7 +43,7 @@ export const LoginPage = memo(() => {
         return { username: 'Invalid login or password', password: 'Invalid login or password' }
       }
     },
-    [loginService, history],
+    [loginService, onLoginSucceeded],
   )
 
   return (
