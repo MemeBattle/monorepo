@@ -1,30 +1,16 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-import { login, signUp } from '@ioc:CasServices'
-import Logger from '@ioc:Adonis/Core/Logger'
+import { getMe } from '@ioc:CasServices'
 import UserModel from '../../Models/User'
-import LoginValidator from '../../Validators/LoginValidator'
-import SignUpValidator from '../../Validators/SignUpValidator'
+import GetMeValidator from '../../Validators/GetMeValidator'
 
 export default class AuthController {
-  async login({ request, response }: HttpContextContract) {
-    const data = await request.validate(LoginValidator)
-    const loginResult = await login(data)
-    if (loginResult.success) {
-      const user = await UserModel.firstOrCreate({ casId: loginResult.data.user._id }, {})
-      return { ...loginResult.data, profile: user }
+  async me({ request, response }: HttpContextContract) {
+    const data = await request.validate(GetMeValidator)
+    const casGetMeResult = await getMe(data)
+    if (casGetMeResult.success) {
+      const user = await UserModel.firstOrCreate({ casId: casGetMeResult.data.user._id }, {})
+      return { ...casGetMeResult.data, profile: user }
     }
-    return response.status(loginResult.error.errorCode).json(loginResult.error)
-  }
-
-  async signUp({ request, response }: HttpContextContract) {
-    const data = await request.validate(SignUpValidator)
-    const signUpResult = await signUp({ username: data.email, email: data.email, password: data.password })
-    if (signUpResult.success) {
-      const user = await UserModel.firstOrCreate({ casId: signUpResult.data._id }, { casId: signUpResult.data._id })
-      return { user: signUpResult.data, profile: user }
-    } else {
-      Logger.info(signUpResult.error.errorMessage)
-      return response.status(signUpResult.error.errorCode).json(signUpResult.error)
-    }
+    return response.status(casGetMeResult.error.errorCode).json(casGetMeResult.error)
   }
 }

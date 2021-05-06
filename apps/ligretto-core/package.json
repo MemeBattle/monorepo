@@ -19,7 +19,7 @@
     "@adonisjs/core": "^5.0.4-preview-rc",
     "@adonisjs/lucid": "^10.0.0",
     "@adonisjs/repl": "^1.0.0",
-    "@memebattle/cas-services": "^2.3.0",
+    "@memebattle/cas-services": "^3.2.0",
     "luxon": "^1.25.0",
     "pg": "^8.5.1",
     "proxy-addr": "^2.0.6",
