@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import styles from './DropZone.module.scss'
+import styles from './AvatarDropZone.module.scss'
 import { ReactComponent as Logo } from '../../images/UserPhoto.svg'
 import { ReactComponent as ButtonLogo } from '../../images/UploadButton.svg'
-import { ReactComponent as DropLogo } from '../../images/DropImage.svg'
-import { Button, Typography } from '@memebattle/ligretto-ui'
+import { Button } from '@memebattle/ligretto-ui'
 import cn from 'classnames'
+import { DropBox } from '../DropBox/DropBox'
+import { UserPhotoDrop } from '../UserPhotoDrop'
 
 interface DropZoneProps {
   onChange?: (files: File[]) => void
@@ -14,13 +15,10 @@ type FilePreview = File & {
   preview: string
 }
 
-export const Dropzone = (props: DropZoneProps) => {
+export const AvatarDropZone = (props: DropZoneProps) => {
   const [files, setFiles] = useState<FilePreview[]>([])
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: 'image/*',
-    multiple: false,
-    noDrag: false,
-    onDragEnter: console.log,
+    accept: ['image/png', 'image/svg', 'image/jpeg', 'image/jpg'],
     onDrop: acceptedFiles => {
       const files = acceptedFiles.map(file =>
         Object.assign(file, {
@@ -33,14 +31,7 @@ export const Dropzone = (props: DropZoneProps) => {
       }
     },
   })
-
-  // const removeFile = (file: FilePreview) => () => {
-  //   const newFiles = [...files]
-  //   newFiles.splice(newFiles.indexOf(file), 1)
-  //   setFiles(newFiles)
-  // }
-
-  const thumbs = files.map(file => <img key={file.name} src={file.preview} className={styles.container__img} alt={file.name} />)
+  console.log(files)
 
   useEffect(
     () => () => {
@@ -55,7 +46,7 @@ export const Dropzone = (props: DropZoneProps) => {
       <input {...getInputProps()} />
       {!isDragActive ? (
         <div className={cn(styles.container, styles.container__border)}>
-          {files.length > 0 ? <div className={styles.userPhoto}>{thumbs}</div> : <Logo className={styles.container__img} />}
+          {files.length > 0 ? <UserPhotoDrop file={files[0]} /> : <Logo className={styles.container__img} />}
           <div className={styles.buttonWrapper}>
             <Button size="medium" variant="outlined" color="inherit" endIcon={<ButtonLogo>send</ButtonLogo>}>
               UPLOAD
@@ -63,12 +54,7 @@ export const Dropzone = (props: DropZoneProps) => {
           </div>
         </div>
       ) : (
-        <div className={styles.box}>
-          <DropLogo className={styles.box__logo} />
-          <Typography variant="subtitle1" align={'center'} gutterBottom color={'inherit'}>
-            Drop avatar here
-          </Typography>
-        </div>
+        <DropBox />
       )}
     </div>
   )

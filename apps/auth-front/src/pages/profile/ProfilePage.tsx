@@ -7,7 +7,7 @@ import { CreatedByInfo } from '../../components/CreatedByInfo'
 
 import type { ProfileFormValues } from './ProfilePage.types'
 import { useCallback } from 'react'
-import { Dropzone } from '../../components/DropZone'
+import { AvatarDropZone } from '../../components/AvatarDropZone'
 
 export const ProfilePage = () => {
   const handleSubmit = useCallback((values): ProfileFormValues => {
@@ -24,25 +24,23 @@ export const ProfilePage = () => {
         render={({ handleSubmit, submitError }) => (
           <form onSubmit={handleSubmit}>
             <Paper>
-              <Dropzone onChange={console.log} />
+              <AvatarDropZone onChange={console.log} />
               <Input value="a@mems.fun" variant="filled" margin="normal" fullWidth id="email" label={t.profile.email} name="email" disabled />
               <Field
                 name="username"
                 render={({ input, meta }) => (
-                  <>
-                    <Input
-                      {...input}
-                      margin="normal"
-                      required
-                      fullWidth
-                      onChange={input.onChange}
-                      id="username"
-                      label={t.profile.username}
-                      name="username"
-                      error={!meta.modifiedSinceLastSubmit && Boolean(meta.error || meta.submitError)}
-                      helperText={!meta.modifiedSinceLastSubmit && meta.submitError}
-                    />
-                  </>
+                  <Input
+                    {...input}
+                    margin="normal"
+                    required
+                    fullWidth
+                    onChange={input.onChange}
+                    id="username"
+                    label={t.profile.username}
+                    name="username"
+                    error={!meta.modifiedSinceLastSubmit && Boolean(meta.error || meta.submitError)}
+                    helperText={!meta.modifiedSinceLastSubmit && meta.submitError}
+                  />
                 )}
               />
               {submitError}

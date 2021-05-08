@@ -1,0 +1,12 @@
+.box {
+ background: #F5F5F5;
+ border: 3px #CFCFCF dashed;
+ color: #828282;
+ text-transform: uppercase;
+ flex:1;
+ min-height: 226px;
+  &__logo {
+    display: block;
+    margin: 44px auto;
+  }
+}
