@@ -1,0 +1,1 @@
+export { EmailSended } from './EmailSended'
