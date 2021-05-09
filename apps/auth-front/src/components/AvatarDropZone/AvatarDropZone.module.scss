@@ -1,4 +1,3 @@
-
 .dropZone {
   width: 100%;
   display: flex;
@@ -15,15 +14,14 @@
 .container {
   display: flex;
   flex-direction: column;
-  color: #27AE60;
+  color: #27ae60;
   max-width: 172px;
   height: 226px;
   min-width: 172px;
 
-
   &__border {
-    background: #FFFFFF;
-    border: 4px solid #27AE60;
+    background: #ffffff;
+    border: 4px solid #27ae60;
     border-radius: 6px;
   }
   &__img {
@@ -33,6 +31,4 @@
     align-self: center;
     margin-top: auto;
   }
-
 }
-
