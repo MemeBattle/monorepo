@@ -9,13 +9,11 @@ import { DropBox } from '../DropBox/DropBox'
 import { UserPhotoDrop } from '../UserPhotoDrop'
 
 interface DropZoneProps {
-  onChange?: (files: File) => void
+  onChange?: (file: File) => void
 }
-type FilePreviewItem = {
+
+type FilePreview = File & {
   preview: string
-}
-type FilePreview = {
-  file: FilePreviewItem
 }
 
 export const AvatarDropZone = (props: DropZoneProps) => {
@@ -23,8 +21,8 @@ export const AvatarDropZone = (props: DropZoneProps) => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: ['image/png', 'image/svg', 'image/jpeg', 'image/jpg'],
     onDrop: acceptedFiles => {
-      const file = acceptedFiles[0]
-      const file = Object.assign(file, {
+      let file = acceptedFiles[0]
+      file = Object.assign(file, {
         preview: URL.createObjectURL(file),
       })
       setFile(file)
@@ -37,7 +35,9 @@ export const AvatarDropZone = (props: DropZoneProps) => {
   useEffect(
     () => () => {
       // Make sure to revoke the data uris to avoid memory leaks
-      URL.revokeObjectURL(file.preview)
+      if (file) {
+        URL.revokeObjectURL(file.preview)
+      }
     },
     [file],
   )
