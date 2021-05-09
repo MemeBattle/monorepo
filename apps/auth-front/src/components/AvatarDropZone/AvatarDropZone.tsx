@@ -9,36 +9,37 @@ import { DropBox } from '../DropBox/DropBox'
 import { UserPhotoDrop } from '../UserPhotoDrop'
 
 interface DropZoneProps {
-  onChange?: (files: File[]) => void
+  onChange?: (files: File) => void
 }
-type FilePreview = File & {
+type FilePreviewItem = {
   preview: string
+}
+type FilePreview = {
+  file: FilePreviewItem
 }
 
 export const AvatarDropZone = (props: DropZoneProps) => {
-  const [files, setFiles] = useState<FilePreview[]>([])
+  const [file, setFile] = useState<FilePreview>()
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: ['image/png', 'image/svg', 'image/jpeg', 'image/jpg'],
     onDrop: acceptedFiles => {
-      const files = acceptedFiles.map(file =>
-        Object.assign(file, {
-          preview: URL.createObjectURL(file),
-        }),
-      )
-      setFiles(files)
+      const file = acceptedFiles[0]
+      const file = Object.assign(file, {
+        preview: URL.createObjectURL(file),
+      })
+      setFile(file)
       if (props.onChange) {
-        props.onChange(files)
+        props.onChange(file)
       }
     },
   })
-  console.log(files)
 
   useEffect(
     () => () => {
       // Make sure to revoke the data uris to avoid memory leaks
-      files.forEach(file => URL.revokeObjectURL(file.preview))
+      URL.revokeObjectURL(file.preview)
     },
-    [files],
+    [file],
   )
 
   return (
@@ -46,7 +47,7 @@ export const AvatarDropZone = (props: DropZoneProps) => {
       <input {...getInputProps()} />
       {!isDragActive ? (
         <div className={cn(styles.container, styles.container__border)}>
-          {files.length > 0 ? <UserPhotoDrop file={files[0]} /> : <Logo className={styles.container__img} />}
+          {file ? <UserPhotoDrop file={file} /> : <Logo className={styles.container__img} />}
           <div className={styles.buttonWrapper}>
             <Button size="medium" variant="outlined" color="inherit" endIcon={<ButtonLogo>send</ButtonLogo>}>
               UPLOAD
