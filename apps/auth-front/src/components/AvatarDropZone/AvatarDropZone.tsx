@@ -17,15 +17,13 @@ type FilePreview = File & {
 }
 
 export const AvatarDropZone = (props: DropZoneProps) => {
-  const [file, setFile] = useState<FilePreview>()
+  const [file, setFile] = useState<FilePreview | null>(null)
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: ['image/png', 'image/svg', 'image/jpeg', 'image/jpg'],
     onDrop: acceptedFiles => {
-      let file = acceptedFiles[0]
-      file = Object.assign(file, {
-        preview: URL.createObjectURL(file),
-      })
-      setFile(file)
+      const file = acceptedFiles[0]
+      const fileWithPreview: FilePreview = { ...file, preview: URL.createObjectURL(file) }
+      setFile(fileWithPreview)
       if (props.onChange) {
         props.onChange(file)
       }
