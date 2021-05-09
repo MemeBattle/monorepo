@@ -31,7 +31,6 @@ export const AvatarDropZone = (props: DropZoneProps) => {
       }
     },
   })
-  console.log(files)
 
   useEffect(
     () => () => {
