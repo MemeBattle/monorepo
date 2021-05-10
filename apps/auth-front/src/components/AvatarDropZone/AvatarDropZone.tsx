@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import styles from './AvatarDropZone.module.scss'
-import { ReactComponent as Logo } from '../../images/UserPhoto.svg'
+import { ReactComponent as AvatarPlaceHolder } from '../../images/UserPhoto.svg'
 import { ReactComponent as ButtonLogo } from '../../images/UploadButton.svg'
 import { Button } from '@memebattle/ligretto-ui'
 import cn from 'classnames'
 import { DropBox } from '../DropBox/DropBox'
 import { UserPhotoDrop } from '../UserPhotoDrop'
+import { t } from '../../utils/i18n'
 
 interface DropZoneProps {
   onChange?: (file: File) => void
@@ -45,10 +46,10 @@ export const AvatarDropZone = (props: DropZoneProps) => {
       <input {...getInputProps()} />
       {!isDragActive ? (
         <div className={cn(styles.container, styles.container__border)}>
-          {file ? <UserPhotoDrop file={file} /> : <Logo className={styles.container__img} />}
+          {file ? <UserPhotoDrop file={file} /> : <AvatarPlaceHolder className={styles.container__img} />}
           <div className={styles.buttonWrapper}>
             <Button size="medium" variant="outlined" color="inherit" endIcon={<ButtonLogo>send</ButtonLogo>}>
-              UPLOAD
+              {t.avatarDropZone.text}
             </Button>
           </div>
         </div>

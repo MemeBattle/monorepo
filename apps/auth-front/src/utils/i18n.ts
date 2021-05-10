@@ -23,6 +23,12 @@ export const t = {
   createdByInfo: {
     text: 'Created by:',
   },
+  avatarDropZone: {
+    text: 'Upload',
+  },
+  dropBox: {
+    text: 'Drop avatar here',
+  },
   header: 'Ligretto',
   confirmEmail: {
     header: 'Confirm your email address',
