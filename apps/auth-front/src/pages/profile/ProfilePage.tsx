@@ -11,7 +11,6 @@ import { AvatarDropZone } from '../../components/AvatarDropZone'
 
 export const ProfilePage = () => {
   const handleSubmit = useCallback((values): ProfileFormValues => {
-    console.log(values)
     return values
   }, [])
 
@@ -24,7 +23,7 @@ export const ProfilePage = () => {
         render={({ handleSubmit, submitError }) => (
           <form onSubmit={handleSubmit}>
             <Paper>
-              <AvatarDropZone onChange={console.log} />
+              <AvatarDropZone />
               <Input value="a@mems.fun" variant="filled" margin="normal" fullWidth id="email" label={t.profile.email} name="email" disabled />
               <Field
                 name="username"

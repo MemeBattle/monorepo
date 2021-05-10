@@ -25,9 +25,7 @@ export const AvatarDropZone = (props: DropZoneProps) => {
       const file = acceptedFiles[0]
       const fileWithPreview: FilePreview = { ...file, preview: URL.createObjectURL(file) }
       setFile(fileWithPreview)
-      if (props.onChange) {
-        props.onChange(file)
-      }
+      props.onChange?.(file)
     },
   })
 

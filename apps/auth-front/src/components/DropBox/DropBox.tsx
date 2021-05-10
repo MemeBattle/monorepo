@@ -6,7 +6,7 @@ import { t } from '../../utils/i18n'
 
 export const DropBox = () => (
   <div className={styles.box}>
-    <DropIcon className={styles.box__logo} />
+    <DropIcon className={styles.dropIcon} />
     <Typography variant="subtitle1" align="center" gutterBottom color="inherit">
       {t.dropBox}
     </Typography>

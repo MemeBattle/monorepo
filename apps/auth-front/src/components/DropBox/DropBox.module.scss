@@ -5,8 +5,10 @@
  text-transform: uppercase;
  flex:1;
  min-height: 226px;
-  &__logo {
-    display: block;
-    margin: 44px auto;
-  }
+
+}
+
+.dropIcon {
+  display: block;
+  margin: 44px auto;
 }
