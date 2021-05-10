@@ -48,7 +48,9 @@ export default class CasServiceProvider {
 
         const getMe = services.getMeService
 
-        return { login, signUp, verifyToken, getMe }
+        const getUsers = services.getUsersService
+
+        return { login, signUp, verifyToken, getMe, getUsers }
       },
     )
   }

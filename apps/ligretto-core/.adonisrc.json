@@ -25,5 +25,8 @@
   ],
   "aceProviders": [
     "@adonisjs/repl"
-  ]
+  ],
+  "namespaces": {
+    "validators": "App/Validators"
+  }
 }

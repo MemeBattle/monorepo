@@ -23,7 +23,7 @@ import HealthCheck from '@ioc:Adonis/Core/HealthCheck'
 
 Route.get('/', async () => ({ hello: 'world' }))
 
-Route.resource('users', 'UsersController').middleware({ '*': 'casAuth' }).apiOnly()
+Route.resource('users', 'UsersController').apiOnly()
 
 Route.post('/auth/me', 'AuthController.me')
 
