@@ -7,11 +7,15 @@ import { t } from '../../utils/i18n'
 import { ROUTES } from '../../constants/routes'
 import { Link } from 'react-router-dom'
 import type { LoginFormSubmissionError, LoginFormValues } from './LoginPage.types'
-// import { FORM_ERROR } from 'final-form'
+import { FORM_ERROR } from 'final-form'
 import { CreatedByInfo } from '../../components/CreatedByInfo'
 import { useCasServices } from '../../modules/cas-services'
 
-export const LoginPage = memo(() => {
+interface LoginPageProps {
+  onLoginSucceeded: ({ token }: { token: string }) => void
+}
+
+export const LoginPage = memo<LoginPageProps>(({ onLoginSucceeded }) => {
   const { loginService } = useCasServices()
 
   const initialValues = useMemo<LoginFormValues>(
@@ -25,15 +29,21 @@ export const LoginPage = memo(() => {
   const handleSubmit = useCallback(
     async (values: LoginFormValues): Promise<LoginFormSubmissionError | undefined> => {
       try {
-        const answer = await loginService({ login: values.username, password: values.password })
+        const response = await loginService({ login: values.username, password: values.password })
 
-        console.log(answer)
+        if (response.success) {
+          onLoginSucceeded({ token: response.data.token })
+          return
+        }
+
+        return {
+          [FORM_ERROR]: 'Something went wrong',
+        }
       } catch (e) {
-        console.log(e.response.status)
         return { username: 'Invalid login or password', password: 'Invalid login or password' }
       }
     },
-    [loginService],
+    [loginService, onLoginSucceeded],
   )
 
   return (
