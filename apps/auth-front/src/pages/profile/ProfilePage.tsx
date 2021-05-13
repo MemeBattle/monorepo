@@ -1,30 +1,72 @@
 import { Button, Container, Input } from '@memebattle/ligretto-ui'
+import type { FormApi } from 'final-form'
+import { FORM_ERROR } from 'final-form'
+import { memo, useCallback, useMemo } from 'react'
+
 import { Paper } from '../../components/Paper'
 import { Header } from '../../components/Header'
 import { Field, Form } from 'react-final-form'
 import { t } from '../../utils/i18n'
 import { CreatedByInfo } from '../../components/CreatedByInfo'
-
-import type { ProfileFormValues } from './ProfilePage.types'
-import { useCallback } from 'react'
 import { AvatarDropZone } from '../../components/AvatarDropZone'
+import type { ProfileFormValues } from './ProfilePage.types'
+import { useCasServices } from '../../modules/cas-services'
+import { useProfileRequest } from './useProfileRequest'
 
-export const ProfilePage = () => {
-  const handleSubmit = useCallback((values): ProfileFormValues => {
-    return values
-  }, [])
+interface ProfilePageProps {
+  onLoginSucceeded: ({ token }: { token: string }) => void
+}
 
-  return (
+export const ProfilePage = memo<ProfilePageProps>(({ onLoginSucceeded }) => {
+  const { updateUserProfileService } = useCasServices()
+  const [profile, isProfileLoading] = useProfileRequest()
+  const initialValues = useMemo<ProfileFormValues | undefined>(
+    () =>
+      profile
+        ? {
+            email: profile.email,
+            username: profile.username,
+          }
+        : undefined,
+    [profile],
+  )
+
+  const handleSubmit = useCallback(
+    async ({ username }: ProfileFormValues, form: FormApi<ProfileFormValues>) => {
+      if (!profile) {
+        return { [FORM_ERROR]: 'Something went wrong' }
+      }
+
+      if (form.getState().dirty) {
+        await updateUserProfileService({
+          userId: profile.id,
+          token: profile.token,
+          username,
+          avatar: new File([], 'FilenameAvatar.png'),
+        })
+      }
+
+      onLoginSucceeded({ token: profile.token })
+    },
+    [updateUserProfileService, profile, onLoginSucceeded],
+  )
+
+  return !isProfileLoading ? (
     <Container component="main" maxWidth="xs">
       <Header />
       <Form<ProfileFormValues>
         onSubmit={handleSubmit}
-        initialValues={{ username: 'a@mems.fun' }}
+        initialValues={initialValues}
         render={({ handleSubmit, submitError }) => (
           <form onSubmit={handleSubmit}>
             <Paper>
               <AvatarDropZone />
-              <Input value="a@mems.fun" variant="filled" margin="normal" fullWidth id="email" label={t.profile.email} name="email" disabled />
+              <Field
+                name="email"
+                render={({ input }) => (
+                  <Input value={input.value} variant="filled" margin="normal" fullWidth id="email" label={t.profile.email} name="email" disabled />
+                )}
+              />
               <Field
                 name="username"
                 render={({ input, meta }) => (
@@ -56,5 +98,5 @@ export const ProfilePage = () => {
       <br />
       <CreatedByInfo />
     </Container>
-  )
-}
+  ) : null
+})

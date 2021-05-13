@@ -8,7 +8,7 @@ export const DropBox = () => (
   <div className={styles.box}>
     <DropIcon className={styles.dropIcon} />
     <Typography variant="subtitle1" align="center" gutterBottom color="inherit">
-      {t.dropBox}
+      {t.dropBox.text}
     </Typography>
   </div>
 )

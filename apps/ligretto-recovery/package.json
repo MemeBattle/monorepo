@@ -27,6 +27,7 @@
     "@memebattle/ligretto-shared": "^1.0.6",
     "@memebattle/ligretto-ui": "^1.0.0",
     "@reduxjs/toolkit": "^1.5.0",
+    "axios": "^0.21.1",
     "classnames": "^2.2.6",
     "connected-react-router": "^6.5.2",
     "history": "^4.9.0",
