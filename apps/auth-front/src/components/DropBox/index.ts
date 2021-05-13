@@ -1,1 +1,1 @@
-export * from './AvatarDropZone'
+export * from './DropBox'

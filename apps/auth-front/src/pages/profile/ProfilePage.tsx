@@ -1,14 +1,14 @@
 import { Button, Container, Input } from '@memebattle/ligretto-ui'
 import type { FormApi } from 'final-form'
 import { FORM_ERROR } from 'final-form'
-import { memo, useCallback, useMemo } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 
 import { Paper } from '../../components/Paper'
 import { Header } from '../../components/Header'
 import { Field, Form } from 'react-final-form'
 import { t } from '../../utils/i18n'
 import { CreatedByInfo } from '../../components/CreatedByInfo'
-import { AvatarDropZone } from '../../components/AvatarDropZone'
+import { AvatarDropzone } from '../../components/AvatarDropzone'
 import type { ProfileFormValues } from './ProfilePage.types'
 import { useCasServices } from '../../modules/cas-services'
 import { useProfileRequest } from './useProfileRequest'
@@ -20,6 +20,9 @@ interface ProfilePageProps {
 export const ProfilePage = memo<ProfilePageProps>(({ onLoginSucceeded }) => {
   const { updateUserProfileService } = useCasServices()
   const [profile, isProfileLoading] = useProfileRequest()
+
+  const [avatar, setAvatar] = useState<File | undefined>(undefined)
+
   const initialValues = useMemo<ProfileFormValues | undefined>(
     () =>
       profile
@@ -37,18 +40,18 @@ export const ProfilePage = memo<ProfilePageProps>(({ onLoginSucceeded }) => {
         return { [FORM_ERROR]: 'Something went wrong' }
       }
 
-      if (form.getState().dirty) {
+      if (form.getState().dirty || avatar) {
         await updateUserProfileService({
           userId: profile.id,
           token: profile.token,
           username,
-          avatar: new File([], 'FilenameAvatar.png'),
+          avatar,
         })
       }
 
       onLoginSucceeded({ token: profile.token })
     },
-    [updateUserProfileService, profile, onLoginSucceeded],
+    [profile, avatar, onLoginSucceeded, updateUserProfileService],
   )
 
   return !isProfileLoading ? (
@@ -60,7 +63,7 @@ export const ProfilePage = memo<ProfilePageProps>(({ onLoginSucceeded }) => {
         render={({ handleSubmit, submitError }) => (
           <form onSubmit={handleSubmit}>
             <Paper>
-              <AvatarDropZone />
+              <AvatarDropzone onChange={setAvatar} />
               <Field
                 name="email"
                 render={({ input }) => (

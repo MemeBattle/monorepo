@@ -19,6 +19,7 @@ export const useProfileRequest = () => {
             id: response.data.user._id,
             username: response.data.user.username,
             email: response.data.user.email,
+            avatarUrl: response.data.user.avatar,
             token,
           })
           setIsProfileLoading(false)
