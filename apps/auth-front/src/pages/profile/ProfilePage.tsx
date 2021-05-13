@@ -8,7 +8,7 @@ import { Header } from '../../components/Header'
 import { Field, Form } from 'react-final-form'
 import { t } from '../../utils/i18n'
 import { CreatedByInfo } from '../../components/CreatedByInfo'
-
+import { AvatarDropZone } from '../../components/AvatarDropZone'
 import type { ProfileFormValues } from './ProfilePage.types'
 import { useCasServices } from '../../modules/cas-services'
 import { useProfileRequest } from './useProfileRequest'
@@ -19,9 +19,7 @@ interface ProfilePageProps {
 
 export const ProfilePage = memo<ProfilePageProps>(({ onLoginSucceeded }) => {
   const { updateUserProfileService } = useCasServices()
-
   const [profile, isProfileLoading] = useProfileRequest()
-
   const initialValues = useMemo<ProfileFormValues | undefined>(
     () =>
       profile
@@ -62,6 +60,7 @@ export const ProfilePage = memo<ProfilePageProps>(({ onLoginSucceeded }) => {
         render={({ handleSubmit, submitError }) => (
           <form onSubmit={handleSubmit}>
             <Paper>
+              <AvatarDropZone />
               <Field
                 name="email"
                 render={({ input }) => (
@@ -76,6 +75,7 @@ export const ProfilePage = memo<ProfilePageProps>(({ onLoginSucceeded }) => {
                     margin="normal"
                     required
                     fullWidth
+                    onChange={input.onChange}
                     id="username"
                     label={t.profile.username}
                     name="username"
