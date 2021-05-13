@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import styles from './AvatarDropZone.module.scss'
+import styles from './AvatarDropzone.module.scss'
 import { ReactComponent as AvatarPlaceHolder } from '../../images/UserPhoto.svg'
 import { ReactComponent as UploadIcon } from '../../images/UploadButton.svg'
 import { Button } from '@memebattle/ligretto-ui'
 import cn from 'classnames'
-import { DropBox } from '../DropBox/DropBox'
+import { DropBox } from '../DropBox'
 import { UserPhotoDrop } from '../UserPhotoDrop'
 import { t } from '../../utils/i18n'
 
@@ -17,7 +17,7 @@ type FilePreview = File & {
   preview: string
 }
 
-export const AvatarDropZone = (props: DropZoneProps) => {
+export const AvatarDropzone = (props: DropZoneProps) => {
   const [file, setFile] = useState<FilePreview | null>(null)
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: ['image/png', 'image/svg', 'image/jpeg', 'image/jpg'],
