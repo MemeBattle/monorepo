@@ -1,13 +1,12 @@
 .img {
   display: flex;
-  width: 100%;
+  max-width: 100%;
   max-height: 100%;
   align-self: center;
-  margin-top: auto;
 }
 
 .userPhoto {
   display: flex;
-  margin-top: auto;
+  justify-content: center;
   max-height: 149px;
 }
