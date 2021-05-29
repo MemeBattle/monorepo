@@ -1,6 +1,6 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import { getMe } from '@ioc:CasServices'
-import UserModel from '../../Models/User'
+import UserModel from 'App/Models/User'
 import GetMeValidator from 'App/Validators/GetMeValidator'
 
 export default class AuthController {

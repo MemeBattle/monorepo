@@ -8,20 +8,23 @@
     "dev": "node ace serve --watch"
   },
   "devDependencies": {
-    "@adonisjs/assembler": "^3.0.0",
-    "adonis-preset-ts": "^1.1.0",
-    "pino-pretty": "^4.3.0",
-    "typescript": "^4.1.3",
-    "youch": "^2.1.1",
-    "youch-terminal": "^1.0.1"
+    "@adonisjs/assembler": "^5.3.0",
+    "adonis-preset-ts": "^2.1.0",
+    "pino-pretty": "^5.0.1",
+    "typescript": "^4.3.2",
+    "youch": "^2.2.2",
+    "youch-terminal": "^1.1.1"
+  },
+  "workspaces": {
+    "nohoist": ["adonis-preset-ts"]
   },
   "dependencies": {
-    "@adonisjs/core": "^5.0.4-preview-rc",
-    "@adonisjs/lucid": "^10.0.0",
-    "@adonisjs/repl": "^1.0.0",
+    "@adonisjs/core": "^5.1.7",
+    "@adonisjs/lucid": "^14.1.0",
+    "@adonisjs/repl": "^3.1.2",
     "@memebattle/cas-services": "^3.4.0",
-    "luxon": "^1.25.0",
-    "pg": "^8.5.1",
+    "luxon": "^1.27.0",
+    "pg": "^8.6.0",
     "proxy-addr": "^2.0.6",
     "reflect-metadata": "^0.1.13",
     "source-map-support": "^0.5.19"
