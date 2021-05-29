@@ -272,7 +272,7 @@ jobs:
           context: './packages/ligretto-ui'
 
   deploy:
-    needs: [ligretto-frontend-image, ligretto-ui-image, ligretto-backend-image]
+    needs: [ligretto-frontend-image, ligretto-ui-image, ligretto-backend-image, ligretto-ui-image]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
