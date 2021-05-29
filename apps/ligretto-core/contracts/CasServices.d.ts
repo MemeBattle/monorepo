@@ -27,7 +27,7 @@ declare module '@ioc:CasServices' {
 
   declare const verifyToken: VerifyToken
 
-  export type GetMe = (payload: GetMePayload) => Promise<ErrorGetMe, SuccessGetMe>
+  export type GetMe = (payload: GetMePayload) => Promise<ErrorGetMe | SuccessGetMe>
 
   declare const getMe: GetMe
 
@@ -40,7 +40,7 @@ declare module '@ioc:CasServices' {
     signUp: SignUp
     verifyToken: VerifyToken
     getMe: GetMe
-    getUsers: SuccessGetUsers
+    getUsers: GetUsers
   }
 
   export { login, signUp, verifyToken, getMe, getUsers }
