@@ -163,6 +163,60 @@ jobs:
             ghcr.io/memebattle/ligretto-backend:latest
           context: './apps/ligretto-backend'
 
+  ligretto-core-image:
+
+    needs: prepare-common
+
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install yarn
+        run: npm install --global yarn
+
+      - name: Cache node modules
+        uses: actions/cache@v2
+        with:
+          path: |
+            node_modules
+            ./apps/*/node_modules
+            ./packages/*/node_modules
+          key: ${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+
+      - name: Install dependecies
+        run: yarn
+
+      - name: Download common packages
+        uses: actions/download-artifact@v2
+        with:
+          name: packages-builds
+
+      - name: Build backend
+        run: yarn run ligretto:core:build
+
+      - name: Docker login
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ghcr.io/memebattle/ligretto-core:${{ github.sha }}
+            ghcr.io/memebattle/ligretto-core:latest
+          context: './apps/ligretto-core'
+
   ligretto-ui-image:
 
     needs: prepare-common
