@@ -14,6 +14,7 @@
     "ligretto:front:build": "yarn lerna run --stream --scope @memebattle/ligretto-recovery build",
     "ligretto:front:start:dev": "env-cmd yarn lerna run --stream --scope @memebattle/ligretto-recovery start:dev",
     "ligretto:back:build": "yarn lerna run --stream --scope @memebattle/ligretto-backend build",
+    "ligretto:core:build": "yarn lerna run --stream --scope @memebattle/ligretto-core build",
     "ligretto:ui:build-storybook": "yarn lerna run --stream --scope @memebattle/ligretto-ui build-storybook"
   },
   "engines": {

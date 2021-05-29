@@ -33,6 +33,45 @@ services:
         condition: on-failure
         delay: 10s
         max_attempts: 3
+  ligretto-core:
+    image: ghcr.io/memebattle/ligretto-core:latest
+    ports:
+      - "3333:3333"
+    secrets:
+      - source: LIGRETTO_CAS_KEY
+        target: /ligretto-core/key.pem
+    environment:
+      - CAS_PUBLIC_KEY_PATH=/ligretto-core/key.pem
+      - PORT=3333
+      - HOST=0.0.0.0
+      - NODE_ENV=production
+      - APP_KEY=BYnNsw-r-ndJTCy15Uqo8JAF4ONCA4X1
+      - PARTNER_ID=5ff335e1845b30001086b643
+      - CAS_URI=https://cas.mems.fun/api
+      - DB_CONNECTION=pg
+      - PG_HOST=ligretto-core-pg
+      - PG_PORT=5432
+      - PG_USER=ligretto-core-user
+      - PG_PASSWORD=ligretto_pg_password
+      - PG_DB_NAME=ligretto-core
+      - MEDIA_FILES_PATH=./data/media
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+  ligretto-core-pg:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: ligretto_pg_password
+      POSTGRES_USER: ligretto-core-user
+      POSTGRES_DB: ligretto-core
+    volumes:
+      - ligretto-core-pg:/var/lib/postgresql/data
   ligretto-ui:
     image: ghcr.io/memebattle/ligretto-ui:latest
     ports:
@@ -49,3 +88,5 @@ services:
 secrets:
   LIGRETTO_CAS_KEY:
     external: true
+volumes:
+  ligretto-core-pg:
