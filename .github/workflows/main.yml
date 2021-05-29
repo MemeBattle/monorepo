@@ -172,6 +172,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Auth npm
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.CI_REGISTRY_TOKEN }}" >> .npmrc
+          echo "@memebattle:registry=https://npm.pkg.github.com" >> .npmrc
+
       - name: Install node
         uses: actions/setup-node@v2
         with:
@@ -226,11 +231,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Auth npm
-        run: |
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.CI_REGISTRY_TOKEN }}" >> .npmrc
-          echo "@memebattle:registry=https://npm.pkg.github.com" >> .npmrc
-
       - name: Install node
         uses: actions/setup-node@v2
         with:
@@ -277,7 +277,7 @@ jobs:
           context: './packages/ligretto-ui'
 
   deploy:
-    needs: [ligretto-frontend-image, ligretto-ui-image, ligretto-backend-image, ligretto-ui-image]
+    needs: [ligretto-frontend-image, ligretto-ui-image, ligretto-backend-image, ligretto-core-image]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
