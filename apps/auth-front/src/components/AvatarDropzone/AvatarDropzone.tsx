@@ -43,8 +43,8 @@ export const AvatarDropzone = (props: DropZoneProps) => {
     <div className={styles.dropZone} {...getRootProps()}>
       <input {...getInputProps()} />
       {!isDragActive ? (
-        <div className={cn(styles.container, styles.container__border)}>
-          {file ? <UserPhotoDrop file={file} /> : <AvatarPlaceHolder className={styles.container__img} />}
+        <div className={cn(styles.container, styles.containerBorder)}>
+          {file ? <UserPhotoDrop file={file} /> : <AvatarPlaceHolder className={styles.containerImg} />}
           <div className={styles.buttonWrapper}>
             <Button size="medium" variant="outlined" color="inherit" endIcon={<UploadIcon>send</UploadIcon>}>
               {t.avatarDropZone.text}
