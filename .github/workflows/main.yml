@@ -307,6 +307,13 @@ jobs:
           ssh-private-key: ${{ secrets.AWS_CI_PRIVATE_KEY }}
           ssh-host: mems.fun
 
+      - name: Docker login
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: create docker context
         run: docker context create remote --docker "host=ssh://ci@mems.fun"
 
