@@ -9,7 +9,7 @@
     "copy:yarn_lock": "cpx ../../yarn.lock build",
     "copy:npm_rc": "cpx ../../.npmrc build",
     "postbuild": "yarn copy:yarn_lock && yarn copy:npm_rc",
-    "migrate": "node ace migration:run"
+    "migrate": "node ace migration:run --force"
   },
   "devDependencies": {
     "@adonisjs/assembler": "^5.3.0",
