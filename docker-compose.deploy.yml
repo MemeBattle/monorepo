@@ -66,6 +66,8 @@ services:
         max_attempts: 3
   ligretto-core-pg:
     image: postgres
+    ports:
+    - "5432:5432"
     environment:
       POSTGRES_PASSWORD: ligretto_pg_password
       POSTGRES_USER: ligretto-core-user
