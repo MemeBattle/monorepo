@@ -223,7 +223,15 @@ jobs:
           context: './apps/ligretto-core'
 
       - name: Migrate database
-        run: yarn run ligretto:core:migrate
+        run: yarn run ligretto:core:migrate --force
+        env:
+          DB_CONNECTION: pg
+          PG_HOST: ${{ secrets.LIGRETTO_PG_HOST }}
+          PG_PORT: 5432
+          PG_USER: ${{ secrets.LIGRETTO_PG_USER }}
+          PG_PASSWORD: ${{ secrets.LIGRETTO_PG_PASSWORD }}
+          PG_DB_NAME: ligretto-core
+
 
   ligretto-ui-image:
 
