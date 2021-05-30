@@ -236,6 +236,7 @@ jobs:
           PG_PORT: 5432
           PG_USER: ${{ secrets.LIGRETTO_PG_USER }}
           PG_PASSWORD: ${{ secrets.LIGRETTO_PG_PASSWORD }}
+          CAS_PUBLIC_KEY_PATH: /key.pem
           PG_DB_NAME: ligretto-core
 
 
