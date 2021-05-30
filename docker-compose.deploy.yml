@@ -4,7 +4,6 @@ services:
     image: ghcr.io/memebattle/ligretto-frontend:latest
     environment:
       - REACT_APP_WEBSOCKET_HOST=https://api.ligretto.app
-      - REACT_APP_LIGRETTO_CORE_URL=https://core.ligretto.app
     ports:
       - "3000:80"
     deploy:
