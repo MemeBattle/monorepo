@@ -5,6 +5,9 @@ export const t = {
     submit: 'Sign in',
     // eslint-disable-next-line
     linkToRegister: "Don't have an account? Sign up",
+    userNotFound: 'User not found. Check login/email and password',
+    usernameError: 'Username required',
+    passwordError: 'Password required',
   },
   register: {
     username: 'Username',
@@ -13,6 +16,7 @@ export const t = {
     confirmPassword: 'Confirm Password',
     submit: 'Sign up',
     linkToLogin: 'Already have an Ligretto account? Sign in',
+    userAlreadyExistsError: 'User with a same username or password exists',
   },
   validation: {
     username: (minLength: number, maxLength: number) => `The user name must be between ${minLength} and ${maxLength} characters long`,
