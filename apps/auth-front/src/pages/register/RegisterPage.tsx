@@ -30,6 +30,9 @@ export const RegisterPage = memo(() => {
   const handleSubmit = useCallback(
     async (values: RegisterFormValues): Promise<RegisterFormSubmissionErrors | undefined> => {
       try {
+        if (!values.username || !values.password || !values.password || !values.email) {
+          return
+        }
         const answer = await signUpService({ username: values.username, email: values.email, password: values.password })
 
         if (answer.success) {
@@ -39,11 +42,8 @@ export const RegisterPage = memo(() => {
           return
         }
 
-        /** If user already exists */
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
         if (answer.error.errorCode === 422) {
-          return { username: 'User already exists' }
+          return { username: t.register.userAlreadyExistsError, email: t.register.userAlreadyExistsError }
         }
       } catch (e) {
         return { [FORM_ERROR]: 'Something went wrong' }
@@ -77,8 +77,8 @@ export const RegisterPage = memo(() => {
                     label={t.register.username}
                     name="username"
                     autoComplete="username"
-                    error={meta.error && meta.touched && meta.error}
-                    helperText={meta.error && meta.touched && meta.error}
+                    error={!!(meta.error && meta.dirtySinceLastSubmit && meta.error) || !!meta.submitError}
+                    helperText={(meta.error && meta.dirtySinceLastSubmit && meta.error) || meta.submitError}
                   />
                 )}
               />
@@ -96,8 +96,8 @@ export const RegisterPage = memo(() => {
                     label={t.register.email}
                     name="email"
                     autoComplete="email"
-                    error={meta.error && meta.touched && meta.error}
-                    helperText={meta.error && meta.touched && meta.error}
+                    error={!!(meta.error && meta.error && meta.dirtySinceLastSubmit) || !!meta.submitError}
+                    helperText={(meta.error && meta.error && meta.dirtySinceLastSubmit) || meta.submitError}
                   />
                 )}
               />
@@ -114,8 +114,8 @@ export const RegisterPage = memo(() => {
                     label={t.login.password}
                     id="password"
                     autoComplete="current-password"
-                    error={(meta.error && meta.touched && meta.error) || meta.submitError}
-                    helperText={(meta.error && meta.touched && meta.error) || meta.submitError}
+                    error={!!(meta.error && meta.dirtySinceLastSubmit && meta.error) || !!meta.submitError}
+                    helperText={(meta.error && meta.dirtySinceLastSubmit && meta.error) || meta.submitError}
                   />
                 )}
               />
@@ -131,8 +131,8 @@ export const RegisterPage = memo(() => {
                     name="confirmPassword"
                     label={t.register.confirmPassword}
                     id="confirmPassword"
-                    error={(meta.touched && meta.error) || meta.submitError || meta.invalid}
-                    helperText={meta.touched && meta.error}
+                    error={(meta.dirtySinceLastSubmit && meta.error) || meta.submitError || meta.invalid}
+                    helperText={meta.dirtySinceLastSubmit && meta.error}
                   />
                 )}
               />
