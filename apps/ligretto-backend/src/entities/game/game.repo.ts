@@ -54,7 +54,6 @@ export class GameRepository {
         isHidden: true,
         cards: [],
       },
-      droppedStackDeck: { isHidden: false, cards: [] },
       ...playerData,
     }
   }
