@@ -1,10 +1,10 @@
 import { FORM_ERROR } from 'final-form'
 
 export interface RegisterFormValues {
-  username: string
-  email: string
-  password: string
-  confirmPassword: string
+  username?: string
+  email?: string
+  password?: string
+  confirmPassword?: string
 }
 
 export type RegisterFormSubmissionErrors = Partial<{
