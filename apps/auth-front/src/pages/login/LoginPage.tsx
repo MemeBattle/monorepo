@@ -36,6 +36,21 @@ export const LoginPage = memo<LoginPageProps>(({ onLoginSucceeded }) => {
           return
         }
 
+        const { error } = response
+
+        if (error.errorCode === 404) {
+          return {
+            [FORM_ERROR]: t.login.userNotFound,
+          }
+        }
+
+        if (error.errorCode === 400) {
+          return {
+            username: error.errors.find(({ path }) => path.includes('login')) ? t.login.usernameError : undefined,
+            password: error.errors.find(({ path }) => path.includes('password')) ? t.login.passwordError : undefined,
+          }
+        }
+
         return {
           [FORM_ERROR]: 'Something went wrong',
         }
