@@ -68,13 +68,4 @@ export class PlayerRepository {
     const deck = await this.getStackOpenDeck(gameId, player)
     return this.database.set(storage => (storage.games[gameId].players[player].stackOpenDeck = updater(deck)))
   }
-
-  getDroppedStackDeck(gameId: string, player: string) {
-    return this.database.get(storage => storage.games[gameId].players[player].droppedStackDeck)
-  }
-
-  async updateDroppedStackDeck(gameId: string, player: string, updater: (cardsDeck: CardsDeck) => CardsDeck) {
-    const deck = await this.getDroppedStackDeck(gameId, player)
-    return this.database.set(storage => (storage.games[gameId].players[player].droppedStackDeck = updater(deck)))
-  }
 }
