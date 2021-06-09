@@ -39,7 +39,6 @@ export interface Player {
   ligrettoDeck: CardsDeck
   stackOpenDeck: CardsDeck
   stackDeck: CardsDeck
-  droppedStackDeck: CardsDeck
   isHost: boolean
 }
 
