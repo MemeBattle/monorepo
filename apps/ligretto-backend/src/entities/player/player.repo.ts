@@ -19,12 +19,12 @@ export class PlayerRepository {
     return this.database.get(storage => storage.games[gameId].players[player].cards[position])
   }
 
-  async addCard(gameId: string, player: string, card: Card) {
-    return this.database.set(storage => storage.games[gameId].players[player].cards.push(card))
+  async addCard(gameId: string, player: string, card: Card, position: number) {
+    return this.database.set(storage => storage.games[gameId].players[player].cards.splice(position, 1, card))
   }
 
   async removeCard(gameId: string, player: string, position: number) {
-    return this.database.set(storage => storage.games[gameId].players[player].cards.splice(position, 1))
+    return this.database.set(storage => storage.games[gameId].players[player].cards.splice(position, 1, null))
   }
 
   async getLigrettoDeck(gameId: string, player: string) {
