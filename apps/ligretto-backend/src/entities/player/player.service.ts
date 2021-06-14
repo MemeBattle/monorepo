@@ -18,8 +18,10 @@ export class PlayerService {
 
   async addCard(gameId: string, color: string, card: Card) {
     const cards = await this.playerRepository.getCards(gameId, color)
-    if (cards.length < 3) {
-      await this.playerRepository.addCard(gameId, color, card)
+    const emptyCardIndex = cards.findIndex(card => card === null)
+
+    if (emptyCardIndex !== -1) {
+      await this.playerRepository.addCard(gameId, color, card, emptyCardIndex)
     }
   }
 
