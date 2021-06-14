@@ -2,10 +2,16 @@ import { injectable, inject } from 'inversify'
 import type { Socket } from 'socket.io'
 import { mapValues } from 'lodash'
 import { Controller } from './controller'
-import type {
-  Game,
+import type { Game } from '@memebattle/ligretto-shared'
+import {
+  updateGameAction,
+  endRoundAction,
+  putCardAction,
+  putCardFromStackOpenDeck,
+  startGameEmitAction,
+  takeFromLigrettoDeckAction,
+  takeFromStackDeckAction,
 } from '@memebattle/ligretto-shared'
-import { updateGameAction, endRoundAction, putCardAction, putCardFromStackOpenDeck, startGameEmitAction, takeFromLigrettoDeckAction, takeFromStackDeckAction } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../IOC_TYPES'
 import type { Gameplay } from '../gameplay/gameplay'
 import type { GameService } from '../entities/game/game.service'
