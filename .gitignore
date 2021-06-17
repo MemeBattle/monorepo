@@ -44,4 +44,3 @@ storybook-static
 !/.storybook/preview.js
 
 .npmrc
-*.pem
