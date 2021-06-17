@@ -29,12 +29,6 @@ yarn
 yarn common-packages:build
 ```
 
-### Prepare ligretto-backend (optional)
-In ligretto-backend package run init:partner
-```
-cd apps/ligretto-backend
-yarn run init:partner
-```
 ## Start all
 You need prepare all applications before (ligretto-backend, ligretto-frontend)
 ```
