@@ -46,6 +46,11 @@ yarn ligretto:start
 lerna add <package> --scope @memebattle/{{package-name}}
 ```
 
+## TODO: Start ligretto-core locally
+```
+TODO
+```
+----
 ## Templates
 
 Для базовых компонентов используемых в приложении рекомендуется использовать генерацию с помощью hygen
