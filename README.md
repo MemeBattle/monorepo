@@ -41,9 +41,23 @@ lerna add <package> --scope @memebattle/{{package-name}}
 ```
 
 ## TODO: Start ligretto-core locally
+
+### Start postgresql
+You have two options:
+1. Start in docker
+   (`docker-compose up`)
+2. Start locally (TBD)
+
+### Migrate
 ```
-TODO
+yarn ligretto:core:migrate
 ```
+
+### Start core server
+```
+yarn ligretto:core:start:dev
+```
+
 ----
 ## Templates
 
