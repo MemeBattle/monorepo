@@ -17,7 +17,8 @@
     "ligretto:core:build": "yarn lerna run --stream --scope @memebattle/ligretto-core build",
     "ligretto:core:migrate": "yarn lerna run --stream --scope @memebattle/ligretto-core migrate",
     "ligretto:core:start:dev": "yarn lerna run --stream --scope @memebattle/ligretto-core start:dev",
-    "ligretto:ui:build-storybook": "yarn lerna run --stream --scope @memebattle/ligretto-ui build-storybook"
+    "ligretto:ui:build-storybook": "yarn lerna run --stream --scope @memebattle/ligretto-ui build-storybook",
+    "gamehub-client:build": "yarn lerna run --scope @memebattle/gamehub-client build"
   },
   "engines": {
     "node": ">=10"
