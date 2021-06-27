@@ -6,6 +6,12 @@ import { <%= h.changeCase.pascal(name) %> } from './<%= h.changeCase.pascal(name
 
 export default {
   title: '<%= h.changeCase.pascal(name) %>',
+  component: <%= h.changeCase.pascal(name) %>
 }
 
-export const DefaultView = () => <<%= h.changeCase.pascal(name) %> />
+const Template = args => <<%= h.changeCase.pascal(name) %> {...args} />
+
+export const DefaultView = Template.bind({})
+DefaultView.args = {
+  // write default values here
+}
