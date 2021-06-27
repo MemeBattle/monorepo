@@ -10,7 +10,7 @@ import user5 from './assets/u5.svg'
 const userAvatars = [user4, user5]
 
 /**
- *Что делает функция на англ?
+ This Function do a random Avatar of Array.
   */
 export function getRandomAvatar() {
   return userAvatars[Math.floor(Math.random() * userAvatars.length)]
