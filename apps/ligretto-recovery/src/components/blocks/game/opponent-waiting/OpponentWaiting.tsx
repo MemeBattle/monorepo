@@ -1,9 +1,9 @@
 import React from 'react'
 import cn from 'classnames'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
-import { Avatar, AvatarSize } from '../../../shared/avatar'
 import { PositionOnTable } from '@memebattle/ligretto-ui'
 import styles from './OpponentWaiting.module.scss'
+import { Avatar } from '@memebattle/ligretto-ui'
 
 export interface OpponentWaitingProps {
   positionOnTable: PositionOnTable
@@ -25,7 +25,7 @@ const classNameByPositionOnTable = {
 
 export const OpponentWaiting: React.FC<OpponentWaitingProps> = ({ positionOnTable, opponentStatus }) => (
   <div className={cn(styles.opponentWaiting, classNameByPositionOnTable[positionOnTable], classNameByStatus[opponentStatus])}>
-    <Avatar src={''} size={AvatarSize.Small} />
+    <Avatar size={'small'} />
     {opponentStatus === PlayerStatus.ReadyToPlay ? <div>Ready</div> : null}
   </div>
 )
