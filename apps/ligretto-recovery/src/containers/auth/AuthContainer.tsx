@@ -8,5 +8,12 @@ export const AuthContainer = () => {
     console.log(response)
   }, [])
 
-  return <AuthFrontModule onLoginSucceeded={handleLogin} partnerId="605fd1f6c2e5310012e1a497" />
+  return (
+    <AuthFrontModule
+      casUrl="https://cas.mems.fun/api"
+      staticFilesUrl="https://cas.mems.fun/static"
+      onLoginSucceeded={handleLogin}
+      partnerId="605fd1f6c2e5310012e1a497"
+    />
+  )
 }
