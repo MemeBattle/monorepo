@@ -29,11 +29,11 @@ yarn-error.log*
 *.log
 
 .idea
-dist
 
 # vk-redirect-page
 .cache
 
+# next.js
 .next
 
 !rollup.config.js
