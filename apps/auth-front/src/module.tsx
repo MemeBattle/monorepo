@@ -7,14 +7,16 @@ import { createFrontServices } from '@memebattle/cas-services'
 export interface AuthFrontModuleProps {
   onLoginSucceeded: ({ token }: { token: string }) => void
   partnerId: string
-  casUrl: string
   staticFilesUrl: string
 }
 
-export const AuthFrontModule: FC<AuthFrontModuleProps> = ({ partnerId, onLoginSucceeded, casUrl, staticFilesUrl }) => {
+export const AuthFrontModule: FC<AuthFrontModuleProps> = ({ partnerId, onLoginSucceeded, staticFilesUrl }) => {
   const casServices = useMemo(
-    () => ({ ...createFrontServices({ partnerId, casURI: casUrl }), getAbsoluteUrl: (relativePath: string) => `${staticFilesUrl}${relativePath}` }),
-    [casUrl, partnerId, staticFilesUrl],
+    () => ({
+      ...createFrontServices({ partnerId, casURI: process.env.REACT_APP_CAS_URL || 'https://cas.mems.fun/api' }),
+      getAbsoluteUrl: (relativePath: string) => `${staticFilesUrl}${relativePath}`,
+    }),
+    [partnerId, staticFilesUrl],
   )
 
   return (

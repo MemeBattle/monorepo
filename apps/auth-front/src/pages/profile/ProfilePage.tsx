@@ -1,4 +1,4 @@
-import { Button, Container, Input, Snackbar, Alert } from '@memebattle/ligretto-ui'
+import { Button, Container, Input } from '@memebattle/ligretto-ui'
 import type { FormApi } from 'final-form'
 import { FORM_ERROR } from 'final-form'
 import { memo, useCallback, useMemo, useState } from 'react'
@@ -12,7 +12,6 @@ import { AvatarDropzone } from '../../components/AvatarDropzone'
 import type { ProfileFormValues } from './ProfilePage.types'
 import { useCasServices } from '../../modules/cas-services'
 import { useProfileRequest } from './useProfileRequest'
-import { useUploadError } from '../../hooks/useUploadError'
 
 interface ProfilePageProps {
   onLoginSucceeded: ({ token }: { token: string }) => void
@@ -33,16 +32,6 @@ export const ProfilePage = memo<ProfilePageProps>(({ onLoginSucceeded }) => {
           }
         : undefined,
     [profile],
-  )
-
-  const [hasUploadError, handleError, clearError] = useUploadError()
-
-  const handleAvatarChange = useCallback(
-    (avatar: File) => {
-      clearError()
-      setAvatar(avatar)
-    },
-    [clearError],
   )
 
   const handleSubmit = useCallback(
@@ -66,61 +55,51 @@ export const ProfilePage = memo<ProfilePageProps>(({ onLoginSucceeded }) => {
   )
 
   return !isProfileLoading ? (
-    <>
-      <Container component="main" maxWidth="xs">
-        <Header />
-        <Form<ProfileFormValues>
-          onSubmit={handleSubmit}
-          initialValues={initialValues}
-          render={({ handleSubmit, submitError }) => (
-            <form onSubmit={handleSubmit}>
-              <Paper>
-                <AvatarDropzone
-                  onError={handleError}
-                  hasUploadError={hasUploadError}
-                  avatarUrl={getAbsoluteUrl(profile?.avatarUrl || '')}
-                  onChange={handleAvatarChange}
-                />
-                <Field
-                  name="email"
-                  render={({ input }) => (
-                    <Input value={input.value} variant="filled" margin="normal" fullWidth id="email" label={t.profile.email} name="email" disabled />
-                  )}
-                />
-                <Field
-                  name="username"
-                  render={({ input, meta }) => (
-                    <Input
-                      {...input}
-                      margin="normal"
-                      required
-                      fullWidth
-                      onChange={input.onChange}
-                      id="username"
-                      label={t.profile.username}
-                      name="username"
-                      error={!meta.modifiedSinceLastSubmit && Boolean(meta.error || meta.submitError)}
-                      helperText={!meta.modifiedSinceLastSubmit && meta.submitError}
-                    />
-                  )}
-                />
-                {submitError}
-                <br />
-                <Button type="submit" fullWidth variant="contained" color="primary" size="large">
-                  {t.profile.save}
-                </Button>
-              </Paper>
-            </form>
-          )}
-        />
-        <br />
-        <br />
-        <br />
-        <CreatedByInfo />
-      </Container>
-      <Snackbar open={hasUploadError} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
-        <Alert severity="error">{t.profile.maxFileSizeError}</Alert>
-      </Snackbar>
-    </>
+    <Container component="main" maxWidth="xs">
+      <Header />
+      <Form<ProfileFormValues>
+        onSubmit={handleSubmit}
+        initialValues={initialValues}
+        render={({ handleSubmit, submitError }) => (
+          <form onSubmit={handleSubmit}>
+            <Paper>
+              <AvatarDropzone avatarUrl={getAbsoluteUrl(profile?.avatarUrl || '')} onChange={setAvatar} />
+              <Field
+                name="email"
+                render={({ input }) => (
+                  <Input value={input.value} variant="filled" margin="normal" fullWidth id="email" label={t.profile.email} name="email" disabled />
+                )}
+              />
+              <Field
+                name="username"
+                render={({ input, meta }) => (
+                  <Input
+                    {...input}
+                    margin="normal"
+                    required
+                    fullWidth
+                    onChange={input.onChange}
+                    id="username"
+                    label={t.profile.username}
+                    name="username"
+                    error={!meta.modifiedSinceLastSubmit && Boolean(meta.error || meta.submitError)}
+                    helperText={!meta.modifiedSinceLastSubmit && meta.submitError}
+                  />
+                )}
+              />
+              {submitError}
+              <br />
+              <Button type="submit" fullWidth variant="contained" color="primary" size="large">
+                {t.profile.save}
+              </Button>
+            </Paper>
+          </form>
+        )}
+      />
+      <br />
+      <br />
+      <br />
+      <CreatedByInfo />
+    </Container>
   ) : null
 })
