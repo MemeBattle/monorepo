@@ -1,11 +1,3 @@
-import type { RoomsState } from '../ducks/rooms'
-import type { GameState } from '../ducks/game'
-import type { TechState } from '../ducks/tech/slice'
-import type { RouterState } from 'connected-react-router'
+import type { store } from '../store'
 
-export interface All {
-  rooms: RoomsState
-  router: RouterState
-  game: GameState
-  tech: TechState
-}
+export type All = ReturnType<typeof store.getState>
