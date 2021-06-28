@@ -83,7 +83,7 @@ export const UserInfo: React.FC<UserInfoProps> = ({ img, onClick, username, onBu
     <div className={classes.mainUser}>
       <div className={classes.mainUserAvatar} onClick={onClick}>
         <div className={classes.image}>
-          <Avatar src={img} alt={username} size={'auto'} />
+          <Avatar src={img} alt={username} size="auto" />
         </div>
 
         {username ? null : (
