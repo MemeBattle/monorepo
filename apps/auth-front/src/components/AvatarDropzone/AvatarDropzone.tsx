@@ -33,7 +33,7 @@ export const AvatarDropzone = memo(({ avatarUrl, onChange }: DropZoneProps) => {
   const [hasUploadError, handleError, clearError] = useUploadError()
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: ['image/png', 'image/svg', 'image/jpeg', 'image/jpg'],
+    accept: ['image/png', 'image/svg+xml', 'image/jpeg', 'image/jpg'],
     maxSize: MAX_FILE_SIZE,
     onDropAccepted: acceptedFiles => {
       const file = acceptedFiles[0]
