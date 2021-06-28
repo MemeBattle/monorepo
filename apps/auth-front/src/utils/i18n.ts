@@ -45,5 +45,6 @@ export const t = {
     save: 'Save',
     email: 'Email',
     username: 'Username',
+    maxFileSizeError: 'File size exceeds maximum limit 2 MB',
   },
 } as const

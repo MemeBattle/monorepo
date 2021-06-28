@@ -18,7 +18,7 @@ interface ProfilePageProps {
 }
 
 export const ProfilePage = memo<ProfilePageProps>(({ onLoginSucceeded }) => {
-  const { updateUserProfileService } = useCasServices()
+  const { updateUserProfileService, getAbsoluteUrl } = useCasServices()
   const [profile, isProfileLoading] = useProfileRequest()
 
   const [avatar, setAvatar] = useState<File | undefined>(undefined)
@@ -63,7 +63,7 @@ export const ProfilePage = memo<ProfilePageProps>(({ onLoginSucceeded }) => {
         render={({ handleSubmit, submitError }) => (
           <form onSubmit={handleSubmit}>
             <Paper>
-              <AvatarDropzone onChange={setAvatar} />
+              <AvatarDropzone avatarUrl={getAbsoluteUrl(profile?.avatarUrl || '')} onChange={setAvatar} />
               <Field
                 name="email"
                 render={({ input }) => (
