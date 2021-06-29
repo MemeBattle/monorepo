@@ -1,11 +1,8 @@
 import { request } from '../utils/request'
+import type { UserModel } from './apiTypes'
 
-interface GetMeSuccess {
-  user: {
-    _id: string
-    username: string
-    avatar?: string
-  }
+export interface GetMeResponse {
+  user: UserModel
 }
 
-export const getMe = (token: string) => request.post<GetMeSuccess>('/auth/me', { token })
+export const getMe = (token: string) => request.post<GetMeResponse>('/auth/me', { token })
