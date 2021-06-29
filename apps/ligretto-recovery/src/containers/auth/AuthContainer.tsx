@@ -17,5 +17,11 @@ export const AuthContainer = () => {
     [dispatch, history],
   )
 
-  return <AuthFrontModule staticFilesUrl="https://cas.mems.fun/static" onLoginSucceeded={handleLogin} partnerId="605fd1f6c2e5310012e1a497" />
+  return (
+    <AuthFrontModule
+      staticFilesUrl={process.env.REACT_APP_CAS_STATIC || 'https://cas.mems.fun/static'}
+      onLoginSucceeded={handleLogin}
+      partnerId="605fd1f6c2e5310012e1a497"
+    />
+  )
 }

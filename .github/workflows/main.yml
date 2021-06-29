@@ -92,6 +92,8 @@ jobs:
         SKIP_PREFLIGHT_CHECK: true
         REACT_APP_WEBSOCKET_HOST: https://api.ligretto.app
         REACT_APP_LIGRETTO_CORE_URL: https://core.ligretto.app
+        REACT_APP_CAS_STATIC: https://cas.mems.fun/static
+        REACT_APP_CAS_URL: https://cas.mems.fun/api
 
     - name: Docker login
       uses: docker/login-action@v1
