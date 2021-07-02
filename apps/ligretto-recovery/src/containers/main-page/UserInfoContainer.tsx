@@ -1,9 +1,10 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import { UserInfo } from 'components/blocks/home/user-info'
 import { useHistory } from 'react-router'
 import { routes } from 'utils/constants/router-constants'
 import { useSelector } from 'react-redux'
 import { selectMyUser } from '../../ducks/auth/authSelectors'
+import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 
 export const UserInfoContainer = () => {
   const { push } = useHistory()
@@ -11,8 +12,17 @@ export const UserInfoContainer = () => {
   const user = useSelector(selectMyUser)
 
   const onButtonClick = useCallback(() => {
-    push(routes.AUTH)
-  }, [push])
+    if (!user?.username) {
+      push(routes.AUTH)
+    }
+  }, [push, user])
 
-  return <UserInfo buttonText="sign in" username={user?.username} onButtonClick={onButtonClick} onClick={onButtonClick} />
+  const userAvatarUrl = useMemo(() => {
+    if (!user || !user.avatar) {
+      return undefined
+    }
+    return buildCasStaticUrl(user.avatar)
+  }, [user])
+
+  return <UserInfo buttonText="sign in" img={userAvatarUrl} username={user?.username} onButtonClick={onButtonClick} onClick={onButtonClick} />
 }
