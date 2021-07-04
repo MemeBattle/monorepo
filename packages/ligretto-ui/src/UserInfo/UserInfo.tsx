@@ -1,20 +1,10 @@
 import type { MouseEventHandler } from 'react'
-import React, { useMemo } from 'react'
+import React from 'react'
 import { createStyles, makeStyles, Button } from '@material-ui/core'
 import ExitToApp from '@material-ui/icons/ExitToApp'
-import user1 from './assets/u1.svg'
-import user2 from './assets/u2.svg'
-import user3 from './assets/u3.svg'
-import user4 from './assets/u4.svg'
-import user5 from './assets/u5.svg'
-import user6 from './assets/u6.svg'
-import user7 from './assets/u7.svg'
-import user8 from './assets/u8.svg'
+
 import { Typography } from '../Typography'
-
-const userAvatars = [user1, user2, user3, user4, user5, user6, user7, user8]
-
-const getRandomAvatar = () => userAvatars[Math.floor(Math.random() * userAvatars.length)]
+import { Avatar } from '../Avatar'
 
 const useStyles = makeStyles(theme =>
   createStyles({
@@ -32,6 +22,8 @@ const useStyles = makeStyles(theme =>
       position: 'relative',
       borderRadius: '0.8rem',
       overflow: 'hidden',
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     image: {
       padding: '2px',
@@ -80,8 +72,6 @@ export interface UserInfoProps {
 export const UserInfo: React.FC<UserInfoProps> = ({ img, onClick, username, onButtonClick, buttonText }) => {
   const classes = useStyles()
 
-  const imageSrc = useMemo(() => img || getRandomAvatar(), [img])
-
   const handleButtonClick: MouseEventHandler = e => {
     e.stopPropagation()
     if (onButtonClick) {
@@ -92,7 +82,10 @@ export const UserInfo: React.FC<UserInfoProps> = ({ img, onClick, username, onBu
   return (
     <div className={classes.mainUser}>
       <div className={classes.mainUserAvatar} onClick={onClick}>
-        <img className={classes.image} src={imageSrc} alt={username} />
+        <div className={classes.image}>
+          <Avatar src={img} alt={username} size="auto" />
+        </div>
+
         {username ? null : (
           <div className={classes.signupButton}>
             <div className={classes.backdrop} />

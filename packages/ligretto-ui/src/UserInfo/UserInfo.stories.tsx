@@ -3,7 +3,8 @@ import { UserInfo } from './UserInfo'
 import { Background } from '../story-components'
 
 export default {
-  title: 'MainUser',
+  title: 'UserInfo',
+  component: UserInfo,
   argTypes: {
     onClick: { action: 'clicked' },
     buttonText: { control: 'text', defaultValue: 'sign in' },
