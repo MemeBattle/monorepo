@@ -7,72 +7,34 @@ export default {
   component: Avatar,
   argTypes: {
     src: {
-      control: { type: 'text' },
-    },
-    size: {
-      options: ['small', 'medium', 'large', 'auto'],
       control: { type: 'radio' },
-    },
-    alt: {
-      control: { type: 'text' },
+      options: [userAvatars[0], userAvatars[1], userAvatars[2], userAvatars[3], userAvatars[4], userAvatars[5], userAvatars[6], userAvatars[7]],
     },
   },
 }
 
 export const DefaultView = args => <Avatar {...args} />
 
-export const Avatar1 = DefaultView.bind({})
-Avatar1.args = {
-  src: userAvatars[1],
-  size: 'small',
-  alt: 'Avatar',
+export const AvatarSize = DefaultView.bind({})
+AvatarSize.argTypes = {
+  src: {
+    control: { type: 'label' },
+    defaultValue: userAvatars[0],
+  },
+  size: {
+    options: ['small', 'medium', 'large', 'auto'],
+    control: { type: 'radio' },
+  },
 }
 
-export const Avatar2 = DefaultView.bind({})
-Avatar2.args = {
-  src: userAvatars[2],
-  size: 'small',
-  alt: 'Avatar',
-}
-
-export const Avatar3 = DefaultView.bind({})
-Avatar3.args = {
-  src: userAvatars[3],
-  size: 'small',
-  alt: 'Avatar',
-}
-
-export const Avatar4 = DefaultView.bind({})
-Avatar4.args = {
-  src: userAvatars[4],
-  size: 'small',
-  alt: 'Avatar',
-}
-
-export const Avatar5 = DefaultView.bind({})
-Avatar5.args = {
-  src: userAvatars[5],
-  size: 'small',
-  alt: 'Avatar',
-}
-
-export const Avatar6 = DefaultView.bind({})
-Avatar6.args = {
-  src: userAvatars[6],
-  size: 'small',
-  alt: 'Avatar',
-}
-
-export const Avatar7 = DefaultView.bind({})
-Avatar7.args = {
-  src: userAvatars[7],
-  size: 'small',
-  alt: 'Avatar',
-}
-
-export const Avatar8 = DefaultView.bind({})
-Avatar8.args = {
-  src: userAvatars[8],
-  size: 'small',
-  alt: 'Avatar',
+export const AvatarUrl = DefaultView.bind({})
+AvatarUrl.argTypes = {
+  src: {
+    control: { type: 'text' },
+    defaultValue: userAvatars[0],
+  },
+  alt: {
+    control: { type: 'text' },
+    defaultValue: 'Avatar',
+  },
 }
