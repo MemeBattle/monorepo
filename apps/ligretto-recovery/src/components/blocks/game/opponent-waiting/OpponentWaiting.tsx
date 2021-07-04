@@ -25,7 +25,7 @@ const classNameByPositionOnTable = {
 
 export const OpponentWaiting: React.FC<OpponentWaitingProps> = ({ positionOnTable, opponentStatus }) => (
   <div className={cn(styles.opponentWaiting, classNameByPositionOnTable[positionOnTable], classNameByStatus[opponentStatus])}>
-    <Avatar size={'small'} />
+    <Avatar size="small" />
     {opponentStatus === PlayerStatus.ReadyToPlay ? <div>Ready</div> : null}
   </div>
 )
