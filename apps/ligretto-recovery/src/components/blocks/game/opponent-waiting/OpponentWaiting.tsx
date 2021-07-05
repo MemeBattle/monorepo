@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { memo } from 'react'
 import cn from 'classnames'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { PositionOnTable } from '@memebattle/ligretto-ui'
@@ -6,7 +6,7 @@ import styles from './OpponentWaiting.module.scss'
 import { Avatar } from '@memebattle/ligretto-ui'
 
 export interface OpponentWaitingProps {
-  positionOnTable: PositionOnTable
+  position?: PositionOnTable
   opponentStatus: PlayerStatus
 }
 
@@ -23,9 +23,15 @@ const classNameByPositionOnTable = {
   [PositionOnTable.LeftTopCorner]: styles.leftTopCorner,
 }
 
-export const OpponentWaiting: React.FC<OpponentWaitingProps> = ({ positionOnTable, opponentStatus }) => (
-  <div className={cn(styles.opponentWaiting, classNameByPositionOnTable[positionOnTable], classNameByStatus[opponentStatus])}>
-    <Avatar size="small" />
-    {opponentStatus === PlayerStatus.ReadyToPlay ? <div>Ready</div> : null}
-  </div>
-)
+export const OpponentWaiting = memo<OpponentWaitingProps>(({ position, opponentStatus }) => {
+  if (!position) {
+    return null
+  }
+
+  return (
+    <div className={cn(styles.opponentWaiting, classNameByPositionOnTable[position], classNameByStatus[opponentStatus])}>
+      <Avatar size="small" />
+      {opponentStatus === PlayerStatus.ReadyToPlay ? <div>Ready</div> : null}
+    </div>
+  )
+})
