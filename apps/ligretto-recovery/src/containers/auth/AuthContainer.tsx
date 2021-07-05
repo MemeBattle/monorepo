@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react'
 import { AuthFrontModule } from '@memebattle/auth-front'
 import { useDispatch } from 'react-redux'
-import { getMeRequest } from '../../ducks/auth/authActions'
+import { getMeRequest } from 'ducks/auth/authActions'
 import { useHistory } from 'react-router'
 import { routes } from '../../utils/constants'
 
