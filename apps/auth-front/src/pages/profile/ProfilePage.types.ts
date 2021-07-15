@@ -1,4 +1,4 @@
-import { FORM_ERROR } from 'final-form'
+import type { FORM_ERROR } from 'final-form'
 
 export interface ProfileFormValues {
   username: string

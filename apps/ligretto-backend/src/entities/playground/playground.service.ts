@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import { last } from 'lodash'
-import type { PlaygroundRepository } from './playground.repo'
+import { PlaygroundRepository } from './playground.repo'
 import type { Card, CardsDeck, Game } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../../IOC_TYPES'
 

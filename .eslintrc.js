@@ -16,7 +16,7 @@ module.exports = {
     },
   },
   plugins: ['@typescript-eslint', 'react-app', 'prettier', 'react', 'react-hooks'],
-  extends: ['plugin:@typescript-eslint/recommended', 'plugin:react/recommended', 'next', 'next/core-web-vitals'],
+  extends: ['plugin:@typescript-eslint/recommended', 'plugin:react/recommended'],
   rules: {
     'prettier/prettier': [
       'error',
