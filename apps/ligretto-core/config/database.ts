@@ -45,6 +45,12 @@ const databaseConfig: DatabaseConfig = {
       migrations: {
         naturalSort: true,
       },
+      pool: {
+        min: 0,
+        max: 5,
+        acquireTimeoutMillis: 60000,
+        idleTimeoutMillis: 600000,
+      },
       healthCheck: true,
       debug: false,
     },
