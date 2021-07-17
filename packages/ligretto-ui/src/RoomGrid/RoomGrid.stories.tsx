@@ -1,29 +1,60 @@
 import * as React from 'react'
-import type { RenderChildren } from './RoomGrid'
+import type { PositionOnTable } from './RoomGrid'
 import { RoomGrid } from './RoomGrid'
 
 import { Background } from '../story-components'
+import type { FC } from 'react'
 
 export default {
   title: 'RoomGrid',
 }
 
-const renderChildren: RenderChildren = position => <span>{position}</span>
+const SomeComponent: FC<{ position?: PositionOnTable }> = ({ position }) => <span>position: {position}</span>
 
 export const DefaultView = () => (
   <Background>
-    <RoomGrid renderChildren={[renderChildren, renderChildren, renderChildren]} />
+    <RoomGrid>
+      <SomeComponent />
+      <SomeComponent />
+      <SomeComponent />
+    </RoomGrid>
   </Background>
 )
 
 export const OneChildren = () => (
   <Background>
-    <RoomGrid renderChildren={[renderChildren]} />
+    <RoomGrid>
+      <SomeComponent />
+    </RoomGrid>
   </Background>
 )
 
 export const TwoChildren = () => (
   <Background>
-    <RoomGrid renderChildren={[renderChildren, renderChildren]} />
+    <RoomGrid>
+      <SomeComponent />
+      <SomeComponent />
+    </RoomGrid>
+  </Background>
+)
+
+export const TreeChildren = () => (
+  <Background>
+    <RoomGrid>
+      <SomeComponent />
+      <SomeComponent />
+      <SomeComponent />
+    </RoomGrid>
+  </Background>
+)
+
+export const FourChildren = () => (
+  <Background>
+    <RoomGrid>
+      <SomeComponent />
+      <SomeComponent />
+      <SomeComponent />
+      <SomeComponent />
+    </RoomGrid>
   </Background>
 )

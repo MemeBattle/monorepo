@@ -12,16 +12,20 @@ const stylesByPosition = {
 }
 
 export interface OpponentCardsProps {
-  positionOnTable: PositionOnTable
+  position?: PositionOnTable
   stackOpenDeckCards: OpponentCard[]
   cards: OpponentCard[]
 }
 
-export const OpponentCards: React.FC<OpponentCardsProps> = ({ positionOnTable, stackOpenDeckCards, cards }) => {
+export const OpponentCards: React.FC<OpponentCardsProps> = ({ position, stackOpenDeckCards, cards }) => {
   const stackOpenDeckCard = stackOpenDeckCards.length ? stackOpenDeckCards.slice(-1)[0] : {}
 
+  if (!position) {
+    return null
+  }
+
   return (
-    <div className={stylesByPosition[positionOnTable]}>
+    <div className={stylesByPosition[position]}>
       <CardsRow>
         <Card {...stackOpenDeckCard} />
         {cards.map((card, index) => (
