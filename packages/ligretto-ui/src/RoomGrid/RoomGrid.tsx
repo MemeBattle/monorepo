@@ -1,16 +1,9 @@
-import React, { useMemo } from 'react'
+import type { ReactNode } from 'react'
+import React, { useMemo, cloneElement, isValidElement } from 'react'
 import { createStyles, makeStyles } from '@material-ui/core'
 
-export type RenderChildren = (positionOnTable: PositionOnTable) => React.ReactElement
-
-export type RenderMultiplyChildren = [RenderChildren] | [RenderChildren, RenderChildren] | [RenderChildren, RenderChildren, RenderChildren]
-
-export function isMultiplyRenderChildren(arg: RenderMultiplyChildren | RenderChildren[]): arg is RenderMultiplyChildren {
-  return arg.length > 0 && arg.length < 4
-}
-
-export interface RoomGridProps {
-  renderChildren: RenderChildren[]
+export type RoomGridProps = {
+  children: ReactNode | ReactNode[]
 }
 
 const useStyles = makeStyles(
@@ -56,13 +49,13 @@ export enum PositionOnTable {
   RightTopCorner = 'rightTopCorner',
 }
 
-const positionOnTableByIndexByLength = {
+const positionOnTableByIndexByLength: Record<number, PositionOnTable[] | undefined> = {
   1: [PositionOnTable.Top],
   2: [PositionOnTable.LeftTopCorner, PositionOnTable.RightTopCorner],
   3: [PositionOnTable.Left, PositionOnTable.Top, PositionOnTable.Right],
-} as const
+}
 
-export const RoomGrid: React.FC<RoomGridProps> = ({ renderChildren }) => {
+export const RoomGrid: React.FC<RoomGridProps> = ({ children }) => {
   const classes = useStyles()
 
   const stylesByPosition = useMemo(
@@ -78,17 +71,23 @@ export const RoomGrid: React.FC<RoomGridProps> = ({ renderChildren }) => {
 
   return (
     <div className={classes.room}>
-      {renderChildren && renderChildren.length !== 0 && isMultiplyRenderChildren(renderChildren)
-        ? renderChildren.map((child, index) => {
-            const renderElementsCount = renderChildren.length
-            const position = positionOnTableByIndexByLength[renderElementsCount][index]
-            return (
-              <div className={stylesByPosition[position]} key={index}>
-                {child(position)}
-              </div>
-            )
-          })
-        : null}
+      {React.Children.map(children, (child, index) => {
+        if (!isValidElement(child)) {
+          return null
+        }
+        const renderElementsCount = Math.min(React.Children.count(children), 3)
+        const position = positionOnTableByIndexByLength[renderElementsCount]?.[index]
+
+        if (!position) {
+          return null
+        }
+
+        return (
+          <div className={stylesByPosition[position]} key={index}>
+            {cloneElement(child, { position })}
+          </div>
+        )
+      })}
     </div>
   )
 }
