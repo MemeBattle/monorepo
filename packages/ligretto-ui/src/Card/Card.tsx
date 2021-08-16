@@ -2,6 +2,7 @@ import React from 'react'
 import type { Card as CardModel } from '@memebattle/ligretto-shared'
 import { CardColors } from '@memebattle/ligretto-shared'
 import { createStyles, makeStyles, Paper, ButtonBase } from '@material-ui/core'
+import { CardPlace } from '../CardPlace'
 
 interface CardProps extends CardModel {
   /** Callback on click **/
@@ -42,7 +43,7 @@ const useStyles = makeStyles(
       justifyContent: 'center',
       alignItems: 'center',
       userSelect: 'none',
-      background: ({ color }: StylesProps) => (color ? colorByCardColors[color] : colorByCardColors.empty),
+      background: ({ color }: StylesProps) => (color ? colorByCardColors[color] : 'inherit'),
       transition: 'box-shadow 100ms',
       '&:hover': {
         boxShadow: ({ disabled }: StylesProps) => (disabled ? undefined : '0.1rem 0.1rem 0.8rem rgba(0, 0, 0, 0.5)'),
@@ -62,11 +63,12 @@ const useStyles = makeStyles(
 
 export const Card: React.FC<CardProps> = ({ value, disabled, onClick, color, hidden }) => {
   const classes = useStyles({ disabled, hidden, color })
+  const checkEmptyCard = !color ? <CardPlace /> : <div className={classes.value}>{value}</div>
   return (
     <div className={classes.cardWrapper}>
       <ButtonBase className={classes.button} disabled={disabled} draggable>
         <Paper classes={{ root: classes.card }} onClick={!disabled ? onClick : () => null}>
-          {color !== CardColors.empty && !hidden ? <div className={classes.value}>{value}</div> : null}
+          {color !== CardColors.empty && !hidden ? checkEmptyCard : null}
         </Paper>
       </ButtonBase>
     </div>
