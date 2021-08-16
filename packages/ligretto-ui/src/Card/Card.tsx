@@ -62,7 +62,6 @@ const useStyles = makeStyles(
 
 export const Card: React.FC<CardProps> = ({ value, disabled, onClick, color, hidden }) => {
   const classes = useStyles({ disabled, hidden, color })
-
   return (
     <div className={classes.cardWrapper}>
       <ButtonBase className={classes.button} disabled={disabled} draggable>
