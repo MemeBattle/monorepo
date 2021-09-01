@@ -65,13 +65,13 @@ export const Card: React.FC<CardProps> = ({ value, disabled, onClick, color, hid
   const classes = useStyles({ disabled, hidden, color })
   return (
     <div className={classes.cardWrapper}>
-      {<CardPlace>
-      <ButtonBase className={classes.button} disabled={disabled} draggable>
-        <Paper classes={{ root: classes.card }} onClick={!disabled ? onClick : () => null}>
-          {color !== CardColors.empty && !hidden ? <div className={classes.value}>{value}</div> : null}
-        </Paper>
-      </ButtonBase>
-      </CardPlace>}
+      {
+        <ButtonBase className={classes.button} disabled={disabled} draggable>
+          <Paper classes={{ root: classes.card }} onClick={!disabled ? onClick : () => null}>
+            {color !== CardColors.empty && !hidden ? <div className={classes.value}>{value}</div> : null}
+          </Paper>
+        </ButtonBase>
+      }
     </div>
   )
 }
