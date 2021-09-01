@@ -2,7 +2,6 @@ import React from 'react'
 import type { Card as CardModel } from '@memebattle/ligretto-shared'
 import { CardColors } from '@memebattle/ligretto-shared'
 import { createStyles, makeStyles, Paper, ButtonBase } from '@material-ui/core'
-import { CardPlace } from '../CardPlace'
 
 interface CardProps extends CardModel {
   /** Callback on click **/
@@ -20,7 +19,7 @@ const colorByCardColors: Record<CardColors, string> = {
   [CardColors.red]: '#f93e3e',
   [CardColors.yellow]: '#e2bc3f',
   [CardColors.blue]: '#6987c9',
-  [CardColors.empty]: '#000',
+  [CardColors.empty]: 'transparent',
 }
 
 const useStyles = makeStyles(

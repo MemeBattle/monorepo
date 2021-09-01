@@ -1,5 +1,5 @@
 import React from 'react'
-import { Card, CardsRow } from '@memebattle/ligretto-ui'
+import { Card, CardPlace, CardsRow } from '@memebattle/ligretto-ui'
 import type { Card as PlayerCards } from '@memebattle/ligretto-shared'
 
 export interface StackProps {
@@ -14,8 +14,12 @@ export const Stack: React.FC<StackProps> = ({ stackOpenDeckCards, stackDeckCards
 
   return (
     <CardsRow>
-      <Card {...stackOpenDeckCard} onClick={onStackOpenDeckCardClick} />
-      <Card color={stackDeckCards[0]?.color} onClick={onStackDeckCardClick} />
+      <CardPlace>
+        <Card {...stackOpenDeckCard} onClick={onStackOpenDeckCardClick} />
+      </CardPlace>
+      <CardPlace>
+        <Card color={stackDeckCards[0]?.color} onClick={onStackDeckCardClick} />
+      </CardPlace>
     </CardsRow>
   )
 }
