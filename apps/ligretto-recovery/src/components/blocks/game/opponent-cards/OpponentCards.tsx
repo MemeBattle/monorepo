@@ -1,5 +1,5 @@
 import React from 'react'
-import { PositionOnTable, CardsRow, Card } from '@memebattle/ligretto-ui'
+import { PositionOnTable, CardsRow, Card, CardPlace } from '@memebattle/ligretto-ui'
 import styles from './OpponentCards.module.scss'
 import type { Card as OpponentCard } from '@memebattle/ligretto-shared'
 
@@ -27,7 +27,9 @@ export const OpponentCards: React.FC<OpponentCardsProps> = ({ position, stackOpe
   return (
     <div className={stylesByPosition[position]}>
       <CardsRow>
-        <Card {...stackOpenDeckCard} />
+        <CardPlace>
+          <Card {...stackOpenDeckCard} />
+        </CardPlace>
         {cards.map((card, index) => (
           <Card {...card} key={index} />
         ))}

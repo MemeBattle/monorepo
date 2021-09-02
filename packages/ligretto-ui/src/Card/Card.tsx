@@ -19,7 +19,7 @@ const colorByCardColors: Record<CardColors, string> = {
   [CardColors.red]: '#f93e3e',
   [CardColors.yellow]: '#e2bc3f',
   [CardColors.blue]: '#6987c9',
-  [CardColors.empty]: '#000',
+  [CardColors.empty]: 'transparent',
 }
 
 const useStyles = makeStyles(
@@ -62,7 +62,6 @@ const useStyles = makeStyles(
 
 export const Card: React.FC<CardProps> = ({ value, disabled, onClick, color, hidden }) => {
   const classes = useStyles({ disabled, hidden, color })
-
   return (
     <div className={classes.cardWrapper}>
       <ButtonBase className={classes.button} disabled={disabled} draggable>
