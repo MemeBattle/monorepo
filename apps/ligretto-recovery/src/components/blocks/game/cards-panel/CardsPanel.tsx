@@ -37,7 +37,9 @@ export const CardsPanel: React.FC<CardsPanelProps> = ({
     </div>
     <CardsRow>
       {cards.map((card, index) => (
-        <CardPlace key={index}>{<Card {...card} onClick={() => onCardRowClick(index)} />}</CardPlace>
+        <CardPlace key={index}>
+          <Card {...card} onClick={() => onCardRowClick(index)} />
+        </CardPlace>
       ))}
     </CardsRow>
     <div className={styles.ligrettoPackWrapper}>
