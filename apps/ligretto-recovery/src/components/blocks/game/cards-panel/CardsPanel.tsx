@@ -43,7 +43,7 @@ export const CardsPanel: React.FC<CardsPanelProps> = ({
       ))}
     </CardsRow>
     <div className={styles.ligrettoPackWrapper}>
-      <LigrettoPack count={10} onLigrettoDeckCardClick={onLigrettoDeckCardClick} ligrettoDeckCards={ligrettoDeckCards} />
+      <LigrettoPack count={ligrettoDeckCards.length} onLigrettoDeckCardClick={onLigrettoDeckCardClick} ligrettoDeckCards={ligrettoDeckCards} />
     </div>
   </div>
 )
