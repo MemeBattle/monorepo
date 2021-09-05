@@ -16,7 +16,6 @@
     "@types/react-router": "^5.0.3",
     "@types/react-router-dom": "^5.1.2",
     "@types/react-test-renderer": "^16.9.0",
-    "@types/socket.io-client": "^1.4.32",
     "react-scripts": "3.4.0",
     "react-test-renderer": "^16.9.0",
     "sass": "^1.32.8",
@@ -41,7 +40,7 @@
     "redux": "^4.0.4",
     "redux-saga": "^1.0.5",
     "reselect": "^4.0.0",
-    "socket.io-client": "^2.2.0"
+    "socket.io-client": "^4.2.0"
   },
   "scripts": {
     "start:dev": "react-scripts start",
