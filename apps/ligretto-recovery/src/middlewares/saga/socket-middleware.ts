@@ -2,6 +2,7 @@ import type { SagaIterator, EventChannel, Unsubscribe } from 'redux-saga'
 import { eventChannel, END } from 'redux-saga'
 import { all, race, actionChannel, take, put, call } from 'redux-saga/effects'
 import io from 'socket.io-client'
+import type { Socket } from 'socket.io-client'
 import { WEBSOCKET_URL } from '../../config'
 import { createAction } from '@reduxjs/toolkit'
 
@@ -11,7 +12,7 @@ export enum WebsocketActionNames {
 
 const cancel = createAction(WebsocketActionNames.Cancel)
 
-function socketChannel(socket: SocketIOClient.Socket): EventChannel<unknown> {
+function socketChannel(socket: Socket): EventChannel<unknown> {
   return eventChannel<unknown>(
     (emitter): Unsubscribe => {
       socket.on('event', (data: unknown) => {
@@ -30,7 +31,7 @@ function socketChannel(socket: SocketIOClient.Socket): EventChannel<unknown> {
   )
 }
 
-function* socketReceiveSaga(socket: SocketIOClient.Socket): SagaIterator {
+function* socketReceiveSaga(socket: Socket): SagaIterator {
   const channel: EventChannel<string> = yield call(socketChannel, socket)
 
   try {
@@ -44,7 +45,7 @@ function* socketReceiveSaga(socket: SocketIOClient.Socket): SagaIterator {
   }
 }
 
-function* socketSendSaga(socket: SocketIOClient.Socket): SagaIterator {
+function* socketSendSaga(socket: Socket): SagaIterator {
   const channel = yield actionChannel(({ type }: { type: string }) => type.includes('WEBSOCKET'))
 
   while (true) {
