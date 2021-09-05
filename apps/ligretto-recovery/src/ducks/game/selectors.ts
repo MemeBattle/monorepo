@@ -15,6 +15,7 @@ export const selectPlayerCards = (state: All) => selectPlayers(state)[selectPlay
 export const selectPlayerStackOpenDeckCards = (state: All) => selectPlayers(state)[selectPlayerId(state)].stackOpenDeck.cards
 export const selectPlayerStackDeckCards = (state: All) => selectPlayers(state)[selectPlayerId(state)].stackDeck.cards
 export const selectPlayerLigrettoDeckCards = (state: All) => selectPlayers(state)[selectPlayerId(state)].ligrettoDeck.cards
+export const selectPlayerLigrettoDeckCardsCount = (state: All) => selectPlayers(state)[selectPlayerId(state)].ligrettoDeck.cards.length
 
 export const selectPlayerStatus = (state: All) => selectPlayer(state)?.status
 export const selectOpponents = createSelector([selectPlayers, selectPlayerId], (players, playerId) => Object.values(omit(players, playerId)))

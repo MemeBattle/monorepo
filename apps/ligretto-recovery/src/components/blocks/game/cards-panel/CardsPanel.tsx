@@ -4,6 +4,13 @@ import { Card, CardPlace, CardsRow } from '@memebattle/ligretto-ui'
 import { LigrettoPack } from 'components/blocks/game/ligretto-pack'
 import styles from './CardsPanel.module.scss'
 import { Stack } from 'components/blocks/game/stack'
+import {
+  selectPlayerCards,
+  selectPlayerLigrettoDeckCards, selectPlayerLigrettoDeckCardsCount,
+  selectPlayerStackDeckCards,
+  selectPlayerStackOpenDeckCards,
+} from '../../../../ducks/game'
+import { useSelector } from 'react-redux'
 
 export interface CardsPanelProps {
   cards: PlayerCards[]
@@ -25,25 +32,28 @@ export const CardsPanel: React.FC<CardsPanelProps> = ({
   onStackOpenDeckCardClick,
   onStackDeckCardClick,
   onLigrettoDeckCardClick,
-}) => (
-  <div className={styles.cardsPanel}>
-    <div className={styles.stackWrapper}>
-      <Stack
-        stackOpenDeckCards={stackOpenDeckCards}
-        stackDeckCards={stackDeckCards}
-        onStackOpenDeckCardClick={onStackOpenDeckCardClick}
-        onStackDeckCardClick={onStackDeckCardClick}
-      />
+}) => {
+  const ligrettoPlayerCardCount = useSelector(selectPlayerLigrettoDeckCardsCount)
+  return (
+    <div className={styles.cardsPanel}>
+      <div className={styles.stackWrapper}>
+        <Stack
+          stackOpenDeckCards={stackOpenDeckCards}
+          stackDeckCards={stackDeckCards}
+          onStackOpenDeckCardClick={onStackOpenDeckCardClick}
+          onStackDeckCardClick={onStackDeckCardClick}
+        />
+      </div>
+      <CardsRow>
+        {cards.map((card, index) => (
+          <CardPlace key={index}>
+            <Card {...card} onClick={() => onCardRowClick(index)} />
+          </CardPlace>
+        ))}
+      </CardsRow>
+      <div className={styles.ligrettoPackWrapper}>
+        <LigrettoPack count={ligrettoPlayerCardCount} onLigrettoDeckCardClick={onLigrettoDeckCardClick} ligrettoDeckCards={ligrettoDeckCards} />
+      </div>
     </div>
-    <CardsRow>
-      {cards.map((card, index) => (
-        <CardPlace key={index}>
-          <Card {...card} onClick={() => onCardRowClick(index)} />
-        </CardPlace>
-      ))}
-    </CardsRow>
-    <div className={styles.ligrettoPackWrapper}>
-      <LigrettoPack count={10} onLigrettoDeckCardClick={onLigrettoDeckCardClick} ligrettoDeckCards={ligrettoDeckCards} />
-    </div>
-  </div>
-)
+  )
+}
