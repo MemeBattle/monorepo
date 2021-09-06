@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import { last, shuffle } from 'lodash'
-import type { PlayerRepository } from './player.repo'
+import { PlayerRepository } from './player.repo'
 import type { Card } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
@@ -88,7 +88,10 @@ export class PlayerService {
   }
 
   /**
-   * TODO: Описать на английском что происходит
+   * We get an array of cards (3 cards) on the user's board.
+   * We get cards from the ligretto deck.
+   * Check for the presence of empty user cards on the board.
+   * If the user has empty cards, reduce the number of cards in the ligretto deck
    * @param gameId
    * @param playerId
    */
