@@ -59,9 +59,9 @@ export class Gameplay {
     }
   }
 
-  async playerTakeFromLigrettoDeck(gameId: string, playerColor: string): Promise<[Game, Record<string, number> | null]> {
+  async playerTakeFromLigrettoDeck(gameId: string, playerId: string): Promise<[Game, Record<string, number> | null]> {
     try {
-      const remaining = await this.playerService.takeFromLigrettoDeck(gameId, playerColor)
+      const remaining = await this.playerService.takeFromLigrettoDeck(gameId, playerId)
 
       if (remaining === 0) {
         return this.gameService.endRound(gameId)
