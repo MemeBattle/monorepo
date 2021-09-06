@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import { last, shuffle } from 'lodash'
-import type { PlayerRepository } from './player.repo'
+import { PlayerRepository } from './player.repo'
 import type { Card } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
@@ -87,10 +87,23 @@ export class PlayerService {
     }))
   }
 
-  async takeFromLigrettoDeck(gameId: string, color: string) {
-    const deck = await this.playerRepository.getLigrettoDeck(gameId, color)
+  /**
+   * We get an array of cards (3 cards) on the user's board.
+   * We get cards from the ligretto deck.
+   * Check for the presence of empty user cards on the board.
+   * If the user has empty cards, reduce the number of cards in the ligretto deck
+   * @param gameId
+   * @param playerId
+   */
+  async takeFromLigrettoDeck(gameId: string, playerId: string) {
+    const cards = await this.playerRepository.getCards(gameId, playerId)
+    const deck = await this.playerRepository.getLigrettoDeck(gameId, playerId)
+    const emptyCardIndex = cards.findIndex(card => card === null)
+    if (emptyCardIndex === -1) {
+      return deck.cards.length
+    }
     const card = last(deck.cards)
-    await this.addCard(gameId, color, card)
-    return await this.removeCardFromLigrettoDeck(gameId, color)
+    await this.addCard(gameId, playerId, card)
+    return await this.removeCardFromLigrettoDeck(gameId, playerId)
   }
 }
