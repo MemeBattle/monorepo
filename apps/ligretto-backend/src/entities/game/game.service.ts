@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import { groupBy, mergeWith, omit } from 'lodash'
-import type { GameRepository } from './game.repo'
+import { GameRepository } from './game.repo'
 import type { Game, Player } from '@memebattle/ligretto-shared'
 import { GameStatus } from '@memebattle/ligretto-shared'
 import { createInitialPlayerCards } from '../../utils/create-initial-player-cards'

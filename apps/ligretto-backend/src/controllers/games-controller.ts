@@ -2,12 +2,10 @@ import { injectable, inject } from 'inversify'
 import { IOC_TYPES } from '../IOC_TYPES'
 import { Controller } from './controller'
 import type { Socket } from 'socket.io'
-import type { GameService } from '../entities/game/game.service'
-import type { PlayerService } from '../entities/player/player.service'
-import type { UserService } from '../entities/user'
-import type {
-  Game,
-} from '@memebattle/ligretto-shared'
+import { GameService } from '../entities/game/game.service'
+import { PlayerService } from '../entities/player/player.service'
+import { UserService } from '../entities/user'
+import type { Game } from '@memebattle/ligretto-shared'
 import {
   searchRoomsFinishAction,
   updateRooms,
@@ -18,11 +16,11 @@ import {
   createRoomEmitAction,
   searchRoomsEmitAction,
   connectToRoomEmitAction,
-  setPlayerStatusEmitAction
+  setPlayerStatusEmitAction,
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
-import type { GameplayOutput } from '../gameplay/gameplay-output'
+import { GameplayOutput } from '../gameplay/gameplay-output'
 
 @injectable()
 export class GamesController extends Controller {

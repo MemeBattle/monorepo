@@ -1,9 +1,10 @@
-import { addBotAction, removeBotAction } from '@memebattle/ligretto-shared'
+import type { removeBotAction } from '@memebattle/ligretto-shared'
+import { addBotAction } from '@memebattle/ligretto-shared'
 import type { Socket } from 'socket.io'
 import { inject, injectable } from 'inversify'
 import { initBot, stopBot } from '../bot'
 import { IOC_TYPES } from '../IOC_TYPES'
-import type { GameService } from '../entities/game/game.service'
+import { GameService } from '../entities/game/game.service'
 import { Controller } from './controller'
 
 @injectable()

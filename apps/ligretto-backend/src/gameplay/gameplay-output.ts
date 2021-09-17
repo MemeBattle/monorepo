@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import { IOC_TYPES } from '../IOC_TYPES'
-import type { Database } from '../database'
+import { Database } from '../database'
 import type { Game } from '@memebattle/ligretto-shared'
 
 @injectable()
