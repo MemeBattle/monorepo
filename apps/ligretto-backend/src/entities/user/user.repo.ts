@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import { IOC_TYPES } from '../../IOC_TYPES'
-import type { Database } from '../../database'
+import { Database } from '../../database'
 import type { User } from '../../types/user'
 import { omit } from 'lodash'
 

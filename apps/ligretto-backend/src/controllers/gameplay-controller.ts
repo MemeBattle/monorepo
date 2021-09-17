@@ -13,8 +13,8 @@ import {
   takeFromStackDeckAction,
 } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../IOC_TYPES'
-import type { Gameplay } from '../gameplay/gameplay'
-import type { GameService } from '../entities/game/game.service'
+import { Gameplay } from '../gameplay/gameplay'
+import { GameService } from '../entities/game/game.service'
 
 @injectable()
 export class GameplayController extends Controller {

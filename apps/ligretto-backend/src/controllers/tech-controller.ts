@@ -3,7 +3,7 @@ import type { Socket } from 'socket.io'
 import { Controller } from './controller'
 import { updateGameAction, techConnectToGame } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../IOC_TYPES'
-import type { GameplayOutput } from '../gameplay/gameplay-output'
+import { GameplayOutput } from '../gameplay/gameplay-output'
 
 @injectable()
 export class TechController extends Controller {
