@@ -59,7 +59,7 @@ export interface Game {
   name: string
   status: GameStatus
   players: {
-    [socketId: string]: Player
+    [id: string]: Player
   }
   playground: Playground
   config: {

@@ -15,7 +15,6 @@ import {
 import {
   setGameLoadedAction,
   setGameResultAction,
-  setPlayerIdAction,
   startGameAction,
   togglePlayerStatusAction,
   updateGameAction as updateGameSliceAction,
@@ -42,7 +41,6 @@ function* togglePlayerStatusSaga() {
 
 function* connectToRoomSuccessSaga(action: ReturnType<typeof connectToRoomSuccessAction> | ReturnType<typeof createRoomSuccessAction>) {
   yield put(updateGameSliceAction(action.payload.game))
-  yield put(setPlayerIdAction(action.payload.playerId))
   yield put(setGameLoadedAction(true))
 }
 

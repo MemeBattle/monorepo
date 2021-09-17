@@ -19,17 +19,14 @@ export interface CreateGame {
 
 export interface ConnectToRoom {
   roomUuid: string
-  playerId?: Player['id']
 }
 
 export interface ConnectToRoomSuccess {
   game: Game
-  playerId: Player['id']
 }
 
 export interface CreateRoomSuccess {
   game: Game
-  playerId: Player['id']
 }
 
 export type GameState = Game
