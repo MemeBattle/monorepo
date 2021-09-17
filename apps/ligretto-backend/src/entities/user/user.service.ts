@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import { IOC_TYPES } from '../../IOC_TYPES'
-import type { UserRepository } from './user.repo'
+import { UserRepository } from './user.repo'
 import type { User } from '../../types/user'
 
 @injectable()
