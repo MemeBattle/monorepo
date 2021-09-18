@@ -7,8 +7,7 @@ import { roomsReducer } from 'ducks/rooms'
 import { gameReducer } from 'ducks/game'
 import { techReducer } from 'ducks/tech'
 
-// eslint-disable-next-line import/no-anonymous-default-export
-export default (history: History) =>
+const rootReducer = (history: History) =>
   combineReducers({
     router: connectRouter(history),
     auth: authReducer,
@@ -17,3 +16,5 @@ export default (history: History) =>
     game: gameReducer,
     tech: techReducer,
   })
+
+export default rootReducer
