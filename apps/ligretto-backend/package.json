@@ -37,7 +37,7 @@
     ]
   },
   "dependencies": {
-    "@memebattle/cas-services": "^3.5.0",
+    "@memebattle/cas-services": "^3.6.0",
     "@memebattle/ligretto-shared": "^1.0.6",
     "dotenv": "^8.2.0",
     "inversify": "^5.0.1",

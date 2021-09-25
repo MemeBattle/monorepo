@@ -3,6 +3,7 @@ import type { UserModel } from './apiTypes'
 
 export interface GetMeResponse {
   user: UserModel
+  token: string
 }
 
-export const getMe = (token: string) => request.post<GetMeResponse>('/auth/me', { token })
+export const getMe = (token?: string) => request.post<GetMeResponse>('/auth/me', { token })

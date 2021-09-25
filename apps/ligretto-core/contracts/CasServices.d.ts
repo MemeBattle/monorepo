@@ -13,6 +13,8 @@ declare module '@ioc:CasServices' {
     ErrorGetMe,
     SuccessGetUsers,
     GetUsersPayload,
+    SuccessCreateTemporaryToken,
+    ErrorCreateTemporaryToken,
   } from '@memebattle/cas-services'
 
   export type Login = (credentials: LoginCredentials) => Promise<SuccessLogin | ErrorLogin>
@@ -35,13 +37,18 @@ declare module '@ioc:CasServices' {
 
   declare const getUsers: GetUsers
 
+  export type CreateTemporaryToken = () => Promise<SuccessCreateTemporaryToken | ErrorCreateTemporaryToken>
+
+  declare const createTemporaryToken: CreateTemporaryToken
+
   export type Services = {
     login: Login
     signUp: SignUp
     verifyToken: VerifyToken
     getMe: GetMe
     getUsers: GetUsers
+    createTemporaryToken: CreateTemporaryToken
   }
 
-  export { login, signUp, verifyToken, getMe, getUsers }
+  export { login, signUp, verifyToken, getMe, getUsers, createTemporaryToken }
 }

@@ -12,12 +12,12 @@ export const authSlice = createSlice({
   initialState: authInitialState,
   name: '@@auth',
   reducers: {
-    getMeRequest: (state, { payload }: PayloadAction<{ token: string }>) => {
-      state.token = payload.token
+    getMeRequest: (state, { payload }: PayloadAction<{ token?: string }>) => {
       state.isLoading = true
     },
-    getMeSuccess: (state, { payload }: PayloadAction<{ userId: string }>) => {
+    getMeSuccess: (state, { payload }: PayloadAction<{ userId: string, token: string }>) => {
       state.userId = payload.userId
+      state.token = payload.token
       state.isLoading = false
     },
   },

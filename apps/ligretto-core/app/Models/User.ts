@@ -16,4 +16,7 @@ export default class User extends BaseModel {
 
   @column({ columnName: 'casId', isPrimary: true })
   public casId: string
+
+  @column({ columnName: 'isTemporary' })
+  public isTemporary: boolean
 }

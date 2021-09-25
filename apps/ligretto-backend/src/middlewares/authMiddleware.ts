@@ -4,14 +4,23 @@ import { IOC_TYPES } from '../IOC_TYPES'
 import type { AuthService } from '../entities/auth'
 
 /**
- * Add userId to socket.data.userId
- * If user is not authorized userId will be null
+ * Add userId to socket.data.user.id
+ *
  * @param socket
  * @param next
  */
-export const authMiddleware = async (socket: Socket, next: () => void) => {
+export const authMiddleware = async (socket: Socket, next: (error?: Error) => void) => {
   const authService = IOC.get<AuthService>(IOC_TYPES.AuthService)
+  const token = socket.handshake?.auth?.token
+  if (!token) {
+    const error = new Error('socket.handshake?.auth?.token is null')
+    return next(error)
+  }
   const parsedTokenData = await authService.verifyTokenService(socket.handshake?.auth?.token)
-  socket.data.user = parsedTokenData ? { isAuthorized: true, id: parsedTokenData.userId } : { isAuthorized: false, id: socket.id }
+  if (!parsedTokenData) {
+    const error = new Error('Not authorized')
+    return next(error)
+  }
+  socket.data.user = { id: parsedTokenData.userId }
   next()
 }

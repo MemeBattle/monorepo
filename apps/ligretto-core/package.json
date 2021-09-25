@@ -32,7 +32,7 @@
     "@adonisjs/core": "^5.1.7",
     "@adonisjs/lucid": "^14.1.0",
     "@adonisjs/repl": "^3.1.2",
-    "@memebattle/cas-services": "^3.5.0",
+    "@memebattle/cas-services": "^3.6.0",
     "luxon": "^1.27.0",
     "pg": "^8.6.0",
     "proxy-addr": "^2.0.6",

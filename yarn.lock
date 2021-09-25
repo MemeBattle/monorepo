@@ -5097,10 +5097,10 @@
   resolved "https://registry.yarnpkg.com/@mdx-js/util/-/util-1.6.22.tgz#219dfd89ae5b97a8801f015323ffa4b62f45718b"
   integrity sha512-H1rQc1ZOHANWBvPcW+JpGwr+juXSxM8Q8YCkm3GhZd8REu1fHR3z99CErO1p9pkcfcxZnMdIZdIsXkOHY0NilA==
 
-"@memebattle/cas-services@^3.5.0":
-  version "3.5.0"
-  resolved "https://npm.pkg.github.com/download/@memebattle/cas-services/3.5.0/57057901a17987d27a7568260166fab1c5988019f1fa8124b2d472b81b61d9dd#e15736dc3548a400260a569adf98dfe636bd055a"
-  integrity sha512-BTmcBY5Sqo4ZQiwoiUEJnd2uuwCo52gfmRUk6JoLOxKFD9mWdlRMSid+5fUNg7g2SSXvDXug9KL/xdUm194hXw==
+"@memebattle/cas-services@^3.6.0":
+  version "3.6.0"
+  resolved "https://npm.pkg.github.com/download/@memebattle/cas-services/3.6.0/6be043b7e89c0e4ec65805d7e340122718520158381721db43ceb4dce8f920fc#3938b60a54efd507ca08fba634bc2e9cee9d7370"
+  integrity sha512-pRg8/G8ohsnMC2DnFjRjA4jBb6KXv2gk28sen8PY2sJwGbpMUFfpiSFvWTUWfpnuNznDTajP0FMFNBhhQB6VIA==
   dependencies:
     axios "^0.21.1"
     jsonwebtoken "^8.5.0"
