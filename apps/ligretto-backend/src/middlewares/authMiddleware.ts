@@ -16,7 +16,7 @@ export const authMiddleware = async (socket: Socket, next: (error?: Error) => vo
     const error = new Error('socket.handshake?.auth?.token is null')
     return next(error)
   }
-  const parsedTokenData = await authService.verifyTokenService(socket.handshake?.auth?.token)
+  const parsedTokenData = await authService.verifyTokenService(token)
   if (!parsedTokenData) {
     const error = new Error('Not authorized')
     return next(error)
