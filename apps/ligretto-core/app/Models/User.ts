@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@ioc:Adonis/Lucid/Orm'
+import {User as CasUser, TemporaryUser as CasTemporaryUser} from '@ioc:CasServices'
 
 export default class User extends BaseModel {
   public static table = 'users'
@@ -19,4 +20,8 @@ export default class User extends BaseModel {
 
   @column({ columnName: 'isTemporary' })
   public isTemporary: boolean
+
+  public mergeWithCasUser(casUser: CasUser | CasTemporaryUser) {
+    return {...this.serialize(), ...casUser}
+  }
 }
