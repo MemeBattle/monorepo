@@ -7,8 +7,6 @@ export default class AppProvider {
 
   public register() {
     // Register your own bindings
-
-    import('../overloads/camelCaseNamingStrategy')
   }
 
   public async boot() {
