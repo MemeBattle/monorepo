@@ -24,5 +24,13 @@ export const UserInfoContainer = () => {
     return buildCasStaticUrl(user.avatar)
   }, [user])
 
-  return <UserInfo buttonText="sign in" img={userAvatarUrl} username={user?.isTemporary ? undefined : user?.username} onButtonClick={onButtonClick} onClick={onButtonClick} />
+  return (
+    <UserInfo
+      buttonText="sign in"
+      img={userAvatarUrl}
+      username={user?.isTemporary ? undefined : user?.username}
+      onButtonClick={onButtonClick}
+      onClick={onButtonClick}
+    />
+  )
 }

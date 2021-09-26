@@ -2,7 +2,7 @@ import { getMeRequest, getMeSuccess } from './authActions'
 import { call, put, takeLeading } from 'redux-saga/effects'
 import { getUserByTokenSaga } from 'ducks/users'
 import { LOCAL_STORAGE_TOKEN_KEY } from './constants'
-import {User} from "../users/usersTypes";
+import type { User } from '../users/usersTypes'
 
 export function* initSaga() {
   const token = window.localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY) ?? undefined
@@ -10,9 +10,9 @@ export function* initSaga() {
 }
 
 export function* getMeSaga({ payload }: ReturnType<typeof getMeRequest>) {
-  const user: {userId: User['_id'], token: string} | null = yield call(getUserByTokenSaga, payload.token)
+  const user: { userId: User['_id']; token: string } | null = yield call(getUserByTokenSaga, payload.token)
 
-  if(!user) {
+  if (!user) {
     return
   }
 

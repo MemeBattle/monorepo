@@ -1,4 +1,5 @@
-import { getUsers, User, TemporaryUser } from '@ioc:CasServices'
+import type { User, TemporaryUser } from '@ioc:CasServices'
+import { getUsers } from '@ioc:CasServices'
 import UserModel from 'App/Models/User'
 import UsersListValidator from 'App/Validators/UsersListValidator'
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
@@ -16,11 +17,10 @@ export default class UsersController {
     return ctx.response.json(this.mergeCasUsersAndUsers(users, casUsersResponse.data))
   }
 
-
   private mergeCasUsersAndUsers(users: UserModel[], casUsers: Array<User | TemporaryUser>) {
-    const normalizedCasUsers = casUsers.reduce((acc, casUser) => ({...acc, [casUser._id]: casUser}), {})
+    const normalizedCasUsers = casUsers.reduce((acc, casUser) => ({ ...acc, [casUser._id]: casUser }), {})
 
-    return users.map((user) => {
+    return users.map(user => {
       const a = user.mergeWithCasUser(normalizedCasUsers[user.casId])
       console.log('a', a)
       return a

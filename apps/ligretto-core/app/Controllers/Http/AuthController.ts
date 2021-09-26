@@ -7,7 +7,7 @@ export default class AuthController {
   async me({ request, response }: HttpContextContract) {
     const { token } = await request.validate(GetMeValidator)
     if (token) {
-      const casGetMeResult = await getMe({token})
+      const casGetMeResult = await getMe({ token })
       if (casGetMeResult.success) {
         const profile = await UserModel.firstOrCreate({ casId: casGetMeResult.data.user._id }, {})
         return { ...casGetMeResult.data, profile, token }
@@ -16,9 +16,9 @@ export default class AuthController {
     }
     const temporaryResult = await createTemporaryToken()
     if (temporaryResult.success) {
-      const profile = await UserModel.create({casId: temporaryResult.data.temporaryUser._id, isTemporary: true})
+      const profile = await UserModel.create({ casId: temporaryResult.data.temporaryUser._id, isTemporary: true })
 
-      return { user: temporaryResult.data.temporaryUser, token: temporaryResult.data.temporaryToken, profile: profile }
+      return { user: temporaryResult.data.temporaryUser, token: temporaryResult.data.temporaryToken, profile }
     }
     return response.status(temporaryResult.error.errorCode).json(temporaryResult.error)
   }

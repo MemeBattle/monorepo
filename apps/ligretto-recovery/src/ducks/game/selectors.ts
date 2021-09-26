@@ -19,4 +19,6 @@ export const selectPlayerStackDeckCards = (state: All) => selectPlayer(state).st
 export const selectPlayerLigrettoDeckCards = (state: All) => selectPlayer(state).ligrettoDeck.cards
 export const selectPlayerStatus = (state: All) => selectPlayer(state).status
 
-export const selectOpponents = createSelector([selectPlayers, selectCurrentUserId], (players, playerId = '') => Object.values(omit(players, playerId)))
+export const selectOpponents = createSelector([selectPlayers, selectCurrentUserId], (players, playerId = '') =>
+  Object.values(omit(players, playerId)),
+)

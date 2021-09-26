@@ -16,11 +16,7 @@ class CamelCaseNamingStrategy extends SnakeCaseNamingStrategy {
     return string.camelCase(propertyName)
   }
 
-  public relationLocalKey(
-    relation: string,
-    model: typeof BaseModel,
-    relatedModel: typeof BaseModel
-  ) {
+  public relationLocalKey(relation: string, model: typeof BaseModel, relatedModel: typeof BaseModel) {
     if (relation === 'belongsTo') {
       return relatedModel.primaryKey
     }
@@ -28,11 +24,7 @@ class CamelCaseNamingStrategy extends SnakeCaseNamingStrategy {
     return model.primaryKey
   }
 
-  public relationForeignKey(
-    relation: string,
-    model: typeof BaseModel,
-    relatedModel: typeof BaseModel
-  ) {
+  public relationForeignKey(relation: string, model: typeof BaseModel, relatedModel: typeof BaseModel) {
     if (relation === 'belongsTo') {
       return string.camelCase(`${relatedModel.name}_${relatedModel.primaryKey}`)
     }
@@ -40,22 +32,11 @@ class CamelCaseNamingStrategy extends SnakeCaseNamingStrategy {
     return string.camelCase(`${model.name}_${model.primaryKey}`)
   }
 
-  public relationPivotTable(
-    _relation: 'manyToMany',
-    model: typeof BaseModel,
-    relatedModel: typeof BaseModel
-  ) {
-    return string.camelCase(
-      [relatedModel.name, model.name]
-        .sort()
-        .join('_')
-    )
+  public relationPivotTable(_relation: 'manyToMany', model: typeof BaseModel, relatedModel: typeof BaseModel) {
+    return string.camelCase([relatedModel.name, model.name].sort().join('_'))
   }
 
-  public relationPivotForeignKey(
-    _relation: 'manyToMany',
-    model: typeof BaseModel
-  ) {
+  public relationPivotForeignKey(_relation: 'manyToMany', model: typeof BaseModel) {
     return string.camelCase(`${model.name}_${model.primaryKey}`)
   }
 
