@@ -11,7 +11,7 @@ export const selectIsGameLoaded = (state: All) => state.game.isGameLoaded
 export const selectGameResults = (state: All) => state.game.results
 export const selectPlaygroundDecks = (state: All) => state.game.playground.decks
 
-export const selectPlayer = (state: All): Player => selectPlayers(state)[selectCurrentUserId(state) || '']
+export const selectPlayer = (state: All): Player => selectPlayers(state)[selectCurrentUserId(state)]
 
 export const selectPlayerCards = (state: All) => selectPlayer(state).cards
 export const selectPlayerStackOpenDeckCards = (state: All) => selectPlayer(state).stackOpenDeck.cards

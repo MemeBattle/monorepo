@@ -7,3 +7,7 @@ export interface GetMeResponse {
 }
 
 export const getMe = (token?: string) => request.post<GetMeResponse>('/auth/me', { token })
+
+export type GetUsersResponse = Array<UserModel>
+
+export const getUsersByIds = (ids: string[]) => request.get<GetUsersResponse>('/users', { params: { ids } })

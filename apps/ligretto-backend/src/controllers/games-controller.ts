@@ -17,6 +17,7 @@ import {
   searchRoomsEmitAction,
   connectToRoomEmitAction,
   setPlayerStatusEmitAction,
+  userJoinToRoomAction,
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
@@ -85,6 +86,7 @@ export class GamesController extends Controller {
     socket.to(roomUuid).emit('event', updateGameAction(updatedGame))
     socket.emit('event', connectToRoomSuccessAction({ game: updatedGame }))
     socket.emit('event', updateGameAction(updatedGame))
+    socket.to(roomUuid).emit('event', userJoinToRoomAction({ userId: playerId }))
     socket.leave(SOCKET_ROOM_LOBBY)
   }
 
