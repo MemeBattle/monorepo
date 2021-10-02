@@ -23,7 +23,6 @@ export default class User extends BaseModel {
   public isTemporary: boolean
 
   public mergeWithCasUser(casUser: CasUser | CasTemporaryUser | undefined) {
-    console.log('casUser', casUser)
     return { ...this.serialize(), ...omit(casUser, '_id') }
   }
 }
