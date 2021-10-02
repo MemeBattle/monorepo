@@ -14,7 +14,7 @@ export const useProfileRequest = () => {
       try {
         const response = await getMeService({ token })
 
-        if (response.success) {
+        if (response.success && !response.data.user.isTemporary) {
           setProfile({
             id: response.data.user._id,
             username: response.data.user.username,

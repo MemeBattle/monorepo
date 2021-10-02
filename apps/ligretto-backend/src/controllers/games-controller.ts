@@ -17,6 +17,7 @@ import {
   searchRoomsEmitAction,
   connectToRoomEmitAction,
   setPlayerStatusEmitAction,
+  userJoinToRoomAction,
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
@@ -37,10 +38,11 @@ export class GamesController extends Controller {
   }
 
   private async createGame(socket: Socket, action: ReturnType<typeof createRoomEmitAction>) {
+    const userId = socket.data.user.id
     const newGame = await this.gameService.createGame(action.payload.name)
-    const { game } = await this.gameService.addPlayer(newGame.id, { isHost: true, id: socket.id })
-    await this.userService.enterGame(socket.id, game.id)
-    socket.emit('event', createRoomSuccessAction({ game, playerId: socket.id }))
+    const { game } = await this.gameService.addPlayer(newGame.id, { isHost: true, id: userId })
+    await this.userService.enterGame(userId, game.id)
+    socket.emit('event', createRoomSuccessAction({ game }))
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(game)] }))
     socket.join(game.id)
   }
@@ -75,31 +77,32 @@ export class GamesController extends Controller {
     }
 
     socket.join(roomUuid)
-    await this.userService.enterGame(socket.id, roomUuid)
+    const playerId = socket.data.user.id
+    await this.userService.enterGame(playerId, roomUuid)
 
-    const playerId = action.payload.playerId || socket.id
     const { game: updatedGame } = await this.gameService.addPlayer(roomUuid, { id: playerId })
 
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(updatedGame)] }))
     socket.to(roomUuid).emit('event', updateGameAction(updatedGame))
-    socket.emit('event', connectToRoomSuccessAction({ game: updatedGame, playerId }))
+    socket.emit('event', connectToRoomSuccessAction({ game: updatedGame }))
     socket.emit('event', updateGameAction(updatedGame))
+    socket.to(roomUuid).emit('event', userJoinToRoomAction({ userId: playerId }))
     socket.leave(SOCKET_ROOM_LOBBY)
   }
 
   private async setPlayerStatus(socket: Socket, { payload }: ReturnType<typeof setPlayerStatusEmitAction>) {
     const { gameId, status } = payload
 
-    const game = await this.gameService.updateGamePlayer(gameId, socket.id, { status })
+    const game = await this.gameService.updateGamePlayer(gameId, socket.data.user.id, { status })
     socket.to(gameId).emit('event', updateGameAction(game))
     socket.emit('event', updateGameAction(game))
   }
 
   public async disconnectionHandler(socket: Socket) {
-    const user = await this.userService.getUser(socket.id)
+    const user = await this.userService.getUser(socket.data.user.id)
     if (!user) {
       return
     }
-    await this.gameService.leaveGame(user.currentGameId, user.socketId)
+    await this.gameService.leaveGame(user.currentGameId, user.id)
   }
 }
