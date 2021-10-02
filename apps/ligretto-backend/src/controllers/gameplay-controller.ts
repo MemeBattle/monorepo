@@ -47,14 +47,14 @@ export class GameplayController extends Controller {
   private async putCard(socket: Socket, action: ReturnType<typeof putCardAction>) {
     const { gameId, cardIndex } = action.payload
 
-    await this.gameplay.playerPutCard(gameId, socket.id, cardIndex)
+    await this.gameplay.playerPutCard(gameId, socket.data.user.id, cardIndex)
     await this.updateGame(socket, gameId)
   }
 
   private async takeCardFromLigrettoDeck(socket: Socket, action: ReturnType<typeof takeFromLigrettoDeckAction>) {
     const { gameId } = action.payload
 
-    const [game, roundResults] = await this.gameplay.playerTakeFromLigrettoDeck(gameId, socket.id)
+    const [game, roundResults] = await this.gameplay.playerTakeFromLigrettoDeck(gameId, socket.data.user.id)
     await this.updateGame(socket, gameId, game)
     console.log(roundResults)
     if (roundResults) {
@@ -68,14 +68,14 @@ export class GameplayController extends Controller {
     const { gameId } = action.payload
 
     console.log('takeCardFromStackDeck', action)
-    await this.gameplay.playerTakeFromStackDeck(gameId, socket.id)
+    await this.gameplay.playerTakeFromStackDeck(gameId, socket.data.user.id)
     await this.updateGame(socket, gameId)
   }
 
   private async putCardFromStackOpenDeck(socket: Socket, action: ReturnType<typeof putCardFromStackOpenDeck>) {
     const { gameId } = action.payload
     console.log('putCardFromStackOpenDeck', action)
-    await this.gameplay.playerPutFromStackOpenDeck(gameId, socket.id)
+    await this.gameplay.playerPutFromStackOpenDeck(gameId, socket.data.user.id)
     await this.updateGame(socket, gameId)
   }
 }

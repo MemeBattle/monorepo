@@ -1,4 +1,4 @@
-import type { Game, GameResults, Player, Playground } from '@memebattle/ligretto-shared'
+import type { Game, GameResults, Playground } from '@memebattle/ligretto-shared'
 import { GameStatus } from '@memebattle/ligretto-shared'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createAction, createSlice } from '@reduxjs/toolkit'
@@ -9,7 +9,6 @@ export type GameState = {
   config: Game['config']
   status: Game['status']
   players: Game['players']
-  playerId: Player['id']
   results?: GameResults
   isGameLoaded: boolean
   playground: Playground
@@ -25,7 +24,6 @@ const initialState: GameState = {
   },
   players: {},
   isGameLoaded: false,
-  playerId: '',
   results: undefined,
   playground: {
     decks: [],
@@ -43,9 +41,6 @@ const gameSlice = createSlice({
   name: 'game',
   initialState,
   reducers: {
-    setPlayerIdAction: (state, action: PayloadAction<string>) => {
-      state.playerId = action.payload
-    },
     updateGameAction: (
       state,
       action: PayloadAction<{
@@ -65,5 +60,5 @@ const gameSlice = createSlice({
   },
 })
 
-export const { setPlayerIdAction, updateGameAction, setGameLoadedAction, setGameResultAction } = gameSlice.actions
+export const { updateGameAction, setGameLoadedAction, setGameResultAction } = gameSlice.actions
 export const gameReducer = gameSlice.reducer

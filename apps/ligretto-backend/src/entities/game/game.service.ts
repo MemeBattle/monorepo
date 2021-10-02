@@ -79,13 +79,13 @@ export class GameService {
     }
   }
 
-  async updateGamePlayer(gameId: Game['id'], socketId: Player['id'], playerData: Partial<Player>) {
+  async updateGamePlayer(gameId: Game['id'], playerId: Player['id'], playerData: Partial<Player>) {
     const game = await this.gameRepository.getGame(gameId)
     if (!game) {
       throw Error('Game not found')
     }
 
-    const player = game.players[socketId]
+    const player = game.players[playerId]
     if (!player) {
       throw Error('Player not found in game')
     }

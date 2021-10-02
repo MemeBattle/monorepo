@@ -38,3 +38,5 @@ export const endRoundAction = createAction<dto.GameResultsDTO>('@@gameplay/SERVE
 export const addBotAction = createAction<dto.AddBotDTO>('@@bot/WEBSOCKET/ADD_BOT')
 
 export const removeBotAction = createAction<dto.RemoveBotDTO>('@@bot/WEBSOCKET/REMOVE_BOT_EMIT')
+
+export const userJoinToRoomAction = createAction<dto.UserJoinToRoomDTO>('@@game/SERVER/USER_JOIN_TO_ROOM')
