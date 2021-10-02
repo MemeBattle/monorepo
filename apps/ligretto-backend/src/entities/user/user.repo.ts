@@ -8,19 +8,19 @@ import { omit } from 'lodash'
 export class UserRepository {
   @inject(IOC_TYPES.Database) private database: Database
 
-  addUser(user: Partial<User> & { socketId: User['socketId'] }) {
-    return this.database.set(storage => (storage.users[user.socketId] = user))
+  addUser(user: Partial<User> & { id: User['id'] }) {
+    return this.database.set(storage => (storage.users[user.id] = user))
   }
 
-  updateUser(user: Partial<User> & { socketId: User['socketId'] }) {
-    return this.database.set(storage => (storage.users[user.socketId] = { ...storage.users[user.socketId], ...user }))
+  updateUser(user: Partial<User> & { id: User['id'] }) {
+    return this.database.set(storage => (storage.users[user.id] = { ...storage.users[user.id], ...user }))
   }
 
-  removeUser(userId: User['socketId']) {
+  removeUser(userId: User['id']) {
     return this.database.set(storage => (storage.users = omit(storage.users, userId)))
   }
 
-  getUser(userId: User['socketId']) {
+  getUser(userId: User['id']) {
     return this.database.get(storage => storage.users[userId])
   }
 }

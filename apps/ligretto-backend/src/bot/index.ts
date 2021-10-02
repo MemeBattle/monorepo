@@ -27,13 +27,11 @@ const makeBot = (socket: Socket) => {
 }
 
 export const initBot = (socket: Socket, gameId: string) => {
-  const bot = makeBot(socket)
-
+  makeBot(socket)
   socket.emit(
     'event',
     connectToRoomEmitAction({
       roomUuid: gameId,
-      playerId: bot.botId,
     }),
   )
 }

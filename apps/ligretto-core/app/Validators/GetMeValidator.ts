@@ -24,7 +24,7 @@ export default class GetMeValidator {
    *    ```
    */
   public schema = schema.create({
-    token: schema.string(),
+    token: schema.string.optional(),
   })
 
   /**
