@@ -232,7 +232,7 @@ jobs:
           HOST: 0.0.0.0
           NODE_ENV: production
           APP_KEY: BYnNsw-r-ndJTCy15Uqo8JAF4ONCA4X1
-          PARTNER_ID: 5ff335e1845b30001086b643
+          PARTNER_ID: 61587c1bdc151b004107a2b5
           CAS_URI: https://cas.mems.fun/api
           DB_CONNECTION: pg
           PG_HOST: ${{ secrets.LIGRETTO_PG_HOST }}

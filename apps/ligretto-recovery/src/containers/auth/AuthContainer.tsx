@@ -21,7 +21,7 @@ export const AuthContainer = () => {
     <AuthFrontModule
       staticFilesUrl={process.env.REACT_APP_CAS_STATIC || 'https://cas.mems.fun/static'}
       onLoginSucceeded={handleLogin}
-      partnerId="605fd1f6c2e5310012e1a497"
+      partnerId={process.env.PARTNER_ID || ''}
     />
   )
 }
