@@ -9,16 +9,16 @@ export default class AuthController {
     if (token) {
       const casGetMeResult = await getMe({ token })
       if (casGetMeResult.success) {
-        const profile = await UserModel.firstOrCreate({ casId: casGetMeResult.data.user._id }, {})
-        return { ...casGetMeResult.data, profile, token }
+        const user = await UserModel.firstOrCreate({ casId: casGetMeResult.data.user._id }, {})
+        return { user: user.mergeWithCasUser(casGetMeResult.data.user), token }
       }
       return response.status(casGetMeResult.error.errorCode).json(casGetMeResult.error)
     }
     const temporaryResult = await createTemporaryToken()
     if (temporaryResult.success) {
-      const profile = await UserModel.create({ casId: temporaryResult.data.temporaryUser._id, isTemporary: true })
+      const user = await UserModel.create({ casId: temporaryResult.data.temporaryUser._id, isTemporary: true })
 
-      return { user: temporaryResult.data.temporaryUser, token: temporaryResult.data.temporaryToken, profile }
+      return { user: user.mergeWithCasUser(temporaryResult.data.temporaryUser), token: temporaryResult.data.temporaryToken }
     }
     return response.status(temporaryResult.error.errorCode).json(temporaryResult.error)
   }

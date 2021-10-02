@@ -10,7 +10,7 @@ export function* initSaga() {
 }
 
 export function* getMeSaga({ payload }: ReturnType<typeof getMeRequest>) {
-  const user: { userId: User['_id']; token: string } | null = yield call(getUserByTokenSaga, payload.token)
+  const user: { userId: User['casId']; token: string } | null = yield call(getUserByTokenSaga, payload.token)
 
   if (!user) {
     return

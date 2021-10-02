@@ -1,11 +1,11 @@
 export type UserModel =
   | {
       isTemporary: false
-      _id: string
+      casId: string
       username: string
       avatar?: string
     }
   | {
       isTemporary: true
-      _id: string
+      casId: string
     }

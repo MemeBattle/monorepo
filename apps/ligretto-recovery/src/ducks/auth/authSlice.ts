@@ -3,8 +3,8 @@ import { createSlice } from '@reduxjs/toolkit'
 import type { AuthState } from './authTypes'
 
 const authInitialState: AuthState = {
-  userId: undefined,
-  token: undefined,
+  userId: '',
+  token: '',
   isLoading: false,
 }
 

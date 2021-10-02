@@ -71,3 +71,7 @@ export interface RemoveBotDTO {
   gameId: Game['id']
   botId: Player['id']
 }
+
+export interface UserJoinToRoomDTO {
+  userId: Player['id']
+}
