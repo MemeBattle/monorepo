@@ -22,15 +22,12 @@ export const Playground: React.FC<TableCardsProps> = ({ cardsDecks }) => {
 
     return newPlayerCardsArr
   }, [cardsDecks])
-
   return (
     <div className={styles.tableCardsWrapper}>
       <div className={styles.tableCards}>
         <TableCardsUI>
           {cards.map((card, index) => (
-            <CardPlace key={index}>
-              <Card {...card} />
-            </CardPlace>
+            <CardPlace key={index}>{card.value === 10 ? null : <Card {...card} />}</CardPlace>
           ))}
         </TableCardsUI>
       </div>
