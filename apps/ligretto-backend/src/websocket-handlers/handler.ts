@@ -43,11 +43,10 @@ export class WebSocketHandler implements WebSocketHandler {
       await this.userService.removeUser(socket.id)
     })
 
-    this.userService.addUser(socket.id)
+    this.userService.addUser({ socketId: socket.id, id: socket.data.user.id })
   }
 
   private messageHandler(socket: Socket, data: { type: string; payload: unknown }) {
-    console.log('Action', data)
     this.gameplayController.handleMessage(socket, data)
     this.gamesController.handleMessage(socket, data)
     this.techController.handleMessage(socket, data)

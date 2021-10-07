@@ -1,0 +1,15 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  justify-items: center;
+  align-items: center;
+  height: 100%;
+}
+
+.logo {
+  flex: 1;
+}
+
+.cards {
+  flex: 1;
+}

@@ -7,8 +7,8 @@ import type { User } from '../../types/user'
 export class UserService {
   @inject(IOC_TYPES.UserRepository) private userRepository: UserRepository
 
-  addUser(userId: User['id']) {
-    return this.userRepository.addUser({ id: userId })
+  addUser(user: User) {
+    return this.userRepository.addUser(user)
   }
 
   removeUser(userId: User['id']) {

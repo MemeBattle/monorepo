@@ -14,8 +14,7 @@ import {
   connectToRoomErrorAction,
   connectToRoomSuccessAction,
 } from '@memebattle/ligretto-shared'
-import type { LocationChangeAction } from 'connected-react-router'
-import { LOCATION_CHANGE, replace, push } from 'connected-react-router'
+import { replace, push, getLocation } from 'connected-react-router'
 import { matchPath, generatePath } from 'react-router-dom'
 import { routes } from '../../utils/constants'
 import { selectSearch } from './selectors'
@@ -50,21 +49,6 @@ function* connectToRoomSaga(action: ReturnType<typeof connectToRoomAction>) {
   yield put(connectToRoomEmitAction(action.payload))
 }
 
-function* gameRouteWatcher(action: LocationChangeAction) {
-  const match = matchPath<{ roomUuid: string }>(action.payload.location.pathname, routes.GAME)
-  if (match && action.payload.isFirstRendering) {
-    yield put(connectToRoomAction({ roomUuid: match.params.roomUuid }))
-  }
-}
-
-function* searchRoomsRouteWatcher(action: LocationChangeAction) {
-  const match = matchPath(action.payload.location.pathname, routes.ROOMS)
-  if (match) {
-    const search: ReturnType<typeof selectSearch> = yield select(selectSearch)
-    yield put(searchRoomsAction({ search }))
-  }
-}
-
 function* updateRoomsFromServerSaga(action: ReturnType<typeof updateRoomsFromServer>) {
   const search: ReturnType<typeof selectSearch> = yield select(selectSearch)
   const rooms = action.payload.rooms.filter(({ name }) => name.includes(search))
@@ -80,7 +64,11 @@ function* createRoomSuccessSaga(action: ReturnType<typeof createRoomSuccessActio
 }
 
 function* connectToRoomSuccessSaga(action: ReturnType<typeof connectToRoomSuccessActionShared>) {
-  yield put(push(generatePath(routes.GAME, { roomUuid: action.payload.game.id })))
+  const location: ReturnType<typeof getLocation> = yield select(getLocation)
+  const newPath = generatePath(routes.GAME, { roomUuid: action.payload.game.id })
+  if (!matchPath(location.pathname, newPath)) {
+    yield put(push(newPath))
+  }
 }
 
 export function* roomsRootSaga() {
@@ -89,8 +77,6 @@ export function* roomsRootSaga() {
   yield takeLatest(connectToRoomAction, connectToRoomSaga)
   yield takeLatest(updateRooms, updateRoomsFromServerSaga)
   yield takeLatest(connectToRoomErrorAction, connectToRoomError)
-  yield takeLatest(LOCATION_CHANGE, gameRouteWatcher)
-  yield takeLatest(LOCATION_CHANGE, searchRoomsRouteWatcher)
   yield takeLatest(createRoomSuccessAction, createRoomSuccessSaga)
   yield takeLatest(connectToRoomSuccessAction, connectToRoomSuccessSaga)
 }

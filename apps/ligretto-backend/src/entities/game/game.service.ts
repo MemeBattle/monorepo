@@ -72,7 +72,7 @@ export class GameService {
         ...game,
         players: {
           ...game.players,
-          [player.id]: player,
+          [player.id]: { ...player, ...game.players[player.id], isHost: Object.keys(game.players).length === 0 },
         },
       })),
       player,
@@ -148,7 +148,7 @@ export class GameService {
   }
 
   async leaveGame(gameId: string, playerId: Player['id']): Promise<Game | null> {
-    const game = await this.gameRepository.updateGame(gameId, game => {
+    let game = await this.gameRepository.updateGame(gameId, game => {
       const isHostLeaving = game.players[playerId].isHost
       return {
         ...game,
@@ -171,7 +171,7 @@ export class GameService {
       return null
     }
     if (playersCount === 1) {
-      await this.pauseGame(gameId)
+      game = await this.pauseGame(gameId)
     }
     return game
   }
