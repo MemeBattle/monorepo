@@ -1,4 +1,4 @@
-import type { Room, Game, PlayerStatus, Player, GameResults } from './types'
+import type { Room, Game, PlayerStatus, Player, GameResults, RoomErrors } from './types'
 
 export interface SearchRooms {
   search: string
@@ -30,6 +30,10 @@ export interface ConnectToRoomSuccess {
 export interface CreateRoomSuccess {
   game: Game
   playerId: Player['id']
+}
+
+export interface CreateRoomError {
+  error: RoomErrors
 }
 
 export type GameState = Game

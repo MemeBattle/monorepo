@@ -25,6 +25,8 @@ export const connectToRoomErrorAction = createAction('@@rooms/SERVER/CONNECT_TO_
 
 export const createRoomSuccessAction = createAction<dto.CreateRoomSuccess>('@@rooms/SERVER/CREATE_ROOM_SUCCESS')
 
+export const createRoomErrorAction = createAction<dto.CreateRoomError>('@@rooms/SERVER/CREATE_ROOM_ERROR')
+
 export const setPlayerStatusEmitAction = createAction<dto.PlayerStatusInGame>('@@game/WEBSOCKET/SET_PLAYER_STATUS')
 
 export const startGameEmitAction = createAction<dto.StartGame>('@@gameplay/WEBSOCKET/START_GAME')

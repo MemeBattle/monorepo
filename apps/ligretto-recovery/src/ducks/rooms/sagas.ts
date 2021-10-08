@@ -1,5 +1,5 @@
 import { takeLatest, take, put, select } from 'redux-saga/effects'
-import { connectToRoomAction, createRoomAction, searchRoomsAction, updateRoomsAction, setRoomsAction } from './slice'
+import { connectToRoomAction, createRoomAction, searchRoomsAction, updateRoomsAction, setRoomsAction, handleErrorRoomsAction } from './slice'
 import type {
   updateRooms as updateRoomsFromServer,
   connectToRoomSuccessAction as connectToRoomSuccessActionShared,
@@ -10,6 +10,7 @@ import {
   connectToRoomEmitAction,
   searchRoomsFinishAction,
   createRoomSuccessAction,
+  createRoomErrorAction,
   updateRooms,
   connectToRoomErrorAction,
   connectToRoomSuccessAction,
@@ -76,7 +77,12 @@ function* connectToRoomError() {
 }
 
 function* createRoomSuccessSaga(action: ReturnType<typeof createRoomSuccessAction>) {
+  yield put(handleErrorRoomsAction({ error: {} }))
   yield put(push(generatePath(routes.GAME, { roomUuid: action.payload.game.id })))
+}
+
+function* createRoomErrorSaga(action: ReturnType<typeof createRoomErrorAction>) {
+  yield put(handleErrorRoomsAction({ error: action.payload }))
 }
 
 function* connectToRoomSuccessSaga(action: ReturnType<typeof connectToRoomSuccessActionShared>) {
@@ -92,5 +98,6 @@ export function* roomsRootSaga() {
   yield takeLatest(LOCATION_CHANGE, gameRouteWatcher)
   yield takeLatest(LOCATION_CHANGE, searchRoomsRouteWatcher)
   yield takeLatest(createRoomSuccessAction, createRoomSuccessSaga)
+  yield takeLatest(createRoomErrorAction, createRoomErrorSaga)
   yield takeLatest(connectToRoomSuccessAction, connectToRoomSuccessSaga)
 }

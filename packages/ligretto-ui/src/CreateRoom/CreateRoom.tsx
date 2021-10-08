@@ -1,12 +1,12 @@
-import React, { useMemo } from 'react'
+import React from 'react'
 import { createStyles, makeStyles } from '@material-ui/core'
 import { Paper, Grid, Hidden, Box, Button } from '@material-ui/core'
 import { Input } from 'Input/index'
 import { Form, Field } from 'react-final-form'
-import { FORM_ERROR } from 'final-form'
 
 export interface CreateRoomProps {
   onCreateClick: (e: {}) => void
+  roomErrors: { error?: string }
 }
 
 export interface RegisterFormValues {
@@ -16,17 +16,17 @@ export interface RegisterFormValues {
 const ROOM_MAX_LENGTH = 20
 
 const useRoomNameValidation = () => (values: RegisterFormValues) => {
-
-  const regExp: RegExp = new RegExp('[A-Za-z0-9-Яа-яЁё]')
+  const requiredLetters: RegExp = new RegExp('[A-Za-z0-9-Яа-яЁё]')
+  const hasRequiredLetters = requiredLetters[Symbol.match](values.roomname)
 
   const hasMaxlength: boolean = values?.roomname?.length > ROOM_MAX_LENGTH
 
-  if (values?.roomname && !regExp[Symbol.match](values.roomname)) {
-    return { [FORM_ERROR]: 'Must contain at least one number or letter' }
+  if (values?.roomname && !hasRequiredLetters) {
+    return { roomname: 'Must contain at least one number or letter' }
   }
 
   if (hasMaxlength) {
-    return { [FORM_ERROR]: 'Max lenght 20 caracters', }
+    return { roomname: 'Max lenght 20 caracters' }
   }
 }
 
@@ -53,20 +53,18 @@ const useStyles = makeStyles(theme =>
   }),
 )
 
-export const CreateRoom: React.FC<CreateRoomProps> = ({ onCreateClick }) => {
-
-  const initialValues = { roomname: '' }
-
+export const CreateRoom: React.FC<CreateRoomProps> = ({ onCreateClick, roomErrors }) => {
   const classes = useStyles()
 
-  const validate = useRoomNameValidation();
+  const validate = useRoomNameValidation()
+  const initialValues = { roomname: '' }
 
   return (
     <Form<RegisterFormValues>
       initialValues={initialValues}
       onSubmit={onCreateClick}
       validate={validate}
-      render={({ handleSubmit, submitError, error }) => (
+      render={({ handleSubmit }) => (
         <form onSubmit={handleSubmit} autoComplete="off">
           <Paper className={classes.createRoom}>
             <Grid container>
@@ -78,19 +76,21 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onCreateClick }) => {
               <Grid xs={12} sm={6} item>
                 <Field
                   name="roomname"
-                  render={({ input }) => (
-                    <Input
-                      {...input}
-                      variant="outlined"
-                      required={true}
-                      fullWidth
-                      name="roomname"
-                      label="Room name"
-                      placeholder="Tomsk"
-                      error={!!(error) || !!(submitError)}
-                      helperText={error || submitError}
-                    />
-                  )}
+                  render={({ input, meta }) => {
+                    return (
+                      <Input
+                        {...input}
+                        variant="outlined"
+                        required={true}
+                        fullWidth
+                        name="roomname"
+                        label="Room name"
+                        placeholder="Tomsk"
+                        error={!!(meta.error && !meta.dirtySinceLastSubmit) || !!(roomErrors?.error && !meta.dirtySinceLastSubmit)}
+                        helperText={meta.error || (roomErrors?.error && !meta.dirtySinceLastSubmit && 'Room already exists')}
+                      />
+                    )
+                  }}
                 />
               </Grid>
             </Grid>

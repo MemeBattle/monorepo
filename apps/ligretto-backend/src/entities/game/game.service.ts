@@ -23,6 +23,7 @@ export class GameService {
 
   createGame(name: string) {
     const gameId = String(Math.random()).slice(5)
+
     return this.gameRepository.addGame(gameId, { ...emptyGame, name, id: gameId })
   }
 
