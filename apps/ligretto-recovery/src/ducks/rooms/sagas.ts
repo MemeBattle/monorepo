@@ -1,9 +1,6 @@
 import { takeLatest, take, put, select } from 'redux-saga/effects'
 import { connectToRoomAction, createRoomAction, searchRoomsAction, updateRoomsAction, setRoomsAction } from './slice'
-import type {
-  updateRooms as updateRoomsFromServer,
-  connectToRoomSuccessAction as connectToRoomSuccessActionShared,
-} from '@memebattle/ligretto-shared'
+import type { updateRooms as updateRoomsFromServer } from '@memebattle/ligretto-shared'
 import {
   createRoomEmitAction,
   searchRoomsEmitAction,
@@ -12,10 +9,9 @@ import {
   createRoomSuccessAction,
   updateRooms,
   connectToRoomErrorAction,
-  connectToRoomSuccessAction,
 } from '@memebattle/ligretto-shared'
-import { replace, push, getLocation } from 'connected-react-router'
-import { matchPath, generatePath } from 'react-router-dom'
+import { replace, push } from 'connected-react-router'
+import { generatePath } from 'react-router-dom'
 import { routes } from '../../utils/constants'
 import { selectSearch } from './selectors'
 
@@ -63,14 +59,6 @@ function* createRoomSuccessSaga(action: ReturnType<typeof createRoomSuccessActio
   yield put(push(generatePath(routes.GAME, { roomUuid: action.payload.game.id })))
 }
 
-function* connectToRoomSuccessSaga(action: ReturnType<typeof connectToRoomSuccessActionShared>) {
-  const location: ReturnType<typeof getLocation> = yield select(getLocation)
-  const newPath = generatePath(routes.GAME, { roomUuid: action.payload.game.id })
-  if (!matchPath(location.pathname, newPath)) {
-    yield put(push(newPath))
-  }
-}
-
 export function* roomsRootSaga() {
   yield takeLatest(searchRoomsAction, searchRoomsSaga)
   yield takeLatest(createRoomAction, createRoomSaga)
@@ -78,5 +66,4 @@ export function* roomsRootSaga() {
   yield takeLatest(updateRooms, updateRoomsFromServerSaga)
   yield takeLatest(connectToRoomErrorAction, connectToRoomError)
   yield takeLatest(createRoomSuccessAction, createRoomSuccessSaga)
-  yield takeLatest(connectToRoomSuccessAction, connectToRoomSuccessSaga)
 }
