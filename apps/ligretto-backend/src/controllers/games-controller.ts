@@ -102,6 +102,7 @@ export class GamesController extends Controller {
       return
     }
     const game = await this.gameService.leaveGame(user.currentGameId, user.id)
+    socket.leave(user.currentGameId)
     if (game) {
       socket.to(game.id).emit('event', updateGameAction(game))
     }
