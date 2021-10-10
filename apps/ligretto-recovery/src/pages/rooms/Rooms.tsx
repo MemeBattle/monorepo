@@ -6,11 +6,17 @@ import styles from './Rooms.module.scss'
 import { PageHeader } from '@memebattle/ligretto-ui'
 import { SearchRooms } from 'containers/rooms/SearchRooms'
 import { LinkBack } from 'components/base/link-back'
-import { selectIsRoomsListEmpty } from 'ducks/rooms'
-import { useSelector } from 'react-redux'
+import { selectIsRoomsListEmpty, searchRoomsAction } from 'ducks/rooms'
+import { useDispatch, useSelector } from 'react-redux'
+import { useEffect } from 'react'
 
 export const RoomsPage = () => {
+  const dispatch = useDispatch()
   const isRoomsListEmpty = useSelector(selectIsRoomsListEmpty)
+
+  useEffect(() => {
+    dispatch(searchRoomsAction({ search: '' }))
+  }, [dispatch])
 
   return (
     <MainCoverScreen>
