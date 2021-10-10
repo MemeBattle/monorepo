@@ -34,6 +34,7 @@ export interface CreateRoomSuccess {
 
 export interface CreateRoomError {
   error: RoomErrors
+  name: string
 }
 
 export type GameState = Game

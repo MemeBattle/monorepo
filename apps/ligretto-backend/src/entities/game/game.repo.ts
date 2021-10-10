@@ -9,9 +9,10 @@ export class GameRepository {
   @inject(IOC_TYPES.Database) private database: Database
 
   async addGame(gameId: string, game: Game) {
-    const roomNames = await this.getGameNames()
-    const isNameAlreadyExist = roomNames.includes(game.name)
-    if (isNameAlreadyExist) {
+    const games = await this.database.get(storage => storage.games)
+
+    const reverseMap = this.reverseMap(games)
+    if (reverseMap[game.name]) {
       return null
     }
 
@@ -45,9 +46,10 @@ export class GameRepository {
       : this.database.get(storage => Object.values(storage.games))
   }
 
-  getGameNames(): Promise<string[]> {
-    return this.database.get(storage => Object.entries(storage.games)
-      .map(([, game]) => game.name))
+  reverseMap(games) {
+    const result: Record<string, string | undefined> = {}
+    Object.values(games).forEach(({ name, id }) => (result[name] = id))
+    return result
   }
 
   createPlayer(playerData: Partial<Player>): Player {

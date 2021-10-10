@@ -10,7 +10,7 @@ export type RoomsState = {
   ids: string[]
   isLoading: boolean
   search: string
-  error: {}
+  error: { error: string } | null
 }
 
 const initialState: RoomsState = {
@@ -18,7 +18,7 @@ const initialState: RoomsState = {
   ids: [],
   isLoading: false,
   search: '',
-  error: {},
+  error: null,
 }
 
 export const connectToRoomAction = createAction<{ roomUuid: string }>('ConnectToRoomType')
@@ -52,11 +52,11 @@ export const roomsSlice = createSlice({
       )
       return { ...state, byId: newById, ids: newIds, isLoading: false }
     },
-    handleErrorRoomsAction: (state, action: PayloadAction<{ error: {} }>) => {
+    setErrorRoomsAction: (state, action: PayloadAction<{ error: { error: string } | null }>) => {
       state.error = action.payload.error
     },
   },
 })
 
-export const { searchRoomsAction, updateRoomsAction, setRoomsAction, handleErrorRoomsAction } = roomsSlice.actions
+export const { searchRoomsAction, updateRoomsAction, setRoomsAction, setErrorRoomsAction } = roomsSlice.actions
 export const roomsReducer = roomsSlice.reducer
