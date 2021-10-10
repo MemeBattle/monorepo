@@ -8,7 +8,7 @@ import { omit } from 'lodash'
 export class UserRepository {
   @inject(IOC_TYPES.Database) private database: Database
 
-  addUser(user: Partial<User> & { id: User['id'] }) {
+  addUser(user: User) {
     return this.database.set(storage => (storage.users[user.id] = user))
   }
 

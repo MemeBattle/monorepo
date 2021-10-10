@@ -18,6 +18,7 @@ import {
   connectToRoomEmitAction,
   setPlayerStatusEmitAction,
   userJoinToRoomAction,
+  leaveFromRoomEmitAction,
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
@@ -35,16 +36,13 @@ export class GamesController extends Controller {
     [searchRoomsEmitAction.type]: (socket, action) => this.searchRooms(socket, action),
     [connectToRoomEmitAction.type]: (socket, action) => this.joinGame(socket, action),
     [setPlayerStatusEmitAction.type]: (socket, action) => this.setPlayerStatus(socket, action),
+    [leaveFromRoomEmitAction.type]: socket => this.leaveFromRoomHandler(socket),
   }
 
   private async createGame(socket: Socket, action: ReturnType<typeof createRoomEmitAction>) {
-    const userId = socket.data.user.id
     const newGame = await this.gameService.createGame(action.payload.name)
-    const { game } = await this.gameService.addPlayer(newGame.id, { isHost: true, id: userId })
-    await this.userService.enterGame(userId, game.id)
-    socket.emit('event', createRoomSuccessAction({ game }))
-    socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(game)] }))
-    socket.join(game.id)
+    socket.emit('event', createRoomSuccessAction({ game: newGame }))
+    socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(newGame)] }))
   }
 
   private async searchRooms(socket: Socket, action: ReturnType<typeof searchRoomsEmitAction>) {
@@ -98,11 +96,18 @@ export class GamesController extends Controller {
     socket.emit('event', updateGameAction(game))
   }
 
-  public async disconnectionHandler(socket: Socket) {
+  private async leaveFromRoomHandler(socket: Socket) {
     const user = await this.userService.getUser(socket.data.user.id)
     if (!user) {
       return
     }
-    await this.gameService.leaveGame(user.currentGameId, user.id)
+    const game = await this.gameService.leaveGame(user.currentGameId, user.id)
+    if (game) {
+      socket.to(game.id).emit('event', updateGameAction(game))
+    }
+  }
+
+  public async disconnectionHandler(socket: Socket) {
+    await this.leaveFromRoomHandler(socket)
   }
 }
