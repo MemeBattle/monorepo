@@ -6,14 +6,14 @@ import { ThemeProvider, theme, CssBaseline } from '@memebattle/ligretto-ui'
 
 import { store, history } from './store'
 import * as serviceWorker from './serviceWorker'
-import { Routes } from 'components/routes'
+import { AppContainer } from 'containers/app'
 
 ReactDOM.render(
   <Provider store={store}>
     <ConnectedRouter history={history}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Routes />
+        <AppContainer />
       </ThemeProvider>
     </ConnectedRouter>
   </Provider>,
