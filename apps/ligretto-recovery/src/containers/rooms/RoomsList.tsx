@@ -1,12 +1,14 @@
 import React, { useMemo } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 import type { RoomsListProps } from '@memebattle/ligretto-ui'
 import { RoomsList as RoomsListComponent } from '@memebattle/ligretto-ui'
-import { selectRoomsList, connectToRoomAction } from 'ducks/rooms'
+import { selectRoomsList } from 'ducks/rooms'
+import { useHistory, generatePath } from 'react-router'
+import { routes } from 'utils/constants'
 
 export const RoomsList = () => {
-  const dispatch = useDispatch()
   const rooms = useSelector(selectRoomsList)
+  const history = useHistory()
 
   const roomsProps = useMemo<RoomsListProps['rooms']>(
     () =>
@@ -15,11 +17,13 @@ export const RoomsList = () => {
         name,
         playersCount,
         playersMaxCount,
-        onClick: playersCount === playersMaxCount ? undefined : () => dispatch(connectToRoomAction({ roomUuid: uuid })),
+        onClick: playersCount === playersMaxCount ? undefined : () => history.push(generatePath(routes.GAME, { roomUuid: uuid })),
         isDisabled: playersCount === playersMaxCount,
       })),
-    [rooms, dispatch],
+    [history, rooms],
   )
 
   return <RoomsListComponent rooms={roomsProps} />
 }
+
+RoomsList.displayName = 'RoomsList'
