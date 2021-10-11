@@ -1,5 +1,11 @@
-export interface UserModel {
-  _id: string
-  username: string
-  avatar?: string
-}
+export type UserModel =
+  | {
+      isTemporary: false
+      casId: string
+      username: string
+      avatar?: string
+    }
+  | {
+      isTemporary: true
+      casId: string
+    }

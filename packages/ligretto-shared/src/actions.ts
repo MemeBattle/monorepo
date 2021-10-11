@@ -17,6 +17,8 @@ export const updateRooms = createAction<dto.UpdateRooms>('@@rooms/SERVER/UPDATE_
 
 export const connectToRoomEmitAction = createAction<dto.ConnectToRoom>('@@rooms/WEBSOCKET/CONNECT_TO_ROOM')
 
+export const leaveFromRoomEmitAction = createAction('@@rooms/WEBSOCKET/LEAVE_FROM_ROOM')
+
 export const connectToRoomSuccessAction = createAction<dto.ConnectToRoomSuccess>('@@rooms/SERVER/CONNECT_TO_ROOM_SUCCESS')
 
 export const updateGameAction = createAction<dto.GameState>('@@game/SERVER/UPDATE_GAME')
@@ -40,3 +42,5 @@ export const endRoundAction = createAction<dto.GameResultsDTO>('@@gameplay/SERVE
 export const addBotAction = createAction<dto.AddBotDTO>('@@bot/WEBSOCKET/ADD_BOT')
 
 export const removeBotAction = createAction<dto.RemoveBotDTO>('@@bot/WEBSOCKET/REMOVE_BOT_EMIT')
+
+export const userJoinToRoomAction = createAction<dto.UserJoinToRoomDTO>('@@game/SERVER/USER_JOIN_TO_ROOM')

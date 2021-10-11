@@ -13,19 +13,4 @@ module.exports = {
       },
     }
   },
-  webpackFinal: async config => {
-    config.module.rules.push({
-      test: /\.(woff|woff2|eot|ttf)$/,
-      use: [
-        'file-loader',
-      ],
-    })
-    config.module.rules.push({
-      test: /\.(woff|woff2|eot|ttf)$/,
-      use: [
-        'file-loader',
-      ],
-    })
-    return config
-  },
 }

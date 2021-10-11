@@ -21,8 +21,8 @@ const initialState: RoomsState = {
   error: null,
 }
 
-export const connectToRoomAction = createAction<{ roomUuid: string }>('ConnectToRoomType')
-export const createRoomAction = createAction<{ name: string }>('CreateRoomType')
+export const connectToRoomAction = createAction<{ roomUuid: string }>('@@rooms/connectToRoom')
+export const createRoomAction = createAction<{ name: string }>('@@rooms/createRoom')
 
 export const roomsSlice = createSlice({
   name: 'rooms',

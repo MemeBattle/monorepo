@@ -1,5 +1,5 @@
 import type { UserModel } from '../../api/apiTypes'
 
-export interface User extends UserModel {
+export type User = UserModel & {
   isLoading?: boolean
 }

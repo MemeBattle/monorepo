@@ -6,6 +6,7 @@ import { GamesController } from '../controllers/games-controller'
 import { TechController } from '../controllers/tech-controller'
 import { UserService } from '../entities/user'
 import { BotController } from '../controllers/bot-controller'
+import { authMiddleware } from '../middlewares'
 
 export interface WebSocketHandler {
   connectionHandler(socket: Socket): void
@@ -20,7 +21,7 @@ export class WebSocketHandler implements WebSocketHandler {
   @inject(IOC_TYPES.TechController) private techController: TechController // Возможно нужен контроллер, но пока хз
 
   connect(socketServer: Server) {
-    socketServer.on('connection', socket => this.connectionHandler(socket))
+    socketServer.use(authMiddleware).on('connection', socket => this.connectionHandler(socket))
   }
 
   public connectionHandler(socket: Socket): void {
@@ -42,11 +43,10 @@ export class WebSocketHandler implements WebSocketHandler {
       await this.userService.removeUser(socket.id)
     })
 
-    this.userService.addUser(socket.id)
+    this.userService.addUser({ socketId: socket.id, id: socket.data.user.id })
   }
 
   private messageHandler(socket: Socket, data: { type: string; payload: unknown }) {
-    console.log('Action', data)
     this.gameplayController.handleMessage(socket, data)
     this.gamesController.handleMessage(socket, data)
     this.techController.handleMessage(socket, data)

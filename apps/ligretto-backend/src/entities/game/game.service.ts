@@ -73,20 +73,20 @@ export class GameService {
         ...game,
         players: {
           ...game.players,
-          [player.id]: player,
+          [player.id]: { ...player, ...game.players[player.id], isHost: Object.keys(game.players).length === 0 },
         },
       })),
       player,
     }
   }
 
-  async updateGamePlayer(gameId: Game['id'], socketId: Player['id'], playerData: Partial<Player>) {
+  async updateGamePlayer(gameId: Game['id'], playerId: Player['id'], playerData: Partial<Player>) {
     const game = await this.gameRepository.getGame(gameId)
     if (!game) {
       throw Error('Game not found')
     }
 
-    const player = game.players[socketId]
+    const player = game.players[playerId]
     if (!player) {
       throw Error('Player not found in game')
     }
@@ -149,7 +149,7 @@ export class GameService {
   }
 
   async leaveGame(gameId: string, playerId: Player['id']): Promise<Game | null> {
-    const game = await this.gameRepository.updateGame(gameId, game => {
+    let game = await this.gameRepository.updateGame(gameId, game => {
       const isHostLeaving = game.players[playerId].isHost
       return {
         ...game,
@@ -172,7 +172,7 @@ export class GameService {
       return null
     }
     if (playersCount === 1) {
-      await this.pauseGame(gameId)
+      game = await this.pauseGame(gameId)
     }
     return game
   }

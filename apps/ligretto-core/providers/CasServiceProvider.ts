@@ -50,7 +50,9 @@ export default class CasServiceProvider {
 
         const getUsers = services.getUsersService
 
-        return { login, signUp, verifyToken, getMe, getUsers }
+        const createTemporaryToken = services.createTemporaryTokenService
+
+        return { login, signUp, verifyToken, getMe, getUsers, createTemporaryToken }
       },
     )
   }
