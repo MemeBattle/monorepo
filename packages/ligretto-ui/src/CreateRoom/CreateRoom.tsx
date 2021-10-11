@@ -62,7 +62,14 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onCreateClick, onRoomNam
       <Box mt="2rem">
         <Grid container justify="center">
           <Grid item xs={12} sm={8} md={6}>
-            <Button onClick={onCreateClick} disabled={isCreateButtonDisabled} variant="contained" color="primary" fullWidth size="large">
+            <Button
+              onClick={onCreateClick}
+              disabled={isCreateButtonDisabled || !!validationErrors}
+              variant="contained"
+              color="primary"
+              fullWidth
+              size="large"
+            >
               Create
             </Button>
           </Grid>
