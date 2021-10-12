@@ -15,7 +15,13 @@
   },
   "preloads": [
     "./start/routes",
-    "./start/kernel"
+    "./start/kernel",
+    {
+      "file": "./start/overloads",
+      "environment": [
+        "web"
+      ]
+    }
   ],
   "providers": [
     "./providers/AppProvider",

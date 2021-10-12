@@ -7,19 +7,19 @@ import type { User } from '../../types/user'
 export class UserService {
   @inject(IOC_TYPES.UserRepository) private userRepository: UserRepository
 
-  addUser(userId: User['socketId']) {
-    return this.userRepository.addUser({ socketId: userId })
+  addUser(user: User) {
+    return this.userRepository.addUser(user)
   }
 
-  removeUser(userId: User['socketId']) {
+  removeUser(userId: User['id']) {
     return this.userRepository.removeUser(userId)
   }
 
-  getUser(userId: User['socketId']) {
+  getUser(userId: User['id']) {
     return this.userRepository.getUser(userId)
   }
 
   enterGame(userId, gameId) {
-    return this.userRepository.updateUser({ socketId: userId, currentGameId: gameId })
+    return this.userRepository.updateUser({ id: userId, currentGameId: gameId })
   }
 }

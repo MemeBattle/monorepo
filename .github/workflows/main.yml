@@ -92,6 +92,7 @@ jobs:
         SKIP_PREFLIGHT_CHECK: true
         REACT_APP_WEBSOCKET_HOST: https://api.ligretto.app
         REACT_APP_LIGRETTO_CORE_URL: https://core.ligretto.app
+        REACT_APP_CAS_PARTNER_ID: 61587c1bdc151b004107a2b5
         REACT_APP_CAS_STATIC: https://cas.mems.fun/static
         REACT_APP_CAS_URL: https://cas.mems.fun/api
 
@@ -232,7 +233,7 @@ jobs:
           HOST: 0.0.0.0
           NODE_ENV: production
           APP_KEY: BYnNsw-r-ndJTCy15Uqo8JAF4ONCA4X1
-          PARTNER_ID: 5ff335e1845b30001086b643
+          PARTNER_ID: 61587c1bdc151b004107a2b5
           CAS_URI: https://cas.mems.fun/api
           DB_CONNECTION: pg
           PG_HOST: ${{ secrets.LIGRETTO_PG_HOST }}
@@ -303,6 +304,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         name: Checkout
+
       - name: Setup SSH
         uses: kielabokkie/ssh-key-and-known-hosts-action@v1.1.0
         with:

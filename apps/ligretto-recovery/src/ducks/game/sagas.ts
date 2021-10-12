@@ -7,7 +7,7 @@ import {
   startGameEmitAction,
   takeFromLigrettoDeckAction,
   takeFromStackDeckAction,
-  createRoomSuccessAction,
+  leaveFromRoomEmitAction,
   connectToRoomSuccessAction,
   endRoundAction,
   updateGameAction,
@@ -15,7 +15,6 @@ import {
 import {
   setGameLoadedAction,
   setGameResultAction,
-  setPlayerIdAction,
   startGameAction,
   togglePlayerStatusAction,
   updateGameAction as updateGameSliceAction,
@@ -23,6 +22,7 @@ import {
   tapStackOpenDeckCardAction,
   tapStackDeckCardAction,
   tapLigrettoDeckCardAction,
+  leaveGameAction,
 } from './slice'
 import { selectGameId, selectPlayerStatus } from './selectors'
 
@@ -40,9 +40,8 @@ function* togglePlayerStatusSaga() {
   yield put(setPlayerStatusEmitAction({ status, gameId }))
 }
 
-function* connectToRoomSuccessSaga(action: ReturnType<typeof connectToRoomSuccessAction> | ReturnType<typeof createRoomSuccessAction>) {
+function* connectToRoomSuccessSaga(action: ReturnType<typeof connectToRoomSuccessAction>) {
   yield put(updateGameSliceAction(action.payload.game))
-  yield put(setPlayerIdAction(action.payload.playerId))
   yield put(setGameLoadedAction(true))
 }
 
@@ -79,6 +78,10 @@ function* endRoundSaga({ payload }: ReturnType<typeof endRoundAction>) {
   yield put(setGameResultAction(payload))
 }
 
+function* leaveGameSaga() {
+  yield put(leaveFromRoomEmitAction())
+}
+
 export function* gameRootSaga() {
   yield takeLatest(updateGameAction, gameUpdateSaga)
   yield takeLatest(togglePlayerStatusAction, togglePlayerStatusSaga)
@@ -88,5 +91,6 @@ export function* gameRootSaga() {
   yield takeEvery(tapStackDeckCardAction, tapStackDeckCardActionSaga)
   yield takeEvery(tapLigrettoDeckCardAction, tapLigrettoDeckCardActionSaga)
   yield takeEvery(endRoundAction, endRoundSaga)
-  yield takeLatest([connectToRoomSuccessAction, createRoomSuccessAction], connectToRoomSuccessSaga)
+  yield takeLatest(connectToRoomSuccessAction, connectToRoomSuccessSaga)
+  yield takeLatest(leaveGameAction, leaveGameSaga)
 }
