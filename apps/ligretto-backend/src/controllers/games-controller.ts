@@ -47,7 +47,7 @@ export class GamesController extends Controller {
     if (!newGame) {
       return socket.emit('event', createRoomErrorAction({ error: RoomErrors.AlreadyExist, name: action.payload.name }))
     }
-  
+
     socket.emit('event', createRoomSuccessAction({ game: newGame }))
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(newGame)] }))
   }
