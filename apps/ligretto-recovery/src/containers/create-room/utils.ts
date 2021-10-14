@@ -1,8 +1,9 @@
+import type { CreateRoomError } from '@memebattle/ligretto-shared/src/dto'
+
 const ROOM_MAX_LENGTH = 20
 
-export const roomNameValidation = (values: string, roomErrors: { error?: string; name?: string } | null) => {
-  // TODO расширить регэкспу для широкого круга языков
-  const requiredLetters = new RegExp('[A-Za-z0-9-Яа-яЁё]')
+export const roomNameValidation = (values: string, roomErrors: CreateRoomError | null) => {
+  const requiredLetters = /[\p{Alpha}\p{M}\p{Nd}\p{Pc}\p{Join_C}]/gu
   const hasRequiredLetters = requiredLetters[Symbol.match](values)
 
   const hasMaxlength: boolean = values?.length > ROOM_MAX_LENGTH
@@ -12,7 +13,7 @@ export const roomNameValidation = (values: string, roomErrors: { error?: string;
   }
 
   if (hasMaxlength) {
-    return { error: 'Max lenght 20 caracters' }
+    return { error: 'Max length 20 characters' }
   }
 
   if (roomErrors?.name === values) {

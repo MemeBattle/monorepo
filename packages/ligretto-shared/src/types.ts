@@ -49,7 +49,7 @@ export enum GameStatus {
   RoundFinished = 'RoundFinished',
 }
 
-export enum RoomErrors {
+export enum CreateRoomErrorCode {
   AlreadyExist = 'AlreadyExist',
 }
 

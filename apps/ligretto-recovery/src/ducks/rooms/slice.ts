@@ -2,6 +2,7 @@ import type { Room } from '@memebattle/ligretto-shared'
 import uniq from 'lodash/uniq'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice, createAction } from '@reduxjs/toolkit'
+import type { CreateRoomError } from '@memebattle/ligretto-shared/src/dto'
 
 export type RoomsState = {
   byId: {
@@ -10,7 +11,7 @@ export type RoomsState = {
   ids: string[]
   isLoading: boolean
   search: string
-  error: { error: string } | null
+  error: CreateRoomError | null
 }
 
 const initialState: RoomsState = {
@@ -52,7 +53,7 @@ export const roomsSlice = createSlice({
       )
       return { ...state, byId: newById, ids: newIds, isLoading: false }
     },
-    setErrorRoomsAction: (state, action: PayloadAction<{ error: { error: string } | null }>) => {
+    setErrorRoomsAction: (state, action: PayloadAction<{ error: CreateRoomError | null }>) => {
       state.error = action.payload.error
     },
   },

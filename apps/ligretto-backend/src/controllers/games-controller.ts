@@ -18,7 +18,7 @@ import {
   searchRoomsEmitAction,
   connectToRoomEmitAction,
   setPlayerStatusEmitAction,
-  RoomErrors,
+  CreateRoomErrorCode,
   userJoinToRoomAction,
   leaveFromRoomEmitAction,
 } from '@memebattle/ligretto-shared'
@@ -45,7 +45,7 @@ export class GamesController extends Controller {
     const newGame = await this.gameService.createGame(action.payload.name)
 
     if (!newGame) {
-      return socket.emit('event', createRoomErrorAction({ error: RoomErrors.AlreadyExist, name: action.payload.name }))
+      return socket.emit('event', createRoomErrorAction({ errorCode: CreateRoomErrorCode.AlreadyExist, name: action.payload.name }))
     }
 
     socket.emit('event', createRoomSuccessAction({ game: newGame }))
