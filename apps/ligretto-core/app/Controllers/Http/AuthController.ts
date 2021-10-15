@@ -12,7 +12,9 @@ export default class AuthController {
         const user = await UserModel.firstOrCreate({ casId: casGetMeResult.data.user._id }, {})
         return { user: user.mergeWithCasUser(casGetMeResult.data.user), token }
       }
-      return response.status(casGetMeResult.error.errorCode).json(casGetMeResult.error)
+      if (casGetMeResult.error.errorCode !== 403) {
+        return response.status(casGetMeResult.error.errorCode).json(casGetMeResult.error)
+      }
     }
     const temporaryResult = await createTemporaryToken()
     if (temporaryResult.success) {
