@@ -16,19 +16,19 @@ export const useRegisterValidation = () =>
     const isValidEmail = validateEmail(values?.email || '')
     const isValidPassword = stringLengthInRange(values.password, { minLength: PASSWORD_MIN_LENGTH, maxLength: PASSWORD_MAX_LENGTH })
 
-    if (!isValidEmail) {
+    if (values.email && !isValidEmail) {
       errors.email = t.validation.email
     }
 
-    if (!isValidUsername) {
+    if (values.username && !isValidUsername) {
       errors.username = t.validation.username(USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH)
     }
 
-    if (!isValidPassword) {
+    if (values.password && !isValidPassword) {
       errors.password = t.validation.password(PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH)
     }
 
-    if ((values.password && values.password !== values.confirmPassword) || !isValidPassword) {
+    if (values.confirmPassword && values.password !== values.confirmPassword) {
       errors.confirmPassword = t.validation.confirmPassword
     }
 
