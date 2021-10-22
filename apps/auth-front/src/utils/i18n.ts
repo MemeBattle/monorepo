@@ -22,6 +22,7 @@ export const t = {
     username: (minLength: number, maxLength: number) => `The user name must be between ${minLength} and ${maxLength} characters long`,
     password: (minLength: number, maxLength: number) => `The password must be between ${minLength} and ${maxLength} characters long`,
     confirmPassword: 'Passwords are not the same',
+    passwordFirst: 'Fill in the "password" field',
     email: 'Email format is incorrect',
   },
   createdByInfo: {
