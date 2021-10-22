@@ -8,7 +8,13 @@ import { IOC_TYPES } from '../../IOC_TYPES'
 export class GameRepository {
   @inject(IOC_TYPES.Database) private database: Database
 
-  addGame(gameId: string, game: Game) {
+  async addGame(gameId: string, game: Game) {
+    const isGameExist = await this.getGameByName(game.name)
+
+    if (isGameExist) {
+      return null
+    }
+
     return this.database.set<Game>(storage => (storage.games[gameId] = game))
   }
 
@@ -25,6 +31,12 @@ export class GameRepository {
     return this.database.set<Game>(storage => (storage.games[gameId] = updater(game)))
   }
 
+  async getGameByName(gameName: string) {
+    const games = await this.database.get(storage => storage.games)
+    const reverseMap = this.reverseMap(games)
+    return reverseMap[gameName]
+  }
+
   removeGame(gameId: string) {
     return this.database.set(storage => delete storage.games[gameId])
   }
@@ -37,6 +49,12 @@ export class GameRepository {
             .map(([, game]) => game),
         )
       : this.database.get(storage => Object.values(storage.games))
+  }
+
+  reverseMap(games) {
+    const result: Record<string, string | undefined> = {}
+    Object.values(games).forEach(({ name, id }) => (result[name] = id))
+    return result
   }
 
   createPlayer(playerData: Partial<Player>): Player {
