@@ -14,6 +14,6 @@ export const parameters = {
 addDecorator(storyFn => (
   <ThemeProvider theme={theme}>
     <CssBaseline />
-    <StylesProvider injectFirst>{storyFn()}</StylesProvider>
+    <StylesProvider injectFirst><div style={{height: '100vh', width: '100vw'}}>{storyFn()}</div></StylesProvider>
   </ThemeProvider>
 ))

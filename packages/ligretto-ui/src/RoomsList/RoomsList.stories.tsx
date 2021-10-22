@@ -7,7 +7,7 @@ export default {
 }
 
 export const DefaultView = () => (
-  <Background bgColor="dark">
+  <Background>
     <RoomsList
       rooms={[
         { id: '1', name: 'Room name 1', onClick: () => null, playersCount: 1, playersMaxCount: 4 },

@@ -1,13 +1,13 @@
 import * as React from 'react'
-import { MainCoverScreen } from 'components/screens/main-cover-screen/MainCoverScreen'
+import { MainLayout } from 'components/layouts/main'
 import { CreateRoomContainer } from 'containers/create-room'
 
 import styles from './CreateRoom.module.scss'
 
 export const CreateRoomPage = () => (
-  <MainCoverScreen>
+  <MainLayout>
     <div className={styles.root}>
       <CreateRoomContainer />
     </div>
-  </MainCoverScreen>
+  </MainLayout>
 )
