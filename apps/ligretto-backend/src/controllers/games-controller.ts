@@ -12,11 +12,13 @@ import {
   connectToRoomSuccessAction,
   connectToRoomErrorAction,
   createRoomSuccessAction,
+  createRoomErrorAction,
   updateGameAction,
   createRoomEmitAction,
   searchRoomsEmitAction,
   connectToRoomEmitAction,
   setPlayerStatusEmitAction,
+  CreateRoomErrorCode,
   userJoinToRoomAction,
   leaveFromRoomEmitAction,
 } from '@memebattle/ligretto-shared'
@@ -41,6 +43,11 @@ export class GamesController extends Controller {
 
   private async createGame(socket: Socket, action: ReturnType<typeof createRoomEmitAction>) {
     const newGame = await this.gameService.createGame(action.payload.name)
+
+    if (!newGame) {
+      return socket.emit('event', createRoomErrorAction({ errorCode: CreateRoomErrorCode.AlreadyExist, name: action.payload.name }))
+    }
+
     socket.emit('event', createRoomSuccessAction({ game: newGame }))
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(newGame)] }))
   }

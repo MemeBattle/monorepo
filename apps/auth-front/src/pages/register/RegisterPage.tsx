@@ -77,8 +77,9 @@ export const RegisterPage = memo(() => {
                     label={t.register.username}
                     name="username"
                     autoComplete="username"
-                    error={!!(meta.error && meta.dirtySinceLastSubmit && meta.error) || !!meta.submitError}
-                    helperText={(meta.error && meta.dirtySinceLastSubmit && meta.error) || meta.submitError}
+                    autoFocus
+                    error={!!(meta.error && meta.dirty) || (meta.submitFailed && !meta.dirtySinceLastSubmit)}
+                    helperText={meta.error || meta.submitError}
                   />
                 )}
               />
@@ -96,8 +97,8 @@ export const RegisterPage = memo(() => {
                     label={t.register.email}
                     name="email"
                     autoComplete="email"
-                    error={!!(meta.error && meta.error && meta.dirtySinceLastSubmit) || !!meta.submitError}
-                    helperText={(meta.error && meta.error && meta.dirtySinceLastSubmit) || meta.submitError}
+                    error={!!(meta.error && meta.dirty) || (meta.submitFailed && !meta.dirtySinceLastSubmit)}
+                    helperText={meta.error || meta.submitError}
                   />
                 )}
               />
@@ -114,8 +115,8 @@ export const RegisterPage = memo(() => {
                     label={t.login.password}
                     id="password"
                     autoComplete="current-password"
-                    error={!!(meta.error && meta.dirtySinceLastSubmit && meta.error) || !!meta.submitError}
-                    helperText={(meta.error && meta.dirtySinceLastSubmit && meta.error) || meta.submitError}
+                    error={!!(meta.error && meta.dirty) || !!meta.submitError}
+                    helperText={meta.error || meta.submitError}
                   />
                 )}
               />
@@ -131,8 +132,8 @@ export const RegisterPage = memo(() => {
                     name="confirmPassword"
                     label={t.register.confirmPassword}
                     id="confirmPassword"
-                    error={(meta.dirtySinceLastSubmit && meta.error) || meta.submitError || meta.invalid}
-                    helperText={meta.dirtySinceLastSubmit && meta.error}
+                    error={!!(meta.error && meta.dirty) || meta.submitError}
+                    helperText={meta.error}
                   />
                 )}
               />
