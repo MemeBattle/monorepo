@@ -29,7 +29,6 @@ const useStyles = makeStyles(theme =>
     roomNameLabel: {
       fontSize: '2rem',
       fontWeight: 'bold',
-      color: theme.palette.grey[700],
     },
   }),
 )

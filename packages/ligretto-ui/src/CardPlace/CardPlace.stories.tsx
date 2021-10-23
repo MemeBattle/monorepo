@@ -6,7 +6,7 @@ export default {
 }
 
 export const DefaultView = () => (
-  <div style={{ background: '#4eaa7c', height: '400px', display: 'flex', alignItems: 'center', padding: '20px', justifyContent: 'space-around' }}>
+  <div style={{ height: '400px', display: 'flex', alignItems: 'center', padding: '20px', justifyContent: 'space-around' }}>
     <CardPlace />
     <CardPlace />
     <CardPlace />
