@@ -45,3 +45,5 @@ export * from './Avatar'
 export * from './LigrettoLogo'
 
 export * from './LoaderCards'
+
+export * from './Background'

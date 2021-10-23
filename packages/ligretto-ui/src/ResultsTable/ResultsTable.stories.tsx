@@ -1,6 +1,5 @@
 import React from 'react'
 import { ResultsTable } from './ResultsTable'
-import { Background } from '../story-components'
 
 export default {
   title: 'ResultsTable',
@@ -15,7 +14,5 @@ const players = [
 ]
 
 export const DefaultView = () => (
-  <Background padding={4}>
-    <ResultsTable players={players} />
-  </Background>
+  <ResultsTable players={players} />
 )

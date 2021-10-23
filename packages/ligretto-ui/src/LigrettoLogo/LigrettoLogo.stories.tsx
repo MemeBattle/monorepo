@@ -1,6 +1,5 @@
 import React from 'react'
 import { LigrettoLogo } from './LigrettoLogo'
-import { Background } from '../story-components'
 
 export default {
   title: 'LigrettoLogo',
@@ -8,9 +7,7 @@ export default {
 }
 
 const Template = args => (
-  <Background>
-    <LigrettoLogo {...args} />
-  </Background>
+  <LigrettoLogo {...args} />
 )
 
 export const DefaultView = Template.bind({})
