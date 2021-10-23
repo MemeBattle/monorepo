@@ -1,10 +1,10 @@
 import React from 'react'
-import { GameCoverScreen } from '../game-cover-screen'
+import { MainLayout } from 'components/layouts/main'
 import { LigrettoLogo, LoaderCards } from '@memebattle/ligretto-ui'
 import styles from './LoaderScreen.module.scss'
 
 export const LoaderScreen: React.FC = () => (
-  <GameCoverScreen>
+  <MainLayout>
     <div className={styles.root}>
       <div className={styles.logo}>
         <LigrettoLogo />
@@ -13,7 +13,7 @@ export const LoaderScreen: React.FC = () => (
         <LoaderCards />
       </div>
     </div>
-  </GameCoverScreen>
+  </MainLayout>
 )
 
 LoaderScreen.displayName = 'LoaderScreen'
