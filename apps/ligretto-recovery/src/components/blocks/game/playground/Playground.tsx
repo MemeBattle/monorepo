@@ -2,13 +2,13 @@ import React, { useMemo } from 'react'
 import styles from './Playground.module.scss'
 import { Card, CardPlace, TableCards as TableCardsUI } from '@memebattle/ligretto-ui'
 import type { CardsDeck } from '@memebattle/ligretto-shared'
-import { CardColors } from '@memebattle/ligretto-shared'
 
 export interface TableCardsProps {
   cardsDecks: CardsDeck[]
+  onDeckClick: (deckIndex: number) => void
 }
 
-export const Playground: React.FC<TableCardsProps> = ({ cardsDecks }) => {
+export const Playground: React.FC<TableCardsProps> = ({ cardsDecks, onDeckClick }) => {
   const cards = useMemo(() => {
     const newPlayerCardsArr = []
 
@@ -16,7 +16,7 @@ export const Playground: React.FC<TableCardsProps> = ({ cardsDecks }) => {
       if (cardsDecks[i]) {
         newPlayerCardsArr.push(cardsDecks[i].cards[cardsDecks[i].cards.length - 1])
       } else {
-        newPlayerCardsArr.push({ color: CardColors.empty })
+        newPlayerCardsArr.push(undefined)
       }
     }
 
@@ -28,9 +28,7 @@ export const Playground: React.FC<TableCardsProps> = ({ cardsDecks }) => {
       <div className={styles.tableCards}>
         <TableCardsUI>
           {cards.map((card, index) => (
-            <CardPlace key={index}>
-              <Card {...card} />
-            </CardPlace>
+            <CardPlace key={index}>{card && <Card {...card} onClick={() => onDeckClick(index)} />}</CardPlace>
           ))}
         </TableCardsUI>
       </div>
