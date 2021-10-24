@@ -1,6 +1,5 @@
 import React from 'react'
 import { LoaderCards } from './LoaderCards'
-import { Background } from '../story-components'
 
 export default {
   title: 'LoaderCards',
@@ -8,9 +7,7 @@ export default {
 }
 
 const Template = args => (
-  <Background>
-    <LoaderCards {...args} />
-  </Background>
+  <LoaderCards {...args} />
 )
 
 export const DefaultView = Template.bind({})

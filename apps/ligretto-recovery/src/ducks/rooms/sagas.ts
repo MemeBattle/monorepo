@@ -1,5 +1,5 @@
 import { takeLatest, take, put, select } from 'redux-saga/effects'
-import { connectToRoomAction, createRoomAction, searchRoomsAction, updateRoomsAction, setRoomsAction } from './slice'
+import { connectToRoomAction, createRoomAction, searchRoomsAction, updateRoomsAction, setRoomsAction, setErrorRoomsAction } from './slice'
 import type { updateRooms as updateRoomsFromServer } from '@memebattle/ligretto-shared'
 import {
   createRoomEmitAction,
@@ -7,6 +7,7 @@ import {
   connectToRoomEmitAction,
   searchRoomsFinishAction,
   createRoomSuccessAction,
+  createRoomErrorAction,
   updateRooms,
   connectToRoomErrorAction,
 } from '@memebattle/ligretto-shared'
@@ -56,7 +57,12 @@ function* connectToRoomError() {
 }
 
 function* createRoomSuccessSaga(action: ReturnType<typeof createRoomSuccessAction>) {
+  yield put(setErrorRoomsAction({ error: null }))
   yield put(push(generatePath(routes.GAME, { roomUuid: action.payload.game.id })))
+}
+
+function* createRoomErrorSaga(action: ReturnType<typeof createRoomErrorAction>) {
+  yield put(setErrorRoomsAction({ error: action.payload }))
 }
 
 export function* roomsRootSaga() {
@@ -66,4 +72,5 @@ export function* roomsRootSaga() {
   yield takeLatest(updateRooms, updateRoomsFromServerSaga)
   yield takeLatest(connectToRoomErrorAction, connectToRoomError)
   yield takeLatest(createRoomSuccessAction, createRoomSuccessSaga)
+  yield takeLatest(createRoomErrorAction, createRoomErrorSaga)
 }
