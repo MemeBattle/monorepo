@@ -1,8 +1,12 @@
-.opponentCards {}
+.opponentCards {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 
 .positionTop {
   margin-top: 1rem;
-  transform: rotate(180deg) translate(50%);
+  transform: translate(-50%);
 }
 
 .positionLeft {

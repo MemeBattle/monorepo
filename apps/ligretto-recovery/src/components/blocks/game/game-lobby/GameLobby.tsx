@@ -1,6 +1,6 @@
 import type { FC } from 'react'
 import React from 'react'
-import type { Player } from '@memebattle/ligretto-shared'
+import type { Player as SharedPlayer } from '@memebattle/ligretto-shared'
 import { GameStatus } from '@memebattle/ligretto-shared'
 import { RoomGrid } from '@memebattle/ligretto-ui'
 import { PlayerReadyButton } from 'components/blocks/game/player-ready-button'
@@ -8,6 +8,8 @@ import { OpponentWaiting } from 'components/blocks/game'
 import { GameResults } from 'containers/game-results'
 
 import styles from './GameLobby.module.scss'
+
+type Player = { status: SharedPlayer['status']; isHost: boolean; username: string; id: string; avatar?: string }
 
 interface GameLobbyProps {
   opponents: Player[]
@@ -25,8 +27,8 @@ export const GameLobby: FC<GameLobbyProps> = ({ opponents, player, gameStatus, h
   return (
     <>
       <RoomGrid>
-        {opponents.map(({ id, status }) => (
-          <OpponentWaiting key={id} opponentStatus={status} />
+        {opponents.map(({ id, status, username, avatar }) => (
+          <OpponentWaiting avatar={avatar} username={username} key={id} opponentStatus={status} />
         ))}
       </RoomGrid>
       {gameStatus === GameStatus.RoundFinished ? (
@@ -40,6 +42,8 @@ export const GameLobby: FC<GameLobbyProps> = ({ opponents, player, gameStatus, h
         className={styles.playerReadyButton}
         onClick={player.isHost ? handleStartGameClick : handleReadyToPlayButtonClick}
         hideButton={opponents.length === 0}
+        avatar={player.avatar}
+        username={player.username}
       />
     </>
   )

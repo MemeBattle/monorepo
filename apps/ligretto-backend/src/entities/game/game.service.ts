@@ -2,7 +2,7 @@ import { inject, injectable } from 'inversify'
 import { groupBy, mergeWith, omit, merge } from 'lodash'
 import { GameRepository } from './game.repo'
 import type { Game, Player } from '@memebattle/ligretto-shared'
-import { GameStatus } from '@memebattle/ligretto-shared'
+import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 import { createInitialPlayerCards } from '../../utils/create-initial-player-cards'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
@@ -44,6 +44,7 @@ export class GameService {
             cards: allCards,
             isHidden: true,
           },
+          status: PlayerStatus.InGame,
         }
       }
 

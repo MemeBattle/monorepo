@@ -55,6 +55,7 @@ export enum CreateRoomErrorCode {
 export enum PlayerStatus {
   DontReadyToPlay = 'DontReadyToPlay',
   ReadyToPlay = 'ReadyToPlay',
+  InGame = 'InGame',
 }
 
 export interface Game {
