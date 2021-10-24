@@ -1,5 +1,5 @@
 import { inject, injectable } from 'inversify'
-import { groupBy, mergeWith, omit } from 'lodash'
+import { groupBy, mergeWith, omit, merge } from 'lodash'
 import { GameRepository } from './game.repo'
 import type { Game, Player } from '@memebattle/ligretto-shared'
 import { GameStatus } from '@memebattle/ligretto-shared'
@@ -14,17 +14,17 @@ const emptyGame: Game = {
   playground: {
     decks: [],
   },
-  config: { cardsCount: 3, playersMaxCount: 4 },
+  config: { cardsCount: 3, playersMaxCount: 4, dndEnabled: true },
 }
 
 @injectable()
 export class GameService {
   @inject(IOC_TYPES.GameRepository) private gameRepository: GameRepository
 
-  createGame(name: string) {
+  createGame(name: string, config: Partial<Game['config']> = {}) {
     const gameId = String(Math.random()).slice(5)
 
-    return this.gameRepository.addGame(gameId, { ...emptyGame, name, id: gameId })
+    return this.gameRepository.addGame(gameId, merge({}, emptyGame, { id: gameId, name, config }))
   }
 
   startGame(gameId: string) {
