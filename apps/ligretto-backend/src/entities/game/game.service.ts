@@ -24,7 +24,7 @@ export class GameService {
   createGame(name: string, config: Partial<Game['config']> = {}) {
     const gameId = String(Math.random()).slice(5)
 
-    return this.gameRepository.addGame(gameId, merge(emptyGame, { id: gameId, config }))
+    return this.gameRepository.addGame(gameId, merge({}, emptyGame, { id: gameId, name, config }))
   }
 
   startGame(gameId: string) {
