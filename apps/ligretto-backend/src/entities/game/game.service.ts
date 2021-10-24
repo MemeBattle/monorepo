@@ -1,5 +1,5 @@
 import { inject, injectable } from 'inversify'
-import { groupBy, mergeWith, omit, merge } from 'lodash'
+import { groupBy, merge, mergeWith, omit } from 'lodash'
 import { GameRepository } from './game.repo'
 import type { Game, Player } from '@memebattle/ligretto-shared'
 import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
@@ -64,7 +64,14 @@ export class GameService {
   }
 
   roundFinished(gameId: string) {
-    return this.gameRepository.updateGame(gameId, game => ({ ...game, status: GameStatus.RoundFinished }))
+    return this.gameRepository.updateGame(gameId, game => ({
+      ...game,
+      status: GameStatus.RoundFinished,
+      players: Object.values(game.players).reduce(
+        (players, player) => ({ ...players, [player.id]: { ...player, status: PlayerStatus.DontReadyToPlay } }),
+        {},
+      ),
+    }))
   }
 
   async addPlayer(gameId: string, playerData: Partial<Player> & { id: Player['id'] }) {

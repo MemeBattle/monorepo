@@ -63,7 +63,7 @@ export class Gameplay {
     try {
       const remaining = await this.playerService.takeFromLigrettoDeck(gameId, playerId)
 
-      if (remaining === 0) {
+      if (remaining === 9) {
         return this.gameService.endRound(gameId)
       }
 

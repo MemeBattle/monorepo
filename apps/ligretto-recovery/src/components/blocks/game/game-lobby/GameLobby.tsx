@@ -44,6 +44,7 @@ export const GameLobby: FC<GameLobbyProps> = ({ opponents, player, gameStatus, h
         hideButton={opponents.length === 0}
         avatar={player.avatar}
         username={player.username}
+        status={player.status}
       />
     </>
   )
