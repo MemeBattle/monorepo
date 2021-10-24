@@ -15,6 +15,7 @@ export interface UpdateRooms {
 
 export interface CreateGame {
   name: string
+  config?: Partial<Game['config']>
 }
 
 export interface ConnectToRoom {
@@ -46,8 +47,9 @@ export interface PlayerStatusInGame {
 }
 
 export interface PutCard {
-  cardIndex: number
   gameId: Game['id']
+  cardIndex: number
+  deckIndex?: number
 }
 
 export interface TakeCardFromLigrettoDeck {
