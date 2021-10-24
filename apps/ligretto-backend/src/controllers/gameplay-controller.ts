@@ -45,9 +45,9 @@ export class GameplayController extends Controller {
   }
 
   private async putCard(socket: Socket, action: ReturnType<typeof putCardAction>) {
-    const { gameId, cardIndex } = action.payload
+    const { gameId, cardIndex, deckIndex } = action.payload
 
-    await this.gameplay.playerPutCard(gameId, socket.data.user.id, cardIndex)
+    await this.gameplay.playerPutCard(gameId, socket.data.user.id, cardIndex, deckIndex)
     await this.updateGame(socket, gameId)
   }
 

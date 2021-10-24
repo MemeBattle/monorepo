@@ -16,7 +16,6 @@ export enum OpponentPositions {
 export interface Card {
   color?: CardColors
   value?: number
-  disabled?: boolean
   hidden?: boolean
   playerId?: string
 }
@@ -69,6 +68,7 @@ export interface Game {
   config: {
     cardsCount: number
     playersMaxCount: number
+    dndEnabled: boolean
   }
 }
 

@@ -1,4 +1,4 @@
-import type { Room } from '@memebattle/ligretto-shared'
+import type { Game, Room } from '@memebattle/ligretto-shared'
 import uniq from 'lodash/uniq'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice, createAction } from '@reduxjs/toolkit'
@@ -23,7 +23,7 @@ const initialState: RoomsState = {
 }
 
 export const connectToRoomAction = createAction<{ roomUuid: string }>('@@rooms/connectToRoom')
-export const createRoomAction = createAction<{ name: string }>('@@rooms/createRoom')
+export const createRoomAction = createAction<{ name: string; config?: Partial<Game['config']> }>('@@rooms/createRoom')
 
 export const roomsSlice = createSlice({
   name: 'rooms',

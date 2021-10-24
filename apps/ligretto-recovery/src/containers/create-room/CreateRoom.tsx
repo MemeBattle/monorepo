@@ -10,6 +10,7 @@ export const CreateRoomContainer = () => {
   const dispatch = useDispatch()
 
   const [name, setName] = useState('')
+  const [dndEnabled, setDndEnabled] = useState(false)
 
   const roomsErrors: CreateRoomError | null = useSelector(selectRoomsError)
 
@@ -22,10 +23,14 @@ export const CreateRoomContainer = () => {
     [setName],
   )
 
+  const handleDndChange = useCallback(() => {
+    setDndEnabled(prev => !prev)
+  }, [])
+
   const onButtonClick = useCallback(() => {
     const roomName = name.trim()
-    dispatch(createRoomAction({ name: roomName }))
-  }, [dispatch, name])
+    dispatch(createRoomAction({ name: roomName, config: { dndEnabled } }))
+  }, [dispatch, name, dndEnabled])
 
   return (
     <CreateRoom
@@ -33,6 +38,8 @@ export const CreateRoomContainer = () => {
       onCreateClick={onButtonClick}
       validationErrors={validationErrors}
       isCreateButtonDisabled={!name}
+      onChangeDndEnabled={handleDndChange}
+      dndEnabled={dndEnabled}
     />
   )
 }

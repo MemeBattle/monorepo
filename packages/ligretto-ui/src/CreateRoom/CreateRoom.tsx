@@ -1,6 +1,6 @@
 import React from 'react'
 import { createStyles, makeStyles } from '@material-ui/core'
-import { Paper, TextField, Button, Grid, Hidden, Box } from '@material-ui/core'
+import { Paper, TextField, Button, Grid, Hidden, Box, Switch } from '@material-ui/core'
 
 export interface CreateRoomProps {
   onRoomNameChange: React.ChangeEventHandler<HTMLInputElement>
@@ -9,6 +9,8 @@ export interface CreateRoomProps {
     error?: string
   } | null
   isCreateButtonDisabled?: boolean
+  dndEnabled?: boolean
+  onChangeDndEnabled?: () => void
 }
 
 const useStyles = makeStyles(theme =>
@@ -33,7 +35,14 @@ const useStyles = makeStyles(theme =>
   }),
 )
 
-export const CreateRoom: React.FC<CreateRoomProps> = ({ onCreateClick, onRoomNameChange, validationErrors, isCreateButtonDisabled }) => {
+export const CreateRoom: React.FC<CreateRoomProps> = ({
+  onCreateClick,
+  onRoomNameChange,
+  validationErrors,
+  isCreateButtonDisabled,
+  dndEnabled,
+  onChangeDndEnabled,
+}) => {
   const classes = useStyles()
 
   return (
@@ -53,9 +62,13 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onCreateClick, onRoomNam
             label="Room name"
             variant="outlined"
             placeholder="Tomsk"
-            error={validationErrors ? true : false}
+            error={!!validationErrors}
             helperText={validationErrors?.error}
           />
+        </Grid>
+        <Grid xs={12} sm={6} item>
+          Dnd? (experimental)
+          <Switch onChange={onChangeDndEnabled} checked={dndEnabled} />
         </Grid>
       </Grid>
       <Box mt="2rem">
