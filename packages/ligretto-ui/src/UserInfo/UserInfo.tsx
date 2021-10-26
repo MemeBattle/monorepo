@@ -1,7 +1,6 @@
 import type { MouseEventHandler } from 'react'
 import React from 'react'
 import { createStyles, makeStyles, Button } from '@material-ui/core'
-import ExitToApp from '@material-ui/icons/ExitToApp'
 
 import { Typography } from '../Typography'
 import { Avatar } from '../Avatar'
@@ -11,23 +10,23 @@ const useStyles = makeStyles(theme =>
     mainUser: {
       display: 'flex',
       flexDirection: 'column',
-      maxWidth: '12rem',
+      maxWidth: '14rem',
+      position: 'relative',
     },
     mainUserAvatar: {
-      width: '12rem',
+      width: '14rem',
       height: '12rem',
       maxHeight: '12rem',
       display: 'flex',
       cursor: 'pointer',
       position: 'relative',
       borderRadius: '0.8rem',
-      overflow: 'hidden',
       justifyContent: 'center',
       alignItems: 'center',
     },
     image: {
-      padding: '2px',
-      maxWidth: '100%',
+      paddingBottom: '20px',
+      maxWidth: '65%',
       maxHeight: '100%',
     },
     signupButton: {
@@ -35,18 +34,22 @@ const useStyles = makeStyles(theme =>
       height: '100%',
       width: '100%',
       display: 'flex',
-      alignItems: 'center',
+      alignItems: 'flex-end',
       justifyContent: 'center',
     },
     button: {
-      border: 'solid 2px white',
+      width: '100%',
+      marginBottom: '10px',
+      textTransform: 'none',
     },
     backdrop: {
-      width: '100%',
-      height: '100%',
-      background: theme.palette.grey.A700,
-      opacity: '40%',
+      height: '12rem',
+      // background: theme.palette.grey.A700,
+      background: '#2CAB61',
       position: 'absolute',
+      borderRadius: '0.8rem',
+      right: '-47px',
+      left: '-47px',
     },
     bottom: {
       marginTop: '0.5rem',
@@ -81,6 +84,7 @@ export const UserInfo: React.FC<UserInfoProps> = ({ img, onClick, username, onBu
 
   return (
     <div className={classes.mainUser}>
+      <div className={classes.backdrop} />
       <div className={classes.mainUserAvatar} onClick={onClick}>
         <div className={classes.image}>
           <Avatar src={img} alt={username} size="auto" />
@@ -88,8 +92,7 @@ export const UserInfo: React.FC<UserInfoProps> = ({ img, onClick, username, onBu
 
         {username ? null : (
           <div className={classes.signupButton}>
-            <div className={classes.backdrop} />
-            <Button className={classes.button} color="primary" variant="contained" size="large" onClick={handleButtonClick} endIcon={<ExitToApp />}>
+            <Button className={classes.button} color="primary" variant="contained" size="large" onClick={handleButtonClick}>
               {buttonText}
             </Button>
           </div>

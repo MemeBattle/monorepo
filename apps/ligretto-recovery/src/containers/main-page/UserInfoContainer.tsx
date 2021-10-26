@@ -26,7 +26,7 @@ export const UserInfoContainer = () => {
 
   return (
     <UserInfo
-      buttonText="sign in"
+      buttonText="Sign in"
       img={userAvatarUrl}
       username={user?.isTemporary ? undefined : user?.username}
       onButtonClick={onButtonClick}
