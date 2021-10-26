@@ -5,7 +5,7 @@ import { createStyles, makeStyles, Button } from '@material-ui/core'
 import { Typography } from '../Typography'
 import { Avatar } from '../Avatar'
 
-const useStyles = makeStyles(theme =>
+const useStyles = makeStyles(() =>
   createStyles({
     mainUser: {
       display: 'flex',
@@ -44,7 +44,6 @@ const useStyles = makeStyles(theme =>
     },
     backdrop: {
       height: '12rem',
-      // background: theme.palette.grey.A700,
       background: '#2CAB61',
       position: 'absolute',
       borderRadius: '0.8rem',
