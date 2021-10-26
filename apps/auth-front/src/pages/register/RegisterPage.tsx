@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import { FORM_ERROR } from 'final-form'
 import { Form, Field } from 'react-final-form'
 import { Paper } from '../../components/Paper'
-import { Button, Container, Input, PasswordInput } from '@memebattle/ligretto-ui'
+import { Footer } from '../../components/Footer'
+import { Button, Container, Input, PasswordInput, Link as UILink } from '@memebattle/ligretto-ui'
 import { t } from '../../utils/i18n'
 import { ROUTES } from '../../constants/routes'
 import type { RegisterFormSubmissionErrors, RegisterFormValues } from './RegisterPage.types'
@@ -143,11 +144,14 @@ export const RegisterPage = memo(() => {
                 {t.register.submit}
               </Button>
               <br />
-              <Link to={ROUTES.LOGIN}>{t.register.linkToLogin}</Link>
+              <UILink underline="always" component={Link} to={ROUTES.LOGIN}>
+                {t.register.linkToLogin}
+              </UILink>
             </Paper>
           </form>
         )}
       />
+      <Footer />
     </Container>
   )
 })

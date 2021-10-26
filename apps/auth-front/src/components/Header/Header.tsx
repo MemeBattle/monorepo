@@ -1,10 +1,12 @@
-import { Typography, Container } from '@memebattle/ligretto-ui'
-import { t } from '../../utils/i18n'
+import { Container } from '@memebattle/ligretto-ui'
+import { useAppContext } from '../../modules/app'
 
-export const Header = () => (
-  <Container component="header">
-    <Typography align="center" variant="h1">
-      {t.header}
-    </Typography>
-  </Container>
-)
+export const Header = () => {
+  const { Header } = useAppContext()
+
+  return (
+    <Container component="header">
+      <>{Header}</>
+    </Container>
+  )
+}
