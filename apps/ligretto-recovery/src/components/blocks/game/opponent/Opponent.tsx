@@ -1,7 +1,10 @@
-import React from 'react'
-import { PositionOnTable, CardsRow, Card, CardPlace } from '@memebattle/ligretto-ui'
-import styles from './OpponentCards.module.scss'
+import React, { useMemo } from 'react'
+import clsx from 'clsx'
+import { PositionOnTable, CardsRow, Card, CardPlace, Player } from '@memebattle/ligretto-ui'
+import styles from './Opponent.module.scss'
 import type { Card as OpponentCard } from '@memebattle/ligretto-shared'
+import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
+import type { PlayerStatus } from '@memebattle/ligretto-shared'
 
 const stylesByPosition = {
   [PositionOnTable.Left]: styles.positionLeft,
@@ -15,17 +18,22 @@ export interface OpponentCardsProps {
   position?: PositionOnTable
   stackOpenDeckCards: OpponentCard[]
   cards: OpponentCard[]
+  username: string
+  avatar?: string
+  status: PlayerStatus
 }
 
-export const OpponentCards: React.FC<OpponentCardsProps> = ({ position, stackOpenDeckCards, cards }) => {
+export const Opponent: React.FC<OpponentCardsProps> = ({ position, stackOpenDeckCards, cards, avatar, username, status }) => {
   const stackOpenDeckCard = stackOpenDeckCards.length ? stackOpenDeckCards.slice(-1)[0] : {}
+  const avatarImg = useMemo(() => (avatar ? buildCasStaticUrl(avatar) : undefined), [avatar])
 
   if (!position) {
     return null
   }
 
   return (
-    <div className={stylesByPosition[position]}>
+    <div className={clsx(styles.opponentCards, stylesByPosition[position])}>
+      <Player status={status} avatar={avatarImg} username={username} />
       <CardsRow>
         <CardPlace>
           <Card {...stackOpenDeckCard} />
@@ -38,4 +46,4 @@ export const OpponentCards: React.FC<OpponentCardsProps> = ({ position, stackOpe
   )
 }
 
-OpponentCards.displayName = 'OpponentCards'
+Opponent.displayName = 'Opponent'
