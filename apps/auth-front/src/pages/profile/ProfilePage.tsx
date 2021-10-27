@@ -7,7 +7,7 @@ import { Paper } from '../../components/Paper'
 import { Header } from '../../components/Header'
 import { Field, Form } from 'react-final-form'
 import { t } from '../../utils/i18n'
-import { CreatedByInfo } from '../../components/CreatedByInfo'
+import { Footer } from '../../components/Footer'
 import { AvatarDropzone } from '../../components/AvatarDropzone'
 import type { ProfileFormValues } from './ProfilePage.types'
 import { useCasServices } from '../../modules/cas-services'
@@ -96,10 +96,7 @@ export const ProfilePage = memo<ProfilePageProps>(({ onLoginSucceeded }) => {
           </form>
         )}
       />
-      <br />
-      <br />
-      <br />
-      <CreatedByInfo />
+      <Footer />
     </Container>
   ) : null
 })

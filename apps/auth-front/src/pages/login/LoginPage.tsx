@@ -1,14 +1,14 @@
 import { memo, useCallback, useMemo } from 'react'
 import { Field, Form } from 'react-final-form'
-import { Button, Container, Input, PasswordInput } from '@memebattle/ligretto-ui'
+import { Button, Container, Input, PasswordInput, Link as UILink } from '@memebattle/ligretto-ui'
 import { Paper } from '../../components/Paper'
 import { Header } from '../../components/Header'
+import { Footer } from '../../components/Footer'
 import { t } from '../../utils/i18n'
 import { ROUTES } from '../../constants/routes'
 import { Link } from 'react-router-dom'
 import type { LoginFormSubmissionError, LoginFormValues } from './LoginPage.types'
 import { FORM_ERROR } from 'final-form'
-import { CreatedByInfo } from '../../components/CreatedByInfo'
 import { useCasServices } from '../../modules/cas-services'
 
 interface LoginPageProps {
@@ -112,15 +112,14 @@ export const LoginPage = memo<LoginPageProps>(({ onLoginSucceeded }) => {
                 {t.login.submit}
               </Button>
               <br />
-              <Link to={ROUTES.REGISTER}>{t.login.linkToRegister}</Link>
+              <UILink underline="always" component={Link} to={ROUTES.REGISTER}>
+                {t.login.linkToRegister}
+              </UILink>
             </Paper>
           </form>
         )}
       />
-      <br />
-      <br />
-      <br />
-      <CreatedByInfo />
+      <Footer />
     </Container>
   )
 })
