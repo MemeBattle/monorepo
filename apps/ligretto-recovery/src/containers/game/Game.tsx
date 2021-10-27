@@ -2,7 +2,7 @@ import React from 'react'
 import { useSelector } from 'react-redux'
 import { selectOpponents } from 'ducks/game'
 import { RoomGrid } from '@memebattle/ligretto-ui'
-import { OpponentCards } from 'components/blocks/game/opponent-cards'
+import { Opponent } from 'components/blocks/game/opponent'
 import { CardsPanelContainer } from '../cards-panel'
 import { createSelector } from 'reselect'
 import { PlaygroundContainer } from '../playground'
@@ -18,7 +18,14 @@ export const Game = () => {
     <>
       <RoomGrid>
         {opponents.map(opponent => (
-          <OpponentCards key={opponent.id} cards={opponent.cards} stackOpenDeckCards={opponent.stackOpenDeck.cards} />
+          <Opponent
+            avatar={opponent.avatar}
+            status={opponent.status}
+            username={opponent.username}
+            key={opponent.id}
+            cards={opponent.cards}
+            stackOpenDeckCards={opponent.stackOpenDeck.cards}
+          />
         ))}
       </RoomGrid>
       <PlaygroundContainer />

@@ -1,18 +1,21 @@
-import React, { memo } from 'react'
+import React, { memo, useMemo } from 'react'
 import cn from 'classnames'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
-import { PositionOnTable } from '@memebattle/ligretto-ui'
+import { PositionOnTable, Player } from '@memebattle/ligretto-ui'
 import styles from './OpponentWaiting.module.scss'
-import { Avatar } from '@memebattle/ligretto-ui'
+import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 
 export interface OpponentWaitingProps {
   position?: PositionOnTable
   opponentStatus: PlayerStatus
+  username: string
+  avatar?: string
 }
 
 const classNameByStatus = {
   [PlayerStatus.ReadyToPlay]: styles.ready,
   [PlayerStatus.DontReadyToPlay]: styles.waiting,
+  [PlayerStatus.InGame]: '',
 }
 
 const classNameByPositionOnTable = {
@@ -23,15 +26,16 @@ const classNameByPositionOnTable = {
   [PositionOnTable.LeftTopCorner]: styles.leftTopCorner,
 }
 
-export const OpponentWaiting = memo<OpponentWaitingProps>(({ position, opponentStatus }) => {
+export const OpponentWaiting = memo<OpponentWaitingProps>(({ position, opponentStatus, username, avatar }) => {
+  const avatarImg = useMemo(() => (avatar ? buildCasStaticUrl(avatar) : undefined), [avatar])
+
   if (!position) {
     return null
   }
 
   return (
     <div className={cn(styles.opponentWaiting, classNameByPositionOnTable[position], classNameByStatus[opponentStatus])}>
-      <Avatar size="small" />
-      {opponentStatus === PlayerStatus.ReadyToPlay ? <div>Ready</div> : null}
+      <Player avatar={avatarImg} username={username} status={opponentStatus} />
     </div>
   )
 })

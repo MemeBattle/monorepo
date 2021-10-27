@@ -1,8 +1,9 @@
-import { createSelector } from 'reselect'
-import omit from 'lodash/omit'
 import type { Player } from '@memebattle/ligretto-shared'
 import type { All } from '../../types/store'
 import { selectCurrentUserId } from 'ducks/auth'
+import { mergePlayerAndUser } from './utils'
+import { createSelector } from 'reselect'
+import { selectUsersMap } from '../users'
 
 export const selectGame = (state: All) => state.game.game
 export const selectGameId = (state: All) => selectGame(state).id
@@ -28,6 +29,9 @@ export const selectPlayerStatus = (state: All) => selectPlayer(state).status
 export const selectLocalPlayerState = (state: All) => state.game.localPlayerState
 export const selectSelectedCardIndex = (state: All) => selectLocalPlayerState(state).selectedCardIndex
 
-export const selectOpponents = createSelector([selectPlayers, selectCurrentUserId], (players, playerId = '') =>
-  Object.values(omit(players, playerId)),
+export const selectOpponents = createSelector([selectPlayers, selectCurrentUserId, selectUsersMap], (players, playerId, users) =>
+  Object.values(players).reduce((opponents: ReturnType<typeof mergePlayerAndUser>[], player) => {
+    const user = users[player.id]
+    return [...opponents, ...(user && user.casId !== playerId ? [mergePlayerAndUser(player, user)] : [])]
+  }, []),
 )
