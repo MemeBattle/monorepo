@@ -47,3 +47,5 @@ export * from './LigrettoLogo'
 export * from './LoaderCards'
 
 export * from './Background'
+
+export * from './Player'

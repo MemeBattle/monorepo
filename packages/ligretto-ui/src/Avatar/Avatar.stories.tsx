@@ -10,6 +10,10 @@ export default {
       control: { type: 'radio' },
       options: [userAvatars[0], userAvatars[1], userAvatars[2], userAvatars[3], userAvatars[4], userAvatars[5], userAvatars[6], userAvatars[7]],
     },
+    size: {
+      options: ['small', 'medium', 'large', 'auto'],
+      control: { type: 'radio' },
+    },
   },
 }
 
