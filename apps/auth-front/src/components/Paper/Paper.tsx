@@ -1,5 +1,10 @@
 import React, { memo } from 'react'
+import { Paper as UIPaper } from '@memebattle/ligretto-ui'
 
 import * as styles from './Paper.module.scss'
 
-export const Paper = memo(({ children }) => <div className={styles.paper}>{children}</div>)
+export const Paper = memo(({ children }) => (
+  <UIPaper>
+    <div className={styles.paper}>{children}</div>
+  </UIPaper>
+))
