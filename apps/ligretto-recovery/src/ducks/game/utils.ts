@@ -11,3 +11,5 @@ export const mergePlayerAndUser = (player: SharedPlayer, user: User) =>
     cards: player.cards,
     stackOpenDeck: player.stackOpenDeck,
   } as const)
+
+export const STACK_OPEN_DECK_INDEX = 'STACK_OPEN_DECK_INDEX' as const
