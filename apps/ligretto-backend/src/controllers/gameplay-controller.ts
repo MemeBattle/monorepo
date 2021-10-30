@@ -73,9 +73,9 @@ export class GameplayController extends Controller {
   }
 
   private async putCardFromStackOpenDeck(socket: Socket, action: ReturnType<typeof putCardFromStackOpenDeck>) {
-    const { gameId } = action.payload
+    const { gameId, deckIndex } = action.payload
     console.log('putCardFromStackOpenDeck', action)
-    await this.gameplay.playerPutFromStackOpenDeck(gameId, socket.data.user.id)
+    await this.gameplay.playerPutFromStackOpenDeck(gameId, socket.data.user.id, deckIndex)
     await this.updateGame(socket, gameId)
   }
 }

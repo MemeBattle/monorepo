@@ -56,10 +56,10 @@ function* cardsRowPutSaga({ payload }: ReturnType<typeof tapCardAction>) {
   yield put(putCardAction({ cardIndex: payload.cardIndex, gameId, deckIndex: payload.deckIndex }))
 }
 
-function* tapStackOpenDeckCardActionSaga() {
+function* tapStackOpenDeckCardActionSaga({ payload }: ReturnType<typeof tapStackOpenDeckCardAction>) {
   const gameId: ReturnType<typeof selectGameId> = yield select(selectGameId)
 
-  yield put(putCardFromStackOpenDeck({ gameId }))
+  yield put(putCardFromStackOpenDeck({ gameId, deckIndex: payload?.deckIndex }))
 }
 
 function* tapStackDeckCardActionSaga() {

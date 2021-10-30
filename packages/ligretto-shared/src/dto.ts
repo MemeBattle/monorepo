@@ -58,6 +58,7 @@ export interface TakeCardFromLigrettoDeck {
 
 export interface PutCardFromStackOpenDeck {
   gameId: Game['id']
+  deckIndex?: number
 }
 
 export interface TakeCardFromStackDeck {

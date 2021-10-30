@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { selectPlaygroundDecks, selectSelectedCardIndex, tapCardAction } from 'ducks/game'
+import { selectPlaygroundDecks, selectSelectedCardIndex, STACK_OPEN_DECK_INDEX, tapCardAction, tapStackOpenDeckCardAction } from 'ducks/game'
 import { Playground } from 'components/blocks/game'
 import { createSelector } from 'reselect'
 
@@ -15,8 +15,10 @@ export const PlaygroundContainer = () => {
 
   const handlePlaygroundDeckClick = useCallback(
     (deckIndex: number) => {
-      if (selectedCardIndex) {
+      if (typeof selectedCardIndex === 'number') {
         dispatch(tapCardAction({ cardIndex: selectedCardIndex, deckIndex }))
+      } else if (selectedCardIndex === STACK_OPEN_DECK_INDEX) {
+        dispatch(tapStackOpenDeckCardAction({ deckIndex }))
       }
     },
     [dispatch, selectedCardIndex],
