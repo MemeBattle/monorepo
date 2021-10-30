@@ -5,7 +5,7 @@ export const mergePlayerAndUser = (player: SharedPlayer, user: User) =>
   ({
     status: player.status,
     isHost: player.isHost,
-    username: user.isTemporary ? 'anon' : user.username,
+    username: user.isTemporary ? 'Guest' : user.username,
     id: user.casId,
     avatar: user.isTemporary ? '' : user.avatar,
     cards: player.cards,

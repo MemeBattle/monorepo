@@ -18,7 +18,7 @@ const selectGameResultsForTable = createSelector(
       const user = users[playerId]
       return {
         position: index + 1,
-        username: user?.isTemporary ? 'anon' : user?.username || '',
+        username: user?.isTemporary ? 'Guest' : user?.username || '',
         avatar: !user?.isTemporary && user?.avatar ? buildCasStaticUrl(user.avatar) : undefined,
         roundPoints: playerResults.roundScore,
         totalPoints: playerResults.gameScore,
