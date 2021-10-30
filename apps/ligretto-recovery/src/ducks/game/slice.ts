@@ -2,13 +2,16 @@ import type { Game, GameResults } from '@memebattle/ligretto-shared'
 import { GameStatus } from '@memebattle/ligretto-shared'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createAction, createSlice } from '@reduxjs/toolkit'
+import type { STACK_OPEN_DECK_INDEX } from './utils'
+
+type SelectedCardIndex = number | typeof STACK_OPEN_DECK_INDEX
 
 export type GameState = {
   game: Game
   results?: GameResults
   isGameLoaded: boolean
   localPlayerState: {
-    selectedCardIndex?: number
+    selectedCardIndex?: SelectedCardIndex
   }
 }
 
@@ -34,8 +37,8 @@ const initialState: GameState = {
 
 export const togglePlayerStatusAction = createAction('@@game/TOGGLE_PLAYER_STATUS')
 export const startGameAction = createAction('@@game/START_GAME')
-export const tapCardAction = createAction<{ cardIndex: number; deckIndex?: number }>('@@game/TapCardAction')
-export const tapStackOpenDeckCardAction = createAction('@@game/TapStackOpenDeckCardAction')
+export const tapCardAction = createAction<{ cardIndex: number; playgroundDeckIndex?: number }>('@@game/TapCardAction')
+export const tapStackOpenDeckCardAction = createAction<{ playgroundDeckIndex: number } | undefined>('@@game/TapStackOpenDeckCardAction')
 export const tapStackDeckCardAction = createAction('@@game/TapStackDeckCardAction')
 export const tapLigrettoDeckCardAction = createAction('@@game/TapLigrettoDeckCardAction')
 export const leaveGameAction = createAction('@@game/leaveGameAction')
@@ -53,7 +56,7 @@ const gameSlice = createSlice({
     setGameResultAction: (state, action: PayloadAction<GameResults>) => {
       state.results = action.payload
     },
-    setSelectedCardIndexAction: (state, action: PayloadAction<number | undefined>) => {
+    setSelectedCardIndexAction: (state, action: PayloadAction<SelectedCardIndex | undefined>) => {
       state.localPlayerState.selectedCardIndex = action.payload
     },
   },
