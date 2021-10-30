@@ -1,64 +1,59 @@
 import type { MouseEventHandler } from 'react'
 import React from 'react'
 import { createStyles, makeStyles, Button } from '@material-ui/core'
+import CreateIcon from '@material-ui/icons/Create'
+import ClearIcon from '@material-ui/icons/Clear'
 
-import { Typography } from '../Typography'
 import { Avatar } from '../Avatar'
 
-const useStyles = makeStyles(() =>
+const useStyles = makeStyles(theme =>
   createStyles({
     mainUser: {
       display: 'flex',
       flexDirection: 'column',
-      maxWidth: '14rem',
+      maxWidth: '20rem',
       position: 'relative',
     },
     mainUserAvatar: {
-      width: '14rem',
-      height: '12rem',
-      maxHeight: '12rem',
+      width: '20rem',
+      height: '13rem',
+      maxHeight: '13rem',
       display: 'flex',
-      cursor: 'pointer',
-      position: 'relative',
       borderRadius: '0.8rem',
       justifyContent: 'center',
-      alignItems: 'center',
+      background: theme.palette.background.paper,
     },
     image: {
-      paddingBottom: '20px',
-      maxWidth: '65%',
-      maxHeight: '100%',
+      paddingBottom: '1.8rem',
+      maxWidth: '50%',
     },
     signupButton: {
       position: 'absolute',
       height: '100%',
       width: '100%',
       display: 'flex',
-      alignItems: 'flex-end',
+      alignItems: 'end',
       justifyContent: 'center',
     },
     button: {
-      width: '100%',
-      marginBottom: '10px',
+      width: '70%',
+      marginBottom: '1rem',
       textTransform: 'none',
+      '&.MuiButton-containedSizeLarge': {
+        padding: 'inherit',
+        fontSize: '1.5rem',
+      },
     },
-    backdrop: {
-      height: '12rem',
-      background: '#2CAB61',
+    clearIcon: {
       position: 'absolute',
-      borderRadius: '0.8rem',
-      right: '-47px',
-      left: '-47px',
-    },
-    bottom: {
-      marginTop: '0.5rem',
+      top: '0.5rem',
+      right: '0.5rem',
+      justifyContent: 'flex-end',
       display: 'flex',
-      justifyContent: 'center',
+      minWidth: 'auto',
     },
-    username: {
-      fontWeight: 'bold',
-      fontSize: '1.6rem',
-      color: 'white',
+    createIcon: {
+      marginLeft: 'auto',
     },
   }),
 )
@@ -78,32 +73,44 @@ export const UserInfo: React.FC<UserInfoProps> = ({ img, onClick, username, onBu
     e.stopPropagation()
     if (onButtonClick) {
       onButtonClick(e)
+      console.log('CLICK')
     }
   }
 
+  const signInButton = (
+    <div className={classes.signupButton}>
+      <Button className={classes.button} color="primary" variant="contained" size="large" onClick={handleButtonClick}>
+        {buttonText}
+      </Button>
+    </div>
+  )
+
+  const userNameButton = (
+    <div className={classes.signupButton}>
+      <Button className={classes.clearIcon} onClick={handleButtonClick}>
+        {<ClearIcon />}
+      </Button>
+      <Button
+        className={classes.button}
+        color="primary"
+        variant="contained"
+        size="large"
+        endIcon={<CreateIcon className={classes.createIcon} />}
+        onClick={handleButtonClick}
+      >
+        {username}
+      </Button>
+    </div>
+  )
+
   return (
     <div className={classes.mainUser}>
-      <div className={classes.backdrop} />
       <div className={classes.mainUserAvatar} onClick={onClick}>
         <div className={classes.image}>
           <Avatar src={img} alt={username} size="auto" />
         </div>
-
-        {username ? null : (
-          <div className={classes.signupButton}>
-            <Button className={classes.button} color="primary" variant="contained" size="large" onClick={handleButtonClick}>
-              {buttonText}
-            </Button>
-          </div>
-        )}
+        {username ? userNameButton : signInButton}
       </div>
-      {username ? (
-        <div className={classes.bottom}>
-          <Typography className={classes.username} align="center">
-            {username}
-          </Typography>
-        </div>
-      ) : null}
     </div>
   )
 }
