@@ -1,9 +1,10 @@
 import React from 'react'
 import { createStyles, makeStyles, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@material-ui/core'
+import { Avatar } from '../Avatar'
 
 export interface ResultsTableProps {
   /** Players results */
-  players: Array<{ position: number; username: string; roundPoints: number; totalPoints: number }>
+  players: Array<{ position: number; username: string; avatar?: string; roundPoints: number; totalPoints: number; isPlayer: boolean }>
 }
 
 const useStyles = makeStyles(theme =>
@@ -15,7 +16,7 @@ const useStyles = makeStyles(theme =>
     tableHead: {
       background: theme.palette.common.white,
     },
-    winnerRow: {
+    playerRow: {
       background: theme.palette.primary.dark,
     },
     otherRow: {
@@ -43,15 +44,19 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ players }: ResultsTa
         <TableHead className={classes.tableHead}>
           <TableRow>
             <TableCell className={classes.tableHeaderCell}>Position</TableCell>
-            <TableCell className={classes.tableHeaderCell}>Player</TableCell>
+            <TableCell className={classes.tableHeaderCell}>Avatar</TableCell>
+            <TableCell className={classes.tableHeaderCell}>Username</TableCell>
             <TableCell className={classes.tableHeaderCell}>Round points</TableCell>
             <TableCell className={classes.tableHeaderCell}>Total points</TableCell>
           </TableRow>
         </TableHead>
         <TableBody className={classes.tableBody}>
-          {players.map(({ position, username, roundPoints, totalPoints }, index) => (
-            <TableRow className={position === 1 ? classes.winnerRow : classes.otherRow} key={index}>
+          {players.map(({ position, username, roundPoints, totalPoints, avatar, isPlayer }, index) => (
+            <TableRow className={isPlayer ? classes.playerRow : classes.otherRow} key={index}>
               <TableCell className={classes.tableBodyCell}>{position}</TableCell>
+              <TableCell className={classes.tableBodyCell}>
+                <Avatar src={avatar} size="small" />
+              </TableCell>
               <TableCell className={classes.tableBodyCell}>{username}</TableCell>
               <TableCell className={classes.tableBodyCell}>{roundPoints}</TableCell>
               <TableCell className={classes.tableBodyCell}>{totalPoints}</TableCell>
