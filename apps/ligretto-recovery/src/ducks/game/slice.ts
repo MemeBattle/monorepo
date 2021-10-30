@@ -37,8 +37,8 @@ const initialState: GameState = {
 
 export const togglePlayerStatusAction = createAction('@@game/TOGGLE_PLAYER_STATUS')
 export const startGameAction = createAction('@@game/START_GAME')
-export const tapCardAction = createAction<{ cardIndex: number; deckIndex?: number }>('@@game/TapCardAction')
-export const tapStackOpenDeckCardAction = createAction<{ deckIndex: number } | undefined>('@@game/TapStackOpenDeckCardAction')
+export const tapCardAction = createAction<{ cardIndex: number; playgroundDeckIndex?: number }>('@@game/TapCardAction')
+export const tapStackOpenDeckCardAction = createAction<{ playgroundDeckIndex: number } | undefined>('@@game/TapStackOpenDeckCardAction')
 export const tapStackDeckCardAction = createAction('@@game/TapStackDeckCardAction')
 export const tapLigrettoDeckCardAction = createAction('@@game/TapLigrettoDeckCardAction')
 export const leaveGameAction = createAction('@@game/leaveGameAction')

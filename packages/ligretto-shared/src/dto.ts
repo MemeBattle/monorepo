@@ -49,7 +49,7 @@ export interface PlayerStatusInGame {
 export interface PutCard {
   gameId: Game['id']
   cardIndex: number
-  deckIndex?: number
+  playgroundDeckIndex?: number
 }
 
 export interface TakeCardFromLigrettoDeck {
@@ -58,7 +58,7 @@ export interface TakeCardFromLigrettoDeck {
 
 export interface PutCardFromStackOpenDeck {
   gameId: Game['id']
-  deckIndex?: number
+  playgroundDeckIndex?: number
 }
 
 export interface TakeCardFromStackDeck {

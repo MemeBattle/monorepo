@@ -14,11 +14,11 @@ export const PlaygroundContainer = () => {
   const { playgroundDecks, selectedCardIndex } = useSelector(PlaygroundContainerSelector)
 
   const handlePlaygroundDeckClick = useCallback(
-    (deckIndex: number) => {
+    (playgroundDeckIndex: number) => {
       if (typeof selectedCardIndex === 'number') {
-        dispatch(tapCardAction({ cardIndex: selectedCardIndex, deckIndex }))
+        dispatch(tapCardAction({ cardIndex: selectedCardIndex, playgroundDeckIndex }))
       } else if (selectedCardIndex === STACK_OPEN_DECK_INDEX) {
-        dispatch(tapStackOpenDeckCardAction({ deckIndex }))
+        dispatch(tapStackOpenDeckCardAction({ playgroundDeckIndex }))
       }
     },
     [dispatch, selectedCardIndex],

@@ -16,7 +16,7 @@ import { createSelector } from 'reselect'
 const StackContainerSelector = createSelector(
   [selectPlayerStackOpenDeckCards, selectPlayerStackDeckCards, selectIsDndEnabled, selectSelectedCardIndex],
   (stackOpenDeckCards, stackDeckCards, isDndEnabled, selectedCardIndex) => ({
-    stackOpenDeckCard: stackOpenDeckCards[stackOpenDeckCards.length - 1] ? stackOpenDeckCards[stackOpenDeckCards.length - 1] : {},
+    stackOpenDeckCard: stackOpenDeckCards[stackOpenDeckCards.length - 1] || {},
     stackDeckCards,
     isDndEnabled,
     selectedCardIndex,
@@ -36,7 +36,7 @@ export const StackContainer = () => {
   }, [dispatch, isDndEnabled, stackOpenDeckCard])
 
   const handleStackOpenDeckCardOutsideClick = useCallback(() => {
-    dispatch(setSelectedCardIndexAction())
+    dispatch(setSelectedCardIndexAction(undefined))
   }, [dispatch])
 
   const handleStackDeckCardClick = useCallback(() => {
