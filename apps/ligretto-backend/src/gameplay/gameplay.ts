@@ -63,7 +63,7 @@ export class Gameplay {
     try {
       const remaining = await this.playerService.takeFromLigrettoDeck(gameId, playerId)
 
-      if (remaining === 0) {
+      if (remaining === 7) { // TODO: Количество карт до конца игры
         return this.gameService.endRound(gameId)
       }
 

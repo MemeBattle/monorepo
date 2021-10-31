@@ -13,6 +13,7 @@ const emptyGame: Game = {
   players: {},
   playground: {
     decks: [],
+    droppedDecks: [],
   },
   config: { cardsCount: 3, playersMaxCount: 4 },
 }
@@ -53,6 +54,7 @@ export class GameService {
         players,
         playground: {
           decks: [],
+          droppedDecks: [],
         },
       }
     })
@@ -111,7 +113,7 @@ export class GameService {
     const game = await this.getGame(gameId)
 
     const initialScoresByPlayer = Object.keys(game.players).reduce<Record<string, 0>>((scores, playerId) => ({ ...scores, [playerId]: 0 }), {})
-
+   //decks + dropDecks
     const droppedCardsCount = game.playground.decks.reduce<Record<string, number>>((acc, deck) => {
       const groupedDeckCards = groupBy(deck.cards, card => card.playerId)
       return mergeWith(acc, groupedDeckCards, (playerScore, playerDroppedCards) => playerScore + playerDroppedCards.length)

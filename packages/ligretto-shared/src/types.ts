@@ -30,6 +30,7 @@ export interface Room {
 
 export interface Playground {
   decks: CardsDeck[]
+  droppedDecks: CardsDeck[]
 }
 
 export interface Player {

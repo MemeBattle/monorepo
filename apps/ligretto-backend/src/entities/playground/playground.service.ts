@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import { last } from 'lodash'
-import { PlaygroundRepository } from './playground.repo'
+import type { PlaygroundRepository } from './playground.repo'
 import type { Card, CardsDeck, Game } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
@@ -31,11 +31,20 @@ export class PlaygroundService {
     console.log('putCard', deckIndex)
     await this.playgroundRepository.updateDeck(gameId, deckIndex, deck => {
       console.log('putCard deck', deck)
-
+      // 10 проверить и обновить новую колоду для сброса
       if (isDeckAvailable(deck, card)) {
+        //  2) StackDropCards
+        const isFullDeck = card.value === 2
+        if (isFullDeck) {
+          this.playgroundRepository.updateDroppedDeck(gameId, deckIndex, deck => ({
+            ...deck,
+            isHidden: isFullDeck,
+            cards: [...deck.cards, card],
+          }))
+        }
         return {
           ...deck,
-          isHidden: card.value === 10,
+          isHidden: isFullDeck,
           cards: [...deck.cards, card],
         }
       }

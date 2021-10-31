@@ -27,6 +27,7 @@ const initialState: GameState = {
   results: undefined,
   playground: {
     decks: [],
+    droppedDecks: [],
   },
 }
 
