@@ -6,6 +6,7 @@ import last from 'lodash/last'
 
 export interface TableCardsProps {
   cardsDecks: Array<CardsDeck | null>
+  onDeckClick: (playgroundDeckIndex: number) => void
 }
 
 const getLastCard = (deck: CardsDeck | null): Card | undefined => last(deck?.cards)

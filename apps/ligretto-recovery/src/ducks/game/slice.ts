@@ -23,6 +23,7 @@ const initialState: GameState = {
     players: {},
     playground: {
       decks: [],
+      droppedDecks: [],
     },
     config: {
       dndEnabled: false,
@@ -32,11 +33,6 @@ const initialState: GameState = {
   },
   results: undefined,
   isGameLoaded: false,
-  results: undefined,
-  playground: {
-    decks: [],
-    droppedDecks: [],
-  },
   localPlayerState: {},
 }
 
