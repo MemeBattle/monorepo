@@ -13,11 +13,11 @@ const getLastCard = (deck: CardsDeck | null): Card | undefined => last(deck?.car
 
 export const Playground: React.FC<TableCardsProps> = ({ cardsDecks }) => {
   const cards: (Card | undefined)[] = useMemo(() => {
-    const ar = []
+    const newPlayerCardsArr = []
     for (let i = 0; i < 10; i++) {
-      ar.push(getLastCard(cardsDecks[i]))
+      newPlayerCardsArr.push(getLastCard(cardsDecks[i]))
     }
-    return ar
+    return newPlayerCardsArr
   }, [cardsDecks])
   return (
     <div className={styles.tableCardsWrapper}>
