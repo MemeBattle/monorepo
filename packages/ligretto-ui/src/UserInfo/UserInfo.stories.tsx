@@ -20,4 +20,5 @@ Authorized.argTypes = {
   username: { control: 'text', defaultValue: 'themezv' },
   buttonText: { control: 'text', defaultValue: 'Sign in' },
   onButtonClick: { action: 'button clicked' },
+  img: { control: 'text' },
 }
