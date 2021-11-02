@@ -1,4 +1,4 @@
-import { all, fork, take } from 'redux-saga/effects'
+import { all, fork, takeLatest } from 'redux-saga/effects'
 import { socketSaga } from 'middlewares/saga'
 import { roomsRootSaga } from 'ducks/rooms'
 import { gameRootSaga } from 'ducks/game'
@@ -10,6 +10,5 @@ export default function* rootSaga() {
 }
 
 function* blockedSocketSaga() {
-  yield take(getMeSuccess)
-  yield fork(socketSaga)
+  yield takeLatest(getMeSuccess, socketSaga)
 }

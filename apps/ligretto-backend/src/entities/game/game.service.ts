@@ -1,8 +1,8 @@
 import { inject, injectable } from 'inversify'
-import { groupBy, mergeWith, omit } from 'lodash'
+import { groupBy, merge, mergeWith, omit } from 'lodash'
 import { GameRepository } from './game.repo'
 import type { Game, Player } from '@memebattle/ligretto-shared'
-import { GameStatus } from '@memebattle/ligretto-shared'
+import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 import { createInitialPlayerCards } from '../../utils/create-initial-player-cards'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
@@ -15,17 +15,17 @@ const emptyGame: Game = {
     decks: [],
     droppedDecks: [],
   },
-  config: { cardsCount: 3, playersMaxCount: 4 },
+  config: { cardsCount: 3, playersMaxCount: 4, dndEnabled: true },
 }
 
 @injectable()
 export class GameService {
   @inject(IOC_TYPES.GameRepository) private gameRepository: GameRepository
 
-  createGame(name: string) {
+  createGame(name: string, config: Partial<Game['config']> = {}) {
     const gameId = String(Math.random()).slice(5)
 
-    return this.gameRepository.addGame(gameId, { ...emptyGame, name, id: gameId })
+    return this.gameRepository.addGame(gameId, merge({}, emptyGame, { id: gameId, name, config }))
   }
 
   startGame(gameId: string) {
@@ -45,6 +45,7 @@ export class GameService {
             cards: allCards,
             isHidden: true,
           },
+          status: PlayerStatus.InGame,
         }
       }
 
@@ -65,7 +66,14 @@ export class GameService {
   }
 
   roundFinished(gameId: string) {
-    return this.gameRepository.updateGame(gameId, game => ({ ...game, status: GameStatus.RoundFinished }))
+    return this.gameRepository.updateGame(gameId, game => ({
+      ...game,
+      status: GameStatus.RoundFinished,
+      players: Object.values(game.players).reduce(
+        (players, player) => ({ ...players, [player.id]: { ...player, status: PlayerStatus.DontReadyToPlay } }),
+        {},
+      ),
+    }))
   }
 
   async addPlayer(gameId: string, playerData: Partial<Player> & { id: Player['id'] }) {

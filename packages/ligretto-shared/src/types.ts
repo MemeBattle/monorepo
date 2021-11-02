@@ -16,7 +16,6 @@ export enum OpponentPositions {
 export interface Card {
   color?: CardColors
   value?: number
-  disabled?: boolean
   hidden?: boolean
   playerId?: string
 }
@@ -57,6 +56,7 @@ export enum CreateRoomErrorCode {
 export enum PlayerStatus {
   DontReadyToPlay = 'DontReadyToPlay',
   ReadyToPlay = 'ReadyToPlay',
+  InGame = 'InGame',
 }
 
 export interface Game {
@@ -70,6 +70,7 @@ export interface Game {
   config: {
     cardsCount: number
     playersMaxCount: number
+    dndEnabled: boolean
   }
 }
 

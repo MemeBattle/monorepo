@@ -45,9 +45,9 @@ export class GameplayController extends Controller {
   }
 
   private async putCard(socket: Socket, action: ReturnType<typeof putCardAction>) {
-    const { gameId, cardIndex } = action.payload
+    const { gameId, cardIndex, playgroundDeckIndex } = action.payload
 
-    await this.gameplay.playerPutCard(gameId, socket.data.user.id, cardIndex)
+    await this.gameplay.playerPutCard(gameId, socket.data.user.id, cardIndex, playgroundDeckIndex)
     await this.updateGame(socket, gameId)
   }
 
@@ -73,9 +73,9 @@ export class GameplayController extends Controller {
   }
 
   private async putCardFromStackOpenDeck(socket: Socket, action: ReturnType<typeof putCardFromStackOpenDeck>) {
-    const { gameId } = action.payload
+    const { gameId, playgroundDeckIndex } = action.payload
     console.log('putCardFromStackOpenDeck', action)
-    await this.gameplay.playerPutFromStackOpenDeck(gameId, socket.data.user.id)
+    await this.gameplay.playerPutFromStackOpenDeck(gameId, socket.data.user.id, playgroundDeckIndex)
     await this.updateGame(socket, gameId)
   }
 }

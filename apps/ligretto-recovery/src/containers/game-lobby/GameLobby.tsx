@@ -1,13 +1,12 @@
 import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { GameLobby as GameLobbyComponent } from 'components/blocks/game'
-import { selectGameStatus, selectOpponents, selectPlayer, startGameAction, togglePlayerStatusAction } from 'ducks/game'
+import { startGameAction, togglePlayerStatusAction } from 'ducks/game'
+import { selector } from './selector'
 
 export const GameLobby = () => {
   const dispatch = useDispatch()
-  const opponents = useSelector(selectOpponents)
-  const player = useSelector(selectPlayer)
-  const gameStatus = useSelector(selectGameStatus)
+  const { opponents, gameStatus, player } = useSelector(selector)
 
   const handleReadyToPlayButtonClick = React.useCallback(() => {
     dispatch(togglePlayerStatusAction())

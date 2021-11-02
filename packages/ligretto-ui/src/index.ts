@@ -1,5 +1,6 @@
 export { ThemeProvider, CssBaseline } from '@material-ui/core'
 export { theme } from './themes/default'
+export { theme as ligrettoAuthTheme } from './themes/ligrettoAuth'
 export * from './Button'
 export * from './Container'
 export * from './Grid'
@@ -47,3 +48,9 @@ export * from './LigrettoLogo'
 export * from './LoaderCards'
 
 export * from './Background'
+
+export * from './Player'
+
+export * from './Paper'
+
+export * from './Link'

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { getRandomAvatar } from './getRandomAvatar'
 import { createStyles, makeStyles } from '@material-ui/core'
 
@@ -22,15 +22,20 @@ const useStyles = makeStyles(
     boxImage: {
       maxWidth: ({ size }: { size: AvatarSize }) => maxSizeBySize[size],
       maxHeight: ({ size }: { size: AvatarSize }) => maxSizeBySize[size],
+      height: ({ size }: { size: AvatarSize }) => maxSizeBySize[size],
+    },
+    image: {
+      objectFit: 'contain',
     },
   }),
 )
 
 export const Avatar: React.FC<AvatarProps> = ({ src, size = 'medium', alt = 'Avatar' }) => {
   const classes = useStyles({ size })
+  const source = useMemo(() => (src ? src : getRandomAvatar()), [src])
   return (
     <div className={classes.boxImage}>
-      <img alt={alt} src={src ? src : getRandomAvatar()} height="100%" width="100%" />
+      <img className={classes.image} alt={alt} src={source} height="100%" width="100%" />
     </div>
   )
 }
