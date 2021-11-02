@@ -29,7 +29,7 @@ export interface Room {
 }
 
 export interface Playground {
-  decks: CardsDeck[]
+  decks: Array<CardsDeck | null>
   droppedDecks: CardsDeck[]
 }
 
