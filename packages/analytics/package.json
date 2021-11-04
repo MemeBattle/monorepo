@@ -1,0 +1,25 @@
+{
+  "name": "@memebattle/analytics",
+  "version": "1.0.0",
+  "description": "> TODO: description",
+  "author": "Artem Zverev <themezv@gmail.com>",
+  "homepage": "https://github.com/MemeBattle/monorepo#readme",
+  "license": "MIT",
+  "main": "build/index.js",
+  "types": "src/index.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MemeBattle/monorepo.git"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: run tests from root\" && exit 1"
+  },
+  "devDependencies": {
+    "@types/amplitude-js": "8.0.1",
+    "typescript": "^4.3.2"
+  },
+  "dependencies": {
+    "amplitude-js": "^8.9.1"
+  }
+}
