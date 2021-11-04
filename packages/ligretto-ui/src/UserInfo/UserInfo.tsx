@@ -1,62 +1,63 @@
 import type { MouseEventHandler } from 'react'
 import React from 'react'
 import { createStyles, makeStyles, Button } from '@material-ui/core'
-import ExitToApp from '@material-ui/icons/ExitToApp'
+import CreateIcon from '@material-ui/icons/Create'
+import ClearIcon from '@material-ui/icons/Clear'
 
-import { Typography } from '../Typography'
 import { Avatar } from '../Avatar'
+import { Paper } from '../Paper'
 
-const useStyles = makeStyles(theme =>
+const useStyles = makeStyles(() =>
   createStyles({
     mainUser: {
-      display: 'flex',
-      flexDirection: 'column',
-      maxWidth: '12rem',
+      maxWidth: '20rem',
+      position: 'relative',
+      width: '20rem',
+      height: '13rem',
     },
     mainUserAvatar: {
-      width: '12rem',
-      height: '12rem',
-      maxHeight: '12rem',
       display: 'flex',
-      cursor: 'pointer',
-      position: 'relative',
-      borderRadius: '0.8rem',
-      overflow: 'hidden',
       justifyContent: 'center',
-      alignItems: 'center',
     },
     image: {
-      padding: '2px',
+      marginTop: '0.5rem',
       maxWidth: '100%',
-      maxHeight: '100%',
+      width: '9rem',
+      height: '9rem',
     },
     signupButton: {
       position: 'absolute',
       height: '100%',
       width: '100%',
-      display: 'flex',
-      alignItems: 'center',
+      display: 'inherit',
+      alignItems: 'end',
       justifyContent: 'center',
     },
     button: {
-      border: 'solid 2px white',
+      width: '70%',
+      height: '3rem',
+      marginBottom: '0.5rem',
+      textTransform: 'none',
+      fontSize: '1.5rem',
     },
-    backdrop: {
-      width: '100%',
-      height: '100%',
-      background: theme.palette.grey.A700,
-      opacity: '40%',
+    clearIcon: {
       position: 'absolute',
-    },
-    bottom: {
-      marginTop: '0.5rem',
+      top: 0,
+      right: 0,
+      justifyContent: 'flex-end',
       display: 'flex',
-      justifyContent: 'center',
+      minWidth: 'auto',
     },
-    username: {
-      fontWeight: 'bold',
-      fontSize: '1.6rem',
-      color: 'white',
+    endIcon: {
+      position: 'absolute',
+      top: '0.65rem',
+      right: '0.65rem',
+      margin: 0,
+    },
+    userNameField: {
+      textOverflow: 'ellipsis',
+      width: '10rem',
+      overflow: 'hidden',
     },
   }),
 )
@@ -76,33 +77,50 @@ export const UserInfo: React.FC<UserInfoProps> = ({ img, onClick, username, onBu
     e.stopPropagation()
     if (onButtonClick) {
       onButtonClick(e)
+      console.log('CLICK')
     }
   }
 
   return (
-    <div className={classes.mainUser}>
-      <div className={classes.mainUserAvatar} onClick={onClick}>
-        <div className={classes.image}>
-          <Avatar src={img} alt={username} size="auto" />
-        </div>
-
-        {username ? null : (
-          <div className={classes.signupButton}>
-            <div className={classes.backdrop} />
-            <Button className={classes.button} color="primary" variant="contained" size="large" onClick={handleButtonClick} endIcon={<ExitToApp />}>
-              {buttonText}
-            </Button>
+    <Paper>
+      <div className={classes.mainUser}>
+        <div className={classes.mainUserAvatar} onClick={onClick}>
+          <div className={classes.image}>
+            <Avatar src={img} alt={username} size="auto" />
           </div>
-        )}
-      </div>
-      {username ? (
-        <div className={classes.bottom}>
-          <Typography className={classes.username} align="center">
-            {username}
-          </Typography>
+          {username ? (
+            <div className={classes.signupButton}>
+              <Button className={classes.clearIcon} onClick={handleButtonClick}>
+                {<ClearIcon />}
+              </Button>
+              <Button
+                className={classes.button}
+                color="primary"
+                variant="contained"
+                size="large"
+                classes={{
+                  endIcon: classes.endIcon,
+                }}
+                endIcon={
+                  <div>
+                    <CreateIcon />
+                  </div>
+                }
+                onClick={handleButtonClick}
+              >
+                {<div className={classes.userNameField}>{username}</div>}
+              </Button>
+            </div>
+          ) : (
+            <div className={classes.signupButton}>
+              <Button className={classes.button} color="primary" variant="contained" size="large" onClick={handleButtonClick}>
+                {buttonText}
+              </Button>
+            </div>
+          )}
         </div>
-      ) : null}
-    </div>
+      </div>
+    </Paper>
   )
 }
 

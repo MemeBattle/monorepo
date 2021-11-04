@@ -6,7 +6,7 @@ export default {
   component: UserInfo,
   argTypes: {
     onClick: { action: 'clicked' },
-    buttonText: { control: 'text', defaultValue: 'sign in' },
+    buttonText: { control: 'text', defaultValue: 'Sign in' },
     onButtonClick: { action: 'buttonClicked' },
   },
 }
@@ -18,6 +18,7 @@ export const Authorized = args => <UserInfo {...args} />
 Authorized.argTypes = {
   onClick: { action: 'clicked' },
   username: { control: 'text', defaultValue: 'themezv' },
-  buttonText: { control: 'text', defaultValue: 'sign in' },
+  buttonText: { control: 'text', defaultValue: 'Sign in' },
   onButtonClick: { action: 'button clicked' },
+  img: { control: 'text' },
 }
