@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "rootDir": "./src",
+    "target": "es2018",
+    "lib": ["dom", "esnext", "es2018"],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": "./build",
+    "sourceMap": true
+  },
+  "exclude": ["node_modules", "build"],
+  "files": ["src/index.ts"]
+}

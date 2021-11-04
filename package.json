@@ -8,7 +8,7 @@
     "lint:styles": "stylelint {apps,packages}/**/*.scss",
     "test": "lerna run --no-bail test --ignore-path .gitignore",
     "ligretto:start": "env-cmd yarn lerna run --parallel --scope @memebattle/ligretto-shared --scope @memebattle/ligretto-backend --scope @memebattle/ligretto-recovery --scope @memebattle/ligretto-ui --scope @memebattle/auth-front start:dev",
-    "common-packages:build": "yarn lerna run --scope @memebattle/ligretto-shared build && yarn lerna run --parallel --scope @memebattle/ligretto-ui build && yarn lerna run --scope @memebattle/auth-front build:module",
+    "common-packages:build": "yarn lerna run --scope @memebattle/ligretto-shared build && yarn lerna run --parallel --scope @memebattle/ligretto-ui --scope @memebattle/analytics build && yarn lerna run --scope @memebattle/auth-front build:module",
     "ligretto:front:build": "yarn lerna run --stream --scope @memebattle/ligretto-recovery build",
     "ligretto:front:start:dev": "env-cmd yarn lerna run --stream --scope @memebattle/ligretto-recovery start:dev",
     "ligretto:back:build": "yarn lerna run --stream --scope @memebattle/ligretto-backend build",

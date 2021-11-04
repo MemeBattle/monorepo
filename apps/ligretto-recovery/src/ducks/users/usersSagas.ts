@@ -8,7 +8,7 @@ import { addUser, addUsers } from './usersActions'
 import { connectToRoomSuccessAction } from '@memebattle/ligretto-shared'
 import { userJoinToRoomAction } from '@memebattle/ligretto-shared'
 
-export function* getUserByTokenSaga(token?: string): SagaIterator<{ userId: User['casId']; token: string } | null> {
+export function* getUserByTokenSaga(token?: string): SagaIterator<{ userId: User['casId']; token: string; isTemporary: boolean } | null> {
   try {
     const { data }: AxiosResponse<GetMeResponse> = yield call(getMe, token)
 
@@ -16,6 +16,7 @@ export function* getUserByTokenSaga(token?: string): SagaIterator<{ userId: User
 
     return {
       userId: data.user.casId,
+      isTemporary: data.user.isTemporary,
       token: data.token,
     }
   } catch (e) {
