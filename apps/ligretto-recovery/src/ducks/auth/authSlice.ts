@@ -16,7 +16,7 @@ export const authSlice = createSlice({
     getMeRequest: (state, { payload }: PayloadAction<{ token?: string }>) => {
       state.isLoading = true
     },
-    getMeSuccess: (state, { payload }: PayloadAction<{ userId: string; token: string }>) => {
+    getMeSuccess: (state, { payload }: PayloadAction<{ userId: string; token: string; isTemporary: boolean }>) => {
       state.userId = payload.userId
       state.token = payload.token
       state.isLoading = false
