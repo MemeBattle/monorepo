@@ -1,10 +1,10 @@
 import { inject, injectable } from 'inversify'
 import { last } from 'lodash'
-import type { PlaygroundRepository } from './playground.repo'
+import { PlaygroundRepository } from './playground.repo'
 import type { Card, CardsDeck, Game } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
-const isDeckAvailable = (deck: CardsDeck | null, card) => {
+const isDeckAvailable = (deck: CardsDeck | null, card: Card) => {
   const topCard: Card | undefined = last(deck?.cards)
   console.log('isDeckAvailable', topCard, card)
   if (!topCard) {
@@ -30,41 +30,48 @@ export class PlaygroundService {
   async putCard(gameId: string, card: Card, deckIndex: number) {
     console.log('putCard', deckIndex)
     const deck = await this.playgroundRepository.getDeck(gameId, deckIndex)
-    if (isDeckAvailable(deck, card)) {
-      await this.playgroundRepository.updateDeck(gameId, deckIndex, deck =>
-        deck
-          ? {
-              ...deck,
-              cards: [...deck?.cards, card],
-            }
-          : { cards: [card], isHidden: false },
-      )
-      if (card.value === 10) {
-        const updatedDeck = await this.playgroundRepository.getDeck(gameId, deckIndex)
+
+    if (!isDeckAvailable(deck, card)) {
+      return
+    }
+
+    await this.playgroundRepository.updateDeck(gameId, deckIndex, deck =>
+      deck
+        ? {
+            ...deck,
+            cards: [...deck?.cards, card],
+          }
+        : { cards: [card], isHidden: false },
+    )
+    if (card.value === 10) {
+      const updatedDeck = await this.playgroundRepository.getDeck(gameId, deckIndex)
+
+      if (updatedDeck) {
         await this.playgroundRepository.addDroppedDeck(gameId, updatedDeck)
         await this.playgroundRepository.removeDeck(gameId, deckIndex)
       }
-    } else {
-      return
     }
   }
 
   async cleanDeck(gameId: string, position: number) {
-    await this.playgroundRepository.updateDeck(gameId, position, deck => ({
-      ...deck,
+    await this.playgroundRepository.updateDeck(gameId, position, () => ({
+      cards: [],
       isHidden: true,
     }))
   }
 
   async checkIsDeckAvailable(gameId: string, card: Card, position: number) {
     const deck = await this.playgroundRepository.getDeck(gameId, position)
-    const topCard: Card | undefined = last(deck.cards)
-    if (deck.isHidden) {
-      return false
+    const topCard: Card | undefined = last(deck?.cards)
+
+    if (!deck) {
+      return true
     }
+
     if (topCard === undefined) {
       return card.value === 1
     }
+
     return topCard.value + 1 === card.value && topCard.color === card.color
   }
 

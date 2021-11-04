@@ -4,7 +4,7 @@ import { injectable } from 'inversify'
 @injectable()
 export abstract class Controller {
   protected abstract handlers: {
-    [actionType: string]: (socket: Socket, action: unknown) => void
+    [actionType: string]: (socket: Socket, action: never) => void
   }
 
   private getHandler(type: string) {
@@ -15,6 +15,8 @@ export abstract class Controller {
     const handler = this.getHandler(action.type)
 
     if (handler && typeof handler === 'function') {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       return handler(socket, action)
     }
   }

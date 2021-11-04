@@ -38,7 +38,7 @@ export class PlayerRepository {
   }
 
   async getStackDeck(gameId: string, player: string) {
-    return this.database.get(storage => storage.games[gameId]?.players[player]?.stackDeck)
+    return this.database.get(storage => storage.games[gameId].players[player]?.stackDeck)
   }
 
   async getStackOpenDeck(gameId: string, player: string) {
@@ -49,7 +49,7 @@ export class PlayerRepository {
     return this.database.set(storage => storage.games[gameId].players[player].stackOpenDeck.cards.pop())
   }
 
-  async updateCard(gameId: string, player: string, position: number, updater: (card: Card) => Card) {
+  async updateCard(gameId: string, player: string, position: number, updater: (card: Card | null) => Card) {
     const card = await this.getCard(gameId, player, position)
     return this.database.set(storage => (storage.games[gameId].players[player].cards[position] = updater(card)))
   }

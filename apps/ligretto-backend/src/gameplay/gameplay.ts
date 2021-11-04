@@ -59,7 +59,7 @@ export class Gameplay {
     }
   }
 
-  async playerTakeFromLigrettoDeck(gameId: string, playerId: string): Promise<[Game, Record<string, number> | null]> {
+  async playerTakeFromLigrettoDeck(gameId: string, playerId: string): Promise<[Game | undefined, Record<string, number> | undefined] | undefined> {
     try {
       const remaining = await this.playerService.takeFromLigrettoDeck(gameId, playerId)
 
@@ -68,9 +68,10 @@ export class Gameplay {
       }
 
       const game = await this.gameService.getGame(gameId)
-      return [game, null]
+      return [game, undefined]
     } catch (e) {
       console.log(e)
+      return [undefined, undefined]
     }
   }
 

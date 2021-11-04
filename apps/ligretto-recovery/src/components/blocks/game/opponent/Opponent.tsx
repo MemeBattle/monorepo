@@ -17,7 +17,7 @@ const stylesByPosition = {
 export interface OpponentCardsProps {
   position?: PositionOnTable
   stackOpenDeckCards: OpponentCard[]
-  cards: OpponentCard[]
+  cards: (OpponentCard | null)[]
   username: string
   avatar?: string
   status: PlayerStatus
@@ -39,7 +39,7 @@ export const Opponent: React.FC<OpponentCardsProps> = ({ position, stackOpenDeck
           <Card {...stackOpenDeckCard} />
         </CardPlace>
         {cards.map((card, index) => (
-          <Card {...card} key={index} />
+          <CardPlace key={index}>{card ? <Card {...card} /> : null} </CardPlace>
         ))}
       </CardsRow>
     </div>
