@@ -23,6 +23,7 @@ const initialState: GameState = {
     players: {},
     playground: {
       decks: [],
+      droppedDecks: [],
     },
     config: {
       dndEnabled: false,

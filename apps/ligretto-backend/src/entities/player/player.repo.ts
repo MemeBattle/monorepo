@@ -38,7 +38,7 @@ export class PlayerRepository {
   }
 
   async getStackDeck(gameId: string, player: string) {
-    return this.database.get(storage => storage.games[gameId].players[player].stackDeck)
+    return this.database.get(storage => storage.games[gameId]?.players[player]?.stackDeck)
   }
 
   async getStackOpenDeck(gameId: string, player: string) {

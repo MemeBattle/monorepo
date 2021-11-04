@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify'
 import { groupBy, merge, mergeWith, omit } from 'lodash'
-import { GameRepository } from './game.repo'
-import type { Game, Player } from '@memebattle/ligretto-shared'
+import type { GameRepository } from './game.repo'
+import type { CardsDeck, Game, Player } from '@memebattle/ligretto-shared'
 import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 import { createInitialPlayerCards } from '../../utils/create-initial-player-cards'
 import { IOC_TYPES } from '../../IOC_TYPES'
@@ -13,6 +13,7 @@ const emptyGame: Game = {
   players: {},
   playground: {
     decks: [],
+    droppedDecks: [],
   },
   config: { cardsCount: 3, playersMaxCount: 4, dndEnabled: true },
 }
@@ -54,6 +55,7 @@ export class GameService {
         players,
         playground: {
           decks: [],
+          droppedDecks: [],
         },
       }
     })
@@ -119,8 +121,8 @@ export class GameService {
     const game = await this.getGame(gameId)
 
     const initialScoresByPlayer = Object.keys(game.players).reduce<Record<string, 0>>((scores, playerId) => ({ ...scores, [playerId]: 0 }), {})
-
-    const droppedCardsCount = game.playground.decks.reduce<Record<string, number>>((acc, deck) => {
+    const clearPlaygroundDecks: CardsDeck[] = game.playground.decks.filter(Boolean)
+    const droppedCardsCount = [...clearPlaygroundDecks, ...game.playground.droppedDecks].reduce<Record<string, number>>((acc, deck) => {
       const groupedDeckCards = groupBy(deck.cards, card => card.playerId)
       return mergeWith(acc, groupedDeckCards, (playerScore, playerDroppedCards) => playerScore + playerDroppedCards.length)
     }, initialScoresByPlayer)
