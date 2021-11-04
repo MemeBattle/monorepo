@@ -1,11 +1,11 @@
 import { inject, injectable } from 'inversify'
 import { last } from 'lodash'
-import { PlaygroundRepository } from './playground.repo'
+import type { PlaygroundRepository } from './playground.repo'
 import type { Card, CardsDeck, Game } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
-const isDeckAvailable = (deck: CardsDeck, card) => {
-  const topCard: Card | undefined = last(deck.cards)
+const isDeckAvailable = (deck: CardsDeck | null, card) => {
+  const topCard: Card | undefined = last(deck?.cards)
   console.log('isDeckAvailable', topCard, card)
   if (!topCard) {
     return card.value === 1
@@ -29,18 +29,24 @@ export class PlaygroundService {
 
   async putCard(gameId: string, card: Card, deckIndex: number) {
     console.log('putCard', deckIndex)
-    await this.playgroundRepository.updateDeck(gameId, deckIndex, deck => {
-      console.log('putCard deck', deck)
-
-      if (isDeckAvailable(deck, card)) {
-        return {
-          ...deck,
-          isHidden: card.value === 10,
-          cards: [...deck.cards, card],
-        }
+    const deck = await this.playgroundRepository.getDeck(gameId, deckIndex)
+    if (isDeckAvailable(deck, card)) {
+      await this.playgroundRepository.updateDeck(gameId, deckIndex, deck =>
+        deck
+          ? {
+              ...deck,
+              cards: [...deck?.cards, card],
+            }
+          : { cards: [card], isHidden: false },
+      )
+      if (card.value === 10) {
+        const updatedDeck = await this.playgroundRepository.getDeck(gameId, deckIndex)
+        await this.playgroundRepository.addDroppedDeck(gameId, updatedDeck)
+        await this.playgroundRepository.removeDeck(gameId, deckIndex)
       }
-      return deck
-    })
+    } else {
+      return
+    }
   }
 
   async cleanDeck(gameId: string, position: number) {

@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import type { CardsDeck } from '@memebattle/ligretto-shared'
-import { Database } from '../../database/database'
+import type { Database } from '../../database/database'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
 @injectable()
@@ -18,6 +18,14 @@ export class PlaygroundRepository {
   addDeck(gameId: string, cardsDeck: CardsDeck) {
     return this.database.set(storage => {
       const decks = storage.games[gameId].playground.decks
+      decks.push(cardsDeck)
+      return decks
+    })
+  }
+
+  addDroppedDeck(gameId: string, cardsDeck: CardsDeck) {
+    return this.database.set(storage => {
+      const decks = storage.games[gameId].playground.droppedDecks
       decks.push(cardsDeck)
       return decks
     })
