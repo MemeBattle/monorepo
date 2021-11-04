@@ -1,5 +1,8 @@
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { createSelector } from 'reselect'
+
+import { Stack } from 'components/blocks/game'
 import {
   setSelectedCardIndexAction,
   selectPlayerStackOpenDeckCards,
@@ -10,8 +13,6 @@ import {
   selectSelectedCardIndex,
   STACK_OPEN_DECK_INDEX,
 } from 'ducks/game'
-import { Stack } from 'components/blocks/game'
-import { createSelector } from 'reselect'
 
 const StackContainerSelector = createSelector(
   [selectPlayerStackOpenDeckCards, selectPlayerStackDeckCards, selectIsDndEnabled, selectSelectedCardIndex],

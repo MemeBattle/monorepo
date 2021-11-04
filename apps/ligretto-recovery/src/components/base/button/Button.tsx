@@ -1,6 +1,7 @@
 import * as React from 'react'
-import styles from './Button.module.scss'
 import classNames from 'classnames'
+
+import styles from './Button.module.scss'
 
 export enum ButtonColors {
   Red = 'red',

@@ -1,6 +1,7 @@
 import React from 'react'
-import { BaseLayout } from '../base/BaseLayout'
 import { Background } from '@memebattle/ligretto-ui'
+
+import { BaseLayout } from '../base/BaseLayout'
 import styles from './MainLayout.module.scss'
 
 export const MainLayout: React.FC = ({ children }) => (

@@ -1,4 +1,5 @@
 import { createSelector } from 'reselect'
+
 import { selectCurrentUserId } from 'ducks/auth'
 import { selectPlayers, selectGameStatus, selectOpponents, mergePlayerAndUser } from 'ducks/game'
 import { selectUsersMap } from 'ducks/users'

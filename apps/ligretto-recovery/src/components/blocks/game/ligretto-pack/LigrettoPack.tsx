@@ -1,7 +1,8 @@
 import React from 'react'
-import styles from './LigrettoPack.module.scss'
 import { Card } from '@memebattle/ligretto-ui'
 import type { Card as PlayerCards } from '@memebattle/ligretto-shared'
+
+import styles from './LigrettoPack.module.scss'
 
 interface LigrettoPack {
   count: number

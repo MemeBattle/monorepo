@@ -3,9 +3,10 @@ import React from 'react'
 import type { Player as SharedPlayer } from '@memebattle/ligretto-shared'
 import { GameStatus } from '@memebattle/ligretto-shared'
 import { RoomGrid } from '@memebattle/ligretto-ui'
-import { PlayerReadyButton } from 'components/blocks/game/player-ready-button'
-import { OpponentWaiting } from 'components/blocks/game'
+
 import { GameResults } from 'containers/game-results'
+import { OpponentWaiting } from 'components/blocks/game'
+import { PlayerReadyButton } from 'components/blocks/game/player-ready-button'
 
 import styles from './GameLobby.module.scss'
 

@@ -1,8 +1,10 @@
-import { getMeRequest, getMeSuccess } from './authActions'
 import { call, put, takeLeading } from 'redux-saga/effects'
+
 import { getUserByTokenSaga } from 'ducks/users'
-import { LOCAL_STORAGE_TOKEN_KEY } from './constants'
+
 import type { User } from '../users/usersTypes'
+import { getMeRequest, getMeSuccess } from './authActions'
+import { LOCAL_STORAGE_TOKEN_KEY } from './constants'
 
 export function* initSaga() {
   const token = window.localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY) ?? undefined

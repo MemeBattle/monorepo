@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react'
 import cn from 'classnames'
-import styles from './PlayerReadyButton.module.scss'
-import playIcon from 'assets/icons/play.svg'
 import { Player } from '@memebattle/ligretto-ui'
 import type { PlayerStatus } from '@memebattle/ligretto-shared'
+
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
+import playIcon from 'assets/icons/play.svg'
+
+import styles from './PlayerReadyButton.module.scss'
 
 export interface PlayerReadyButtonProps {
   onClick: () => void
