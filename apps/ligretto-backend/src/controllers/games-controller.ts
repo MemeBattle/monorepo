@@ -33,7 +33,7 @@ export class GamesController extends Controller {
   @inject(IOC_TYPES.GameplayOutput) private gameplayOutput: GameplayOutput
   @inject(IOC_TYPES.UserService) private userService: UserService
 
-  handlers = {
+  handlers: Controller['handlers'] = {
     [createRoomEmitAction.type]: (socket, action) => this.createGame(socket, action),
     [searchRoomsEmitAction.type]: (socket, action) => this.searchRooms(socket, action),
     [connectToRoomEmitAction.type]: (socket, action) => this.joinGame(socket, action),
@@ -75,7 +75,8 @@ export class GamesController extends Controller {
   private async joinGame(socket: Socket, action: ReturnType<typeof connectToRoomEmitAction>) {
     const roomUuid = action.payload.roomUuid
 
-    const game: Game = await this.gameService.getGame(roomUuid)
+    const game: Game | undefined = await this.gameService.getGame(roomUuid)
+
     if (!game || Object.keys(game.players).length > 3) {
       socket.emit('event', connectToRoomErrorAction())
       return
@@ -99,15 +100,18 @@ export class GamesController extends Controller {
     const { gameId, status } = payload
 
     const game = await this.gameService.updateGamePlayer(gameId, socket.data.user.id, { status })
+
     socket.to(gameId).emit('event', updateGameAction(game))
     socket.emit('event', updateGameAction(game))
   }
 
   private async leaveFromRoomHandler(socket: Socket) {
     const user = await this.userService.getUser(socket.data.user.id)
-    if (!user) {
+
+    if (!user || !user.currentGameId) {
       return
     }
+
     const game = await this.gameService.leaveGame(user.currentGameId, user.id)
     socket.leave(user.currentGameId)
     if (game) {

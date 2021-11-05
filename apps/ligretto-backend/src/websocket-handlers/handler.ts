@@ -7,6 +7,7 @@ import { TechController } from '../controllers/tech-controller'
 import { UserService } from '../entities/user'
 import { BotController } from '../controllers/bot-controller'
 import { authMiddleware } from '../middlewares'
+import type { AnyAction } from '../types/any-action'
 
 export interface WebSocketHandler {
   connectionHandler(socket: Socket): void
@@ -46,7 +47,7 @@ export class WebSocketHandler implements WebSocketHandler {
     this.userService.addUser({ socketId: socket.id, id: socket.data.user.id })
   }
 
-  private messageHandler(socket: Socket, data: { type: string; payload: unknown }) {
+  private messageHandler(socket: Socket, data: AnyAction) {
     this.gameplayController.handleMessage(socket, data)
     this.gamesController.handleMessage(socket, data)
     this.techController.handleMessage(socket, data)

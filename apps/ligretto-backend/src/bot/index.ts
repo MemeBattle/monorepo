@@ -1,6 +1,7 @@
 import { connectToRoomEmitAction } from '@memebattle/ligretto-shared'
 import type { Socket } from 'socket.io'
 import { nanoid } from 'nanoid'
+import Timeout = NodeJS.Timeout
 
 /**
  * Стратегия игры бота:
@@ -12,7 +13,7 @@ import { nanoid } from 'nanoid'
  * TODO: В стартегию также нужно добавить зависимость от текущих открытых карт других игроков и ситуации на столе
  */
 
-const botIntervalsByBotId = {}
+const botIntervalsByBotId: Record<string, Timeout> = {}
 
 const makeTurn = (socket: Socket, botId: string) => {
   botIntervalsByBotId[botId] = setInterval(() => makeTurn(socket, botId), 300)

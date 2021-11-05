@@ -1,10 +1,13 @@
 import React, { useRef } from 'react'
-import type { Card as CardModel } from '@memebattle/ligretto-shared'
 import { CardColors } from '@memebattle/ligretto-shared'
 import { createStyles, makeStyles, Paper, ButtonBase } from '@material-ui/core'
 import { useOnClickOutside } from '../utils'
 
-interface CardProps extends CardModel {
+interface CardProps {
+  /** Color of card **/
+  color?: CardColors
+  /** Value of card **/
+  value?: number
   /** Selected state of card **/
   selected?: boolean
   /** Disabled state of card **/
@@ -72,8 +75,8 @@ const useStyles = makeStyles(
   }),
 )
 
-export const Card: React.FC<CardProps> = ({ value, disabled, selected, onClick, onClickOutside, color, hidden }) => {
-  const classes = useStyles({ disabled, hidden, color, selected })
+export const Card: React.FC<CardProps> = ({ value, disabled, selected, onClick, onClickOutside, color }) => {
+  const classes = useStyles({ disabled, color, selected })
 
   const ref = useRef<HTMLDivElement>(null)
 
@@ -83,7 +86,7 @@ export const Card: React.FC<CardProps> = ({ value, disabled, selected, onClick, 
     <div ref={ref} className={classes.cardWrapper}>
       <ButtonBase className={classes.button} disabled={disabled} draggable>
         <Paper classes={{ root: classes.card }} onClick={!disabled ? onClick : () => null}>
-          {color !== CardColors.empty && !hidden ? <div className={classes.value}>{value}</div> : null}
+          {color !== CardColors.empty ? <div className={classes.value}>{value}</div> : null}
         </Paper>
       </ButtonBase>
     </div>

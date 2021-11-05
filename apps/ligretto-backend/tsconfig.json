@@ -10,7 +10,10 @@
     "moduleResolution": "node",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "outDir": "build"
+    "outDir": "build",
+    "strict": true,
+    // Not compatible with inversify
+    "strictPropertyInitialization": false
   },
   "exclude": ["node_modules", "build"],
   "include": ["src/**/*"]

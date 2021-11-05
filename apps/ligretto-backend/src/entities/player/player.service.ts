@@ -18,6 +18,7 @@ export class PlayerService {
 
   async addCard(gameId: string, color: string, card: Card) {
     const cards = await this.playerRepository.getCards(gameId, color)
+
     const emptyCardIndex = cards.findIndex(card => card === null)
 
     if (emptyCardIndex !== -1) {
@@ -42,6 +43,7 @@ export class PlayerService {
 
   async getCardFromStackOpenDeck(gameId: string, color: string) {
     const deck = await this.playerRepository.getStackOpenDeck(gameId, color)
+
     return last(deck.cards)
   }
 
@@ -70,7 +72,7 @@ export class PlayerService {
       await this.shuffleStackDeck(gameId, color)
     }
 
-    let cards = []
+    let cards: Card[] = []
 
     await this.playerRepository.updateStackDeck(gameId, color, stackDeck => {
       cards = stackDeck.cards.slice(-3)
@@ -97,13 +99,15 @@ export class PlayerService {
    */
   async takeFromLigrettoDeck(gameId: string, playerId: string) {
     const cards = await this.playerRepository.getCards(gameId, playerId)
-    const deck = await this.playerRepository.getLigrettoDeck(gameId, playerId)
+    const ligrettoDeck = await this.playerRepository.getLigrettoDeck(gameId, playerId)
+
     const emptyCardIndex = cards.findIndex(card => card === null)
     if (emptyCardIndex === -1) {
-      return deck.cards.length
+      return ligrettoDeck.cards.length
     }
-    const card = last(deck.cards)
-    await this.addCard(gameId, playerId, card)
+
+    const card = last(ligrettoDeck.cards)
+    await this.addCard(gameId, playerId, card!)
     return await this.removeCardFromLigrettoDeck(gameId, playerId)
   }
 }

@@ -15,7 +15,7 @@ export enum OpponentPositions {
 // TODO: Fix required fields
 export interface Card {
   color?: CardColors
-  value?: number
+  value: number
   hidden?: boolean
   playerId?: string
 }
@@ -35,7 +35,7 @@ export interface Playground {
 export interface Player {
   id: string
   status: PlayerStatus
-  cards: Card[]
+  cards: (Card | null)[]
   ligrettoDeck: CardsDeck
   stackOpenDeck: CardsDeck
   stackDeck: CardsDeck
