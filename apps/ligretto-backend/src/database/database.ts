@@ -40,7 +40,7 @@ export class Database implements Database {
     users: {},
   }
 
-  private listeners = {}
+  private listeners: Record<string, (nextStorage: Storage) => void> = {}
 
   private notifyListeners() {
     for (const listenerKey in this.listeners) {

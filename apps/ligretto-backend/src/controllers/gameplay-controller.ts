@@ -21,7 +21,7 @@ export class GameplayController extends Controller {
   @inject(IOC_TYPES.Gameplay) private gameplay: Gameplay
   @inject(IOC_TYPES.GameService) private gameService: GameService
 
-  handlers = {
+  handlers: Controller['handlers'] = {
     [startGameEmitAction.type]: (socket, action) => this.startGame(socket, action),
     [putCardAction.type]: (socket: Socket, action) => this.putCard(socket, action),
     [takeFromLigrettoDeckAction.type]: (socket: Socket, action) => this.takeCardFromLigrettoDeck(socket, action),
@@ -31,7 +31,9 @@ export class GameplayController extends Controller {
 
   private async updateGame(socket: Socket, gameId: string, gameState?: Game) {
     const game = gameState || (await this.gameService.getGame(gameId))
+
     const action = updateGameAction(game)
+
     socket.to(gameId).emit('event', action)
     socket.emit('event', action)
   }
@@ -54,8 +56,12 @@ export class GameplayController extends Controller {
   private async takeCardFromLigrettoDeck(socket: Socket, action: ReturnType<typeof takeFromLigrettoDeckAction>) {
     const { gameId } = action.payload
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     const [game, roundResults] = await this.gameplay.playerTakeFromLigrettoDeck(gameId, socket.data.user.id)
+
     await this.updateGame(socket, gameId, game)
+
     console.log(roundResults)
     if (roundResults) {
       const action = endRoundAction(mapValues(roundResults, roundScore => ({ roundScore, gameScore: roundScore })))

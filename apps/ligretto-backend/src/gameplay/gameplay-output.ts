@@ -8,6 +8,8 @@ export class GameplayOutput {
   @inject(IOC_TYPES.Database) private database: Database
 
   public listenGame(gameId: string, callback: (game: Game) => void) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
     this.database.addUpdateListener(`game-${gameId}`, storage => storage.games[gameId], callback)
   }
 
