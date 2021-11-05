@@ -1,9 +1,10 @@
 import React from 'react'
-import { Routes } from 'components/routes'
 import { useSelector } from 'react-redux'
+
+import { useMinTimeToShowLoader } from 'hooks'
+import { Routes } from 'components/routes'
 import { selectCurrentUserId } from 'ducks/auth'
 import { LoaderScreen } from 'components/screens/loader-screen'
-import { useMinTimeToShowLoader } from 'hooks'
 
 export const AppContainer = () => {
   const currentUserId = useSelector(selectCurrentUserId)

@@ -1,0 +1,43 @@
+//  WARNING: this config only helps webstorm autocomplete your imports
+//  for example (components/... instead of ../../components)
+{
+  "compilerOptions": {
+    "baseUrl": "./src",
+    "paths": {
+      "api": [
+        "api"
+      ],
+      "api/*": [
+        "api/*"
+      ],
+      "assets/*": [
+        "assets/*"
+      ],
+      "components/*": [
+        "components/*"
+      ],
+      "containers/*": ["containers/*"],
+      "ducks/*": [
+        "ducks/*"
+      ],
+      "hooks": [
+        "hooks"
+      ],
+      "middlewares/*": [
+        "middlewares/*"
+      ],
+      "pages": [
+        "pages"
+      ],
+      "store": [
+        "store"
+      ],
+      "types/*": [
+        "types/*"
+      ],
+      "utils/*": [
+        "utils/*"
+      ]
+    }
+  },
+}

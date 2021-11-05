@@ -1,4 +1,5 @@
-import { request } from '../utils/request'
+import { request } from 'utils/request'
+
 import type { UserModel } from './apiTypes'
 
 export interface GetMeResponse {

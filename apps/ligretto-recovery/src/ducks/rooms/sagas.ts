@@ -1,5 +1,4 @@
 import { takeLatest, take, put, select } from 'redux-saga/effects'
-import { connectToRoomAction, createRoomAction, searchRoomsAction, updateRoomsAction, setRoomsAction, setErrorRoomsAction } from './slice'
 import type { updateRooms as updateRoomsFromServer } from '@memebattle/ligretto-shared'
 import {
   createRoomEmitAction,
@@ -13,7 +12,10 @@ import {
 } from '@memebattle/ligretto-shared'
 import { replace, push } from 'connected-react-router'
 import { generatePath } from 'react-router-dom'
-import { routes } from '../../utils/constants'
+
+import { routes } from 'utils/constants'
+
+import { connectToRoomAction, createRoomAction, searchRoomsAction, updateRoomsAction, setRoomsAction, setErrorRoomsAction } from './slice'
 import { selectSearch } from './selectors'
 
 /**

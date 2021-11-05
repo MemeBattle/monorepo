@@ -1,9 +1,11 @@
 import type { Player } from '@memebattle/ligretto-shared'
-import type { All } from '../../types/store'
-import { selectCurrentUserId } from 'ducks/auth'
-import { mergePlayerAndUser } from './utils'
 import { createSelector } from 'reselect'
+
+import type { All } from 'types/store'
+import { selectCurrentUserId } from 'ducks/auth'
+
 import { selectUsersMap } from '../users'
+import { mergePlayerAndUser } from './utils'
 
 export const selectGame = (state: All) => state.game.game
 export const selectGameId = (state: All) => selectGame(state).id

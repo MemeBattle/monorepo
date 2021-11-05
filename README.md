@@ -30,7 +30,7 @@ yarn common-packages:build
 ```
 
 ## Start all
-You need prepare all applications before (ligretto-backend, ligretto-frontend)
+You need prepare all applications before (ligretto-backend, ligretto-recovery)
 ```
 yarn ligretto:start
 ```

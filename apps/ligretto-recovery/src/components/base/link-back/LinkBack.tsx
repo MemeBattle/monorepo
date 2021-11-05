@@ -1,9 +1,12 @@
 import * as React from 'react'
 import { Link } from 'react-router-dom'
-import BackIcon from 'assets/icons/back-arrow.svg'
-import { routes } from 'utils/constants'
-import styles from './LinkBack.module.scss'
 import * as classNamesBind from 'classnames/bind'
+
+import { routes } from 'utils/constants'
+import BackIcon from 'assets/icons/back-arrow.svg'
+
+import styles from './LinkBack.module.scss'
+
 const cx = classNamesBind.bind(styles)
 
 interface LinkBackProps {

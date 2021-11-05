@@ -1,12 +1,13 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
-import { selectGameResults } from 'ducks/game'
-import { selectUsersMap } from 'ducks/users'
-import { selectCurrentUserId } from 'ducks/auth'
 import { ResultsTable } from '@memebattle/ligretto-ui'
 import { createSelector } from 'reselect'
 import sortBy from 'lodash/sortBy'
+
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
+import { selectCurrentUserId } from 'ducks/auth'
+import { selectUsersMap } from 'ducks/users'
+import { selectGameResults } from 'ducks/game'
 
 const selectGameResultsForTable = createSelector(
   selectGameResults,

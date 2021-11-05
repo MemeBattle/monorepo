@@ -4,9 +4,10 @@ import { Provider } from 'react-redux'
 import { ConnectedRouter } from 'connected-react-router'
 import { ThemeProvider, theme, CssBaseline } from '@memebattle/ligretto-ui'
 
-import { store, history } from './store'
-import * as serviceWorker from './serviceWorker'
+import { store, history } from 'store'
 import { AppContainer } from 'containers/app'
+
+import * as serviceWorker from './serviceWorker'
 
 ReactDOM.render(
   <Provider store={store}>

@@ -3,8 +3,10 @@ import { eventChannel, END } from 'redux-saga'
 import { all, actionChannel, take, put, call } from 'redux-saga/effects'
 import io from 'socket.io-client'
 import type { Socket } from 'socket.io-client'
+
+import { LOCAL_STORAGE_TOKEN_KEY } from 'ducks/auth/constants'
+
 import { WEBSOCKET_URL } from '../../config'
-import { LOCAL_STORAGE_TOKEN_KEY } from '../../ducks/auth/constants'
 
 function socketChannel(socket: Socket): EventChannel<unknown> {
   return eventChannel<unknown>(
