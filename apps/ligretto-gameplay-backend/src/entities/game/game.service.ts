@@ -17,7 +17,7 @@ const emptyGame: Game = {
     decks: [],
     droppedDecks: [],
   },
-  config: { cardsCount: 3, playersMaxCount: 4, dndEnabled: true },
+  config: { cardsCount: 3, playersMaxCount: 4, dndEnabled: false },
 }
 
 @injectable()
@@ -34,7 +34,7 @@ export class GameService {
   startGame(gameId: string) {
     return this.gameRepository.updateGame(gameId, game => {
       const players: Game['players'] = {}
-
+      console.log('updateGame', game)
       // eslint-disable-next-line guard-for-in
       for (const player in game.players) {
         const allCards = createInitialPlayerCards(player)
@@ -156,13 +156,20 @@ export class GameService {
   async endRound(gameId: string): Promise<{ game?: Game; gameResults?: GameResults }> {
     const results = await this.getRoundResult(gameId)
 
-    const { gameResults } = await this.ligrettoCoreService.saveGameRoundService(gameId, {
-      results,
-    })
+    try {
+      const { gameResults } = await this.ligrettoCoreService.saveGameRoundService(gameId, {
+        results,
+      })
 
-    const game = await this.finishRound(gameId)
+      console.log('endRound, results', gameResults)
 
-    return { game, gameResults }
+      const game = await this.finishRound(gameId)
+
+      return { game, gameResults }
+    } catch (e) {
+      console.error(e)
+      throw e
+    }
   }
 
   findGames(pattern: string) {
