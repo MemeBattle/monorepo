@@ -2,9 +2,9 @@ import React from 'react'
 import cn from 'classnames'
 import { Link } from 'react-router-dom'
 
-import styles from './MenuItem.module.scss'
-
 import type { routes } from 'utils/constants'
+
+import styles from './MenuItem.module.scss'
 
 type ValueOf<T> = T[keyof T]
 

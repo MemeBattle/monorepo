@@ -1,11 +1,12 @@
 import React, { useCallback } from 'react'
 import { AuthFrontModule } from '@memebattle/auth-front'
 import { useDispatch } from 'react-redux'
-import { getMeRequest } from 'ducks/auth/authActions'
 import { useHistory } from 'react-router'
-import { routes } from '../../utils/constants'
 import { LigrettoLogo, ThemeProvider, ligrettoAuthTheme } from '@memebattle/ligretto-ui'
-import { MainLayout } from '../../components/layouts/main'
+
+import { MainLayout } from 'components/layouts/main'
+import { routes } from 'utils/constants'
+import { getMeRequest } from 'ducks/auth/authActions'
 
 export const AuthContainer = () => {
   const dispatch = useDispatch()

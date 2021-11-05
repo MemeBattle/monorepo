@@ -1,9 +1,10 @@
-import React, { useCallback, useMemo } from 'react'
-import { UserInfo } from 'components/blocks/home/user-info'
-import { useHistory } from 'react-router'
-import { routes } from 'utils/constants/router-constants'
 import { useSelector } from 'react-redux'
-import { selectCurrentUser } from '../../ducks/auth/authSelectors'
+import { useHistory } from 'react-router'
+import React, { useCallback, useMemo } from 'react'
+
+import { UserInfo } from 'components/blocks/home/user-info'
+import { routes } from 'utils/constants'
+import { selectCurrentUser } from 'ducks/auth'
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 
 export const UserInfoContainer = () => {

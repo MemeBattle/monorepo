@@ -3,7 +3,8 @@ import ReactJson from 'react-json-view'
 import { useParams } from 'react-router'
 import { techConnectToGame } from '@memebattle/ligretto-shared'
 import { useDispatch, useSelector } from 'react-redux'
-import type { All } from '../../types/store'
+
+import type { All } from 'types/store'
 
 export const GameJson = () => {
   const { gameId } = useParams<{ gameId: string }>()

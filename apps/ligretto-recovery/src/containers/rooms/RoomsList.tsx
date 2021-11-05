@@ -2,9 +2,10 @@ import React, { useMemo } from 'react'
 import { useSelector } from 'react-redux'
 import type { RoomsListProps } from '@memebattle/ligretto-ui'
 import { RoomsList as RoomsListComponent } from '@memebattle/ligretto-ui'
-import { selectRoomsList } from 'ducks/rooms'
 import { useHistory, generatePath } from 'react-router'
+
 import { routes } from 'utils/constants'
+import { selectRoomsList } from 'ducks/rooms'
 
 export const RoomsList = () => {
   const rooms = useSelector(selectRoomsList)

@@ -1,8 +1,11 @@
 import * as React from 'react'
+import * as classNamesBind from 'classnames/bind'
+
 import searchIcon from 'assets/icons/search.svg'
 import refreshIcon from 'assets/icons/refresh.svg'
+
 import styles from './SearchInput.module.scss'
-import * as classNamesBind from 'classnames/bind'
+
 const cn = classNamesBind.bind(styles)
 
 export interface SearchInputProps extends React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement> {

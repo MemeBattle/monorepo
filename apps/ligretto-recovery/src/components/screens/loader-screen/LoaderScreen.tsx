@@ -1,6 +1,8 @@
 import React from 'react'
-import { MainLayout } from 'components/layouts/main'
 import { LigrettoLogo, LoaderCards } from '@memebattle/ligretto-ui'
+
+import { MainLayout } from 'components/layouts/main'
+
 import styles from './LoaderScreen.module.scss'
 
 export const LoaderScreen: React.FC = () => (

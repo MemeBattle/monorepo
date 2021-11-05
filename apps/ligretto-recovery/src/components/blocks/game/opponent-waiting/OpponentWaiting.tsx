@@ -2,8 +2,10 @@ import React, { memo, useMemo } from 'react'
 import cn from 'classnames'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { PositionOnTable, Player } from '@memebattle/ligretto-ui'
-import styles from './OpponentWaiting.module.scss'
+
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
+
+import styles from './OpponentWaiting.module.scss'
 
 export interface OpponentWaitingProps {
   position?: PositionOnTable
