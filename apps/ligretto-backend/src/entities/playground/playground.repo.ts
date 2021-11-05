@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import type { CardsDeck } from '@memebattle/ligretto-shared'
-import type { Database } from '../../database/database'
+import { Database } from '../../database/database'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
 @injectable()
@@ -37,7 +37,7 @@ export class PlaygroundRepository {
     })
   }
 
-  async updateDeck(gameId: string, position: number, updater: (deck: CardsDeck) => CardsDeck) {
+  async updateDeck(gameId: string, position: number, updater: (deck: CardsDeck | null) => CardsDeck) {
     const deck = await this.getDeck(gameId, position)
 
     return this.database.set(storage => {

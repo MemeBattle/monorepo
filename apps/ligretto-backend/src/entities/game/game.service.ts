@@ -1,10 +1,11 @@
 import { inject, injectable } from 'inversify'
 import { groupBy, merge, mergeWith, omit } from 'lodash'
-import type { GameRepository } from './game.repo'
-import type { CardsDeck, Game, Player } from '@memebattle/ligretto-shared'
+import { GameRepository } from './game.repo'
+import type { Game, Player } from '@memebattle/ligretto-shared'
 import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 import { createInitialPlayerCards } from '../../utils/create-initial-player-cards'
 import { IOC_TYPES } from '../../IOC_TYPES'
+import { nonNullable } from '../../utils/nonNullable'
 
 const emptyGame: Game = {
   id: 'base',
@@ -121,7 +122,9 @@ export class GameService {
     const game = await this.getGame(gameId)
 
     const initialScoresByPlayer = Object.keys(game.players).reduce<Record<string, 0>>((scores, playerId) => ({ ...scores, [playerId]: 0 }), {})
-    const clearPlaygroundDecks: CardsDeck[] = game.playground.decks.filter(Boolean)
+
+    const clearPlaygroundDecks = game.playground.decks.filter(nonNullable)
+
     const droppedCardsCount = [...clearPlaygroundDecks, ...game.playground.droppedDecks].reduce<Record<string, number>>((acc, deck) => {
       const groupedDeckCards = groupBy(deck.cards, card => card.playerId)
       return mergeWith(acc, groupedDeckCards, (playerScore, playerDroppedCards) => playerScore + playerDroppedCards.length)
@@ -148,7 +151,7 @@ export class GameService {
     return result
   }
 
-  async endRound(gameId: string): Promise<[Game, Record<string, number>]> {
+  async endRound(gameId: string): Promise<[Game | undefined, Record<string, number> | undefined]> {
     const result = await this.getResult(gameId)
     const game = await this.roundFinished(gameId)
     return [game, result]
@@ -158,7 +161,7 @@ export class GameService {
     return this.gameRepository.getGames(pattern)
   }
 
-  async leaveGame(gameId: string, playerId: Player['id']): Promise<Game | null> {
+  async leaveGame(gameId: string, playerId: Player['id']): Promise<Game | undefined> {
     let game = await this.gameRepository.updateGame(gameId, game => {
       const isHostLeaving = game.players[playerId].isHost
       return {
@@ -173,17 +176,21 @@ export class GameService {
       }
     })
     console.log('New game state', game)
+
     if (!game) {
       return
     }
+
     const playersCount = Object.keys(game.players).length
     if (playersCount === 0) {
       await this.endGame(game.id)
-      return null
+      return
     }
+
     if (playersCount === 1) {
       game = await this.pauseGame(gameId)
     }
+
     return game
   }
 }

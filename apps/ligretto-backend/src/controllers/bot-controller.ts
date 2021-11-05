@@ -11,7 +11,7 @@ import { Controller } from './controller'
 export class BotController extends Controller {
   @inject(IOC_TYPES.GameService) private gameService: GameService
 
-  handlers = {
+  handlers: Controller['handlers'] = {
     [addBotAction.type]: (socket, action) => this.addBotToGame(socket, action),
   }
 
