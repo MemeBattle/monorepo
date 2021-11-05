@@ -1,11 +1,12 @@
 import { inject, injectable } from 'inversify'
-import { groupBy, merge, mergeWith, omit } from 'lodash'
+import { groupBy, mapValues, merge, mergeWith, omit } from 'lodash'
 import { GameRepository } from './game.repo'
-import type { Game, Player } from '@memebattle/ligretto-shared'
+import type { Game, GameResults, Player } from '@memebattle/ligretto-shared'
 import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 import { createInitialPlayerCards } from '../../utils/create-initial-player-cards'
 import { IOC_TYPES } from '../../IOC_TYPES'
 import { nonNullable } from '../../utils/nonNullable'
+import { LigrettoCoreService } from '../../services/ligretto-core'
 
 const emptyGame: Game = {
   id: 'base',
@@ -22,6 +23,7 @@ const emptyGame: Game = {
 @injectable()
 export class GameService {
   @inject(IOC_TYPES.GameRepository) private gameRepository: GameRepository
+  @inject(IOC_TYPES.LigrettoCoreService) private ligrettoCoreService: LigrettoCoreService
 
   createGame(name: string, config: Partial<Game['config']> = {}) {
     const gameId = String(Math.random()).slice(5)
@@ -66,7 +68,7 @@ export class GameService {
     return this.gameRepository.updateGame(gameId, game => ({ ...game, status: GameStatus.Pause }))
   }
 
-  roundFinished(gameId: string) {
+  finishRound(gameId: string) {
     return this.gameRepository.updateGame(gameId, game => ({
       ...game,
       status: GameStatus.RoundFinished,
@@ -118,7 +120,7 @@ export class GameService {
     return this.gameRepository.getGame(gameId)
   }
 
-  async getResult(gameId: string) {
+  async getRoundResult(gameId: string) {
     const game = await this.getGame(gameId)
 
     const initialScoresByPlayer = Object.keys(game.players).reduce<Record<string, 0>>((scores, playerId) => ({ ...scores, [playerId]: 0 }), {})
@@ -138,23 +140,29 @@ export class GameService {
       {},
     )
 
-    return mergeWith(
-      ligrettoStackCardsCount,
-      droppedCardsCount,
-      (ligrettoCardsCount, droppedCardsCount) => droppedCardsCount - 2 * ligrettoCardsCount,
+    return mapValues(
+      mergeWith(ligrettoStackCardsCount, droppedCardsCount, (ligrettoCardsCount, droppedCardsCount) => droppedCardsCount - 2 * ligrettoCardsCount),
+      roundScore => ({ roundScore }),
     )
   }
 
   async endGame(gameId: string) {
-    const result = this.getResult(gameId)
+    const [game, gameResults] = await this.endRound(gameId)
     await this.gameRepository.removeGame(gameId)
-    return result
+
+    return [game, gameResults]
   }
 
-  async endRound(gameId: string): Promise<[Game | undefined, Record<string, number> | undefined]> {
-    const result = await this.getResult(gameId)
-    const game = await this.roundFinished(gameId)
-    return [game, result]
+  async endRound(gameId: string): Promise<[Game | undefined, GameResults | undefined]> {
+    const results = await this.getRoundResult(gameId)
+
+    const gameResults = await this.ligrettoCoreService.saveGameRoundService(gameId, {
+      results,
+    })
+
+    const game = await this.finishRound(gameId)
+
+    return [game, gameResults]
   }
 
   findGames(pattern: string) {
