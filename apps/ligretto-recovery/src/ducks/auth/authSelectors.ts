@@ -1,4 +1,5 @@
-import type { All } from '../../types/store'
+import type { All } from 'types/store'
+
 import { selectUserById } from '../users'
 
 export const selectCurrentUserId = (state: All) => state.auth.userId

@@ -1,8 +1,9 @@
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { tapLigrettoDeckCardAction, selectPlayerLigrettoDeckCards } from 'ducks/game'
-import { CardsPanel } from 'components/blocks/game'
 import { createSelector } from 'reselect'
+
+import { CardsPanel } from 'components/blocks/game'
+import { tapLigrettoDeckCardAction, selectPlayerLigrettoDeckCards } from 'ducks/game'
 
 const CardsPanelContainerSelector = createSelector([selectPlayerLigrettoDeckCards], playerLigrettoDeckCards => ({
   playerLigrettoDeckCards,

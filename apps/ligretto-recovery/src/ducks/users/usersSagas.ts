@@ -1,12 +1,13 @@
-import type { GetMeResponse, GetUsersResponse } from '../../api'
-import { getMe, getUsersByIds } from '../../api'
 import { call, put, takeEvery } from 'redux-saga/effects'
 import type { SagaIterator } from 'redux-saga'
-import type { User } from './usersTypes'
 import type { AxiosResponse } from 'axios'
+import { connectToRoomSuccessAction, userJoinToRoomAction } from '@memebattle/ligretto-shared'
+
+import { getMe, getUsersByIds } from 'api'
+import type { GetMeResponse, GetUsersResponse } from 'api'
+
 import { addUser, addUsers } from './usersActions'
-import { connectToRoomSuccessAction } from '@memebattle/ligretto-shared'
-import { userJoinToRoomAction } from '@memebattle/ligretto-shared'
+import type { User } from './usersTypes'
 
 export function* getUserByTokenSaga(token?: string): SagaIterator<{ userId: User['casId']; token: string; isTemporary: boolean } | null> {
   try {

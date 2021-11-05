@@ -2,6 +2,7 @@ import type { Game, GameResults } from '@memebattle/ligretto-shared'
 import { GameStatus } from '@memebattle/ligretto-shared'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createAction, createSlice } from '@reduxjs/toolkit'
+
 import type { STACK_OPEN_DECK_INDEX } from './utils'
 
 type SelectedCardIndex = number | typeof STACK_OPEN_DECK_INDEX

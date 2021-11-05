@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react'
-import styles from './Playground.module.scss'
 import { Card as CardComponent, CardPlace, TableCards as TableCardsUI } from '@memebattle/ligretto-ui'
 import type { CardsDeck, Card } from '@memebattle/ligretto-shared'
 import last from 'lodash/last'
+
+import styles from './Playground.module.scss'
 
 export interface TableCardsProps {
   cardsDecks: Array<CardsDeck | null>

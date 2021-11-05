@@ -1,4 +1,5 @@
 import type { Player as SharedPlayer } from '@memebattle/ligretto-shared'
+
 import type { User } from '../users/usersTypes'
 
 export const mergePlayerAndUser = (player: SharedPlayer, user: User) =>

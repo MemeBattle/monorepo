@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react'
 import clsx from 'clsx'
 import { PositionOnTable, CardsRow, Card, CardPlace, Player } from '@memebattle/ligretto-ui'
-import styles from './Opponent.module.scss'
-import type { Card as OpponentCard } from '@memebattle/ligretto-shared'
+import type { Card as OpponentCard, PlayerStatus } from '@memebattle/ligretto-shared'
+
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
-import type { PlayerStatus } from '@memebattle/ligretto-shared'
+
+import styles from './Opponent.module.scss'
 
 const stylesByPosition = {
   [PositionOnTable.Left]: styles.positionLeft,

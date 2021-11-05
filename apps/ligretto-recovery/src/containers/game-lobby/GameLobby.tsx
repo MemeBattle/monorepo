@@ -1,7 +1,9 @@
 import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+
 import { GameLobby as GameLobbyComponent } from 'components/blocks/game'
 import { startGameAction, togglePlayerStatusAction } from 'ducks/game'
+
 import { selector } from './selector'
 
 export const GameLobby = () => {

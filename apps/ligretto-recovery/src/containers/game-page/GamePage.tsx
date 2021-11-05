@@ -1,11 +1,13 @@
 import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { selectGameStatus, selectIsGameLoaded, leaveGameAction } from 'ducks/game'
 import { GameStatus } from '@memebattle/ligretto-shared'
+import { useParams } from 'react-router'
+
+import { connectToRoomAction } from 'ducks/rooms'
+import { selectGameStatus, selectIsGameLoaded, leaveGameAction } from 'ducks/game'
+
 import { Game } from '../game'
 import { GameLobby } from '../game-lobby'
-import { connectToRoomAction } from '../../ducks/rooms'
-import { useParams } from 'react-router'
 
 export const GamePage = () => {
   const dispatch = useDispatch()

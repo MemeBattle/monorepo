@@ -1,6 +1,8 @@
 import React from 'react'
 import cn from 'classnames'
+
 import playIcon from 'assets/icons/play.svg'
+
 import styles from './StartGameButton.module.scss'
 
 interface StartGameButtonProps {
