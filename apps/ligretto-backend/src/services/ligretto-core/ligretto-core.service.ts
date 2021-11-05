@@ -9,6 +9,12 @@ export class LigrettoCoreService {
     baseURL: LIGRETTO_CORE_URL,
   })
 
+  public async createGameService(game: Pick<Game, 'name' | 'config'>) {
+    const res = await this.request.post<Pick<Game, 'id' | 'name' | 'config'>>('/game', game)
+
+    return res.data
+  }
+
   public async saveGameRoundService(gameId: Game['id'], round: RoundInfo) {
     const res = await this.request.post<GameResults>(`/game/${gameId}/round`, { round })
 
