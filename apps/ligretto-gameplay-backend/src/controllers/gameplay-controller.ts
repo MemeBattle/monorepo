@@ -1,6 +1,5 @@
 import { injectable, inject } from 'inversify'
 import type { Socket } from 'socket.io'
-import { mapValues } from 'lodash'
 import { Controller } from './controller'
 import type { Game } from '@memebattle/ligretto-shared'
 import {
@@ -56,15 +55,13 @@ export class GameplayController extends Controller {
   private async takeCardFromLigrettoDeck(socket: Socket, action: ReturnType<typeof takeFromLigrettoDeckAction>) {
     const { gameId } = action.payload
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    const [game, roundResults] = await this.gameplay.playerTakeFromLigrettoDeck(gameId, socket.data.user.id)
+    const { game, gameResults } = await this.gameplay.playerTakeFromLigrettoDeck(gameId, socket.data.user.id)
 
     await this.updateGame(socket, gameId, game)
 
-    console.log(roundResults)
-    if (roundResults) {
-      const action = endRoundAction(mapValues(roundResults, roundScore => ({ roundScore, gameScore: roundScore })))
+    console.log(gameResults)
+    if (gameResults) {
+      const action = endRoundAction(gameResults)
       socket.to(gameId).emit('event', action)
       socket.emit('event', action)
     }
