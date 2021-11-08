@@ -24,7 +24,7 @@ const useStyles = makeStyles(() =>
       width: '9rem',
       height: '9rem',
     },
-    signupButton: {
+    buttonField: {
       height: '100%',
       width: '100%',
       display: 'flex',
@@ -33,7 +33,7 @@ const useStyles = makeStyles(() =>
     button: {
       width: '70%',
       height: '3rem',
-      marginBottom: '0.5rem',
+      padding: '0.5rem',
       textTransform: 'none',
       fontSize: '1.5rem',
     },
@@ -42,6 +42,9 @@ const useStyles = makeStyles(() =>
       top: 0,
       right: 0,
       minWidth: 'auto',
+    },
+    createIcon: {
+      marginLeft: 0,
     },
     userNameField: {
       textOverflow: 'ellipsis',
@@ -77,22 +80,30 @@ export const UserInfo: React.FC<UserInfoProps> = ({ img, onClick, username, onBu
         <div className={classes.image} onClick={onClick}>
           <Avatar src={img} alt={username} size="auto" />
         </div>
-        {username ? (
-          <div className={classes.signupButton}>
-            <Button className={classes.clearIcon} onClick={handleButtonClick}>
-              {<ClearIcon />}
-            </Button>
-            <Button className={classes.button} color="primary" variant="contained" size="large" endIcon={<CreateIcon />} onClick={handleButtonClick}>
-              {<div className={classes.userNameField}>{username}</div>}
-            </Button>
-          </div>
-        ) : (
-          <div className={classes.signupButton}>
+        <div className={classes.buttonField}>
+          {username ? (
+            <>
+              <Button className={classes.clearIcon} onClick={handleButtonClick}>
+                {<ClearIcon />}
+              </Button>
+              <Button
+                className={classes.button}
+                classes={{ endIcon: classes.createIcon }}
+                color="primary"
+                variant="contained"
+                size="large"
+                endIcon={<CreateIcon />}
+                onClick={handleButtonClick}
+              >
+                {<div className={classes.userNameField}>{username}</div>}
+              </Button>
+            </>
+          ) : (
             <Button className={classes.button} color="primary" variant="contained" size="large" onClick={handleButtonClick}>
               {buttonText}
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </Paper>
   )
