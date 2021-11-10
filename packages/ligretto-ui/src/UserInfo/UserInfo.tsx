@@ -9,15 +9,14 @@ import { Paper } from '../Paper'
 
 const useStyles = makeStyles(() =>
   createStyles({
-    mainUser: {
+    userInfo: {
       maxWidth: '20rem',
       position: 'relative',
       width: '20rem',
       height: '13rem',
-    },
-    mainUserAvatar: {
       display: 'flex',
-      justifyContent: 'center',
+      alignItems: 'center',
+      flexDirection: 'column',
     },
     image: {
       marginTop: '0.5rem',
@@ -25,18 +24,16 @@ const useStyles = makeStyles(() =>
       width: '9rem',
       height: '9rem',
     },
-    signupButton: {
-      position: 'absolute',
+    buttonField: {
       height: '100%',
       width: '100%',
-      display: 'inherit',
-      alignItems: 'end',
+      display: 'flex',
       justifyContent: 'center',
     },
     button: {
       width: '70%',
       height: '3rem',
-      marginBottom: '0.5rem',
+      padding: '0.5rem',
       textTransform: 'none',
       fontSize: '1.5rem',
     },
@@ -44,20 +41,16 @@ const useStyles = makeStyles(() =>
       position: 'absolute',
       top: 0,
       right: 0,
-      justifyContent: 'flex-end',
-      display: 'flex',
       minWidth: 'auto',
     },
-    endIcon: {
-      position: 'absolute',
-      top: '0.65rem',
-      right: '0.65rem',
-      margin: 0,
+    createIcon: {
+      marginLeft: 0,
     },
     userNameField: {
       textOverflow: 'ellipsis',
       width: '10rem',
       overflow: 'hidden',
+      marginLeft: '1.375rem',
     },
   }),
 )
@@ -83,40 +76,32 @@ export const UserInfo: React.FC<UserInfoProps> = ({ img, onClick, username, onBu
 
   return (
     <Paper>
-      <div className={classes.mainUser}>
-        <div className={classes.mainUserAvatar} onClick={onClick}>
-          <div className={classes.image}>
-            <Avatar src={img} alt={username} size="auto" />
-          </div>
+      <div className={classes.userInfo}>
+        <div className={classes.image} onClick={onClick}>
+          <Avatar src={img} alt={username} size="auto" />
+        </div>
+        <div className={classes.buttonField}>
           {username ? (
-            <div className={classes.signupButton}>
+            <>
               <Button className={classes.clearIcon} onClick={handleButtonClick}>
                 {<ClearIcon />}
               </Button>
               <Button
                 className={classes.button}
+                classes={{ endIcon: classes.createIcon }}
                 color="primary"
                 variant="contained"
                 size="large"
-                classes={{
-                  endIcon: classes.endIcon,
-                }}
-                endIcon={
-                  <div>
-                    <CreateIcon />
-                  </div>
-                }
+                endIcon={<CreateIcon />}
                 onClick={handleButtonClick}
               >
                 {<div className={classes.userNameField}>{username}</div>}
               </Button>
-            </div>
+            </>
           ) : (
-            <div className={classes.signupButton}>
-              <Button className={classes.button} color="primary" variant="contained" size="large" onClick={handleButtonClick}>
-                {buttonText}
-              </Button>
-            </div>
+            <Button className={classes.button} color="primary" variant="contained" size="large" onClick={handleButtonClick}>
+              {buttonText}
+            </Button>
           )}
         </div>
       </div>
