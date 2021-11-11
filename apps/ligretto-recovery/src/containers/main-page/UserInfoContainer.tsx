@@ -1,12 +1,14 @@
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { useHistory } from 'react-router'
 import React, { useCallback, useMemo } from 'react'
 import { UserInfo } from 'components/blocks/home/user-info'
 import { routes } from 'utils/constants'
-import { selectCurrentUser } from 'ducks/auth'
+import { getMeLogout, selectCurrentUser } from 'ducks/auth'
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 
 export const UserInfoContainer = () => {
+  const dispatch = useDispatch()
+
   const { push } = useHistory()
 
   const user = useSelector(selectCurrentUser)
@@ -16,6 +18,10 @@ export const UserInfoContainer = () => {
       push(routes.AUTH)
     }
   }, [push, user])
+
+  const logoutClick = useCallback(() => {
+    dispatch(getMeLogout())
+  }, [dispatch])
 
   const userAvatarUrl = useMemo(() => {
     if (!user || user.isTemporary || !user.avatar) {
@@ -31,6 +37,7 @@ export const UserInfoContainer = () => {
       username={user?.isTemporary ? undefined : user?.username}
       onButtonClick={onButtonClick}
       onClick={onButtonClick}
+      logoutClick={logoutClick}
     />
   )
 }

@@ -59,18 +59,28 @@ export interface UserInfoProps {
   img?: string
   onClick?: MouseEventHandler
   onButtonClick?: MouseEventHandler
+  logoutClick?: MouseEventHandler
   buttonText?: string
   username?: string
 }
 
-export const UserInfo: React.FC<UserInfoProps> = ({ img, onClick, username, onButtonClick, buttonText }) => {
+export const UserInfo: React.FC<UserInfoProps> = ({ img, onClick, username, onButtonClick, logoutClick, buttonText }) => {
   const classes = useStyles()
 
   const handleButtonClick: MouseEventHandler = e => {
     e.stopPropagation()
+
     if (onButtonClick) {
       onButtonClick(e)
       console.log('CLICK')
+    }
+  }
+
+  const handleLogoutClick: MouseEventHandler = e => {
+    e.stopPropagation()
+
+    if (logoutClick) {
+      logoutClick(e)
     }
   }
 
@@ -83,7 +93,7 @@ export const UserInfo: React.FC<UserInfoProps> = ({ img, onClick, username, onBu
         <div className={classes.buttonField}>
           {username ? (
             <>
-              <Button className={classes.clearIcon} onClick={handleButtonClick}>
+              <Button className={classes.clearIcon} onClick={handleLogoutClick}>
                 {<ClearIcon />}
               </Button>
               <Button
