@@ -1,8 +1,8 @@
 import React from 'react'
-import { FormHelper } from './FormHelper'
+import { FormHelperText } from './FormHelper'
 
 export default {
-  title: 'FormHelper',
+  title: 'FormHelperText',
 }
 
-export const DefaultView = () => <FormHelper />
+export const DefaultView = () => <FormHelperText />

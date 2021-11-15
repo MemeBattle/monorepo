@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo } from 'react'
 import { Field, Form } from 'react-final-form'
-import { Button, Container, Input, PasswordInput, FormHelper, Link as UILink } from '@memebattle/ligretto-ui'
+import { Button, Container, Input, PasswordInput, FormHelperText, Link as UILink } from '@memebattle/ligretto-ui'
 import { Paper } from '../../components/Paper'
 import { Header } from '../../components/Header'
 import { Footer } from '../../components/Footer'
@@ -107,7 +107,7 @@ export const LoginPage = memo<LoginPageProps>(({ onLoginSucceeded }) => {
                   />
                 )}
               />
-              {!modifiedSinceLastSubmit && <FormHelper error={true}>{submitError}</FormHelper>}
+              {!modifiedSinceLastSubmit && <FormHelperText error={true}>{submitError}</FormHelperText>}
               <br />
               <Button type="submit" fullWidth variant="contained" color="primary" size="large">
                 {t.login.submit}

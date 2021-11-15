@@ -1,1 +1,1 @@
-export { FormHelper } from './FormHelper'
+export { FormHelperText } from './FormHelper'
