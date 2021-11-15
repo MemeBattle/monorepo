@@ -2,7 +2,7 @@ import { call, put, takeLeading } from 'redux-saga/effects'
 import { getUserByTokenSaga } from 'ducks/users'
 
 import type { User } from '../users/usersTypes'
-import { getMeLogout, getMeRequest, getMeSuccess } from './authActions'
+import { logout, getMeRequest, getMeSuccess } from './authActions'
 import { LOCAL_STORAGE_TOKEN_KEY } from './constants'
 
 export function* initSaga() {
@@ -18,19 +18,17 @@ export function* getMeSaga({ payload }: ReturnType<typeof getMeRequest>) {
   }
 
   window.localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, user.token)
-  yield put(getMeSuccess({ userId: user.userId, token: user.token, isTemporary: user.isTemporary }))
+  yield put(getMeSuccess({ ...user }))
 }
 
-export function* getMeOut() {
-  window.localStorage.removeItem('token')
-  yield put(getMeLogout())
+export function* logoutSaga() {
+  window.localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY)
 
-  const token = window.localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY) ?? undefined
-  yield put(getMeRequest({ token }))
+  yield put(getMeRequest({}))
 }
 
 export function* authRootSaga() {
   yield takeLeading(getMeRequest, getMeSaga)
-  yield takeLeading(getMeLogout, getMeOut)
+  yield takeLeading(logout, logoutSaga)
   yield call(initSaga)
 }

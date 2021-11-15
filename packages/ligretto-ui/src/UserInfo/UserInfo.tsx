@@ -59,12 +59,12 @@ export interface UserInfoProps {
   img?: string
   onClick?: MouseEventHandler
   onButtonClick?: MouseEventHandler
-  logoutClick?: MouseEventHandler
+  onLogoutClick?: MouseEventHandler
   buttonText?: string
   username?: string
 }
 
-export const UserInfo: React.FC<UserInfoProps> = ({ img, onClick, username, onButtonClick, logoutClick, buttonText }) => {
+export const UserInfo: React.FC<UserInfoProps> = ({ img, onClick, username, onButtonClick, onLogoutClick, buttonText }) => {
   const classes = useStyles()
 
   const handleButtonClick: MouseEventHandler = e => {
@@ -72,15 +72,14 @@ export const UserInfo: React.FC<UserInfoProps> = ({ img, onClick, username, onBu
 
     if (onButtonClick) {
       onButtonClick(e)
-      console.log('CLICK')
     }
   }
 
   const handleLogoutClick: MouseEventHandler = e => {
     e.stopPropagation()
 
-    if (logoutClick) {
-      logoutClick(e)
+    if (onLogoutClick) {
+      onLogoutClick(e)
     }
   }
 

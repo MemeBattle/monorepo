@@ -3,7 +3,7 @@ import { useHistory } from 'react-router'
 import React, { useCallback, useMemo } from 'react'
 import { UserInfo } from 'components/blocks/home/user-info'
 import { routes } from 'utils/constants'
-import { getMeLogout, selectCurrentUser } from 'ducks/auth'
+import { logout, selectCurrentUser } from 'ducks/auth'
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 
 export const UserInfoContainer = () => {
@@ -20,7 +20,7 @@ export const UserInfoContainer = () => {
   }, [push, user])
 
   const logoutClick = useCallback(() => {
-    dispatch(getMeLogout())
+    dispatch(logout())
   }, [dispatch])
 
   const userAvatarUrl = useMemo(() => {
@@ -37,7 +37,7 @@ export const UserInfoContainer = () => {
       username={user?.isTemporary ? undefined : user?.username}
       onButtonClick={onButtonClick}
       onClick={onButtonClick}
-      logoutClick={logoutClick}
+      onLogoutClick={logoutClick}
     />
   )
 }
