@@ -1,7 +1,8 @@
 import { injectable } from 'inversify'
-import { LIGRETTO_CORE_URL } from '../../config'
 import axios from 'axios'
-import type { Game, GameResults, RoundInfo } from '@memebattle/ligretto-shared'
+import type { AxiosResponse } from 'axios'
+import type { Game, RoundInfo, CreateGameRequest, CreateGameResponse, SaveRoundRequest, SaveRoundResponse } from '@memebattle/ligretto-shared'
+import { LIGRETTO_CORE_URL } from '../../config'
 
 @injectable()
 export class LigrettoCoreService {
@@ -9,14 +10,14 @@ export class LigrettoCoreService {
     baseURL: LIGRETTO_CORE_URL,
   })
 
-  public async createGameService(game: Pick<Game, 'name' | 'config'>) {
-    const res = await this.request.post<Pick<Game, 'id' | 'name' | 'config'>>('/games', game)
+  public async createGameService() {
+    const res = await this.request.post<CreateGameResponse, AxiosResponse<CreateGameResponse>, CreateGameRequest>('/games')
 
     return res.data
   }
 
   public async saveGameRoundService(gameId: Game['id'], round: RoundInfo) {
-    const res = await this.request.post<GameResults>(`/games/${gameId}/rounds`, { round })
+    const res = await this.request.post<SaveRoundResponse, AxiosResponse<SaveRoundResponse>, SaveRoundRequest>(`/games/${gameId}/rounds`, { round })
 
     return res.data
   }

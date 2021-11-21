@@ -85,10 +85,10 @@ export class Gameplay {
 
   async endGame(gameId: string) {
     try {
-      const results = await this.gameService.getRoundResult(gameId)
+      const roundResult = await this.gameService.getRoundResult(gameId)
       await this.gameService.endGame(gameId)
 
-      return { results }
+      return { roundResult }
     } catch (e) {
       console.log(e)
     }

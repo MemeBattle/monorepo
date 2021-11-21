@@ -26,9 +26,9 @@ export class GameService {
   @inject(IOC_TYPES.LigrettoCoreService) private ligrettoCoreService: LigrettoCoreService
 
   async createGame(name: string, config: Partial<Game['config']> = {}) {
-    const game = await this.ligrettoCoreService.createGameService({ name, config: { ...config, ...emptyGame.config } })
+    const game = await this.ligrettoCoreService.createGameService()
 
-    return this.gameRepository.addGame(game.id, merge({}, emptyGame, game))
+    return this.gameRepository.addGame(game.id, merge({}, emptyGame, { ...game, name, config: { ...config, ...emptyGame.config } }))
   }
 
   startGame(gameId: string) {
@@ -156,7 +156,7 @@ export class GameService {
   async endRound(gameId: string): Promise<{ game?: Game; gameResults?: GameResults }> {
     const results = await this.getRoundResult(gameId)
 
-    const gameResults = await this.ligrettoCoreService.saveGameRoundService(gameId, {
+    const { gameResults } = await this.ligrettoCoreService.saveGameRoundService(gameId, {
       results,
     })
 
