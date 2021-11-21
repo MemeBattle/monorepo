@@ -17,7 +17,12 @@ export class LigrettoCoreService {
   }
 
   public async saveGameRoundService(gameId: Game['id'], round: RoundInfo) {
-    const res = await this.request.post<SaveRoundResponse, AxiosResponse<SaveRoundResponse>, SaveRoundRequest>(`/games/${gameId}/rounds`, { round })
+    const res = await this.request.post<SaveRoundResponse, AxiosResponse<SaveRoundResponse>, SaveRoundRequest>(`/games/${gameId}/rounds`, {
+      results: Object.entries(round.results).map(([playerId, { roundScore }]) => ({
+        playerId,
+        score: roundScore,
+      })),
+    })
 
     return res.data
   }
