@@ -55,7 +55,7 @@ export class GameplayController extends Controller {
   private async takeCardFromLigrettoDeck(socket: Socket, action: ReturnType<typeof takeFromLigrettoDeckAction>) {
     const { gameId } = action.payload
 
-    const [game, gameResults] = await this.gameplay.playerTakeFromLigrettoDeck(gameId, socket.data.user.id)
+    const { game, gameResults } = await this.gameplay.playerTakeFromLigrettoDeck(gameId, socket.data.user.id)
 
     await this.updateGame(socket, gameId, game)
 

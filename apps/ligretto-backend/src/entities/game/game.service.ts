@@ -147,13 +147,13 @@ export class GameService {
   }
 
   async endGame(gameId: string) {
-    const [game, gameResults] = await this.endRound(gameId)
+    const { game, gameResults } = await this.endRound(gameId)
     await this.gameRepository.removeGame(gameId)
 
     return [game, gameResults]
   }
 
-  async endRound(gameId: string): Promise<[Game | undefined, GameResults | undefined]> {
+  async endRound(gameId: string): Promise<{ game?: Game; gameResults?: GameResults }> {
     const results = await this.getRoundResult(gameId)
 
     const gameResults = await this.ligrettoCoreService.saveGameRoundService(gameId, {
@@ -162,7 +162,7 @@ export class GameService {
 
     const game = await this.finishRound(gameId)
 
-    return [game, gameResults]
+    return { game, gameResults }
   }
 
   findGames(pattern: string) {
