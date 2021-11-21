@@ -1,5 +1,5 @@
 import React from 'react'
-import { FormHelperText } from './FormHelper'
+import { FormHelperText } from './FormHelperText'
 
 export default {
   title: 'FormHelperText',
