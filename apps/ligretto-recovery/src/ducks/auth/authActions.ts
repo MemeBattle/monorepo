@@ -1,3 +1,3 @@
 import { authSlice } from './authSlice'
 
-export const { getMeRequest, getMeSuccess } = authSlice.actions
+export const { logout, getMeRequest, getMeSuccess } = authSlice.actions
