@@ -55,4 +55,4 @@ export * from './Paper'
 
 export * from './Link'
 
-export * from './FormHelper'
+export * from './FormHelperText'
