@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo } from 'react'
 import { Field, Form } from 'react-final-form'
-import { Button, Container, Input, PasswordInput, Link as UILink } from '@memebattle/ligretto-ui'
+import { Button, Container, Input, PasswordInput, FormHelperText, Link as UILink } from '@memebattle/ligretto-ui'
 import { Paper } from '../../components/Paper'
 import { Header } from '../../components/Header'
 import { Footer } from '../../components/Footer'
@@ -67,7 +67,7 @@ export const LoginPage = memo<LoginPageProps>(({ onLoginSucceeded }) => {
       <Form<LoginFormValues>
         onSubmit={handleSubmit}
         initialValues={initialValues}
-        render={({ handleSubmit, submitError }) => (
+        render={({ handleSubmit, submitError, modifiedSinceLastSubmit }) => (
           <form onSubmit={handleSubmit}>
             <Paper>
               <Field
@@ -84,8 +84,8 @@ export const LoginPage = memo<LoginPageProps>(({ onLoginSucceeded }) => {
                     name="username"
                     autoComplete="username"
                     autoFocus
-                    error={!meta.modifiedSinceLastSubmit && Boolean(meta.error || meta.submitError)}
-                    helperText={!meta.modifiedSinceLastSubmit && meta.submitError}
+                    error={!!(meta.error && meta.dirty) || (meta.submitFailed && !modifiedSinceLastSubmit)}
+                    helperText={meta.error || meta.submitError}
                   />
                 )}
               />
@@ -102,11 +102,12 @@ export const LoginPage = memo<LoginPageProps>(({ onLoginSucceeded }) => {
                     label={t.login.password}
                     id="password"
                     autoComplete="current-password"
-                    error={!meta.modifiedSinceLastSubmit && Boolean(meta.error || meta.submitError)}
+                    error={!!(meta.error && meta.dirty) || (meta.submitFailed && !modifiedSinceLastSubmit)}
+                    helperText={meta.error || meta.submitError}
                   />
                 )}
               />
-              {submitError}
+              {!modifiedSinceLastSubmit && <FormHelperText error={true}>{submitError}</FormHelperText>}
               <br />
               <Button type="submit" fullWidth variant="contained" color="primary" size="large">
                 {t.login.submit}

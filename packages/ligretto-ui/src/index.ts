@@ -54,3 +54,5 @@ export * from './Player'
 export * from './Paper'
 
 export * from './Link'
+
+export * from './FormHelperText'
