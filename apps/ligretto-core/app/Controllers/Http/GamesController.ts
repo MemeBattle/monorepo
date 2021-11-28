@@ -1,5 +1,6 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import GameModel from 'App/Models/Game'
+import SaveRoundValidator from 'App/Validators/SaveRoundValidator'
 
 export default class GamesController {
   public async index() {
@@ -18,6 +19,15 @@ export default class GamesController {
 
     const game = await GameModel.find(gameId)
 
-    return { game }
+    if (!game) {
+      return { error: 'Game not found' }
+    }
+
+    const roundResults = await ctx.request.validate(SaveRoundValidator)
+
+    const round = await game.related('rounds').create({})
+    await round.related('users').attach(roundResults.results.reduce((acc, result) => ({ ...acc, [result.playerId]: { score: result.score } }), {}))
+
+    return { game, roundResults, round }
   }
 }
