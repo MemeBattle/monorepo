@@ -22,20 +22,14 @@ export const ConfirmEmailPage = () => {
       <Box m={2}>
         <Typography align="center" variant="h3">
           {t.confirmEmail.header}
-          {username && (
-            <Typography variant="inherit" color="primary">
-              {' '}
-              {username}&nbsp;
-            </Typography>
-          )}
-          !
+          {username && <Typography variant="inherit"> {username}&nbsp;</Typography>}!
         </Typography>
       </Box>
       <Box m={1}>
         <Typography align="center" paragraph>
           {t.confirmEmail.message}
           {email ? (
-            <Typography variant="inherit" color="primary">
+            <Typography variant="inherit">
               <b>{email}</b>
             </Typography>
           ) : (
