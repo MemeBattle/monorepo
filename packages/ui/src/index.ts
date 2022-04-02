@@ -7,16 +7,14 @@ export { default as Button } from '@mui/material/Button'
 export type { GridProps } from '@mui/material/Grid'
 export { default as Grid } from '@mui/material/Grid'
 export { default as Input } from '@mui/material/TextField'
+export { default as InputBase } from '@mui/material/InputBase'
+export { default as IconButton } from '@mui/material/IconButton'
 export { default as Snackbar } from '@mui/material/Snackbar'
 export { default as Link } from '@mui/material/Link'
 export { default as FormHelperText } from '@mui/material/FormHelperText'
 
 export * from './themes/themes.types'
 export * from './PasswordInput'
-
-export * from './PageHeader'
-
-export * from './CreateRoom'
 
 export * from './utils'
 

@@ -1,0 +1,1 @@
+export { RoomsManagerPage } from './RoomsManagerPage'

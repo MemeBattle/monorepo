@@ -11,7 +11,7 @@ const useStyles = makeStyles(() =>
       boxShadow: '0px 0px 32px rgba(0, 0, 0, 0.15)',
     },
     rounded: {
-      borderRadius: '16px',
+      borderRadius: '8px',
     },
   }),
 )
