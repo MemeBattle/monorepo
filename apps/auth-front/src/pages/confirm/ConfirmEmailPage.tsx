@@ -23,9 +23,9 @@ export const ConfirmEmailPage = () => {
         <Typography align="center" variant="h3">
           {t.confirmEmail.header}
           {username && (
-            <Typography variant="inherit" color="primary">
+            <Typography variant="inherit">
               {' '}
-              {username}&nbsp;
+              <b>{username}</b>
             </Typography>
           )}
           !
@@ -35,7 +35,7 @@ export const ConfirmEmailPage = () => {
         <Typography align="center" paragraph>
           {t.confirmEmail.message}
           {email ? (
-            <Typography variant="inherit" color="primary">
+            <Typography variant="inherit">
               <b>{email}</b>
             </Typography>
           ) : (
