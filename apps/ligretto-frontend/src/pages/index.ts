@@ -1,5 +1,4 @@
 export { GamePage } from './game/Game'
 export { HomePage } from './Home'
-export { RoomsPage } from './rooms'
-export { CreateRoomPage } from './create-room'
+export { RoomsManagerPage } from './RoomsManagerPage'
 export { TechPage } from './Tech'

@@ -2,20 +2,17 @@ import { useDispatch, useSelector } from 'react-redux'
 import React, { useCallback } from 'react'
 import { createSelector } from 'reselect'
 
-import { SearchInput } from 'components/base/search-input'
 import { isLoadingSelector, searchSelector } from 'ducks/rooms/selectors'
 import { searchRoomsAction } from 'ducks/rooms'
+import { InputWithButton } from 'components/InputWithButton'
+import { InputWithButtonTypes } from '@memebattle/ligretto-shared'
 
 const searchRoomsContainerSelector = createSelector([isLoadingSelector, searchSelector], (isLoading, search) => ({
   isLoading,
   search,
 }))
 
-interface SearchRoomsContainerProps {
-  className: string
-}
-
-export const SearchRoomsContainer: React.FC<SearchRoomsContainerProps> = ({ className }) => {
+export const SearchRoomsContainer: React.FC = () => {
   const dispatch = useDispatch()
 
   const { isLoading, search } = useSelector(searchRoomsContainerSelector)
@@ -28,5 +25,13 @@ export const SearchRoomsContainer: React.FC<SearchRoomsContainerProps> = ({ clas
     [dispatch],
   )
 
-  return <SearchInput defaultValue={search} isLoading={isLoading} onChange={handleChange} placeholder="Search rooms..." className={className} />
+  return (
+    <InputWithButton
+      type={InputWithButtonTypes.search}
+      defaultValue={search}
+      isLoading={isLoading}
+      onSearchChange={handleChange}
+      placeholder="Search.."
+    />
+  )
 }

@@ -14,7 +14,7 @@ export const palette: Partial<Palette> = {
   },
   text: {
     primary: '#fff',
-    secondary: '#fff',
+    secondary: 'rgba(33,33,33, 0.3)',
     disabled: 'rgba(255,255,255, 0.5)',
   },
 }

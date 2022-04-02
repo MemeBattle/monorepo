@@ -98,4 +98,9 @@ export type GameResults = Record<
   }
 >
 
+export enum InputWithButtonTypes {
+  search = 'search',
+  createRoom = 'createRoom',
+}
+
 export type UUID = string

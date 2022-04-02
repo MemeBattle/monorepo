@@ -26,5 +26,3 @@ export const RoomsListContainer = () => {
 
   return <RoomsListComponent rooms={roomsProps} />
 }
-
-RoomsListContainer.displayName = 'RoomsList'
