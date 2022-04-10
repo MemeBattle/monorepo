@@ -2,6 +2,11 @@
 
 > TODO: description
 
+## Run storybook
+```
+yarn storybook
+```
+
 ## Usage
 
 ```
