@@ -1,0 +1,7 @@
+*
+!apps/ligretto-core
+!packages/ligretto-shared
+!.yarn
+!yarn.lock
+!.yarnrc.yml
+!package.json

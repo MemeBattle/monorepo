@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "engines": {
-    "node": "14"
+    "node": "16"
   },
   "scripts": {
     "build": "node ace build --production",
@@ -12,22 +12,17 @@
     "copy:yarn_lock": "cpx ../../yarn.lock build",
     "copy:npm_rc": "cpx ../../.npmrc build",
     "postbuild": "yarn copy:yarn_lock && yarn copy:npm_rc",
-    "migrate": "node ace migration:run --force"
+    "migrate": "node ace migration:run --force",
+    "production-migrate": "node build/ace migration:run --force"
   },
   "devDependencies": {
     "@adonisjs/assembler": "^5.3.0",
     "@types/lodash": "^4.14.174",
-    "adonis-preset-ts": "^2.1.0",
     "cpx": "^1.5.0",
     "pino-pretty": "^5.0.1",
     "typescript": "^4.3.2",
     "youch": "^2.2.2",
     "youch-terminal": "^1.1.1"
-  },
-  "workspaces": {
-    "nohoist": [
-      "adonis-preset-ts"
-    ]
   },
   "dependencies": {
     "@adonisjs/core": "^5.1.7",

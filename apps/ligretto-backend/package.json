@@ -6,20 +6,16 @@
   "scripts": {
     "init:partner": "init-partner",
     "test:watch": "tsc && ava --watch --color --verbose",
-    "start:dev": "nodemon",
-    "start": "ts-node src/index.ts",
+    "start:dev": "yarn prestart && nodemon",
+    "start": "yarn prestart && ts-node src/index.ts",
     "prestart": "ts-node src/cli/check-env.ts",
-    "prestart:dev": "ts-node src/cli/check-env.ts",
     "build": "webpack"
   },
   "devDependencies": {
     "@types/dotenv": "^8.2.0",
-    "@types/jest": "^24.0.19",
     "@types/lodash": "^4.14.149",
-    "@types/node": "^12.11.5",
     "ava": "^2.3.0",
     "nodemon": "^2.0.4",
-    "prettier": "^1.18.2",
     "tap-nyan": "^1.1.0",
     "ts-loader": "^8.1.0",
     "ts-node": "^8.3.0",
