@@ -26,6 +26,7 @@ export const selectPlayerStackOpenDeckCards = (state: All) => selectPlayer(state
 export const selectPlayerStackDeckCards = (state: All) => selectPlayer(state).stackDeck.cards
 export const selectPlayerLigrettoDeckCards = (state: All) => selectPlayer(state).ligrettoDeck.cards
 export const selectPlayerStatus = (state: All) => selectPlayer(state).status
+export const selectPlayerState = (state: All) => selectPlayer(state)
 
 /** Local Player State */
 export const selectLocalPlayerState = (state: All) => state.game.localPlayerState
@@ -37,3 +38,10 @@ export const selectOpponents = createSelector([selectPlayers, selectCurrentUserI
     return [...opponents, ...(user && user.casId !== playerId ? [mergePlayerAndUser(player, user)] : [])]
   }, []),
 )
+export const selectActivePlayer = createSelector([selectPlayers, selectCurrentUserId, selectUsersMap], (players, playerId, users) => {
+  const resultUserArray = Object.values(players).reduce((opponents: ReturnType<typeof mergePlayerAndUser>[], player) => {
+    const user = users[player.id]
+    return [...opponents, ...(user && user.casId === playerId ? [mergePlayerAndUser(player, user)] : [])]
+  }, [])
+  return resultUserArray[0]
+})

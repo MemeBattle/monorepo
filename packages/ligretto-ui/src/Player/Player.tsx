@@ -9,13 +9,14 @@ export interface PlayerProps {
   username: string
   avatar?: string
   status: PlayerStatus
+  isActivePlayer?: boolean
 }
 
 const useStyles = makeStyles(theme =>
   createStyles({
     player: {
       display: 'flex',
-      flexDirection: ({ status }: PlayerProps) => (status === PlayerStatus.InGame ? 'row' : 'column'),
+      flexDirection: ({ status, isActivePlayer }: PlayerProps) => (status === PlayerStatus.InGame && !isActivePlayer ? 'row' : 'column'),
       maxWidth: '12rem',
       alignItems: 'center',
       opacity: ({ status }: PlayerProps) => (status === PlayerStatus.DontReadyToPlay ? 0.5 : 1),
@@ -58,14 +59,14 @@ const IconByStatus = {
 }
 
 export const Player: React.FC<PlayerProps> = props => {
-  const { avatar, username, status } = props
+  const { avatar, username, status, isActivePlayer } = props
   const classes = useStyles(props)
 
   const Icon = IconByStatus[status]
 
   return (
     <div className={classes.player}>
-      <Avatar src={avatar} alt={username} size={status === PlayerStatus.InGame ? 'small' : 'medium'} />
+      <Avatar src={avatar} alt={username} size={status === PlayerStatus.InGame && !isActivePlayer ? 'small' : 'medium'} />
       <div className={classes.bottom}>
         <span className={classes.username} title={username}>
           {username}
