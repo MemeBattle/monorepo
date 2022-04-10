@@ -86,3 +86,8 @@ export type GameResults = Record<
     gameScore: number
   }
 >
+
+export enum InputWithButtonTypes {
+  search = 'search',
+  createRoom = 'createRoom',
+}

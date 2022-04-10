@@ -7,6 +7,8 @@ export * from './Grid'
 export * from './Input'
 export * from './PasswordInput'
 
+export * from './InputWithButton'
+
 export * from './Card'
 
 export * from './CardPlace'
