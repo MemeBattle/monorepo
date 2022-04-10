@@ -1,5 +1,8 @@
 import React from 'react'
-import { Paper, RoomsList, Grid, Typography, Box, Input, Button } from '@memebattle/ligretto-ui'
+import { Box, Grid, InputWithButton, Paper, RoomsList, Typography } from '@memebattle/ligretto-ui'
+import { InputWithButtonTypes } from '@memebattle/ligretto-shared'
+
+import styles from './ManageRooms.module.scss'
 
 const mockRooms = [
   {
@@ -29,21 +32,23 @@ const mockRooms = [
 ]
 
 export const ManageRooms = () => (
-  <Paper>
-    <Grid container style={{ marginTop: '2rem' }}>
+  <Paper className={styles.manageRoomsWrapper}>
+    <Grid container justify="center">
       <Grid container item xs={6} justify="center">
-        <Box>
-          <Typography variant={'h3'}>Enter to room</Typography>
-          <Input variant={'outlined'} />
-          <Button variant={'contained'}>Find</Button>
+        <Box className={styles.header}>
+          <Typography component="h2" variant="h4">
+            Enter to room
+          </Typography>
         </Box>
+        <InputWithButton type={InputWithButtonTypes.search} />
       </Grid>
       <Grid container item xs={6} justify="center">
-        <Box>
-          <Typography variant={'h3'}>Create new room</Typography>
-          <Input variant={'outlined'} />
-          <Button variant={'contained'}>Create</Button>
+        <Box className={styles.header}>
+          <Typography className={styles.header} component="h2" variant="h4">
+            Create new room
+          </Typography>
         </Box>
+        <InputWithButton type={InputWithButtonTypes.createRoom} />
       </Grid>
       <Grid container item xs={12} justify="center" style={{ marginTop: '1rem' }}>
         <RoomsList rooms={mockRooms} />
