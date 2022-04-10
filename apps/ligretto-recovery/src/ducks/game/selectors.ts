@@ -26,7 +26,6 @@ export const selectPlayerStackOpenDeckCards = (state: All) => selectPlayer(state
 export const selectPlayerStackDeckCards = (state: All) => selectPlayer(state).stackDeck.cards
 export const selectPlayerLigrettoDeckCards = (state: All) => selectPlayer(state).ligrettoDeck.cards
 export const selectPlayerStatus = (state: All) => selectPlayer(state).status
-export const selectPlayerState = (state: All) => selectPlayer(state)
 
 /** Local Player State */
 export const selectLocalPlayerState = (state: All) => state.game.localPlayerState
