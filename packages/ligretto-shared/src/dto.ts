@@ -13,6 +13,8 @@ export interface UpdateRooms {
   rooms: Room[]
 }
 
+export type SetRooms = UpdateRooms
+
 export interface CreateGame {
   name: string
   config?: Partial<Game['config']>

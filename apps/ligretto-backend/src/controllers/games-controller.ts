@@ -21,6 +21,7 @@ import {
   CreateRoomErrorCode,
   userJoinToRoomAction,
   leaveFromRoomEmitAction,
+  setRooms,
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
@@ -117,6 +118,10 @@ export class GamesController extends Controller {
     if (game) {
       socket.to(game.id).emit('event', updateGameAction(game))
     }
+
+    const allGames = await this.gameService.findGames('')
+    const allRooms = allGames.map(gameToRoom)
+    socket.to(SOCKET_ROOM_LOBBY).emit('event', setRooms({ rooms: allRooms }))
   }
 
   public async disconnectionHandler(socket: Socket) {
