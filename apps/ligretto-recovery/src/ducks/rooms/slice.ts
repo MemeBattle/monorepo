@@ -1,5 +1,6 @@
 import type { Game, Room } from '@memebattle/ligretto-shared'
 import uniq from 'lodash/uniq'
+import omit from 'lodash/omit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice, createAction } from '@reduxjs/toolkit'
 import type { CreateRoomError } from '@memebattle/ligretto-shared/src/dto'
@@ -53,11 +54,16 @@ export const roomsSlice = createSlice({
       )
       return { ...state, byId: newById, ids: newIds, isLoading: false }
     },
+    removeRoomAction: (state, action: PayloadAction<{ uuid: Room['uuid'] }>): RoomsState => {
+      const newById = omit(state.byId, action.payload.uuid)
+      const newIds = state.ids.filter(id => id !== action.payload.uuid)
+      return { ...state, byId: newById, ids: newIds }
+    },
     setErrorRoomsAction: (state, action: PayloadAction<{ error: CreateRoomError | null }>) => {
       state.error = action.payload.error
     },
   },
 })
 
-export const { searchRoomsAction, updateRoomsAction, setRoomsAction, setErrorRoomsAction } = roomsSlice.actions
+export const { searchRoomsAction, updateRoomsAction, setRoomsAction, removeRoomAction, setErrorRoomsAction } = roomsSlice.actions
 export const roomsReducer = roomsSlice.reducer

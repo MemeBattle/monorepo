@@ -1,6 +1,5 @@
-import { takeLatest, take, put, select, call } from 'redux-saga/effects'
-import type { SagaIterator } from 'redux-saga'
-import type { Room, updateRooms as updateRoomsFromServer } from '@memebattle/ligretto-shared'
+import { takeLatest, take, put, select } from 'redux-saga/effects'
+import type { updateRooms as updateRoomsFromServer } from '@memebattle/ligretto-shared'
 import {
   createRoomEmitAction,
   searchRoomsEmitAction,
@@ -10,14 +9,22 @@ import {
   createRoomErrorAction,
   updateRooms,
   connectToRoomErrorAction,
-  setRooms,
+  removeRoomAction as removeRoomFromServerAction,
 } from '@memebattle/ligretto-shared'
 import { replace, push } from 'connected-react-router'
 import { generatePath } from 'react-router-dom'
 
 import { routes } from 'utils/constants'
 
-import { connectToRoomAction, createRoomAction, searchRoomsAction, updateRoomsAction, setRoomsAction, setErrorRoomsAction } from './slice'
+import {
+  connectToRoomAction,
+  createRoomAction,
+  searchRoomsAction,
+  updateRoomsAction,
+  setRoomsAction,
+  setErrorRoomsAction,
+  removeRoomAction,
+} from './slice'
 import { selectSearch } from './selectors'
 
 /**
@@ -51,18 +58,14 @@ function* connectToRoomSaga(action: ReturnType<typeof connectToRoomAction>) {
 }
 
 function* updateRoomsFromServerSaga(action: ReturnType<typeof updateRoomsFromServer>) {
-  const rooms: Room[] = yield call(filterRoomsBySearchQuerySaga, action.payload.rooms)
+  const search: ReturnType<typeof selectSearch> = yield select(selectSearch)
+  const rooms = action.payload.rooms.filter(({ name }) => name.includes(search))
   yield put(updateRoomsAction({ rooms }))
 }
 
-function* setRoomsFromServerSaga(action: ReturnType<typeof setRooms>) {
-  const rooms: Room[] = yield call(filterRoomsBySearchQuerySaga, action.payload.rooms)
-  yield put(setRoomsAction({ rooms }))
-}
-
-function* filterRoomsBySearchQuerySaga(rooms: Room[]): SagaIterator<Room[]> {
-  const search: ReturnType<typeof selectSearch> = yield select(selectSearch)
-  return rooms.filter(({ name }) => name.includes(search))
+function* removeRoomFromServerSaga(action: ReturnType<typeof removeRoomFromServerAction>) {
+  const uuid = action.payload.uuid
+  yield put(removeRoomAction({ uuid }))
 }
 
 function* connectToRoomError() {
@@ -83,7 +86,7 @@ export function* roomsRootSaga() {
   yield takeLatest(createRoomAction, createRoomSaga)
   yield takeLatest(connectToRoomAction, connectToRoomSaga)
   yield takeLatest(updateRooms, updateRoomsFromServerSaga)
-  yield takeLatest(setRooms, setRoomsFromServerSaga)
+  yield takeLatest(removeRoomFromServerAction, removeRoomFromServerSaga)
   yield takeLatest(connectToRoomErrorAction, connectToRoomError)
   yield takeLatest(createRoomSuccessAction, createRoomSuccessSaga)
   yield takeLatest(createRoomErrorAction, createRoomErrorSaga)

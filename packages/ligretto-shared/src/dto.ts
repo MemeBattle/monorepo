@@ -13,7 +13,9 @@ export interface UpdateRooms {
   rooms: Room[]
 }
 
-export type SetRooms = UpdateRooms
+export interface RemoveRoom {
+  uuid: Room['uuid']
+}
 
 export interface CreateGame {
   name: string

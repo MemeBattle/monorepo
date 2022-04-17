@@ -15,7 +15,7 @@ export const searchRoomsEmitAction = createAction<dto.SearchRooms>('@@rooms/WEBS
 
 export const updateRooms = createAction<dto.UpdateRooms>('@@rooms/SERVER/UPDATE_ROOMS_LIST')
 
-export const setRooms = createAction<dto.SetRooms>('@@rooms/SERVER/SET_ROOMS_LIST')
+export const removeRoomAction = createAction<dto.RemoveRoom>('@@rooms/SERVER/REMOVE_ROOM_FROM_LIST')
 
 export const connectToRoomEmitAction = createAction<dto.ConnectToRoom>('@@rooms/WEBSOCKET/CONNECT_TO_ROOM')
 
