@@ -37,10 +37,9 @@ export const selectOpponents = createSelector([selectPlayers, selectCurrentUserI
     return [...opponents, ...(user && user.casId !== playerId ? [mergePlayerAndUser(player, user)] : [])]
   }, []),
 )
-export const selectActivePlayer = createSelector([selectPlayers, selectCurrentUserId, selectUsersMap], (players, playerId, users) => {
-  const resultUserArray = Object.values(players).reduce((opponents: ReturnType<typeof mergePlayerAndUser>[], player) => {
-    const user = users[player.id]
-    return [...opponents, ...(user && user.casId === playerId ? [mergePlayerAndUser(player, user)] : [])]
-  }, [])
-  return resultUserArray[0]
+export const selectActivePlayer = createSelector(selectPlayer, selectUsersMap, (currentPlayer, users) => {
+  const user = users[currentPlayer.id]
+  if (user) {
+    return mergePlayerAndUser(currentPlayer, user)
+  }
 })
