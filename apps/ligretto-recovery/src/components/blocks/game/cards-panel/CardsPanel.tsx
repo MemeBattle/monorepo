@@ -1,7 +1,6 @@
 import React from 'react'
-import type { Card, Card as PlayerCards, CardsDeck, PlayerStatus } from '@memebattle/ligretto-shared'
+import type { Card as PlayerCards, PlayerStatus } from '@memebattle/ligretto-shared'
 import { Player } from '@memebattle/ligretto-ui'
-
 import { LigrettoPack } from 'components/blocks/game/ligretto-pack'
 import { CardsRowContainer } from 'containers/cards-row'
 import { StackContainer } from 'containers/stack'
@@ -11,14 +10,10 @@ import styles from './CardsPanel.module.scss'
 export interface CardsPanelProps {
   ligrettoDeckCards: PlayerCards[]
   onLigrettoDeckCardClick: () => void
-  player: {
+  player?: {
     avatar: string | undefined
-    status?: PlayerStatus | undefined
-    isHost?: boolean | undefined
-    username?: string | undefined
-    id?: string | undefined
-    cards?: (Card | null)[] | undefined
-    stackOpenDeck?: CardsDeck | undefined
+    status: PlayerStatus
+    username: string
   }
 }
 
@@ -32,7 +27,7 @@ export const CardsPanel: React.FC<CardsPanelProps> = ({ ligrettoDeckCards, onLig
       <LigrettoPack count={ligrettoDeckCards.length} onLigrettoDeckCardClick={onLigrettoDeckCardClick} ligrettoDeckCards={ligrettoDeckCards} />
     </div>
     <div className={styles.ligrettoActivePlayer}>
-      {player.status && player.username && <Player status={player.status} username={player.username} avatar={player?.avatar} isActivePlayer />}
+      {player ? <Player status={player.status} username={player.username} avatar={player?.avatar} isActivePlayer /> : null}
     </div>
   </div>
 )
