@@ -9,13 +9,22 @@ import {
   createRoomErrorAction,
   updateRooms,
   connectToRoomErrorAction,
+  removeRoomAction as removeRoomFromServerAction,
 } from '@memebattle/ligretto-shared'
 import { replace, push } from 'connected-react-router'
 import { generatePath } from 'react-router-dom'
 
 import { routes } from 'utils/constants'
 
-import { connectToRoomAction, createRoomAction, searchRoomsAction, updateRoomsAction, setRoomsAction, setErrorRoomsAction } from './slice'
+import {
+  connectToRoomAction,
+  createRoomAction,
+  searchRoomsAction,
+  updateRoomsAction,
+  setRoomsAction,
+  setErrorRoomsAction,
+  removeRoomAction,
+} from './slice'
 import { selectSearch } from './selectors'
 
 /**
@@ -54,6 +63,11 @@ function* updateRoomsFromServerSaga(action: ReturnType<typeof updateRoomsFromSer
   yield put(updateRoomsAction({ rooms }))
 }
 
+function* removeRoomFromServerSaga(action: ReturnType<typeof removeRoomFromServerAction>) {
+  const uuid = action.payload.uuid
+  yield put(removeRoomAction({ uuid }))
+}
+
 function* connectToRoomError() {
   yield put(replace(routes.ROOMS))
 }
@@ -72,6 +86,7 @@ export function* roomsRootSaga() {
   yield takeLatest(createRoomAction, createRoomSaga)
   yield takeLatest(connectToRoomAction, connectToRoomSaga)
   yield takeLatest(updateRooms, updateRoomsFromServerSaga)
+  yield takeLatest(removeRoomFromServerAction, removeRoomFromServerSaga)
   yield takeLatest(connectToRoomErrorAction, connectToRoomError)
   yield takeLatest(createRoomSuccessAction, createRoomSuccessSaga)
   yield takeLatest(createRoomErrorAction, createRoomErrorSaga)
