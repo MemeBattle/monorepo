@@ -21,6 +21,7 @@ import {
   CreateRoomErrorCode,
   userJoinToRoomAction,
   leaveFromRoomEmitAction,
+  removeRoomAction,
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
@@ -116,6 +117,9 @@ export class GamesController extends Controller {
     socket.leave(user.currentGameId)
     if (game) {
       socket.to(game.id).emit('event', updateGameAction(game))
+      socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(game)] }))
+    } else {
+      socket.to(SOCKET_ROOM_LOBBY).emit('event', removeRoomAction({ uuid: user.currentGameId }))
     }
   }
 

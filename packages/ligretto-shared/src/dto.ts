@@ -13,6 +13,10 @@ export interface UpdateRooms {
   rooms: Room[]
 }
 
+export interface RemoveRoom {
+  uuid: Room['uuid']
+}
+
 export interface CreateGame {
   name: string
   config?: Partial<Game['config']>
