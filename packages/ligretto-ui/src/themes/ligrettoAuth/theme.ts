@@ -4,4 +4,3 @@ import { palette } from './palette'
 export const theme = createMuiTheme({
   palette,
 })
-

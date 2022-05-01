@@ -6,8 +6,8 @@ export interface InitOptions {
 }
 
 export class Analytics {
-  private amplitude: AmplitudeClient
-  public isInitialized: boolean
+  private amplitude?: AmplitudeClient
+  public isInitialized = false
 
   constructor({ apiKey }: InitOptions) {
     if (apiKey) {
@@ -21,23 +21,23 @@ export class Analytics {
     if (!this.isInitialized) {
       return
     }
-    this.amplitude.logEvent(event, eventProperties)
+    this.amplitude?.logEvent(event, eventProperties)
   }
 
-  public setUserProperties(userProperties: Record<string, unknown> & { id?: string | null }) {
+  public setUserProperties(userProperties: Record<string, unknown> & { id: string | null }) {
     if (!this.isInitialized) {
       return
     }
     if ('id' in userProperties) {
-      this.amplitude.setUserId(userProperties.id)
+      this.amplitude?.setUserId(userProperties.id)
     }
-    this.amplitude.setUserProperties(userProperties)
+    this.amplitude?.setUserProperties(userProperties)
   }
 
   public clearUserProperties() {
     if (!this.isInitialized) {
       return
     }
-    this.amplitude.clearUserProperties()
+    this.amplitude?.clearUserProperties()
   }
 }

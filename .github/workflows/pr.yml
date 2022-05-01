@@ -1,0 +1,102 @@
+name: CI-pull-requests
+
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  lint:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.14.2'
+          cache: 'yarn'
+
+      - name: Install yarn
+        run: npm install --global yarn
+
+      - name: Auth npm
+        run: |
+          yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
+          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Build common-packages
+        run: yarn run common-packages:build
+
+      - name: Lint code
+        run: yarn lint
+
+  tests:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.14.2'
+          cache: 'yarn'
+
+      - name: Install yarn
+        run: npm install --global yarn
+
+      - name: Auth npm
+        run: |
+          yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
+          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
+      - name: Install dependencies
+        run: yarn
+
+      - name: Build common-packages
+        run: yarn run common-packages:build
+
+      - name: create .env
+        run: cp .env.defaults .env
+
+      - name: Run tests
+        run: yarn test
+
+  tsc:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.14.2'
+          cache: 'yarn'
+
+      - name: Install yarn
+        run: npm install --global yarn
+
+      - name: Auth npm
+        run: |
+          yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
+          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Build common-packages
+        run: yarn run common-packages:build
+
+      - name: TS check
+        run: yarn ts-check

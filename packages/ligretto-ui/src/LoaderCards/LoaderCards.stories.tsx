@@ -6,9 +6,7 @@ export default {
   component: LoaderCards,
 }
 
-const Template = args => (
-  <LoaderCards {...args} />
-)
+const Template = args => <LoaderCards {...args} />
 
 export const DefaultView = Template.bind({})
 DefaultView.args = {

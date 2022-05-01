@@ -6,7 +6,9 @@
     "lint:js": "eslint --ext .js,.vue,.jsx,.ts,.tsx .",
     "lint-fix:js": "yarn lint:js --fix",
     "lint:styles": "stylelint {apps,packages}/**/*.scss",
+    "lint-fix:styles": "yarn lint:styles --fix",
     "lint": "run-p -l 'lint:*'",
+    "lint-fix": "run-p -l 'lint-fix:*'",
     "test": "env-cmd -- yarn workspaces foreach -pvi run test -- --ignore-path .gitignore",
     "ligretto:start": "env-cmd -- yarn workspaces foreach -vip --include '{@memebattle/ligretto-shared,@memebattle/ligretto-ui,@memebattle/ligretto-backend,@memebattle/ligretto-recovery,@memebattle/auth-front}' run start:dev",
     "common-packages:build": "yarn workspace @memebattle/ligretto-shared run build && yarn workspaces foreach -ip --include '{@memebattle/ligretto-ui,@memebattle/analytics}' run build && yarn workspace @memebattle/auth-front run build:module",
@@ -19,7 +21,8 @@
     "ligretto:core:start:dev": "yarn workspace @memebattle/ligretto-core run start:dev",
     "ligretto:ui:build-storybook": "yarn workspace @memebattle/ligretto-ui run build-storybook",
     "ligretto:shared:build": "yarn workspace @memebattle/ligretto-shared run build",
-    "gamehub-client:build": "yarn workspace @memebattle/gamehub-client run build"
+    "gamehub-client:build": "yarn workspace @memebattle/gamehub-client run build",
+    "ts-check": "yarn workspaces foreach -vpi run ts-check"
   },
   "engines": {
     "node": ">=14"
@@ -44,7 +47,6 @@
     "@typescript-eslint/parser": "^4.26.1",
     "eslint": "^7.11.0",
     "eslint-config-prettier": "^8.3.0",
-    "eslint-import-resolver-typescript": "^2.5.0",
     "eslint-plugin-import": "^2.25.2",
     "eslint-plugin-prettier": "^3.4.0",
     "eslint-plugin-react": "^7.24.0",
