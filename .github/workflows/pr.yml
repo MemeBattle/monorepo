@@ -70,19 +70,15 @@ jobs:
       - name: Install dependencies
         run: yarn
 
+      - name: Download common packages
+        uses: actions/download-artifact@v2
+        with:
+          name: packages-builds
+
       - name: Lint code
         run: yarn lint
 
   tests:
-
-    env:
-      SKIP_PREFLIGHT_CHECK: true
-      REACT_APP_WEBSOCKET_HOST: https://api.ligretto.app
-      REACT_APP_LIGRETTO_CORE_URL: https://core.ligretto.app
-      REACT_APP_CAS_PARTNER_ID: 61587c1bdc151b004107a2b5
-      REACT_APP_CAS_STATIC: https://cas.mems.fun/static
-      REACT_APP_CAS_URL: https://cas.mems.fun/api
-      REACT_APP_AMPLITUDE_TOKEN: f55f6d07422dfb26ca4dfbe59a54d609
 
     runs-on: ubuntu-20.04
 
@@ -112,6 +108,9 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: packages-builds
+
+      - name: create .env
+        run: cp .env.defaults .env
 
       - name: Run tests
         run: yarn test
