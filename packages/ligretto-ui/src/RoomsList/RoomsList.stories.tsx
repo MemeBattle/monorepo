@@ -1,8 +1,7 @@
-import React from 'react'
 import { RoomsList } from './RoomsList'
 
 export default {
-  title: 'RoomsList',
+  title: 'Ligretto-ui / RoomsList',
 }
 
 export const DefaultView = () => (

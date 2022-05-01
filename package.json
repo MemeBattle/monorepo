@@ -11,7 +11,7 @@
     "lint-fix": "run-p -l 'lint-fix:*'",
     "test": "env-cmd -- yarn workspaces foreach -pvi run test -- --ignore-path .gitignore",
     "ligretto:start": "env-cmd -- yarn workspaces foreach -vip --include '{@memebattle/ligretto-shared,@memebattle/ligretto-ui,@memebattle/ligretto-backend,@memebattle/ligretto-recovery,@memebattle/auth-front}' run start:dev",
-    "common-packages:build": "yarn workspace @memebattle/ligretto-shared run build && yarn workspaces foreach -ip --include '{@memebattle/ligretto-ui,@memebattle/analytics}' run build && yarn workspace @memebattle/auth-front run build:module",
+    "common-packages:build": "yarn workspace @memebattle/ligretto-shared run build && yarn workspaces foreach -vip --include '{@memebattle/ligretto-ui,@memebattle/analytics}' run build && yarn workspace @memebattle/auth-front run build:module",
     "ligretto:front:build": "yarn workspace @memebattle/ligretto-recovery run build",
     "ligretto:front:start:dev": "env-cmd yarn workspace @memebattle/ligretto-recovery run start:dev",
     "ligretto:back:build": "yarn workspace @memebattle/ligretto-backend run build",
@@ -19,10 +19,11 @@
     "ligretto:core:migrate": "yarn workspace @memebattle/ligretto-core run migrate",
     "ligretto:core:production-migrate": "yarn workspace @memebattle/ligretto-core run production-migrate",
     "ligretto:core:start:dev": "yarn workspace @memebattle/ligretto-core run start:dev",
-    "ligretto:ui:build-storybook": "yarn workspace @memebattle/ligretto-ui run build-storybook",
     "ligretto:shared:build": "yarn workspace @memebattle/ligretto-shared run build",
     "gamehub-client:build": "yarn workspace @memebattle/gamehub-client run build",
-    "ts-check": "yarn workspaces foreach -vpi run ts-check"
+    "ts-check": "yarn workspaces foreach -vpi run ts-check",
+    "storybook": "start-storybook -p 6006",
+    "build-storybook": "build-storybook"
   },
   "engines": {
     "node": ">=14"
@@ -41,6 +42,16 @@
     "not op_mini all"
   ],
   "devDependencies": {
+    "@react-theming/storybook-addon": "^1.1.5",
+    "@storybook/addon-actions": "^6.4.22",
+    "@storybook/addon-docs": "^6.4.22",
+    "@storybook/addon-essentials": "^6.4.22",
+    "@storybook/addon-links": "^6.4.22",
+    "@storybook/addon-viewport": "^6.4.22",
+    "@storybook/addons": "^6.4.22",
+    "@storybook/builder-webpack5": "^6.4.22",
+    "@storybook/manager-webpack5": "^6.4.22",
+    "@storybook/react": "^6.4.22",
     "@types/jest": "^24.9.1",
     "@types/node": "^14.14.20",
     "@typescript-eslint/eslint-plugin": "^4.26.1",
@@ -52,12 +63,16 @@
     "eslint-plugin-react": "^7.24.0",
     "eslint-plugin-react-app": "^6.2.2",
     "eslint-plugin-react-hooks": "^4.5.0",
+    "eslint-plugin-storybook": "^0.5.11",
     "hygen": "^5.0.3",
     "npm-run-all": "^4.1.5",
     "prettier": "^2.2.1",
+    "react-docgen-typescript-loader": "^3.7.2",
+    "react-docgen-typescript-plugin": "^1.0.0",
     "stylelint": "^13.8.0",
     "stylelint-config-prettier": "^8.0.2",
     "stylelint-prettier": "^1.2.0",
+    "tsconfig-paths-webpack-plugin": "^3.5.2",
     "typescript": "4.3.2"
   },
   "dependencies": {

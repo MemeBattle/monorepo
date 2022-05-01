@@ -1,9 +1,8 @@
-import React from 'react'
 import { Player } from './Player'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 
 export default {
-  title: 'Player',
+  title: 'Ligretto-ui / Player',
   component: Player,
   argTypes: {
     status: {

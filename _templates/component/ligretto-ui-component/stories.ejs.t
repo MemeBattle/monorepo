@@ -5,7 +5,7 @@ import React from 'react'
 import { <%= h.changeCase.pascal(name) %> } from './<%= h.changeCase.pascal(name) %>'
 
 export default {
-  title: '<%= h.changeCase.pascal(name) %>',
+  title: 'Ligretto-ui / <%= h.changeCase.pascal(name) %>',
   component: <%= h.changeCase.pascal(name) %>
 }
 

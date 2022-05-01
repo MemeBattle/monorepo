@@ -1,9 +1,8 @@
-import React from 'react'
 import { TableCards } from './TableCards'
 import { CardPlace } from '../CardPlace'
 
 export default {
-  title: 'TableCards',
+  title: 'Ligretto-ui / TableCards',
 }
 
 export const DefaultView = () => (

@@ -229,7 +229,7 @@ jobs:
           name: packages-builds
 
       - name: Build ligretto ui storybook
-        run: yarn run ligretto:ui:build-storybook
+        run: yarn run build-storybook
 
       - name: Docker login
         uses: docker/login-action@v1

@@ -1,8 +1,7 @@
-import React from 'react'
 import { MemebattleLogo } from './MemebattleLogo'
 
 export default {
-  title: 'MemebattleLogo',
+  title: 'Ligretto-ui / MemebattleLogo',
 }
 
 export const DefaultView = () => <MemebattleLogo />
