@@ -14,7 +14,7 @@ const AppJSX = (
   <React.StrictMode>
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <App />
+      <App onLoginSucceeded={() => {}} />
     </ThemeProvider>
   </React.StrictMode>
 )

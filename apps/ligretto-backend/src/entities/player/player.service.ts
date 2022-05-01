@@ -107,7 +107,12 @@ export class PlayerService {
     }
 
     const card = last(ligrettoDeck.cards)
-    await this.addCard(gameId, playerId, card!)
+
+    if (!card) {
+      return
+    }
+
+    await this.addCard(gameId, playerId, card)
     return await this.removeCardFromLigrettoDeck(gameId, playerId)
   }
 }

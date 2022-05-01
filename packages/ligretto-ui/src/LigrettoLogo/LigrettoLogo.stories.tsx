@@ -6,9 +6,7 @@ export default {
   component: LigrettoLogo,
 }
 
-const Template = args => (
-  <LigrettoLogo {...args} />
-)
+const Template = args => <LigrettoLogo {...args} />
 
 export const DefaultView = Template.bind({})
 DefaultView.args = {

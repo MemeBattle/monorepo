@@ -14,6 +14,12 @@ module.exports = {
     react: {
       version: 'detect',
     },
+    'import/resolver': {
+      node: {
+        extensions: ['.js', '.jsx', '.ts', '.tsx'],
+        moduleDirectory: ['node_modules', 'src/'],
+      },
+    },
   },
   plugins: ['@typescript-eslint', 'react-app', 'prettier', 'react', 'react-hooks'],
   extends: ['plugin:@typescript-eslint/recommended', 'plugin:react/recommended'],

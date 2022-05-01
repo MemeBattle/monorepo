@@ -27,10 +27,11 @@
     "start:app:dev": "react-scripts start",
     "postbuild": "react-snap",
     "build": "react-scripts build",
-    "test": "react-scripts test",
+    "test": "react-scripts test --passWithNoTests",
     "eject": "react-scripts eject",
     "build:module": "rollup --config",
-    "start:dev": "rollup --watch --config"
+    "start:dev": "rollup --watch --config",
+    "ts-check": "tsc --noEmit"
   },
   "browserslist": {
     "production": [
