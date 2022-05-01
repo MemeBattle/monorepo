@@ -70,11 +70,6 @@ jobs:
       - name: Install dependencies
         run: yarn
 
-      - name: Download common packages
-        uses: actions/download-artifact@v2
-        with:
-          name: packages-builds
-
       - name: Lint code
         run: yarn lint
 
@@ -144,5 +139,5 @@ jobs:
         with:
           name: packages-builds
 
-      - name: tsc
-        uses: yarn ts-check
+      - name: TS check
+        run: yarn ts-check
