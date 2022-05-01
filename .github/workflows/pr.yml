@@ -28,7 +28,7 @@ jobs:
           yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
           yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
 
-      - name: Install dependecies
+      - name: Install dependencies
         run: yarn
 
       - name: Build common-packages
@@ -67,7 +67,7 @@ jobs:
           yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
           yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
 
-      - name: Install dependecies
+      - name: Install dependencies
         run: yarn
 
       - name: Download common packages
@@ -78,7 +78,7 @@ jobs:
       - name: Lint code
         run: yarn lint
 
-  tests:
+  tsc:
 
     runs-on: ubuntu-20.04
 
@@ -102,7 +102,7 @@ jobs:
           yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
           yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
 
-      - name: Install dependecies
+      - name: Install dependencies
         run: yarn
 
       - name: Download common packages
@@ -110,5 +110,5 @@ jobs:
         with:
           name: packages-builds
 
-      - name: Run tests
-        run: yarn test
+      - name: tsc
+        uses: icrawl/action-tsc@v1
