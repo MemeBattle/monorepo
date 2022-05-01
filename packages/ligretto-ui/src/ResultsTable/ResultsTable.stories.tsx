@@ -13,6 +13,4 @@ const players = [
   { position: 4, username: 'ThemeZV4', roundPoints: 1, totalPoints: 2 },
 ]
 
-export const DefaultView = () => (
-  <ResultsTable players={players} />
-)
+export const DefaultView = () => <ResultsTable players={players} />

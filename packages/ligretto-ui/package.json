@@ -28,7 +28,8 @@
     "build": "rollup --config",
     "start:dev": "rollup --watch --config",
     "storybook": "start-storybook -p 6006",
-    "build-storybook": "build-storybook"
+    "build-storybook": "build-storybook",
+    "ts-check": "tsc --noEmit"
   },
   "devDependencies": {
     "@babel/core": "^7.11.4",
