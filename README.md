@@ -11,13 +11,16 @@ Copy .env.defaults to .env
 cp .env.defaults .env
 ```
 
-### Github credentials
-1. Copy .npmrc.example to .npmrc
+### GitHub credentials
+1. Generate token 'https://github.com/settings/tokens' and enable write:packages
+2. Set npm registry for scope `memebattle` to github package registry
+```shell
+yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
 ```
-cp .npmrc.example .npmrc
+3. Set your token (step 1) for `memebattle` scope
+```shell
+yarn config set -H npmScopes.memebattle.npmAuthToken "<TOKEN>"
 ```
-2. Generate token 'https://github.com/settings/tokens' and enable write:packages
-3. Replace token on yours in .npmrc
 
 ### Common dependencies
 1. Install dependencies
@@ -37,7 +40,7 @@ yarn ligretto:start
 
 ## Install new packages
 ```
-lerna add <package> --scope @memebattle/{{package-name}}
+yarn workspace @memebattle/{workspace} add <package>
 ```
 
 ## TODO: Start ligretto-core locally

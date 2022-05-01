@@ -1,6 +1,7 @@
 import { useDispatch, useSelector } from 'react-redux'
 import { useHistory } from 'react-router'
 import React, { useCallback, useMemo } from 'react'
+
 import { UserInfo } from 'components/blocks/home/user-info'
 import { routes } from 'utils/constants'
 import { logout, selectCurrentUser } from 'ducks/auth'

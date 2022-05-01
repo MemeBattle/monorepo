@@ -4,32 +4,30 @@
   "private": true,
   "scripts": {
     "lint:js": "eslint --ext .js,.vue,.jsx,.ts,.tsx .",
-    "lint:js:fix": "yarn lint:js --fix",
+    "lint-fix:js": "yarn lint:js --fix",
     "lint:styles": "stylelint {apps,packages}/**/*.scss",
-    "test": "lerna run --no-bail test --ignore-path .gitignore",
-    "ligretto:start": "env-cmd yarn lerna run --parallel --scope @memebattle/ligretto-shared --scope @memebattle/ligretto-backend --scope @memebattle/ligretto-recovery --scope @memebattle/ligretto-ui --scope @memebattle/auth-front start:dev",
-    "common-packages:build": "yarn lerna run --scope @memebattle/ligretto-shared build && yarn lerna run --parallel --scope @memebattle/ligretto-ui --scope @memebattle/analytics build && yarn lerna run --scope @memebattle/auth-front build:module",
-    "ligretto:front:build": "yarn lerna run --stream --scope @memebattle/ligretto-recovery build",
-    "ligretto:front:start:dev": "env-cmd yarn lerna run --stream --scope @memebattle/ligretto-recovery start:dev",
-    "ligretto:back:build": "yarn lerna run --stream --scope @memebattle/ligretto-backend build",
-    "ligretto:core:build": "yarn lerna run --stream --scope @memebattle/ligretto-core build",
-    "ligretto:core:migrate": "yarn lerna run --stream --scope @memebattle/ligretto-core migrate",
-    "ligretto:core:start:dev": "yarn lerna run --stream --scope @memebattle/ligretto-core start:dev",
-    "ligretto:ui:build-storybook": "yarn lerna run --stream --scope @memebattle/ligretto-ui build-storybook",
-    "gamehub-client:build": "yarn lerna run --scope @memebattle/gamehub-client build"
+    "lint": "run-p -l 'lint:*'",
+    "test": "env-cmd -- yarn workspaces foreach -pvi run test -- --ignore-path .gitignore",
+    "ligretto:start": "env-cmd -- yarn workspaces foreach -vip --include '{@memebattle/ligretto-shared,@memebattle/ligretto-ui,@memebattle/ligretto-backend,@memebattle/ligretto-recovery,@memebattle/auth-front}' run start:dev",
+    "common-packages:build": "yarn workspace @memebattle/ligretto-shared run build && yarn workspaces foreach -ip --include '{@memebattle/ligretto-ui,@memebattle/analytics}' run build && yarn workspace @memebattle/auth-front run build:module",
+    "ligretto:front:build": "yarn workspace @memebattle/ligretto-recovery run build",
+    "ligretto:front:start:dev": "env-cmd yarn workspace @memebattle/ligretto-recovery run start:dev",
+    "ligretto:back:build": "yarn workspace @memebattle/ligretto-backend run build",
+    "ligretto:core:build": "yarn workspace @memebattle/ligretto-core run build",
+    "ligretto:core:migrate": "yarn workspace @memebattle/ligretto-core run migrate",
+    "ligretto:core:production-migrate": "yarn workspace @memebattle/ligretto-core run production-migrate",
+    "ligretto:core:start:dev": "yarn workspace @memebattle/ligretto-core run start:dev",
+    "ligretto:ui:build-storybook": "yarn workspace @memebattle/ligretto-ui run build-storybook",
+    "ligretto:shared:build": "yarn workspace @memebattle/ligretto-shared run build",
+    "gamehub-client:build": "yarn workspace @memebattle/gamehub-client run build"
   },
   "engines": {
-    "node": ">=10"
+    "node": ">=14"
   },
   "workspaces": [
     "packages/**",
     "apps/*"
   ],
-  "command": {
-    "publish": {
-      "npmClient": "npm"
-    }
-  },
   "eslintConfig": {
     "extends": "react-app"
   },
@@ -40,19 +38,20 @@
     "not op_mini all"
   ],
   "devDependencies": {
-    "@types/jest": "^24.0.19",
+    "@types/jest": "^24.9.1",
     "@types/node": "^14.14.20",
     "@typescript-eslint/eslint-plugin": "^4.26.1",
     "@typescript-eslint/parser": "^4.26.1",
-    "eslint": "^7.28.0",
+    "eslint": "^7.11.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-import-resolver-typescript": "^2.5.0",
     "eslint-plugin-import": "^2.25.2",
     "eslint-plugin-prettier": "^3.4.0",
     "eslint-plugin-react": "^7.24.0",
     "eslint-plugin-react-app": "^6.2.2",
+    "eslint-plugin-react-hooks": "^4.5.0",
     "hygen": "^5.0.3",
-    "lerna": "^3.22.1",
+    "npm-run-all": "^4.1.5",
     "prettier": "^2.2.1",
     "stylelint": "^13.8.0",
     "stylelint-config-prettier": "^8.0.2",
@@ -61,5 +60,6 @@
   },
   "dependencies": {
     "env-cmd": "^10.1.0"
-  }
+  },
+  "packageManager": "yarn@3.2.0"
 }

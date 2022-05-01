@@ -1,5 +1,7 @@
 import { takeEvery, takeLatest } from 'redux-saga/effects'
+
 import { getMeSuccess } from 'ducks/auth'
+
 import { analytics } from './analytics'
 import { logAnalyticsEventAction } from './actions'
 
