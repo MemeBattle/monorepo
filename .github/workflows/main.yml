@@ -1,6 +1,8 @@
 name: 'Build, push and deploy docker images'
 
 on:
+  pull_request:
+    types: [ opened ]
   push:
     branches: [ master ]
 
