@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "lint:js": "eslint --ext .js,.vue,.jsx,.ts,.tsx .",
+    "lint:js": "eslint --debug --ext .js,.vue,.jsx,.ts,.tsx .",
     "lint-fix:js": "yarn lint:js --fix",
     "lint:styles": "stylelint {apps,packages}/**/*.scss",
     "lint-fix:styles": "yarn lint:styles --fix",
@@ -32,9 +32,6 @@
     "packages/**",
     "apps/*"
   ],
-  "eslintConfig": {
-    "extends": "react-app"
-  },
   "browserslist": [
     ">0.2%",
     "not dead",
