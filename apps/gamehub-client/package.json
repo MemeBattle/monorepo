@@ -8,7 +8,8 @@
     "start:gamehub-client:dev": "node_modules/.bin/next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "ts-check": "tsc --noEmit"
   },
   "dependencies": {
     "next": "11.1.2",

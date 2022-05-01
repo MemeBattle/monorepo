@@ -19,7 +19,8 @@
     "ligretto:core:start:dev": "yarn workspace @memebattle/ligretto-core run start:dev",
     "ligretto:ui:build-storybook": "yarn workspace @memebattle/ligretto-ui run build-storybook",
     "ligretto:shared:build": "yarn workspace @memebattle/ligretto-shared run build",
-    "gamehub-client:build": "yarn workspace @memebattle/gamehub-client run build"
+    "gamehub-client:build": "yarn workspace @memebattle/gamehub-client run build",
+    "ts-check": "env-cmd -- yarn workspaces foreach -vpi run ts-check"
   },
   "engines": {
     "node": ">=14"

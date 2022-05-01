@@ -30,7 +30,8 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "build:module": "rollup --config",
-    "start:dev": "rollup --watch --config"
+    "start:dev": "rollup --watch --config",
+    "ts-check": "tsc --noEmit"
   },
   "browserslist": {
     "production": [
