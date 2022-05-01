@@ -1,0 +1,114 @@
+name: CI-pull-requests
+
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  prepare-common:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.14.2'
+          cache: 'yarn'
+
+      - name: Install yarn
+        run: npm install --global yarn
+
+      - name: Auth npm
+        run: |
+          yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
+          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
+
+      - name: Install dependecies
+        run: yarn
+
+      - name: Build common-packages
+        run: yarn run common-packages:build
+
+      - name: Upload common packages
+        uses: actions/upload-artifact@v2
+        with:
+          name: packages-builds
+          path: |
+            packages/*/dist
+            packages/*/build
+            apps/auth-front/dist
+
+  lint:
+
+    runs-on: ubuntu-20.04
+
+    needs: prepare-common
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.14.2'
+          cache: 'yarn'
+
+      - name: Install yarn
+        run: npm install --global yarn
+
+      - name: Auth npm
+        run: |
+          yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
+          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
+
+      - name: Install dependecies
+        run: yarn
+
+      - name: Download common packages
+        uses: actions/download-artifact@v2
+        with:
+          name: packages-builds
+
+      - name: Lint code
+        run: yarn lint
+
+  tests:
+
+    runs-on: ubuntu-20.04
+
+    needs: prepare-common
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.14.2'
+          cache: 'yarn'
+
+      - name: Install yarn
+        run: npm install --global yarn
+
+      - name: Auth npm
+        run: |
+          yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
+          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
+
+      - name: Install dependecies
+        run: yarn
+
+      - name: Download common packages
+        uses: actions/download-artifact@v2
+        with:
+          name: packages-builds
+
+      - name: Run tests
+        run: yarn test
