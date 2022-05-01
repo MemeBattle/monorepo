@@ -3152,7 +3152,6 @@ __metadata:
     env-cmd: ^10.1.0
     eslint: ^7.11.0
     eslint-config-prettier: ^8.3.0
-    eslint-import-resolver-typescript: ^2.5.0
     eslint-plugin-import: ^2.25.2
     eslint-plugin-prettier: ^3.4.0
     eslint-plugin-react: ^7.24.0
@@ -11810,7 +11809,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-import-resolver-typescript@npm:^2.4.0, eslint-import-resolver-typescript@npm:^2.5.0":
+"eslint-import-resolver-typescript@npm:^2.4.0":
   version: 2.5.0
   resolution: "eslint-import-resolver-typescript@npm:2.5.0"
   dependencies:
