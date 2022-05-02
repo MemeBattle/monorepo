@@ -1,8 +1,7 @@
-import React from 'react'
 import { ResultsTable } from './ResultsTable'
 
 export default {
-  title: 'ResultsTable',
+  title: 'Ligretto-ui / ResultsTable',
   component: ResultsTable,
 }
 

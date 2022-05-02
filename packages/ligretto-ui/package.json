@@ -27,8 +27,6 @@
   "scripts": {
     "build": "rollup --config",
     "start:dev": "rollup --watch --config",
-    "storybook": "start-storybook -p 6006",
-    "build-storybook": "build-storybook",
     "ts-check": "tsc --noEmit"
   },
   "devDependencies": {
@@ -36,19 +34,9 @@
     "@rollup/plugin-commonjs": "^15.0.0",
     "@rollup/plugin-node-resolve": "^9.0.0",
     "@rollup/plugin-url": "^5.0.1",
-    "@storybook/addon-actions": "^6.2.0-rc.1",
-    "@storybook/addon-docs": "^6.2.0-rc.1",
-    "@storybook/addon-essentials": "^6.2.0-rc.1",
-    "@storybook/addon-links": "^6.2.0-rc.1",
-    "@storybook/addon-viewport": "^6.2.0-rc.1",
-    "@storybook/addons": "^6.2.0-rc.1",
-    "@storybook/builder-webpack5": "^6.2.0-rc.1",
-    "@storybook/react": "^6.2.0-rc.1",
     "@types/react": "^17.0.44",
     "babel-loader": "^8.2.2",
     "hygen": "^6.0.4",
-    "react-docgen-typescript-loader": "^3.7.2",
-    "react-docgen-typescript-plugin": "^1.0.0",
     "rollup": "^2.51.2",
     "rollup-plugin-peer-deps-external": "^2.2.4",
     "rollup-plugin-typescript2": "^0.30.0",

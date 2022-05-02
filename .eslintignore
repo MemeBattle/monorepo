@@ -2,3 +2,5 @@ node_modules
 rollup.config.js
 build
 dist
+storybook-static
+.yarn

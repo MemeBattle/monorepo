@@ -1,8 +1,7 @@
-import React from 'react'
 import { EmailSended } from './EmailSended'
 
 export default {
-  title: 'EmailSended',
+  title: 'Ligretto-ui / EmailSended',
 }
 
 export const DefaultView = () => <EmailSended />

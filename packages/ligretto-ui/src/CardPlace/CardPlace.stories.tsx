@@ -1,8 +1,7 @@
-import React from 'react'
 import { CardPlace } from './CardPlace'
 
 export default {
-  title: 'CardPlace',
+  title: 'Ligretto-ui / CardPlace',
 }
 
 export const DefaultView = () => (

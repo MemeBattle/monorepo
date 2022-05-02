@@ -1,10 +1,9 @@
-import React from 'react'
 import { CardsRow } from './CardsRow'
 import { Card } from '../Card'
 import { CardColors } from '@memebattle/ligretto-shared'
 
 export default {
-  title: 'CardsPanel',
+  title: 'Ligretto-ui / CardsPanel',
 }
 
 export const DefaultView = () => (

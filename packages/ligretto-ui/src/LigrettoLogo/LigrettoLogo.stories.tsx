@@ -1,8 +1,7 @@
-import React from 'react'
 import { LigrettoLogo } from './LigrettoLogo'
 
 export default {
-  title: 'LigrettoLogo',
+  title: 'Ligretto-ui / LigrettoLogo',
   component: LigrettoLogo,
 }
 

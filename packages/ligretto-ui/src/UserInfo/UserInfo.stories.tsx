@@ -1,8 +1,7 @@
-import React from 'react'
 import { UserInfo } from './UserInfo'
 
 export default {
-  title: 'UserInfo',
+  title: 'Ligretto-ui / UserInfo',
   component: UserInfo,
   argTypes: {
     onClick: { action: 'clicked' },

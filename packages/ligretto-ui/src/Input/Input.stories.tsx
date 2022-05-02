@@ -1,8 +1,7 @@
-import React from 'react'
 import { Input } from './Input'
 
 export default {
-  title: 'Input',
+  title: 'Ligretto-ui / Input',
 }
 
 export const DefaultView = () => <Input />
