@@ -1,10 +1,9 @@
-import React from 'react'
 import { Card } from './Card'
 import { CardColors } from '@memebattle/ligretto-shared'
 import { Box } from '@material-ui/core'
 
 export default {
-  title: 'Card',
+  title: 'Ligretto-ui / Card',
   component: Card,
 }
 

@@ -1,8 +1,7 @@
-import React from 'react'
 import { Link } from './Link'
 
 export default {
-  title: 'Link',
+  title: 'Ligretto-ui / Link',
   component: Link,
 }
 

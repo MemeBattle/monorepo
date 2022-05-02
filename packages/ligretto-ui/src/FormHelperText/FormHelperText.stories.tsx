@@ -1,8 +1,7 @@
-import React from 'react'
 import { FormHelperText } from './FormHelperText'
 
 export default {
-  title: 'FormHelperText',
+  title: 'Ligretto-ui / FormHelperText',
 }
 
 export const DefaultView = () => <FormHelperText />

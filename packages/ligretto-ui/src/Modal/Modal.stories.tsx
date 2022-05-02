@@ -1,14 +1,14 @@
-import React from 'react'
+import { useState, useCallback } from 'react'
 import { Modal } from './Modal'
 
 export default {
-  title: 'Modal',
+  title: 'Ligretto-ui / Modal',
 }
 
 export const DefaultView = () => {
-  const [isOpen, setIsOpen] = React.useState(false)
+  const [isOpen, setIsOpen] = useState(false)
 
-  const toggleIsOpen = React.useCallback(() => setIsOpen(prevIsOpen => !prevIsOpen), [setIsOpen])
+  const toggleIsOpen = useCallback(() => setIsOpen(prevIsOpen => !prevIsOpen), [setIsOpen])
 
   return (
     <>
