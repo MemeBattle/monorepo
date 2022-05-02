@@ -3091,34 +3091,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@memebattle/ligretto-backend@workspace:apps/ligretto-backend":
+"@memebattle/ligretto-core-backend@workspace:apps/ligretto-core-backend":
   version: 0.0.0-use.local
-  resolution: "@memebattle/ligretto-backend@workspace:apps/ligretto-backend"
-  dependencies:
-    "@memebattle/cas-services": ^3.6.1
-    "@memebattle/ligretto-shared": ^1.0.6
-    "@types/dotenv": ^8.2.0
-    "@types/lodash": ^4.14.149
-    ava: ^2.3.0
-    dotenv: ^8.2.0
-    inversify: ^5.0.1
-    lodash: ^4.17.15
-    nanoid: ^3.1.20
-    nodemon: ^2.0.4
-    reflect-metadata: ^0.1.13
-    socket.io: ^4.2.0
-    tap-nyan: ^1.1.0
-    ts-loader: ^8.1.0
-    ts-node: ^8.3.0
-    typescript: ^4.3.2
-    webpack: ^5.28.0
-    webpack-cli: ^4.6.0
-  languageName: unknown
-  linkType: soft
-
-"@memebattle/ligretto-core@workspace:apps/ligretto-core":
-  version: 0.0.0-use.local
-  resolution: "@memebattle/ligretto-core@workspace:apps/ligretto-core"
+  resolution: "@memebattle/ligretto-core-backend@workspace:apps/ligretto-core-backend"
   dependencies:
     "@adonisjs/assembler": ^5.3.0
     "@adonisjs/core": ^5.1.7
@@ -3140,9 +3115,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@memebattle/ligretto-recovery@workspace:apps/ligretto-recovery":
+"@memebattle/ligretto-frontend@workspace:apps/ligretto-frontend":
   version: 0.0.0-use.local
-  resolution: "@memebattle/ligretto-recovery@workspace:apps/ligretto-recovery"
+  resolution: "@memebattle/ligretto-frontend@workspace:apps/ligretto-frontend"
   dependencies:
     "@memebattle/analytics": ^1.0.0
     "@memebattle/auth-front": ^0.1.0
@@ -3176,6 +3151,31 @@ __metadata:
     sass: ^1.32.8
     socket.io-client: ^4.2.0
     typescript: ^4.3.2
+  languageName: unknown
+  linkType: soft
+
+"@memebattle/ligretto-gameplay-backend@workspace:apps/ligretto-gameplay-backend":
+  version: 0.0.0-use.local
+  resolution: "@memebattle/ligretto-gameplay-backend@workspace:apps/ligretto-gameplay-backend"
+  dependencies:
+    "@memebattle/cas-services": ^3.6.1
+    "@memebattle/ligretto-shared": ^1.0.6
+    "@types/dotenv": ^8.2.0
+    "@types/lodash": ^4.14.149
+    ava: ^2.3.0
+    dotenv: ^8.2.0
+    inversify: ^5.0.1
+    lodash: ^4.17.15
+    nanoid: ^3.1.20
+    nodemon: ^2.0.4
+    reflect-metadata: ^0.1.13
+    socket.io: ^4.2.0
+    tap-nyan: ^1.1.0
+    ts-loader: ^8.1.0
+    ts-node: ^8.3.0
+    typescript: ^4.3.2
+    webpack: ^5.28.0
+    webpack-cli: ^4.6.0
   languageName: unknown
   linkType: soft
 

@@ -102,9 +102,9 @@ jobs:
         tags: |
           ghcr.io/memebattle/ligretto-frontend:${{github.sha}}
           ghcr.io/memebattle/ligretto-frontend:latest
-        context: './apps/ligretto-recovery'
+        context: './apps/ligretto-frontend'
 
-  ligretto-backend-image:
+  ligretto-gameplay-backend-image:
 
     needs: prepare-common
 
@@ -152,11 +152,11 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: |
-            ghcr.io/memebattle/ligretto-backend:${{ github.sha }}
-            ghcr.io/memebattle/ligretto-backend:latest
-          context: './apps/ligretto-backend'
+            ghcr.io/memebattle/ligretto-gameplay-backend:${{ github.sha }}
+            ghcr.io/memebattle/ligretto-gameplay-backend:latest
+          context: './apps/ligretto-gameplay-backend'
 
-  ligretto-core-image:
+  ligretto-core-backend-image:
 
     runs-on: self-hosted
 
@@ -183,18 +183,18 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: |
-            ghcr.io/memebattle/ligretto-core:${{ github.sha }}
-            ghcr.io/memebattle/ligretto-core:latest
+            ghcr.io/memebattle/ligretto-core-backend:${{ github.sha }}
+            ghcr.io/memebattle/ligretto-core-backend:latest
           build-args:
             NPM_TOKEN=${{ secrets.CI_REGISTRY_TOKEN }}
           context: '.'
-          file: '.docker/Ligretto-core_Dockerfile'
+          file: '.docker/Ligretto-core-backend_Dockerfile'
 
       - name: Extract yarn cache to save between jobs
         run: |
-          docker create --name ligretto-core ghcr.io/memebattle/ligretto-core:$GITHUB_SHA
-          docker cp ligretto-core:/memebattle/.yarn/cache .yarn/cache
-          docker container rm ligretto-core
+          docker create --name ligretto-core-backend ghcr.io/memebattle/ligretto-core-backend:$GITHUB_SHA
+          docker cp ligretto-core-backend:/memebattle/.yarn/cache .yarn/cache
+          docker container rm ligretto-core-backend
 
   ligretto-ui-image:
 
@@ -248,47 +248,47 @@ jobs:
             ghcr.io/memebattle/ligretto-ui:latest
           context: './packages/ligretto-ui'
 
-  deploy:
-    needs: [ligretto-frontend-image, ligretto-ui-image, ligretto-backend-image, ligretto-core-image]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        name: Checkout
-
-      - name: Setup SSH
-        uses: kielabokkie/ssh-key-and-known-hosts-action@v1.1.0
-        with:
-          ssh-private-key: ${{ secrets.AWS_CI_PRIVATE_KEY }}
-          ssh-host: mems.fun
-
-      - name: Docker login
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: create docker context
-        run: docker context create remote --docker "host=ssh://ci@mems.fun"
-
-      - name: deploy stack
-        run: |
-          docker context use remote
-          docker stack deploy --prune --with-registry-auth --resolve-image=always -c docker-compose.deploy.yml Ligretto
-
-      - name: Migrations
-        env:
-          PORT: 3333
-          HOST: 0.0.0.0
-          NODE_ENV: production
-          APP_KEY: BYnNsw-r-ndJTCy15Uqo8JAF4ONCA4X1
-          PARTNER_ID: 61587c1bdc151b004107a2b5
-          CAS_URI: https://cas.mems.fun/api
-          DB_CONNECTION: pg
-          PG_HOST: ${{ secrets.LIGRETTO_PG_HOST }}
-          PG_PORT: 5432
-          PG_USER: ${{ secrets.LIGRETTO_PG_USER }}
-          PG_PASSWORD: ${{ secrets.LIGRETTO_PG_PASSWORD }}
-          CAS_PUBLIC_KEY_PATH: /key.pem
-          PG_DB_NAME: ligretto-core
-        run: docker run --rm --entrypoint="" ghcr.io/memebattle/ligretto-core:${{ github.sha }} yarn run ligretto:core:production-migrate
+#  deploy:
+#    needs: [ligretto-frontend-image, ligretto-ui-image, ligretto-gameplay-backend-image, ligretto-core-backend-image]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
+#        name: Checkout
+#
+#      - name: Setup SSH
+#        uses: kielabokkie/ssh-key-and-known-hosts-action@v1.1.0
+#        with:
+#          ssh-private-key: ${{ secrets.AWS_CI_PRIVATE_KEY }}
+#          ssh-host: mems.fun
+#
+#      - name: Docker login
+#        uses: docker/login-action@v1
+#        with:
+#          registry: ghcr.io
+#          username: ${{ github.repository_owner }}
+#          password: ${{ secrets.GITHUB_TOKEN }}
+#
+#      - name: create docker context
+#        run: docker context create remote --docker "host=ssh://ci@mems.fun"
+#
+#      - name: deploy stack
+#        run: |
+#          docker context use remote
+#          docker stack deploy --prune --with-registry-auth --resolve-image=always -c docker-compose.deploy.yml Ligretto
+#
+#      - name: Migrations
+#        env:
+#          PORT: 3333
+#          HOST: 0.0.0.0
+#          NODE_ENV: production
+#          APP_KEY: BYnNsw-r-ndJTCy15Uqo8JAF4ONCA4X1
+#          PARTNER_ID: 61587c1bdc151b004107a2b5
+#          CAS_URI: https://cas.mems.fun/api
+#          DB_CONNECTION: pg
+#          PG_HOST: ${{ secrets.LIGRETTO_PG_HOST }}
+#          PG_PORT: 5432
+#          PG_USER: ${{ secrets.LIGRETTO_PG_USER }}
+#          PG_PASSWORD: ${{ secrets.LIGRETTO_PG_PASSWORD }}
+#          CAS_PUBLIC_KEY_PATH: /key.pem
+#          PG_DB_NAME: ligretto-core
+#        run: docker run --rm --entrypoint="" ghcr.io/memebattle/ligretto-core-backend:${{ github.sha }} yarn run ligretto:core-backend:production-migrate

@@ -1,5 +1,5 @@
 {
-  "name": "@memebattle/ligretto-backend",
+  "name": "@memebattle/ligretto-gameplay-backend",
   "version": "1.0.9",
   "main": "index.js",
   "license": "MIT",
