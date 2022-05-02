@@ -2,7 +2,7 @@ name: 'Build, push and deploy docker images'
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, LIG-122-rename-apps ]
 
 jobs:
 
