@@ -1,8 +1,7 @@
-import React from 'react'
 import { Alert } from './Alert'
 
 export default {
-  title: 'Alert',
+  title: 'Ligretto-ui / Alert',
   component: Alert,
 }
 

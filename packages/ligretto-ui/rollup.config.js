@@ -8,6 +8,10 @@ const packageJson = require('./package.json')
 
 export default {
   input: 'src/index.ts',
+  onwarn(warning, warn) {
+    if (warning.code === 'THIS_IS_UNDEFINED') return;
+    warn(warning);
+  },
   output: [
     {
       file: packageJson.main,

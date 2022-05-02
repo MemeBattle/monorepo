@@ -1,8 +1,7 @@
-import React from 'react'
 import { Background } from './Background'
 
 export default {
-  title: 'Background',
+  title: 'Ligretto-ui / Background',
   component: Background,
 }
 

@@ -1,9 +1,8 @@
-import React from 'react'
 import { Avatar } from './Avatar'
 import { userAvatars } from './getRandomAvatar'
 
 export default {
-  title: 'Avatar',
+  title: 'Ligretto-ui / Avatar',
   component: Avatar,
   argTypes: {
     src: {

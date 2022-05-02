@@ -5,7 +5,7 @@ import { RoomGrid } from './RoomGrid'
 import type { FC } from 'react'
 
 export default {
-  title: 'RoomGrid',
+  title: 'Ligretto-ui / RoomGrid',
 }
 
 const SomeComponent: FC<{ position?: PositionOnTable }> = ({ position }) => <span>position: {position}</span>

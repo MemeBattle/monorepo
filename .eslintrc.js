@@ -22,7 +22,7 @@ module.exports = {
     },
   },
   plugins: ['@typescript-eslint', 'react-app', 'prettier', 'react', 'react-hooks'],
-  extends: ['plugin:@typescript-eslint/recommended', 'plugin:react/recommended'],
+  extends: ['plugin:@typescript-eslint/recommended', 'plugin:react/recommended', 'plugin:storybook/recommended'],
   rules: {
     'prettier/prettier': [
       'error',
@@ -101,7 +101,12 @@ module.exports = {
     '@typescript-eslint/camelcase': 'off',
     'no-unused-expressions': 'off',
     '@typescript-eslint/no-unused-expressions': ['error'],
-    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    '@typescript-eslint/no-unused-vars': [
+      'error',
+      {
+        argsIgnorePattern: '^_',
+      },
+    ],
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     'react/prop-types': 'off',
     'react/display-name': 'off',

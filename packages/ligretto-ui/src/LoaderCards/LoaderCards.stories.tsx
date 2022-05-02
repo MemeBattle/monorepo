@@ -1,8 +1,7 @@
-import React from 'react'
 import { LoaderCards } from './LoaderCards'
 
 export default {
-  title: 'LoaderCards',
+  title: 'Ligretto-ui / LoaderCards',
   component: LoaderCards,
 }
 

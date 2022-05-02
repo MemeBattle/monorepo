@@ -1,9 +1,8 @@
-import React from 'react'
 import { Snackbar } from './Snackbar'
 
 export default {
   component: Snackbar,
-  title: 'Snackbar',
+  title: 'Ligretto-ui / Snackbar',
 }
 
 const Template = args => <Snackbar {...args} />
