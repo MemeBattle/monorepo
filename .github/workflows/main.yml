@@ -246,7 +246,8 @@ jobs:
           tags: |
             ghcr.io/memebattle/ligretto-ui:${{ github.sha }}
             ghcr.io/memebattle/ligretto-ui:latest
-          context: './packages/ligretto-ui'
+          context: '.'
+          file: '.docker/Ligretto-ui_Dockerfile'
 
 #  deploy:
 #    needs: [ligretto-frontend-image, ligretto-ui-image, ligretto-gameplay-backend-image, ligretto-core-backend-image]
