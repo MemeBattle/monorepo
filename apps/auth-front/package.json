@@ -6,7 +6,7 @@
   "module": "./dist/module.js",
   "types": "./dist/module.d.ts",
   "dependencies": {
-    "@memebattle/cas-services": "link:/Users/s_qin/WebstormProjects/cas-services",
+    "@memebattle/cas-services": "^3.6.1",
     "axios": "^0.21.1",
     "email-validator": "^2.0.4",
     "final-form": "^4.20.1",
