@@ -1,5 +1,5 @@
 {
-  "name": "@memebattle/ligretto-recovery",
+  "name": "@memebattle/ligretto-frontend",
   "version": "0.2.7",
   "private": true,
   "main": "./public/index.js",

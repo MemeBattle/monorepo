@@ -1,5 +1,5 @@
 *
-!apps/ligretto-core
+!apps/ligretto-core-backend
 !packages/ligretto-shared
 !.yarn
 !yarn.lock
