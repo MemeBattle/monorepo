@@ -6,8 +6,7 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "outDir": "./build",
-    "sourceMap": true,
-    "skipLibCheck": true
+    "sourceMap": true
   },
   "exclude": ["node_modules", "build"],
   "files": ["src/index.ts"]

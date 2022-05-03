@@ -15,6 +15,7 @@
     "react-router": "^5.2.0",
     "react-router-dom": "^5.2.0",
     "react-scripts": "5.0.1",
+    "rollup-plugin-typescript2": "^0.31.2",
     "typescript": "^4.3.2",
     "web-vitals": "^0.2.4"
   },
@@ -29,7 +30,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test --passWithNoTests",
     "eject": "react-scripts eject",
-    "build:module": "rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
+    "build:module": "rollup --config",
     "start:dev": "rollup --watch --config",
     "ts-check": "tsc --noEmit"
   },
@@ -49,7 +50,6 @@
     "@memebattle/ligretto-ui": "^1.0.1",
     "@rollup/plugin-commonjs": "^15.0.0",
     "@rollup/plugin-node-resolve": "^9.0.0",
-    "@rollup/plugin-typescript": "^8.3.2",
     "@rollup/plugin-url": "^6.0.0",
     "@svgr/rollup": "^5.5.0",
     "@types/react": "^17.0.44",
