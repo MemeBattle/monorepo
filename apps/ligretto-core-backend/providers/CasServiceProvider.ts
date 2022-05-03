@@ -36,25 +36,22 @@ export default class CasServiceProvider {
     const publicKey = (await readFile(publicKeyPath)).toString()
     const casURI = Env.get('CAS_URI')
 
-    this.application.container.bind(
-      'CasServices',
-      (): Services => {
-        const services = createCasServices({ partnerId, casURI, publicKey })
-        const login = services.loginService
+    this.application.container.bind('CasServices', (): Services => {
+      const services = createCasServices({ partnerId, casURI, publicKey })
+      const login = services.loginService
 
-        const signUp = services.signUpService
+      const signUp = services.signUpService
 
-        const verifyToken = services.verifyToken
+      const verifyToken = services.verifyToken
 
-        const getMe = services.getMeService
+      const getMe = services.getMeService
 
-        const getUsers = services.getUsersService
+      const getUsers = services.getUsersService
 
-        const createTemporaryToken = services.createTemporaryTokenService
+      const createTemporaryToken = services.createTemporaryTokenService
 
-        return { login, signUp, verifyToken, getMe, getUsers, createTemporaryToken }
-      },
-    )
+      return { login, signUp, verifyToken, getMe, getUsers, createTemporaryToken }
+    })
   }
 
   public async boot() {
