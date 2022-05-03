@@ -15,15 +15,15 @@ services:
         condition: on-failure
         delay: 10s
         max_attempts: 3
-  ligretto-backend:
-    image: ghcr.io/memebattle/ligretto-backend:latest
+  ligretto-gameplay-backend:
+    image: ghcr.io/memebattle/ligretto-gameplay-backend:latest
     ports:
       - "3005:3005"
     secrets:
       - source: LIGRETTO_CAS_KEY
-        target: /ligretto-backend/key.pem
+        target: /ligretto-gameplay-backend/key.pem
     environment:
-      - LIGRETTO_CAS_KEY_PATH=/ligretto-backend/key.pem
+      - LIGRETTO_CAS_KEY_PATH=/ligretto-gameplay-backend/key.pem
     deploy:
       replicas: 1
       update_config:
@@ -33,15 +33,15 @@ services:
         condition: on-failure
         delay: 10s
         max_attempts: 3
-  ligretto-core:
-    image: ghcr.io/memebattle/ligretto-core:latest
+  ligretto-core-backend:
+    image: ghcr.io/memebattle/ligretto-core-backend:latest
     ports:
       - "3333:3333"
     secrets:
       - source: LIGRETTO_CAS_KEY
-        target: /ligretto-core/key.pem
+        target: /ligretto-core-backend/key.pem
     environment:
-      - CAS_PUBLIC_KEY_PATH=/ligretto-core/key.pem
+      - CAS_PUBLIC_KEY_PATH=/ligretto-core-backend/key.pem
       - PORT=3333
       - HOST=0.0.0.0
       - NODE_ENV=production
