@@ -39,7 +39,6 @@
     "not op_mini all"
   ],
   "devDependencies": {
-    "@react-theming/storybook-addon": "^1.1.5",
     "@storybook/addon-actions": "^6.4.22",
     "@storybook/addon-docs": "^6.4.22",
     "@storybook/addon-essentials": "^6.4.22",
@@ -49,7 +48,6 @@
     "@storybook/builder-webpack5": "^6.4.22",
     "@storybook/manager-webpack5": "^6.4.22",
     "@storybook/react": "^6.4.22",
-    "@types/jest": "^24.9.1",
     "@types/node": "^16.11.33",
     "@typescript-eslint/eslint-plugin": "^4.26.1",
     "@typescript-eslint/parser": "^4.26.1",
@@ -61,7 +59,7 @@
     "eslint-plugin-react-app": "^6.2.2",
     "eslint-plugin-react-hooks": "^4.5.0",
     "eslint-plugin-storybook": "^0.5.11",
-    "hygen": "^5.0.3",
+    "hygen": "6.2.0",
     "npm-run-all": "^4.1.5",
     "prettier": "^2.2.1",
     "react-docgen-typescript-loader": "^3.7.2",

@@ -32,6 +32,6 @@ export default class GamesController {
 
     const gameResults: SaveRoundResponse['gameResults'] = {}
 
-    return { game, roundResults, round }
+    return { game, roundResults, round, gameResults }
   }
 }

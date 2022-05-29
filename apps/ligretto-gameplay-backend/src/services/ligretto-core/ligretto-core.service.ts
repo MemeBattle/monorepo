@@ -24,7 +24,6 @@ export class LigrettoCoreService {
       })),
     })
 
-
     return res.data
   }
 }

@@ -36,7 +36,6 @@
     "@rollup/plugin-url": "^5.0.1",
     "@types/react": "^17.0.44",
     "babel-loader": "^8.2.2",
-    "hygen": "^6.0.4",
     "rollup": "^2.51.2",
     "rollup-plugin-peer-deps-external": "^2.2.4",
     "rollup-plugin-typescript2": "^0.30.0",
