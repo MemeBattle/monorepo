@@ -59,7 +59,7 @@ export class GameplayController extends Controller {
 
     await this.updateGame(socket, gameId, game)
 
-    console.log(gameResults)
+    console.log('gameResults', gameResults)
     if (gameResults) {
       const action = endRoundAction(gameResults)
       socket.to(gameId).emit('event', action)

@@ -7,8 +7,8 @@ export default class RoundUsers extends BaseSchema {
     this.schema.createTable(this.tableName, table => {
       table.increments('id')
 
-      table.integer('roundId').unsigned().references('rounds.id')
-      table.string('userId').unsigned().references('users.casId')
+      table.uuid('roundId').references('rounds.id')
+      table.string('userId').references('users.casId')
       table.unique(['roundId', 'userId'])
 
       table.integer('score')

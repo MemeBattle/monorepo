@@ -1,11 +1,14 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, ManyToMany, manyToMany, BelongsTo, belongsTo } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, column, ManyToMany, manyToMany, BelongsTo, belongsTo, beforeCreate } from '@ioc:Adonis/Lucid/Orm'
 import User from './User'
 import Game from './Game'
+import { randomUUID } from 'node:crypto'
 
 export default class Round extends BaseModel {
+  public static selfAssignPrimaryKey = true
+
   @column({ isPrimary: true })
-  public id: number
+  public id: string
 
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
@@ -30,4 +33,9 @@ export default class Round extends BaseModel {
 
   @belongsTo(() => Game)
   public game: BelongsTo<typeof Game>
+
+  @beforeCreate()
+  public static assignUuid(user: Game) {
+    user.id = randomUUID()
+  }
 }

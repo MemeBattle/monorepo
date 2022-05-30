@@ -17,18 +17,17 @@
     "ts-check": "tsc --noEmit"
   },
   "devDependencies": {
-    "@adonisjs/assembler": "^5.6.2",
+    "@adonisjs/assembler": "^5.7.0",
     "@types/lodash": "^4.14.174",
     "cpx": "^1.5.0",
     "pino-pretty": "^7.6.1",
-    "typescript": "^4.3.2",
     "youch": "^2.2.2",
     "youch-terminal": "^1.1.1"
   },
   "dependencies": {
-    "@adonisjs/core": "^5.7.5",
+    "@adonisjs/core": "^5.8.3",
     "@adonisjs/lucid": "^17.2.0",
-    "@adonisjs/repl": "^3.1.10",
+    "@adonisjs/repl": "^3.1.11",
     "@memebattle/cas-services": "^3.6.1",
     "@memebattle/ligretto-shared": "^1.0.6",
     "lodash": "^4.17.21",

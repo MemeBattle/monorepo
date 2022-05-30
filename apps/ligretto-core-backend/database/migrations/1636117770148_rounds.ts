@@ -5,8 +5,8 @@ export default class Rounds extends BaseSchema {
 
   public async up() {
     this.schema.createTable(this.tableName, table => {
-      table.increments('id').primary()
-      table.uuid('gameId').unsigned().references('games.id').onDelete('CASCADE')
+      table.uuid('id').primary()
+      table.uuid('gameId').references('games.id').onDelete('CASCADE')
 
       /**
        * Uses timestamptz for PostgreSQL and DATETIME2 for MSSQL
