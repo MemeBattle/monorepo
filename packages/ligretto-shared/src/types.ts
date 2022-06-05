@@ -95,3 +95,5 @@ export type GameResults = Record<
     gameScore: number
   }
 >
+
+export type UUID = string

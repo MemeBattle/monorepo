@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@types/dotenv": "^8.2.0",
-    "@types/lodash": "^4.14.149",
+    "@types/lodash": "^4.14.182",
     "ava": "^2.3.0",
     "nodemon": "^2.0.4",
     "tap-nyan": "^1.1.0",
