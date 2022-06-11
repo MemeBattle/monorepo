@@ -4,7 +4,7 @@ import type { AppContextValue } from './modules/app'
 import { AppContext } from './modules/app'
 import type { FC, ReactNode } from 'react'
 import React, { useMemo } from 'react'
-import { createFrontServices } from '@memebattle/cas-services'
+import { createFrontServices } from '@memebattle/cas-services/dist/createFrontServices'
 
 export interface AuthFrontModuleProps {
   onLoginSucceeded: ({ token }: { token: string }) => void

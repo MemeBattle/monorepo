@@ -12,7 +12,7 @@
     "ts-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@reduxjs/toolkit": "^1.6.0"
+    "@reduxjs/toolkit": "^1.8.1"
   },
   "gitHead": "c0f6bd6a4648db4b6372684434c65cad8ae280c4",
   "devDependencies": {
