@@ -164,21 +164,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Dependencies cache
-        uses: actions/cache@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
         with:
-          path: '.yarn/cache'
-          key: ${{ hashFiles('yarn.lock') }}
+          driver-opts: env.BUILDKIT_STEP_LOG_MAX_SIZE=10485760
 
       - name: Docker login
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           platforms: linux/arm64
           push: true
@@ -189,12 +188,8 @@ jobs:
             NPM_TOKEN=${{ secrets.CI_REGISTRY_TOKEN }}
           context: '.'
           file: '.docker/Ligretto-core-backend_Dockerfile'
-
-      - name: Extract yarn cache to save between jobs
-        run: |
-          docker create --name ligretto-core-backend ghcr.io/memebattle/ligretto-core-backend:$GITHUB_SHA
-          docker cp ligretto-core-backend:/memebattle/.yarn/cache .yarn/cache
-          docker container rm ligretto-core-backend
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   ligretto-ui-image:
 
@@ -281,7 +276,6 @@ jobs:
         env:
           PORT: 3333
           HOST: 0.0.0.0
-          NODE_ENV: production
           APP_KEY: BYnNsw-r-ndJTCy15Uqo8JAF4ONCA4X1
           PARTNER_ID: 61587c1bdc151b004107a2b5
           CAS_URI: https://cas.mems.fun/api
@@ -292,4 +286,5 @@ jobs:
           PG_PASSWORD: ${{ secrets.LIGRETTO_PG_PASSWORD }}
           CAS_PUBLIC_KEY_PATH: /key.pem
           PG_DB_NAME: ligretto-core
-        run: docker run --rm --entrypoint="" ghcr.io/memebattle/ligretto-core-backend:${{ github.sha }} yarn run ligretto:core-backend:production-migrate
+        run: >
+          docker run --rm --entrypoint="" -e HOST -e PORT -e APP_KEY -e PARTNER_ID -e CAS_URI -e DB_CONNECTION -e PG_HOST -e PG_PORT -e PG_USER -e PG_PASSWORD -e CAS_PUBLIC_KEY_PATH -e PG_DB_NAME ghcr.io/memebattle/ligretto-core-backend:${{ github.sha }} yarn run ligretto:core-backend:production-migrate
