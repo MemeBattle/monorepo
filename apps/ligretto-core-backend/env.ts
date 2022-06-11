@@ -29,4 +29,6 @@ export default Env.rules({
   PG_USER: Env.schema.string(),
   PG_PASSWORD: Env.schema.string(),
   PG_DB_NAME: Env.schema.string(),
+
+  MIGRATIONS_MODE: Env.schema.boolean.optional(),
 })
