@@ -286,5 +286,6 @@ jobs:
           PG_PASSWORD: ${{ secrets.LIGRETTO_PG_PASSWORD }}
           CAS_PUBLIC_KEY_PATH: /key.pem
           PG_DB_NAME: ligretto-core
-        run: >
-          docker run --rm --entrypoint="" -e HOST -e PORT -e APP_KEY -e PARTNER_ID -e CAS_URI -e DB_CONNECTION -e PG_HOST -e PG_PORT -e PG_USER -e PG_PASSWORD -e CAS_PUBLIC_KEY_PATH -e PG_DB_NAME ghcr.io/memebattle/ligretto-core-backend:${{ github.sha }} yarn run ligretto:core-backend:production-migrate
+        run: |
+          touch key.pem
+          docker run --rm -v "$(pwd)"/key.pem:/key.pem --entrypoint="" -e HOST -e PORT -e APP_KEY -e PARTNER_ID -e CAS_URI -e DB_CONNECTION -e PG_HOST -e PG_PORT -e PG_USER -e PG_PASSWORD -e CAS_PUBLIC_KEY_PATH -e PG_DB_NAME ghcr.io/memebattle/ligretto-core-backend:${{ github.sha }} yarn run ligretto:core-backend:production-migrate
