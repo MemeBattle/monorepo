@@ -4,7 +4,7 @@ import { PlaygroundService } from '../entities/playground'
 import { GameService } from '../entities/game/game.service'
 import { IOC_TYPES } from '../IOC_TYPES'
 import { GameplayOutput } from './gameplay-output'
-import type { Game } from '@memebattle/ligretto-shared'
+import type { Game, GameResults } from '@memebattle/ligretto-shared'
 
 @injectable()
 export class Gameplay {
@@ -59,7 +59,7 @@ export class Gameplay {
     }
   }
 
-  async playerTakeFromLigrettoDeck(gameId: string, playerId: string): Promise<[Game | undefined, Record<string, number> | undefined] | undefined> {
+  async playerTakeFromLigrettoDeck(gameId: string, playerId: string): Promise<{ game?: Game; gameResults?: GameResults }> {
     try {
       const remaining = await this.playerService.takeFromLigrettoDeck(gameId, playerId)
 
@@ -68,10 +68,10 @@ export class Gameplay {
       }
 
       const game = await this.gameService.getGame(gameId)
-      return [game, undefined]
+      return { game }
     } catch (e) {
       console.log(e)
-      return [undefined, undefined]
+      return {}
     }
   }
 
@@ -85,10 +85,10 @@ export class Gameplay {
 
   async endGame(gameId: string) {
     try {
-      const results = await this.gameService.getResult(gameId)
+      const roundResult = await this.gameService.getRoundResult(gameId)
       await this.gameService.endGame(gameId)
 
-      return { results }
+      return { roundResult }
     } catch (e) {
       console.log(e)
     }

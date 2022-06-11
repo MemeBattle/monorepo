@@ -1,7 +1,7 @@
 import type { Socket } from 'socket.io'
 import { IOC } from '../inversify.config'
 import { IOC_TYPES } from '../IOC_TYPES'
-import type { AuthService } from '../entities/auth'
+import type { AuthService } from '../services/auth'
 
 /**
  * Add userId to socket.data.user.id
