@@ -33,8 +33,8 @@ export default class CasServiceProvider {
     const Env = (await import('@ioc:Adonis/Core/Env')).default
     const partnerId = Env.get('PARTNER_ID')
     const publicKeyPath = Env.get('CAS_PUBLIC_KEY_PATH')
-    const publicKey = (await readFile(publicKeyPath)).toString()
     const casURI = Env.get('CAS_URI')
+    const publicKey = Env.get('MIGRATIONS_MODE') ? '' : (await readFile(publicKeyPath)).toString()
 
     this.application.container.bind('CasServices', (): Services => {
       const services = createCasServices({ partnerId, casURI, publicKey })
