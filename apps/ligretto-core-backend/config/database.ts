@@ -52,7 +52,7 @@ const databaseConfig: DatabaseConfig = {
         idleTimeoutMillis: 600000,
       },
       healthCheck: true,
-      debug: true,
+      debug: false,
     },
   },
 }
