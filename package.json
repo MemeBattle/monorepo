@@ -10,7 +10,7 @@
     "lint": "run-p -l 'lint:*'",
     "lint-fix": "run-p -l 'lint-fix:*'",
     "test": "env-cmd -- yarn workspaces foreach -vip run test -- --ignore-path .gitignore",
-    "ligretto:start": "env-cmd -- yarn workspaces foreach -vip --include '{@memebattle/ligretto-shared,@memebattle/ligretto-ui,@memebattle/ligretto-gameplay-backend,@memebattle/ligretto-frontend,@memebattle/auth-front}' run start:dev",
+    "ligretto:start": "env-cmd -- yarn workspaces foreach -vip --include '{@memebattle/ligretto-core-backend,@memebattle/ligretto-shared,@memebattle/ligretto-ui,@memebattle/ligretto-gameplay-backend,@memebattle/ligretto-frontend,@memebattle/auth-front}' run start:dev",
     "common-packages:build": "yarn workspaces foreach -vipt --include '{@memebattle/ligretto-shared,@memebattle/ligretto-ui,@memebattle/analytics}' run build && yarn workspace @memebattle/auth-front run build:module",
     "ligretto:front:build": "yarn workspace @memebattle/ligretto-frontend run build",
     "ligretto:front:start:dev": "env-cmd yarn workspace @memebattle/ligretto-frontend run start:dev",

@@ -8,7 +8,7 @@
   "scripts": {
     "build": "node ace build --production",
     "start": "node server.js",
-    "start:dev": "node ace serve --watch",
+    "start:dev": "node ace serve --watch --encore-args=\"--port ${LIGRETTO_CORE_BACKEND_PORT}\"",
     "copy:yarn_lock": "cpx ../../yarn.lock build",
     "copy:npm_rc": "cpx ../../.npmrc build",
     "postbuild": "yarn copy:yarn_lock && yarn copy:npm_rc",
