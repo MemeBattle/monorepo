@@ -9,22 +9,20 @@ import { LOCAL_STORAGE_TOKEN_KEY } from 'ducks/auth/constants'
 import { WEBSOCKET_URL } from '../../config'
 
 function socketChannel(socket: Socket): EventChannel<unknown> {
-  return eventChannel<unknown>(
-    (emitter): Unsubscribe => {
-      socket.on('event', (data: unknown) => {
-        emitter(data)
-      })
+  return eventChannel<unknown>((emitter): Unsubscribe => {
+    socket.on('event', (data: unknown) => {
+      emitter(data)
+    })
 
-      socket.on('disconnect', () => {
-        emitter(END)
-      })
+    socket.on('disconnect', () => {
+      emitter(END)
+    })
 
-      return () => {
-        socket.off('event')
-        socket.off('disconnect')
-      }
-    },
-  )
+    return () => {
+      socket.off('event')
+      socket.off('disconnect')
+    }
+  })
 }
 
 function* socketReceiveSaga(socket: Socket): SagaIterator {
