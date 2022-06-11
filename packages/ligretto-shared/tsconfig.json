@@ -9,5 +9,5 @@
     "sourceMap": true
   },
   "exclude": ["node_modules", "build"],
-  "files": ["src/index.ts"]
+  "include": ["src/**/*.ts"]
 }

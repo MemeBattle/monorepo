@@ -79,6 +79,15 @@ export interface CardsDeck {
   cards: Card[]
 }
 
+export type RoundInfo = {
+  results: Record<
+    Player['id'],
+    {
+      roundScore: number
+    }
+  >
+}
+
 export type GameResults = Record<
   Player['id'],
   {
@@ -86,3 +95,5 @@ export type GameResults = Record<
     gameScore: number
   }
 >
+
+export type UUID = string

@@ -25,6 +25,10 @@ Route.get('/', async () => ({ hello: 'world' }))
 
 Route.resource('users', 'UsersController').apiOnly()
 
+Route.post('/games', 'GamesController.create')
+Route.get('/games', 'GamesController.index')
+Route.post('/games/:id/rounds', 'GamesController.saveRound').where('id', Route.matchers.uuid())
+
 Route.post('/auth/me', 'AuthController.me')
 
 Route.get('health', async ({ response }) => {

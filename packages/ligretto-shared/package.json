@@ -12,11 +12,10 @@
     "ts-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@reduxjs/toolkit": "^1.8.1"
+    "@reduxjs/toolkit": "^1.8.2"
   },
-  "gitHead": "c0f6bd6a4648db4b6372684434c65cad8ae280c4",
   "devDependencies": {
     "nodemon": "^2.0.4",
-    "typescript": "^4.3.2"
+    "typescript": "^4.7.3"
   }
 }
