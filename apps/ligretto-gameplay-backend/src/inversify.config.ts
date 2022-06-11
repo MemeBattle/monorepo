@@ -14,8 +14,9 @@ import { Database } from './database'
 import { GameplayOutput } from './gameplay/gameplay-output'
 import { UserService, UserRepository } from './entities/user'
 import { TechController } from './controllers/tech-controller'
-import { AuthService } from './entities/auth'
 import { BotController } from './controllers/bot-controller'
+import { AuthService } from './services/auth'
+import { LigrettoCoreService } from './services/ligretto-core'
 
 export const IOC = new Container()
 
@@ -36,3 +37,4 @@ IOC.bind<TechController>(IOC_TYPES.TechController).to(TechController)
 IOC.bind<BotController>(IOC_TYPES.BotController).to(BotController)
 IOC.bind<Database>(IOC_TYPES.Database).to(Database).inSingletonScope()
 IOC.bind<AuthService>(IOC_TYPES.AuthService).to(AuthService).inSingletonScope()
+IOC.bind<LigrettoCoreService>(IOC_TYPES.LigrettoCoreService).to(LigrettoCoreService).inSingletonScope()

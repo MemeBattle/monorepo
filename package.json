@@ -10,8 +10,8 @@
     "lint": "run-p -l 'lint:*'",
     "lint-fix": "run-p -l 'lint-fix:*'",
     "test": "env-cmd -- yarn workspaces foreach -vip run test -- --ignore-path .gitignore",
-    "ligretto:start": "env-cmd -- yarn workspaces foreach -vip --include '{@memebattle/ligretto-shared,@memebattle/ligretto-ui,@memebattle/ligretto-gameplay-backend,@memebattle/ligretto-frontend,@memebattle/auth-front}' run start:dev",
-    "common-packages:build": "yarn workspace @memebattle/ligretto-shared run build && yarn workspaces foreach -vip --include '{@memebattle/ligretto-ui,@memebattle/analytics}' run build && yarn workspace @memebattle/auth-front run build:module",
+    "ligretto:start": "env-cmd -- yarn workspaces foreach -vip --include '{@memebattle/ligretto-core-backend,@memebattle/ligretto-shared,@memebattle/ligretto-ui,@memebattle/ligretto-gameplay-backend,@memebattle/ligretto-frontend,@memebattle/auth-front}' run start:dev",
+    "common-packages:build": "yarn workspaces foreach -vipt --include '{@memebattle/ligretto-shared,@memebattle/ligretto-ui,@memebattle/analytics}' run build && yarn workspace @memebattle/auth-front run build:module",
     "ligretto:front:build": "yarn workspace @memebattle/ligretto-frontend run build",
     "ligretto:front:start:dev": "env-cmd yarn workspace @memebattle/ligretto-frontend run start:dev",
     "ligretto:back:build": "yarn workspace @memebattle/ligretto-gameplay-backend run build",
@@ -39,7 +39,6 @@
     "not op_mini all"
   ],
   "devDependencies": {
-    "@react-theming/storybook-addon": "^1.1.5",
     "@storybook/addon-actions": "^6.4.22",
     "@storybook/addon-docs": "^6.4.22",
     "@storybook/addon-essentials": "^6.4.22",
@@ -49,8 +48,7 @@
     "@storybook/builder-webpack5": "^6.4.22",
     "@storybook/manager-webpack5": "^6.4.22",
     "@storybook/react": "^6.4.22",
-    "@types/jest": "^24.9.1",
-    "@types/node": "^14.14.20",
+    "@types/node": "^14.18.18",
     "@typescript-eslint/eslint-plugin": "^4.26.1",
     "@typescript-eslint/parser": "^4.26.1",
     "eslint": "^7.11.0",
@@ -61,7 +59,7 @@
     "eslint-plugin-react-app": "^6.2.2",
     "eslint-plugin-react-hooks": "^4.5.0",
     "eslint-plugin-storybook": "^0.5.11",
-    "hygen": "^5.0.3",
+    "hygen": "6.2.0",
     "npm-run-all": "^4.1.5",
     "prettier": "^2.2.1",
     "react-docgen-typescript-loader": "^3.7.2",
@@ -70,7 +68,7 @@
     "stylelint-config-prettier": "^8.0.2",
     "stylelint-prettier": "^1.2.0",
     "tsconfig-paths-webpack-plugin": "^3.5.2",
-    "typescript": "4.3.2"
+    "typescript": "4.7.2"
   },
   "dependencies": {
     "env-cmd": "^10.1.0"
