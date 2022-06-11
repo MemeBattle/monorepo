@@ -24,6 +24,7 @@ services:
         target: /ligretto-gameplay-backend/key.pem
     environment:
       - LIGRETTO_CAS_KEY_PATH=/ligretto-gameplay-backend/key.pem
+      - LIGRETTO_CORE_URL=http://ligretto-core-backend:3333
     deploy:
       replicas: 1
       update_config:
