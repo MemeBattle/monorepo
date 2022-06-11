@@ -27,15 +27,6 @@ export default class User extends BaseModel {
     return { ...this.serialize(), ...omit(casUser, '_id') }
   }
 
-  @manyToMany(() => Round, {
-    pivotTable: 'round_users',
-    pivotColumns: ['score'],
-    localKey: 'casId',
-    pivotRelatedForeignKey: 'roundId',
-    pivotTimestamps: {
-      createdAt: 'createdAt',
-      updatedAt: 'updatedAt',
-    },
-  })
+  @manyToMany(() => Round)
   public rounds: ManyToMany<typeof Round>
 }
