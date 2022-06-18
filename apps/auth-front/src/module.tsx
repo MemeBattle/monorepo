@@ -6,6 +6,8 @@ import type { FC, ReactNode } from 'react'
 import React, { useMemo } from 'react'
 import { createFrontServices } from '@memebattle/cas-services/dist/createFrontServices'
 
+export { ROUTES } from './constants/routes'
+
 export interface AuthFrontModuleProps {
   onLoginSucceeded: ({ token }: { token: string }) => void
   partnerId: string

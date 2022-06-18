@@ -3,7 +3,7 @@ import { useHistory } from 'react-router'
 import React, { useCallback, useMemo } from 'react'
 
 import { UserInfo } from 'components/blocks/home/user-info'
-import { routes } from 'utils/constants'
+import { authRoutes, routes } from 'utils/constants'
 import { logout, selectCurrentUser } from 'ducks/auth'
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 
@@ -17,6 +17,8 @@ export const UserInfoContainer = () => {
   const onButtonClick = useCallback(() => {
     if (!user || user.isTemporary) {
       push(routes.AUTH)
+    } else {
+      push(authRoutes.PROFILE)
     }
   }, [push, user])
 
