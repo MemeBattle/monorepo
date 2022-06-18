@@ -13,9 +13,10 @@ export interface AuthFrontModuleProps {
   partnerId: string
   staticFilesUrl: string
   headerComponent?: ReactNode
+  token: string
 }
 
-export const AuthFrontModule: FC<AuthFrontModuleProps> = ({ partnerId, onLoginSucceeded, staticFilesUrl, headerComponent }) => {
+export const AuthFrontModule: FC<AuthFrontModuleProps> = ({ partnerId, onLoginSucceeded, staticFilesUrl, headerComponent, token }) => {
   const casServices = useMemo(
     () => ({
       ...createFrontServices({ partnerId, casURI: process.env.REACT_APP_CAS_URL || 'https://cas.mems.fun/api' }),
@@ -23,7 +24,7 @@ export const AuthFrontModule: FC<AuthFrontModuleProps> = ({ partnerId, onLoginSu
     }),
     [partnerId, staticFilesUrl],
   )
-  const appContextValue = useMemo<AppContextValue>(() => ({ Header: headerComponent }), [headerComponent])
+  const appContextValue = useMemo<AppContextValue>(() => ({ Header: headerComponent, token }), [headerComponent, token])
 
   return (
     <AppContext.Provider value={appContextValue}>
