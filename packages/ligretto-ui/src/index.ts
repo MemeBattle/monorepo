@@ -1,5 +1,5 @@
-export { ThemeProvider, CssBaseline } from '@material-ui/core'
-export { StylesProvider } from '@material-ui/core/styles'
+export { ThemeProvider, CssBaseline } from '@mui/material'
+export { StylesProvider } from '@mui/styles'
 export { theme } from './themes/default'
 export { theme as ligrettoAuthTheme } from './themes/ligrettoAuth'
 export * from './Button'

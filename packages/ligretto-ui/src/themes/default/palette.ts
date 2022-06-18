@@ -1,6 +1,6 @@
-import type { Palette } from '@material-ui/core/styles/createPalette'
+import type { PaletteV5 } from '../themes.types'
 
-export const palette: Partial<Palette> = {
+export const palette: Partial<PaletteV5> = {
   primary: {
     main: '#2D8A53',
     dark: '#377757',

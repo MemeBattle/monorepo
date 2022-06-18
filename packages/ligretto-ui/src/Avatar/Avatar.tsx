@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { getRandomAvatar } from './getRandomAvatar'
-import { createStyles, makeStyles } from '@material-ui/core'
+import { createStyles, makeStyles } from '@mui/styles'
 
 export type AvatarSize = 'small' | 'medium' | 'large' | 'auto'
 

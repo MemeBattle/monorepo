@@ -1,5 +1,5 @@
 import React from 'react'
-import { createStyles, makeStyles } from '@material-ui/core'
+import { createStyles, makeStyles } from '@mui/styles'
 
 const useStyles = makeStyles(theme =>
   createStyles({
@@ -7,7 +7,7 @@ const useStyles = makeStyles(theme =>
       color: theme.palette.common.white,
       fontSize: '4rem',
       fontWeight: 'bold',
-      [theme.breakpoints.down('md')]: {
+      [theme.breakpoints.down('lg')]: {
         fontSize: '3rem',
       },
     },

@@ -1,6 +1,6 @@
 import { Card } from './Card'
 import { CardColors } from '@memebattle/ligretto-shared'
-import { Box } from '@material-ui/core'
+import { Box } from '@mui/material'
 
 export default {
   title: 'Ligretto-ui / Card',

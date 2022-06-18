@@ -1,1 +1,1 @@
-export { Link, LinkProps } from '@material-ui/core'
+export { Link, LinkProps } from '@mui/material'

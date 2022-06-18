@@ -16,7 +16,7 @@ export const ConfirmEmailPage = () => {
   return (
     <Container component="main" maxWidth="md">
       <Header />
-      <Box m={2} justifyContent="center" display="flex">
+      <Box m={2} sx={{ justifyContent: 'center', display: 'flex' }}>
         <EmailSended />
       </Box>
       <Box m={2}>
