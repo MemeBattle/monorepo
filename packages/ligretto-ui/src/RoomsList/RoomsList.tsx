@@ -1,6 +1,6 @@
 import React from 'react'
-import { createStyles, makeStyles } from '@material-ui/core'
-import PlayCircleOutlineOutlinedIcon from '@material-ui/icons/PlayCircleOutlineOutlined'
+import { createStyles, makeStyles } from '@mui/styles'
+import PlayCircleOutlineOutlinedIcon from '@mui/icons-material/PlayCircleOutlineOutlined'
 import clsx from 'clsx'
 
 export interface RoomsListProps {

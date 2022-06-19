@@ -1,3 +1,3 @@
-import MUIBox from '@material-ui/core/Box'
+import MUIBox from '@mui/material/Box'
 
 export const Box = MUIBox

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import React, { useMemo, cloneElement, isValidElement } from 'react'
-import { createStyles, makeStyles } from '@material-ui/core'
+import { createStyles, makeStyles } from '@mui/styles'
 
 export type RoomGridProps = {
   children: ReactNode | ReactNode[]

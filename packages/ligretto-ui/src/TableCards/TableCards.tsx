@@ -1,8 +1,8 @@
 import React, { Children } from 'react'
-import { Grid } from '@material-ui/core'
+import { Grid } from '@mui/material'
 
 export const TableCards: React.FC = ({ children }) => (
-  <Grid container justify="center" spacing={1}>
+  <Grid container justifyContent="center" spacing={1}>
     {Children.map(children, (child, index) => (
       <Grid key={index} item>
         {child}

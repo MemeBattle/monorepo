@@ -1,5 +1,6 @@
 import React from 'react'
-import { createStyles, makeStyles, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@material-ui/core'
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material'
+import { createStyles, makeStyles } from '@mui/styles'
 import { Avatar } from '../Avatar'
 
 export interface ResultsTableProps {

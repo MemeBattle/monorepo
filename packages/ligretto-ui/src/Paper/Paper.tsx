@@ -1,6 +1,8 @@
 import React from 'react'
-import type { PaperProps as MUIPaperProps } from '@material-ui/core'
-import { createStyles, makeStyles, Paper as MUIPaper } from '@material-ui/core'
+import type { PaperProps as MUIPaperProps } from '@mui/material'
+import { Paper as MUIPaper } from '@mui/material'
+
+import { createStyles, makeStyles } from '@mui/styles'
 
 export type PaperProps = MUIPaperProps
 const useStyles = makeStyles(() =>

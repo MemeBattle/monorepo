@@ -1,6 +1,7 @@
 import React, { useRef } from 'react'
 import { CardColors } from '@memebattle/ligretto-shared'
-import { createStyles, makeStyles, Paper, ButtonBase } from '@material-ui/core'
+import { Paper, ButtonBase } from '@mui/material'
+import { createStyles, makeStyles } from '@mui/styles'
 import { useOnClickOutside } from '../utils'
 
 interface CardProps {
