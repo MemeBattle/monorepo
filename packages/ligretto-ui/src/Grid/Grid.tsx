@@ -1,3 +1,3 @@
-import MUIGrid from '@material-ui/core/Grid'
+import MUIGrid from '@mui/material/Grid'
 
 export const Grid = MUIGrid

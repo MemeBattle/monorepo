@@ -1,1 +1,1 @@
-export { Typography } from '@material-ui/core'
+export { Typography } from '@mui/material'

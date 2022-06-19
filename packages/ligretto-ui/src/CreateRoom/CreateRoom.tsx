@@ -1,6 +1,6 @@
 import React from 'react'
-import { createStyles, makeStyles } from '@material-ui/core'
-import { Paper, TextField, Button, Grid, Hidden, Box, Switch } from '@material-ui/core'
+import { createStyles, makeStyles } from '@mui/styles'
+import { Paper, TextField, Button, Grid, Hidden, Box, Switch } from '@mui/material'
 
 export interface CreateRoomProps {
   onRoomNameChange: React.ChangeEventHandler<HTMLInputElement>
@@ -49,7 +49,7 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({
     <Paper className={classes.createRoom}>
       <Grid container>
         <Hidden only={'xs'}>
-          <Grid sm={6} container justify="center" item>
+          <Grid sm={6} container justifyContent="center" item>
             <span className={classes.roomNameLabel}>Room name:</span>
           </Grid>
         </Hidden>
@@ -72,7 +72,7 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({
         </Grid>
       </Grid>
       <Box mt="2rem">
-        <Grid container justify="center">
+        <Grid container justifyContent="center">
           <Grid item xs={12} sm={8} md={6}>
             <Button
               onClick={onCreateClick}

@@ -1,5 +1,5 @@
 import React from 'react'
-import { createStyles, makeStyles } from '@material-ui/core'
+import { createStyles, makeStyles } from '@mui/styles'
 import clsx from 'clsx'
 
 export interface CardPlaceProps {

@@ -1,6 +1,8 @@
 import React from 'react'
-import type { ModalProps as MUIModalProps } from '@material-ui/core'
-import { createStyles, makeStyles, Modal as MUIModal, Paper } from '@material-ui/core'
+import type { ModalProps as MUIModalProps } from '@mui/material'
+import { Modal as MUIModal, Paper } from '@mui/material'
+
+import { createStyles, makeStyles } from '@mui/styles'
 
 const useStylesPaper = makeStyles(
   createStyles({
