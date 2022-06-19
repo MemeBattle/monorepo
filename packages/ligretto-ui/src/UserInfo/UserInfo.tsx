@@ -1,8 +1,9 @@
 import type { MouseEventHandler } from 'react'
 import React from 'react'
-import { createStyles, makeStyles, Button } from '@material-ui/core'
-import CreateIcon from '@material-ui/icons/Create'
-import ClearIcon from '@material-ui/icons/Clear'
+import { Button } from '@mui/material'
+import { createStyles, makeStyles } from '@mui/styles'
+import CreateIcon from '@mui/icons-material/Create'
+import ClearIcon from '@mui/icons-material/Clear'
 
 import { Avatar } from '../Avatar'
 import { Paper } from '../Paper'

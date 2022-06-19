@@ -1,1 +1,1 @@
-export { useMediaQuery } from '@material-ui/core'
+export { useMediaQuery } from '@mui/material'

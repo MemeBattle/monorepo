@@ -1,1 +1,1 @@
-export { Snackbar } from '@material-ui/core'
+export { Snackbar } from '@mui/material'
