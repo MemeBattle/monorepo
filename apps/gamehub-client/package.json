@@ -1,24 +1,22 @@
 {
   "name": "@memebattle/gamehub-client",
   "version": "0.1.0",
-  "description": "Gamehub client",
-  "author": "MemeBattle",
-  "license": "MIT",
+  "private": true,
   "scripts": {
-    "start:gamehub-client:dev": "node_modules/.bin/next dev",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "ts-check": "tsc --noEmit"
+    "lint": "next lint"
   },
   "dependencies": {
-    "next": "11.1.2",
+    "next": "12.1.6",
     "react": "^17.0.1",
     "react-dom": "^17.0.1"
   },
   "devDependencies": {
+    "@types/node": "18.0.0",
     "@types/react": "^17.0.44",
-    "eslint-config-next": "11.0.1",
+    "@types/react-dom": "^17.0.15",
     "typescript": "^4.7.3"
   }
 }
