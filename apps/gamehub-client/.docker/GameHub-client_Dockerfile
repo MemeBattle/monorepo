@@ -19,7 +19,7 @@ COPY . /memebattle
 
 RUN yarn run gamehub-client:build
 
-FROM builder as prod-deps
+FROM deps as prod-deps
 ENV NODE_ENV=production
 
 RUN yarn workspaces focus --production @memebattle/gamehub-client
