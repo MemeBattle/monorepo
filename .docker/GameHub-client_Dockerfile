@@ -1,0 +1,38 @@
+FROM node:16.15.0-bullseye-slim AS deps
+
+ARG NPM_TOKEN
+
+RUN yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com" \
+    && yarn config set -H npmScopes.memebattle.npmAuthToken "$NPM_TOKEN"
+
+WORKDIR /memebattle
+COPY .yarn/ /memebattle/.yarn
+COPY package.json yarn.lock .yarnrc.yml /memebattle/
+COPY apps/gamehub-client/package.json /memebattle/apps/gamehub-client/
+RUN yarn install
+
+FROM deps AS builder
+
+ENV NODE_ENV=production
+
+COPY . /memebattle
+
+RUN yarn run gamehub-client:build
+
+FROM deps as prod-deps
+ENV NODE_ENV=production
+
+RUN yarn workspaces focus --production @memebattle/gamehub-client
+
+FROM node:16.15.0-bullseye-slim as runtime
+
+RUN mkdir /gamehub-client
+USER node
+ENV NODE_ENV=production
+
+WORKDIR /gamehub-client
+COPY --chown=node:node --from=builder /memebattle/apps/gamehub-client/next.config.js ./
+COPY --chown=node:node --from=builder /memebattle/apps/gamehub-client/.next ./.next
+COPY --chown=node:node --from=prod-deps /memebattle/node_modules ./node_modules
+
+ENTRYPOINT [ "node_modules/.bin/next", "start" ]
