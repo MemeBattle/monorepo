@@ -256,7 +256,7 @@ jobs:
         name: Checkout
 
       - name: Setup SSH
-        uses: kielabokkie/ssh-key-and-known-hosts-action@v1.1.0
+        uses: kielabokkie/ssh-key-and-known-hosts-action@v1.3.0
         with:
           ssh-private-key: ${{ secrets.AWS_CI_PRIVATE_KEY }}
           ssh-host: mems.fun
