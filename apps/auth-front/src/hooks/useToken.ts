@@ -7,5 +7,5 @@ export const useToken = () => {
 
   const appContext = useAppContext()
 
-  return useMemo(() => new URLSearchParams(search).get('token') || appContext.token, [search])
+  return useMemo(() => new URLSearchParams(search).get('token') || appContext.token, [appContext.token, search])
 }
