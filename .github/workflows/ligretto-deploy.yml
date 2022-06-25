@@ -1,8 +1,12 @@
-name: 'Build, push and deploy docker images'
+name: 'Build, push and deploy ligretto docker images'
 
 on:
   push:
     branches: [ master ]
+    paths-ignore:
+      - 'apps/gamehub-client/**'
+      - '.deploy'
+      - '!.deploy/ligretto.deploy.yml'
 
 jobs:
 
@@ -246,7 +250,7 @@ jobs:
 
   deploy:
     needs: [ligretto-frontend-image, ligretto-ui-image, ligretto-gameplay-backend-image, ligretto-core-backend-image]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v2
         name: Checkout
@@ -270,7 +274,7 @@ jobs:
       - name: deploy stack
         run: |
           docker context use remote
-          docker stack deploy --prune --with-registry-auth --resolve-image=always -c docker-compose.deploy.yml Ligretto
+          docker stack deploy --prune --with-registry-auth --resolve-image=always -c .deploy/ligretto.deploy.yml Ligretto
 
       - name: Migrations
         env:
