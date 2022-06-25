@@ -31,7 +31,7 @@ USER node
 ENV NODE_ENV=production
 
 WORKDIR /gamehub-client
-COPY --chown=node:node --from=builder /memebattle/apps/gamehub-client/next.config.js /memebattle/apps/gamehub-client/package.json ./
+COPY --chown=node:node --from=builder /memebattle/apps/gamehub-client/next.config.js ./
 COPY --chown=node:node --from=builder /memebattle/apps/gamehub-client/.next ./.next
 COPY --chown=node:node --from=prod-deps /memebattle/node_modules ./node_modules
 
