@@ -273,8 +273,7 @@ jobs:
 
       - name: deploy stack
         run: |
-          docker context use remote
-          docker stack deploy --prune --with-registry-auth --resolve-image=always -c .deploy/ligretto.deploy.yml Ligretto
+          docker --context remote stack deploy --prune --with-registry-auth --resolve-image=always -c .deploy/ligretto.deploy.yml Ligretto
 
       - name: Migrations
         env:
