@@ -51,6 +51,9 @@ jobs:
       - uses: actions/checkout@v2
         name: Checkout
 
+      - name: Remove ssh sock
+        run: rm /tmp/ssh-auth.sock || echo "/tmp/ssh-auth.sock doesn't exists"
+
       - name: Setup SSH
         uses: kielabokkie/ssh-key-and-known-hosts-action@v1.1.0
         with:
@@ -65,7 +68,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: create docker context
-        run: docker context create remote --docker "host=ssh://ci@mems.fun"
+        run: |
+          docker context rm remote || echo "context doesn't exists"
+          docker context create remote --docker "host=ssh://ci@mems.fun"
 
       - name: deploy stack
         run: |
