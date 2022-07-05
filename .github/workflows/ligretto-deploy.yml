@@ -269,7 +269,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: create docker context
-        run: docker context create remote --docker "host=ssh://ci@mems.fun"
+        run: |
+        docker context rm remote || echo "context doesn't exists"
+        docker context create remote --docker "host=ssh://ci@mems.fun"
 
       - name: deploy stack
         run: |
