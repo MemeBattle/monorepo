@@ -5,6 +5,7 @@ import { t } from '../../utils/i18n'
 
 export interface AppContextValue {
   Header: ReactNode
+  token: string
 }
 export const AppContext = createContext<AppContextValue>({
   Header: (
@@ -12,4 +13,5 @@ export const AppContext = createContext<AppContextValue>({
       {t.header}
     </Typography>
   ),
+  token: '',
 })
