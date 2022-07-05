@@ -9,3 +9,5 @@ export const selectCurrentUser = (state: All) => {
 
   return userId ? selectUserById(state, userId) : null
 }
+
+export const tokenSelector = (state: All) => state.auth.token
