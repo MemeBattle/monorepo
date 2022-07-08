@@ -1,5 +1,5 @@
 import React from 'react'
-import { LigrettoLogo, LoaderCards } from '@memebattle/ligretto-ui'
+import { LigrettoLogo, LoaderCards } from '@memebattle/ui'
 
 import { MainLayout } from 'components/layouts/main'
 

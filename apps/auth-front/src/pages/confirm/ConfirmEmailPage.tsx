@@ -1,4 +1,4 @@
-import { Container, Typography, EmailSended, Box } from '@memebattle/ligretto-ui'
+import { Container, Typography, EmailSended, Box } from '@memebattle/ui'
 
 import { t } from '../../utils/i18n'
 import { useLocation } from 'react-router'

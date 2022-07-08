@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import { useSelector } from 'react-redux'
-import type { RoomsListProps } from '@memebattle/ligretto-ui'
-import { RoomsList as RoomsListComponent } from '@memebattle/ligretto-ui'
+import type { RoomsListProps } from '@memebattle/ui'
+import { RoomsList as RoomsListComponent } from '@memebattle/ui'
 import { useHistory, generatePath } from 'react-router'
 
 import { routes } from 'utils/constants'

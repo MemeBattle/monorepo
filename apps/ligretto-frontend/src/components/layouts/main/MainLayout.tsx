@@ -1,5 +1,5 @@
 import React from 'react'
-import { Background } from '@memebattle/ligretto-ui'
+import { Background } from '@memebattle/ui'
 
 import { BaseLayout } from '../base/BaseLayout'
 import styles from './MainLayout.module.scss'

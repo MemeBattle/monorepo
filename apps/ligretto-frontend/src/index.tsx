@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import { Provider } from 'react-redux'
 import { ConnectedRouter } from 'connected-react-router'
-import { ThemeProvider, theme, CssBaseline } from '@memebattle/ligretto-ui'
+import { ThemeProvider, theme, CssBaseline } from '@memebattle/ui'
 
 import { store, history } from 'store'
 import { AppContainer } from 'containers/app'

@@ -1,6 +1,6 @@
 import { addDecorator, Parameters } from '@storybook/react'
 import { MINIMAL_VIEWPORTS } from '@storybook/addon-viewport'
-import { CssBaseline, theme } from '@memebattle/ligretto-ui'
+import { CssBaseline, theme } from '@memebattle/ui'
 import { ThemeProvider } from '@mui/material/styles'
 
 export const parameters: Parameters = {

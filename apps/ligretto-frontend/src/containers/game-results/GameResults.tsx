@@ -1,6 +1,6 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
-import { ResultsTable } from '@memebattle/ligretto-ui'
+import { ResultsTable } from '@memebattle/ui'
 import { createSelector } from 'reselect'
 import sortBy from 'lodash/sortBy'
 

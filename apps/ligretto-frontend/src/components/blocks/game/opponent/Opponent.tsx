@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import clsx from 'clsx'
-import { PositionOnTable, CardsRow, Card, CardPlace, Player } from '@memebattle/ligretto-ui'
+import { PositionOnTable, CardsRow, Card, CardPlace, Player } from '@memebattle/ui'
 import type { Card as OpponentCard, PlayerStatus } from '@memebattle/ligretto-shared'
 
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'

@@ -1,6 +1,6 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
-import { RoomGrid } from '@memebattle/ligretto-ui'
+import { RoomGrid } from '@memebattle/ui'
 import { createSelector } from 'reselect'
 
 import { selectOpponents } from 'ducks/game'
