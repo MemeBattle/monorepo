@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import cn from 'classnames'
-import { Player } from '@memebattle/ligretto-ui'
+import { Player } from '@memebattle/ui'
 import type { PlayerStatus } from '@memebattle/ligretto-shared'
 
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'

@@ -4,7 +4,6 @@ import typescript from 'rollup-plugin-typescript2'
 import commonjs from '@rollup/plugin-commonjs'
 import url from '@rollup/plugin-url'
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson = require('./package.json')
 
 export default {

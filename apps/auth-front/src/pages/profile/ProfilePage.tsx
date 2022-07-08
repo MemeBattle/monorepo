@@ -1,4 +1,4 @@
-import { Button, Container, Input } from '@memebattle/ligretto-ui'
+import { Button, Container, Input } from '@memebattle/ui'
 import type { FormApi } from 'final-form'
 import { FORM_ERROR } from 'final-form'
 import { memo, useCallback, useMemo, useState } from 'react'

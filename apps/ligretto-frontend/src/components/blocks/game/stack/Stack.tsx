@@ -1,5 +1,5 @@
 import React from 'react'
-import { Card, CardPlace, CardsRow } from '@memebattle/ligretto-ui'
+import { Card, CardPlace, CardsRow } from '@memebattle/ui'
 import type { Card as PlayerCards } from '@memebattle/ligretto-shared'
 
 export interface StackProps {

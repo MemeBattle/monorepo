@@ -1,6 +1,6 @@
 import React from 'react'
-import type { UserInfoProps as UserInfoComponentProps } from '@memebattle/ligretto-ui'
-import { UserInfo as UserInfoComponent } from '@memebattle/ligretto-ui'
+import type { UserInfoProps as UserInfoComponentProps } from '@memebattle/ui'
+import { UserInfo as UserInfoComponent } from '@memebattle/ui'
 
 import styles from './UserInfo.module.scss'
 
