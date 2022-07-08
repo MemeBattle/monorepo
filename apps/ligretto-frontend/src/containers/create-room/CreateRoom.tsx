@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { CreateRoom } from '@memebattle/ligretto-ui'
+import { CreateRoom } from '@memebattle/ui'
 import type { CreateRoomError } from '@memebattle/ligretto-shared/src/dto'
 
 import { createRoomAction, selectRoomsError } from 'ducks/rooms'

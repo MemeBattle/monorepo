@@ -2,7 +2,7 @@ import type { FC } from 'react'
 import React from 'react'
 import type { Player as SharedPlayer } from '@memebattle/ligretto-shared'
 import { GameStatus } from '@memebattle/ligretto-shared'
-import { RoomGrid } from '@memebattle/ligretto-ui'
+import { RoomGrid } from '@memebattle/ui'
 
 import { GameResults } from 'containers/game-results'
 import { OpponentWaiting } from 'components/blocks/game'

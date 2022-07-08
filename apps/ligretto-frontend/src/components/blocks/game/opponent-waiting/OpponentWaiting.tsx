@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from 'react'
 import cn from 'classnames'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
-import { PositionOnTable, Player } from '@memebattle/ligretto-ui'
+import { PositionOnTable, Player } from '@memebattle/ui'
 
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 

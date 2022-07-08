@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo } from 'react'
 import { Field, Form } from 'react-final-form'
-import { Button, Container, Input, PasswordInput, FormHelperText, Link as UILink } from '@memebattle/ligretto-ui'
+import { Button, Container, Input, PasswordInput, FormHelperText, Link as UILink } from '@memebattle/ui'
 import { Paper } from '../../components/Paper'
 import { Header } from '../../components/Header'
 import { Footer } from '../../components/Footer'

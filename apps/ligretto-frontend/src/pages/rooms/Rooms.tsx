@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { PageHeader } from '@memebattle/ligretto-ui'
+import { PageHeader } from '@memebattle/ui'
 import * as React from 'react'
 
 import { RoomsList } from 'containers/rooms'

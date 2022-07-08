@@ -1,5 +1,5 @@
 import React, { memo } from 'react'
-import { Paper as UIPaper } from '@memebattle/ligretto-ui'
+import { Paper as UIPaper } from '@memebattle/ui'
 
 import styles from './Paper.module.scss'
 
