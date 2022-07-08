@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { Card as CardComponent, CardPlace, TableCards as TableCardsUI } from '@memebattle/ligretto-ui'
+import { Card as CardComponent, CardPlace, TableCards as TableCardsUI } from '@memebattle/ui'
 import type { CardsDeck, Card } from '@memebattle/ligretto-shared'
 import last from 'lodash/last'
 

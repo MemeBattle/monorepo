@@ -1,4 +1,4 @@
-import { Container } from '@memebattle/ligretto-ui'
+import { Container } from '@memebattle/ui'
 import { useAppContext } from '../../modules/app'
 
 export const Header = () => {

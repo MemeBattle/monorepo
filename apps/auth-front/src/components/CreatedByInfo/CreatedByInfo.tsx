@@ -1,5 +1,5 @@
 import React from 'react'
-import { MemebattleLogo, Typography, Grid } from '@memebattle/ligretto-ui'
+import { MemebattleLogo, Typography, Grid } from '@memebattle/ui'
 import { t } from '../../utils/i18n'
 
 export const CreatedByInfo = () => (

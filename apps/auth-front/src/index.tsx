@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom'
 import { App } from './App'
 import reportWebVitals from './reportWebVitals'
 
-import { ThemeProvider, theme, CssBaseline } from '@memebattle/ligretto-ui'
+import { ThemeProvider, theme, CssBaseline } from '@memebattle/ui'
 
 const rootNode = document.getElementById('root')
 

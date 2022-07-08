@@ -1,5 +1,5 @@
 {
-  "name": "@memebattle/ligretto-ui",
+  "name": "@memebattle/ui",
   "version": "1.0.1",
   "description": "> TODO: description",
   "keywords": [
@@ -30,17 +30,17 @@
     "ts-check": "tsc --noEmit"
   },
   "devDependencies": {
-    "@babel/core": "^7.11.4",
-    "@rollup/plugin-commonjs": "^15.0.0",
-    "@rollup/plugin-node-resolve": "^9.0.0",
-    "@rollup/plugin-url": "^5.0.1",
+    "@babel/core": "^7.18.6",
+    "@rollup/plugin-commonjs": "^22.0.1",
+    "@rollup/plugin-node-resolve": "^13.3.0",
+    "@rollup/plugin-url": "^7.0.0",
     "@types/react": "^17.0.44",
-    "babel-loader": "^8.2.2",
-    "rollup": "^2.51.2",
+    "babel-loader": "^8.2.5",
+    "rollup": "^2.76.0",
     "rollup-plugin-peer-deps-external": "^2.2.4",
-    "rollup-plugin-typescript2": "^0.30.0",
-    "ts-loader": "^9.2.3",
-    "typescript": "^4.7.3"
+    "rollup-plugin-typescript2": "^0.32.1",
+    "ts-loader": "^9.3.1",
+    "typescript": "^4.7.4"
   },
   "peerDependencies": {
     "react": "^17.0.1",

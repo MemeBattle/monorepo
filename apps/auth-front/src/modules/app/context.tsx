@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import React, { createContext } from 'react'
-import { Typography } from '@memebattle/ligretto-ui'
+import { Typography } from '@memebattle/ui'
 import { t } from '../../utils/i18n'
 
 export interface AppContextValue {

@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from 'reselect'
-import { Card, CardPlace, CardsRow } from '@memebattle/ligretto-ui'
+import { Card, CardPlace, CardsRow } from '@memebattle/ui'
 
 import { tapCardAction, selectPlayerCards, selectIsDndEnabled, setSelectedCardIndexAction, selectSelectedCardIndex } from 'ducks/game'
 
