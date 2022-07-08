@@ -8,3 +8,4 @@
 !yarn.lock
 !.yarnrc.yml
 !package.json
+!packages/gamehub-ui

@@ -1,0 +1,1 @@
+export { gamehubClientTheme } from './gamehubClientTheme'
