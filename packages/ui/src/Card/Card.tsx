@@ -1,6 +1,6 @@
 import React, { useRef } from 'react'
 import { CardColors } from '@memebattle/ligretto-shared'
-import { Paper, ButtonBase } from '@mui/material'
+import { ButtonBase } from '@mui/material'
 import { createStyles, makeStyles } from '@mui/styles'
 import { useOnClickOutside } from '../utils'
 
@@ -86,9 +86,9 @@ export const Card: React.FC<CardProps> = ({ value, disabled, selected, onClick, 
   return (
     <div ref={ref} className={classes.cardWrapper}>
       <ButtonBase className={classes.button} disabled={disabled} draggable>
-        <Paper classes={{ root: classes.card }} onClick={!disabled ? onClick : () => null}>
+        <div className={classes.card} onClick={!disabled ? onClick : () => null}>
           {color !== CardColors.empty ? <div className={classes.value}>{value}</div> : null}
-        </Paper>
+        </div>
       </ButtonBase>
     </div>
   )
