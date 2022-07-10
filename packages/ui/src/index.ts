@@ -1,4 +1,4 @@
-export { ThemeProvider, CssBaseline } from '@mui/material'
+export { ThemeProvider, CssBaseline, GlobalStyles, AppBar } from '@mui/material'
 export { StylesProvider } from '@mui/styles'
 export { theme } from './themes/default'
 export { theme as ligrettoAuthTheme } from './themes/ligrettoAuth'
@@ -58,3 +58,4 @@ export * from './Paper'
 export * from './Link'
 
 export * from './FormHelperText'
+
