@@ -2,7 +2,7 @@ name: 'Build, push and deploy docker images'
 
 on:
   push:
-    branches: [ master ]
+    branches: [ LIG-131-migrate-ligretto-frontend-from-cra-to-vite ]
     paths:
       - 'apps/gamehub-client/**'
       - '.deploy/gamehub.deploy.yml'
@@ -44,35 +44,35 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy:
-    needs: [gamehub-client-image]
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v2
-        name: Checkout
-
-      - name: Remove ssh sock
-        run: rm /tmp/ssh-auth.sock || echo "/tmp/ssh-auth.sock doesn't exists"
-
-      - name: Setup SSH
-        uses: kielabokkie/ssh-key-and-known-hosts-action@v1.1.0
-        with:
-          ssh-private-key: ${{ secrets.AWS_CI_PRIVATE_KEY }}
-          ssh-host: mems.fun
-
-      - name: Docker login
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: create docker context
-        run: |
-          docker context rm remote || echo "context doesn't exists"
-          docker context create remote --docker "host=ssh://ci@mems.fun"
-
-      - name: deploy stack
-        run: |
-          docker context use remote
-          docker stack deploy --prune --with-registry-auth --resolve-image=always -c .deploy/gamehub.deploy.yml GameHub
+#  deploy:
+#    needs: [gamehub-client-image]
+#    runs-on: self-hosted
+#    steps:
+#      - uses: actions/checkout@v2
+#        name: Checkout
+#
+#      - name: Remove ssh sock
+#        run: rm /tmp/ssh-auth.sock || echo "/tmp/ssh-auth.sock doesn't exists"
+#
+#      - name: Setup SSH
+#        uses: kielabokkie/ssh-key-and-known-hosts-action@v1.1.0
+#        with:
+#          ssh-private-key: ${{ secrets.AWS_CI_PRIVATE_KEY }}
+#          ssh-host: mems.fun
+#
+#      - name: Docker login
+#        uses: docker/login-action@v1
+#        with:
+#          registry: ghcr.io
+#          username: ${{ github.repository_owner }}
+#          password: ${{ secrets.GITHUB_TOKEN }}
+#
+#      - name: create docker context
+#        run: |
+#          docker context rm remote || echo "context doesn't exists"
+#          docker context create remote --docker "host=ssh://ci@mems.fun"
+#
+#      - name: deploy stack
+#        run: |
+#          docker context use remote
+#          docker stack deploy --prune --with-registry-auth --resolve-image=always -c .deploy/gamehub.deploy.yml GameHub

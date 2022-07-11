@@ -10,13 +10,8 @@
   "author": "Artem Zverev <themezv@gmail.com>",
   "homepage": "",
   "license": "MIT",
-  "main": "dist/index.js",
-  "module": "dist/index.esm.js",
-  "types": "dist/types/index.d.ts",
-  "assetsDir": "dist/assets",
-  "files": [
-    "dist"
-  ],
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "publishConfig": {
     "registry": "http://npm.mems.fun:4873"
   },
@@ -25,21 +20,10 @@
     "url": "ssh://git@gitlab.mems.fun:2224/memebattle/frontend.git"
   },
   "scripts": {
-    "build": "rollup --config",
-    "start:dev": "rollup --watch --config",
     "ts-check": "tsc --noEmit"
   },
   "devDependencies": {
-    "@babel/core": "^7.18.6",
-    "@rollup/plugin-commonjs": "^22.0.1",
-    "@rollup/plugin-node-resolve": "^13.3.0",
-    "@rollup/plugin-url": "^7.0.0",
     "@types/react": "^17.0.44",
-    "babel-loader": "^8.2.5",
-    "rollup": "^2.76.0",
-    "rollup-plugin-peer-deps-external": "^2.2.4",
-    "rollup-plugin-typescript2": "^0.32.1",
-    "ts-loader": "^9.3.1",
     "typescript": "^4.7.4"
   },
   "peerDependencies": {

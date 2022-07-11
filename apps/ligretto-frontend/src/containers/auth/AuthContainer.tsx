@@ -27,9 +27,9 @@ export const AuthContainer = () => {
     <ThemeProvider theme={ligrettoAuthTheme}>
       <MainLayout>
         <AuthFrontModule
-          staticFilesUrl={process.env.REACT_APP_CAS_STATIC || 'https://cas.mems.fun/static'}
+          staticFilesUrl={import.meta.env.VITE_CAS_STATIC || 'https://cas.mems.fun/static'}
           onLoginSucceeded={handleLogin}
-          partnerId={process.env.REACT_APP_CAS_PARTNER_ID || ''}
+          partnerId={import.meta.env.VITE_CAS_PARTNER_ID || ''}
           token={token}
           headerComponent={<LigrettoLogo />}
         />

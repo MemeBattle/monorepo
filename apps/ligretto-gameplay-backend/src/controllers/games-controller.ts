@@ -43,6 +43,7 @@ export class GamesController extends Controller {
   }
 
   private async createGame(socket: Socket, action: ReturnType<typeof createRoomEmitAction>) {
+    console.log('new Game')
     const newGame = await this.gameService.createGame(action.payload.name, action.payload.config)
     console.log('new Game', newGame)
 

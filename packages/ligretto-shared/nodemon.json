@@ -1,8 +1,0 @@
-{
-  "watch": [
-    "*"
-  ],
-  "ext": "ts",
-  "exec": "yarn build",
-  "ignoreRoot": ["../../.gitignore"]
-}

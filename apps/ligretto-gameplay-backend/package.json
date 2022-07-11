@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "@memebattle/cas-services": "^3.6.1",
-    "@memebattle/ligretto-shared": "^1.0.6",
+    "@memebattle/ligretto-shared": "workspace:^",
     "axios": "^0.24.0",
     "dotenv": "^8.2.0",
     "inversify": "^5.0.1",
@@ -43,6 +43,5 @@
     "nanoid": "^3.1.20",
     "reflect-metadata": "^0.1.13",
     "socket.io": "^4.2.0"
-  },
-  "gitHead": "c0f6bd6a4648db4b6372684434c65cad8ae280c4"
+  }
 }

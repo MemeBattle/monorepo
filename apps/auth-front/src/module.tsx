@@ -19,7 +19,7 @@ export interface AuthFrontModuleProps {
 export const AuthFrontModule: FC<AuthFrontModuleProps> = ({ partnerId, onLoginSucceeded, staticFilesUrl, headerComponent, token }) => {
   const casServices = useMemo(
     () => ({
-      ...createFrontServices({ partnerId, casURI: process.env.REACT_APP_CAS_URL || 'https://cas.mems.fun/api' }),
+      ...createFrontServices({ partnerId, casURI: import.meta.env.VITE_CAS_URL || 'https://cas.mems.fun/api' }),
       getAbsoluteUrl: (relativePath: string) => `${staticFilesUrl}${relativePath}`,
     }),
     [partnerId, staticFilesUrl],
