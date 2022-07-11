@@ -110,38 +110,16 @@ jobs:
 
   ligretto-gameplay-backend-image:
 
-    needs: prepare-common
-
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
 
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install node
-        uses: actions/setup-node@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
         with:
-          node-version: '16.14.2'
-          cache: 'yarn'
-
-      - name: Install yarn
-        run: npm install --global yarn
-
-      - name: Auth npm
-        run: |
-          yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
-          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
-
-      - name: Install dependecies
-        run: yarn
-
-      - name: Download common packages
-        uses: actions/download-artifact@v2
-        with:
-          name: packages-builds
-
-      - name: Build backend
-        run: yarn run ligretto:back:build
+          driver-opts: env.BUILDKIT_STEP_LOG_MAX_SIZE=10485760
 
       - name: Docker login
         uses: docker/login-action@v1
@@ -151,14 +129,19 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           platforms: linux/arm64
           push: true
           tags: |
             ghcr.io/memebattle/ligretto-gameplay-backend:${{ github.sha }}
             ghcr.io/memebattle/ligretto-gameplay-backend:latest
-          context: './apps/ligretto-gameplay-backend'
+          build-args:
+            NPM_TOKEN=${{ secrets.CI_REGISTRY_TOKEN }}
+          context: '.'
+          file: '.docker/Ligretto-core-backend_Dockerfile'
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   ligretto-core-backend-image:
 
