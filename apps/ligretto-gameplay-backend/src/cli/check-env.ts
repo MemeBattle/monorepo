@@ -5,9 +5,9 @@ if (!process.env) {
   throw Error('Env is not valid. Run yarn env')
 }
 
-const { SOCKET_PORT } = process.env
+const { SOCKET_PORT, LIGRETTO_CORE_URL } = process.env
 
-if (!SOCKET_PORT) {
-  console.log('!SOCKET_PORT')
+if (!SOCKET_PORT || !LIGRETTO_CORE_URL) {
+  console.log('!SOCKET_PORT || !LIGRETTO_CORE_URL')
   process.exit(-1)
 }
