@@ -45,11 +45,17 @@ function* socketSendSaga(socket: Socket): SagaIterator {
 }
 
 export function* socketSaga() {
-  const socket = io(WEBSOCKET_URL, {
-    auth: {
-      token: window.localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY),
-    },
-  })
+  let socket
+  try {
+    socket = io(WEBSOCKET_URL, {
+      auth: {
+        token: window.localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY),
+      },
+    })
+  } catch (e) {
+    console.error(e)
+    return
+  }
 
   yield all([call(socketSendSaga, socket), call(socketReceiveSaga, socket)])
 }

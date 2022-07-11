@@ -1,1 +1,1 @@
-export { Player, PlayerProps } from './Player'
+export * from './Player'

@@ -2,4 +2,4 @@
  * Return full path
  * @param path - relative path to static file
  */
-export const buildCasStaticUrl = (path: string) => `${process.env.REACT_APP_CAS_STATIC}${path}`
+export const buildCasStaticUrl = (path: string) => `${import.meta.env.VITE_CAS_STATIC}${path}`

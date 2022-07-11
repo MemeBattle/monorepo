@@ -1,6 +1,7 @@
 //  WARNING: this config only helps webstorm autocomplete your imports
 //  for example (components/... instead of ../../components)
 {
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "baseUrl": "./src",
     "paths": {

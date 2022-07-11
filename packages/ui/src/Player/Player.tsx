@@ -1,6 +1,7 @@
 import React from 'react'
 import { createStyles, makeStyles } from '@mui/styles'
-import { CheckCircleOutline, History } from '@mui/icons-material'
+import History from '@mui/icons-material/History'
+import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 
 import { Avatar } from '../Avatar'
