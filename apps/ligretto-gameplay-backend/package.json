@@ -9,7 +9,7 @@
     "start:dev": "yarn prestart && nodemon",
     "start": "yarn prestart && ts-node src/index.ts",
     "prestart": "ts-node src/cli/check-env.ts",
-    "build": "webpack",
+    "build": "tsc",
     "ts-check": "tsc --noEmit"
   },
   "devDependencies": {
