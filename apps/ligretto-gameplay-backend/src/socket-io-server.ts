@@ -22,3 +22,13 @@ export const webSocketHandler = IOC.get<WebSocketHandler>(IOC_TYPES.WebSocketHan
 webSocketHandler.connect(io)
 
 httpServer.listen(SOCKET_PORT || 3005)
+
+process.on('SIGTERM', () => {
+  console.log('Server closed SIGTERM')
+  httpServer.close()
+})
+
+process.on('SIGINT', () => {
+  console.log('Server closed SIGINT')
+  httpServer.close()
+})
