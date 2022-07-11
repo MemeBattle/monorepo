@@ -9,8 +9,7 @@ WORKDIR /memebattle
 RUN yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com" \
     && yarn config set -H npmScopes.memebattle.npmAuthToken "$NPM_TOKEN"
 RUN yarn install
-RUN yarn run ligretto:shared:build \
-    && yarn run ligretto:core-backend:build \
+RUN yarn run ligretto:core-backend:build \
     && yarn workspaces focus --production @memebattle/ligretto-core-backend
 
 FROM node:16.15.0-bullseye-slim
