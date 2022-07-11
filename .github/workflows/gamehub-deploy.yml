@@ -74,5 +74,4 @@ jobs:
 
       - name: deploy stack
         run: |
-          docker context use remote
-          docker stack deploy --prune --with-registry-auth --resolve-image=always -c .deploy/gamehub.deploy.yml GameHub
+          docker --context remote stack deploy --prune --with-registry-auth --resolve-image=always -c .deploy/gamehub.deploy.yml GameHub

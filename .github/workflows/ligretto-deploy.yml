@@ -10,48 +10,8 @@ on:
 
 jobs:
 
-  prepare-common:
-
-    runs-on: ubuntu-20.04
-
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-
-    - name: Install node
-      uses: actions/setup-node@v3
-      with:
-        node-version: '16.14.2'
-        cache: 'yarn'
-
-    - name: Install yarn
-      run: npm install --global yarn
-
-    - name: Auth npm
-      run: |
-        yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
-        yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
-
-    - name: Install dependecies
-      run: yarn
-
-    - name: Build common-packages
-      run: yarn run common-packages:build
-
-    - name: Upload common packages
-      uses: actions/upload-artifact@v2
-      with:
-        name: packages-builds
-        path: |
-          packages/*/dist
-          packages/*/build
-          apps/auth-front/dist
-
-
   ligretto-frontend-image:
 
-    needs: prepare-common
-
     runs-on: ubuntu-20.04
 
     steps:
@@ -74,22 +34,17 @@ jobs:
 
     - name: Install dependecies
       run: yarn
-
-    - name: Download common packages
-      uses: actions/download-artifact@v2
-      with:
-        name: packages-builds
 
     - name: Build frontend
       run: yarn run ligretto:front:build
       env:
         SKIP_PREFLIGHT_CHECK: true
-        REACT_APP_WEBSOCKET_HOST: https://api.ligretto.app
-        REACT_APP_LIGRETTO_CORE_URL: https://core.ligretto.app
-        REACT_APP_CAS_PARTNER_ID: 61587c1bdc151b004107a2b5
-        REACT_APP_CAS_STATIC: https://cas.mems.fun/static
-        REACT_APP_CAS_URL: https://cas.mems.fun/api
-        REACT_APP_AMPLITUDE_TOKEN: f55f6d07422dfb26ca4dfbe59a54d609
+        VITE_WEBSOCKET_HOST: https://api.ligretto.app
+        VITE_LIGRETTO_CORE_URL: https://core.ligretto.app
+        VITE_CAS_PARTNER_ID: 61587c1bdc151b004107a2b5
+        VITE_CAS_STATIC: https://cas.mems.fun/static
+        VITE_CAS_URL: https://cas.mems.fun/api
+        VITE_AMPLITUDE_TOKEN: f55f6d07422dfb26ca4dfbe59a54d609
 
     - name: Docker login
       uses: docker/login-action@v1
@@ -180,8 +135,6 @@ jobs:
 
   ligretto-ui-image:
 
-    needs: prepare-common
-
     runs-on: ubuntu-20.04
 
     steps:
@@ -204,11 +157,6 @@ jobs:
 
       - name: Install dependecies
         run: yarn
-
-      - name: Download common packages
-        uses: actions/download-artifact@v2
-        with:
-          name: packages-builds
 
       - name: Build ligretto ui storybook
         run: yarn run build-storybook

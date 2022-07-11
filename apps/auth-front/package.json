@@ -2,36 +2,28 @@
   "name": "@memebattle/auth-front",
   "version": "0.1.0",
   "private": true,
-  "main": "./public/index.js",
-  "module": "./dist/module.js",
-  "types": "./dist/module.d.ts",
+  "main": "src/module.tsx",
+  "module": "src/module.tsx",
+  "types": "src/module.tsx",
   "dependencies": {
     "@memebattle/cas-services": "^3.6.1",
+    "@memebattle/ui": "workspace:^",
     "axios": "^0.21.1",
     "email-validator": "^2.0.4",
     "final-form": "^4.20.1",
+    "react": "^17.0.1",
+    "react-dom": "^17.0.1",
     "react-dropzone": "^11.3.2",
     "react-final-form": "^6.5.2",
     "react-router": "^5.2.0",
-    "react-router-dom": "^5.2.0",
-    "react-scripts": "5.0.1",
-    "rollup-plugin-typescript2": "^0.32.1",
-    "typescript": "^4.7.4",
-    "web-vitals": "^0.2.4"
+    "react-router-dom": "^5.2.0"
   },
   "peerDependencies": {
-    "@memebattle/ui": "^1.0.1",
+    "@memebattle/ui": "workspace:^",
     "react": "^17.0.1",
     "react-dom": "^17.0.1"
   },
   "scripts": {
-    "start:app:dev": "react-scripts start",
-    "postbuild": "react-snap",
-    "build": "react-scripts build",
-    "test": "react-scripts test --passWithNoTests",
-    "eject": "react-scripts eject",
-    "build:module": "rollup --config",
-    "start:dev": "rollup --watch --config",
     "ts-check": "tsc --noEmit"
   },
   "browserslist": {
@@ -47,20 +39,10 @@
     ]
   },
   "devDependencies": {
-    "@memebattle/ui": "^1.0.1",
-    "@rollup/plugin-commonjs": "^22.0.1",
-    "@rollup/plugin-node-resolve": "^13.3.0",
-    "@rollup/plugin-url": "^7.0.0",
-    "@svgr/rollup": "^5.5.0",
     "@types/react": "^17.0.44",
     "@types/react-dom": "^17.0.15",
     "@types/react-router-dom": "^5.1.2",
-    "react": "^17.0.1",
-    "react-dom": "^17.0.1",
     "react-snap": "^1.23.0",
-    "rollup": "^2.76.0",
-    "rollup-plugin-peer-deps-external": "^2.2.4",
-    "rollup-plugin-postcss-modules": "^2.0.2",
-    "sass": "^1.32.8"
+    "typescript": "^4.7.4"
   }
 }

@@ -31,9 +31,6 @@ jobs:
       - name: Install dependencies
         run: yarn
 
-      - name: Build common-packages
-        run: yarn run common-packages:build
-
       - name: Lint code
         run: yarn lint
 
@@ -60,9 +57,6 @@ jobs:
           yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
       - name: Install dependencies
         run: yarn
-
-      - name: Build common-packages
-        run: yarn run common-packages:build
 
       - name: create .env
         run: cp .env.defaults .env
@@ -94,9 +88,6 @@ jobs:
 
       - name: Install dependencies
         run: yarn
-
-      - name: Build common-packages
-        run: yarn run common-packages:build
 
       - name: TS check
         run: yarn ts-check
