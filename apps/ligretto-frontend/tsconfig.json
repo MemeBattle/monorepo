@@ -23,7 +23,6 @@
     "noImplicitAny": true,
     "noFallthroughCasesInSwitch": true
   },
-  "files": ["env.d.ts"],
   "include": [
     "./src"
   ],
