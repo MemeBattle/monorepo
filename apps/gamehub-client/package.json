@@ -12,6 +12,7 @@
     "@emotion/server": "^11.4.0",
     "@memebattle/ui": "workspace:^",
     "next": "12.2.0",
+    "next-transpile-modules": "^9.0.0",
     "react": "^17.0.1",
     "react-dom": "^17.0.1"
   },
