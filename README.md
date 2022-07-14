@@ -23,7 +23,6 @@ yarn
 ```
 
 ## Start all
-You need prepare all applications before (ligretto-backend, ligretto-recovery)
 ```
 yarn ligretto:start
 ```
@@ -115,7 +114,7 @@ yarn ligretto:core-backend:start:dev
 
     "node_modules/hygen/dist/bin.js"
     component
-    ligretto-ui-component
+    ligretto-ui
     --name
     "$Prompt$"
     --path
