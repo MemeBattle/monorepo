@@ -50,3 +50,4 @@ storybook-static
 !/.storybook/main.js
 !/.storybook/preview.js
 
+tsconfig.tsbuildinfo
