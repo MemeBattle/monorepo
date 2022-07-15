@@ -7,7 +7,7 @@ export const Header = () => {
   const theme = useTheme()
 
   return (
-    <Box component="header" display="flex" height={theme.spacing(16)} maxHeight={theme.spacing(16)}>
+    <Box component="header" display="flex" alignItems="center" justifyContent="center" height={theme.spacing(16)} maxHeight={theme.spacing(16)}>
       <Box>
         <HeaderButton>Home</HeaderButton>
         <HeaderButton>Blog</HeaderButton>
