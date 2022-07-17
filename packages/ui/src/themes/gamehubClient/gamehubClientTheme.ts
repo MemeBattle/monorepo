@@ -15,6 +15,6 @@ export const gamehubClientTheme = createTheme({
 
 declare module '@mui/material/styles' {
   interface TypeBackground {
-    light: `#${string}`
+    light?: `#${string}`
   }
 }
