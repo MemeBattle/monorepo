@@ -1,15 +1,11 @@
-import { Button } from '@memebattle/ui'
-
 import type { NextPageWithLayout } from '../types'
 
 import { MainLayout } from '../layouts/main'
 import type { ReactElement } from 'react'
 
-const Home: NextPageWithLayout = () => (
-  <div>
-    <Button>Hello!</Button>
-  </div>
-)
+import { GamesBanner } from '../components/GamesBanner'
+
+const Home: NextPageWithLayout = () => <GamesBanner />
 
 Home.getLayout = (page: ReactElement) => <MainLayout>{page}</MainLayout>
 
