@@ -6,9 +6,9 @@
   "module": "./src/index.ts",
   "exports": {
     ".": {
-      "development": "./src/index.ts",
-      "production": "./build/index.js",
-      "default": "./build/index.js"
+      "ts-node": "./src/index.ts",
+      "node": "./build/index.js",
+      "default": "./src/index.ts"
     }
   },
   "types": "src/index.ts",
