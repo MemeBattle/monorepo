@@ -24,4 +24,4 @@ USER node
 WORKDIR /memebattle
 COPY --chown=node:node --from=builder /memebattle /memebattle
 
-ENTRYPOINT [ "node", "--conditions=production", "apps/ligretto-gameplay-backend/build/index.js" ]
+ENTRYPOINT [ "node", "apps/ligretto-gameplay-backend/build/index.js" ]
