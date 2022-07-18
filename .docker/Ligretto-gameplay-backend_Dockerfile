@@ -9,7 +9,8 @@ WORKDIR /memebattle
 RUN yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com" \
     && yarn config set -H npmScopes.memebattle.npmAuthToken "$NPM_TOKEN"
 RUN yarn install
-RUN yarn run ligretto:gameplay-backend:build \
+RUN yarn run ligretto-shared:build  \
+    && yarn run ligretto:gameplay-backend:build \
     && yarn workspaces focus --production @memebattle/ligretto-gameplay-backend
 
 FROM node:16.15.0-bullseye-slim
@@ -23,4 +24,4 @@ USER node
 WORKDIR /memebattle
 COPY --chown=node:node --from=builder /memebattle /memebattle
 
-ENTRYPOINT [ "node", "apps/ligretto-gameplay-backend/build/index.js" ]
+ENTRYPOINT [ "node", "--conditions=production", "apps/ligretto-gameplay-backend/build/index.js" ]
