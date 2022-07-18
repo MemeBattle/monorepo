@@ -6,6 +6,6 @@
     "src"
   ],
   "ext": "ts",
-  "exec": "ts-node src/index.ts",
+  "exec": "NODE_OPTIONS='--conditions=development' ts-node src/index.ts",
   "ignoreRoot": [".git"]
 }

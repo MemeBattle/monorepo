@@ -3,11 +3,20 @@
   "version": "1.0.6",
   "description": "Ligretto shared package",
   "main": "src/index.ts",
+  "module": "./src/index.ts",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "production": "./build/index.js",
+      "default": "./build/index.js"
+    }
+  },
   "types": "src/index.ts",
   "author": "MemeBattle",
   "license": "MIT",
   "scripts": {
-    "ts-check": "tsc --noEmit"
+    "ts-check": "tsc --noEmit",
+    "build": "tsc"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^1.8.2"
