@@ -19,7 +19,8 @@ FROM deps AS builder
 ENV NODE_ENV=production
 
 COPY . /memebattle
-RUN yarn run gamehub-client:build
+RUN yarn run ligretto-shared:build \
+  && yarn run gamehub-client:build
 
 FROM deps as prod-deps
 ENV NODE_ENV=production
