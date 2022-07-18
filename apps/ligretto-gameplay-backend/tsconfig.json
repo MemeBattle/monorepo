@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "rootDir": "src",
-    "target": "es2018",
-    "lib": ["es2018", "dom"],
+    "target": "es2021",
+    "lib": ["dom", "es2021"],
     "types": ["reflect-metadata"],
     "module": "commonjs",
     "sourceMap": true,

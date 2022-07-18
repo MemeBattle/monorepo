@@ -46,7 +46,7 @@
     "redux": "^4.0.4",
     "redux-saga": "^1.0.5",
     "reselect": "^4.0.0",
-    "socket.io-client": "^4.2.0"
+    "socket.io-client": "^4.5.1"
   },
   "browserslist": {
     "production": [

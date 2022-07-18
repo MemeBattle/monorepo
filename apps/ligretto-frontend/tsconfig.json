@@ -1,12 +1,8 @@
 {
   "extends": "./tsconfig.path.json",
   "compilerOptions": {
-    "target": "es5",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "target": "es2021",
+    "lib": ["dom", "es2021"],
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
