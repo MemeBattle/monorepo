@@ -7,6 +7,7 @@
   "exports": {
     ".": {
       "ts-node": "./src/index.ts",
+      "development": "./src/index.ts",
       "node": "./build/index.js",
       "default": "./src/index.ts"
     }
