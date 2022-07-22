@@ -56,6 +56,7 @@ const StyledPaper = styled(Paper)(() => ({
     top: 0,
     right: 0,
     minWidth: 'auto',
+    color: '#FFF',
   },
 
   [`& .${classes.createIcon}`]: {
