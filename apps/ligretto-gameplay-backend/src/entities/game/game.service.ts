@@ -207,7 +207,7 @@ export class GameService {
       return
     }
 
-    if (playersCount >= 1) {
+    if (playersCount === 1) {
       game = await this.pauseGame(gameId)
     }
 
