@@ -34,14 +34,18 @@ export class GameService {
   startGame(gameId: string) {
     return this.gameRepository.updateGame(gameId, game => {
       const players: Game['players'] = {}
-      console.log('updateGame', game)
-      // eslint-disable-next-line guard-for-in
-      for (const player in game.players) {
-        const allCards = createInitialPlayerCards(player)
+      const playersCount = Object.values(game.players).length
 
-        players[player] = {
-          ...game.players[player],
-          cards: allCards.splice(0, 3),
+      /** 3 cards for 4 and more players. 4 cards for 3. 5 cards for 2 */
+      const cardsInRowCount = playersCount >= 4 ? 3 : 3 + (4 - playersCount)
+
+      // eslint-disable-next-line guard-for-in
+      for (const playerId in game.players) {
+        const allCards = createInitialPlayerCards(playerId)
+
+        players[playerId] = {
+          ...game.players[playerId],
+          cards: allCards.splice(0, cardsInRowCount),
           ligrettoDeck: { cards: allCards.splice(0, 10), isHidden: true },
           stackOpenDeck: { cards: [], isHidden: false },
           stackDeck: {
