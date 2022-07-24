@@ -15,7 +15,12 @@ const StyledCarouselSlide = styled('div')(() => ({
   minWidth: '100%',
 }))
 
-const CarouselSlide = ({ children, index }: { children: ReactElement; index: number }) => {
+interface CarouselSlideProps {
+  children: ReactElement
+  index: number
+}
+
+const CarouselSlide = ({ children, index }: CarouselSlideProps) => {
   const { scrollToIndex } = useContext(CarouselContext)
 
   const ref = useRef<HTMLDivElement>(null)
@@ -57,7 +62,11 @@ const StyledCarouselSlides = styled('div')(({ theme }) => ({
 
 const calcCurrentSlideIndex = ({ containerSize, offset }: { containerSize: number; offset: number }): number => Math.round(offset / containerSize)
 
-export const CarouselSlides = ({ children }: { children: ReactNode }) => {
+export interface CarouselSlidesProps {
+  children: ReactNode
+}
+
+export const CarouselSlides = ({ children }: CarouselSlidesProps) => {
   const slidesRef = useRef<HTMLDivElement>(null)
   const { setSlidesCount, setSlidesContainerOffset, setCurrentSlideIndex } = useContext(CarouselContext)
   const isColumnView = useMediaQuery((theme: Theme) => theme.breakpoints.up('sm'))
@@ -101,7 +110,12 @@ const StyledCarouselControl = styled('div')(() => ({
   cursor: 'pointer',
 }))
 
-export const CarouselControl = ({ children, index }: { children: ReactElement; index?: number }) => {
+export interface CarouselControlProps {
+  children: ReactElement
+  index?: number
+}
+
+export const CarouselControl = ({ children, index }: CarouselControlProps) => {
   const { setScrollToIndex, currentSlideIndex, slidesContainerOffset } = useContext(CarouselContext)
 
   const handleClick = useCallback(() => {
@@ -125,7 +139,10 @@ const StyledCarouselControls = styled('div')(({ theme }) => ({
   },
 }))
 
-export const CarouselControls = ({ children }: { children: ReactElement[] }) => (
+export interface CarouselControlsProps {
+  children: ReactElement[]
+}
+export const CarouselControls = ({ children }: CarouselControlsProps) => (
   <StyledCarouselControls>
     {React.Children.toArray(children).map((originalChildren, index) => React.cloneElement(originalChildren as ReactElement, { index }))}
   </StyledCarouselControls>
@@ -140,7 +157,12 @@ const StyledCarousel = styled('div')(({ theme }) => ({
   flex: 1,
 }))
 
-export const Carousel = ({ children, initialSlideIndex = 0 }: { children: ReactNode; initialSlideIndex?: number }) => {
+export interface CarouselProps {
+  children: ReactNode
+  initialSlideIndex?: number
+}
+
+export const Carousel = ({ children, initialSlideIndex = 0 }: CarouselProps) => {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(initialSlideIndex)
   const [slidesCount, setSlidesCount] = useState(0)
   const [scrollToIndex, setScrollToIndex] = useState(0)
