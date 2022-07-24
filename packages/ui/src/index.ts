@@ -58,3 +58,5 @@ export * from './Paper'
 export * from './Link'
 
 export * from './FormHelperText'
+
+export * from './Carousel'

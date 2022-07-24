@@ -1,6 +1,17 @@
-import { Box, Typography, useTheme, LoaderCards, MemebattleLogo, Stack, Grid, Button } from '@memebattle/ui'
+import {
+  Box,
+  Typography,
+  useTheme,
+  LoaderCards,
+  MemebattleLogo,
+  Stack,
+  Button,
+  Carousel,
+  CarouselControls,
+  CarouselSlides,
+  CarouselControl,
+} from '@memebattle/ui'
 import type { FC, ReactNode } from 'react'
-import { useCallback, useState } from 'react'
 
 const games: Record<string, { title: string; description: string; logo: ReactNode; link: string }> = {
   ligretto: {
@@ -19,7 +30,7 @@ const games: Record<string, { title: string; description: string; logo: ReactNod
 
 const gamesList = Object.entries(games)
 
-const GameItem: FC<{ isActive: boolean; children: ReactNode; onClick: () => void; logo: ReactNode }> = ({ isActive, children, onClick, logo }) => {
+const GameItem: FC<{ isActive?: boolean; children: ReactNode; logo: ReactNode; offset?: number }> = ({ isActive, children, logo, offset }) => {
   const theme = useTheme()
   return (
     <Box
@@ -27,16 +38,16 @@ const GameItem: FC<{ isActive: boolean; children: ReactNode; onClick: () => void
       flexDirection="column"
       cursor="pointer"
       flex={1}
-      onClick={onClick}
       display="flex"
       maxHeight="12rem"
+      justifyContent="space-between"
     >
-      <Box display="flex" alignItems="center">
+      <Box display="flex" alignItems="center" flexDirection={['column', 'row']} justifyContent={['space-between', undefined]}>
         <Box display="flex" maxHeight="6rem" width="4rem">
           {logo}
         </Box>
         <Box padding={theme.spacing(3)}>
-          <Typography fontSize="1.4rem" fontWeight="600">
+          <Typography color={theme.palette.secondary.main} fontSize="1.4rem" fontWeight="600">
             {children}
           </Typography>
         </Box>
@@ -49,41 +60,43 @@ const GameItem: FC<{ isActive: boolean; children: ReactNode; onClick: () => void
 export const GamesBanner = () => {
   const theme = useTheme()
 
-  const [selectedGameId, setSelectedGameId] = useState(() => Object.keys(games)[0])
-
-  const handleSelectGame = useCallback((gameId: string) => {
-    setSelectedGameId(gameId)
-  }, [])
-
   return (
-    <Box background={theme.palette.background.light}>
-      <Grid container>
-        <Grid maxHeight="35rem" height="35rem" xs={12} sm={8} item>
-          <Stack maxHeight="100%" padding={6} direction="column" spacing={2}>
-            <Typography variant="h2" fontWeight="bold">
-              {games[selectedGameId].title}
-            </Typography>
-            <Typography>{games[selectedGameId].description}</Typography>
-            <Box display="flex" minHeight={0} justifyContent="space-between">
-              <Box>
-                <Button size="large" variant="contained" href={games[selectedGameId].link}>
-                  Играть!
-                </Button>
+    <Box background={theme.palette.background.light} height="40rem">
+      <Carousel>
+        <CarouselSlides>
+          {gamesList.map(([gameId, { title, description, link, logo }]) => (
+            <Stack key={gameId} flex={1} justifyContent="space-around" maxHeight="100%" padding={6} direction="column" spacing={2}>
+              <Typography variant="h2" fontWeight="bold">
+                {title}
+              </Typography>
+              <Typography>{description}</Typography>
+              <Box display="flex" minHeight={0} justifyContent="space-between">
+                <Box>
+                  <Button size="large" variant="contained" href={link}>
+                    Играть!
+                  </Button>
+                </Box>
+                <Box display="flex" justifyContent="center" flex={1}>
+                  {logo}
+                </Box>
               </Box>
-              {games[selectedGameId].logo}
-            </Box>
-          </Stack>
-        </Grid>
-        <Grid bgcolor={theme.palette.background.lighter} xs={12} sm={4} item>
-          <Box display="flex" flexDirection={['row', 'column']}>
-            {gamesList.map(([gameId, { title, logo }]) => (
-              <GameItem logo={logo} isActive={selectedGameId === gameId} key={gameId} onClick={() => handleSelectGame(gameId)}>
+            </Stack>
+          ))}
+        </CarouselSlides>
+        <CarouselControls>
+          {gamesList.map(([gameId, { title, logo }]) => (
+            <CarouselControl key={gameId}>
+              <GameItem logo={logo} key={gameId}>
                 {title}
               </GameItem>
-            ))}
-          </Box>
-        </Grid>
-      </Grid>
+            </CarouselControl>
+          ))}
+        </CarouselControls>
+      </Carousel>
+      <a href="#heading">go to heading</a>
+      <Box id="heading" mt="5rem" pb="200rem">
+        Heading
+      </Box>
     </Box>
   )
 }
