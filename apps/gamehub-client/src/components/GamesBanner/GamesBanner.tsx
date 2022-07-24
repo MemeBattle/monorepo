@@ -11,7 +11,7 @@ import {
   CarouselSlides,
   CarouselControl,
 } from '@memebattle/ui'
-import type { FC, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 const games: Record<string, { title: string; description: string; logo: ReactNode; link: string }> = {
   ligretto: {
@@ -30,7 +30,14 @@ const games: Record<string, { title: string; description: string; logo: ReactNod
 
 const gamesList = Object.entries(games)
 
-const GameItem: FC<{ isActive?: boolean; children: ReactNode; logo: ReactNode; offset?: number }> = ({ isActive, children, logo, offset }) => {
+interface GameItemProps {
+  isActive?: boolean
+  children: ReactNode
+  logo: ReactNode
+  offset?: number
+}
+
+const GameItem = ({ isActive, children, logo }: GameItemProps) => {
   const theme = useTheme()
   return (
     <Box
@@ -72,12 +79,12 @@ export const GamesBanner = () => {
       <Carousel>
         <CarouselSlides>
           {gamesList.map(([gameId, { title, description, link, logo }]) => (
-            <Stack key={gameId} flex={1} justifyContent="space-around" maxHeight="100%" padding={6} direction="column" spacing={2}>
+            <Stack key={gameId} flex={1} justifyContent="space-around" maxHeight="100%" padding={[1, 2, 6]} direction="column" spacing={2}>
               <Typography variant="h2" fontWeight="bold">
                 {title}
               </Typography>
               <Typography>{description}</Typography>
-              <Box display="flex" minHeight={0} justifyContent="space-between">
+              <Box display="flex" minHeight={0} justifyContent="space-between" flexDirection={['column', 'row']}>
                 <Box>
                   <Button size="large" variant="contained" href={link}>
                     Играть!
@@ -100,10 +107,6 @@ export const GamesBanner = () => {
           ))}
         </CarouselControls>
       </Carousel>
-      <a href="#heading">go to heading</a>
-      <Box id="heading" mt="5rem" pb="200rem">
-        Heading
-      </Box>
     </Box>
   )
 }
