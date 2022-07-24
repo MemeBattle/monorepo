@@ -156,7 +156,7 @@ export const Carousel = ({ children, initialSlideIndex = 0 }: { children: ReactN
     if (isAutoChangeEnabled) {
       timerId = setInterval(() => {
         setScrollToIndex(index => (index + 1) % slidesCount)
-      }, 2000)
+      }, 5000)
     }
     return () => clearInterval(timerId)
   }, [isAutoChangeEnabled, slidesCount])
