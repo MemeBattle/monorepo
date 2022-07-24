@@ -18,7 +18,7 @@ export interface Database {
 }
 
 // eslint-disable-next-line @typescript-eslint/ban-types
-const createChangesWatcher = <T extends {}>(obj: T) => {
+const createChangesWatcher = <T extends object>(obj: T) => {
   let oldValue = JSON.stringify(obj)
 
   return (obj: T) => {

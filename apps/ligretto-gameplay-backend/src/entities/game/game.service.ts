@@ -179,15 +179,20 @@ export class GameService {
   async leaveGame(gameId: string, playerId: Player['id']): Promise<Game | undefined> {
     let game = await this.gameRepository.updateGame(gameId, game => {
       const isHostLeaving = game.players[playerId].isHost
+
+      const players = omit(game.players, playerId)
+
+      if (isHostLeaving) {
+        const [, newHost] = Object.entries(players)[0]
+
+        if (newHost) {
+          newHost.isHost = true
+        }
+      }
+
       return {
         ...game,
-        players: Object.entries(omit(game.players, playerId)).reduce(
-          (players, [playerId, player], index): Game['players'] => ({
-            ...players,
-            [playerId]: { ...player, isHost: isHostLeaving && index === 0 ? true : player.isHost },
-          }),
-          {},
-        ),
+        players,
       }
     })
     console.log('New game state', game)
