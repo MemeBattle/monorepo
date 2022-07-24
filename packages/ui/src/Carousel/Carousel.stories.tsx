@@ -22,7 +22,7 @@ export const Default = () => (
     <Carousel>
       <CarouselSlides>
         {items.map(item => (
-          <Square>{item}</Square>
+          <Square key={item}>{item}</Square>
         ))}
       </CarouselSlides>
       <CarouselControls>
