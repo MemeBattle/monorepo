@@ -42,7 +42,14 @@ const GameItem: FC<{ isActive?: boolean; children: ReactNode; logo: ReactNode; o
       maxHeight="12rem"
       justifyContent="space-between"
     >
-      <Box display="flex" alignItems="center" flexDirection={['column', 'row']} justifyContent={['space-between', undefined]}>
+      <Box
+        width={[, , , '30rem']}
+        display="flex"
+        flex={1}
+        alignItems="center"
+        flexDirection={['column', 'row']}
+        justifyContent={['space-between', 'start']}
+      >
         <Box display="flex" maxHeight="6rem" width="4rem">
           {logo}
         </Box>
