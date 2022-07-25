@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react'
+import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from 'reselect'
 import { Card, CardPlace, CardsRow } from '@memebattle/ui'
@@ -18,26 +18,15 @@ export const CardsRowContainer = () => {
   const dispatch = useDispatch()
   const { playerCards, isDndEnabled, selectedCardIndex } = useSelector(CardsRowContainerSelector)
 
-  const cards = useMemo(() => {
-    const newPlayerCardsArr = []
-
-    for (let i = 0; i < 3; i++) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      playerCards[i] ? newPlayerCardsArr.push(playerCards[i]) : newPlayerCardsArr.push(undefined)
-    }
-
-    return newPlayerCardsArr
-  }, [playerCards])
-
   const onCardClick = useCallback(
     (index: number) => {
-      if (isDndEnabled && cards[index]?.value !== 1) {
+      if (isDndEnabled && playerCards[index]?.value !== 1) {
         dispatch(setSelectedCardIndexAction(index))
       } else {
         dispatch(tapCardAction({ cardIndex: index }))
       }
     },
-    [dispatch, isDndEnabled, cards],
+    [dispatch, isDndEnabled, playerCards],
   )
 
   const onCardClickOutside = useCallback(
@@ -51,7 +40,7 @@ export const CardsRowContainer = () => {
 
   return (
     <CardsRow>
-      {cards.map((card, index) => (
+      {playerCards.map((card, index) => (
         <CardPlace key={index}>
           {card && (
             <Card
