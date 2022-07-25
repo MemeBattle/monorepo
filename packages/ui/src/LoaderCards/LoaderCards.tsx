@@ -1,7 +1,7 @@
 import React from 'react'
 
 export const LoaderCards: React.FC = () => (
-  <svg width="100%" height="auto" fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2103 1121">
+  <svg width="100%" fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2103 1121">
     <path
       opacity=".2"
       d="m320.965 1051.6-296-181.504c-23.9-14.6-31.3-45.8-16.7-69.6l318.3-519.2c14.6-23.8 45.8-31.3 69.6-16.7l296 181.5c23.8 14.6 31.3 45.8 16.7 69.6l-318.3 519.204c-14.6 23.8-45.8 31.3-69.6 16.7Z"
