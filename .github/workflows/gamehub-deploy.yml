@@ -41,8 +41,6 @@ jobs:
             NPM_TOKEN=${{ secrets.CI_REGISTRY_TOKEN }}
           context: '.'
           file: '.docker/GameHub-client_Dockerfile'
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   deploy:
     needs: [gamehub-client-image]

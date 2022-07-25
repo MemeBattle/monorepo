@@ -95,8 +95,6 @@ jobs:
             NPM_TOKEN=${{ secrets.CI_REGISTRY_TOKEN }}
           context: '.'
           file: '.docker/Ligretto-gameplay-backend_Dockerfile'
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   ligretto-core-backend-image:
 
@@ -130,8 +128,6 @@ jobs:
             NPM_TOKEN=${{ secrets.CI_REGISTRY_TOKEN }}
           context: '.'
           file: '.docker/Ligretto-core-backend_Dockerfile'
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   ligretto-ui-image:
 
