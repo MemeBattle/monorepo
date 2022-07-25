@@ -25,6 +25,10 @@
   transform: translate(3.5rem, 4rem) rotate(45deg) scale(0.7);
 }
 
+.positionBottom {
+  margin-bottom: 1rem;
+}
+
 @media all and (max-width: 732px) and (min-width: 376px) {
   .positionLeft {
     transform: translate(-8rem, -6rem) rotate(90deg) scale(0.7);

@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify'
 import { groupBy, mapValues, merge, mergeWith, omit } from 'lodash'
 import { GameRepository } from './game.repo'
-import type { Game, GameResults, Player, UUID } from '@memebattle/ligretto-shared'
+import type { Game, GameResults, Player, Spectator, UUID } from '@memebattle/ligretto-shared'
 import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 import { createInitialPlayerCards } from '../../utils/create-initial-player-cards'
 import { IOC_TYPES } from '../../IOC_TYPES'
@@ -13,6 +13,7 @@ const emptyGame: Game = {
   status: GameStatus.New,
   name: 'BaseRoom',
   players: {},
+  spectators: {},
   playground: {
     decks: [],
     droppedDecks: [],
@@ -39,7 +40,7 @@ export class GameService {
       /** 3 cards for 4 and more players. 4 cards for 3. 5 cards for 2 */
       const cardsInRowCount = playersCount >= 4 ? 3 : 3 + (4 - playersCount)
 
-      for (const [playerId, player] of Object.entries(game.players)) {
+      for (const [playerId, player] of Object.entries(game.players as Record<UUID, Player>)) {
         const allCards = createInitialPlayerCards(playerId)
 
         if (!player) {
@@ -97,6 +98,20 @@ export class GameService {
         },
       })),
       player,
+    }
+  }
+
+  async addSpectator(gameId: UUID, spectatorData: Partial<Spectator> & { id: Spectator['id'] }) {
+    const spectator = await this.gameRepository.createSpectator(spectatorData)
+    return {
+      game: await this.gameRepository.updateGame(gameId, game => ({
+        ...game,
+        spectators: {
+          ...game.spectators,
+          [spectator.id]: { ...spectator, ...game.spectators[spectator.id] },
+        },
+      })),
+      spectator,
     }
   }
 
@@ -183,11 +198,12 @@ export class GameService {
     return this.gameRepository.getGames(pattern)
   }
 
-  async leaveGame(gameId: UUID, playerId: Player['id']): Promise<Game | undefined> {
+  async leaveGame(gameId: UUID, userId: Player['id'] | Spectator['id']): Promise<Game | undefined> {
     let game = await this.gameRepository.updateGame(gameId, game => {
-      const isHostLeaving = game.players[playerId]?.isHost
+      const isHostLeaving = game.players[userId]?.isHost
 
-      const players = omit(game.players, playerId)
+      const players = omit(game.players, userId)
+      const spectators = omit(game.spectators, userId)
 
       if (isHostLeaving) {
         const newHost = Object.values<Player>(players)[0]
@@ -200,9 +216,9 @@ export class GameService {
       return {
         ...game,
         players,
+        spectators,
       }
     })
-    console.log('New game state', game)
 
     if (!game) {
       return

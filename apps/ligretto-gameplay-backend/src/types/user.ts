@@ -1,5 +1,7 @@
+import type { UUID } from '@memebattle/ligretto-shared'
+
 export interface User {
-  id: string
-  currentGameId?: string
-  socketId?: string
+  id: UUID
+  currentGameId?: UUID
+  socketIds: string[]
 }

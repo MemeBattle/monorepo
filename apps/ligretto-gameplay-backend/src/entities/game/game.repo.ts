@@ -1,5 +1,5 @@
 import { inject, injectable } from 'inversify'
-import type { Game, Player, UUID } from '@memebattle/ligretto-shared'
+import type { Game, Player, UUID, Spectator } from '@memebattle/ligretto-shared'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { Database } from '../../database'
 import { IOC_TYPES } from '../../IOC_TYPES'
@@ -24,7 +24,6 @@ export class GameRepository {
 
   async updateGame(gameId: UUID, updater: (game: Game) => Game): Promise<Game> {
     const game = await this.getGame(gameId)
-    console.log('updateGame', game)
 
     return this.database.set(storage => (storage.games[gameId] = updater(game)))
   }
@@ -59,9 +58,8 @@ export class GameRepository {
     return result
   }
 
-  createPlayer(playerData: Partial<Player>): Player {
+  createPlayer(playerData: Partial<Player> & { id: Player['id'] }): Player {
     return {
-      id: 'empty',
       isHost: false,
       status: PlayerStatus.DontReadyToPlay,
       stackDeck: {
@@ -74,6 +72,12 @@ export class GameRepository {
         isHidden: true,
         cards: [],
       },
+      ...playerData,
+    }
+  }
+
+  createSpectator(playerData: Partial<Spectator> & { id: Spectator['id'] }): Spectator {
+    return {
       ...playerData,
     }
   }

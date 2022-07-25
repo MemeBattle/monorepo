@@ -3,17 +3,28 @@ import { IOC_TYPES } from '../../IOC_TYPES'
 import { Database } from '../../database'
 import type { User } from '../../types/user'
 import { omit } from 'lodash'
+import type { UUID } from '@memebattle/ligretto-shared'
+import assert = require('node:assert')
 
 @injectable()
 export class UserRepository {
   @inject(IOC_TYPES.Database) private database: Database
 
-  addUser(user: User) {
-    return this.database.set(storage => (storage.users[user.id] = user))
+  createOrUpdate({ userId, socketId }: { userId: UUID; socketId: string }) {
+    return this.database.set(storage => {
+      const user = storage.users[userId] || { id: userId, socketIds: [] }
+      user.socketIds.push(socketId)
+      storage.users[userId] = user
+      return storage
+    })
   }
 
-  updateUser(user: Partial<User> & { id: User['id'] }) {
-    return this.database.set(storage => (storage.users[user.id] = { ...storage.users[user.id], ...user }))
+  updateUser(updatePayload: Partial<User> & { id: User['id'] }) {
+    return this.database.set(storage => {
+      const user = storage.users[updatePayload.id]
+      assert(user, 'User not found')
+      storage.users[user.id] = { ...user, ...updatePayload }
+    })
   }
 
   removeUser(userId: User['id']) {
