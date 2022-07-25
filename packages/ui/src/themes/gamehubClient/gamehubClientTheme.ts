@@ -5,16 +5,14 @@ export const gamehubClientTheme = createTheme({
     mode: 'dark',
     background: {
       default: '#050D32',
-      light: '#212756',
+      light: '#1C2550',
+      lighter: '#212756',
     },
     primary: {
+      main: '#F3DD0E',
+    },
+    secondary: {
       main: '#fff',
     },
   },
 })
-
-declare module '@mui/material/styles' {
-  interface TypeBackground {
-    light?: `#${string}`
-  }
-}
