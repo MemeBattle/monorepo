@@ -11,12 +11,14 @@
   "dependencies": {
     "@emotion/server": "^11.4.0",
     "@memebattle/ui": "workspace:^",
+    "lodash": "^4.17.21",
     "next": "12.2.0",
     "next-transpile-modules": "^9.0.0",
     "react": "^17.0.1",
     "react-dom": "^17.0.1"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.182",
     "@types/node": "18.0.0",
     "@types/react": "^17.0.44",
     "@types/react-dom": "^17.0.15",
