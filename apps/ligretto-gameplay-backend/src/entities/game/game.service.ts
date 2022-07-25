@@ -17,7 +17,7 @@ const emptyGame: Game = {
     decks: [],
     droppedDecks: [],
   },
-  config: { cardsCount: 3, playersMaxCount: 4, dndEnabled: false },
+  config: { playersMaxCount: 4, dndEnabled: false },
 }
 
 @injectable()

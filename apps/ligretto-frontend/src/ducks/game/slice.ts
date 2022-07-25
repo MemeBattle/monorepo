@@ -28,7 +28,6 @@ const initialState: GameState = {
     },
     config: {
       dndEnabled: false,
-      cardsCount: 0,
       playersMaxCount: 4,
     },
   },

@@ -79,7 +79,7 @@ export class GamesController extends Controller {
 
     const game: Game | undefined = await this.gameService.getGame(roomUuid)
 
-    if (!game || Object.keys(game.players).length >= 4) {
+    if (!game || Object.keys(game.players).length >= game.config.playersMaxCount) {
       socket.emit('event', connectToRoomErrorAction())
       return
     }
