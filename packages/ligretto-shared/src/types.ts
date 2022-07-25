@@ -68,7 +68,6 @@ export interface Game {
   }
   playground: Playground
   config: {
-    cardsCount: number
     playersMaxCount: number
     dndEnabled: boolean
   }
