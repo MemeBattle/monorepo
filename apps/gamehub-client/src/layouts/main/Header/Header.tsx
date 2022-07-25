@@ -1,7 +1,7 @@
 import { Button, Box, useTheme } from '@memebattle/ui'
 import type { FC, ReactNode } from 'react'
 
-const HeaderButton: FC<{ children: ReactNode }> = ({ children }) => <Button>{children}</Button>
+const HeaderButton: FC<{ children: ReactNode }> = ({ children }) => <Button color="secondary">{children}</Button>
 
 export const Header = () => {
   const theme = useTheme()

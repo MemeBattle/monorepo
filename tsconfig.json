@@ -1,3 +1,6 @@
 {
-  "files": ["typings/font.d.ts", "typings/images.d.ts"]
+  "files": ["typings/font.d.ts", "typings/images.d.ts"],
+  "compilerOptions": {
+    "jsx": "react-jsx"
+  }
 }
