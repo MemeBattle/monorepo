@@ -39,18 +39,11 @@ export class GameService {
       /** 3 cards for 4 and more players. 4 cards for 3. 5 cards for 2 */
       const cardsInRowCount = playersCount >= 4 ? 3 : 3 + (4 - playersCount)
 
-      if (!game.players) {
-        return game
-      }
+      for (const [playerId, player] of Object.entries(game.players)) {
+        const allCards = createInitialPlayerCards(playerId)
 
-      for (const player of Object.values(game.players)) {
-        if (!player) {
-          continue
-        }
-
-        const allCards = createInitialPlayerCards(player.id)
-
-        Object.assign(player, {
+        players[playerId] = {
+          ...player,
           cards: allCards.splice(0, cardsInRowCount),
           ligrettoDeck: { cards: allCards.splice(0, 10), isHidden: true },
           stackOpenDeck: { cards: [], isHidden: false },
@@ -59,7 +52,7 @@ export class GameService {
             isHidden: true,
           },
           status: PlayerStatus.InGame,
-        })
+        }
       }
 
       return {
