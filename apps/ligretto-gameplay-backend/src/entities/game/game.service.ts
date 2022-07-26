@@ -39,12 +39,18 @@ export class GameService {
       /** 3 cards for 4 and more players. 4 cards for 3. 5 cards for 2 */
       const cardsInRowCount = playersCount >= 4 ? 3 : 3 + (4 - playersCount)
 
-      // eslint-disable-next-line guard-for-in
-      for (const playerId in game.players) {
-        const allCards = createInitialPlayerCards(playerId)
+      if (!game.players) {
+        return game
+      }
 
-        players[playerId] = {
-          ...game.players[playerId],
+      for (const player of Object.values(game.players)) {
+        if (!player) {
+          continue
+        }
+
+        const allCards = createInitialPlayerCards(player.id)
+
+        Object.assign(player, {
           cards: allCards.splice(0, cardsInRowCount),
           ligrettoDeck: { cards: allCards.splice(0, 10), isHidden: true },
           stackOpenDeck: { cards: [], isHidden: false },
@@ -53,7 +59,7 @@ export class GameService {
             isHidden: true,
           },
           status: PlayerStatus.InGame,
-        }
+        })
       }
 
       return {
@@ -77,7 +83,7 @@ export class GameService {
       ...game,
       status: GameStatus.RoundFinished,
       players: Object.values(game.players).reduce(
-        (players, player) => ({ ...players, [player.id]: { ...player, status: PlayerStatus.DontReadyToPlay } }),
+        (players, player) => (player ? { ...players, [player.id]: { ...player, status: PlayerStatus.DontReadyToPlay } } : players),
         {},
       ),
     }))
@@ -139,7 +145,7 @@ export class GameService {
     const ligrettoStackCardsCount = Object.entries(game.players).reduce<Record<string, number>>(
       (counts, [playerId, player]) => ({
         ...counts,
-        [playerId]: player.ligrettoDeck.cards.length,
+        [playerId]: player?.ligrettoDeck.cards.length ?? 0,
       }),
       {},
     )
@@ -182,12 +188,12 @@ export class GameService {
 
   async leaveGame(gameId: string, playerId: Player['id']): Promise<Game | undefined> {
     let game = await this.gameRepository.updateGame(gameId, game => {
-      const isHostLeaving = game.players[playerId].isHost
+      const isHostLeaving = game.players[playerId]?.isHost
 
       const players = omit(game.players, playerId)
 
       if (isHostLeaving) {
-        const [, newHost] = Object.entries(players)[0]
+        const newHost = Object.values<Player>(players)[0]
 
         if (newHost) {
           newHost.isHost = true
