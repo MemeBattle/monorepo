@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify'
 import { groupBy, mapValues, merge, mergeWith, omit } from 'lodash'
 import { GameRepository } from './game.repo'
-import type { Game, GameResults, Player } from '@memebattle/ligretto-shared'
+import type { Game, GameResults, Player, UUID } from '@memebattle/ligretto-shared'
 import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 import { createInitialPlayerCards } from '../../utils/create-initial-player-cards'
 import { IOC_TYPES } from '../../IOC_TYPES'
@@ -31,7 +31,7 @@ export class GameService {
     return this.gameRepository.addGame(game.id, merge({}, emptyGame, { ...game, name, config: { ...config, ...emptyGame.config } }))
   }
 
-  startGame(gameId: string) {
+  startGame(gameId: UUID) {
     return this.gameRepository.updateGame(gameId, game => {
       const players: Game['players'] = {}
       const playersCount = Object.values(game.players).length
@@ -67,11 +67,11 @@ export class GameService {
     })
   }
 
-  pauseGame(gameId: string) {
+  pauseGame(gameId: UUID) {
     return this.gameRepository.updateGame(gameId, game => ({ ...game, status: GameStatus.Pause }))
   }
 
-  finishRound(gameId: string) {
+  finishRound(gameId: UUID) {
     return this.gameRepository.updateGame(gameId, game => ({
       ...game,
       status: GameStatus.RoundFinished,
@@ -82,7 +82,7 @@ export class GameService {
     }))
   }
 
-  async addPlayer(gameId: string, playerData: Partial<Player> & { id: Player['id'] }) {
+  async addPlayer(gameId: UUID, playerData: Partial<Player> & { id: Player['id'] }) {
     const player = await this.gameRepository.createPlayer({ ...playerData })
     return {
       game: await this.gameRepository.updateGame(gameId, game => ({
@@ -119,11 +119,11 @@ export class GameService {
     }))
   }
 
-  getGame(gameId: string) {
+  getGame(gameId: UUID) {
     return this.gameRepository.getGame(gameId)
   }
 
-  async getRoundResult(gameId: string) {
+  async getRoundResult(gameId: UUID) {
     const game = await this.getGame(gameId)
 
     const initialScoresByPlayer = Object.keys(game.players).reduce<Record<string, 0>>((scores, playerId) => ({ ...scores, [playerId]: 0 }), {})
@@ -149,14 +149,14 @@ export class GameService {
     )
   }
 
-  async endGame(gameId: string) {
+  async endGame(gameId: UUID) {
     const { game, gameResults } = await this.endRound(gameId)
     await this.gameRepository.removeGame(gameId)
 
     return [game, gameResults]
   }
 
-  async endRound(gameId: string): Promise<{ game?: Game; gameResults?: GameResults }> {
+  async endRound(gameId: UUID): Promise<{ game?: Game; gameResults?: GameResults }> {
     const results = await this.getRoundResult(gameId)
 
     try {
@@ -179,7 +179,7 @@ export class GameService {
     return this.gameRepository.getGames(pattern)
   }
 
-  async leaveGame(gameId: string, playerId: Player['id']): Promise<Game | undefined> {
+  async leaveGame(gameId: UUID, playerId: Player['id']): Promise<Game | undefined> {
     let game = await this.gameRepository.updateGame(gameId, game => {
       const isHostLeaving = game.players[playerId]?.isHost
 
