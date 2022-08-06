@@ -1,5 +1,5 @@
 import { inject, injectable } from 'inversify'
-import type { Game, Player } from '@memebattle/ligretto-shared'
+import type { Game, Player, UUID } from '@memebattle/ligretto-shared'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { Database } from '../../database'
 import { IOC_TYPES } from '../../IOC_TYPES'
@@ -8,7 +8,7 @@ import { IOC_TYPES } from '../../IOC_TYPES'
 export class GameRepository {
   @inject(IOC_TYPES.Database) private database: Database
 
-  async addGame(gameId: string, game: Game) {
+  async addGame(gameId: UUID, game: Game) {
     const isGameExist = await this.getGameByName(game.name)
 
     if (isGameExist) {
@@ -18,11 +18,11 @@ export class GameRepository {
     return this.database.set<Game>(storage => (storage.games[gameId] = game))
   }
 
-  getGame(gameId: string) {
+  getGame(gameId: UUID) {
     return this.database.get(storage => storage.games[gameId])
   }
 
-  async updateGame(gameId: string, updater: (game: Game) => Game): Promise<Game> {
+  async updateGame(gameId: UUID, updater: (game: Game) => Game): Promise<Game> {
     const game = await this.getGame(gameId)
     console.log('updateGame', game)
 
@@ -35,7 +35,7 @@ export class GameRepository {
     return reverseMap[gameName]
   }
 
-  removeGame(gameId: string) {
+  removeGame(gameId: UUID) {
     return this.database.set(storage => delete storage.games[gameId])
   }
 
@@ -49,8 +49,8 @@ export class GameRepository {
     return games
   }
 
-  reverseMap(games: Record<string, Game>) {
-    const result: Record<string, string | undefined> = {}
+  reverseMap(games: Record<UUID, Game>) {
+    const result: Record<string, UUID | undefined> = {}
 
     Object.values(games).forEach(game => {
       result[game.name] = game.id

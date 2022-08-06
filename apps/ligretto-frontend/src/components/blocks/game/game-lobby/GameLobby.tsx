@@ -14,7 +14,7 @@ type Player = { status: SharedPlayer['status']; isHost: boolean; username: strin
 
 interface GameLobbyProps {
   opponents: Player[]
-  player: Player | undefined
+  player?: Player | null
   handleStartGameClick: () => void
   handleReadyToPlayButtonClick: () => void
   gameStatus: GameStatus

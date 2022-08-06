@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify'
 import { last } from 'lodash'
 import { PlaygroundRepository } from './playground.repo'
-import type { Card, CardsDeck, Game } from '@memebattle/ligretto-shared'
+import type { Card, CardsDeck, Game, UUID } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
 const isDeckAvailable = (deck: CardsDeck | null, card: Card) => {
@@ -17,17 +17,17 @@ const isDeckAvailable = (deck: CardsDeck | null, card: Card) => {
 export class PlaygroundService {
   @inject(IOC_TYPES.PlaygroundRepository) private playgroundRepository: PlaygroundRepository
 
-  async getDecks(gameId: string) {
+  async getDecks(gameId: UUID) {
     return await this.playgroundRepository.getDecks(gameId)
   }
 
-  async findAvailableDeckIndex(gameId: string, card: Card) {
+  async findAvailableDeckIndex(gameId: UUID, card: Card) {
     const decks = await this.getDecks(gameId)
     console.log('activeDecks', decks)
     return decks.findIndex(deck => isDeckAvailable(deck, card))
   }
 
-  async putCard(gameId: string, card: Card, deckIndex: number) {
+  async putCard(gameId: UUID, card: Card, deckIndex: number) {
     console.log('putCard', deckIndex)
     const deck = await this.playgroundRepository.getDeck(gameId, deckIndex)
 
@@ -53,14 +53,14 @@ export class PlaygroundService {
     }
   }
 
-  async cleanDeck(gameId: string, position: number) {
+  async cleanDeck(gameId: UUID, position: number) {
     await this.playgroundRepository.updateDeck(gameId, position, () => ({
       cards: [],
       isHidden: true,
     }))
   }
 
-  async checkIsDeckAvailable(gameId: string, card: Card, position: number) {
+  async checkIsDeckAvailable(gameId: UUID, card: Card, position: number) {
     const deck = await this.playgroundRepository.getDeck(gameId, position)
     const topCard: Card | undefined = last(deck?.cards)
 
@@ -75,7 +75,7 @@ export class PlaygroundService {
     return topCard.value + 1 === card.value && topCard.color === card.color
   }
 
-  async createEmptyDeck(gameId: string) {
+  async createEmptyDeck(gameId: UUID) {
     console.log('CreateEmptyDeck', gameId)
     const result = await this.playgroundRepository.addDeck(gameId, { cards: [], isHidden: false })
     console.log('CreateEmptyDeck', result)

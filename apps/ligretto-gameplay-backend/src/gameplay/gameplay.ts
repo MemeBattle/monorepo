@@ -4,7 +4,7 @@ import { PlaygroundService } from '../entities/playground'
 import { GameService } from '../entities/game/game.service'
 import { IOC_TYPES } from '../IOC_TYPES'
 import { GameplayOutput } from './gameplay-output'
-import type { Game, GameResults } from '@memebattle/ligretto-shared'
+import type { Game, GameResults, UUID } from '@memebattle/ligretto-shared'
 
 @injectable()
 export class Gameplay {
@@ -13,7 +13,7 @@ export class Gameplay {
   @inject(IOC_TYPES.PlaygroundService) private playgroundService: PlaygroundService
   @inject(IOC_TYPES.GameplayOutput) private gameplayOutput: GameplayOutput
 
-  async startGame(gameId: string) {
+  async startGame(gameId: UUID) {
     try {
       await this.gameService.startGame(gameId)
     } catch (e) {
@@ -21,9 +21,9 @@ export class Gameplay {
     }
   }
 
-  async playerPutCard(gameId: string, playerColor: string, cardPosition: number, deckPosition?: number) {
+  async playerPutCard(gameId: UUID, playerId: UUID, cardPosition: number, deckPosition?: number) {
     try {
-      const card = await this.playerService.getCard(gameId, playerColor, cardPosition)
+      const card = await this.playerService.getCard(gameId, playerId, cardPosition)
       if (!card) {
         return
       }
@@ -34,15 +34,15 @@ export class Gameplay {
       }
 
       await this.playgroundService.putCard(gameId, card, finalDeckPosition)
-      await this.playerService.removeCard(gameId, playerColor, cardPosition)
+      await this.playerService.removeCard(gameId, playerId, cardPosition)
     } catch (e) {
       console.log(e)
     }
   }
 
-  async playerPutFromStackOpenDeck(gameId: string, playerColor: string, deckPosition?: number) {
+  async playerPutFromStackOpenDeck(gameId: UUID, playerId: UUID, deckPosition?: number) {
     try {
-      const card = await this.playerService.getCardFromStackOpenDeck(gameId, playerColor)
+      const card = await this.playerService.getCardFromStackOpenDeck(gameId, playerId)
       if (!card) {
         return
       }
@@ -53,13 +53,13 @@ export class Gameplay {
       }
 
       await this.playgroundService.putCard(gameId, card, finalDeckPosition)
-      await this.playerService.removeCardFromStackOpenDeck(gameId, playerColor)
+      await this.playerService.removeCardFromStackOpenDeck(gameId, playerId)
     } catch (e) {
       console.log(e)
     }
   }
 
-  async playerTakeFromLigrettoDeck(gameId: string, playerId: string): Promise<{ game?: Game; gameResults?: GameResults }> {
+  async playerTakeFromLigrettoDeck(gameId: UUID, playerId: UUID): Promise<{ game?: Game; gameResults?: GameResults }> {
     try {
       const remaining = await this.playerService.takeFromLigrettoDeck(gameId, playerId)
 
@@ -75,15 +75,15 @@ export class Gameplay {
     }
   }
 
-  async playerTakeFromStackDeck(gameId: string, playerColor: string) {
+  async playerTakeFromStackDeck(gameId: UUID, playerId: UUID) {
     try {
-      await this.playerService.takeFromStackDeck(gameId, playerColor)
+      await this.playerService.takeFromStackDeck(gameId, playerId)
     } catch (e) {
       console.log(e)
     }
   }
 
-  async endGame(gameId: string) {
+  async endGame(gameId: UUID) {
     try {
       const roundResult = await this.gameService.getRoundResult(gameId)
       await this.gameService.endGame(gameId)

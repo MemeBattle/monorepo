@@ -17,7 +17,7 @@ import {
 const StackContainerSelector = createSelector(
   [selectPlayerStackOpenDeckCards, selectPlayerStackDeckCards, selectIsDndEnabled, selectSelectedCardIndex],
   (stackOpenDeckCards, stackDeckCards, isDndEnabled, selectedCardIndex) => ({
-    stackOpenDeckCard: stackOpenDeckCards[stackOpenDeckCards.length - 1] || {},
+    stackOpenDeckCard: stackOpenDeckCards?.[stackOpenDeckCards.length - 1],
     stackDeckCards,
     isDndEnabled,
     selectedCardIndex,
@@ -43,6 +43,10 @@ export const StackContainer = () => {
   const handleStackDeckCardClick = useCallback(() => {
     dispatch(tapStackDeckCardAction())
   }, [dispatch])
+
+  if (!stackDeckCards) {
+    return null
+  }
 
   return (
     <Stack

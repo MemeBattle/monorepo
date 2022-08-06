@@ -1,5 +1,5 @@
 import { inject, injectable } from 'inversify'
-import type { Card, CardsDeck } from '@memebattle/ligretto-shared'
+import type { Card, CardsDeck, UUID } from '@memebattle/ligretto-shared'
 import { Database } from '../../database'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
@@ -7,65 +7,73 @@ import { IOC_TYPES } from '../../IOC_TYPES'
 export class PlayerRepository {
   @inject(IOC_TYPES.Database) private database: Database
 
-  async getPlayer(gameId: string, player: string) {
-    return this.database.get(storage => storage.games[gameId].players[player])
+  async getPlayer(gameId: UUID, playerId: UUID) {
+    return this.database.get(storage => storage.games[gameId].players[playerId])
   }
 
-  async getCards(gameId: string, player: string) {
-    return this.database.get(storage => storage.games[gameId].players[player].cards)
+  async getCards(gameId: UUID, playerId: UUID) {
+    return this.database.get(storage => storage.games[gameId].players[playerId]?.cards)
   }
 
-  async getCard(gameId: string, player: string, position: number) {
-    return this.database.get(storage => storage.games[gameId].players[player].cards[position])
+  async getCard(gameId: UUID, playerId: UUID, position: number) {
+    return this.database.get(storage => storage.games[gameId].players[playerId]?.cards[position])
   }
 
-  async addCard(gameId: string, player: string, card: Card, position: number) {
-    return this.database.set(storage => storage.games[gameId].players[player].cards.splice(position, 1, card))
+  async addCard(gameId: UUID, playerId: UUID, card: Card, position: number) {
+    return this.database.set(storage => storage.games[gameId].players[playerId]?.cards.splice(position, 1, card))
   }
 
-  async removeCard(gameId: string, player: string, position: number) {
-    return this.database.set(storage => storage.games[gameId].players[player].cards.splice(position, 1, null))
+  async removeCard(gameId: UUID, playerId: UUID, position: number) {
+    return this.database.set(storage => storage.games[gameId].players[playerId]?.cards.splice(position, 1, null))
   }
 
-  async getLigrettoDeck(gameId: string, player: string) {
-    return this.database.get(storage => storage.games[gameId].players[player].ligrettoDeck)
+  async getLigrettoDeck(gameId: UUID, playerId: UUID) {
+    return this.database.get(storage => storage.games[gameId].players[playerId]?.ligrettoDeck)
   }
 
-  async removeCardFromLigrettoDeck(gameId: string, player: string) {
-    await this.database.set(storage => storage.games[gameId].players[player].ligrettoDeck.cards.pop())
+  async removeCardFromLigrettoDeck(gameId: UUID, playerId: UUID) {
+    await this.database.set(storage => storage.games[gameId].players[playerId]?.ligrettoDeck.cards.pop())
 
-    return (await this.getLigrettoDeck(gameId, player)).cards.length
+    return (await this.getLigrettoDeck(gameId, playerId))?.cards.length
   }
 
-  async getStackDeck(gameId: string, player: string) {
-    return this.database.get(storage => storage.games[gameId].players[player]?.stackDeck)
+  async getStackDeck(gameId: UUID, playerId: UUID) {
+    return this.database.get(storage => storage.games[gameId].players[playerId]?.stackDeck)
   }
 
-  async getStackOpenDeck(gameId: string, player: string) {
-    return this.database.get(storage => storage.games[gameId].players[player].stackOpenDeck)
+  async getStackOpenDeck(gameId: UUID, playerId: UUID) {
+    return this.database.get(storage => storage.games[gameId].players[playerId]?.stackOpenDeck)
   }
 
-  async removeCardFromStackOpenDeck(gameId: string, player: string) {
-    return this.database.set(storage => storage.games[gameId].players[player].stackOpenDeck.cards.pop())
+  async removeCardFromStackOpenDeck(gameId: UUID, playerId: UUID) {
+    return this.database.set(storage => storage.games[gameId].players[playerId]?.stackOpenDeck.cards.pop())
   }
 
-  async updateCard(gameId: string, player: string, position: number, updater: (card: Card | null) => Card) {
-    const card = await this.getCard(gameId, player, position)
-    return this.database.set(storage => (storage.games[gameId].players[player].cards[position] = updater(card)))
+  async updateStackDeck(gameId: UUID, playerId: UUID, updater: (cardsDeck: CardsDeck) => CardsDeck) {
+    const deck = await this.getStackDeck(gameId, playerId)
+    if (!deck) {
+      return
+    }
+    return this.database.set(storage => {
+      const player = storage.games[gameId].players[playerId]
+      if (!player) {
+        return
+      }
+      return (player.stackDeck = updater(deck))
+    })
   }
 
-  async updateLigrettoDeck(gameId: string, player: string, updater: (cardsDeck: CardsDeck) => CardsDeck) {
-    const deck = await this.getLigrettoDeck(gameId, player)
-    return this.database.set(storage => (storage.games[gameId].players[player].ligrettoDeck = updater(deck)))
-  }
-
-  async updateStackDeck(gameId: string, player: string, updater: (cardsDeck: CardsDeck) => CardsDeck) {
-    const deck = await this.getStackDeck(gameId, player)
-    return this.database.set(storage => (storage.games[gameId].players[player].stackDeck = updater(deck)))
-  }
-
-  async updateStackOpenDeck(gameId: string, player: string, updater: (cardsDeck: CardsDeck) => CardsDeck) {
-    const deck = await this.getStackOpenDeck(gameId, player)
-    return this.database.set(storage => (storage.games[gameId].players[player].stackOpenDeck = updater(deck)))
+  async updateStackOpenDeck(gameId: UUID, playerId: UUID, updater: (cardsDeck: CardsDeck) => CardsDeck) {
+    const deck = await this.getStackOpenDeck(gameId, playerId)
+    if (!deck) {
+      return
+    }
+    return this.database.set(storage => {
+      const player = storage.games[gameId].players[playerId]
+      if (!player) {
+        return
+      }
+      return (player.stackOpenDeck = updater(deck))
+    })
   }
 }

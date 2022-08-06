@@ -1,4 +1,3 @@
-import type { Player } from '@memebattle/ligretto-shared'
 import { createSelector } from 'reselect'
 
 import type { All } from 'types/store'
@@ -20,12 +19,12 @@ export const selectGameConfig = (state: All) => selectGame(state).config
 export const selectIsDndEnabled = (state: All) => selectGameConfig(state).dndEnabled
 
 /** Player State */
-export const selectPlayer = (state: All): Player => selectPlayers(state)[selectCurrentUserId(state)]
-export const selectPlayerCards = (state: All) => selectPlayer(state).cards
-export const selectPlayerStackOpenDeckCards = (state: All) => selectPlayer(state).stackOpenDeck.cards
-export const selectPlayerStackDeckCards = (state: All) => selectPlayer(state).stackDeck.cards
-export const selectPlayerLigrettoDeckCards = (state: All) => selectPlayer(state).ligrettoDeck.cards
-export const selectPlayerStatus = (state: All) => selectPlayer(state).status
+export const selectPlayer = (state: All) => selectPlayers(state)[selectCurrentUserId(state)]
+export const selectPlayerCards = (state: All) => selectPlayer(state)?.cards
+export const selectPlayerStackOpenDeckCards = (state: All) => selectPlayer(state)?.stackOpenDeck.cards
+export const selectPlayerStackDeckCards = (state: All) => selectPlayer(state)?.stackDeck.cards
+export const selectPlayerLigrettoDeckCards = (state: All) => selectPlayer(state)?.ligrettoDeck.cards
+export const selectPlayerStatus = (state: All) => selectPlayer(state)?.status
 
 /** Local Player State */
 export const selectLocalPlayerState = (state: All) => state.game.localPlayerState
@@ -33,11 +32,17 @@ export const selectSelectedCardIndex = (state: All) => selectLocalPlayerState(st
 
 export const selectOpponents = createSelector([selectPlayers, selectCurrentUserId, selectUsersMap], (players, playerId, users) =>
   Object.values(players).reduce((opponents: ReturnType<typeof mergePlayerAndUser>[], player) => {
+    if (!player) {
+      return opponents
+    }
     const user = users[player.id]
     return [...opponents, ...(user && user.casId !== playerId ? [mergePlayerAndUser(player, user)] : [])]
   }, []),
 )
 export const selectActivePlayer = createSelector(selectPlayer, selectUsersMap, (currentPlayer, users) => {
+  if (!currentPlayer) {
+    return
+  }
   const user = users[currentPlayer.id]
   if (user) {
     return mergePlayerAndUser(currentPlayer, user)
