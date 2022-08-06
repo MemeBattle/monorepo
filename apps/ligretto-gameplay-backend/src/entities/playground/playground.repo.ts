@@ -1,5 +1,5 @@
 import { inject, injectable } from 'inversify'
-import type { CardsDeck } from '@memebattle/ligretto-shared'
+import type { CardsDeck, UUID } from '@memebattle/ligretto-shared'
 import { Database } from '../../database/database'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
@@ -7,15 +7,15 @@ import { IOC_TYPES } from '../../IOC_TYPES'
 export class PlaygroundRepository {
   @inject(IOC_TYPES.Database) private database: Database
 
-  getDecks(gameId: string) {
+  getDecks(gameId: UUID) {
     return this.database.get(storage => storage.games[gameId].playground.decks)
   }
 
-  getDeck(gameId: string, position: number) {
+  getDeck(gameId: UUID, position: number) {
     return this.database.get(storage => storage.games[gameId].playground.decks[position])
   }
 
-  addDeck(gameId: string, cardsDeck: CardsDeck) {
+  addDeck(gameId: UUID, cardsDeck: CardsDeck) {
     return this.database.set(storage => {
       const decks = storage.games[gameId].playground.decks
       decks.push(cardsDeck)
@@ -23,7 +23,7 @@ export class PlaygroundRepository {
     })
   }
 
-  addDroppedDeck(gameId: string, cardsDeck: CardsDeck) {
+  addDroppedDeck(gameId: UUID, cardsDeck: CardsDeck) {
     return this.database.set(storage => {
       const decks = storage.games[gameId].playground.droppedDecks
       decks.push(cardsDeck)
@@ -31,13 +31,13 @@ export class PlaygroundRepository {
     })
   }
 
-  removeDeck(gameId: string, position: number) {
+  removeDeck(gameId: UUID, position: number) {
     return this.database.set(storage => {
       delete storage.games[gameId].playground.decks[position]
     })
   }
 
-  async updateDeck(gameId: string, position: number, updater: (deck: CardsDeck | null) => CardsDeck) {
+  async updateDeck(gameId: UUID, position: number, updater: (deck: CardsDeck | null) => CardsDeck) {
     const deck = await this.getDeck(gameId, position)
 
     return this.database.set(storage => {

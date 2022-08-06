@@ -14,14 +14,21 @@ export const CardsPanelContainer = () => {
   const dispatch = useDispatch()
   const player = useSelector(selectActivePlayer)
   const { playerLigrettoDeckCards } = useSelector(CardsPanelContainerSelector)
+
   const playerWithStaticAvatar = useMemo(() => {
     if (player) {
       const avatar = player?.avatar ? buildCasStaticUrl(player.avatar) : undefined
       return { ...player, avatar }
     }
   }, [player])
+
   const onLigrettoDeckCardClick = useCallback(() => {
     dispatch(tapLigrettoDeckCardAction())
   }, [dispatch])
+
+  if (!playerLigrettoDeckCards) {
+    return null
+  }
+
   return <CardsPanel ligrettoDeckCards={playerLigrettoDeckCards} onLigrettoDeckCardClick={onLigrettoDeckCardClick} player={playerWithStaticAvatar} />
 }
