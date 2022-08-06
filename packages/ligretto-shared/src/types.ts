@@ -63,7 +63,7 @@ export interface Game {
   id: string
   name: string
   status: GameStatus
-  players: Record<UUID, Player>
+  players: Record<UUID, Player | undefined>
   playground: Playground
   config: {
     playersMaxCount: number

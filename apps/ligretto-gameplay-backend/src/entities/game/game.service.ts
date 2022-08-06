@@ -42,6 +42,10 @@ export class GameService {
       for (const [playerId, player] of Object.entries(game.players)) {
         const allCards = createInitialPlayerCards(playerId)
 
+        if (!player) {
+          continue
+        }
+
         players[playerId] = {
           ...player,
           cards: allCards.splice(0, cardsInRowCount),

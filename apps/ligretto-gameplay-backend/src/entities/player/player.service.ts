@@ -19,9 +19,9 @@ export class PlayerService {
   async addCard(gameId: UUID, playerId: UUID, card: Card) {
     const cards = await this.playerRepository.getCards(gameId, playerId)
 
-    const emptyCardIndex = cards.findIndex(card => card === null)
+    const emptyCardIndex = cards?.findIndex(card => card === null)
 
-    if (emptyCardIndex !== -1) {
+    if (emptyCardIndex !== undefined && emptyCardIndex !== -1) {
       await this.playerRepository.addCard(gameId, playerId, card, emptyCardIndex)
     }
   }
@@ -44,20 +44,20 @@ export class PlayerService {
   async getCardFromStackOpenDeck(gameId: UUID, playerId: UUID) {
     const deck = await this.playerRepository.getStackOpenDeck(gameId, playerId)
 
-    return last(deck.cards)
+    return last(deck?.cards)
   }
 
   async shuffleStackDeck(gameId: UUID, playerId: UUID) {
     const stackOpenDeck = await this.playerRepository.getStackOpenDeck(gameId, playerId)
     const stackDeck = await this.playerRepository.getStackDeck(gameId, playerId)
 
-    if (stackDeck.cards.length !== 0) {
+    if (stackDeck?.cards.length !== 0) {
       return
     }
 
     await this.playerRepository.updateStackDeck(gameId, playerId, stackDeck => ({
       ...stackDeck,
-      cards: shuffle(stackOpenDeck.cards),
+      cards: shuffle(stackOpenDeck?.cards),
     }))
 
     await this.playerRepository.updateStackOpenDeck(gameId, playerId, stackOpenDeck => ({
@@ -68,7 +68,7 @@ export class PlayerService {
 
   async takeFromStackDeck(gameId: UUID, playerId: UUID) {
     const stackDeck = await this.playerRepository.getStackDeck(gameId, playerId)
-    if (stackDeck.cards.length === 0) {
+    if (stackDeck?.cards.length === 0) {
       await this.shuffleStackDeck(gameId, playerId)
     }
 
@@ -101,12 +101,12 @@ export class PlayerService {
     const cards = await this.playerRepository.getCards(gameId, playerId)
     const ligrettoDeck = await this.playerRepository.getLigrettoDeck(gameId, playerId)
 
-    const emptyCardIndex = cards.findIndex(card => card === null)
+    const emptyCardIndex = cards?.findIndex(card => card === null)
     if (emptyCardIndex === -1) {
-      return ligrettoDeck.cards.length
+      return ligrettoDeck?.cards.length
     }
 
-    const card = last(ligrettoDeck.cards)
+    const card = last(ligrettoDeck?.cards)
 
     if (!card) {
       return
