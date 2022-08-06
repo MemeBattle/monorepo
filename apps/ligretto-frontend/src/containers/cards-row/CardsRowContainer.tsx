@@ -20,7 +20,7 @@ export const CardsRowContainer = () => {
 
   const onCardClick = useCallback(
     (index: number) => {
-      if (isDndEnabled && playerCards[index]?.value !== 1) {
+      if (isDndEnabled && playerCards?.[index]?.value !== 1) {
         dispatch(setSelectedCardIndexAction(index))
       } else {
         dispatch(tapCardAction({ cardIndex: index }))
@@ -40,7 +40,7 @@ export const CardsRowContainer = () => {
 
   return (
     <CardsRow>
-      {playerCards.map((card, index) => (
+      {playerCards?.map((card, index) => (
         <CardPlace key={index}>
           {card && (
             <Card

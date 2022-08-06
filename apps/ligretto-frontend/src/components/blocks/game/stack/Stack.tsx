@@ -1,10 +1,10 @@
 import React from 'react'
 import { Card, CardPlace, CardsRow } from '@memebattle/ui'
-import type { Card as PlayerCards } from '@memebattle/ligretto-shared'
+import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
 
 export interface StackProps {
-  stackOpenDeckCard: PlayerCards
-  stackDeckCards: PlayerCards[]
+  stackOpenDeckCard?: PlayerCard
+  stackDeckCards: PlayerCard[]
   onStackOpenDeckCardClick: () => void
   onStackDeckCardClick: () => void
   onStackDeckCardOutsideClick: () => void
