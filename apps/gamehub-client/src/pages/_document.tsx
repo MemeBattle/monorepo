@@ -3,7 +3,7 @@ import Document, { Html, Head, Main, NextScript } from 'next/document'
 import createEmotionServer from '@emotion/server/create-instance'
 import { createEmotionCache } from '../utils/createEmotionCache'
 
-class MyDocument extends Document {
+class MyDocument extends Document<{ emotionStyleTags?: string[] }> {
   static async getInitialProps(ctx: DocumentContext) {
     const originalRenderPage = ctx.renderPage
 
@@ -36,7 +36,7 @@ class MyDocument extends Document {
   render() {
     return (
       <Html lang="en">
-        <Head />
+        <Head>{this.props.emotionStyleTags}</Head>
         <body>
           <Main />
           <NextScript />
