@@ -1,6 +1,5 @@
 export { CardsPanel } from './cards-panel'
 export { Playground } from './playground'
 export { Stack } from './stack'
-export { StartGameButton } from './start-game-button'
 export { OpponentWaiting } from './opponent-waiting'
 export * from './game-lobby'
