@@ -61,8 +61,21 @@ jobs:
       - name: create .env
         run: cp .env.defaults .env
 
+      - name: Build shared
+        run: yarn ligretto-shared:build
+
       - name: Run tests
         run: yarn test
+
+      - uses: jwalton/gh-find-current-pr@v1
+        id: findPr
+
+      - name: Collect coverage from ligretto-gameplay-backend
+        uses: ArtiomTr/jest-coverage-report-action@v2
+        with:
+          prnumber: ${{ steps.findPr.outputs.number }}
+          skip-step: all
+          working-directory: apps/ligretto-gameplay-backend
 
   tsc:
 

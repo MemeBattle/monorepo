@@ -5,7 +5,7 @@ import type { AnyAction } from '../types/any-action'
 @injectable()
 export abstract class Controller {
   protected abstract handlers: {
-    [actionType: string]: <T extends AnyAction>(socket: Socket, action: T) => void
+    [actionType: string]: <A extends AnyAction>(socket: Socket, action: A) => void
   }
 
   private getHandler(type: string) {
