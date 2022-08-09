@@ -65,7 +65,7 @@ jobs:
         run: yarn ligretto-shared:build
 
       - name: Run tests
-        run: yarn test
+        run: yarn test:ci
 
       - uses: jwalton/gh-find-current-pr@v1
         id: findPr
