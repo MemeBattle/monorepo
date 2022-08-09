@@ -5,7 +5,8 @@
   "license": "MIT",
   "scripts": {
     "init:partner": "init-partner",
-    "test:watch": "tsc && ava --watch --color --verbose",
+    "test": "NODE_ENV=test jest .",
+    "test:watch": "NODE_ENV=test jest --watch",
     "start:dev": "yarn prestart && nodemon",
     "start": "yarn prestart && ts-node src/index.ts",
     "prestart": "ts-node src/cli/check-env.ts",
@@ -14,24 +15,19 @@
   },
   "devDependencies": {
     "@types/dotenv": "^8.2.0",
+    "@types/jest": "^28.1.6",
     "@types/lodash": "^4.14.182",
-    "ava": "^2.3.0",
+    "@types/node": "^18.6.4",
+    "jest": "^28.1.3",
+    "mock-socket": "^9.1.5",
     "nodemon": "^2.0.16",
-    "tap-nyan": "^1.1.0",
+    "ts-jest": "^28.0.7",
+    "ts-jest-resolver": "^2.0.0",
     "ts-loader": "^9.3.1",
     "ts-node": "^10.8.1",
     "typescript": "^4.7.4",
     "webpack": "^5.28.0",
     "webpack-cli": "^4.6.0"
-  },
-  "ava": {
-    "compileEnhancements": false,
-    "extensions": [
-      "ts"
-    ],
-    "require": [
-      "ts-node/register"
-    ]
   },
   "dependencies": {
     "@memebattle/cas-services": "^3.6.1",

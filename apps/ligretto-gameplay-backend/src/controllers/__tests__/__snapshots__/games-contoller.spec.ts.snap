@@ -1,0 +1,23 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Games Controller should create relevant state on create game 1`] = `
+Object {
+  "games": Object {
+    "1": Object {
+      "config": Object {
+        "dndEnabled": false,
+        "playersMaxCount": 4,
+      },
+      "id": "1",
+      "name": "createGame",
+      "players": Object {},
+      "playground": Object {
+        "decks": Array [],
+        "droppedDecks": Array [],
+      },
+      "status": "New",
+    },
+  },
+  "users": Object {},
+}
+`;

@@ -19,7 +19,7 @@ export class WebSocketHandler implements WebSocketHandler {
   @inject(IOC_TYPES.GamesController) private gamesController: GamesController
   @inject(IOC_TYPES.BotController) private botController: BotController
   @inject(IOC_TYPES.UserService) private userService: UserService // Возможно нужен контроллер, но пока хз
-  @inject(IOC_TYPES.TechController) private techController: TechController // Возможно нужен контроллер, но пока хз
+  @inject(IOC_TYPES.TechController) private techController: TechController
 
   connect(socketServer: Server) {
     socketServer.use(authMiddleware).on('connection', socket => this.connectionHandler(socket))

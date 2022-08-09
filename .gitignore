@@ -17,6 +17,8 @@ node_modules
 
 # testing
 /coverage
+coverage
+report.json
 
 # production
 build
