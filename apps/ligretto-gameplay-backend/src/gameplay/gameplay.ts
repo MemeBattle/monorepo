@@ -3,7 +3,6 @@ import { PlayerService } from '../entities/player/player.service'
 import { PlaygroundService } from '../entities/playground'
 import { GameService } from '../entities/game/game.service'
 import { IOC_TYPES } from '../IOC_TYPES'
-import { GameplayOutput } from './gameplay-output'
 import type { Game, GameResults, UUID } from '@memebattle/ligretto-shared'
 
 @injectable()
@@ -11,7 +10,6 @@ export class Gameplay {
   @inject(IOC_TYPES.GameService) private gameService: GameService
   @inject(IOC_TYPES.PlayerService) private playerService: PlayerService
   @inject(IOC_TYPES.PlaygroundService) private playgroundService: PlaygroundService
-  @inject(IOC_TYPES.GameplayOutput) private gameplayOutput: GameplayOutput
 
   async startGame(gameId: UUID) {
     try {

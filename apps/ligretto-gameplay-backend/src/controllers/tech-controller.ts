@@ -9,11 +9,11 @@ import { GameplayOutput } from '../gameplay/gameplay-output'
 export class TechController extends Controller {
   @inject(IOC_TYPES.GameplayOutput) private gameplayOutput: GameplayOutput
 
-  handlers = {
-    [techConnectToGame.type]: (socket: Socket, action: ReturnType<typeof techConnectToGame>) => this.techConnectToGame(socket, action),
+  protected handlers: Controller['handlers'] = {
+    [techConnectToGame.type]: (socket: Socket, action) => this.techConnectToGame(socket, action),
   }
 
-  private async techConnectToGame(socket: Socket, action: ReturnType<typeof techConnectToGame>) {
+  private techConnectToGame(socket: Socket, action: ReturnType<typeof techConnectToGame>) {
     const gameId = action.payload.gameId
     console.log('techConnectToGame', gameId)
     socket.join(gameId)

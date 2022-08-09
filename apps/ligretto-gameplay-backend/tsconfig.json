@@ -2,8 +2,8 @@
   "compilerOptions": {
     "rootDir": "src",
     "target": "es2021",
-    "lib": ["dom", "es2021"],
-    "types": ["reflect-metadata"],
+    "lib": ["es2021"],
+    "types": ["node", "reflect-metadata"],
     "module": "commonjs",
     "sourceMap": true,
     "resolveJsonModule": true,
@@ -16,6 +16,6 @@
     "strictPropertyInitialization": false,
     "skipLibCheck": true
   },
-  "exclude": ["node_modules", "build"],
+  "exclude": ["node_modules", "build", "**/*.spec.ts"],
   "include": ["src/**/*"]
 }
