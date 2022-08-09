@@ -20,12 +20,20 @@ export class GameplayController extends Controller {
   @inject(IOC_TYPES.Gameplay) private gameplay: Gameplay
   @inject(IOC_TYPES.GameService) private gameService: GameService
 
-  handlers: Controller['handlers'] = {
-    [startGameEmitAction.type]: (socket, action) => this.startGame(socket, action),
+  protected handlers: Controller['handlers'] = {
+    [startGameEmitAction.type]: (socket, action: ReturnType<typeof startGameEmitAction>) => this.startGame(socket, action),
     [putCardAction.type]: (socket: Socket, action) => this.putCard(socket, action),
     [takeFromLigrettoDeckAction.type]: (socket: Socket, action) => this.takeCardFromLigrettoDeck(socket, action),
     [putCardFromStackOpenDeck.type]: (socket: Socket, action) => this.putCardFromStackOpenDeck(socket, action),
     [takeFromStackDeckAction.type]: (socket: Socket, action) => this.takeCardFromStackDeck(socket, action),
+  }
+
+  private async startGame(socket: Socket, action: ReturnType<typeof startGameEmitAction>) {
+    const gameId = action.payload.gameId
+
+    await this.gameplay.startGame(gameId)
+
+    await this.updateGame(socket, gameId)
   }
 
   private async updateGame(socket: Socket, gameId: string, gameState?: Game) {
@@ -35,14 +43,6 @@ export class GameplayController extends Controller {
 
     socket.to(gameId).emit('event', action)
     socket.emit('event', action)
-  }
-
-  private async startGame(socket: Socket, action: ReturnType<typeof startGameEmitAction>) {
-    const gameId = action.payload.gameId
-
-    await this.gameplay.startGame(gameId)
-
-    await this.updateGame(socket, gameId)
   }
 
   private async putCard(socket: Socket, action: ReturnType<typeof putCardAction>) {

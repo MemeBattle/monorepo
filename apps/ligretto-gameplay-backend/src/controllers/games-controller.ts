@@ -3,7 +3,6 @@ import { IOC_TYPES } from '../IOC_TYPES'
 import { Controller } from './controller'
 import type { Socket } from 'socket.io'
 import { GameService } from '../entities/game/game.service'
-import { PlayerService } from '../entities/player/player.service'
 import { UserService } from '../entities/user'
 import type { Game } from '@memebattle/ligretto-shared'
 import {
@@ -25,16 +24,13 @@ import {
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
-import { GameplayOutput } from '../gameplay/gameplay-output'
 
 @injectable()
 export class GamesController extends Controller {
   @inject(IOC_TYPES.GameService) private gameService: GameService
-  @inject(IOC_TYPES.PlayerService) private playerService: PlayerService
-  @inject(IOC_TYPES.GameplayOutput) private gameplayOutput: GameplayOutput
   @inject(IOC_TYPES.UserService) private userService: UserService
 
-  handlers: Controller['handlers'] = {
+  protected handlers: Controller['handlers'] = {
     [createRoomEmitAction.type]: (socket, action) => this.createGame(socket, action),
     [searchRoomsEmitAction.type]: (socket, action) => this.searchRooms(socket, action),
     [connectToRoomEmitAction.type]: (socket, action) => this.joinGame(socket, action),

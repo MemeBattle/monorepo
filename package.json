@@ -9,7 +9,8 @@
     "lint-fix:styles": "yarn lint:styles --fix",
     "lint": "run-p -l 'lint:*'",
     "lint-fix": "run-p -l 'lint-fix:*'",
-    "test": "env-cmd -- yarn workspaces foreach -vip run test -- --ignore-path .gitignore",
+    "test": "env-cmd -- yarn workspaces foreach -vip run test",
+    "test:ci": "env-cmd -- yarn workspaces foreach -vip run test --ci --json --coverage --testLocationInResults --outputFile=report.json",
     "ligretto:start": "env-cmd -- yarn workspaces foreach -vip --include '{@memebattle/ligretto-core-backend,@memebattle/ligretto-gameplay-backend,@memebattle/ligretto-frontend}' run start:dev",
     "ligretto:front:build": "yarn workspace @memebattle/ligretto-frontend run build",
     "ligretto:front:start:dev": "env-cmd yarn workspace @memebattle/ligretto-frontend run start:dev",
@@ -19,7 +20,7 @@
     "ligretto:core-backend:production-migrate": "yarn workspace @memebattle/ligretto-core-backend run production-migrate",
     "ligretto:core-backend:start:dev": "env-cmd yarn workspace @memebattle/ligretto-core-backend run start:dev",
     "gamehub-client:build": "yarn workspace @memebattle/gamehub-client run build",
-    "ligretto-shared:build": "yarn workspace @memebattle/ligretto-shared run build",
+  "ligretto-shared:build": "yarn workspace @memebattle/ligretto-shared run build",
     "ts-check": "yarn workspaces foreach -vip run ts-check",
     "storybook": "start-storybook -p 6006",
     "build-storybook": "build-storybook"
