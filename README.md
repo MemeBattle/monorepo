@@ -6,9 +6,14 @@ Task manager: https://ligretto.atlassian.net/jira/software/projects/LIG/boards/1
 ## First prepare
 
 ### Environment variables
-Copy .env.defaults to .env
+1. Copy .env.defaults to .env
 ```shell
 cp .env.defaults .env
+```
+
+2. Copy apps/ligretto-core-backend/.env.example to apps/ligretto-core-backend/.env
+```shell
+cp apps/ligretto-core-backend/.env.example apps/ligretto-core-backend/.env
 ```
 
 ### GitHub credentials
@@ -23,13 +28,9 @@ yarn config set -H npmScopes.memebattle.npmAuthToken "<TOKEN>"
 ```
 
 ### Common dependencies
-1. Install dependencies
+Install dependencies
 ```
 yarn
-```
-2. Build common packages
-```
-yarn common-packages:build
 ```
 
 ## Start all
