@@ -20,7 +20,7 @@
     "ligretto:core-backend:production-migrate": "yarn workspace @memebattle/ligretto-core-backend run production-migrate",
     "ligretto:core-backend:start:dev": "env-cmd yarn workspace @memebattle/ligretto-core-backend run start:dev",
     "gamehub-client:build": "yarn workspace @memebattle/gamehub-client run build",
-  "ligretto-shared:build": "yarn workspace @memebattle/ligretto-shared run build",
+    "ligretto-shared:build": "yarn workspace @memebattle/ligretto-shared run build",
     "ts-check": "yarn workspaces foreach -vip run ts-check",
     "storybook": "start-storybook -p 6006",
     "build-storybook": "build-storybook"
