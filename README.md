@@ -44,6 +44,13 @@ yarn ligretto:start
 yarn workspace @memebattle/{workspace} add <package>
 ```
 
+## Start only frontend
+1. Set VITE_WEBSOCKET_HOST=https://api.ligretto.app to .env
+2. Run frontend locally
+```
+yarn ligretto:front:start:dev
+```
+
 ## TODO: Start ligretto-core locally
 
 ### Start postgresql
