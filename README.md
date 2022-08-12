@@ -44,7 +44,7 @@ yarn ligretto:start
 yarn workspace @memebattle/{workspace} add <package>
 ```
 
-## Start ligretto frontend  only
+## Start ligretto frontend only
 1. Set VITE_WEBSOCKET_HOST=https://api.ligretto.app to .env
 2. Run frontend locally
 ```
