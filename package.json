@@ -13,7 +13,7 @@
     "test:ci": "env-cmd -- yarn workspaces foreach -vip run test --ci --json --coverage --testLocationInResults --outputFile=report.json",
     "ligretto:start": "env-cmd -- yarn workspaces foreach -vip --include '{@memebattle/ligretto-core-backend,@memebattle/ligretto-gameplay-backend,@memebattle/ligretto-frontend}' run start:dev",
     "ligretto:front:build": "yarn workspace @memebattle/ligretto-frontend run build",
-    "ligretto:front:start:dev": "env-cmd yarn workspace @memebattle/ligretto-frontend run start:dev --host",
+    "ligretto:front:start:dev": "env-cmd yarn workspace @memebattle/ligretto-frontend run start:dev",
     "ligretto:gameplay-backend:build": "yarn workspace @memebattle/ligretto-gameplay-backend run build",
     "ligretto:core-backend:build": "yarn workspace @memebattle/ligretto-core-backend run build",
     "ligretto:core-backend:migrate": "yarn workspace @memebattle/ligretto-core-backend run migrate",
