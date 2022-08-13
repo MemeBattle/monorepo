@@ -85,8 +85,8 @@ export const Card: React.FC<CardProps> = ({ value, disabled, selected, onClick, 
 
   return (
     <div ref={ref} className={classes.cardWrapper}>
-      <ButtonBase className={classes.button} disabled={disabled} draggable>
-        <div className={classes.card} onClick={!disabled ? onClick : () => null}>
+      <ButtonBase className={classes.button} disabled={disabled}>
+        <div className={classes.card} onMouseDown={!disabled ? onClick : () => null}>
           {color !== CardColors.empty ? <div className={classes.value}>{value}</div> : null}
         </div>
       </ButtonBase>
