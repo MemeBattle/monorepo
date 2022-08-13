@@ -28,7 +28,7 @@ const selectGameResultsForTable = createSelector(
     }),
 )
 
-export const GameResults = () => {
+export const GameResultsContainer = () => {
   const results = useSelector(selectGameResultsForTable)
 
   if (!results) {

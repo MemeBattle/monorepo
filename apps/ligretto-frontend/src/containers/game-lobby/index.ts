@@ -1,1 +1,1 @@
-export { GameLobby } from './GameLobby'
+export { GameLobbyContainer } from './GameLobbyContainer'

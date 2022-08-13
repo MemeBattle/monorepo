@@ -3,10 +3,10 @@ import { useDispatch, useSelector } from 'react-redux'
 import { PageHeader } from '@memebattle/ui'
 import * as React from 'react'
 
-import { RoomsList } from 'containers/rooms'
+import { RoomsListContainer } from 'containers/rooms'
 import { CreateRoomContainer } from 'containers/create-room'
 import { MainLayout } from 'components/layouts/main'
-import { SearchRooms } from 'containers/rooms/SearchRooms'
+import { SearchRoomsContainer } from 'containers/rooms/SearchRooms'
 import { LinkBack } from 'components/base/link-back'
 import { selectIsRoomsListEmpty, searchRoomsAction } from 'ducks/rooms'
 
@@ -25,10 +25,10 @@ export const RoomsPage = () => {
       <div className={styles.roomsPage}>
         <div className={styles.top}>
           <PageHeader>Enter to room</PageHeader>
-          <SearchRooms className={styles.search} />
+          <SearchRoomsContainer className={styles.search} />
         </div>
         <div className={styles.content}>
-          {isRoomsListEmpty ? <CreateRoomContainer /> : <RoomsList />}
+          {isRoomsListEmpty ? <CreateRoomContainer /> : <RoomsListContainer />}
           <div className={styles.bottomButtons}>
             <LinkBack />
           </div>

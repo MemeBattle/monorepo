@@ -1,1 +1,1 @@
-export { CreateRoomContainer } from './CreateRoom'
+export { CreateRoomContainer } from './CreateRoomContainer'

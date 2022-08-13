@@ -1,1 +1,1 @@
-export { GameJson } from './GameJson'
+export { GameJsonContainer } from './GameJsonContainer'

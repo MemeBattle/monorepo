@@ -7,7 +7,7 @@ import { useHistory, generatePath } from 'react-router'
 import { routes } from 'utils/constants'
 import { selectRoomsList } from 'ducks/rooms'
 
-export const RoomsList = () => {
+export const RoomsListContainer = () => {
   const rooms = useSelector(selectRoomsList)
   const history = useHistory()
 
@@ -27,4 +27,4 @@ export const RoomsList = () => {
   return <RoomsListComponent rooms={roomsProps} />
 }
 
-RoomsList.displayName = 'RoomsList'
+RoomsListContainer.displayName = 'RoomsList'
