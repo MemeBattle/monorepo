@@ -30,6 +30,7 @@ const initialState: GameState = {
       dndEnabled: false,
       playersMaxCount: 4,
     },
+    spectators: {},
   },
   results: undefined,
   isGameLoaded: false,

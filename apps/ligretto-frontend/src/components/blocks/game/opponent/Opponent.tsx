@@ -13,6 +13,7 @@ const stylesByPosition = {
   [PositionOnTable.LeftTopCorner]: styles.positionLeftTopCorner,
   [PositionOnTable.RightTopCorner]: styles.positionRightTopCorner,
   [PositionOnTable.Top]: styles.positionTop,
+  [PositionOnTable.Bottom]: styles.positionBottom,
 }
 
 export interface OpponentCardsProps {

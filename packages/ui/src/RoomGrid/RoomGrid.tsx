@@ -38,6 +38,11 @@ const useStyles = makeStyles(
       right: 0,
       top: 0,
     },
+    bottom: {
+      position: 'absolute',
+      bottom: 0,
+      left: '50%',
+    },
   }),
 )
 
@@ -47,12 +52,14 @@ export enum PositionOnTable {
   Top = 'top',
   LeftTopCorner = 'leftTopCorner',
   RightTopCorner = 'rightTopCorner',
+  Bottom = 'bottom',
 }
 
 const positionOnTableByIndexByLength: Record<number, PositionOnTable[] | undefined> = {
   1: [PositionOnTable.Top],
   2: [PositionOnTable.LeftTopCorner, PositionOnTable.RightTopCorner],
   3: [PositionOnTable.Left, PositionOnTable.Top, PositionOnTable.Right],
+  4: [PositionOnTable.Left, PositionOnTable.Top, PositionOnTable.Right, PositionOnTable.Bottom],
 }
 
 export const RoomGrid: React.FC<RoomGridProps> = ({ children }) => {
@@ -65,6 +72,7 @@ export const RoomGrid: React.FC<RoomGridProps> = ({ children }) => {
       [PositionOnTable.LeftTopCorner]: classes.leftTopCorner,
       [PositionOnTable.RightTopCorner]: classes.rightTopCorner,
       [PositionOnTable.Top]: classes.top,
+      [PositionOnTable.Bottom]: classes.bottom,
     }),
     [classes],
   )
@@ -75,7 +83,7 @@ export const RoomGrid: React.FC<RoomGridProps> = ({ children }) => {
         if (!isValidElement(child)) {
           return null
         }
-        const renderElementsCount = Math.min(React.Children.count(children), 3)
+        const renderElementsCount = Math.min(React.Children.count(children), 4)
         const position = positionOnTableByIndexByLength[renderElementsCount]?.[index]
 
         if (!position) {

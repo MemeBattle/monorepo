@@ -42,6 +42,10 @@ export interface Player {
   isHost: boolean
 }
 
+export interface Spectator {
+  id: string
+}
+
 export enum GameStatus {
   New = 'New',
   InGame = 'InGame',
@@ -60,10 +64,11 @@ export enum PlayerStatus {
 }
 
 export interface Game {
-  id: string
+  id: UUID
   name: string
   status: GameStatus
   players: Record<UUID, Player | undefined>
+  spectators: Record<UUID, Spectator | undefined>
   playground: Playground
   config: {
     playersMaxCount: number
