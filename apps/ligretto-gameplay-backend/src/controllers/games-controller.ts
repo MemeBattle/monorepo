@@ -41,7 +41,6 @@ export class GamesController extends Controller {
 
   private async createGame(socket: Socket, action: ReturnType<typeof createRoomEmitAction>) {
     const newGame = await this.gameService.createGame(action.payload.name, action.payload.config)
-    console.log('new Game', newGame)
 
     if (!newGame) {
       return socket.emit('event', createRoomErrorAction({ errorCode: CreateRoomErrorCode.AlreadyExist, name: action.payload.name }))

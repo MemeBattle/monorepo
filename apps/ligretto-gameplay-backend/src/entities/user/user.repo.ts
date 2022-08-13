@@ -4,7 +4,7 @@ import { Database } from '../../database'
 import type { User } from '../../types/user'
 import { omit } from 'lodash'
 import type { UUID } from '@memebattle/ligretto-shared'
-import assert = require('node:assert')
+import assert from 'node:assert'
 
 @injectable()
 export class UserRepository {

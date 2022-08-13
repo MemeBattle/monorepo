@@ -26,7 +26,13 @@ export class GameService {
   @inject(IOC_TYPES.GameRepository) private gameRepository: GameRepository
   @inject(IOC_TYPES.LigrettoCoreService) private ligrettoCoreService: LigrettoCoreService
 
-  async createGame(name: string, config: Partial<Game['config']> = {}) {
+  async createGame(name: string, config: Partial<Game['config']> = {}): Promise<Game | null> {
+    const isGameExists = !!(await this.gameRepository.getGameByName(name))
+
+    if (isGameExists) {
+      return null
+    }
+
     const game = await this.ligrettoCoreService.createGameService()
 
     return this.gameRepository.addGame(game.id, merge({}, emptyGame, { ...game, name, config: { ...config, ...emptyGame.config } }))

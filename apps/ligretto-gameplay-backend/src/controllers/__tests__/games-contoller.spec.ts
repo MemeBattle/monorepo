@@ -1,37 +1,151 @@
-import { createRoomEmitAction } from '@memebattle/ligretto-shared'
+import { createRoomEmitAction, createRoomErrorAction, CreateRoomErrorCode, createRoomSuccessAction, updateRooms } from '@memebattle/ligretto-shared'
 
 import type { GamesController } from '../games-controller'
 
-import { IOC } from '../../inversify.config'
+import { createIOC } from '../../inversify.config'
 import { IOC_TYPES } from '../../IOC_TYPES'
 import type { Database } from '../../database'
-import { socketMockImpl } from '../../../test/utils'
+import { createSocketMockImpl } from '../../../test/utils'
 import type { AnyAction } from '../../types/any-action'
+import { connectToRoomEmitAction, connectToRoomErrorAction } from '@memebattle/ligretto-shared'
+import { SOCKET_ROOM_LOBBY } from '../../config'
+import { gameToRoom } from '../../utils/mappers'
 
 describe('Games Controller', () => {
-  it('should be defined', () => {
-    const controller: GamesController = IOC.get(IOC_TYPES.GamesController)
+  let container = createIOC()
 
-    expect(controller).toBeDefined()
+  let socketMockImpl = createSocketMockImpl()
+
+  const gameId = '1'
+
+  let gamesController: GamesController = container.get(IOC_TYPES.GamesController)
+
+  beforeEach(() => {
+    container = createIOC()
+    socketMockImpl = createSocketMockImpl()
+    const createGameService = jest.fn().mockReturnValue({ id: gameId })
+    container.rebind(IOC_TYPES.LigrettoCoreService).toConstantValue({ createGameService })
+    gamesController = container.get(IOC_TYPES.GamesController)
   })
 
-  it('should create relevant state on create game', done => {
-    const createGameService = jest.fn().mockReturnValue({ id: '1' })
+  it('should be defined', () => {
+    expect(gamesController).toBeDefined()
+  })
 
-    IOC.rebind(IOC_TYPES.LigrettoCoreService).toConstantValue({ createGameService })
-    const controller: GamesController = IOC.get(IOC_TYPES.GamesController)
-    const database: Database = IOC.get(IOC_TYPES.Database)
+  describe('createGame', () => {
+    it('Should create relevant state on create game', async () => {
+      const database: Database = container.get(IOC_TYPES.Database)
 
-    const createGameAction = createRoomEmitAction({ name: 'createGame', config: {} }) as AnyAction
+      const roomName = 'createGame'
 
-    const handleMessagePromise = controller.handleMessage(socketMockImpl, createGameAction) as unknown as Promise<void>
+      const createGameAction = createRoomEmitAction({ name: roomName, config: {} }) as AnyAction
 
-    handleMessagePromise.then(() => {
-      database.get(db => {
-        expect(db).toMatchSnapshot()
+      await gamesController.handleMessage(socketMockImpl, createGameAction)
 
-        done()
+      const state = await database.get(db => db)
+      expect(state).toMatchSnapshot()
+
+      expect(socketMockImpl.emit).toBeCalledTimes(2)
+      expect(socketMockImpl.emit).toBeCalledWith('event', createRoomSuccessAction({ game: state.games[gameId] }))
+      expect(socketMockImpl.to).toBeCalledWith(SOCKET_ROOM_LOBBY)
+      expect(socketMockImpl.emit).toBeCalledWith('event', updateRooms({ rooms: [gameToRoom(state.games[gameId])] }))
+    })
+
+    it('Should emit createRoomErrorAction if room already exists', async () => {
+      const createGameAction = createRoomEmitAction({ name: 'createGame', config: {} }) as AnyAction
+      await gamesController.handleMessage(socketMockImpl, createGameAction)
+      const newSocketMock = createSocketMockImpl()
+      await gamesController.handleMessage(newSocketMock, createGameAction)
+
+      expect(newSocketMock.emit).toBeCalledTimes(1)
+      expect(newSocketMock.emit).toBeCalledWith('event', createRoomErrorAction({ errorCode: CreateRoomErrorCode.AlreadyExist, name: 'createGame' }))
+    })
+  })
+
+  describe('joinGame', () => {
+    const roomUuid = '1'
+    const userId = 'userId'
+
+    beforeEach(async () => {
+      socketMockImpl.data = { user: { id: userId } }
+      gamesController = container.get(IOC_TYPES.GamesController)
+      const database: Database = container.get(IOC_TYPES.Database)
+
+      await database.set(storage => {
+        storage.users = {
+          [userId]: {
+            id: userId,
+            socketIds: [socketMockImpl.id],
+            currentGameId: roomUuid,
+          },
+        }
       })
+
+      await gamesController.handleMessage(socketMockImpl, createRoomEmitAction({ name: 'createGame', config: {} }) as AnyAction)
+    })
+
+    it('Should dispatch connectToRoomErrorAction if room does not exists', async () => {
+      await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid: 'notExistsRoomUuid' }) as AnyAction)
+
+      expect(socketMockImpl.emit).toBeCalledWith('event', connectToRoomErrorAction())
+    })
+
+    it('Should join to room and leave from lobby if game exist', async () => {
+      await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+
+      expect(socketMockImpl.join).toBeCalledWith(roomUuid)
+      expect(socketMockImpl.leave).toBeCalledWith(SOCKET_ROOM_LOBBY)
+    })
+
+    it('Should create relevant state on join room as first player', async () => {
+      await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+      const database: Database = container.get(IOC_TYPES.Database)
+
+      const state = await database.get(db => db)
+      expect(state).toMatchSnapshot()
+    })
+
+    it('Should create relevant state on join room second player', async () => {
+      const database: Database = container.get(IOC_TYPES.Database)
+      const secondUserSocket = createSocketMockImpl({ id: 'secondUserSocketId' })
+      secondUserSocket.data = { user: { id: 'secondUserId' } }
+      const secondUserId = 'secondUserId'
+      await database.set(storage => {
+        storage.users = {
+          ...storage.users,
+          [secondUserId]: {
+            id: userId,
+            socketIds: [secondUserSocket.id],
+            currentGameId: roomUuid,
+          },
+        }
+      })
+      await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+      await gamesController.handleMessage(secondUserSocket, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+
+      const state = await database.get(db => db)
+      expect(state).toMatchSnapshot()
+    })
+
+    it('Should create relevant state on join room by second connection', async () => {
+      const database: Database = container.get(IOC_TYPES.Database)
+      await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+      const secondUserSocket = createSocketMockImpl()
+      secondUserSocket.data = { user: { id: userId } }
+      await database.set(storage => {
+        storage.users = {
+          ...storage.users,
+          [userId]: {
+            id: userId,
+            socketIds: [socketMockImpl.id, secondUserSocket.id],
+            currentGameId: roomUuid,
+          },
+        }
+      })
+      await gamesController.handleMessage(secondUserSocket, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+
+      const state = await database.get(db => db)
+      expect(state).toMatchSnapshot()
     })
   })
 })

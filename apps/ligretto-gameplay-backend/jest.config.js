@@ -6,6 +6,7 @@ module.exports = {
   testEnvironment: 'node',
   resolver: 'ts-jest-resolver',
   setupFiles: ['<rootDir>/test/setup.ts'],
+  testRegex: '.*\\.spec\\.ts$',
   globals: {
     'ts-jest': {
       tsconfig: './tsconfig.spec.json',

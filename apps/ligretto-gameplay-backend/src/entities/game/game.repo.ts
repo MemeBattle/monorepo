@@ -9,12 +9,6 @@ export class GameRepository {
   @inject(IOC_TYPES.Database) private database: Database
 
   async addGame(gameId: UUID, game: Game) {
-    const isGameExist = await this.getGameByName(game.name)
-
-    if (isGameExist) {
-      return null
-    }
-
     return this.database.set<Game>(storage => (storage.games[gameId] = game))
   }
 
@@ -30,8 +24,8 @@ export class GameRepository {
 
   async getGameByName(gameName: string) {
     const games = await this.database.get(storage => storage.games)
-    const reverseMap = this.reverseMap(games)
-    return reverseMap[gameName]
+    const gamesByNames = this.getGamesByNames(games)
+    return gamesByNames[gameName]
   }
 
   removeGame(gameId: UUID) {
@@ -48,7 +42,7 @@ export class GameRepository {
     return games
   }
 
-  reverseMap(games: Record<UUID, Game>) {
+  getGamesByNames(games: Record<UUID, Game>): Record<string, UUID | undefined> {
     const result: Record<string, UUID | undefined> = {}
 
     Object.values(games).forEach(game => {
