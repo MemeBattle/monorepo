@@ -8,7 +8,7 @@ import { selectGameStatus, selectIsGameLoaded, leaveGameAction, selectIsPlayerSp
 
 import { GameContainer } from '../game'
 import { GameLobbyContainer } from '../game-lobby'
-import { GameSpectator } from '../game-spectator'
+import { GameSpectatorContainer } from '../game-spectator'
 
 export const GamePageContainer = () => {
   const dispatch = useDispatch()
@@ -30,7 +30,7 @@ export const GamePageContainer = () => {
   }
 
   if (gameStatus === GameStatus.InGame && isPlayerSpectator) {
-    return <GameSpectator />
+    return <GameSpectatorContainer />
   }
 
   if (gameStatus === GameStatus.InGame) {

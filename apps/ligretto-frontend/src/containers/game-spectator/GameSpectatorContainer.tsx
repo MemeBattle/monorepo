@@ -8,12 +8,12 @@ import { Opponent } from 'components/blocks/game/opponent'
 
 import { PlaygroundContainer } from '../playground'
 
-const GameSpectatorSelector = createSelector([selectOpponents], opponents => ({
+const GameSpectatorContainerSelector = createSelector([selectOpponents], opponents => ({
   opponents,
 }))
 
-export const GameSpectator = () => {
-  const { opponents } = useSelector(GameSpectatorSelector)
+export const GameSpectatorContainer = () => {
+  const { opponents } = useSelector(GameSpectatorContainerSelector)
 
   return (
     <>

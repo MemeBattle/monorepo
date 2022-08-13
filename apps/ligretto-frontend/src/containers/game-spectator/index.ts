@@ -1,1 +1,1 @@
-export { GameSpectator } from './GameSpectator'
+export { GameSpectatorContainer } from './GameSpectatorContainer'
