@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "rootDir": "src",
+    "esModuleInterop": true,
     "target": "es2021",
     "lib": ["es2021"],
     "types": ["node", "reflect-metadata"],

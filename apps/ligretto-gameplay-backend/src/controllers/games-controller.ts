@@ -1,4 +1,4 @@
-import { injectable, inject } from 'inversify'
+import { inject, injectable } from 'inversify'
 import { IOC_TYPES } from '../IOC_TYPES'
 import { Controller } from './controller'
 import type { Socket } from 'socket.io'
@@ -6,21 +6,22 @@ import { GameService } from '../entities/game/game.service'
 import { UserService } from '../entities/user'
 import type { Game } from '@memebattle/ligretto-shared'
 import {
-  searchRoomsFinishAction,
-  updateRooms,
-  connectToRoomSuccessAction,
-  connectToRoomErrorAction,
-  createRoomSuccessAction,
-  createRoomErrorAction,
-  updateGameAction,
-  createRoomEmitAction,
-  searchRoomsEmitAction,
   connectToRoomEmitAction,
-  setPlayerStatusEmitAction,
+  connectToRoomErrorAction,
+  connectToRoomSuccessAction,
+  createRoomEmitAction,
+  createRoomErrorAction,
   CreateRoomErrorCode,
-  userJoinToRoomAction,
+  createRoomSuccessAction,
+  GameStatus,
   leaveFromRoomEmitAction,
   removeRoomAction,
+  searchRoomsEmitAction,
+  searchRoomsFinishAction,
+  setPlayerStatusEmitAction,
+  updateGameAction,
+  updateRooms,
+  userJoinToRoomAction,
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
@@ -40,7 +41,6 @@ export class GamesController extends Controller {
 
   private async createGame(socket: Socket, action: ReturnType<typeof createRoomEmitAction>) {
     const newGame = await this.gameService.createGame(action.payload.name, action.payload.config)
-    console.log('new Game', newGame)
 
     if (!newGame) {
       return socket.emit('event', createRoomErrorAction({ errorCode: CreateRoomErrorCode.AlreadyExist, name: action.payload.name }))
@@ -67,31 +67,47 @@ export class GamesController extends Controller {
    * Notify players in room about new player
    * Notify new player about players in room
    *
-   * @param socket
-   * @param action
+   * read more: https://miro.com/app/board/o9J_l6Vx4-Q=/?moveToWidget=3458764530187757883&cot=14
    */
   private async joinGame(socket: Socket, action: ReturnType<typeof connectToRoomEmitAction>) {
     const roomUuid = action.payload.roomUuid
 
     const game: Game | undefined = await this.gameService.getGame(roomUuid)
 
-    if (!game || Object.keys(game.players).length >= game.config.playersMaxCount) {
+    if (!game) {
       socket.emit('event', connectToRoomErrorAction())
       return
     }
 
     socket.join(roomUuid)
-    const playerId = socket.data.user.id
-    await this.userService.enterGame(playerId, roomUuid)
+    socket.leave(SOCKET_ROOM_LOBBY)
 
-    const { game: updatedGame } = await this.gameService.addPlayer(roomUuid, { id: playerId })
+    const userId = socket.data.user.id
+
+    const isUserAlreadyPlayer = !!game.players[userId]
+    const isUserAlreadySpectator = !!game.spectators[userId]
+    const isUserAlreadyInGame = isUserAlreadyPlayer || isUserAlreadySpectator
+
+    if (isUserAlreadyInGame) {
+      socket.emit('event', connectToRoomSuccessAction({ game }))
+      socket.emit('event', updateGameAction(game))
+      return
+    }
+
+    await this.userService.joinGame({ userId, gameId: game.id })
+
+    const isGameFull = Object.keys(game.players).length >= game.config.playersMaxCount
+
+    const { game: updatedGame } =
+      isGameFull || game.status === GameStatus.InGame
+        ? await this.gameService.addSpectator(roomUuid, { id: userId })
+        : await this.gameService.addPlayer(roomUuid, { id: userId })
 
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(updatedGame)] }))
     socket.to(roomUuid).emit('event', updateGameAction(updatedGame))
+    socket.to(roomUuid).emit('event', userJoinToRoomAction({ userId }))
     socket.emit('event', connectToRoomSuccessAction({ game: updatedGame }))
     socket.emit('event', updateGameAction(updatedGame))
-    socket.to(roomUuid).emit('event', userJoinToRoomAction({ userId: playerId }))
-    socket.leave(SOCKET_ROOM_LOBBY)
   }
 
   private async setPlayerStatus(socket: Socket, { payload }: ReturnType<typeof setPlayerStatusEmitAction>) {
@@ -103,6 +119,11 @@ export class GamesController extends Controller {
     socket.emit('event', updateGameAction(game))
   }
 
+  /**
+   * LeaveFromRoomHandler
+   *
+   * read more: https://miro.com/app/board/o9J_l6Vx4-Q=/?moveToWidget=3458764530187757883&cot=14
+   */
   private async leaveFromRoomHandler(socket: Socket) {
     const user = await this.userService.getUser(socket.data.user.id)
 
@@ -110,8 +131,12 @@ export class GamesController extends Controller {
       return
     }
 
+    if (user.socketIds.length > 1) {
+      socket.leave(user.currentGameId)
+      return
+    }
     const game = await this.gameService.leaveGame(user.currentGameId, user.id)
-    socket.leave(user.currentGameId)
+
     if (game) {
       socket.to(game.id).emit('event', updateGameAction(game))
       socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(game)] }))
@@ -120,7 +145,7 @@ export class GamesController extends Controller {
     }
   }
 
-  public async disconnectionHandler(socket: Socket) {
-    await this.leaveFromRoomHandler(socket)
+  public disconnectionHandler(socket: Socket) {
+    return this.leaveFromRoomHandler(socket)
   }
 }

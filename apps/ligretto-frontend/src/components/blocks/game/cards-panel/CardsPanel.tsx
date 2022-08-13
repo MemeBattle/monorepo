@@ -9,10 +9,10 @@ import { StackContainer } from 'containers/stack'
 import styles from './CardsPanel.module.scss'
 
 export interface CardsPanelProps {
-  ligrettoDeckCards: PlayerCards[]
+  ligrettoDeckCards?: PlayerCards[]
   onLigrettoDeckCardClick: () => void
   player?: {
-    avatar: string | undefined
+    avatar?: string
     status: PlayerStatus
     username: string
   }
@@ -25,7 +25,9 @@ export const CardsPanel: React.FC<CardsPanelProps> = ({ ligrettoDeckCards, onLig
     </div>
     <CardsRowContainer />
     <div className={styles.ligrettoPackWrapper}>
-      <LigrettoPack count={ligrettoDeckCards.length} onLigrettoDeckCardClick={onLigrettoDeckCardClick} ligrettoDeckCards={ligrettoDeckCards} />
+      {ligrettoDeckCards ? (
+        <LigrettoPack count={ligrettoDeckCards.length} onLigrettoDeckCardClick={onLigrettoDeckCardClick} ligrettoDeckCards={ligrettoDeckCards} />
+      ) : null}
     </div>
     <div className={styles.ligrettoActivePlayer}>
       {player ? <Player status={player.status} username={player.username} avatar={player?.avatar} isActivePlayer /> : null}

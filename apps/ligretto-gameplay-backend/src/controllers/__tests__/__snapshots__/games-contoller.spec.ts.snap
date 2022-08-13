@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Games Controller should create relevant state on create game 1`] = `
+exports[`Games Controller createGame Should create relevant state on create game 1`] = `
 Object {
   "games": Object {
     "1": Object {
@@ -15,9 +15,186 @@ Object {
         "decks": Array [],
         "droppedDecks": Array [],
       },
+      "spectators": Object {},
       "status": "New",
     },
   },
   "users": Object {},
+}
+`;
+
+exports[`Games Controller joinGame Should create relevant state on join room as first player 1`] = `
+Object {
+  "games": Object {
+    "1": Object {
+      "config": Object {
+        "dndEnabled": false,
+        "playersMaxCount": 4,
+      },
+      "id": "1",
+      "name": "createGame",
+      "players": Object {
+        "userId": Object {
+          "cards": Array [],
+          "id": "userId",
+          "isHost": true,
+          "ligrettoDeck": Object {
+            "cards": Array [],
+            "isHidden": true,
+          },
+          "stackDeck": Object {
+            "cards": Array [],
+            "isHidden": true,
+          },
+          "stackOpenDeck": Object {
+            "cards": Array [],
+            "isHidden": true,
+          },
+          "status": "DontReadyToPlay",
+        },
+      },
+      "playground": Object {
+        "decks": Array [],
+        "droppedDecks": Array [],
+      },
+      "spectators": Object {},
+      "status": "New",
+    },
+  },
+  "users": Object {
+    "userId": Object {
+      "currentGameId": "1",
+      "id": "userId",
+      "socketIds": Array [
+        "socketId",
+      ],
+    },
+  },
+}
+`;
+
+exports[`Games Controller joinGame Should create relevant state on join room by second connection 1`] = `
+Object {
+  "games": Object {
+    "1": Object {
+      "config": Object {
+        "dndEnabled": false,
+        "playersMaxCount": 4,
+      },
+      "id": "1",
+      "name": "createGame",
+      "players": Object {
+        "userId": Object {
+          "cards": Array [],
+          "id": "userId",
+          "isHost": true,
+          "ligrettoDeck": Object {
+            "cards": Array [],
+            "isHidden": true,
+          },
+          "stackDeck": Object {
+            "cards": Array [],
+            "isHidden": true,
+          },
+          "stackOpenDeck": Object {
+            "cards": Array [],
+            "isHidden": true,
+          },
+          "status": "DontReadyToPlay",
+        },
+      },
+      "playground": Object {
+        "decks": Array [],
+        "droppedDecks": Array [],
+      },
+      "spectators": Object {},
+      "status": "New",
+    },
+  },
+  "users": Object {
+    "userId": Object {
+      "currentGameId": "1",
+      "id": "userId",
+      "socketIds": Array [
+        "socketId",
+        "socketId",
+      ],
+    },
+  },
+}
+`;
+
+exports[`Games Controller joinGame Should create relevant state on join room second player 1`] = `
+Object {
+  "games": Object {
+    "1": Object {
+      "config": Object {
+        "dndEnabled": false,
+        "playersMaxCount": 4,
+      },
+      "id": "1",
+      "name": "createGame",
+      "players": Object {
+        "secondUserId": Object {
+          "cards": Array [],
+          "id": "secondUserId",
+          "isHost": false,
+          "ligrettoDeck": Object {
+            "cards": Array [],
+            "isHidden": true,
+          },
+          "stackDeck": Object {
+            "cards": Array [],
+            "isHidden": true,
+          },
+          "stackOpenDeck": Object {
+            "cards": Array [],
+            "isHidden": true,
+          },
+          "status": "DontReadyToPlay",
+        },
+        "userId": Object {
+          "cards": Array [],
+          "id": "userId",
+          "isHost": true,
+          "ligrettoDeck": Object {
+            "cards": Array [],
+            "isHidden": true,
+          },
+          "stackDeck": Object {
+            "cards": Array [],
+            "isHidden": true,
+          },
+          "stackOpenDeck": Object {
+            "cards": Array [],
+            "isHidden": true,
+          },
+          "status": "DontReadyToPlay",
+        },
+      },
+      "playground": Object {
+        "decks": Array [],
+        "droppedDecks": Array [],
+      },
+      "spectators": Object {},
+      "status": "New",
+    },
+  },
+  "users": Object {
+    "secondUserId": Object {
+      "currentGameId": "1",
+      "id": "userId",
+      "socketIds": Array [
+        "secondUserSocketId",
+      ],
+    },
+    "userId": Object {
+      "currentGameId": "1",
+      "id": "secondUserId",
+      "socketIds": Array [
+        "secondUserSocketId",
+      ],
+    },
+  },
 }
 `;
