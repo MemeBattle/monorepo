@@ -18,14 +18,14 @@ export class WebSocketHandler implements WebSocketHandler {
   @inject(IOC_TYPES.GameplayController) private gameplayController: GameplayController
   @inject(IOC_TYPES.GamesController) private gamesController: GamesController
   @inject(IOC_TYPES.BotController) private botController: BotController
-  @inject(IOC_TYPES.UserService) private userService: UserService // Возможно нужен контроллер, но пока хз
+  @inject(IOC_TYPES.UserService) private userService: UserService
   @inject(IOC_TYPES.TechController) private techController: TechController
 
   connect(socketServer: Server) {
     socketServer.use(authMiddleware).on('connection', socket => this.connectionHandler(socket))
   }
 
-  public connectionHandler(socket: Socket): void {
+  public async connectionHandler(socket: Socket): Promise<void> {
     socket.on('message', data => {
       if (!data || !data.hasOwnProperty('type') || typeof data.type !== 'string') {
         console.error('data should contain type', data)
@@ -41,10 +41,10 @@ export class WebSocketHandler implements WebSocketHandler {
 
     socket.on('disconnecting', async () => {
       await this.gamesController.disconnectionHandler(socket)
-      await this.userService.removeUser(socket.id)
+      await this.userService.disconnectionHandler({ socketId: socket.id, userId: socket.data.user.id })
     })
 
-    this.userService.addUser({ socketId: socket.id, id: socket.data.user.id })
+    await this.userService.connectUser({ socketId: socket.id, userId: socket.data.user.id })
   }
 
   private messageHandler(socket: Socket, data: AnyAction) {

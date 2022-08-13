@@ -26,6 +26,7 @@ const classNameByPositionOnTable = {
   [PositionOnTable.Top]: styles.top,
   [PositionOnTable.RightTopCorner]: styles.rightTopCorner,
   [PositionOnTable.LeftTopCorner]: styles.leftTopCorner,
+  [PositionOnTable.Bottom]: '',
 }
 
 export const OpponentWaiting = memo<OpponentWaitingProps>(({ position, opponentStatus, username, avatar }) => {

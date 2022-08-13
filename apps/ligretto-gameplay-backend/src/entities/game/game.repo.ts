@@ -1,5 +1,5 @@
 import { inject, injectable } from 'inversify'
-import type { Game, Player, UUID } from '@memebattle/ligretto-shared'
+import type { Game, Player, UUID, Spectator } from '@memebattle/ligretto-shared'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { Database } from '../../database'
 import { IOC_TYPES } from '../../IOC_TYPES'
@@ -9,12 +9,6 @@ export class GameRepository {
   @inject(IOC_TYPES.Database) private database: Database
 
   async addGame(gameId: UUID, game: Game) {
-    const isGameExist = await this.getGameByName(game.name)
-
-    if (isGameExist) {
-      return null
-    }
-
     return this.database.set<Game>(storage => (storage.games[gameId] = game))
   }
 
@@ -24,15 +18,14 @@ export class GameRepository {
 
   async updateGame(gameId: UUID, updater: (game: Game) => Game): Promise<Game> {
     const game = await this.getGame(gameId)
-    console.log('updateGame', game)
 
     return this.database.set(storage => (storage.games[gameId] = updater(game)))
   }
 
   async getGameByName(gameName: string) {
     const games = await this.database.get(storage => storage.games)
-    const reverseMap = this.reverseMap(games)
-    return reverseMap[gameName]
+    const gamesByNames = this.getGamesByNames(games)
+    return gamesByNames[gameName]
   }
 
   removeGame(gameId: UUID) {
@@ -49,7 +42,7 @@ export class GameRepository {
     return games
   }
 
-  reverseMap(games: Record<UUID, Game>) {
+  getGamesByNames(games: Record<UUID, Game>): Record<string, UUID | undefined> {
     const result: Record<string, UUID | undefined> = {}
 
     Object.values(games).forEach(game => {
@@ -59,9 +52,8 @@ export class GameRepository {
     return result
   }
 
-  createPlayer(playerData: Partial<Player>): Player {
+  createPlayer(playerData: Partial<Player> & { id: Player['id'] }): Player {
     return {
-      id: 'empty',
       isHost: false,
       status: PlayerStatus.DontReadyToPlay,
       stackDeck: {
@@ -74,6 +66,12 @@ export class GameRepository {
         isHidden: true,
         cards: [],
       },
+      ...playerData,
+    }
+  }
+
+  createSpectator(playerData: Partial<Spectator> & { id: Spectator['id'] }): Spectator {
+    return {
       ...playerData,
     }
   }

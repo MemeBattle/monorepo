@@ -46,7 +46,6 @@ export class Database implements Database {
     for (const listenerKey in this.listeners) {
       if (this.listeners.hasOwnProperty(listenerKey)) {
         const listener = this.listeners[listenerKey]
-
         listener(this.storage)
       }
     }
