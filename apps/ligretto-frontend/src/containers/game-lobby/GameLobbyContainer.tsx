@@ -6,7 +6,7 @@ import { startGameAction, togglePlayerStatusAction } from 'ducks/game'
 
 import { gameLobbySelector } from './GameLobby.selector'
 
-export const GameLobby = () => {
+export const GameLobbyContainer = () => {
   const dispatch = useDispatch()
   const { opponents, gameStatus, player } = useSelector(gameLobbySelector)
 

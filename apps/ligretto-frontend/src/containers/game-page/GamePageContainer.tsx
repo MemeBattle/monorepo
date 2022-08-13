@@ -6,10 +6,10 @@ import { useParams } from 'react-router'
 import { connectToRoomAction } from 'ducks/rooms'
 import { selectGameStatus, selectIsGameLoaded, leaveGameAction } from 'ducks/game'
 
-import { Game } from '../game'
-import { GameLobby } from '../game-lobby'
+import { GameContainer } from '../game'
+import { GameLobbyContainer } from '../game-lobby'
 
-export const GamePage = () => {
+export const GamePageContainer = () => {
   const dispatch = useDispatch()
   const gameStatus = useSelector(selectGameStatus)
   const isGameLoaded = useSelector(selectIsGameLoaded)
@@ -27,5 +27,5 @@ export const GamePage = () => {
     return <>loading</>
   }
 
-  return gameStatus === GameStatus.InGame ? <Game /> : <GameLobby />
+  return gameStatus === GameStatus.InGame ? <GameContainer /> : <GameLobbyContainer />
 }

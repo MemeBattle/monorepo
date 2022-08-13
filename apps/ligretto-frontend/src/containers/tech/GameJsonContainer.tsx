@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from 'react-redux'
 
 import type { All } from 'types/store'
 
-export const GameJson = () => {
+export const GameJsonContainer = () => {
   const { gameId } = useParams<{ gameId: string }>()
   const dispatch = useDispatch()
   const { game } = useSelector((state: All) => state.tech)

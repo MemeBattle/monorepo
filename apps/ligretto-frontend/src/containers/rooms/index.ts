@@ -1,1 +1,1 @@
-export { RoomsList } from './RoomsList'
+export { RoomsListContainer } from './RoomsListContainer'

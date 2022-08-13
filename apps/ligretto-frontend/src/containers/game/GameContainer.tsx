@@ -13,7 +13,7 @@ const GameSelector = createSelector([selectOpponents], opponents => ({
   opponents,
 }))
 
-export const Game = () => {
+export const GameContainer = () => {
   const { opponents } = useSelector(GameSelector)
 
   return (
