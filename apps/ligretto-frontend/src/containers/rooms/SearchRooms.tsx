@@ -1,36 +1,24 @@
-import { connect } from 'react-redux'
-import * as React from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import React, { useCallback } from 'react'
 
 import type { SearchInputProps } from 'components/base/search-input'
 import { SearchInput } from 'components/base/search-input'
 import { selectIsLoading, selectSearch } from 'ducks/rooms/selectors'
 import { searchRoomsAction } from 'ducks/rooms'
-import type { All } from 'types/store'
 
-interface SearchRoomsProps extends SearchInputProps {
-  isLoading: boolean
-  searchRooms: ({ search }: { search: string }) => void
-  search: string
-}
+export const SearchRoomsContainer: React.FC<SearchInputProps> = ({ ...props }) => {
+  const dispatch = useDispatch()
 
-export const SearchRoomsContainer: React.FC<SearchRoomsProps> = ({ isLoading, searchRooms, search, ...props }) => {
-  const handleChange = React.useCallback(
+  const isLoading = useSelector(selectIsLoading)
+  const search = useSelector(selectSearch)
+
+  const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const { value } = e.target
-      searchRooms({ search: value })
+      dispatch(searchRoomsAction({ search: value }))
     },
-    [searchRooms],
+    [dispatch],
   )
 
   return <SearchInput defaultValue={search} isLoading={isLoading} onChange={handleChange} placeholder="Search rooms..." {...props} />
 }
-
-export const SearchRooms = connect(
-  (state: All) => ({
-    isLoading: selectIsLoading(state),
-    search: selectSearch(state),
-  }),
-  {
-    searchRooms: searchRoomsAction,
-  },
-)(SearchRoomsContainer)
