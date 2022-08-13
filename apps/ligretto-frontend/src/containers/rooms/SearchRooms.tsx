@@ -6,7 +6,11 @@ import { SearchInput } from 'components/base/search-input'
 import { selectIsLoading, selectSearch } from 'ducks/rooms/selectors'
 import { searchRoomsAction } from 'ducks/rooms'
 
-export const SearchRoomsContainer: React.FC<SearchInputProps> = ({ ...props }) => {
+interface SearchRoomsContainerProps extends SearchInputProps {
+  className: string
+}
+
+export const SearchRoomsContainer: React.FC<SearchRoomsContainerProps> = ({ className }) => {
   const dispatch = useDispatch()
 
   const isLoading = useSelector(selectIsLoading)
@@ -20,5 +24,5 @@ export const SearchRoomsContainer: React.FC<SearchInputProps> = ({ ...props }) =
     [dispatch],
   )
 
-  return <SearchInput defaultValue={search} isLoading={isLoading} onChange={handleChange} placeholder="Search rooms..." {...props} />
+  return <SearchInput defaultValue={search} isLoading={isLoading} onChange={handleChange} placeholder="Search rooms..." className={className} />
 }
