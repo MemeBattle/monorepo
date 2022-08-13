@@ -1,5 +1,5 @@
 import React from 'react'
 
-import { GameJson } from 'containers/tech'
+import { GameJsonContainer } from 'containers/tech'
 
-export const TechPage: React.FC = () => <GameJson />
+export const TechPage: React.FC = () => <GameJsonContainer />
