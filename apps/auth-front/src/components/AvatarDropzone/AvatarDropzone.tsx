@@ -4,7 +4,7 @@ import styles from './AvatarDropzone.module.scss'
 import { ReactComponent as AvatarPlaceHolder } from '../../images/UserPhoto.svg'
 import { ReactComponent as UploadIcon } from '../../images/UploadButton.svg'
 import { Alert, Button, Snackbar } from '@memebattle/ui'
-import cn from 'classnames'
+import clsx from 'clsx'
 import { DropBox } from '../DropBox'
 import { UserPhotoDrop } from '../UserPhotoDrop'
 import { t } from '../../utils/i18n'
@@ -62,7 +62,7 @@ export const AvatarDropzone = memo(({ avatarUrl, onChange }: DropZoneProps) => {
       <div className={styles.dropZone} {...getRootProps()}>
         <input {...getInputProps()} />
         {!isDragActive ? (
-          <div className={cn(styles.container, styles.containerBorder, { [styles.containerBorderError]: hasUploadError })}>
+          <div className={clsx(styles.container, styles.containerBorder, { [styles.containerBorderError]: hasUploadError })}>
             {file ? <UserPhotoDrop file={file} /> : <AvatarPlaceHolder className={styles.containerImg} />}
             <div className={styles.buttonWrapper}>
               <Button size="medium" variant="outlined" color="inherit" endIcon={<UploadIcon>send</UploadIcon>}>
