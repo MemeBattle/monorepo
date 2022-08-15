@@ -1,5 +1,5 @@
 import React, { memo, useMemo } from 'react'
-import cn from 'classnames'
+import clsx from 'clsx'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { PositionOnTable, Player } from '@memebattle/ui'
 
@@ -37,7 +37,7 @@ export const OpponentWaiting = memo<OpponentWaitingProps>(({ position, opponentS
   }
 
   return (
-    <div className={cn(styles.opponentWaiting, classNameByPositionOnTable[position], classNameByStatus[opponentStatus])}>
+    <div className={clsx(styles.opponentWaiting, classNameByPositionOnTable[position], classNameByStatus[opponentStatus])}>
       <Player avatar={avatarImg} username={username} status={opponentStatus} />
     </div>
   )
