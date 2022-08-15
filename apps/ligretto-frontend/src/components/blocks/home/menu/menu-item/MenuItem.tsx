@@ -1,5 +1,5 @@
 import React from 'react'
-import cn from 'classnames'
+import clsx from 'clsx'
 import { Link } from 'react-router-dom'
 
 import type { routes } from 'utils/constants'
@@ -15,7 +15,7 @@ export interface MenuItemProps {
 }
 
 export const MenuItem: React.FC<MenuItemProps> = ({ title, to, disabled }) => (
-  <li className={cn(styles.menuItem, { [styles.disabled]: disabled })}>
+  <li className={clsx(styles.menuItem, { [styles.disabled]: disabled })}>
     <Link to={to}> {title} </Link>
   </li>
 )

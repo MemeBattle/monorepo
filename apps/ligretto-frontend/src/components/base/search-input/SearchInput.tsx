@@ -1,12 +1,10 @@
 import * as React from 'react'
-import * as classNamesBind from 'classnames/bind'
+import clsx from 'clsx'
 
 import searchIcon from 'assets/icons/search.svg'
 import refreshIcon from 'assets/icons/refresh.svg'
 
 import styles from './SearchInput.module.scss'
-
-const cn = classNamesBind.bind(styles)
 
 export interface SearchInputProps extends React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement> {
   isLoading?: boolean
@@ -22,9 +20,9 @@ export const SearchInput: React.FC<SearchInputProps> = ({ className, isLoading, 
   }, [])
 
   return (
-    <div className={cn(styles.searchInputWrapper, className, { disabled: props.disabled })}>
+    <div className={clsx(styles.searchInputWrapper, className, { disabled: props.disabled })}>
       <input ref={inputRef} className={styles.searchInput} placeholder="Search..." {...props} />
-      <div className={cn(styles.icon, { isLoading })} onClick={onIconClick}>
+      <div className={clsx(styles.icon, { isLoading })} onClick={onIconClick}>
         <img src={isLoading ? refreshIcon : searchIcon} alt="search" />
       </div>
     </div>
