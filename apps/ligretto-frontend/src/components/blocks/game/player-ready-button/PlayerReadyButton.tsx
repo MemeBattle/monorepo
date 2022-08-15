@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import cn from 'classnames'
+import clsx from 'clsx'
 import { Player } from '@memebattle/ui'
 import type { PlayerStatus } from '@memebattle/ligretto-shared'
 
@@ -20,7 +20,7 @@ export const PlayerReadyButton: React.FC<PlayerReadyButtonProps> = ({ className,
   const avatarImg = useMemo(() => (avatar ? buildCasStaticUrl(avatar) : undefined), [avatar])
 
   return (
-    <div className={cn(styles.playerReadyButton, className)}>
+    <div className={clsx(styles.playerReadyButton, className)}>
       <Player status={status} avatar={avatarImg} username={username} />
       {hideButton ? null : <img src={playIcon} alt="Ready to play" className={styles.button} onClick={onClick} />}
     </div>
