@@ -198,3 +198,126 @@ Object {
   },
 }
 `;
+
+exports[`Games Controller leaveFromRoomHandler Should create a relevant game state if one of two players leaved 1`] = `
+Object {
+  "games": Object {
+    "1": Object {
+      "config": Object {
+        "dndEnabled": false,
+        "playersMaxCount": 4,
+      },
+      "id": "1",
+      "name": "createGame",
+      "players": Object {
+        "userTwoId": Object {
+          "cards": Array [],
+          "id": "userTwoId",
+          "isHost": true,
+          "ligrettoDeck": Object {
+            "cards": Array [],
+            "isHidden": true,
+          },
+          "stackDeck": Object {
+            "cards": Array [],
+            "isHidden": true,
+          },
+          "stackOpenDeck": Object {
+            "cards": Array [],
+            "isHidden": true,
+          },
+          "status": "DontReadyToPlay",
+        },
+      },
+      "playground": Object {
+        "decks": Array [],
+        "droppedDecks": Array [],
+      },
+      "spectators": Object {},
+      "status": "Pause",
+    },
+  },
+  "users": Object {
+    "userOneId": Object {
+      "currentGameId": "1",
+      "id": "userOneId",
+      "socketIds": Array [
+        "socketId",
+      ],
+    },
+    "userTwoId": Object {
+      "currentGameId": "1",
+      "id": "userTwoId",
+      "socketIds": Array [
+        "userTwoId",
+      ],
+    },
+  },
+}
+`;
+
+exports[`Games Controller leaveFromRoomHandler Should create a relevant state if last user disconnected 1`] = `
+Object {
+  "games": Object {},
+  "users": Object {
+    "userOneId": Object {
+      "currentGameId": "1",
+      "id": "userOneId",
+      "socketIds": Array [
+        "socketId",
+      ],
+    },
+  },
+}
+`;
+
+exports[`Games Controller leaveFromRoomHandler Should remove current socketId from user socket ids if user connected from few accounts 1`] = `
+Object {
+  "games": Object {
+    "1": Object {
+      "config": Object {
+        "dndEnabled": false,
+        "playersMaxCount": 4,
+      },
+      "id": "1",
+      "name": "createGame",
+      "players": Object {
+        "userOneId": Object {
+          "cards": Array [],
+          "id": "userOneId",
+          "isHost": true,
+          "ligrettoDeck": Object {
+            "cards": Array [],
+            "isHidden": true,
+          },
+          "stackDeck": Object {
+            "cards": Array [],
+            "isHidden": true,
+          },
+          "stackOpenDeck": Object {
+            "cards": Array [],
+            "isHidden": true,
+          },
+          "status": "DontReadyToPlay",
+        },
+      },
+      "playground": Object {
+        "decks": Array [],
+        "droppedDecks": Array [],
+      },
+      "spectators": Object {},
+      "status": "New",
+    },
+  },
+  "users": Object {
+    "userOneId": Object {
+      "currentGameId": "1",
+      "id": "userOneId",
+      "socketIds": Array [
+        "socket1",
+        "socket2",
+      ],
+    },
+  },
+}
+`;

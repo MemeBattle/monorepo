@@ -82,17 +82,6 @@ export class GameService {
     return this.gameRepository.updateGame(gameId, game => ({ ...game, status: GameStatus.Pause }))
   }
 
-  finishRound(gameId: UUID) {
-    return this.gameRepository.updateGame(gameId, game => ({
-      ...game,
-      status: GameStatus.RoundFinished,
-      players: Object.values(game.players).reduce(
-        (players, player) => (player ? { ...players, [player.id]: { ...player, status: PlayerStatus.DontReadyToPlay } } : players),
-        {},
-      ),
-    }))
-  }
-
   async addPlayer(gameId: UUID, playerData: Partial<Player> & { id: Player['id'] }) {
     const player = await this.gameRepository.createPlayer({ ...playerData })
     return {
@@ -175,13 +164,13 @@ export class GameService {
   }
 
   async endGame(gameId: UUID) {
-    const { game, gameResults } = await this.endRound(gameId)
+    const { game, gameResults } = await this.finishRound(gameId)
     await this.gameRepository.removeGame(gameId)
 
     return [game, gameResults]
   }
 
-  async endRound(gameId: UUID): Promise<{ game?: Game; gameResults?: GameResults }> {
+  async finishRound(gameId: UUID): Promise<{ game?: Game; gameResults?: GameResults }> {
     const results = await this.getRoundResult(gameId)
 
     try {
@@ -189,9 +178,14 @@ export class GameService {
         results,
       })
 
-      console.log('endRound, results', gameResults)
-
-      const game = await this.finishRound(gameId)
+      const game = await this.gameRepository.updateGame(gameId, game => ({
+        ...game,
+        status: GameStatus.RoundFinished,
+        players: Object.values(game.players).reduce(
+          (players, player) => (player ? { ...players, [player.id]: { ...player, status: PlayerStatus.DontReadyToPlay } } : players),
+          {},
+        ),
+      }))
 
       return { game, gameResults }
     } catch (e) {
@@ -232,7 +226,7 @@ export class GameService {
 
     const playersCount = Object.keys(game.players).length
     if (playersCount === 0) {
-      await this.endGame(game.id)
+      await this.gameRepository.removeGame(gameId)
       return
     }
 

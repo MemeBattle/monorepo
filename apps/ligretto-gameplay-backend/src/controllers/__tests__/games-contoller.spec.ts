@@ -1,4 +1,13 @@
-import { createRoomEmitAction, createRoomErrorAction, CreateRoomErrorCode, createRoomSuccessAction, updateRooms } from '@memebattle/ligretto-shared'
+import {
+  createRoomEmitAction,
+  createRoomErrorAction,
+  CreateRoomErrorCode,
+  createRoomSuccessAction,
+  updateRooms,
+  connectToRoomEmitAction,
+  connectToRoomErrorAction,
+  updateGameAction,
+} from '@memebattle/ligretto-shared'
 
 import type { GamesController } from '../games-controller'
 
@@ -7,7 +16,6 @@ import { IOC_TYPES } from '../../IOC_TYPES'
 import type { Database } from '../../database'
 import { createSocketMockImpl } from '../../../test/utils'
 import type { AnyAction } from '../../types/any-action'
-import { connectToRoomEmitAction, connectToRoomErrorAction } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../../config'
 import { gameToRoom } from '../../utils/mappers'
 
@@ -18,13 +26,17 @@ describe('Games Controller', () => {
 
   const gameId = '1'
 
+  let createGameService = jest.fn().mockReturnValue({ id: gameId })
+  let saveGameRoundService = jest.fn().mockReturnValue({})
+
   let gamesController: GamesController = container.get(IOC_TYPES.GamesController)
 
   beforeEach(() => {
     container = createIOC()
     socketMockImpl = createSocketMockImpl()
-    const createGameService = jest.fn().mockReturnValue({ id: gameId })
-    container.rebind(IOC_TYPES.LigrettoCoreService).toConstantValue({ createGameService })
+    createGameService = jest.fn().mockReturnValue({ id: gameId })
+    saveGameRoundService = jest.fn().mockReturnValue({})
+    container.rebind(IOC_TYPES.LigrettoCoreService).toConstantValue({ createGameService, saveGameRoundService })
     gamesController = container.get(IOC_TYPES.GamesController)
   })
 
@@ -145,6 +157,104 @@ describe('Games Controller', () => {
       await gamesController.handleMessage(secondUserSocket, connectToRoomEmitAction({ roomUuid }) as AnyAction)
 
       const state = await database.get(db => db)
+      expect(state).toMatchSnapshot()
+    })
+  })
+
+  describe('leaveFromRoomHandler', () => {
+    const roomUuid = '1'
+    const userOneId = 'userOneId'
+    const userTwoId = 'userTwoId'
+    let socketOne = createSocketMockImpl({ id: 'socket1', data: { user: { id: userOneId } } })
+    let socketTwo = createSocketMockImpl({ id: 'socket2', data: { user: { id: userTwoId } } })
+
+    beforeEach(async () => {
+      gamesController = container.get(IOC_TYPES.GamesController)
+      const database: Database = container.get(IOC_TYPES.Database)
+      socketOne = createSocketMockImpl({ id: 'socket1', data: { user: { id: userOneId } } })
+      socketTwo = createSocketMockImpl({ id: 'socket2', data: { user: { id: userTwoId } } })
+
+      await database.set(storage => {
+        storage.users = {
+          [userOneId]: {
+            id: userOneId,
+            socketIds: [socketMockImpl.id],
+            currentGameId: roomUuid,
+          },
+        }
+      })
+
+      await gamesController.handleMessage(
+        socketOne,
+        createRoomEmitAction({
+          name: 'createGame',
+          config: {},
+        }) as AnyAction,
+      )
+      await gamesController.handleMessage(socketOne, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+    })
+
+    it('Should remove current socketId from user socket ids if user connected from few accounts', async () => {
+      const database: Database = container.get(IOC_TYPES.Database)
+
+      await database.set(storage => {
+        storage.users = {
+          [userOneId]: {
+            id: userOneId,
+            socketIds: [socketOne.id, socketTwo.id],
+            currentGameId: roomUuid,
+          },
+        }
+      })
+
+      await gamesController.handleMessage(socketOne, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+
+      await gamesController.disconnectionHandler(socketOne)
+
+      const state = await database.get(storage => storage)
+      expect(state).toMatchSnapshot()
+      expect(socketOne.to).toBeCalledTimes(4)
+      expect(socketOne.emit).toBeCalledWith('event', updateRooms({ rooms: [gameToRoom(state.games[roomUuid])] }))
+      expect(socketOne.emit).toBeCalledWith('event', updateGameAction(state.games[roomUuid]))
+    })
+
+    it('Should create a relevant game state if one of two players leaved', async () => {
+      const database: Database = container.get(IOC_TYPES.Database)
+
+      await database.set(storage => {
+        storage.users = {
+          ...storage.users,
+          [userTwoId]: {
+            id: userTwoId,
+            socketIds: [userTwoId],
+            currentGameId: roomUuid,
+          },
+        }
+      })
+
+      await gamesController.handleMessage(socketTwo, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+
+      await gamesController.disconnectionHandler(socketOne)
+
+      const state = await database.get(storage => storage)
+      expect(state).toMatchSnapshot()
+    })
+
+    it('Should not call save results if last user disconnected', async () => {
+      await gamesController.handleMessage(socketOne, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+
+      await gamesController.disconnectionHandler(socketOne)
+
+      expect(saveGameRoundService).toBeCalledTimes(0)
+    })
+
+    it('Should create a relevant state if last user disconnected', async () => {
+      const database: Database = container.get(IOC_TYPES.Database)
+      await gamesController.handleMessage(socketOne, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+
+      await gamesController.disconnectionHandler(socketOne)
+
+      const state = await database.get(storage => storage)
       expect(state).toMatchSnapshot()
     })
   })
