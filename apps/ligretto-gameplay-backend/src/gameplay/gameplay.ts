@@ -62,7 +62,7 @@ export class Gameplay {
       const remaining = await this.playerService.takeFromLigrettoDeck(gameId, playerId)
 
       if (remaining === 0) {
-        return this.gameService.endRound(gameId)
+        return this.gameService.finishRound(gameId)
       }
 
       const game = await this.gameService.getGame(gameId)
