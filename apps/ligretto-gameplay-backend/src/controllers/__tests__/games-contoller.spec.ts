@@ -213,7 +213,6 @@ describe('Games Controller', () => {
 
       const state = await database.get(storage => storage)
       expect(state).toMatchSnapshot()
-      console.log(state.games[roomUuid])
       expect(socketOne.to).toBeCalledTimes(4)
       expect(socketOne.emit).toBeCalledWith('event', updateRooms({ rooms: [gameToRoom(state.games[roomUuid])] }))
       expect(socketOne.emit).toBeCalledWith('event', updateGameAction(state.games[roomUuid]))
