@@ -5,10 +5,10 @@ import { RoomsList as RoomsListComponent } from '@memebattle/ui'
 import { useHistory, generatePath } from 'react-router'
 
 import { routes } from 'utils/constants'
-import { selectRoomsList } from 'ducks/rooms'
+import { roomsListSelector } from 'ducks/rooms'
 
 export const RoomsListContainer = () => {
-  const rooms = useSelector(selectRoomsList)
+  const rooms = useSelector(roomsListSelector)
   const history = useHistory()
 
   const roomsProps = useMemo<RoomsListProps['rooms']>(
