@@ -5,14 +5,14 @@ import { createSelector } from 'reselect'
 import sortBy from 'lodash/sortBy'
 
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
-import { selectCurrentUserId } from 'ducks/auth'
-import { selectUsersMap } from 'ducks/users'
-import { selectGameResults } from 'ducks/game'
+import { currentUserIdSelector } from 'ducks/auth'
+import { usersMapSelector } from 'ducks/users'
+import { gameResultsSelector } from 'ducks/game'
 
 const selectGameResultsForTable = createSelector(
-  selectGameResults,
-  selectUsersMap,
-  selectCurrentUserId,
+  gameResultsSelector,
+  usersMapSelector,
+  currentUserIdSelector,
   (gameResults, users, currentPlayerId) =>
     gameResults &&
     sortBy(Object.entries(gameResults), [([_, playerResults]) => -playerResults.gameScore]).map(([playerId, playerResults], index) => {

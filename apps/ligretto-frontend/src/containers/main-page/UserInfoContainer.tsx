@@ -4,7 +4,7 @@ import React, { useCallback, useMemo } from 'react'
 
 import { UserInfo } from 'components/blocks/home/user-info'
 import { authRoutes, routes } from 'utils/constants'
-import { logout, selectCurrentUser } from 'ducks/auth'
+import { logout, currentUserSelector } from 'ducks/auth'
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 
 export const UserInfoContainer = () => {
@@ -12,7 +12,7 @@ export const UserInfoContainer = () => {
 
   const { push } = useHistory()
 
-  const user = useSelector(selectCurrentUser)
+  const user = useSelector(currentUserSelector)
 
   const onButtonClick = useCallback(() => {
     if (!user || user.isTemporary) {

@@ -3,10 +3,10 @@ import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from 'reselect'
 import { Card, CardPlace, CardsRow } from '@memebattle/ui'
 
-import { tapCardAction, selectPlayerCards, selectIsDndEnabled, setSelectedCardIndexAction, selectSelectedCardIndex } from 'ducks/game'
+import { tapCardAction, playerCardsSelector, isDndEnabledSelector, setSelectedCardIndexAction, selectedCardIndexSelector } from 'ducks/game'
 
 const CardsRowContainerSelector = createSelector(
-  [selectPlayerCards, selectIsDndEnabled, selectSelectedCardIndex],
+  [playerCardsSelector, isDndEnabledSelector, selectedCardIndexSelector],
   (playerCards, isDndEnabled, selectedCardIndex) => ({
     playerCards,
     isDndEnabled,

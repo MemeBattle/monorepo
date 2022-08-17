@@ -1,11 +1,11 @@
 import { createSelector } from 'reselect'
 
-import { selectCurrentUserId } from 'ducks/auth'
-import { selectPlayers, selectGameStatus, selectOpponents, mergePlayerAndUser } from 'ducks/game'
-import { selectUsersMap } from 'ducks/users'
+import { currentUserIdSelector } from 'ducks/auth'
+import { playersSelector, gameStatusSelector, opponentsSelector, mergePlayerAndUser } from 'ducks/game'
+import { usersMapSelector } from 'ducks/users'
 
 export const gameLobbySelector = createSelector(
-  [selectPlayers, selectCurrentUserId, selectGameStatus, selectUsersMap, selectOpponents],
+  [playersSelector, currentUserIdSelector, gameStatusSelector, usersMapSelector, opponentsSelector],
   (players, playerId = '', gameStatus, users, opponents) => {
     const player = players[playerId]
     const user = users[playerId]

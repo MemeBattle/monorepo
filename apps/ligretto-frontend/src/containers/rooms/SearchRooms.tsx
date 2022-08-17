@@ -2,7 +2,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import React, { useCallback } from 'react'
 
 import { SearchInput } from 'components/base/search-input'
-import { selectIsLoading, selectSearch } from 'ducks/rooms/selectors'
+import { isLoadingSelector, searchSelector } from 'ducks/rooms/selectors'
 import { searchRoomsAction } from 'ducks/rooms'
 
 interface SearchRoomsContainerProps {
@@ -12,8 +12,8 @@ interface SearchRoomsContainerProps {
 export const SearchRoomsContainer: React.FC<SearchRoomsContainerProps> = ({ className }) => {
   const dispatch = useDispatch()
 
-  const isLoading = useSelector(selectIsLoading)
-  const search = useSelector(selectSearch)
+  const isLoading = useSelector(isLoadingSelector)
+  const search = useSelector(searchSelector)
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

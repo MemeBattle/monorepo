@@ -3,12 +3,12 @@ import { useSelector } from 'react-redux'
 import { RoomGrid } from '@memebattle/ui'
 import { createSelector } from 'reselect'
 
-import { selectOpponents } from 'ducks/game'
+import { opponentsSelector } from 'ducks/game'
 import { Opponent } from 'components/blocks/game/opponent'
 
 import { PlaygroundContainer } from '../playground'
 
-const GameSpectatorContainerSelector = createSelector([selectOpponents], opponents => ({
+const GameSpectatorContainerSelector = createSelector([opponentsSelector], opponents => ({
   opponents,
 }))
 
