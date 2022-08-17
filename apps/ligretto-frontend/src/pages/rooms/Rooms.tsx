@@ -8,13 +8,13 @@ import { CreateRoomContainer } from 'containers/create-room'
 import { MainLayout } from 'components/layouts/main'
 import { SearchRoomsContainer } from 'containers/rooms/SearchRooms'
 import { LinkBack } from 'components/base/link-back'
-import { selectIsRoomsListEmpty, searchRoomsAction } from 'ducks/rooms'
+import { isRoomsListEmptySelector, searchRoomsAction } from 'ducks/rooms'
 
 import styles from './Rooms.module.scss'
 
 export const RoomsPage = () => {
   const dispatch = useDispatch()
-  const isRoomsListEmpty = useSelector(selectIsRoomsListEmpty)
+  const isRoomsListEmpty = useSelector(isRoomsListEmptySelector)
 
   useEffect(() => {
     dispatch(searchRoomsAction({ search: '' }))

@@ -5,17 +5,17 @@ import { createSelector } from 'reselect'
 import { Stack } from 'components/blocks/game'
 import {
   setSelectedCardIndexAction,
-  selectPlayerStackOpenDeckCards,
+  playerStackOpenDeckCardsSelector,
   tapStackOpenDeckCardAction,
   tapStackDeckCardAction,
-  selectPlayerStackDeckCards,
-  selectIsDndEnabled,
-  selectSelectedCardIndex,
+  playerStackDeckCardsSelector,
+  isDndEnabledSelector,
+  selectedCardIndexSelector,
   STACK_OPEN_DECK_INDEX,
 } from 'ducks/game'
 
 const StackContainerSelector = createSelector(
-  [selectPlayerStackOpenDeckCards, selectPlayerStackDeckCards, selectIsDndEnabled, selectSelectedCardIndex],
+  [playerStackOpenDeckCardsSelector, playerStackDeckCardsSelector, isDndEnabledSelector, selectedCardIndexSelector],
   (stackOpenDeckCards, stackDeckCards, isDndEnabled, selectedCardIndex) => ({
     stackOpenDeckCard: stackOpenDeckCards?.[stackOpenDeckCards.length - 1],
     stackDeckCards,

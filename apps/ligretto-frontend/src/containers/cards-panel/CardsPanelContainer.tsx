@@ -3,16 +3,16 @@ import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from 'reselect'
 
 import { CardsPanel } from 'components/blocks/game'
-import { tapLigrettoDeckCardAction, selectPlayerLigrettoDeckCards, selectActivePlayer } from 'ducks/game'
+import { tapLigrettoDeckCardAction, playerLigrettoDeckCardsSelector, activePlayerSelector } from 'ducks/game'
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 
-const CardsPanelContainerSelector = createSelector([selectPlayerLigrettoDeckCards], playerLigrettoDeckCards => ({
+const CardsPanelContainerSelector = createSelector([playerLigrettoDeckCardsSelector], playerLigrettoDeckCards => ({
   playerLigrettoDeckCards,
 }))
 
 export const CardsPanelContainer = () => {
   const dispatch = useDispatch()
-  const player = useSelector(selectActivePlayer)
+  const player = useSelector(activePlayerSelector)
   const { playerLigrettoDeckCards } = useSelector(CardsPanelContainerSelector)
 
   const playerWithStaticAvatar = useMemo(() => {
