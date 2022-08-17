@@ -1,13 +1,13 @@
 import type { All } from 'types/store'
 
-import { selectUserById } from '../users'
+import { userByIdSelector } from '../users'
 
-export const selectCurrentUserId = (state: All) => state.auth.userId
+export const currentUserIdSelector = (state: All) => state.auth.userId
 
-export const selectCurrentUser = (state: All) => {
-  const userId = selectCurrentUserId(state)
+export const currentUserSelector = (state: All) => {
+  const userId = currentUserIdSelector(state)
 
-  return userId ? selectUserById(state, userId) : null
+  return userId ? userByIdSelector(state, userId) : null
 }
 
 export const tokenSelector = (state: All) => state.auth.token

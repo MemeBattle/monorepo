@@ -25,7 +25,7 @@ import {
   setErrorRoomsAction,
   removeRoomAction,
 } from './slice'
-import { selectSearch } from './selectors'
+import { searchSelector } from './selectors'
 
 /**
  * Сага могла стрельнуть "запрос" на поиск комнат, но ответ еще не успел придти.
@@ -58,7 +58,7 @@ function* connectToRoomSaga(action: ReturnType<typeof connectToRoomAction>) {
 }
 
 function* updateRoomsFromServerSaga(action: ReturnType<typeof updateRoomsFromServer>) {
-  const search: ReturnType<typeof selectSearch> = yield select(selectSearch)
+  const search: ReturnType<typeof searchSelector> = yield select(searchSelector)
   const rooms = action.payload.rooms.filter(({ name }) => name.includes(search))
   yield put(updateRoomsAction({ rooms }))
 }

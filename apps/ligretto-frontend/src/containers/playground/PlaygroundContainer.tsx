@@ -3,9 +3,9 @@ import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from 'reselect'
 
 import { Playground } from 'components/blocks/game'
-import { selectPlaygroundDecks, selectSelectedCardIndex, STACK_OPEN_DECK_INDEX, tapCardAction, tapStackOpenDeckCardAction } from 'ducks/game'
+import { playgroundDecksSelector, selectedCardIndexSelector, STACK_OPEN_DECK_INDEX, tapCardAction, tapStackOpenDeckCardAction } from 'ducks/game'
 
-const PlaygroundContainerSelector = createSelector([selectPlaygroundDecks, selectSelectedCardIndex], (playgroundDecks, selectedCardIndex) => ({
+const PlaygroundContainerSelector = createSelector([playgroundDecksSelector, selectedCardIndexSelector], (playgroundDecks, selectedCardIndex) => ({
   playgroundDecks,
   selectedCardIndex,
 }))

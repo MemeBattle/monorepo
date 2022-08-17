@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { CreateRoom } from '@memebattle/ui'
 import type { CreateRoomError } from '@memebattle/ligretto-shared/src/dto'
 
-import { createRoomAction, selectRoomsError } from 'ducks/rooms'
+import { createRoomAction, roomsErrorSelector } from 'ducks/rooms'
 
 import { roomNameValidation } from './utils'
 
@@ -13,7 +13,7 @@ export const CreateRoomContainer = () => {
   const [name, setName] = useState('')
   const [dndEnabled, setDndEnabled] = useState(false)
 
-  const roomsErrors: CreateRoomError | null = useSelector(selectRoomsError)
+  const roomsErrors: CreateRoomError | null = useSelector(roomsErrorSelector)
 
   const validationErrors: { error: string } | null = useMemo(() => roomNameValidation(name, roomsErrors), [name, roomsErrors])
 

@@ -25,7 +25,7 @@ import {
   tapLigrettoDeckCardAction,
   leaveGameAction,
 } from './slice'
-import { selectGameId, selectPlayerStatus } from './selectors'
+import { gameIdSelector, playerStatusSelector } from './selectors'
 
 function* gameUpdateSaga(action: ReturnType<typeof updateGameAction>) {
   const game = action.payload
@@ -33,8 +33,8 @@ function* gameUpdateSaga(action: ReturnType<typeof updateGameAction>) {
 }
 
 function* togglePlayerStatusSaga() {
-  const currentStatus: ReturnType<typeof selectPlayerStatus> = yield select(selectPlayerStatus)
-  const gameId: ReturnType<typeof selectGameId> = yield select(selectGameId)
+  const currentStatus: ReturnType<typeof playerStatusSelector> = yield select(playerStatusSelector)
+  const gameId: ReturnType<typeof gameIdSelector> = yield select(gameIdSelector)
 
   const status = currentStatus === PlayerStatus.DontReadyToPlay ? PlayerStatus.ReadyToPlay : PlayerStatus.DontReadyToPlay
 
@@ -47,30 +47,30 @@ function* connectToRoomSuccessSaga(action: ReturnType<typeof connectToRoomSucces
 }
 
 function* startGameSaga() {
-  const gameId: ReturnType<typeof selectGameId> = yield select(selectGameId)
+  const gameId: ReturnType<typeof gameIdSelector> = yield select(gameIdSelector)
   yield put(startGameEmitAction({ gameId }))
 }
 
 function* cardsRowPutSaga({ payload }: ReturnType<typeof tapCardAction>) {
-  const gameId: ReturnType<typeof selectGameId> = yield select(selectGameId)
+  const gameId: ReturnType<typeof gameIdSelector> = yield select(gameIdSelector)
 
   yield put(putCardAction({ cardIndex: payload.cardIndex, gameId, playgroundDeckIndex: payload.playgroundDeckIndex }))
 }
 
 function* tapStackOpenDeckCardActionSaga({ payload }: ReturnType<typeof tapStackOpenDeckCardAction>) {
-  const gameId: ReturnType<typeof selectGameId> = yield select(selectGameId)
+  const gameId: ReturnType<typeof gameIdSelector> = yield select(gameIdSelector)
 
   yield put(putCardFromStackOpenDeck({ gameId, playgroundDeckIndex: payload?.playgroundDeckIndex }))
 }
 
 function* tapStackDeckCardActionSaga() {
-  const gameId: ReturnType<typeof selectGameId> = yield select(selectGameId)
+  const gameId: ReturnType<typeof gameIdSelector> = yield select(gameIdSelector)
 
   yield put(takeFromStackDeckAction({ gameId }))
 }
 
 function* tapLigrettoDeckCardActionSaga() {
-  const gameId: ReturnType<typeof selectGameId> = yield select(selectGameId)
+  const gameId: ReturnType<typeof gameIdSelector> = yield select(gameIdSelector)
 
   yield put(takeFromLigrettoDeckAction({ gameId }))
 }
