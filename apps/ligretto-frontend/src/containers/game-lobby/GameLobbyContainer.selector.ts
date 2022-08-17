@@ -4,7 +4,7 @@ import { currentUserIdSelector } from 'ducks/auth'
 import { playersSelector, gameStatusSelector, opponentsSelector, mergePlayerAndUser } from 'ducks/game'
 import { usersMapSelector } from 'ducks/users'
 
-export const gameLobbySelector = createSelector(
+export const gameLobbyContainerSelector = createSelector(
   [playersSelector, currentUserIdSelector, gameStatusSelector, usersMapSelector, opponentsSelector],
   (players, playerId = '', gameStatus, users, opponents) => {
     const player = players[playerId]
