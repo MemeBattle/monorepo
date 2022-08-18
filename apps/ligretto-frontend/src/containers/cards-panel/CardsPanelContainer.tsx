@@ -6,14 +6,18 @@ import { CardsPanel } from 'components/blocks/game'
 import { tapLigrettoDeckCardAction, playerLigrettoDeckCardsSelector, activePlayerSelector } from 'ducks/game'
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 
-const CardsPanelContainerSelector = createSelector([playerLigrettoDeckCardsSelector], playerLigrettoDeckCards => ({
-  playerLigrettoDeckCards,
-}))
+const cardsPanelContainerSelector = createSelector(
+  [activePlayerSelector, playerLigrettoDeckCardsSelector],
+  (activePlayer, playerLigrettoDeckCards) => ({
+    player: activePlayer,
+    playerLigrettoDeckCards,
+  }),
+)
 
 export const CardsPanelContainer = () => {
   const dispatch = useDispatch()
-  const player = useSelector(activePlayerSelector)
-  const { playerLigrettoDeckCards } = useSelector(CardsPanelContainerSelector)
+
+  const { player, playerLigrettoDeckCards } = useSelector(cardsPanelContainerSelector)
 
   const playerWithStaticAvatar = useMemo(() => {
     if (player) {

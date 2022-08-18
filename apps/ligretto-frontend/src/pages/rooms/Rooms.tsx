@@ -6,7 +6,7 @@ import * as React from 'react'
 import { RoomsListContainer } from 'containers/rooms'
 import { CreateRoomContainer } from 'containers/create-room'
 import { MainLayout } from 'components/layouts/main'
-import { SearchRoomsContainer } from 'containers/rooms/SearchRooms'
+import { SearchRoomsContainer } from 'containers/rooms/SearchRoomsContainer'
 import { LinkBack } from 'components/base/link-back'
 import { isRoomsListEmptySelector, searchRoomsAction } from 'ducks/rooms'
 
