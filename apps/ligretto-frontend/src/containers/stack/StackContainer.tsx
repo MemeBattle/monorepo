@@ -1,32 +1,13 @@
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { createSelector } from 'reselect'
 
 import { Stack } from 'components/blocks/game'
-import {
-  setSelectedCardIndexAction,
-  playerStackOpenDeckCardsSelector,
-  tapStackOpenDeckCardAction,
-  tapStackDeckCardAction,
-  playerStackDeckCardsSelector,
-  isDndEnabledSelector,
-  selectedCardIndexSelector,
-  STACK_OPEN_DECK_INDEX,
-} from 'ducks/game'
-
-const StackContainerSelector = createSelector(
-  [playerStackOpenDeckCardsSelector, playerStackDeckCardsSelector, isDndEnabledSelector, selectedCardIndexSelector],
-  (stackOpenDeckCards, stackDeckCards, isDndEnabled, selectedCardIndex) => ({
-    stackOpenDeckCard: stackOpenDeckCards?.[stackOpenDeckCards.length - 1],
-    stackDeckCards,
-    isDndEnabled,
-    selectedCardIndex,
-  }),
-)
+import { setSelectedCardIndexAction, STACK_OPEN_DECK_INDEX, tapStackDeckCardAction, tapStackOpenDeckCardAction } from 'ducks/game'
+import { stackContainerSelector } from './StackContainer.selector'
 
 export const StackContainer = () => {
   const dispatch = useDispatch()
-  const { stackDeckCards, stackOpenDeckCard, isDndEnabled, selectedCardIndex } = useSelector(StackContainerSelector)
+  const { stackDeckCards, stackOpenDeckCard, isDndEnabled, selectedCardIndex } = useSelector(stackContainerSelector)
 
   const handleStackOpenDeckCardClick = useCallback(() => {
     if (isDndEnabled && stackOpenDeckCard?.value !== 1) {
