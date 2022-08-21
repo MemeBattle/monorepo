@@ -1976,6 +1976,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@codexsoft/dotenv-flow@npm:^3.3.5":
+  version: 3.3.5
+  resolution: "@codexsoft/dotenv-flow@npm:3.3.5"
+  dependencies:
+    dotenv: ^8.2.0
+  checksum: 7631a63d887f27fe33aa33d9a4881ba309abbff7ec2de2b13e55b6da9a99e280ded8cb6bd6cb95a3fc42663bcc0e308dbb3e1e5c0affc6029f4a01f860f9c3b1
+  languageName: node
+  linkType: hard
+
 "@colors/colors@npm:1.5.0":
   version: 1.5.0
   resolution: "@colors/colors@npm:1.5.0"
@@ -2934,15 +2943,14 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@memebattle/ligretto-gameplay-backend@workspace:apps/ligretto-gameplay-backend"
   dependencies:
+    "@codexsoft/dotenv-flow": ^3.3.5
     "@memebattle/cas-services": ^3.6.1
     "@memebattle/ligretto-shared": "workspace:^"
-    "@types/dotenv": ^8.2.0
     "@types/jest": ^28.1.6
     "@types/lodash": ^4.14.182
     "@types/node": ^18.6.4
     axios: ^0.24.0
     cross-env: ^7.0.3
-    dotenv: ^8.2.0
     inversify: ^5.0.1
     jest: ^28.1.3
     lodash: ^4.17.21
@@ -2986,7 +2994,6 @@ __metadata:
     "@types/node": ^14.18.18
     "@typescript-eslint/eslint-plugin": ^4.26.1
     "@typescript-eslint/parser": ^4.26.1
-    env-cmd: ^10.1.0
     eslint: ^7.11.0
     eslint-config-prettier: ^8.3.0
     eslint-plugin-import: ^2.25.2
@@ -5381,15 +5388,6 @@ __metadata:
   version: 2.8.12
   resolution: "@types/cors@npm:2.8.12"
   checksum: 8c45f112c7d1d2d831b4b266f2e6ed33a1887a35dcbfe2a18b28370751fababb7cd045e745ef84a523c33a25932678097bf79afaa367c6cb3fa0daa7a6438257
-  languageName: node
-  linkType: hard
-
-"@types/dotenv@npm:^8.2.0":
-  version: 8.2.0
-  resolution: "@types/dotenv@npm:8.2.0"
-  dependencies:
-    dotenv: "*"
-  checksum: a1f524da7dc18b09bdb6c2613b9abbbe8ca575621cce4625efc7f98daf2ba07c7dbab622c9bb394507a12c5c515f9cbbbba4aeec17b801c88faeb8e8e656d460
   languageName: node
   linkType: hard
 
@@ -8977,7 +8975,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"commander@npm:^4.0.0, commander@npm:^4.1.1":
+"commander@npm:^4.1.1":
   version: 4.1.1
   resolution: "commander@npm:4.1.1"
   checksum: d7b9913ff92cae20cb577a4ac6fcc121bd6223319e54a40f51a14740a681ad5c574fd29a57da478a5f234a6fa6c52cbf0b7c641353e03c648b1ae85ba670b977
@@ -9484,7 +9482,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cross-spawn@npm:^7.0.0, cross-spawn@npm:^7.0.1, cross-spawn@npm:^7.0.2, cross-spawn@npm:^7.0.3":
+"cross-spawn@npm:^7.0.1, cross-spawn@npm:^7.0.2, cross-spawn@npm:^7.0.3":
   version: 7.0.3
   resolution: "cross-spawn@npm:7.0.3"
   dependencies:
@@ -10181,7 +10179,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dotenv@npm:*, dotenv@npm:^16.0.0":
+"dotenv@npm:^16.0.0":
   version: 16.0.1
   resolution: "dotenv@npm:16.0.1"
   checksum: f459ffce07b977b7f15d8cc4ee69cdff77d4dd8c5dc8c85d2d485ee84655352c2415f9dd09d42b5b5985ced3be186130871b34e2f3e2569ebc72fbc2e8096792
@@ -10520,18 +10518,6 @@ __metadata:
   version: 3.0.1
   resolution: "entities@npm:3.0.1"
   checksum: aaf7f12033f0939be91f5161593f853f2da55866db55ccbf72f45430b8977e2b79dbd58c53d0fdd2d00bd7d313b75b0968d09f038df88e308aa97e39f9456572
-  languageName: node
-  linkType: hard
-
-"env-cmd@npm:^10.1.0":
-  version: 10.1.0
-  resolution: "env-cmd@npm:10.1.0"
-  dependencies:
-    commander: ^4.0.0
-    cross-spawn: ^7.0.0
-  bin:
-    env-cmd: bin/env-cmd.js
-  checksum: efef55074250f14cfc0b80c98dd98f1f056a80e1f3c7db14097ceefdd2d56c766bbb83b54c22932112707f41b36ce2e923f8015d69e62a75c12d98640b972e75
   languageName: node
   linkType: hard
 

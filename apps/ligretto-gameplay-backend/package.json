@@ -15,7 +15,6 @@
     "ts-check": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/dotenv": "^8.2.0",
     "@types/jest": "^28.1.6",
     "@types/lodash": "^4.14.182",
     "@types/node": "^18.6.4",
@@ -32,10 +31,10 @@
     "webpack-cli": "^4.6.0"
   },
   "dependencies": {
+    "@codexsoft/dotenv-flow": "^3.3.5",
     "@memebattle/cas-services": "^3.6.1",
     "@memebattle/ligretto-shared": "workspace:^",
     "axios": "^0.24.0",
-    "dotenv": "^8.2.0",
     "inversify": "^5.0.1",
     "lodash": "^4.17.21",
     "nanoid": "^3.1.20",

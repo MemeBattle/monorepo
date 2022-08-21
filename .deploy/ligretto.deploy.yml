@@ -23,7 +23,7 @@ services:
       - source: LIGRETTO_CAS_KEY
         target: /ligretto-gameplay-backend/key.pem
     environment:
-      - LIGRETTO_CAS_KEY_PATH=/ligretto-gameplay-backend/key.pem
+      - LIGRETTO_GAMEPLAY_CAS_KEY_PATH=/ligretto-gameplay-backend/key.pem
       - LIGRETTO_CORE_URL=http://ligretto-core-backend:3333
     deploy:
       replicas: 1
@@ -47,7 +47,7 @@ services:
       - HOST=0.0.0.0
       - NODE_ENV=production
       - APP_KEY=BYnNsw-r-ndJTCy15Uqo8JAF4ONCA4X1
-      - PARTNER_ID=61587c1bdc151b004107a2b5
+      - CAS_PARTNER_ID=61587c1bdc151b004107a2b5
       - CAS_URI=https://cas.mems.fun/api
       - DB_CONNECTION=pg
       - PG_HOST=ligretto-core-pg

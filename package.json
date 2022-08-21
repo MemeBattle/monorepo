@@ -9,16 +9,16 @@
     "lint-fix:styles": "yarn lint:styles --fix",
     "lint": "run-p -l 'lint:*'",
     "lint-fix": "run-p -l 'lint-fix:*'",
-    "test": "env-cmd -- yarn workspaces foreach -vip run test",
-    "test:ci": "env-cmd -- yarn workspaces foreach -vip run test --ci --json --coverage --testLocationInResults --outputFile=report.json",
-    "ligretto:start": "env-cmd -- yarn workspaces foreach -vip --include '{@memebattle/ligretto-core-backend,@memebattle/ligretto-gameplay-backend,@memebattle/ligretto-frontend}' run start:dev",
+    "test": "yarn workspaces foreach -vip run test",
+    "test:ci": "yarn workspaces foreach -vip run test --ci --json --coverage --testLocationInResults --outputFile=report.json",
+    "ligretto:start": "yarn workspaces foreach -vip --include '{@memebattle/ligretto-core-backend,@memebattle/ligretto-gameplay-backend,@memebattle/ligretto-frontend}' run start:dev",
     "ligretto:front:build": "yarn workspace @memebattle/ligretto-frontend run build",
-    "ligretto:front:start:dev": "env-cmd yarn workspace @memebattle/ligretto-frontend run start:dev",
+    "ligretto:front:start:dev": "yarn workspace @memebattle/ligretto-frontend run start:dev",
     "ligretto:gameplay-backend:build": "yarn workspace @memebattle/ligretto-gameplay-backend run build",
     "ligretto:core-backend:build": "yarn workspace @memebattle/ligretto-core-backend run build",
     "ligretto:core-backend:migrate": "yarn workspace @memebattle/ligretto-core-backend run migrate",
     "ligretto:core-backend:production-migrate": "yarn workspace @memebattle/ligretto-core-backend run production-migrate",
-    "ligretto:core-backend:start:dev": "env-cmd yarn workspace @memebattle/ligretto-core-backend run start:dev",
+    "ligretto:core-backend:start:dev": "yarn workspace @memebattle/ligretto-core-backend run start:dev",
     "gamehub-client:build": "yarn workspace @memebattle/gamehub-client run build",
     "ligretto-shared:build": "yarn workspace @memebattle/ligretto-shared run build",
     "ts-check": "yarn workspaces foreach -vip run ts-check",
@@ -69,9 +69,6 @@
     "stylelint-prettier": "^1.2.0",
     "tsconfig-paths-webpack-plugin": "^3.5.2",
     "typescript": "4.7.4"
-  },
-  "dependencies": {
-    "env-cmd": "^10.1.0"
   },
   "packageManager": "yarn@3.2.0"
 }

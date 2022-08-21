@@ -1,13 +1,6 @@
-import * as dotenv from 'dotenv'
-dotenv.config()
+import { LIGRETTO_CORE_URL, LIGRETTO_GAMEPLAY_SOCKET_PORT } from '../config'
 
-if (!process.env) {
-  throw Error('Env is not valid. Run yarn env')
-}
-
-const { SOCKET_PORT, LIGRETTO_CORE_URL } = process.env
-
-if (!SOCKET_PORT || !LIGRETTO_CORE_URL) {
-  console.log('!SOCKET_PORT || !LIGRETTO_CORE_URL')
+if (!LIGRETTO_GAMEPLAY_SOCKET_PORT || !LIGRETTO_CORE_URL) {
+  console.log('!LIGRETTO_GAMEPLAY_SOCKET_PORT || !LIGRETTO_CORE_URL')
   process.exit(-1)
 }
