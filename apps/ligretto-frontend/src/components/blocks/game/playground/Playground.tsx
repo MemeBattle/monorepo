@@ -12,20 +12,21 @@ export interface TableCardsProps {
 
 const getLastCard = (deck: CardsDeck | null): Card | undefined => last(deck?.cards)
 
-export const Playground: React.FC<TableCardsProps> = ({ cardsDecks }) => {
+export const Playground: React.FC<TableCardsProps> = ({ cardsDecks, onDeckClick }) => {
   const cards: (Card | undefined)[] = useMemo(() => {
     const newPlayerCardsArr = []
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 12; i++) {
       newPlayerCardsArr.push(getLastCard(cardsDecks[i]))
     }
     return newPlayerCardsArr
   }, [cardsDecks])
+
   return (
     <div className={styles.tableCardsWrapper}>
       <div className={styles.tableCards}>
         <TableCardsUI>
           {cards.map((card, index) => (
-            <CardPlace key={index}>{card && <CardComponent {...card} />}</CardPlace>
+            <CardPlace key={index}>{card && <CardComponent {...card} onClick={() => onDeckClick(index)} />}</CardPlace>
           ))}
         </TableCardsUI>
       </div>

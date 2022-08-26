@@ -14,3 +14,15 @@ export const mergePlayerAndUser = (player: SharedPlayer, user: User) =>
   } as const)
 
 export const STACK_OPEN_DECK_INDEX = 'STACK_OPEN_DECK_INDEX' as const
+
+export enum Hotkey {
+  space = 'space',
+  x = 'x',
+  q = 'q',
+  w = 'w',
+  e = 'e',
+  r = 'r',
+  t = 't',
+  l = 'l',
+  escape = 'escape',
+}

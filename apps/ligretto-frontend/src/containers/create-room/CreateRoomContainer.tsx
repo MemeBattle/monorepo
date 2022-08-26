@@ -11,7 +11,7 @@ export const CreateRoomContainer = () => {
   const dispatch = useDispatch()
 
   const [name, setName] = useState('')
-  const [dndEnabled, setDndEnabled] = useState(false)
+  const [dndEnabled, setDndEnabled] = useState(true)
 
   const roomsErrors: CreateRoomError | null = useSelector(roomsErrorSelector)
 

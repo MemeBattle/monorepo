@@ -2912,6 +2912,7 @@ __metadata:
     lodash: ^4.17.21
     react: ^17.0.1
     react-dom: ^17.0.1
+    react-hotkeys-hook: ^3.4.7
     react-json-view: ^1.19.1
     react-redux: ^7.2.8
     react-router: ^5.0.1
@@ -13188,6 +13189,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"hotkeys-js@npm:3.9.4":
+  version: 3.9.4
+  resolution: "hotkeys-js@npm:3.9.4"
+  checksum: 98c3121d458f960c8804f5d8d6be02c4187aaeee5a0b7df28c8d99705e5f65f67b1140658d8128401892bb07b19d18c5e9ea9e84fe170fb06206b639ad53438b
+  languageName: node
+  linkType: hard
+
 "html-entities@npm:^2.1.0":
   version: 2.3.3
   resolution: "html-entities@npm:2.3.3"
@@ -19243,6 +19251,18 @@ __metadata:
     react: ^16.6.0 || ^17.0.0
     react-dom: ^16.6.0 || ^17.0.0
   checksum: e7fbc5083437105044da626a48c0ca3a32a687ef249e9a1f74717dd29f44d6ebecb9a9f4ab6ae36e76a98d2d94fa2ae11bc46171fdc01138314eef945f5df2a6
+  languageName: node
+  linkType: hard
+
+"react-hotkeys-hook@npm:^3.4.7":
+  version: 3.4.7
+  resolution: "react-hotkeys-hook@npm:3.4.7"
+  dependencies:
+    hotkeys-js: 3.9.4
+  peerDependencies:
+    react: ">=16.8.1"
+    react-dom: ">=16.8.1"
+  checksum: 1ec5d197377713168454d0c4c3f8d609cf8302afd276b267a219beb956de6df5c9a5baf06c244c45368c64538e0881d65eb844bd56c45823752fc8deeaf41031
   languageName: node
   linkType: hard
 

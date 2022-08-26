@@ -10,12 +10,8 @@ export const StackContainer = () => {
   const { stackDeckCards, stackOpenDeckCard, isDndEnabled, selectedCardIndex } = useSelector(stackContainerSelector)
 
   const handleStackOpenDeckCardClick = useCallback(() => {
-    if (isDndEnabled && stackOpenDeckCard?.value !== 1) {
-      dispatch(setSelectedCardIndexAction(STACK_OPEN_DECK_INDEX))
-    } else {
-      dispatch(tapStackOpenDeckCardAction())
-    }
-  }, [dispatch, isDndEnabled, stackOpenDeckCard])
+    dispatch(tapStackOpenDeckCardAction())
+  }, [dispatch])
 
   const handleStackOpenDeckCardOutsideClick = useCallback(() => {
     dispatch(setSelectedCardIndexAction(undefined))
@@ -36,7 +32,9 @@ export const StackContainer = () => {
       onStackOpenDeckCardClick={handleStackOpenDeckCardClick}
       onStackDeckCardOutsideClick={handleStackOpenDeckCardOutsideClick}
       onStackDeckCardClick={handleStackDeckCardClick}
+      isDndEnabled={isDndEnabled}
       isStackOpenDeckSelected={selectedCardIndex === STACK_OPEN_DECK_INDEX}
+      isStackOpenDeckDisabled={typeof selectedCardIndex !== 'undefined' && selectedCardIndex !== STACK_OPEN_DECK_INDEX}
     />
   )
 }

@@ -11,6 +11,8 @@ export * from './PasswordInput'
 
 export * from './Card'
 
+export * from './CardHotkeyBadge'
+
 export * from './CardPlace'
 
 export * from './RoomGrid'
