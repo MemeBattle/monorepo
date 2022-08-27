@@ -31,10 +31,10 @@ export default class CasServiceProvider {
 
   public async register() {
     const Env = (await import('@ioc:Adonis/Core/Env')).default
-    const partnerId = Env.get('PARTNER_ID')
-    const publicKeyPath = Env.get('CAS_PUBLIC_KEY_PATH')
-    const casURI = Env.get('CAS_URI')
-    const publicKey = Env.get('MIGRATIONS_MODE') ? '' : (await readFile(publicKeyPath)).toString()
+    const partnerId = Env.get('CAS_PARTNER_ID')
+    const publicKeyPath = Env.get('LIGRETTO_CORE_CAS_PUBLIC_KEY_PATH')
+    const casURI = Env.get('CAS_URL')
+    const publicKey = Env.get('LIGRETTO_CORE_APP_MODE') === 'migrations' ? '' : (await readFile(publicKeyPath)).toString()
 
     this.application.container.bind('CasServices', (): Services => {
       const services = createCasServices({ partnerId, casURI, publicKey })

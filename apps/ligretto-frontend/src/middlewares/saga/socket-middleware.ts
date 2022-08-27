@@ -6,7 +6,7 @@ import type { Socket } from 'socket.io-client'
 
 import { LOCAL_STORAGE_TOKEN_KEY } from 'ducks/auth/constants'
 
-import { WEBSOCKET_URL } from '../../config'
+import { LIGRETTO_GAMEPLAY_URL } from '../../config'
 
 function socketChannel(socket: Socket): EventChannel<unknown> {
   return eventChannel<unknown>((emitter): Unsubscribe => {
@@ -47,7 +47,7 @@ function* socketSendSaga(socket: Socket): SagaIterator {
 export function* socketSaga() {
   let socket
   try {
-    socket = io(WEBSOCKET_URL, {
+    socket = io(LIGRETTO_GAMEPLAY_URL, {
       auth: {
         token: window.localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY),
       },

@@ -14,15 +14,16 @@ export interface AuthFrontModuleProps {
   staticFilesUrl: string
   headerComponent?: ReactNode
   token: string
+  casURL: string
 }
 
-export const AuthFrontModule: FC<AuthFrontModuleProps> = ({ partnerId, onLoginSucceeded, staticFilesUrl, headerComponent, token }) => {
+export const AuthFrontModule: FC<AuthFrontModuleProps> = ({ partnerId, onLoginSucceeded, staticFilesUrl, headerComponent, token, casURL }) => {
   const casServices = useMemo(
     () => ({
-      ...createFrontServices({ partnerId, casURI: import.meta.env.VITE_CAS_URL || 'https://cas.mems.fun/api' }),
+      ...createFrontServices({ partnerId, casURI: casURL }),
       getAbsoluteUrl: (relativePath: string) => `${staticFilesUrl}${relativePath}`,
     }),
-    [partnerId, staticFilesUrl],
+    [casURL, partnerId, staticFilesUrl],
   )
   const appContextValue = useMemo<AppContextValue>(() => ({ Header: headerComponent, token }), [headerComponent, token])
 
