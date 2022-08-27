@@ -35,7 +35,7 @@ export class GameService {
 
     const game = await this.ligrettoCoreService.createGameService()
 
-    return this.gameRepository.addGame(game.id, merge({}, emptyGame, { ...game, name, config: { ...config, ...emptyGame.config } }))
+    return this.gameRepository.addGame(game.id, merge({}, emptyGame, { ...game, name, config: { ...emptyGame.config, ...config } }))
   }
 
   startGame(gameId: UUID) {

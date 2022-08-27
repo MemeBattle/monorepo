@@ -5,7 +5,7 @@ import { createAction, createSlice } from '@reduxjs/toolkit'
 
 import type { STACK_OPEN_DECK_INDEX } from './utils'
 
-type SelectedCardIndex = number | typeof STACK_OPEN_DECK_INDEX
+export type SelectedCardIndex = number | typeof STACK_OPEN_DECK_INDEX
 
 export type GameState = {
   game: Game
@@ -39,10 +39,11 @@ const initialState: GameState = {
 
 export const togglePlayerStatusAction = createAction('@@game/TOGGLE_PLAYER_STATUS')
 export const startGameAction = createAction('@@game/START_GAME')
-export const tapCardAction = createAction<{ cardIndex: number; playgroundDeckIndex?: number }>('@@game/TapCardAction')
-export const tapStackOpenDeckCardAction = createAction<{ playgroundDeckIndex: number } | undefined>('@@game/TapStackOpenDeckCardAction')
+export const tapCardAction = createAction<{ cardIndex: number }>('@@game/TapCardAction')
+export const tapStackOpenDeckCardAction = createAction('@@game/TapStackOpenDeckCardAction')
 export const tapStackDeckCardAction = createAction('@@game/TapStackDeckCardAction')
 export const tapLigrettoDeckCardAction = createAction('@@game/TapLigrettoDeckCardAction')
+export const tapPlaygroundCardAction = createAction<{ deckPosition: number }>('@@game/TapPlaygroundCardAction')
 export const leaveGameAction = createAction('@@game/leaveGameAction')
 
 const gameSlice = createSlice({

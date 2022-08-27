@@ -1,6 +1,7 @@
 import React from 'react'
-import { Card, CardPlace, CardsRow } from '@memebattle/ui'
+import { Card, CardHotkeyBadge, CardPlace, CardsRow } from '@memebattle/ui'
 import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
+import { Hotkey } from 'ducks/game'
 
 export interface StackProps {
   stackOpenDeckCard?: PlayerCard
@@ -8,7 +9,9 @@ export interface StackProps {
   onStackOpenDeckCardClick: () => void
   onStackDeckCardClick: () => void
   onStackDeckCardOutsideClick: () => void
+  isDndEnabled: boolean
   isStackOpenDeckSelected: boolean
+  isStackOpenDeckDisabled: boolean
 }
 
 export const Stack: React.FC<StackProps> = ({
@@ -17,19 +20,29 @@ export const Stack: React.FC<StackProps> = ({
   onStackOpenDeckCardClick,
   onStackDeckCardClick,
   onStackDeckCardOutsideClick,
+  isDndEnabled,
   isStackOpenDeckSelected,
+  isStackOpenDeckDisabled,
 }) => (
   <CardsRow>
-    <CardPlace>
-      <Card
-        {...stackOpenDeckCard}
-        selected={isStackOpenDeckSelected}
-        onClick={onStackOpenDeckCardClick}
-        onClickOutside={isStackOpenDeckSelected ? onStackDeckCardOutsideClick : undefined}
-      />
-    </CardPlace>
-    <CardPlace>
-      <Card color={stackDeckCards[0]?.color} onClick={onStackDeckCardClick} />
-    </CardPlace>
+    <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.x : undefined}>
+      <CardPlace>
+        {stackOpenDeckCard && (
+          <Card
+            {...stackOpenDeckCard}
+            selected={isStackOpenDeckSelected}
+            disabled={isStackOpenDeckDisabled}
+            onClick={onStackOpenDeckCardClick}
+            onClickOutside={isStackOpenDeckSelected ? onStackDeckCardOutsideClick : undefined}
+          />
+        )}
+      </CardPlace>
+    </CardHotkeyBadge>
+
+    <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.space : undefined}>
+      <CardPlace>
+        <Card color={stackDeckCards[0]?.color} onClick={onStackDeckCardClick} />
+      </CardPlace>
+    </CardHotkeyBadge>
   </CardsRow>
 )

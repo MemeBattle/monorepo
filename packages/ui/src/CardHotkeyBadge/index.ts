@@ -1,0 +1,1 @@
+export { CardHotkeyBadge } from './CardHotkeyBadge'

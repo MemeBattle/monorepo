@@ -1,23 +1,25 @@
-import React, { useCallback, useMemo } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import React, { useMemo } from 'react'
+import { useSelector } from 'react-redux'
 import { createSelector } from 'reselect'
 
 import { CardsPanel } from 'components/blocks/game'
-import { tapLigrettoDeckCardAction, playerLigrettoDeckCardsSelector, activePlayerSelector } from 'ducks/game'
+import { playerLigrettoDeckCardsSelector, activePlayerSelector, isDndEnabledSelector } from 'ducks/game'
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
+import { usePanelHotkeys } from './usePanelHotkeys'
 
 const cardsPanelContainerSelector = createSelector(
-  [activePlayerSelector, playerLigrettoDeckCardsSelector],
-  (activePlayer, playerLigrettoDeckCards) => ({
+  [activePlayerSelector, playerLigrettoDeckCardsSelector, isDndEnabledSelector],
+  (activePlayer, playerLigrettoDeckCards, isDndEnabled) => ({
     player: activePlayer,
     playerLigrettoDeckCards,
+    isDndEnabled,
   }),
 )
 
 export const CardsPanelContainer = () => {
-  const dispatch = useDispatch()
+  const { player, isDndEnabled } = useSelector(cardsPanelContainerSelector)
 
-  const { player, playerLigrettoDeckCards } = useSelector(cardsPanelContainerSelector)
+  usePanelHotkeys({ enabled: isDndEnabled })
 
   const playerWithStaticAvatar = useMemo(() => {
     if (player) {
@@ -26,13 +28,5 @@ export const CardsPanelContainer = () => {
     }
   }, [player])
 
-  const onLigrettoDeckCardClick = useCallback(() => {
-    dispatch(tapLigrettoDeckCardAction())
-  }, [dispatch])
-
-  if (!playerLigrettoDeckCards) {
-    return null
-  }
-
-  return <CardsPanel ligrettoDeckCards={playerLigrettoDeckCards} onLigrettoDeckCardClick={onLigrettoDeckCardClick} player={playerWithStaticAvatar} />
+  return <CardsPanel player={playerWithStaticAvatar} />
 }
