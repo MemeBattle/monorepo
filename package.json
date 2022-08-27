@@ -9,7 +9,6 @@
     "lint-fix:styles": "yarn lint:styles --fix",
     "lint": "run-p -l 'lint:*'",
     "lint-fix": "run-p -l 'lint-fix:*'",
-    "test": "yarn workspaces foreach -vip run test",
     "test:ci": "yarn workspaces foreach -vip run test --ci --json --coverage --testLocationInResults --outputFile=report.json",
     "ligretto:start": "yarn workspaces foreach -vip --include '{@memebattle/ligretto-core-backend,@memebattle/ligretto-gameplay-backend,@memebattle/ligretto-frontend}' run start:dev",
     "ligretto:front:build": "yarn workspace @memebattle/ligretto-frontend run build",
