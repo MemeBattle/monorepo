@@ -1,4 +1,4 @@
-import { put, select, takeEvery, takeLatest } from 'redux-saga/effects'
+import { call, put, select, takeEvery, takeLatest } from 'redux-saga/effects'
 import {
   PlayerStatus,
   putCardAction,
@@ -13,6 +13,7 @@ import {
   updateGameAction,
 } from '@memebattle/ligretto-shared'
 
+import type { SelectedCardIndex } from './slice'
 import {
   setGameLoadedAction,
   setGameResultAction,
@@ -24,8 +25,11 @@ import {
   tapStackDeckCardAction,
   tapLigrettoDeckCardAction,
   leaveGameAction,
+  setSelectedCardIndexAction,
+  tapPlaygroundCardAction,
 } from './slice'
-import { gameIdSelector, playerStatusSelector } from './selectors'
+import { gameIdSelector, isDndEnabledSelector, playerStatusSelector, selectedCardIndexSelector, selectPlayerCardByIndex } from './selectors'
+import { STACK_OPEN_DECK_INDEX } from './utils'
 
 function* gameUpdateSaga(action: ReturnType<typeof updateGameAction>) {
   const game = action.payload
@@ -51,16 +55,39 @@ function* startGameSaga() {
   yield put(startGameEmitAction({ gameId }))
 }
 
-function* cardsRowPutSaga({ payload }: ReturnType<typeof tapCardAction>) {
-  const gameId: ReturnType<typeof gameIdSelector> = yield select(gameIdSelector)
+function* setSelectedCardIndexSaga(cardIndex: SelectedCardIndex) {
+  const selectedCardIndex: ReturnType<typeof selectedCardIndexSelector> = yield select(selectedCardIndexSelector)
+  const cardToSelect: ReturnType<typeof selectPlayerCardByIndex> = yield select(selectPlayerCardByIndex, cardIndex)
 
-  yield put(putCardAction({ cardIndex: payload.cardIndex, gameId, playgroundDeckIndex: payload.playgroundDeckIndex }))
+  if (cardIndex === selectedCardIndex || !cardToSelect) {
+    yield put(setSelectedCardIndexAction(undefined))
+  } else {
+    yield put(setSelectedCardIndexAction(cardIndex))
+  }
 }
 
-function* tapStackOpenDeckCardActionSaga({ payload }: ReturnType<typeof tapStackOpenDeckCardAction>) {
+function* tapCardSaga({ payload }: ReturnType<typeof tapCardAction>) {
   const gameId: ReturnType<typeof gameIdSelector> = yield select(gameIdSelector)
+  const isDndEnabled: ReturnType<typeof isDndEnabledSelector> = yield select(isDndEnabledSelector)
+  const tappedCard: ReturnType<typeof selectPlayerCardByIndex> = yield select(selectPlayerCardByIndex, payload.cardIndex)
 
-  yield put(putCardFromStackOpenDeck({ gameId, playgroundDeckIndex: payload?.playgroundDeckIndex }))
+  if (!isDndEnabled || tappedCard?.value === 1) {
+    yield put(putCardAction({ cardIndex: payload.cardIndex, gameId }))
+  } else {
+    yield call(setSelectedCardIndexSaga, payload.cardIndex)
+  }
+}
+
+function* tapStackOpenDeckCardActionSaga() {
+  const gameId: ReturnType<typeof gameIdSelector> = yield select(gameIdSelector)
+  const isDndEnabled: ReturnType<typeof isDndEnabledSelector> = yield select(isDndEnabledSelector)
+  const tappedCard: ReturnType<typeof selectPlayerCardByIndex> = yield select(selectPlayerCardByIndex, STACK_OPEN_DECK_INDEX)
+
+  if (!isDndEnabled || tappedCard?.value === 1) {
+    yield put(putCardFromStackOpenDeck({ gameId }))
+  } else {
+    yield call(setSelectedCardIndexSaga, STACK_OPEN_DECK_INDEX)
+  }
 }
 
 function* tapStackDeckCardActionSaga() {
@@ -75,6 +102,22 @@ function* tapLigrettoDeckCardActionSaga() {
   yield put(takeFromLigrettoDeckAction({ gameId }))
 }
 
+function* tapPlaygroundDeckActionSaga({ payload }: ReturnType<typeof tapPlaygroundCardAction>) {
+  const gameId: ReturnType<typeof gameIdSelector> = yield select(gameIdSelector)
+  const isDndEnabled: ReturnType<typeof isDndEnabledSelector> = yield select(isDndEnabledSelector)
+  const selectedCardIndex: ReturnType<typeof selectedCardIndexSelector> = yield select(selectedCardIndexSelector)
+
+  if (!isDndEnabled) {
+    return
+  }
+
+  if (selectedCardIndex === STACK_OPEN_DECK_INDEX) {
+    yield put(putCardFromStackOpenDeck({ gameId, playgroundDeckIndex: payload.deckPosition }))
+  } else if (typeof selectedCardIndex === 'number') {
+    yield put(putCardAction({ cardIndex: selectedCardIndex, gameId, playgroundDeckIndex: payload.deckPosition }))
+  }
+}
+
 function* endRoundSaga({ payload }: ReturnType<typeof endRoundAction>) {
   yield put(setGameResultAction(payload))
 }
@@ -87,10 +130,11 @@ export function* gameRootSaga() {
   yield takeLatest(updateGameAction, gameUpdateSaga)
   yield takeLatest(togglePlayerStatusAction, togglePlayerStatusSaga)
   yield takeLatest(startGameAction, startGameSaga)
-  yield takeEvery(tapCardAction, cardsRowPutSaga)
+  yield takeEvery(tapCardAction, tapCardSaga)
   yield takeEvery(tapStackOpenDeckCardAction, tapStackOpenDeckCardActionSaga)
   yield takeEvery(tapStackDeckCardAction, tapStackDeckCardActionSaga)
   yield takeEvery(tapLigrettoDeckCardAction, tapLigrettoDeckCardActionSaga)
+  yield takeEvery(tapPlaygroundCardAction, tapPlaygroundDeckActionSaga)
   yield takeEvery(endRoundAction, endRoundSaga)
   yield takeLatest(connectToRoomSuccessAction, connectToRoomSuccessSaga)
   yield takeLatest(leaveGameAction, leaveGameSaga)

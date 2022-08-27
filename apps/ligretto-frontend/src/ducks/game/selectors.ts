@@ -1,10 +1,12 @@
 import { createSelector } from 'reselect'
+import last from 'lodash/last'
 
 import type { All } from 'types/store'
 import { currentUserIdSelector } from 'ducks/auth'
 
 import { usersMapSelector } from '../users'
-import { mergePlayerAndUser } from './utils'
+import { mergePlayerAndUser, STACK_OPEN_DECK_INDEX } from './utils'
+import type { SelectedCardIndex } from './slice'
 
 export const gameSelector = (state: All) => state.game.game
 export const gameIdSelector = (state: All) => gameSelector(state).id
@@ -30,6 +32,15 @@ export const playerStatusSelector = (state: All) => playerSelector(state)?.statu
 /** Local Player State */
 export const localPlayerStateSelector = (state: All) => state.game.localPlayerState
 export const selectedCardIndexSelector = (state: All) => localPlayerStateSelector(state).selectedCardIndex
+export const selectPlayerCardByIndex = (state: All, index: SelectedCardIndex | undefined) => {
+  if (index === STACK_OPEN_DECK_INDEX) {
+    return last(playerStackOpenDeckCardsSelector(state))
+  } else if (typeof index === 'number') {
+    return playerCardsSelector(state)?.[index]
+  } else {
+    return undefined
+  }
+}
 
 export const isPlayerSpectatorSelector = (state: All) => {
   const currentPlayerId = currentUserIdSelector(state)
