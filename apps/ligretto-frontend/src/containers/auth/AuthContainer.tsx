@@ -9,6 +9,8 @@ import { routes } from 'utils/constants'
 import { getMeRequest } from 'ducks/auth/authActions'
 import { tokenSelector } from 'ducks/auth'
 
+import { CAS_STATIC_URL, CAS_PARTNER_ID, CAS_URL } from 'config'
+
 export const AuthContainer = () => {
   const dispatch = useDispatch()
   const history = useHistory()
@@ -27,11 +29,12 @@ export const AuthContainer = () => {
     <ThemeProvider theme={ligrettoAuthTheme}>
       <MainLayout>
         <AuthFrontModule
-          staticFilesUrl={import.meta.env.VITE_CAS_STATIC || 'https://cas.mems.fun/static'}
+          staticFilesUrl={CAS_STATIC_URL}
           onLoginSucceeded={handleLogin}
-          partnerId={import.meta.env.VITE_CAS_PARTNER_ID || ''}
+          partnerId={CAS_PARTNER_ID}
           token={token}
           headerComponent={<LigrettoLogo />}
+          casURL={CAS_URL}
         />
       </MainLayout>
     </ThemeProvider>

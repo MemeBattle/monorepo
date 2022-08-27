@@ -3,6 +3,8 @@ import { routerMiddleware } from 'connected-react-router'
 import { createBrowserHistory } from 'history'
 import createSagaMiddleware from 'redux-saga'
 
+import { IS_DEV_MODE } from 'config'
+
 import createRootReducer from './rootReducer'
 import rootSaga from './rootSaga'
 
@@ -12,6 +14,6 @@ export const history = createBrowserHistory()
 
 const middleware = [...getDefaultMiddleware({ serializableCheck: false, thunk: false }), routerMiddleware(history), sagaMiddleware]
 
-export const store = configureStore({ reducer: createRootReducer(history), devTools: import.meta.env.DEV, middleware })
+export const store = configureStore({ reducer: createRootReducer(history), devTools: IS_DEV_MODE, middleware })
 
 sagaMiddleware.run(rootSaga)

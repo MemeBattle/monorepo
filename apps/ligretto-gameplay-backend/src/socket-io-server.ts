@@ -1,11 +1,9 @@
 import { Server } from 'socket.io'
 import { createServer } from 'http'
-import { SOCKET_PORT } from './config'
+import { LIGRETTO_GAMEPLAY_SOCKET_PORT } from './config'
 import type { WebSocketHandler } from './websocket-handlers'
 import { IOC } from './inversify.config'
 import { IOC_TYPES } from './IOC_TYPES'
-
-console.log('socket port', SOCKET_PORT)
 
 const httpServer = createServer()
 
@@ -21,7 +19,9 @@ export const webSocketHandler = IOC.get<WebSocketHandler>(IOC_TYPES.WebSocketHan
 
 webSocketHandler.connect(io)
 
-httpServer.listen(SOCKET_PORT || 3005)
+httpServer.listen(LIGRETTO_GAMEPLAY_SOCKET_PORT, () => {
+  console.log(`Ligretto gameplay started on ${LIGRETTO_GAMEPLAY_SOCKET_PORT}`)
+})
 
 process.on('SIGTERM', () => {
   console.log('Server closed SIGTERM')
