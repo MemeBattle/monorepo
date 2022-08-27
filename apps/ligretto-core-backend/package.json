@@ -26,6 +26,7 @@
     "@adonisjs/core": "^5.8.3",
     "@adonisjs/lucid": "^17.2.0",
     "@adonisjs/repl": "^3.1.11",
+    "@codexsoft/dotenv-flow": "^3.3.5",
     "@memebattle/cas-services": "^3.6.1",
     "@memebattle/ligretto-shared": "workspace:^",
     "lodash": "^4.17.21",
