@@ -2,8 +2,6 @@ version: '3.3'
 services:
   ligretto-frontend:
     image: ghcr.io/memebattle/ligretto-frontend:latest
-    environment:
-      - VITE_WEBSOCKET_HOST=https://api.ligretto.app
     ports:
       - "3000:80"
     deploy:
