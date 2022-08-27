@@ -10,3 +10,4 @@
 !package.json
 !packages/ui
 !packages/ligretto-shared
+!.env*
