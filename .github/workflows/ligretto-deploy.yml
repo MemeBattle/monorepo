@@ -39,7 +39,7 @@ jobs:
       run: yarn run ligretto:front:build
       env:
         SKIP_PREFLIGHT_CHECK: true
-        VITE_WEBSOCKET_HOST: https://api.ligretto.app
+        LIGRETTO_GAMEPLAY_URL: https://api.ligretto.app
         LIGRETTO_CORE_URL: https://core.ligretto.app
         CAS_PARTNER_ID: 61587c1bdc151b004107a2b5
         CAS_STATIC_URL: https://cas.mems.fun/static
