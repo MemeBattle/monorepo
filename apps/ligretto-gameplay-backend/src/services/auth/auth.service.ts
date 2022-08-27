@@ -1,11 +1,11 @@
 import { injectable } from 'inversify'
 import type { LoginCredentials, SignUpCredentials } from '@memebattle/cas-services'
 import { createCasServices } from '@memebattle/cas-services'
-import { CAS_URL, PARTNER_ID, PUBLIC_KEY } from '../../config'
+import { CAS_URL, CAS_PARTNER_ID, PUBLIC_KEY } from '../../config'
 
 @injectable()
 export class AuthService {
-  private casServices = createCasServices({ casURI: CAS_URL, partnerId: PARTNER_ID, publicKey: PUBLIC_KEY })
+  private casServices = createCasServices({ casURI: CAS_URL, partnerId: CAS_PARTNER_ID, publicKey: PUBLIC_KEY })
 
   public async loginService(credentials: LoginCredentials) {
     try {

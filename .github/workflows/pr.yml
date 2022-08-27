@@ -55,11 +55,9 @@ jobs:
         run: |
           yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
           yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
+
       - name: Install dependencies
         run: yarn
-
-      - name: create .env
-        run: cp .env.defaults .env
 
       - name: Build shared
         run: yarn ligretto-shared:build

@@ -8,7 +8,7 @@
   "scripts": {
     "build": "node ace build --production",
     "start": "node server.js",
-    "start:dev": "node ace serve --watch --encore-args=\"--port ${LIGRETTO_CORE_BACKEND_PORT}\"",
+    "start:dev": "node ace serve --watch",
     "postbuild": "yarn copy:yarn_lock && yarn copy:npm_rc",
     "migrate": "node ace migration:run --force",
     "production-migrate": "node build/ace migration:run --force",
@@ -26,6 +26,7 @@
     "@adonisjs/core": "^5.8.3",
     "@adonisjs/lucid": "^17.2.0",
     "@adonisjs/repl": "^3.1.11",
+    "@codexsoft/dotenv-flow": "^3.3.5",
     "@memebattle/cas-services": "^3.6.1",
     "@memebattle/ligretto-shared": "workspace:^",
     "lodash": "^4.17.21",

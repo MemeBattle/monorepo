@@ -1,3 +1,4 @@
 import { Analytics } from '@memebattle/analytics'
+import { AMPLITUDE_TOKEN } from 'config'
 
-export const analytics = new Analytics({ apiKey: import.meta.env.VITE_AMPLITUDE_TOKEN })
+export const analytics = new Analytics({ apiKey: AMPLITUDE_TOKEN })

@@ -39,12 +39,12 @@ jobs:
       run: yarn run ligretto:front:build
       env:
         SKIP_PREFLIGHT_CHECK: true
-        VITE_WEBSOCKET_HOST: https://api.ligretto.app
-        VITE_LIGRETTO_CORE_URL: https://core.ligretto.app
-        VITE_CAS_PARTNER_ID: 61587c1bdc151b004107a2b5
-        VITE_CAS_STATIC: https://cas.mems.fun/static
-        VITE_CAS_URL: https://cas.mems.fun/api
-        VITE_AMPLITUDE_TOKEN: f55f6d07422dfb26ca4dfbe59a54d609
+        LIGRETTO_GAMEPLAY_URL: https://api.ligretto.app
+        LIGRETTO_CORE_URL: https://core.ligretto.app
+        CAS_PARTNER_ID: 61587c1bdc151b004107a2b5
+        CAS_STATIC_URL: https://cas.mems.fun/static
+        CAS_URL: https://cas.mems.fun/api
+        AMPLITUDE_TOKEN: f55f6d07422dfb26ca4dfbe59a54d609
 
     - name: Docker login
       uses: docker/login-action@v1
@@ -211,17 +211,18 @@ jobs:
         env:
           PORT: 3333
           HOST: 0.0.0.0
-          APP_KEY: BYnNsw-r-ndJTCy15Uqo8JAF4ONCA4X1
-          PARTNER_ID: 61587c1bdc151b004107a2b5
-          CAS_URI: https://cas.mems.fun/api
-          DB_CONNECTION: pg
-          PG_HOST: ${{ secrets.LIGRETTO_PG_HOST }}
-          PG_PORT: 5432
-          PG_USER: ${{ secrets.LIGRETTO_PG_USER }}
-          PG_PASSWORD: ${{ secrets.LIGRETTO_PG_PASSWORD }}
-          CAS_PUBLIC_KEY_PATH: /key.pem
-          PG_DB_NAME: ligretto-core
-          MIGRATIONS_MODE: true
+          LIGRETTO_CORE_APP_KEY: BYnNsw-r-ndJTCy15Uqo8JAF4ONCA4X1
+          CAS_PARTNER_ID: 61587c1bdc151b004107a2b5
+          CAS_URL: https://cas.mems.fun/api
+          LIGRETTO_CORE_DB_CONNECTION: pg
+          LIGRETTO_CORE_PG_HOST: ${{ secrets.LIGRETTO_PG_HOST }}
+          LIGRETTO_CORE_PG_PORT: 5432
+          LIGRETTO_CORE_PG_USER: ${{ secrets.LIGRETTO_PG_USER }}
+          LIGRETTO_CORE_PG_PASSWORD: ${{ secrets.LIGRETTO_PG_PASSWORD }}
+          LIGRETTO_CORE_CAS_PUBLIC_KEY_PATH: /key.pem
+          LIGRETTO_CORE_PG_DB_NAME: ligretto-core
+          LIGRETTO_CORE_APP_MODE: migrations
+          LIGRETTO_CORE_APP_NAME: ligretto-core
         run: |
           touch key.pem
-          docker run --rm -v "$(pwd)"/key.pem:/key.pem --entrypoint="" -e MIGRATIONS_MODE -e HOST -e PORT -e APP_KEY -e PARTNER_ID -e CAS_URI -e DB_CONNECTION -e PG_HOST -e PG_PORT -e PG_USER -e PG_PASSWORD -e CAS_PUBLIC_KEY_PATH -e PG_DB_NAME ghcr.io/memebattle/ligretto-core-backend:${{ github.sha }} yarn run ligretto:core-backend:production-migrate
+          docker run --rm -v "$(pwd)"/key.pem:/key.pem --entrypoint="" -e LIGRETTO_CORE_APP_MODE -e LIGRETTO_CORE_APP_NAME -e HOST -e PORT -e LIGRETTO_CORE_APP_KEY -e CAS_PARTNER_ID -e CAS_URL -e LIGRETTO_CORE_DB_CONNECTION -e LIGRETTO_CORE_PG_HOST -e LIGRETTO_CORE_PG_PORT -e LIGRETTO_CORE_PG_USER -e LIGRETTO_CORE_PG_PASSWORD -e LIGRETTO_CORE_CAS_PUBLIC_KEY_PATH -e LIGRETTO_CORE_PG_DB_NAME ghcr.io/memebattle/ligretto-core-backend:${{ github.sha }} yarn run ligretto:core-backend:production-migrate

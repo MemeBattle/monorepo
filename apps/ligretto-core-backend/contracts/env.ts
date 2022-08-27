@@ -19,7 +19,6 @@ declare module '@ioc:Adonis/Core/Env' {
   */
 
   type CustomTypes = typeof import('../env').default
-  interface EnvTypes extends CustomTypes {
-    qwe: string
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface EnvTypes extends CustomTypes {}
 }

@@ -25,7 +25,7 @@ import type { ValidatorConfig } from '@ioc:Adonis/Core/Validator'
 | be decrypted.
 |
 */
-export const appKey: string = Env.get('APP_KEY')
+export const appKey: string = Env.get('LIGRETTO_CORE_APP_KEY')
 
 /*
 |--------------------------------------------------------------------------
@@ -147,7 +147,7 @@ export const logger: LoggerConfig = {
   | reading the `name` property from the `package.json` file.
   |
   */
-  name: Env.get('APP_NAME'),
+  name: Env.get('LIGRETTO_CORE_APP_NAME'),
 
   /*
   |--------------------------------------------------------------------------
