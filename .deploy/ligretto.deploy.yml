@@ -49,13 +49,12 @@ services:
       - APP_KEY=BYnNsw-r-ndJTCy15Uqo8JAF4ONCA4X1
       - CAS_PARTNER_ID=61587c1bdc151b004107a2b5
       - CAS_URI=https://cas.mems.fun/api
-      - DB_CONNECTION=pg
-      - PG_HOST=ligretto-core-pg
-      - PG_PORT=5432
-      - PG_USER=ligretto-core-user
-      - PG_PASSWORD=ligretto_pg_password
-      - PG_DB_NAME=ligretto-core
-      - MEDIA_FILES_PATH=./data/media
+      - LIGRETTO_CORE_DB_CONNECTION=pg
+      - LIGRETTO_CORE_PG_HOST=ligretto-core-pg
+      - LIGRETTO_CORE_PG_PORT=5432
+      - LIGRETTO_CORE_PG_USER=ligretto-core-user
+      - LIGRETTO_CORE_PG_PASSWORD=ligretto_pg_password
+      - LIGRETTO_CORE_PG_DB_NAME=ligretto-core
     deploy:
       replicas: 1
       update_config:
