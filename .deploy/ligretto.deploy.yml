@@ -40,13 +40,13 @@ services:
       - source: LIGRETTO_CAS_KEY
         target: /ligretto-core-backend/key.pem
     environment:
-      - CAS_PUBLIC_KEY_PATH=/ligretto-core-backend/key.pem
+      - LIGRETTO_CORE_CAS_PUBLIC_KEY_PATH=/ligretto-core-backend/key.pem
       - PORT=3333
       - HOST=0.0.0.0
       - NODE_ENV=production
-      - APP_KEY=BYnNsw-r-ndJTCy15Uqo8JAF4ONCA4X1
+      - LIGRETTO_CORE_APP_KEY=BYnNsw-r-ndJTCy15Uqo8JAF4ONCA4X1
       - CAS_PARTNER_ID=61587c1bdc151b004107a2b5
-      - CAS_URI=https://cas.mems.fun/api
+      - CAS_URL=https://cas.mems.fun/api
       - LIGRETTO_CORE_DB_CONNECTION=pg
       - LIGRETTO_CORE_PG_HOST=ligretto-core-pg
       - LIGRETTO_CORE_PG_PORT=5432

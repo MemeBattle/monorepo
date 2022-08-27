@@ -135,6 +135,10 @@ export class GamesController extends Controller {
       socket.leave(user.currentGameId)
       return
     }
+
+    if (!(await this.gameService.getGame(user.currentGameId))) {
+      return
+    }
     const game = await this.gameService.leaveGame(user.currentGameId, user.id)
 
     if (game) {
