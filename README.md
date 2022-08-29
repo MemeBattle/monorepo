@@ -61,12 +61,12 @@ You have two options:
 
 ### Migrate
 ```
-yarn ligretto:core:migrate
+yarn ligretto:core-backend:migrate
 ```
 
 ### Start core server
 ```
-yarn ligretto:core:start:dev
+yarn ligretto:core-backend:start:dev
 ```
 
 ----
