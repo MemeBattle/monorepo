@@ -5,17 +5,6 @@ Task manager: https://ligretto.atlassian.net/jira/software/projects/LIG/boards/1
 
 ## First prepare
 
-### Environment variables
-1. Copy .env.defaults to .env
-```shell
-cp .env.defaults .env
-```
-
-2. Copy apps/ligretto-core-backend/.env.example to apps/ligretto-core-backend/.env
-```shell
-cp apps/ligretto-core-backend/.env.example apps/ligretto-core-backend/.env
-```
-
 ### GitHub credentials
 1. Generate token 'https://github.com/settings/tokens' and enable write:packages
 2. Set npm registry for scope `memebattle` to github package registry
@@ -45,8 +34,13 @@ yarn workspace @memebattle/{workspace} add <package>
 ```
 
 ## Start ligretto frontend only
-1. Set VITE_WEBSOCKET_HOST=https://api.ligretto.app to .env
-2. Run frontend locally
+1. Create `.env.development.local` in the root directory
+2. Set next variables:
+```
+LIGRETTO_CORE_URL=https://core.ligretto.app
+LIGRETTO_GAMEPLAY_URL=https://api.ligretto.app
+```
+3. Run frontend locally
 ```
 yarn ligretto:front:start:dev
 ```
@@ -61,12 +55,12 @@ You have two options:
 
 ### Migrate
 ```
-yarn ligretto:core:migrate
+yarn ligretto:core-backend:migrate
 ```
 
 ### Start core server
 ```
-yarn ligretto:core:start:dev
+yarn ligretto:core-backend:start:dev
 ```
 
 ----
