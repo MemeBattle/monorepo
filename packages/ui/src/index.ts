@@ -19,8 +19,6 @@ export * from './RoomGrid'
 
 export * from './ResultsTable'
 
-export * from '../../../apps/ligretto-frontend/src/components/blocks/game/CardsRow'
-
 export * from './PageHeader'
 
 export * from './CreateRoom'
