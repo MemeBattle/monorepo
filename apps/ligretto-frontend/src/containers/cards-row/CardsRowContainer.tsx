@@ -29,6 +29,7 @@ export const CardsRowContainer = () => {
 
   const onCardClickOutside = useCallback(
     (index: number) => {
+      console.log('onCardClickOutside', index, selectedCardIndex)
       if (selectedCardIndex === index) {
         dispatch(setSelectedCardIndexAction(undefined))
       }
@@ -39,9 +40,9 @@ export const CardsRowContainer = () => {
   return (
     <CardsRow>
       {playerCards?.map((card, index) => (
-        <CardHotkeyBadge key={index} hotkey={isDndEnabled ? hotkeys[index] : undefined}>
-          <CardPlace>
-            {card && (
+        <CardPlace key={index}>
+          {card && (
+            <CardHotkeyBadge hotkey={isDndEnabled ? hotkeys[index] : undefined}>
               <Card
                 {...card}
                 disabled={typeof selectedCardIndex !== 'undefined' && selectedCardIndex !== index}
@@ -49,9 +50,9 @@ export const CardsRowContainer = () => {
                 onClick={() => onCardClick(index)}
                 onClickOutside={() => onCardClickOutside(index)}
               />
-            )}
-          </CardPlace>
-        </CardHotkeyBadge>
+            </CardHotkeyBadge>
+          )}
+        </CardPlace>
       ))}
     </CardsRow>
   )
