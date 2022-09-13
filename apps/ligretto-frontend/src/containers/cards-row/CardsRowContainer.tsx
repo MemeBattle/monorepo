@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from 'reselect'
-import { Card, CardHotkeyBadge, CardPlace, CardsRow } from '@memebattle/ui'
+import { Card, CardHotkeyBadge, CardPlace } from '@memebattle/ui'
+import { CardsRow } from 'components/blocks/game/CardsRow'
 
 import { tapCardAction, playerCardsSelector, isDndEnabledSelector, setSelectedCardIndexAction, selectedCardIndexSelector, Hotkey } from 'ducks/game'
 
@@ -29,7 +30,6 @@ export const CardsRowContainer = () => {
 
   const onCardClickOutside = useCallback(
     (index: number) => {
-      console.log('onCardClickOutside', index, selectedCardIndex)
       if (selectedCardIndex === index) {
         dispatch(setSelectedCardIndexAction(undefined))
       }
