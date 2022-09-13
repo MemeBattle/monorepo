@@ -9,4 +9,8 @@ declare module '@mui/material/styles' {
     light?: `#${string}`
     lighter?: `#${string}`
   }
+
+  interface PaletteColor {
+    lighter?: `#${string}`
+  }
 }
