@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import clsx from 'clsx'
-import { PositionOnTable, CardsRow, Card, CardPlace, Player } from '@memebattle/ui'
+import { PositionOnTable, Card, CardPlace, Player, Stack } from '@memebattle/ui'
 import type { Card as OpponentCard, PlayerStatus } from '@memebattle/ligretto-shared'
 
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
@@ -36,14 +36,14 @@ export const Opponent: React.FC<OpponentCardsProps> = ({ position, stackOpenDeck
   return (
     <div className={clsx(styles.opponentCards, stylesByPosition[position])}>
       <Player status={status} avatar={avatarImg} username={username} />
-      <CardsRow>
+      <Stack direction="row" spacing={0.5}>
         <CardPlace>
           <Card {...stackOpenDeckCard} />
         </CardPlace>
         {cards.map((card, index) => (
           <CardPlace key={index}>{card ? <Card {...card} /> : null} </CardPlace>
         ))}
-      </CardsRow>
+      </Stack>
     </div>
   )
 }

@@ -115,6 +115,7 @@ function* tapPlaygroundDeckActionSaga({ payload }: ReturnType<typeof tapPlaygrou
     yield put(putCardFromStackOpenDeck({ gameId, playgroundDeckIndex: payload.deckPosition }))
   } else if (typeof selectedCardIndex === 'number') {
     yield put(putCardAction({ cardIndex: selectedCardIndex, gameId, playgroundDeckIndex: payload.deckPosition }))
+    yield put(setSelectedCardIndexAction(undefined))
   }
 }
 
