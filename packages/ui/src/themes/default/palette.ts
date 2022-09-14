@@ -4,6 +4,7 @@ export const palette: Partial<PaletteV5> = {
   primary: {
     main: '#2D8A53',
     dark: '#377757',
+    lighter: '#33BE6D',
     light: '#afe3c9',
     contrastText: '#fff',
   },
