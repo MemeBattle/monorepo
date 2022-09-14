@@ -19,8 +19,6 @@ export * from './RoomGrid'
 
 export * from './ResultsTable'
 
-export * from './CardsRow'
-
 export * from './PageHeader'
 
 export * from './CreateRoom'
