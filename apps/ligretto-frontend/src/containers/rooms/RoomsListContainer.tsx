@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import { useSelector } from 'react-redux'
-import type { RoomsListProps } from '@memebattle/ui'
-import { RoomsList as RoomsListComponent } from '@memebattle/ui'
+import type { RoomsListProps } from 'components/blocks/home/RoomsList'
+import { RoomsList as RoomsListComponent } from 'components/blocks/home/RoomsList'
 import { useHistory, generatePath } from 'react-router'
 
 import { routes } from 'utils/constants'
