@@ -4,8 +4,10 @@ import { styled } from '@mui/material/styles'
 import PlayCircleOutlineOutlinedIcon from '@mui/icons-material/PlayCircleOutlineOutlined'
 import { Stack, useMediaQuery, useTheme, Typography, Box } from '@memebattle/ui'
 
+type Room = { onClick?: () => void; name: string; id: string; playersCount: number; playersMaxCount: number; isDisabled?: boolean }
+
 export interface RoomsListProps {
-  rooms: Array<{ onClick?: () => void; name: string; id: string; playersCount: number; playersMaxCount: number; isDisabled?: boolean }>
+  rooms: Array<Room>
 }
 
 const StyledRoomsListItem = styled('div')<{ isDisabled?: boolean }>(({ theme, isDisabled }) => ({
