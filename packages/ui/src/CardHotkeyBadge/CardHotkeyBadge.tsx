@@ -1,5 +1,5 @@
 import React from 'react'
-import { Badge } from '@mui/material'
+import Badge from '@mui/material/Badge'
 import { styled } from '@mui/material/styles'
 
 interface CardHotkeyBadgeProps {

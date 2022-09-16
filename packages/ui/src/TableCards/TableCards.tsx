@@ -1,5 +1,5 @@
 import React, { Children } from 'react'
-import { Grid } from '@mui/material'
+import Grid from '@mui/material/Grid'
 
 export const TableCards: React.FC = ({ children }) => (
   <Grid container justifyContent="center" spacing={1}>
