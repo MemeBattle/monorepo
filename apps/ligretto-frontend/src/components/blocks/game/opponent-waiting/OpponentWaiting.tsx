@@ -2,7 +2,7 @@ import React, { memo, useMemo } from 'react'
 import clsx from 'clsx'
 import type { UUID } from '@memebattle/ligretto-shared'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
-import { PositionOnTable } from '@memebattle/ui'
+import { PositionOnTable, Box } from '@memebattle/ui'
 
 import { Player } from '../Player'
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
@@ -41,8 +41,11 @@ export const OpponentWaiting = memo<OpponentWaitingProps>(({ position, opponentS
   }
 
   return (
-    <div className={clsx(styles.opponentWaiting, classNameByPositionOnTable[position], classNameByStatus[opponentStatus])}>
+    <Box
+      data-test-id="opponentWaiting"
+      className={clsx(styles.opponentWaiting, classNameByPositionOnTable[position], classNameByStatus[opponentStatus])}
+    >
       <Player avatar={avatarImg} username={username} status={opponentStatus} />
-    </div>
+    </Box>
   )
 })
