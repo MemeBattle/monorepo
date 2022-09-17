@@ -1,4 +1,4 @@
-import { ThemeProvider, gamehubClientTheme, CssBaseline } from '@memebattle/ui'
+import { ThemeProvider, CssBaseline } from '@memebattle/ui'
 import type { AppProps as NextAppProps } from 'next/app'
 import Head from 'next/head'
 
@@ -7,6 +7,8 @@ import type { ReactNode } from 'react'
 import type { EmotionCache } from '@emotion/react'
 import { CacheProvider } from '@emotion/react'
 import { createEmotionCache } from '../utils/createEmotionCache'
+
+import { gamehubClientTheme } from '../themes/gamehubClient'
 
 import type { NextPageWithLayout } from '../types'
 

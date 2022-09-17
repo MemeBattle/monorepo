@@ -2,7 +2,9 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import { Provider } from 'react-redux'
 import { ConnectedRouter } from 'connected-react-router'
-import { ThemeProvider, theme, CssBaseline } from '@memebattle/ui'
+import { ThemeProvider, CssBaseline } from '@memebattle/ui'
+
+import { theme } from './themes/default'
 
 import { store, history } from 'store'
 import { AppContainer } from 'containers/app'

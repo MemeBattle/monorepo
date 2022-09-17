@@ -1,7 +1,11 @@
-import { addDecorator, Parameters } from '@storybook/react'
+import { Parameters } from '@storybook/react'
 import { MINIMAL_VIEWPORTS } from '@storybook/addon-viewport'
-import { CssBaseline, theme, ligrettoAuthTheme, gamehubClientTheme } from '@memebattle/ui'
+import { CssBaseline } from '@memebattle/ui'
 import { ThemeProvider } from '@mui/material/styles'
+
+import { theme } from '../apps/ligretto-frontend/src/themes/default'
+import { ligrettoAuthTheme } from '../apps/ligretto-frontend/src/themes/ligrettoAuth'
+import { gamehubClientTheme } from '../apps/gamehub-client/src/themes/gamehubClient'
 
 const themesByNames = {
   ligretto: theme,
