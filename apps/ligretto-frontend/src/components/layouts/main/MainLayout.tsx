@@ -1,5 +1,5 @@
 import React from 'react'
-import { Background } from '@memebattle/ui'
+import { Background } from './Background'
 
 import { BaseLayout } from '../base/BaseLayout'
 import styles from './MainLayout.module.scss'
