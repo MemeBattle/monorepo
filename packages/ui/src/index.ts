@@ -47,8 +47,6 @@ export * from './Alert'
 
 export * from './Avatar'
 
-export * from './LigrettoLogo'
-
 export * from './LoaderCards'
 
 export * from './Player'

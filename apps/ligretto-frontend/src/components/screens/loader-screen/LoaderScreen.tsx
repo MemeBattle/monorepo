@@ -1,7 +1,9 @@
 import React from 'react'
-import { LigrettoLogo, LoaderCards } from '@memebattle/ui'
+import { LoaderCards } from '@memebattle/ui'
 
 import { MainLayout } from 'components/layouts/main'
+
+import { LigrettoLogo } from 'components/LigrettoLogo'
 
 import styles from './LoaderScreen.module.scss'
 
