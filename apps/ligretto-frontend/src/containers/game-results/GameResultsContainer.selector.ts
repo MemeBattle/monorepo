@@ -5,6 +5,7 @@ import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 import { gameResultsSelector } from 'ducks/game'
 import { usersMapSelector } from 'ducks/users'
 import { currentUserIdSelector } from 'ducks/auth'
+import { getRandomAvatar } from 'components/Avatar/getRandomAvatar'
 
 export const gameResultsContainerSelector = createSelector(
   [gameResultsSelector, usersMapSelector, currentUserIdSelector],
@@ -15,7 +16,7 @@ export const gameResultsContainerSelector = createSelector(
       return {
         position: index + 1,
         username: user?.isTemporary ? 'Guest' : user?.username || '',
-        avatar: !user?.isTemporary && user?.avatar ? buildCasStaticUrl(user.avatar) : undefined,
+        avatar: !user?.isTemporary && user?.avatar ? buildCasStaticUrl(user.avatar) : getRandomAvatar(user?.casId),
         roundPoints: playerResults.roundScore,
         totalPoints: playerResults.gameScore,
         isPlayer: user?.casId === currentPlayerId,

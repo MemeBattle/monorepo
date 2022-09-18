@@ -10,8 +10,11 @@ import user8 from './assets/u8.svg'
 export const userAvatars = [user1, user2, user3, user4, user5, user6, user7, user8]
 
 /**
- This Function do a random Avatar of Array.
-  */
-export function getRandomAvatar() {
-  return userAvatars[Math.floor(Math.random() * userAvatars.length)]
+ * Return avatar by last char of passed string
+ */
+export function getRandomAvatar(id?: string) {
+  if (!id || id?.length === 0) {
+    return userAvatars[0]
+  }
+  return userAvatars[id.charCodeAt(id.length - 1) % userAvatars.length]
 }

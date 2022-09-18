@@ -6,6 +6,7 @@ import { UserInfo } from 'components/blocks/home/user-info'
 import { authRoutes, routes } from 'utils/constants'
 import { logout, currentUserSelector } from 'ducks/auth'
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
+import { getRandomAvatar } from 'components/Avatar/getRandomAvatar'
 
 export const UserInfoContainer = () => {
   const dispatch = useDispatch()
@@ -27,8 +28,11 @@ export const UserInfoContainer = () => {
   }, [dispatch])
 
   const userAvatarUrl = useMemo(() => {
-    if (!user || user.isTemporary || !user.avatar) {
+    if (!user) {
       return undefined
+    }
+    if (user.isTemporary || !user.avatar) {
+      return getRandomAvatar(user.casId)
     }
     return buildCasStaticUrl(user.avatar)
   }, [user])

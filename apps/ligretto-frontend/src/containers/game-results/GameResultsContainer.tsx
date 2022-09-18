@@ -4,6 +4,8 @@ import { ResultsTable } from '@memebattle/ui'
 
 import { gameResultsContainerSelector } from './GameResultsContainer.selector'
 
+import { Avatar } from 'components/Avatar'
+
 export const GameResultsContainer = () => {
   const results = useSelector(gameResultsContainerSelector)
 
@@ -11,5 +13,5 @@ export const GameResultsContainer = () => {
     return null
   }
 
-  return <ResultsTable players={results} />
+  return <ResultsTable AvatarComponent={Avatar} players={results} />
 }

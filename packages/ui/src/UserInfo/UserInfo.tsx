@@ -5,7 +5,6 @@ import { createStyles, makeStyles } from '@mui/styles'
 import CreateIcon from '@mui/icons-material/Create'
 import ClearIcon from '@mui/icons-material/Clear'
 
-import { Avatar } from '../Avatar'
 import { Paper } from '../Paper'
 
 const useStyles = makeStyles(() =>
@@ -63,9 +62,14 @@ export interface UserInfoProps {
   onLogoutClick?: MouseEventHandler
   buttonText?: string
   username?: string
+  /**
+   * Temporary. Should be removed with refactoring
+   * TODO: remove https://ligretto.atlassian.net/browse/LIG-159
+   */
+  children: React.ReactNode
 }
 
-export const UserInfo: React.FC<UserInfoProps> = ({ img, onClick, username, onButtonClick, onLogoutClick, buttonText }) => {
+export const UserInfo: React.FC<UserInfoProps> = ({ onClick, username, onButtonClick, onLogoutClick, buttonText, children }) => {
   const classes = useStyles()
 
   const handleButtonClick: MouseEventHandler = e => {
@@ -88,7 +92,7 @@ export const UserInfo: React.FC<UserInfoProps> = ({ img, onClick, username, onBu
     <Paper>
       <div className={classes.userInfo}>
         <div className={classes.image} onClick={onClick}>
-          <Avatar src={img} alt={username} size="auto" />
+          {children}
         </div>
         <div className={classes.buttonField}>
           {username ? (
