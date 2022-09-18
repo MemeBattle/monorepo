@@ -1,6 +1,6 @@
 import React from 'react'
 import type { PlayerStatus } from '@memebattle/ligretto-shared'
-import { Player } from '@memebattle/ui'
+import { Player } from '../Player'
 
 import { CardsRowContainer } from 'containers/cards-row'
 import { StackContainer } from 'containers/stack'

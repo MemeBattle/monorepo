@@ -2,7 +2,7 @@ export { ThemeProvider } from '@mui/material'
 export { default as Stack } from '@mui/material/Stack'
 export { default as CssBaseline } from '@mui/material/CssBaseline'
 export { StylesProvider } from '@mui/styles'
-export { createTheme } from '@mui/material/styles'
+export { createTheme, responsiveFontSizes } from '@mui/material/styles'
 
 export * from './themes/themes.types'
 export * from './Button'
@@ -46,8 +46,6 @@ export * from './Alert'
 export * from './Avatar'
 
 export * from './LoaderCards'
-
-export * from './Player'
 
 export * from './Paper'
 
