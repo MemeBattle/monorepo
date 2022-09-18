@@ -2,13 +2,14 @@ import React, { useCallback } from 'react'
 import { AuthFrontModule } from '@memebattle/auth-front'
 import { useDispatch, useSelector } from 'react-redux'
 import { useHistory } from 'react-router'
-import { ThemeProvider, ligrettoAuthTheme } from '@memebattle/ui'
+import { ThemeProvider } from '@memebattle/ui'
 
 import { MainLayout } from 'components/layouts/main'
 import { LigrettoLogo } from 'components/LigrettoLogo'
 import { routes } from 'utils/constants'
 import { getMeRequest } from 'ducks/auth/authActions'
 import { tokenSelector } from 'ducks/auth'
+import { ligrettoAuthTheme } from '../../themes/ligrettoAuth'
 
 import { CAS_STATIC_URL, CAS_PARTNER_ID, CAS_URL } from 'config'
 

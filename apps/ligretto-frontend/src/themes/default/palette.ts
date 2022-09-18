@@ -1,6 +1,6 @@
-import type { PaletteV5 } from '../themes.types'
+import type { Palette } from '@memebattle/ui'
 
-export const palette: Partial<PaletteV5> = {
+export const palette: Partial<Palette> = {
   primary: {
     main: '#2D8A53',
     dark: '#377757',
@@ -16,6 +16,5 @@ export const palette: Partial<PaletteV5> = {
     primary: '#fff',
     secondary: '#fff',
     disabled: 'rgba(255,255,255, 0.5)',
-    hint: '#fff',
   },
 }

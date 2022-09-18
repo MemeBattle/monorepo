@@ -2,7 +2,7 @@ import React from 'react'
 import { Switch, Route } from 'react-router-dom'
 
 import { GamePage, HomePage, RoomsPage, CreateRoomPage, TechPage } from 'pages'
-import { AuthContainer } from 'containers/auth'
+import { AuthContainer } from 'containers/AuthContainer'
 import { routes } from 'utils/constants'
 
 export const Routes = () => (
