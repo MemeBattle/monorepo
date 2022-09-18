@@ -17,8 +17,6 @@ export * from './Card'
 
 export * from './CardHotkeyBadge'
 
-export * from './CardPlace'
-
 export * from './ResultsTable'
 
 export * from './PageHeader'

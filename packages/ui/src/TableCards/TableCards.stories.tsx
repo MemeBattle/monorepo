@@ -1,5 +1,5 @@
 import { TableCards } from './TableCards'
-import { CardPlace } from '../CardPlace'
+import { CardPlace } from '@memebattle/ligretto-frontend/src/components/blocks/game/CardPlace'
 
 export default {
   title: 'Ligretto-ui / TableCards',

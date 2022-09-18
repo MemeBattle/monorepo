@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react'
-import { Card, CardPlace, Stack } from '@memebattle/ui'
+import { Card, Stack } from '@memebattle/ui'
 import type { Card as OpponentCard, PlayerStatus, UUID } from '@memebattle/ligretto-shared'
 
 import { Player } from 'components/blocks/game/Player'
 
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 import { getRandomAvatar } from 'components/Avatar/getRandomAvatar'
+import { CardPlace } from 'components/blocks/game/CardPlace'
 
 export interface OpponentCardsProps {
   stackOpenDeckCards: OpponentCard[]
