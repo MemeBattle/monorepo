@@ -40,6 +40,7 @@
     "not op_mini all"
   ],
   "devDependencies": {
+    "@playwright/test": "^1.25.1",
     "@storybook/addon-actions": "^6.5.11",
     "@storybook/addon-docs": "^6.5.11",
     "@storybook/addon-essentials": "^6.5.11",
