@@ -8,7 +8,8 @@
     "start:dev": "vite --host",
     "build": "vite build",
     "ts-check": "tsc --noEmit",
-    "test": "vitest"
+    "test": "vitest",
+    "test:ci": "vitest run"
   },
   "devDependencies": {
     "@types/history": "^4.7.2",
