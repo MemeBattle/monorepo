@@ -1,8 +1,9 @@
 import React, { memo, useMemo } from 'react'
 import clsx from 'clsx'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
-import { PositionOnTable, Player } from '@memebattle/ui'
+import { PositionOnTable } from '@memebattle/ui'
 
+import { Player } from '../Player'
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 
 import styles from './OpponentWaiting.module.scss'

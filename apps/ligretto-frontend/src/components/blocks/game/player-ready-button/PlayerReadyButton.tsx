@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react'
 import clsx from 'clsx'
-import { Player } from '@memebattle/ui'
 import type { PlayerStatus } from '@memebattle/ligretto-shared'
-
+import { Player } from '../Player'
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 import playIcon from 'assets/icons/play.svg'
 

@@ -1,6 +1,8 @@
-import { createTheme } from '@memebattle/ui'
+import { createTheme, responsiveFontSizes } from '@memebattle/ui'
 import { palette } from './palette'
 
-export const theme = createTheme({
-  palette,
-})
+export const theme = responsiveFontSizes(
+  createTheme({
+    palette,
+  }),
+)

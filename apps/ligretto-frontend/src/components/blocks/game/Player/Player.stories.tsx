@@ -1,8 +1,9 @@
 import { Player } from './Player'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
+import type { ComponentMeta, ComponentStory } from '@storybook/react'
 
 export default {
-  title: 'Ligretto-ui / Player',
+  title: 'Ligretto / Player',
   component: Player,
   argTypes: {
     status: {
@@ -10,14 +11,16 @@ export default {
       control: {
         type: 'select',
       },
+      defaultValue: PlayerStatus.ReadyToPlay,
     },
   },
-}
+} as ComponentMeta<typeof Player>
 
-const Template = args => <Player {...args} />
+const Template: ComponentStory<typeof Player> = args => <Player {...args} />
 
 export const DefaultView = Template.bind({})
 DefaultView.args = {
   username: 'username',
   avatar: '',
+  isActivePlayer: true,
 }
