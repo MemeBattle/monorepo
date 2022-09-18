@@ -23,7 +23,8 @@
     "ligretto-shared:build": "yarn workspace @memebattle/ligretto-shared run build",
     "ts-check": "yarn workspaces foreach -vip run ts-check",
     "storybook": "start-storybook -p 6006",
-    "build-storybook": "build-storybook"
+    "build-storybook": "build-storybook",
+    "e2e:start": "playwright test"
   },
   "engines": {
     "node": ">=14"
