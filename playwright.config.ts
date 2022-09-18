@@ -11,7 +11,7 @@ import { devices } from '@playwright/test'
  * See https://playwright.dev/docs/test-configuration.
  */
 const config: PlaywrightTestConfig = {
-  testDir: './e2e',
+  testDir: './e2e/tests',
   /* Maximum time one test can run for. */
   timeout: 30 * 1000,
   expect: {
@@ -40,6 +40,7 @@ const config: PlaywrightTestConfig = {
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+    baseURL: 'http://localhost:5173',
   },
 
   /* Configure projects for major browsers */
