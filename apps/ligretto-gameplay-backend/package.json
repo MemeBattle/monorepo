@@ -6,7 +6,7 @@
   "scripts": {
     "init:partner": "init-partner",
     "test": "NODE_ENV=test jest .",
-    "test:ci": "yarn test",
+    "test:ci": "yarn test --ci --json --coverage --testLocationInResults --outputFile=report.json",
     "test:update-snapshot": "yarn test -u",
     "test:watch": "NODE_ENV=test jest --watch",
     "start:dev": "yarn prestart && nodemon",
