@@ -1,7 +1,7 @@
 import { PasswordInput } from './PasswordInput'
 
 export default {
-  title: 'Ligretto-ui / PasswordInput',
+  title: 'UI / PasswordInput',
 }
 
 export const DefaultView = () => <PasswordInput />

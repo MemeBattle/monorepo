@@ -1,7 +1,7 @@
 import { MemebattleLogo } from './MemebattleLogo'
 
 export default {
-  title: 'Ligretto-ui / MemebattleLogo',
+  title: 'UI / MemebattleLogo',
 }
 
 export const DefaultView = () => <MemebattleLogo />

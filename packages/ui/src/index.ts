@@ -1,14 +1,16 @@
-export { ThemeProvider } from '@mui/material'
 export { default as Stack } from '@mui/material/Stack'
 export { default as CssBaseline } from '@mui/material/CssBaseline'
-export { StylesProvider } from '@mui/styles'
-export { createTheme, responsiveFontSizes } from '@mui/material/styles'
+export { createTheme, responsiveFontSizes, ThemeProvider } from '@mui/material/styles'
+export { default as Container } from '@mui/material/Container'
+export type { ButtonProps } from '@mui/material/Button'
+export { default as Button } from '@mui/material/Button'
+export { default as Grid } from '@mui/material/Grid'
+export { default as Input } from '@mui/material/TextField'
+export { default as Snackbar } from '@mui/material/Snackbar'
+export { default as Link } from '@mui/material/Link'
+export { default as FormHelperText } from '@mui/material/FormHelperText'
 
 export * from './themes/themes.types'
-export * from './Button'
-export * from './Container'
-export * from './Grid'
-export * from './Input'
 export * from './PasswordInput'
 
 export * from './Card'
@@ -39,16 +41,10 @@ export * from './EmailSended'
 
 export * from './Box'
 
-export * from './Snackbar'
-
 export * from './Alert'
 
 export * from './LoaderCards'
 
 export * from './Paper'
-
-export * from './Link'
-
-export * from './FormHelperText'
 
 export * from './Carousel'
