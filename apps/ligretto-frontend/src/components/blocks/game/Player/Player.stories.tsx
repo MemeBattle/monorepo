@@ -13,6 +13,11 @@ export default {
       },
       defaultValue: PlayerStatus.ReadyToPlay,
     },
+    avatar: {
+      control: {
+        type: 'text',
+      },
+    },
   },
 } as ComponentMeta<typeof Player>
 
