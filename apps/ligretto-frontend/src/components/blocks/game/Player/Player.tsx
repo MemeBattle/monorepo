@@ -6,6 +6,8 @@ import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { Avatar } from 'components/Avatar'
 import { styled } from '@mui/material/styles'
 
+import { useMediaQuery, useTheme } from '@memebattle/ui'
+
 export interface PlayerProps {
   username: string
   avatar?: string
@@ -31,10 +33,11 @@ const StyledPlayer = styled('div')<{ status: PlayerStatus; isActivePlayer?: bool
   display: 'flex',
   flexDirection: status === PlayerStatus.InGame && !isActivePlayer ? 'row' : 'column',
   maxWidth: '12rem',
+  height: calcPlayerHeight({ isActivePlayer, status }),
   [theme.breakpoints.down('sm')]: {
     maxWidth: '1.5rem',
+    maxHeight: '1.5rem',
   },
-  height: calcPlayerHeight({ isActivePlayer, status }),
   width: isActivePlayer ? '12rem' : '10rem',
   alignItems: 'center',
   opacity: status === PlayerStatus.DontReadyToPlay ? 0.5 : 1,
@@ -81,6 +84,13 @@ const IconByStatus = {
 
 export const Player: React.FC<PlayerProps> = props => {
   const { avatar, username, status, isActivePlayer } = props
+
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+
+  if (isMobile && isActivePlayer) {
+    return null
+  }
 
   const Icon = IconByStatus[status]
 
