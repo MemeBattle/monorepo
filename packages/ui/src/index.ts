@@ -43,8 +43,6 @@ export * from './Snackbar'
 
 export * from './Alert'
 
-export * from './Avatar'
-
 export * from './LoaderCards'
 
 export * from './Paper'

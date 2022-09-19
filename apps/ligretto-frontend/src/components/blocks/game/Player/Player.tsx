@@ -3,7 +3,7 @@ import History from '@mui/icons-material/History'
 import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 
-import { Avatar } from '@memebattle/ui'
+import { Avatar } from 'components/Avatar'
 import { styled } from '@mui/material/styles'
 
 export interface PlayerProps {

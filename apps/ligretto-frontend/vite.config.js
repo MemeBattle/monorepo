@@ -22,5 +22,8 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [tsconfigPaths(), react(), svgr()],
     define: envVariables,
+    test: {
+      globals: true,
+    },
   }
 })

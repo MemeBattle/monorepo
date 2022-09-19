@@ -6,6 +6,7 @@ import { CardsPanel } from 'components/blocks/game'
 import { playerLigrettoDeckCardsSelector, activePlayerSelector, isDndEnabledSelector } from 'ducks/game'
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 import { usePanelHotkeys } from './usePanelHotkeys'
+import { getRandomAvatar } from 'components/Avatar/getRandomAvatar'
 
 const cardsPanelContainerSelector = createSelector(
   [activePlayerSelector, playerLigrettoDeckCardsSelector, isDndEnabledSelector],
@@ -23,7 +24,7 @@ export const CardsPanelContainer = () => {
 
   const playerWithStaticAvatar = useMemo(() => {
     if (player) {
-      const avatar = player?.avatar ? buildCasStaticUrl(player.avatar) : undefined
+      const avatar = player?.avatar ? buildCasStaticUrl(player.avatar) : getRandomAvatar(player.id)
       return { ...player, avatar }
     }
   }, [player])

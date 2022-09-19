@@ -1,8 +1,7 @@
-import React, { useMemo } from 'react'
+import React from 'react'
 import clsx from 'clsx'
 import type { PlayerStatus } from '@memebattle/ligretto-shared'
 import { Player } from '../Player'
-import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 import playIcon from 'assets/icons/play.svg'
 
 import styles from './PlayerReadyButton.module.scss'
@@ -15,13 +14,9 @@ export interface PlayerReadyButtonProps {
   username: string
   status: PlayerStatus
 }
-export const PlayerReadyButton: React.FC<PlayerReadyButtonProps> = ({ className, onClick, hideButton, avatar, username, status }) => {
-  const avatarImg = useMemo(() => (avatar ? buildCasStaticUrl(avatar) : undefined), [avatar])
-
-  return (
-    <div className={clsx(styles.playerReadyButton, className)}>
-      <Player status={status} avatar={avatarImg} username={username} />
-      {hideButton ? null : <img src={playIcon} alt="Ready to play" className={styles.button} onClick={onClick} />}
-    </div>
-  )
-}
+export const PlayerReadyButton: React.FC<PlayerReadyButtonProps> = ({ className, onClick, hideButton, avatar, username, status }) => (
+  <div className={clsx(styles.playerReadyButton, className)}>
+    <Player status={status} avatar={avatar} username={username} />
+    {hideButton ? null : <img src={playIcon} alt="Ready to play" className={styles.button} onClick={onClick} />}
+  </div>
+)
