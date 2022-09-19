@@ -23,8 +23,8 @@ const StyledImage = styled('img')(() => ({
   objectFit: 'contain',
 }))
 
-export const Avatar: React.FC<AvatarProps> = ({ src = fallbackAvatar, size = 'medium', alt = 'Avatar' }) => (
+export const Avatar: React.FC<AvatarProps> = ({ src, size = 'medium', alt = 'Avatar' }) => (
   <Box maxWidth={maxSizeBySize[size]} maxHeight={maxSizeBySize[size]} height={maxSizeBySize[size]}>
-    <StyledImage alt={alt} src={src} height="100%" width="100%" />
+    <StyledImage alt={alt} src={src || fallbackAvatar} height="100%" width="100%" />
   </Box>
 )
