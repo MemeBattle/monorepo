@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux'
 import { useMinTimeToShowLoader } from 'hooks/useMinTimeLoader'
 import { Routes } from 'components/routes'
 import { currentUserIdSelector } from 'ducks/auth'
-import { LoaderScreen } from 'components/screens/loader-screen'
+import { LoaderScreen } from 'components/screens/LoaderScreen'
 
 export const AppContainer = () => {
   const currentUserId = useSelector(currentUserIdSelector)

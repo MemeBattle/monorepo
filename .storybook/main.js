@@ -2,7 +2,7 @@ const path = require("path");
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 module.exports = {
-  addons: ['@storybook/addon-essentials'],
+  addons: ['@storybook/preset-scss', '@storybook/addon-essentials'],
   core: {
     builder: "webpack5",
   },
@@ -15,15 +15,15 @@ module.exports = {
         esModuleInterop: true,
       },
     },
-    webpackFinal(config) {
-      config.resolve.plugins = [
-        ...(config.resolve.plugins || []),
-        new TsconfigPathsPlugin({
-          configFile: path.resolve(__dirname, '../apps/ligretto-recovery/tsconfig.json'),
-          extensions: config.resolve.extensions,
-        }),
-      ];
-      return config;
-    },
+  },
+  webpackFinal(config) {
+    config.resolve.plugins = [
+      ...(config.resolve.plugins || []),
+      new TsconfigPathsPlugin({
+        configFile: path.resolve(__dirname, '../apps/ligretto-frontend/tsconfig.json'),
+        extensions: config.resolve.extensions,
+      }),
+    ];
+    return config;
   },
 }

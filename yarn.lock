@@ -2828,10 +2828,12 @@ __metadata:
     "@storybook/addons": ^6.5.11
     "@storybook/builder-webpack5": ^6.5.11
     "@storybook/manager-webpack5": ^6.5.11
+    "@storybook/preset-scss": ^1.0.3
     "@storybook/react": ^6.5.11
     "@types/node": ^14.18.18
     "@typescript-eslint/eslint-plugin": ^4.26.1
     "@typescript-eslint/parser": ^4.26.1
+    css-loader: ^6.7.1
     eslint: ^7.11.0
     eslint-config-prettier: ^8.3.0
     eslint-plugin-import: ^2.25.2
@@ -2845,10 +2847,13 @@ __metadata:
     prettier: ^2.2.1
     react-docgen-typescript-loader: ^3.7.2
     react-docgen-typescript-plugin: ^1.0.0
+    sass: ^1.54.9
+    sass-loader: ^13.0.2
+    style-loader: ^3.3.1
     stylelint: ^13.8.0
     stylelint-config-prettier: ^8.0.2
     stylelint-prettier: ^1.2.0
-    tsconfig-paths-webpack-plugin: ^3.5.2
+    tsconfig-paths-webpack-plugin: ^4.0.0
     typescript: 4.7.4
   languageName: unknown
   linkType: soft
@@ -4590,6 +4595,17 @@ __metadata:
   dependencies:
     core-js: ^3.8.2
   checksum: 778ef306ab70d4905991dd315b39f24ad19f2977de854a88e5c7523173618003fef7d62ea74fd013eefb8c676aadd8fece68428a7fc1a630c0e5063a0d30b2d3
+  languageName: node
+  linkType: hard
+
+"@storybook/preset-scss@npm:^1.0.3":
+  version: 1.0.3
+  resolution: "@storybook/preset-scss@npm:1.0.3"
+  peerDependencies:
+    css-loader: "*"
+    sass-loader: "*"
+    style-loader: "*"
+  checksum: 4f1cf1f57a4cd277d76afad5fc4f677436dc3ae3753ce549a6395c0aa9f3d9cf58e9d04c7f8b2cccd2e01929ae563764cca03c016c7e3fed4044a6409e8ca8cd
   languageName: node
   linkType: hard
 
@@ -9312,6 +9328,24 @@ __metadata:
   peerDependencies:
     webpack: ^4.27.0 || ^5.0.0
   checksum: ab9fa688da23d6b43f444522ca41fa446053a166784dddc3f7ca446061af57622a61b1f178d54e63662732e1976a26362d7ccde5b14d1317775f13016572c417
+  languageName: node
+  linkType: hard
+
+"css-loader@npm:^6.7.1":
+  version: 6.7.1
+  resolution: "css-loader@npm:6.7.1"
+  dependencies:
+    icss-utils: ^5.1.0
+    postcss: ^8.4.7
+    postcss-modules-extract-imports: ^3.0.0
+    postcss-modules-local-by-default: ^4.0.0
+    postcss-modules-scope: ^3.0.0
+    postcss-modules-values: ^4.0.0
+    postcss-value-parser: ^4.2.0
+    semver: ^7.3.5
+  peerDependencies:
+    webpack: ^5.0.0
+  checksum: 170fdbc630a05a43679ef60fa97694766b568dbde37adccc0faafa964fc675f08b976bc68837bb73b61d60240e8d2cbcbf51540fe94ebc9dafc56e7c46ba5527
   languageName: node
   linkType: hard
 
@@ -18310,7 +18344,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss-value-parser@npm:^4.1.0":
+"postcss-value-parser@npm:^4.1.0, postcss-value-parser@npm:^4.2.0":
   version: 4.2.0
   resolution: "postcss-value-parser@npm:4.2.0"
   checksum: 819ffab0c9d51cf0acbabf8996dffbfafbafa57afc0e4c98db88b67f2094cb44488758f06e5da95d7036f19556a4a732525e84289a425f4f6fd8e412a9d7442f
@@ -18338,7 +18372,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss@npm:^8.2.8, postcss@npm:^8.4.16":
+"postcss@npm:^8.2.8, postcss@npm:^8.4.16, postcss@npm:^8.4.7":
   version: 8.4.16
   resolution: "postcss@npm:8.4.16"
   dependencies:
@@ -20069,16 +20103,41 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sass@npm:^1.53.0":
-  version: 1.53.0
-  resolution: "sass@npm:1.53.0"
+"sass-loader@npm:^13.0.2":
+  version: 13.0.2
+  resolution: "sass-loader@npm:13.0.2"
+  dependencies:
+    klona: ^2.0.4
+    neo-async: ^2.6.2
+  peerDependencies:
+    fibers: ">= 3.1.0"
+    node-sass: ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0
+    sass: ^1.3.0
+    sass-embedded: "*"
+    webpack: ^5.0.0
+  peerDependenciesMeta:
+    fibers:
+      optional: true
+    node-sass:
+      optional: true
+    sass:
+      optional: true
+    sass-embedded:
+      optional: true
+  checksum: 6306712cc75bd4b4260ce67178778c92110089485f358b5956b6b12aba15a55e5c7287154daaf8b32678891df915b7bcda7356991afe8bf08ca7356ed30eb448
+  languageName: node
+  linkType: hard
+
+"sass@npm:^1.53.0, sass@npm:^1.54.9":
+  version: 1.54.9
+  resolution: "sass@npm:1.54.9"
   dependencies:
     chokidar: ">=3.0.0 <4.0.0"
     immutable: ^4.0.0
     source-map-js: ">=0.6.2 <2.0.0"
   bin:
     sass: sass.js
-  checksum: 4bcb0617d6a4d1f2c089a1cb5c32f65a9ee874b23559f2742fab07cf8478fb74ad20c0730cf9f93915d7dbfc258901f89970674228c3ac91c3883a0a62a0ddab
+  checksum: 90182b566072b48e2263c5a87229ab85164e13b71b24847ba76a8e68eb952cb69a7dcef815f4ccc0189dd2d0c254311acff6972166603338d33bbc96f6d500c6
   languageName: node
   linkType: hard
 
@@ -21279,6 +21338,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"style-loader@npm:^3.3.1":
+  version: 3.3.1
+  resolution: "style-loader@npm:3.3.1"
+  peerDependencies:
+    webpack: ^5.0.0
+  checksum: 470feef680f59e2fce4d6601b5c55b88c01ad8d1dd693c528ffd591ff5fd7c01a4eff3bdbe62f26f847d6bd2430c9ab594be23307cfe7a3446ab236683f0d066
+  languageName: node
+  linkType: hard
+
 "style-search@npm:^0.1.0":
   version: 0.1.0
   resolution: "style-search@npm:0.1.0"
@@ -22066,18 +22134,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsconfig-paths-webpack-plugin@npm:^3.5.2":
-  version: 3.5.2
-  resolution: "tsconfig-paths-webpack-plugin@npm:3.5.2"
+"tsconfig-paths-webpack-plugin@npm:^4.0.0":
+  version: 4.0.0
+  resolution: "tsconfig-paths-webpack-plugin@npm:4.0.0"
   dependencies:
     chalk: ^4.1.0
     enhanced-resolve: ^5.7.0
-    tsconfig-paths: ^3.9.0
-  checksum: e7872f45b10684204d4a6cbc7989073d885c99e0c9eb5222de6b2b83d2e1594bccb647f52d2f8e00c53da5b9a3084e47a2de44f41c6f7a607ec2b17330a8d9e9
+    tsconfig-paths: ^4.0.0
+  checksum: 7ff7d63c1153e6dd30ce660b006495ae5cb5cbb78b30bb59b3cb627567325d4af52c7a69dda8aec7b94d576f5385581a69307472992954c40fe6949564155397
   languageName: node
   linkType: hard
 
-"tsconfig-paths@npm:^3.14.1, tsconfig-paths@npm:^3.9.0":
+"tsconfig-paths@npm:^3.14.1":
   version: 3.14.1
   resolution: "tsconfig-paths@npm:3.14.1"
   dependencies:
