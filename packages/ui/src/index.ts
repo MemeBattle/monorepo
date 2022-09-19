@@ -23,8 +23,6 @@ export * from './PageHeader'
 
 export * from './CreateRoom'
 
-export * from './TableCards'
-
 export * from './utils'
 
 export * from './MemebattleLogo'

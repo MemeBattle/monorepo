@@ -1,5 +1,6 @@
 import React from 'react'
 import { styled } from '@mui/material/styles'
+import { useMediaQuery, useTheme } from '@memebattle/ui'
 
 export type CardPlaceSize = 'medium' | 'large'
 
@@ -8,38 +9,80 @@ export interface CardPlaceProps {
 }
 
 export const heightBySize: Record<CardPlaceSize, string> = {
-  medium: '120px',
-  large: '180px',
+  medium: '7.5rem',
+  large: '11.25rem',
+}
+
+export const mobileHeightBySize: Record<CardPlaceSize, string> = {
+  medium: '7.5rem',
+  large: '4.6875rem',
 }
 
 export const widthBySize: Record<CardPlaceSize, string> = {
-  medium: '84px',
-  large: '130px',
+  medium: '5.25rem',
+  large: '8.125rem',
+}
+
+export const mobileWidthBySize: Record<CardPlaceSize, string> = {
+  medium: '5.25rem',
+  large: '3.375rem',
 }
 
 export const borderBySize: Record<CardPlaceSize, string> = {
-  medium: '12px',
-  large: '3px',
+  medium: '0.75rem',
+  large: '0.25rem',
 }
 
-const StyledCardPlace = styled('div')<{ size: CardPlaceSize }>(({ size }) => ({
-  height: heightBySize[size],
-  width: widthBySize[size],
+export const mobileBorderBySize: Record<CardPlaceSize, string> = {
+  medium: '0.75rem',
+  large: '0.125rem',
+}
+
+const StyledCardPlace = styled('div')<{ size: CardPlaceSize; isMobile: boolean }>(({ size, isMobile }) => ({
+  height: isMobile ? mobileHeightBySize[size] : heightBySize[size],
+  width: isMobile ? mobileWidthBySize[size] : widthBySize[size],
   borderRadius: '4px',
-  border: `white solid ${borderBySize[size]}`,
+  border: `white solid ${isMobile ? mobileBorderBySize[size] : borderBySize[size]}`,
   position: 'relative',
 }))
 
-const StyledCard = styled('div')(() => ({
+export const topBySize: Record<CardPlaceSize, string> = {
+  medium: '-0.75rem',
+  large: '-0.25rem',
+}
+
+export const mobileTopBySize: Record<CardPlaceSize, string> = {
+  medium: '-0.75rem',
+  large: '-0.125rem',
+}
+
+export const leftBySize: Record<CardPlaceSize, string> = {
+  medium: '-0.75rem',
+  large: '-0.25rem',
+}
+
+export const mobileLeftBySize: Record<CardPlaceSize, string> = {
+  medium: '-0.75rem',
+  large: '-0.125rem',
+}
+
+const StyledCard = styled('div')<{ size: CardPlaceSize; isMobile: boolean }>(({ size, isMobile }) => ({
   position: 'absolute',
-  top: '-12px',
-  left: '-12px',
+  top: isMobile ? mobileTopBySize[size] : topBySize[size],
+  left: isMobile ? mobileLeftBySize[size] : leftBySize[size],
 }))
 
-export const CardPlace: React.FC<CardPlaceProps> = ({ children, size = 'medium' }) => (
-  <StyledCardPlace size={size}>
-    <StyledCard>{children}</StyledCard>
-  </StyledCardPlace>
-)
+export const CardPlace: React.FC<CardPlaceProps> = ({ children, size = 'medium' }) => {
+  const theme = useTheme()
+
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  return (
+    <StyledCardPlace size={size} isMobile={isMobile}>
+      <StyledCard size={size} isMobile={isMobile}>
+        {children}
+      </StyledCard>
+    </StyledCardPlace>
+  )
+}
 
 CardPlace.displayName = 'CardPlace'

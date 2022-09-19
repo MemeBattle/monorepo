@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react'
-import { Card as CardComponent, TableCards as TableCardsUI } from '@memebattle/ui'
+import { Card as CardComponent } from '@memebattle/ui'
 import type { CardsDeck, Card } from '@memebattle/ligretto-shared'
 import last from 'lodash/last'
-import { CardPlace } from 'components/blocks/game/CardPlace'
+import { CardPlace } from '../CardPlace'
+import { TableCards as TableCardsUI } from '../TableCards'
 
 import styles from './Playground.module.scss'
 
@@ -16,7 +17,7 @@ const getLastCard = (deck: CardsDeck | null): Card | undefined => last(deck?.car
 export const Playground: React.FC<TableCardsProps> = ({ cardsDecks, onDeckClick }) => {
   const cards: (Card | undefined)[] = useMemo(() => {
     const newPlayerCardsArr = []
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 12; i++) {
       newPlayerCardsArr.push(getLastCard(cardsDecks[i]))
     }
     return newPlayerCardsArr
