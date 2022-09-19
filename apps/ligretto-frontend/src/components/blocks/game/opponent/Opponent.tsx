@@ -1,13 +1,14 @@
 import React, { useMemo } from 'react'
 import clsx from 'clsx'
 import { PositionOnTable, Card, CardPlace, Stack } from '@memebattle/ui'
-import type { Card as OpponentCard, PlayerStatus } from '@memebattle/ligretto-shared'
+import type { Card as OpponentCard, PlayerStatus, UUID } from '@memebattle/ligretto-shared'
 
 import { Player } from 'components/blocks/game/Player'
 
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 
 import styles from './Opponent.module.scss'
+import { getRandomAvatar } from 'components/Avatar/getRandomAvatar'
 
 const stylesByPosition = {
   [PositionOnTable.Left]: styles.positionLeft,
@@ -25,11 +26,12 @@ export interface OpponentCardsProps {
   username: string
   avatar?: string
   status: PlayerStatus
+  id: UUID
 }
 
-export const Opponent: React.FC<OpponentCardsProps> = ({ position, stackOpenDeckCards, cards, avatar, username, status }) => {
+export const Opponent: React.FC<OpponentCardsProps> = ({ position, stackOpenDeckCards, cards, avatar, username, status, id }) => {
   const stackOpenDeckCard = stackOpenDeckCards.length ? stackOpenDeckCards.slice(-1)[0] : {}
-  const avatarImg = useMemo(() => (avatar ? buildCasStaticUrl(avatar) : undefined), [avatar])
+  const avatarImg = useMemo(() => (avatar ? buildCasStaticUrl(avatar) : getRandomAvatar(id)), [avatar, id])
 
   if (!position) {
     return null

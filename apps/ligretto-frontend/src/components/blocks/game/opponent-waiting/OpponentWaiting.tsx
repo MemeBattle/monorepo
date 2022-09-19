@@ -1,5 +1,6 @@
 import React, { memo, useMemo } from 'react'
 import clsx from 'clsx'
+import type { UUID } from '@memebattle/ligretto-shared'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { PositionOnTable } from '@memebattle/ui'
 
@@ -7,12 +8,14 @@ import { Player } from '../Player'
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 
 import styles from './OpponentWaiting.module.scss'
+import { getRandomAvatar } from 'components/Avatar/getRandomAvatar'
 
 export interface OpponentWaitingProps {
   position?: PositionOnTable
   opponentStatus: PlayerStatus
   username: string
   avatar?: string
+  id: UUID
 }
 
 const classNameByStatus = {
@@ -30,8 +33,8 @@ const classNameByPositionOnTable = {
   [PositionOnTable.Bottom]: '',
 }
 
-export const OpponentWaiting = memo<OpponentWaitingProps>(({ position, opponentStatus, username, avatar }) => {
-  const avatarImg = useMemo(() => (avatar ? buildCasStaticUrl(avatar) : undefined), [avatar])
+export const OpponentWaiting = memo<OpponentWaitingProps>(({ position, opponentStatus, username, avatar, id }) => {
+  const avatarImg = useMemo(() => (avatar ? buildCasStaticUrl(avatar) : getRandomAvatar(id)), [avatar, id])
 
   if (!position) {
     return null

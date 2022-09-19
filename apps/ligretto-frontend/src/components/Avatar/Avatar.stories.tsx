@@ -1,8 +1,9 @@
 import { Avatar } from './Avatar'
 import { userAvatars } from './getRandomAvatar'
+import type { ComponentMeta, ComponentStory } from '@storybook/react'
 
 export default {
-  title: 'Ligretto-ui / Avatar',
+  title: 'Ligretto / Avatar',
   component: Avatar,
   argTypes: {
     src: {
@@ -14,9 +15,9 @@ export default {
       control: { type: 'radio' },
     },
   },
-}
+} as ComponentMeta<typeof Avatar>
 
-export const DefaultView = args => <Avatar {...args} />
+export const DefaultView: ComponentStory<typeof Avatar> = args => <Avatar {...args} />
 
 export const AvatarSize = DefaultView.bind({})
 AvatarSize.argTypes = {

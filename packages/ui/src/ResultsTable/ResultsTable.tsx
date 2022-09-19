@@ -1,11 +1,14 @@
 import React from 'react'
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material'
 import { createStyles, makeStyles } from '@mui/styles'
-import { Avatar } from '../Avatar'
 
 export interface ResultsTableProps {
   /** Players results */
   players: Array<{ position: number; username: string; avatar?: string; roundPoints: number; totalPoints: number; isPlayer: boolean }>
+  /**
+   * Temporary. Will be removed with Results table refactoring TODO: https://ligretto.atlassian.net/browse/LIG-156 remove
+   */
+  AvatarComponent: React.FC<{ src?: string; size?: 'small' | 'medium' | 'large' | 'auto'; alt?: string }>
 }
 
 const useStyles = makeStyles(theme =>
@@ -36,7 +39,7 @@ const useStyles = makeStyles(theme =>
   }),
 )
 
-export const ResultsTable: React.FC<ResultsTableProps> = ({ players }: ResultsTableProps) => {
+export const ResultsTable: React.FC<ResultsTableProps> = ({ players, AvatarComponent }: ResultsTableProps) => {
   const classes = useStyles()
 
   return (
@@ -56,7 +59,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ players }: ResultsTa
             <TableRow className={isPlayer ? classes.playerRow : classes.otherRow} key={index}>
               <TableCell className={classes.tableBodyCell}>{position}</TableCell>
               <TableCell className={classes.tableBodyCell}>
-                <Avatar src={avatar} size="small" />
+                <AvatarComponent src={avatar} size="small" />
               </TableCell>
               <TableCell className={classes.tableBodyCell}>{username}</TableCell>
               <TableCell className={classes.tableBodyCell}>{roundPoints}</TableCell>

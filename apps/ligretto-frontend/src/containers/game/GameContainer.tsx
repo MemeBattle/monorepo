@@ -21,6 +21,7 @@ export const GameContainer = () => {
       <RoomGrid>
         {opponents.map(opponent => (
           <Opponent
+            id={opponent.id}
             avatar={opponent.avatar}
             status={opponent.status}
             username={opponent.username}
