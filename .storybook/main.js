@@ -19,7 +19,7 @@ module.exports = {
       config.resolve.plugins = [
         ...(config.resolve.plugins || []),
         new TsconfigPathsPlugin({
-          configFile: path.resolve(__dirname, '../apps/ligretto-recovery/tsconfig.json'),
+          configFile: path.resolve(__dirname, '../apps/ligretto-frontend/tsconfig.json'),
           extensions: config.resolve.extensions,
         }),
       ];
