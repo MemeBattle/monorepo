@@ -1,7 +1,7 @@
 import { Paper } from './Paper'
 
 export default {
-  title: 'Ligretto-ui / Paper',
+  title: 'UI / Paper',
   component: Paper,
 }
 

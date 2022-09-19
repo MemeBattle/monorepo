@@ -1,7 +1,7 @@
 import { Alert } from './Alert'
 
 export default {
-  title: 'Ligretto-ui / Alert',
+  title: 'UI / Alert',
   component: Alert,
 }
 

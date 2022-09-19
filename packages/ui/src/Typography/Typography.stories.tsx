@@ -1,7 +1,7 @@
 import { Typography } from './Typography'
 
 export default {
-  title: 'Ligretto-ui / Typography',
+  title: 'UI / Typography',
 }
 
 export const DefaultView = () => <Typography>Typhography</Typography>
