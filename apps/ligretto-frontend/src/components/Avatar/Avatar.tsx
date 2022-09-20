@@ -21,10 +21,12 @@ export interface AvatarProps {
 
 const StyledImage = styled('img')(() => ({
   objectFit: 'contain',
+  maxWidth: '100%',
+  maxHeight: '100%',
 }))
 
 export const Avatar: React.FC<AvatarProps> = ({ src, size = 'medium', alt = 'Avatar' }) => (
-  <Box maxWidth={maxSizeBySize[size]} maxHeight={maxSizeBySize[size]} height={maxSizeBySize[size]}>
-    <StyledImage alt={alt} src={src || fallbackAvatar} height="100%" width="100%" />
+  <Box display="flex" overflow="hidden" maxWidth={maxSizeBySize[size]} maxHeight={maxSizeBySize[size]} height={maxSizeBySize[size]}>
+    <StyledImage alt={alt} src={src || fallbackAvatar} />
   </Box>
 )

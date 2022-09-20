@@ -1,6 +1,7 @@
 import { Player } from './Player'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import type { ComponentMeta, ComponentStory } from '@storybook/react'
+import { Stack } from '@memebattle/ui'
 
 export default {
   title: 'Ligretto / Player',
@@ -29,3 +30,19 @@ DefaultView.args = {
   avatar: '',
   isActivePlayer: true,
 }
+
+export const Opponent = () => (
+  <Stack spacing={1}>
+    <Player isActivePlayer={false} username="DontReadyToPlay" status={PlayerStatus.DontReadyToPlay} />
+    <Player isActivePlayer={false} username="ReadyToPlay" status={PlayerStatus.ReadyToPlay} />
+    <Player isActivePlayer={false} username="InGame" status={PlayerStatus.InGame} />
+  </Stack>
+)
+
+export const CurrentPlayer = () => (
+  <Stack spacing={1}>
+    <Player isActivePlayer username="DontReadyToPlay" status={PlayerStatus.DontReadyToPlay} />
+    <Player isActivePlayer username="ReadyToPlay" status={PlayerStatus.ReadyToPlay} />
+    <Player isActivePlayer username="InGame" status={PlayerStatus.InGame} />
+  </Stack>
+)
