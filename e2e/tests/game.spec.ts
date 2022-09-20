@@ -1,12 +1,15 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, chromium } from '@playwright/test'
 import { GamePage } from '../support/pages/game'
 import { HomePage } from '../support/pages/home'
 import { random } from 'lodash'
 
-test('Two users enter one room', async ({ context }) => {
+test('Two users enter one room', async () => {
   const roomName = String(random(0, 10000))
-  const pageUser1 = await context.newPage()
-  const pageUser2 = await context.newPage()
+  const browser = await chromium.launch()
+  const contextUser1 = await browser.newContext()
+  const contextUser2 = await browser.newContext()
+  const pageUser1 = await contextUser1.newPage()
+  const pageUser2 = await contextUser2.newPage()
 
   const homePageUser1 = new HomePage(pageUser1)
   await homePageUser1.visitHomeUrl()
@@ -20,7 +23,7 @@ test('Two users enter one room', async ({ context }) => {
   await (await homePageUser1.getCreateGameButton()).click()
 
   const gamePageUser1 = new GamePage(pageUser1)
-  await expect(await gamePageUser1.getPlayerReadyButton()).toBeVisible({ timeout: 30000 })
+  await expect(await gamePageUser1.getPlayerReadyButton()).toBeVisible()
 
   /**
    * User 2 enter created room
@@ -33,5 +36,5 @@ test('Two users enter one room', async ({ context }) => {
 
   const gamePageUser2 = new GamePage(pageUser2)
 
-  await expect(await gamePageUser2.getOpponentWaiting()).toBeVisible({ timeout: 30000 })
+  await expect(await gamePageUser2.getOpponentWaiting()).toBeVisible()
 })
