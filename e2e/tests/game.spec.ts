@@ -1,31 +1,39 @@
 import { test, expect } from '@playwright/test'
-import { Game } from '../support/pages/game'
+import { GamePage } from '../support/pages/game'
+import { HomePage } from '../support/pages/home'
 import { random } from 'lodash'
 
-test('Create and enter room', async ({ context }) => {
-  const roomName = String(random(0, 100))
-  const createdPageOne = await context.newPage()
-  const createdPageTwo = await context.newPage()
-  const pageOne = new Game(createdPageOne)
-  const pageTwo = new Game(createdPageTwo)
-  // User 1 visit game page
-  await pageOne.visitGameUrl()
-  // User 2 visit game page
-  await pageTwo.visitGameUrl()
+test.describe('Create and enter room', () => {
+  test('Two users enter one room', async ({ context }) => {
+    const roomName = String(random(0, 10000))
+    const pageUser1 = await context.newPage()
+    const pageUser2 = await context.newPage()
 
-  // // User 1 create game // //
+    const homePageUser1 = new HomePage(pageUser1)
+    await homePageUser1.visitHomeUrl()
 
-  await (await pageOne.getMenuCreateGameButton()).click()
-  await (await pageOne.getRoomNameInput()).click()
-  await (await pageOne.getRoomNameInput()).fill(roomName)
-  await (await pageOne.getCreateGameButton()).click()
+    /**
+     * User 1 create game
+     */
+    await (await homePageUser1.getMenuCreateGameButton()).click()
+    await (await homePageUser1.getRoomNameInput()).click()
+    await (await homePageUser1.getRoomNameInput()).fill(roomName)
+    await (await homePageUser1.getCreateGameButton()).click()
 
-  await expect(await pageOne.getPlayerReadyButton()).toBeVisible({ timeout: 30000 })
+    const gamePageUser1 = new GamePage(pageUser1)
+    await expect(await gamePageUser1.getPlayerReadyButton()).toBeVisible({ timeout: 30000 })
 
-  // // User 2 enter created room // //
+    /**
+     * User 2 enter created room
+     */
+    const homePageUser2 = new HomePage(pageUser2)
+    await homePageUser2.visitHomeUrl()
 
-  await (await pageTwo.getEnterRoomButton()).click()
-  await (await pageTwo.getRoom(roomName)).click()
+    await (await homePageUser2.getEnterRoomButton()).click()
+    await (await homePageUser2.getRoom(roomName)).click()
 
-  await expect(await pageTwo.getOpponentWaiting()).toBeVisible({ timeout: 30000 })
+    const gamePageUser2 = new GamePage(pageUser2)
+
+    await expect(await gamePageUser2.getOpponentWaiting()).toBeVisible({ timeout: 30000 })
+  })
 })
