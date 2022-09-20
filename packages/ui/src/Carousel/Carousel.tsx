@@ -45,11 +45,14 @@ const CarouselSlide = ({ children, index }: CarouselSlideProps) => {
 
 const StyledCarouselSlides = styled('div')(({ theme }) => ({
   display: 'flex',
+  overflowX: 'auto',
+  overflowY: 'hidden',
   [theme.breakpoints.up('sm')]: {
     flexDirection: 'column',
+    overflowX: 'hidden',
+    overflowY: 'auto',
   },
   scrollSnapType: 'both mandatory',
-  overflow: 'auto',
   scrollBehavior: 'smooth',
   flex: 3,
 
