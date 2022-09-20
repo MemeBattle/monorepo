@@ -8,14 +8,12 @@ import { styled } from '@mui/material/styles'
 
 import { useMediaQuery, useTheme } from '@memebattle/ui'
 
-export interface PlayerProps {
-  username: string
-  avatar?: string
+interface CalcPlayerHeightParams {
   status: PlayerStatus
   isActivePlayer?: boolean
 }
 
-const calcPlayerHeight = ({ status, isActivePlayer }: { status: PlayerStatus; isActivePlayer?: boolean }): string => {
+const calcPlayerHeight = ({ status, isActivePlayer }: CalcPlayerHeightParams): string => {
   switch (true) {
     case isActivePlayer && status === PlayerStatus.InGame:
       return '9rem'
@@ -29,7 +27,12 @@ const calcPlayerHeight = ({ status, isActivePlayer }: { status: PlayerStatus; is
   return '10rem'
 }
 
-const StyledPlayer = styled('div')<{ status: PlayerStatus; isActivePlayer?: boolean }>(({ status, isActivePlayer, theme }) => ({
+interface StyledPlayerProps {
+  status: PlayerStatus
+  isActivePlayer?: boolean
+}
+
+const StyledPlayer = styled('div')<StyledPlayerProps>(({ status, isActivePlayer, theme }) => ({
   display: 'flex',
   flexDirection: status === PlayerStatus.InGame && !isActivePlayer ? 'row' : 'column',
   maxWidth: '12rem',
@@ -53,7 +56,12 @@ const StyledIconWrapper = styled('div')(() => ({
   lineHeight: '1',
 }))
 
-const Username = styled('span')<{ status: PlayerStatus; isActivePlayer?: boolean }>(({ status, isActivePlayer }) => ({
+interface UsernameProps {
+  status: PlayerStatus
+  isActivePlayer?: boolean
+}
+
+const Username = styled('span')<UsernameProps>(({ status, isActivePlayer }) => ({
   color: '#fff',
   fontSize: status === PlayerStatus.InGame && !isActivePlayer ? '1rem' : '1.5rem',
   textAlign: 'center',
@@ -62,7 +70,12 @@ const Username = styled('span')<{ status: PlayerStatus; isActivePlayer?: boolean
   width: '100%',
 }))
 
-const Bottom = styled('div')<{ status: PlayerStatus; isActivePlayer?: boolean }>(({ theme, status, isActivePlayer }) => ({
+interface BottomProps {
+  status: PlayerStatus
+  isActivePlayer?: boolean
+}
+
+const Bottom = styled('div')<BottomProps>(({ theme, status, isActivePlayer }) => ({
   borderRadius: 4,
   background: theme.palette.primary.main,
   alignItems: 'center',
@@ -75,6 +88,13 @@ const Bottom = styled('div')<{ status: PlayerStatus; isActivePlayer?: boolean }>
     display: 'none',
   },
 }))
+
+export interface PlayerProps {
+  username: string
+  avatar?: string
+  status: PlayerStatus
+  isActivePlayer?: boolean
+}
 
 const IconByStatus = {
   [PlayerStatus.ReadyToPlay]: CheckCircleOutline,
