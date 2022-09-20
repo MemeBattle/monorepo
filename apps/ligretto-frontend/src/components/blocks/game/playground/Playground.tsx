@@ -28,7 +28,7 @@ export const Playground: React.FC<TableCardsProps> = ({ cardsDecks, onDeckClick 
       <div className={styles.tableCards}>
         <TableCardsUI>
           {cards.map((card, index) => (
-            <CardPlace key={index} size={'large'}>
+            <CardPlace key={index} size="large">
               {card && <CardComponent {...card} onClick={() => onDeckClick(index)} />}
             </CardPlace>
           ))}

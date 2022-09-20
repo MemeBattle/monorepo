@@ -1,6 +1,5 @@
 import React from 'react'
 import { styled } from '@mui/material/styles'
-import { useMediaQuery, useTheme } from '@memebattle/ui'
 
 export type CardPlaceSize = 'medium' | 'large'
 
@@ -38,51 +37,33 @@ export const mobileBorderBySize: Record<CardPlaceSize, string> = {
   large: '0.125rem',
 }
 
-const StyledCardPlace = styled('div')<{ size: CardPlaceSize; isMobile: boolean }>(({ size, isMobile }) => ({
-  height: isMobile ? mobileHeightBySize[size] : heightBySize[size],
-  width: isMobile ? mobileWidthBySize[size] : widthBySize[size],
+const StyledCardPlace = styled('div')<{ size: CardPlaceSize }>(({ size, theme }) => ({
+  height: heightBySize[size],
+  width: widthBySize[size],
   borderRadius: '4px',
-  border: `white solid ${isMobile ? mobileBorderBySize[size] : borderBySize[size]}`,
+  border: `white solid ${borderBySize[size]}`,
   position: 'relative',
+  [theme.breakpoints.down('sm')]: {
+    height: mobileHeightBySize[size],
+    width: mobileWidthBySize[size],
+    border: `white solid ${mobileBorderBySize[size]}`,
+  },
 }))
 
-export const topBySize: Record<CardPlaceSize, string> = {
-  medium: '-0.75rem',
-  large: '-0.25rem',
-}
-
-export const mobileTopBySize: Record<CardPlaceSize, string> = {
-  medium: '-0.75rem',
-  large: '-0.125rem',
-}
-
-export const leftBySize: Record<CardPlaceSize, string> = {
-  medium: '-0.75rem',
-  large: '-0.25rem',
-}
-
-export const mobileLeftBySize: Record<CardPlaceSize, string> = {
-  medium: '-0.75rem',
-  large: '-0.125rem',
-}
-
-const StyledCard = styled('div')<{ size: CardPlaceSize; isMobile: boolean }>(({ size, isMobile }) => ({
+const StyledCard = styled('div')<{ size: CardPlaceSize }>(({ size, theme }) => ({
   position: 'absolute',
-  top: isMobile ? mobileTopBySize[size] : topBySize[size],
-  left: isMobile ? mobileLeftBySize[size] : leftBySize[size],
+  top: `-${borderBySize[size]}`,
+  left: `-${borderBySize[size]}`,
+  [theme.breakpoints.down('sm')]: {
+    top: `-${mobileBorderBySize[size]}`,
+    left: `-${mobileBorderBySize[size]}`,
+  },
 }))
 
-export const CardPlace: React.FC<CardPlaceProps> = ({ children, size = 'medium' }) => {
-  const theme = useTheme()
-
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
-  return (
-    <StyledCardPlace size={size} isMobile={isMobile}>
-      <StyledCard size={size} isMobile={isMobile}>
-        {children}
-      </StyledCard>
-    </StyledCardPlace>
-  )
-}
+export const CardPlace: React.FC<CardPlaceProps> = ({ children, size = 'medium' }) => (
+  <StyledCardPlace size={size}>
+    <StyledCard size={size}>{children}</StyledCard>
+  </StyledCardPlace>
+)
 
 CardPlace.displayName = 'CardPlace'
