@@ -39,4 +39,4 @@ test.describe('Create and enter room', () => {
 
     await expect(await gamePageUser2.getOpponentWaiting()).toBeVisible()
   })
-}
+})

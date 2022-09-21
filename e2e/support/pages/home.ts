@@ -2,10 +2,7 @@ import type { Page } from '@playwright/test'
 import { byTestId } from '../utils/byTestId'
 
 export class HomePage {
-  readonly page: Page
-  constructor(page) {
-    this.page = page
-  }
+  constructor(readonly page: Page) {}
 
   async visitHomeUrl() {
     await this.page.goto('/')
