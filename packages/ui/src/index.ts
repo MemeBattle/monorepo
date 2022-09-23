@@ -17,15 +17,11 @@ export * from './Card'
 
 export * from './CardHotkeyBadge'
 
-export * from './CardPlace'
-
 export * from './ResultsTable'
 
 export * from './PageHeader'
 
 export * from './CreateRoom'
-
-export * from './TableCards'
 
 export * from './utils'
 
