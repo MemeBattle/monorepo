@@ -50,3 +50,6 @@ storybook-static
 !/.storybook/preview.js
 
 tsconfig.tsbuildinfo
+/test-results/
+/playwright-report/
+/playwright/.cache/

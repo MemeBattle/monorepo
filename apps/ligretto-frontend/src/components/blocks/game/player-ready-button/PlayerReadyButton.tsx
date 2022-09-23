@@ -1,5 +1,6 @@
 import React from 'react'
 import clsx from 'clsx'
+import { Box } from '@memebattle/ui'
 import type { PlayerStatus } from '@memebattle/ligretto-shared'
 import { Player } from '../Player'
 import playIcon from 'assets/icons/play.svg'
@@ -15,8 +16,8 @@ export interface PlayerReadyButtonProps {
   status: PlayerStatus
 }
 export const PlayerReadyButton: React.FC<PlayerReadyButtonProps> = ({ className, onClick, hideButton, avatar, username, status }) => (
-  <div className={clsx(styles.playerReadyButton, className)}>
+  <Box data-test-id="playerReadyButton" className={clsx(styles.playerReadyButton, className)}>
     <Player status={status} avatar={avatar} username={username} />
     {hideButton ? null : <img src={playIcon} alt="Ready to play" className={styles.button} onClick={onClick} />}
-  </div>
+  </Box>
 )
