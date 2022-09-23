@@ -1,9 +1,10 @@
 import React from 'react'
-import { Card, CardHotkeyBadge, CardPlace } from '@memebattle/ui'
+import { Card, CardHotkeyBadge } from '@memebattle/ui'
 import type { Card as PlayerCards } from '@memebattle/ligretto-shared'
 
 import styles from './LigrettoPack.module.scss'
 import { Hotkey } from 'ducks/game'
+import { CardPlace } from 'components/blocks/game/CardPlace'
 
 interface LigrettoPack {
   count: number

@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react'
-import { Card as CardComponent, CardPlace, TableCards as TableCardsUI } from '@memebattle/ui'
+import { Card as CardComponent } from '@memebattle/ui'
 import type { CardsDeck, Card } from '@memebattle/ligretto-shared'
 import last from 'lodash/last'
+import { CardPlace } from '../CardPlace'
+import { TableCards as TableCardsUI } from '../TableCards'
 
 import styles from './Playground.module.scss'
 
@@ -26,7 +28,9 @@ export const Playground: React.FC<TableCardsProps> = ({ cardsDecks, onDeckClick 
       <div className={styles.tableCards}>
         <TableCardsUI>
           {cards.map((card, index) => (
-            <CardPlace key={index}>{card && <CardComponent {...card} onClick={() => onDeckClick(index)} />}</CardPlace>
+            <CardPlace key={index} size="large">
+              {card && <CardComponent {...card} onClick={() => onDeckClick(index)} />}
+            </CardPlace>
           ))}
         </TableCardsUI>
       </div>

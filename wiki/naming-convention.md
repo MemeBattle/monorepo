@@ -2,7 +2,7 @@
 
 ## React components
 
-React component should be named in CamelCase notation
+React component should be named in PascalCase notation
 
 ```jsx
 const ComponentName = () => ...

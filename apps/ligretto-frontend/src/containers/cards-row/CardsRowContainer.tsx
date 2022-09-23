@@ -1,10 +1,11 @@
 import React, { useCallback, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from 'reselect'
-import { Card, CardHotkeyBadge, CardPlace } from '@memebattle/ui'
+import { Card, CardHotkeyBadge } from '@memebattle/ui'
 import { CardsRow } from 'components/blocks/game/CardsRow'
 
 import { tapCardAction, playerCardsSelector, isDndEnabledSelector, setSelectedCardIndexAction, selectedCardIndexSelector, Hotkey } from 'ducks/game'
+import { CardPlace } from 'components/blocks/game/CardPlace'
 
 const CardsRowContainerSelector = createSelector(
   [playerCardsSelector, isDndEnabledSelector, selectedCardIndexSelector],
