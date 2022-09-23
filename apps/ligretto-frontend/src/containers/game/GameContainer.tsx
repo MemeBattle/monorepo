@@ -1,6 +1,6 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
-import { RoomGrid } from '@memebattle/ui'
+import { RoomGrid } from 'components/blocks/game/RoomGrid'
 import { createSelector } from 'reselect'
 
 import { opponentsSelector } from 'ducks/game'
@@ -18,7 +18,7 @@ export const GameContainer = () => {
 
   return (
     <>
-      <RoomGrid>
+      <RoomGrid centerElement={<PlaygroundContainer />} bottomElement={<CardsPanelContainer />}>
         {opponents.map(opponent => (
           <Opponent
             id={opponent.id}
@@ -31,8 +31,6 @@ export const GameContainer = () => {
           />
         ))}
       </RoomGrid>
-      <PlaygroundContainer />
-      <CardsPanelContainer />
     </>
   )
 }
