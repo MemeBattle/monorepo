@@ -20,8 +20,6 @@ export * from './CardHotkeyBadge'
 
 export * from './CardPlace'
 
-export * from './RoomGrid'
-
 export * from './PageHeader'
 
 export * from './CreateRoom'
