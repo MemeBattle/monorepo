@@ -58,7 +58,7 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({
             required
             onChange={onRoomNameChange}
             fullWidth
-            inputProps={{ minLength: 1 }}
+            inputProps={{ minLength: 1, 'data-test-id': 'CreateGameInput' }}
             label="Room name"
             variant="outlined"
             placeholder="Tomsk"
@@ -75,6 +75,7 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({
         <Grid container justifyContent="center">
           <Grid item xs={12} sm={8} md={6}>
             <Button
+              data-test-id="CreateGameButton"
               onClick={onCreateClick}
               disabled={isCreateButtonDisabled || !!validationErrors}
               variant="contained"

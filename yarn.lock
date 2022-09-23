@@ -2820,6 +2820,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@memebattle/memebattle@workspace:."
   dependencies:
+    "@playwright/test": ^1.25.1
     "@storybook/addon-actions": ^6.5.11
     "@storybook/addon-docs": ^6.5.11
     "@storybook/addon-essentials": ^6.5.11
@@ -3286,6 +3287,18 @@ __metadata:
   version: 1.0.0
   resolution: "@phc/format@npm:1.0.0"
   checksum: 15ee02504fbc16590923d89b1f1c2f5892df27cf2bf19180e5678511413e87b6e5355815a092749cd01698855ee5a0fc5d2393951c727acd650934eed290e26e
+  languageName: node
+  linkType: hard
+
+"@playwright/test@npm:^1.25.1":
+  version: 1.25.2
+  resolution: "@playwright/test@npm:1.25.2"
+  dependencies:
+    "@types/node": "*"
+    playwright-core: 1.25.2
+  bin:
+    playwright: cli.js
+  checksum: 3c24027bd9b305a3985cae35a4046e656dd0ffb76ef4dfcfc864f6c8492a643fc21c79048ee8169c5c1562d3cae493e7223a5473b127fef3bda7c7c52795c17d
   languageName: node
   linkType: hard
 
@@ -18117,6 +18130,15 @@ __metadata:
   dependencies:
     find-up: ^5.0.0
   checksum: b167bb8dac7bbf22b1d5e30ec223e6b064b84b63010c9d49384619a36734caf95ed23ad23d4f9bd975e8e8082b60a83395f43a89bb192df53a7c25a38ecb57d9
+  languageName: node
+  linkType: hard
+
+"playwright-core@npm:1.25.2":
+  version: 1.25.2
+  resolution: "playwright-core@npm:1.25.2"
+  bin:
+    playwright: cli.js
+  checksum: 24ada61e2132bd7278cf0aa0ef711280e1519c437efa0088a99c47ef994202f4c9880521d8c0c51ab854bef08806f372477d754aac1e790ea64f18cd346b5b2f
   languageName: node
   linkType: hard
 
