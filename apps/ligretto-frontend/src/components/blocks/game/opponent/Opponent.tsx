@@ -1,12 +1,13 @@
 import React, { useMemo } from 'react'
-import { Card, Stack } from '@memebattle/ui'
+import { Stack } from '@memebattle/ui'
 import type { Card as OpponentCard, PlayerStatus, UUID } from '@memebattle/ligretto-shared'
 
-import { Player } from 'components/blocks/game/Player'
+import { Player } from '../Player'
+import { Card } from '../Card'
 
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 import { getRandomAvatar } from 'components/Avatar/getRandomAvatar'
-import { CardPlace } from 'components/blocks/game/CardPlace'
+import { CardPlace } from '../CardPlace'
 
 export interface OpponentCardsProps {
   stackOpenDeckCards: OpponentCard[]
@@ -25,11 +26,13 @@ export const Opponent: React.FC<OpponentCardsProps> = ({ stackOpenDeckCards, car
     <>
       <Player status={status} avatar={avatarImg} username={username} />
       <Stack direction="row" spacing={0.5}>
-        <CardPlace>
-          <Card {...stackOpenDeckCard} />
+        <CardPlace size="small">
+          <Card size="small" isDisabled {...stackOpenDeckCard} />
         </CardPlace>
         {cards.map((card, index) => (
-          <CardPlace key={index}>{card ? <Card {...card} /> : null} </CardPlace>
+          <CardPlace size="small" key={index}>
+            {card ? <Card isDisabled size="small" {...card} /> : null}
+          </CardPlace>
         ))}
       </Stack>
     </>

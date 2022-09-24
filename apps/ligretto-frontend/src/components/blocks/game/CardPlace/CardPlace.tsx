@@ -1,45 +1,29 @@
 import React from 'react'
 import { styled } from '@mui/material/styles'
 
-export type CardPlaceSize = 'medium' | 'large'
+import { widthByCardSize, heightByCardSize, mobileHeightBySize, mobileWidthBySize } from '../Card'
+
+export type CardPlaceSize = 'small' | 'medium' | 'large'
 
 export interface CardPlaceProps {
   size?: CardPlaceSize
 }
 
-export const heightBySize: Record<CardPlaceSize, string> = {
-  medium: '7.5rem',
-  large: '11.25rem',
-}
-
-export const mobileHeightBySize: Record<CardPlaceSize, string> = {
-  medium: '7.5rem',
-  large: '4.6875rem',
-}
-
-export const widthBySize: Record<CardPlaceSize, string> = {
-  medium: '5.25rem',
-  large: '8.125rem',
-}
-
-export const mobileWidthBySize: Record<CardPlaceSize, string> = {
-  medium: '5.25rem',
-  large: '3.375rem',
-}
-
 export const borderBySize: Record<CardPlaceSize, string> = {
-  medium: '0.75rem',
+  small: '0.125rem',
+  medium: '0.125rem',
   large: '0.25rem',
 }
 
 export const mobileBorderBySize: Record<CardPlaceSize, string> = {
-  medium: '0.75rem',
+  small: '0.125rem',
+  medium: '0.125rem',
   large: '0.125rem',
 }
 
 const StyledCardPlace = styled('div')<{ size: CardPlaceSize }>(({ size, theme }) => ({
-  height: heightBySize[size],
-  width: widthBySize[size],
+  height: heightByCardSize[size],
+  width: widthByCardSize[size],
   borderRadius: '4px',
   border: `white solid ${borderBySize[size]}`,
   position: 'relative',

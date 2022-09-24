@@ -14,8 +14,6 @@ export { default as FormHelperText } from '@mui/material/FormHelperText'
 export * from './themes/themes.types'
 export * from './PasswordInput'
 
-export * from './Card'
-
 export * from './CardHotkeyBadge'
 
 export * from './PageHeader'
