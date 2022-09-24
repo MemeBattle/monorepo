@@ -39,6 +39,7 @@ export const CardsColor = () => (
     <Card color={CardColors.empty} />
     <Card color={CardColors.red} isDisabled />
     <Card color={CardColors.red} isSelected />
+    <Card color={CardColors.red} isDarkened />
     <Card color={CardColors.red} />
   </Stack>
 )
