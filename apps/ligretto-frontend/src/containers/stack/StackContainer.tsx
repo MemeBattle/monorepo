@@ -34,7 +34,7 @@ export const StackContainer = () => {
       onStackDeckCardClick={handleStackDeckCardClick}
       isDndEnabled={isDndEnabled}
       isStackOpenDeckSelected={selectedCardIndex === STACK_OPEN_DECK_INDEX}
-      isStackOpenDeckDisabled={typeof selectedCardIndex !== 'undefined' && selectedCardIndex !== STACK_OPEN_DECK_INDEX}
+      isStackOpenDeckDarkened={typeof selectedCardIndex !== 'undefined' && selectedCardIndex !== STACK_OPEN_DECK_INDEX}
     />
   )
 }
