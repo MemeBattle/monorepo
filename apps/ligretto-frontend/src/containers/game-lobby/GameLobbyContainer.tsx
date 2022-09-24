@@ -1,7 +1,7 @@
 import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { GameLobby as GameLobbyComponent } from 'components/blocks/game'
+import { GameLobby } from 'components/blocks/game/GameLobby'
 import { startGameAction, togglePlayerStatusAction } from 'ducks/game'
 
 import { gameLobbyContainerSelector } from './GameLobbyContainer.selector'
@@ -19,7 +19,7 @@ export const GameLobbyContainer = () => {
   }, [dispatch])
 
   return (
-    <GameLobbyComponent
+    <GameLobby
       player={player}
       gameStatus={gameStatus}
       opponents={opponents}
