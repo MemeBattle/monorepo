@@ -1,6 +1,7 @@
 import { CardsRow } from './CardsRow'
-import { Card } from '@memebattle/ui'
 import { CardColors } from '@memebattle/ligretto-shared'
+
+import { Card } from '../Card'
 
 export default {
   title: 'Ligretto / CardsRow',

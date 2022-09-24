@@ -1,13 +1,14 @@
 import { CardPlace } from './CardPlace'
+import { Stack } from '@memebattle/ui'
 
 export default {
-  title: 'Ligretto-ui / CardPlace',
+  title: 'Ligretto / CardPlace',
 }
 
 export const DefaultView = () => (
-  <div style={{ height: '400px', display: 'flex', alignItems: 'center', padding: '20px', justifyContent: 'space-around' }}>
-    <CardPlace />
-    <CardPlace />
-    <CardPlace />
-  </div>
+  <Stack spacing={2} direction="row">
+    <CardPlace size="small" />
+    <CardPlace size="medium" />
+    <CardPlace size="large" />
+  </Stack>
 )
