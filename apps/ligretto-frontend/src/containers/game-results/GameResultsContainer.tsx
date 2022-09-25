@@ -1,17 +1,23 @@
-import React from 'react'
-import { useSelector } from 'react-redux'
-import { ResultsTable } from '@memebattle/ui'
+import React, { useCallback } from 'react'
 
-import { gameResultsContainerSelector } from './GameResultsContainer.selector'
-
-import { Avatar } from 'components/Avatar'
+import { leaveGameAction, togglePlayerStatusAction } from 'ducks/game'
+import { GameResults } from 'components/blocks/game/GameResults'
+import { useDispatch } from 'react-redux'
+import { useHistory } from 'react-router'
+import { routes } from 'utils/constants'
 
 export const GameResultsContainer = () => {
-  const results = useSelector(gameResultsContainerSelector)
+  const dispatch = useDispatch()
+  const history = useHistory()
 
-  if (!results) {
-    return null
-  }
+  const handleReadyClick = useCallback(() => {
+    dispatch(togglePlayerStatusAction())
+  }, [dispatch])
 
-  return <ResultsTable AvatarComponent={Avatar} players={results} />
+  const handleExitClick = useCallback(() => {
+    dispatch(leaveGameAction())
+    history.push(routes.HOME)
+  }, [dispatch, history])
+
+  return <GameResults onReadyClick={handleReadyClick} onExitClick={handleExitClick} />
 }

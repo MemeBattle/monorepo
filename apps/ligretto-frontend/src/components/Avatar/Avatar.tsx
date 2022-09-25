@@ -7,7 +7,7 @@ import fallbackAvatar from './assets/u1.svg'
 export type AvatarSize = 'small' | 'medium' | 'large' | 'auto'
 
 export const maxSizeBySize: Record<AvatarSize, string> = {
-  small: '1.5rem',
+  small: '3rem',
   medium: '7.5rem',
   large: '10rem',
   auto: '100%',
@@ -26,7 +26,15 @@ const StyledImage = styled('img')(() => ({
 }))
 
 export const Avatar: React.FC<AvatarProps> = ({ src, size = 'medium', alt = 'Avatar' }) => (
-  <Box display="flex" overflow="hidden" maxWidth={maxSizeBySize[size]} maxHeight={maxSizeBySize[size]} height={maxSizeBySize[size]}>
+  <Box
+    display="flex"
+    overflow="hidden"
+    maxWidth={maxSizeBySize[size]}
+    maxHeight={maxSizeBySize[size]}
+    height={maxSizeBySize[size]}
+    minHeight={maxSizeBySize[size]}
+    minWidth={maxSizeBySize[size]}
+  >
     <StyledImage alt={alt} src={src || fallbackAvatar} />
   </Box>
 )

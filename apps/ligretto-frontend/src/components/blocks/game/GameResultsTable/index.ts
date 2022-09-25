@@ -1,0 +1,1 @@
+export { GameResultsTable } from './GameResultsTable'
