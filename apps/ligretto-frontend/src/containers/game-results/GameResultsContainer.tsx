@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react'
 
-import { leaveGameAction, togglePlayerStatusAction } from 'ducks/game'
+import { togglePlayerStatusAction } from 'ducks/game'
 import { GameResults } from 'components/blocks/game/GameResults'
 import { useDispatch } from 'react-redux'
 import { useHistory } from 'react-router'
@@ -15,9 +15,8 @@ export const GameResultsContainer = () => {
   }, [dispatch])
 
   const handleExitClick = useCallback(() => {
-    dispatch(leaveGameAction())
     history.push(routes.HOME)
-  }, [dispatch, history])
+  }, [history])
 
   return <GameResults onReadyClick={handleReadyClick} onExitClick={handleExitClick} />
 }
