@@ -6,7 +6,7 @@ import { createSelector } from 'reselect'
 import { opponentsSelector } from 'ducks/game'
 import { Opponent } from 'components/blocks/game/opponent'
 
-import { CardsPanelContainer } from '../cards-panel'
+import { CardsPanelContainer } from '../CardsPanelContainer'
 import { PlaygroundContainer } from '../playground'
 
 const GameSelector = createSelector([opponentsSelector], opponents => ({
@@ -17,20 +17,18 @@ export const GameContainer = () => {
   const { opponents } = useSelector(GameSelector)
 
   return (
-    <>
-      <RoomGrid centerElement={<PlaygroundContainer />} bottomElement={<CardsPanelContainer />}>
-        {opponents.map(opponent => (
-          <Opponent
-            id={opponent.id}
-            avatar={opponent.avatar}
-            status={opponent.status}
-            username={opponent.username}
-            key={opponent.id}
-            cards={opponent.cards}
-            stackOpenDeckCards={opponent.stackOpenDeck.cards}
-          />
-        ))}
-      </RoomGrid>
-    </>
+    <RoomGrid centerElement={<PlaygroundContainer />} bottomElement={<CardsPanelContainer />}>
+      {opponents.map(opponent => (
+        <Opponent
+          id={opponent.id}
+          avatar={opponent.avatar}
+          status={opponent.status}
+          username={opponent.username}
+          key={opponent.id}
+          cards={opponent.cards}
+          stackOpenDeckCards={opponent.stackOpenDeck.cards}
+        />
+      ))}
+    </RoomGrid>
   )
 }

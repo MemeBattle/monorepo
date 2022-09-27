@@ -46,7 +46,7 @@ export const mobileHeightBySize: Record<CardPlaceSize, string> = {
 
 export const mobileWidthBySize: Record<CardPlaceSize, string> = {
   small: '2.25rem',
-  medium: '2.875rem',
+  medium: '3rem',
   large: '3.375rem',
 }
 

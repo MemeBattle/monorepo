@@ -1,5 +1,5 @@
 import React from 'react'
-import { CardHotkeyBadge } from '@memebattle/ui'
+import { CardHotkeyBadge, Typography } from '@memebattle/ui'
 import type { Card as PlayerCards } from '@memebattle/ligretto-shared'
 
 import styles from './LigrettoPack.module.scss'
@@ -23,6 +23,6 @@ export const LigrettoPack: React.FC<LigrettoPack> = ({ count, isDndEnabled, ligr
         </CardPlace>
       </CardHotkeyBadge>
     </div>
-    <span className={styles.title}>Осталось в колоде: {count} </span>
+    <Typography fontSize={['0.375rem', '1rem']}>В колоде: {count}</Typography>
   </div>
 )
