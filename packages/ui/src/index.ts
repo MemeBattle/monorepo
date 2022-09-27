@@ -4,6 +4,7 @@ export { createTheme, responsiveFontSizes, ThemeProvider } from '@mui/material/s
 export { default as Container } from '@mui/material/Container'
 export type { ButtonProps } from '@mui/material/Button'
 export { default as Button } from '@mui/material/Button'
+export type { GridProps } from '@mui/material/Grid'
 export { default as Grid } from '@mui/material/Grid'
 export { default as Input } from '@mui/material/TextField'
 export { default as Snackbar } from '@mui/material/Snackbar'
@@ -20,8 +21,6 @@ export * from './CardHotkeyBadge'
 export * from './CardPlace'
 
 export * from './RoomGrid'
-
-export * from './ResultsTable'
 
 export * from './PageHeader'
 
