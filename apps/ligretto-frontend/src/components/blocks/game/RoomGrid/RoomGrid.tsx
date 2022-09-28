@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import React, { isValidElement } from 'react'
 import { styled } from '@mui/material/styles'
-import { useMediaQuery, useTheme } from '@memebattle/ui'
+import { useMediaQuery, useTheme, Box } from '@memebattle/ui'
 import { OpponentCardsWrapper } from './OpponentCardsWrapper'
 import { OpponentPosition } from './OpponentPosition'
 import { PositionOnTable } from './types'
@@ -27,13 +27,9 @@ const positionOnTableByIndexByLength: Record<number, PositionOnTable[] | undefin
   4: [PositionOnTable.Left, PositionOnTable.Top, PositionOnTable.Right, PositionOnTable.Bottom],
 }
 
-const Box = styled('div')(() => ({
-  pointerEvents: 'none',
-}))
-
 export const DesktopRoomGrid: React.FC<RoomGridProps> = ({ children, centerElement, bottomElement }) => (
   <Room>
-    <Box>
+    <Box pointerEvents="none">
       {React.Children.map(children, (child, index) => {
         if (!isValidElement(child)) {
           return null
@@ -61,7 +57,7 @@ const MobileOpponentCardsWrapper = styled('div')<{ index: number }>(({ index }) 
   display: 'flex',
   flexDirection: index % 2 === 0 ? 'row' : 'row-reverse',
   alignItems: 'center',
-  justifyContent: 'center',
+  justifyContent: 'flex-start',
   marginTop: '10px',
 }))
 

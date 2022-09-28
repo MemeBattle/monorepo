@@ -33,32 +33,30 @@ export const GameLobby: FC<GameLobbyProps> = ({ opponents, player, gameStatus, h
   }
 
   return (
-    <>
-      <RoomGrid
-        centerElement={
-          gameStatus === GameStatus.RoundFinished ? (
-            <div className={styles.resultsTableWrapper}>
-              <div className={styles.resultsTable}>
-                <GameResultsContainer />
-              </div>
+    <RoomGrid
+      centerElement={
+        gameStatus === GameStatus.RoundFinished ? (
+          <div className={styles.resultsTableWrapper}>
+            <div className={styles.resultsTable}>
+              <GameResultsContainer />
             </div>
-          ) : undefined
-        }
-        bottomElement={
-          <PlayerReadyButton
-            className={styles.playerReadyButton}
-            onClick={player.isHost ? handleStartGameClick : handleReadyToPlayButtonClick}
-            hideButton={opponents.length === 0}
-            avatar={playerAvatarImg}
-            username={player.username}
-            status={player.status}
-          />
-        }
-      >
-        {opponents.map(({ id, status, username, avatar }) => (
-          <OpponentWaiting id={id} avatar={avatar} username={username} key={id} opponentStatus={status} />
-        ))}
-      </RoomGrid>
-    </>
+          </div>
+        ) : undefined
+      }
+      bottomElement={
+        <PlayerReadyButton
+          className={styles.playerReadyButton}
+          onClick={player.isHost ? handleStartGameClick : handleReadyToPlayButtonClick}
+          hideButton={opponents.length === 0}
+          avatar={playerAvatarImg}
+          username={player.username}
+          status={player.status}
+        />
+      }
+    >
+      {opponents.map(({ id, status, username, avatar }) => (
+        <OpponentWaiting id={id} avatar={avatar} username={username} key={id} opponentStatus={status} />
+      ))}
+    </RoomGrid>
   )
 }
