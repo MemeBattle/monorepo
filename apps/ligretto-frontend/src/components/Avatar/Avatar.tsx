@@ -32,8 +32,8 @@ export const Avatar: React.FC<AvatarProps> = ({ src, size = 'medium', alt = 'Ava
     maxWidth={maxSizeBySize[size]}
     maxHeight={maxSizeBySize[size]}
     height={maxSizeBySize[size]}
-    minHeight={maxSizeBySize[size]}
-    minWidth={maxSizeBySize[size]}
+    minHeight={size !== 'auto' ? maxSizeBySize[size] : undefined}
+    minWidth={size !== 'auto' ? maxSizeBySize[size] : undefined}
   >
     <StyledImage alt={alt} src={src || fallbackAvatar} />
   </Box>
