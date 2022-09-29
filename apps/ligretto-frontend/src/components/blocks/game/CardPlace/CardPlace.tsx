@@ -1,7 +1,7 @@
 import React from 'react'
 import { styled } from '@mui/material/styles'
 
-import { widthByCardSize, heightByCardSize, mobileHeightBySize, mobileWidthBySize } from '../Card'
+import { widthByCardSize, heightByCardSize, mobileHeightBySize, mobileWidthBySize, tabletWidthBySize, tabletHeightBySize } from '../Card'
 
 export type CardPlaceSize = 'small' | 'medium' | 'large'
 
@@ -27,6 +27,11 @@ const StyledCardPlace = styled('div')<{ size: CardPlaceSize }>(({ size, theme })
   borderRadius: '4px',
   border: `white solid ${borderBySize[size]}`,
   position: 'relative',
+  [theme.breakpoints.down('md')]: {
+    height: tabletHeightBySize[size],
+    width: tabletWidthBySize[size],
+    border: `white solid ${mobileBorderBySize[size]}`,
+  },
   [theme.breakpoints.down('sm')]: {
     height: mobileHeightBySize[size],
     width: mobileWidthBySize[size],
@@ -38,7 +43,7 @@ const StyledCard = styled('div')<{ size: CardPlaceSize }>(({ size, theme }) => (
   position: 'absolute',
   top: `-${borderBySize[size]}`,
   left: `-${borderBySize[size]}`,
-  [theme.breakpoints.down('sm')]: {
+  [theme.breakpoints.down('md')]: {
     top: `-${mobileBorderBySize[size]}`,
     left: `-${mobileBorderBySize[size]}`,
   },
