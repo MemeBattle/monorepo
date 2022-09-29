@@ -2,7 +2,6 @@ import type { ReactNode } from 'react'
 import React, { isValidElement } from 'react'
 import { styled } from '@mui/material/styles'
 import { useMediaQuery, useTheme, Box } from '@memebattle/ui'
-import { OpponentCardsWrapper } from './OpponentCardsWrapper'
 import { OpponentPosition } from './OpponentPosition'
 import { PositionOnTable } from './types'
 
@@ -15,7 +14,7 @@ export type RoomGridProps = {
 const Room = styled('div')(() => ({
   width: '100%',
   height: '100%',
-  position: 'absolute',
+  position: 'relative',
   display: 'flex',
   flexDirection: 'column',
 }))
@@ -43,7 +42,7 @@ export const DesktopRoomGrid: React.FC<RoomGridProps> = ({ children, centerEleme
 
         return (
           <OpponentPosition position={position} key={index}>
-            <OpponentCardsWrapper position={position}>{child}</OpponentCardsWrapper>
+            {child}
           </OpponentPosition>
         )
       })}
