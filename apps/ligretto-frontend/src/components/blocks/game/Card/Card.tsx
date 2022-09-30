@@ -98,7 +98,7 @@ const StyledCard = styled(ButtonBase)<{
 }>(({ color, isDisabled, isSelected, isDarkened, size, theme }) => ({
   height: heightByCardSize[size],
   width: widthByCardSize[size],
-  visibility: color === CardColors.empty ? 'hidden' : 'visible',
+  opacity: color === CardColors.empty ? 0 : 1,
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
@@ -132,7 +132,7 @@ const StyledCardValue = styled(Typography)(() => ({
 
 export const Card: React.FC<CardProps> = ({
   value,
-  isDisabled,
+  isDisabled = false,
   isSelected,
   isDarkened,
   onClick,
@@ -159,3 +159,5 @@ export const Card: React.FC<CardProps> = ({
     </StyledCard>
   )
 }
+
+Card.displayName = 'Card'

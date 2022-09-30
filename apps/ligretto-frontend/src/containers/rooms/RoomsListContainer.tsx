@@ -18,7 +18,7 @@ export const RoomsListContainer = () => {
         name,
         playersCount,
         playersMaxCount,
-        onClick: playersCount === playersMaxCount ? undefined : () => history.push(generatePath(routes.GAME, { roomUuid: uuid })),
+        onClick: () => history.push(generatePath(routes.GAME, { roomUuid: uuid })),
         isDisabled: playersCount === playersMaxCount,
       })),
     [history, rooms],
