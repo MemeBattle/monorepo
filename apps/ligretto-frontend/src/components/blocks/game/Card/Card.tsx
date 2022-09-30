@@ -29,13 +29,25 @@ interface CardProps {
 export const widthByCardSize: Record<CardSize, string> = {
   small: '3.875rem',
   medium: '6.125rem',
-  large: '8.125rem',
+  large: '7.5rem',
 }
 
 export const heightByCardSize: Record<CardSize, string> = {
   small: '5.5rem',
   medium: '8.5rem',
-  large: '11.25rem',
+  large: '10.75rem',
+}
+
+export const tabletHeightBySize: Record<CardPlaceSize, string> = {
+  small: '4.375rem',
+  medium: '5.875rem',
+  large: '8rem',
+}
+
+export const tabletWidthBySize: Record<CardPlaceSize, string> = {
+  small: '3.125rem',
+  medium: '4.25rem',
+  large: '5.75rem',
 }
 
 export const mobileHeightBySize: Record<CardPlaceSize, string> = {
@@ -46,14 +58,20 @@ export const mobileHeightBySize: Record<CardPlaceSize, string> = {
 
 export const mobileWidthBySize: Record<CardPlaceSize, string> = {
   small: '2.25rem',
-  medium: '3rem',
-  large: '3.375rem',
+  medium: '2.875rem',
+  large: '3.5rem',
 }
 
 const fontSizeByCardSize: Record<CardSize, string> = {
   small: '3rem',
   medium: '6rem',
   large: '8rem',
+}
+
+const tabletFontSizeByCardSize: Record<CardSize, string> = {
+  small: '2.5rem',
+  medium: '4rem',
+  large: '5rem',
 }
 
 const mobileFontSizeByCardSize: Record<CardSize, string> = {
@@ -95,6 +113,11 @@ const StyledCard = styled(ButtonBase)<{
     boxShadow: isDisabled ? undefined : `0.1rem 0.1rem 0.8rem ${isSelected ? 'rgba(255,255,255,0.7)' : 'rgba(0, 0, 0, 0.5)'} `,
   },
   boxShadow: isSelected ? '0.1rem 0.1rem 0.8rem rgba(255,255,255,0.7)' : undefined,
+  [theme.breakpoints.down('md')]: {
+    height: tabletHeightBySize[size],
+    width: tabletWidthBySize[size],
+    fontSize: tabletFontSizeByCardSize[size],
+  },
   [theme.breakpoints.down('sm')]: {
     height: mobileHeightBySize[size],
     width: mobileWidthBySize[size],
