@@ -5,12 +5,11 @@ const positions = (position: PositionOnTable) => {
   switch (position) {
     case PositionOnTable.Left:
       return {
-        left: 50,
         top: '50%',
       }
     case PositionOnTable.Right:
       return {
-        right: 50,
+        right: 0,
         top: '50%',
       }
     case PositionOnTable.LeftTopCorner:
@@ -38,5 +37,6 @@ const positions = (position: PositionOnTable) => {
 
 export const OpponentPosition = styled('div')(({ position }: { position: PositionOnTable }) => ({
   position: position === PositionOnTable.Top ? 'relative' : 'absolute',
+  margin: '1rem',
   ...positions(position),
 }))

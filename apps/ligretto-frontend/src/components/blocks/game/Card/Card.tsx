@@ -113,7 +113,7 @@ const StyledCard = styled(ButtonBase)<{
     boxShadow: isDisabled ? undefined : `0.1rem 0.1rem 0.8rem ${isSelected ? 'rgba(255,255,255,0.7)' : 'rgba(0, 0, 0, 0.5)'} `,
   },
   boxShadow: isSelected ? '0.1rem 0.1rem 0.8rem rgba(255,255,255,0.7)' : undefined,
-  [theme.breakpoints.down('md')]: {
+  [theme.breakpoints.down('lg')]: {
     height: tabletHeightBySize[size],
     width: tabletWidthBySize[size],
     fontSize: tabletFontSizeByCardSize[size],

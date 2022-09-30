@@ -27,7 +27,7 @@ const StyledCardPlace = styled('div')<{ size: CardPlaceSize }>(({ size, theme })
   borderRadius: '4px',
   border: `white solid ${borderBySize[size]}`,
   position: 'relative',
-  [theme.breakpoints.down('md')]: {
+  [theme.breakpoints.down('lg')]: {
     height: tabletHeightBySize[size],
     width: tabletWidthBySize[size],
     border: `white solid ${mobileBorderBySize[size]}`,
@@ -43,7 +43,7 @@ const StyledCard = styled('div')<{ size: CardPlaceSize }>(({ size, theme }) => (
   position: 'absolute',
   top: `-${borderBySize[size]}`,
   left: `-${borderBySize[size]}`,
-  [theme.breakpoints.down('md')]: {
+  [theme.breakpoints.down('lg')]: {
     top: `-${mobileBorderBySize[size]}`,
     left: `-${mobileBorderBySize[size]}`,
   },
