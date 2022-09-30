@@ -25,7 +25,7 @@ export const Playground: React.FC<PlaygroundProps> = ({ cardsDecks, onDeckClick 
     <TableCards>
       {cards.map((card, index) => (
         <CardPlace key={index} size="large">
-          {card && <CardComponent isDisabled size="large" {...card} onClick={() => onDeckClick(index)} />}
+          {card && <CardComponent size="large" {...card} onClick={() => onDeckClick(index)} />}
         </CardPlace>
       ))}
     </TableCards>
