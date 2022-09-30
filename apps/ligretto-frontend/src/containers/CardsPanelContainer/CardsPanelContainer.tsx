@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import { useSelector } from 'react-redux'
 import { createSelector } from 'reselect'
 
-import { CardsPanel } from 'components/blocks/game'
+import { CardsPanel } from 'components/blocks/game/CardsPanel'
 import { playerLigrettoDeckCardsSelector, activePlayerSelector, isDndEnabledSelector } from 'ducks/game'
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 import { usePanelHotkeys } from './usePanelHotkeys'

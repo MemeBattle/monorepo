@@ -49,6 +49,7 @@ const Triangle = styled(Figure)<{
 
 export const Background: React.FC = ({ children }) => (
   <Backdrop>
+    {children}
     <Circle size="34vmin" top="45%" />
     <Circle size="7vmin" right="24vmin" top="51%" />
     <Circle size="7rem" right="1rem" top="27%" />
@@ -61,7 +62,6 @@ export const Background: React.FC = ({ children }) => (
     <Triangle size={7} rotate={40} right="2rem" top="2rem" />
     <Triangle size={5} rotate={40} left="30%" top="6rem" />
     <Triangle size={6} right="7%" top="65%" />
-    {children}
   </Backdrop>
 )
 

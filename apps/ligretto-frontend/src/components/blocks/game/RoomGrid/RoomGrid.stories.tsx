@@ -1,11 +1,11 @@
 import * as React from 'react'
-import type { PositionOnTable } from './RoomGrid'
+import type { PositionOnTable } from './types'
 import { RoomGrid } from './RoomGrid'
 
 import type { FC } from 'react'
 
 export default {
-  title: 'Ligretto-ui / RoomGrid',
+  title: 'Ligretto / RoomGrid',
 }
 
 const SomeComponent: FC<{ position?: PositionOnTable }> = ({ position }) => <span>position: {position}</span>
