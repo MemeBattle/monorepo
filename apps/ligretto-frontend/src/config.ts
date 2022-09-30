@@ -1,7 +1,4 @@
-export const MAX_CARDS_ON_TABLE = 12
-
-export const TABLE_CARDS_PREFIX = 't'
-export const IS_DEV_MODE = import.meta.env.DEV
+export const IS_DEV_MODE = import.meta.env?.DEV
 
 export const LIGRETTO_CORE_URL = process.env.LIGRETTO_CORE_URL
 

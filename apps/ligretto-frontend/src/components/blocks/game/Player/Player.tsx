@@ -35,7 +35,7 @@ interface StyledPlayerProps {
 const StyledPlayer = styled('div')<StyledPlayerProps>(({ status, isActivePlayer, theme }) => ({
   display: 'flex',
   flexDirection: status === PlayerStatus.InGame && !isActivePlayer ? 'row' : 'column',
-  maxWidth: '12rem',
+  maxWidth: '9rem',
   height: calcPlayerHeight({ isActivePlayer, status }),
   [theme.breakpoints.down('sm')]: {
     maxWidth: '1.5rem',

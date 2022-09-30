@@ -5,22 +5,4 @@
 
   &.ready {
   }
-
-  &.left {
-    transform: translate(50%, 50%);
-  }
-
-  &.right {
-    transform: translate(-50%, 50%);
-  }
-
-  &.top {
-    transform: translate(-50%, 25%);
-  }
-
-  &.leftTopCorner {
-  }
-
-  &.rightTopCorner {
-  }
 }

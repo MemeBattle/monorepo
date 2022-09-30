@@ -1,18 +1,18 @@
 import React, { useMemo } from 'react'
-import { Card as CardComponent, CardPlace, TableCards as TableCardsUI } from '@memebattle/ui'
 import type { CardsDeck, Card } from '@memebattle/ligretto-shared'
 import last from 'lodash/last'
+import { CardPlace } from '../CardPlace'
+import { TableCards } from '../TableCards'
+import { Card as CardComponent } from '../Card'
 
-import styles from './Playground.module.scss'
-
-export interface TableCardsProps {
+export interface PlaygroundProps {
   cardsDecks: Array<CardsDeck | null>
   onDeckClick: (playgroundDeckIndex: number) => void
 }
 
 const getLastCard = (deck: CardsDeck | null): Card | undefined => last(deck?.cards)
 
-export const Playground: React.FC<TableCardsProps> = ({ cardsDecks, onDeckClick }) => {
+export const Playground: React.FC<PlaygroundProps> = ({ cardsDecks, onDeckClick }) => {
   const cards: (Card | undefined)[] = useMemo(() => {
     const newPlayerCardsArr = []
     for (let i = 0; i < 12; i++) {
@@ -22,15 +22,13 @@ export const Playground: React.FC<TableCardsProps> = ({ cardsDecks, onDeckClick 
   }, [cardsDecks])
 
   return (
-    <div className={styles.tableCardsWrapper}>
-      <div className={styles.tableCards}>
-        <TableCardsUI>
-          {cards.map((card, index) => (
-            <CardPlace key={index}>{card && <CardComponent {...card} onClick={() => onDeckClick(index)} />}</CardPlace>
-          ))}
-        </TableCardsUI>
-      </div>
-    </div>
+    <TableCards>
+      {cards.map((card, index) => (
+        <CardPlace key={index} size="large">
+          {card && <CardComponent isDisabled size="large" {...card} onClick={() => onDeckClick(index)} />}
+        </CardPlace>
+      ))}
+    </TableCards>
   )
 }
 
