@@ -40,7 +40,7 @@ const config: PlaywrightTestConfig = {
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
-    baseURL: 'http://localhost:5173',
+    baseURL: process.env.LIGRETTO_CORE_APP_URL || 'http://localhost:5173',
   },
 
   /* Configure projects for major browsers */

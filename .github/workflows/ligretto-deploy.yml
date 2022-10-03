@@ -162,3 +162,46 @@ jobs:
 #        run: |
 #          touch key.pem
 #          docker run --rm -v "$(pwd)"/key.pem:/key.pem --entrypoint="" -e LIGRETTO_CORE_APP_MODE -e LIGRETTO_CORE_APP_NAME -e HOST -e PORT -e LIGRETTO_CORE_APP_KEY -e CAS_PARTNER_ID -e CAS_URL -e LIGRETTO_CORE_DB_CONNECTION -e LIGRETTO_CORE_PG_HOST -e LIGRETTO_CORE_PG_PORT -e LIGRETTO_CORE_PG_USER -e LIGRETTO_CORE_PG_PASSWORD -e LIGRETTO_CORE_CAS_PUBLIC_KEY_PATH -e LIGRETTO_CORE_PG_DB_NAME ghcr.io/memebattle/ligretto-core-backend:${{ github.sha }} yarn run ligretto:core-backend:production-migrate
+
+  e2e:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+
+    needs:
+      - deploy
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.14.2'
+          cache: 'yarn'
+
+      - name: Install yarn
+        run: npm install --global yarn
+
+      - name: Auth npm
+        run: |
+          yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
+          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Build shared
+        run: yarn ligretto-shared:build
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run playwright tests
+        run: npx playwright test
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
