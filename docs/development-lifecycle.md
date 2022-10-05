@@ -36,16 +36,16 @@ use `#<github-issue-id>` at the end of the commit message
 - Make sure all tests are pass
 - Make sure linter has no errors or warnings
 - Make sure the application log does not have any errors/warnings
-- Make sure your code is following our [Architectural Principles](./architectural-principles.md) to reduce the number of review notes
+- Make sure your code is following our [Conventions](./conventions.md) to reduce the number of review notes
 
 4. Commit & push all changes:
 
 ```sh
 git add .
-git commit -m "<clear and short description of the work> #<github issue id>"
+git commit -m "[#<github issue id>] <clear and short description of the work>"
 ```
 
-Do not use `#` sign at the beginning of the commit message.
+Pay attention to `[]` around `#<github issue id>` at the beginning of the commit message.
 
 ## 4. Submit to Review
 
