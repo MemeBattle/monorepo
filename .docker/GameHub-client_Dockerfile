@@ -3,7 +3,7 @@ FROM node:16.15.0-bullseye-slim AS deps
 ARG NPM_TOKEN
 
 RUN yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com" \
-    && yarn config set -H npmScopes.memebattle.npmAuthToken "$NPM_TOKEN"
+    && yarn config set -H npmScopes.memebattle.npmAuthToken "$NPM_TOKEN" \
 
 WORKDIR /memebattle
 COPY .yarn/ /memebattle/.yarn

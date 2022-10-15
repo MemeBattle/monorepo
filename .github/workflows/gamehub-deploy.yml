@@ -37,10 +37,10 @@ jobs:
           tags: |
             ghcr.io/memebattle/gamehub-client:${{ github.sha }}
             ghcr.io/memebattle/gamehub-client:latest
-          build-args:
-            NPM_TOKEN=${{ secrets.CI_REGISTRY_TOKEN }}
           context: '.'
           file: '.docker/GameHub-client_Dockerfile'
+          build-args:
+            NPM_TOKEN=${{ secrets.GITHUB_TOKEN }}
 
   deploy:
     needs: [gamehub-client-image]
