@@ -24,7 +24,9 @@ jobs:
         run: corepack enable
 
       - name: Set npm @memebattle/* scope
-        run: yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
+        run: |
+          yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
+          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Install dependencies
         run: yarn
@@ -50,7 +52,9 @@ jobs:
         run: corepack enable
 
       - name: Set npm @memebattle/* scope
-        run: yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
+        run: |
+          yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
+          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Install dependencies
         run: yarn
@@ -89,7 +93,9 @@ jobs:
         run: corepack enable
 
       - name: Set npm @memebattle/* scope
-        run: yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
+        run: |
+          yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
+          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Install dependencies
         run: yarn
