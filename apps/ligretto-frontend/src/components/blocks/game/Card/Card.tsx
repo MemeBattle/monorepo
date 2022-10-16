@@ -90,7 +90,7 @@ const colorByCardColors: Record<CardColors, string> = {
 
 const StyledCard = styled(ButtonBase)<{
   color: CardColors
-  ref: React.RefObject<HTMLButtonElement>
+  ref?: React.RefObject<HTMLButtonElement>
   isDisabled?: boolean
   isSelected?: boolean
   isDarkened?: boolean
@@ -129,6 +129,8 @@ const StyledCard = styled(ButtonBase)<{
 const StyledCardValue = styled(Typography)(() => ({
   fontSize: 'inherit',
 }))
+
+export const StubCard: React.FC = () => <StyledCard size="medium" color={CardColors.empty} />
 
 export const Card: React.FC<CardProps> = ({
   value,
