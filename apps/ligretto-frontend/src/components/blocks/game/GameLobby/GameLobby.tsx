@@ -4,7 +4,7 @@ import type { Player as SharedPlayer } from '@memebattle/ligretto-shared'
 import { GameStatus } from '@memebattle/ligretto-shared'
 import { RoomGrid } from 'components/blocks/game/RoomGrid'
 
-import { GameResultsContainer } from 'containers/game-results'
+import { GameSettingsContainer } from 'containers/GameSettings'
 import { OpponentWaiting } from 'components/blocks/game'
 import { PlayerReadyButton } from 'components/blocks/game/player-ready-button'
 
@@ -35,10 +35,10 @@ export const GameLobby: FC<GameLobbyProps> = ({ opponents, player, gameStatus, h
   return (
     <RoomGrid
       centerElement={
-        gameStatus === GameStatus.RoundFinished ? (
+        gameStatus !== GameStatus.InGame ? (
           <div className={styles.resultsTableWrapper}>
             <div className={styles.resultsTable}>
-              <GameResultsContainer />
+              <GameSettingsContainer />
             </div>
           </div>
         ) : undefined

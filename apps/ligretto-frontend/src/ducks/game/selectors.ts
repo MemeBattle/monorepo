@@ -9,12 +9,20 @@ import { mergePlayerAndUser, STACK_OPEN_DECK_INDEX } from './utils'
 import type { SelectedCardIndex } from './slice'
 
 export const gameSelector = (state: All) => state.game.game
+
 export const gameIdSelector = (state: All) => gameSelector(state).id
 export const gameStatusSelector = (state: All) => gameSelector(state).status
+export const gameNameSelector = (state: All) => gameSelector(state).name
+
 export const playersSelector = (state: All) => gameSelector(state).players
+export const playersIdsSelector = createSelector(playersSelector, players => Object.keys(players))
+
 export const spectatorsSelector = (state: All) => gameSelector(state).spectators
+
 export const isGameLoadedSelector = (state: All) => state.game.isGameLoaded
+
 export const gameResultsSelector = (state: All) => state.game.results
+
 export const playgroundDecksSelector = (state: All) => gameSelector(state).playground.decks
 
 /** Game Config */
