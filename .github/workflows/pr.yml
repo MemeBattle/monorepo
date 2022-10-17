@@ -21,12 +21,12 @@ jobs:
           cache: 'yarn'
 
       - name: Install yarn
-        run: npm install --global yarn
+        run: corepack enable
 
-      - name: Auth npm
+      - name: Set npm @memebattle/* scope
         run: |
           yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
-          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
+          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Install dependencies
         run: yarn
@@ -49,12 +49,12 @@ jobs:
           cache: 'yarn'
 
       - name: Install yarn
-        run: npm install --global yarn
+        run: corepack enable
 
-      - name: Auth npm
+      - name: Set npm @memebattle/* scope
         run: |
           yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
-          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
+          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Install dependencies
         run: yarn
@@ -90,12 +90,12 @@ jobs:
           cache: 'yarn'
 
       - name: Install yarn
-        run: npm install --global yarn
+        run: corepack enable
 
-      - name: Auth npm
+      - name: Set npm @memebattle/* scope
         run: |
           yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
-          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
+          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Install dependencies
         run: yarn

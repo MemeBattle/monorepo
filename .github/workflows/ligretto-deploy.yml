@@ -25,12 +25,12 @@ jobs:
         cache: 'yarn'
 
     - name: Install yarn
-      run: npm install --global yarn
+      run: corepack enable
 
     - name: Auth npm
       run: |
         yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
-        yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
+        yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.GITHUB_TOKEN }}"
 
     - name: Install dependecies
       run: yarn
@@ -90,10 +90,10 @@ jobs:
           tags: |
             ghcr.io/memebattle/ligretto-gameplay-backend:${{ github.sha }}
             ghcr.io/memebattle/ligretto-gameplay-backend:latest
-          build-args:
-            NPM_TOKEN=${{ secrets.CI_REGISTRY_TOKEN }}
           context: '.'
           file: '.docker/Ligretto-gameplay-backend_Dockerfile'
+          build-args:
+            NPM_TOKEN=${{ secrets.GITHUB_TOKEN }}
 
   ligretto-core-backend-image:
 
@@ -123,10 +123,10 @@ jobs:
           tags: |
             ghcr.io/memebattle/ligretto-core-backend:${{ github.sha }}
             ghcr.io/memebattle/ligretto-core-backend:latest
-          build-args:
-            NPM_TOKEN=${{ secrets.CI_REGISTRY_TOKEN }}
           context: '.'
           file: '.docker/Ligretto-core-backend_Dockerfile'
+          build-args:
+            NPM_TOKEN=${{ secrets.GITHUB_TOKEN }}
 
   ligretto-ui-image:
 
@@ -143,12 +143,12 @@ jobs:
           cache: 'yarn'
 
       - name: Install yarn
-        run: npm install --global yarn
+        run: corepack enable
 
       - name: Auth npm
         run: |
           yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
-          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
+          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Install dependecies
         run: yarn

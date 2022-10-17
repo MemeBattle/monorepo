@@ -1,126 +1,30 @@
-# Ligretto
+<div align="center">
+  <h1 align="center">Welcome to MemeBattle!</h1>
+  <img align="center" src="./docs/assets/memebattle-logo.svg" height="96" />
+</div>
 
-## Common information
-Task manager: https://ligretto.atlassian.net/jira/software/projects/LIG/boards/1
+## What is MemeBattle?
+**MemeBattle** - open community
 
-## First prepare
+## Applications
+### Ligretto
+URL: https://ligretto.app
 
-### GitHub credentials
-1. Generate token 'https://github.com/settings/tokens' and enable write:packages
-2. Set npm registry for scope `memebattle` to github package registry
-```shell
-yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
-```
-3. Set your token (step 1) for `memebattle` scope
-```shell
-yarn config set -H npmScopes.memebattle.npmAuthToken "<TOKEN>"
-```
+UI-kit: https://ui.ligretto.app/
 
-### Common dependencies
-Install dependencies
-```
-yarn
-```
+GitHub project: https://github.com/orgs/MemeBattle/projects/1
 
-## Start all
-You need prepare all applications before (ligretto-backend, ligretto-recovery)
-```
-yarn ligretto:start
-```
+[Ligretto documentation](./docs/ligretto.md)
 
-## Install new packages
-```
-yarn workspace @memebattle/{workspace} add <package>
-```
+### GameHub
 
-## Start ligretto frontend only
-1. Create `.env.development.local` in the root directory
-2. Set next variables:
-```
-LIGRETTO_CORE_URL=https://core.ligretto.app
-LIGRETTO_GAMEPLAY_URL=https://api.ligretto.app
-```
-3. Run frontend locally
-```
-yarn ligretto:front:start:dev
-```
+URL: https://mems.fun
 
-## TODO: Start ligretto-core locally
-
-### Start postgresql
-You have two options:
-1. Start in docker
-   (`docker-compose up`)
-2. Start locally (TBD)
-
-### Migrate
-```
-yarn ligretto:core-backend:migrate
-```
-
-### Start core server
-```
-yarn ligretto:core-backend:start:dev
-```
-
-----
-## Templates
-
-Для базовых компонентов используемых в приложении рекомендуется использовать генерацию с помощью hygen
-
-    yarn hygen component atoms --name "some button" --path "packages/ui/src"
-
-Все доступные генераторы можно посмотреть командой
-
-    yarn hygen
-
-Именование yarn hygen generator name action name parameters
-
-Для компонентов используется правило автоматического создания папки для типа компонента,
-если мы не находимся сейчас в нужной папке.
-
-Если была запущена такая команда
-
-    yarn hygen component ligretto-ui-component --name "some component" --path "packages/ligretto-ui/src"
-
-Тогда новый компонент будет создан в папке packages/ligretto-ui/src, будет создана новая папка
- или переиспользована существующая
-
-Для того чтобы не указывать вручную пути каждый раз, можно настроить запуск внешней
-утилиты в используемой ide для автоматической подстановки текущей директории
-
-Нужно настроить в Settings -> Tools -> External tools по одной команде на каждый доступный шаблон
-
-| Шаблон     | Program       | Arguments                        | Working dir      |
-| ---------- | ------------- | -------------------------------- | ---------------- |
-| ligretto-ui-component| node | "node_modules/hygen/dist/bin.js" | $ProjectFileDir$ |
-|            |               | component                        |                  |
-|            |               | ligretto-ui-component            |                  |
-|            |               | --name                           |                  |
-|            |               | "$Prompt$"                       |                  |
-|            |               | --path                           |                  |
-|            |               | $FileDirRelativeToProjectRoot$   |                  |
-|            |               |                                  |                  |
-
-Разделы
-
-    Program
-    Arguments
-    Working dir
-
-
-### ligretto-ui-component
-
-    node
-
-    "node_modules/hygen/dist/bin.js"
-    component
-    ligretto-ui-component
-    --name
-    "$Prompt$"
-    --path
-    $FileDirRelativeToProjectRoot$
-
-    $ProjectFileDir$
-
-Можно назначить горячие клавиши на генераторы или находить через действия по ctrl shift a
+## First steps
+1. Read [documentation](./docs)
+2. Read [CONTRIBUTING.md](CONTRIBUTING.md) TODO: Create contribution doc [#215](https://github.com/MemeBattle/monorepo/issues/215)
+3. Download repository `git clone git@github.com:MemeBattle/monorepo.git`
+4. Generate token 'https://github.com/settings/tokens' and enable read:packages
+5. Set npm scope for `@memebattle/*` packages `yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"`
+6. Set your token (from step 4) for **memebattle** scope `yarn config set -H npmScopes.memebattle.npmAuthToken "TOKEN"`
+7. Install dependencies `yarn`
