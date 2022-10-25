@@ -24,8 +24,6 @@ git pull --rebase
 git switch -c feature/<github-issue-id>-<feature-name>
 ```
 
-use `#<github-issue-id>` at the end of the commit message
-
 ## 3. Do the Job
 
 1. Read the task description and clarify all the details
