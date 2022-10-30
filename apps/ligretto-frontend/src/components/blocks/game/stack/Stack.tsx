@@ -5,7 +5,6 @@ import { CardsRow } from 'components/blocks/game/CardsRow'
 import { CardPlace } from 'components/blocks/game/CardPlace'
 import { Card } from 'components/blocks/game/Card'
 import { CardHotkeyBadge } from 'components/blocks/game/CardHotkeyBadge'
-import { StubCard } from 'components/blocks/game/Card'
 
 export interface StackProps {
   stackOpenDeckCard?: PlayerCard
@@ -29,9 +28,9 @@ export const Stack: React.FC<StackProps> = ({
   isStackOpenDeckDarkened,
 }) => (
   <CardsRow>
-    <CardPlace>
-      <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.x : undefined}>
-        {stackOpenDeckCard ? (
+    <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.x : undefined}>
+      <CardPlace>
+        {stackOpenDeckCard && (
           <Card
             {...stackOpenDeckCard}
             isSelected={isStackOpenDeckSelected}
@@ -39,15 +38,14 @@ export const Stack: React.FC<StackProps> = ({
             onClick={onStackOpenDeckCardClick}
             onClickOutside={isStackOpenDeckSelected ? onStackDeckCardOutsideClick : undefined}
           />
-        ) : (
-          <StubCard />
         )}
-      </CardHotkeyBadge>
-    </CardPlace>
-    <CardPlace>
-      <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.space : undefined}>
+      </CardPlace>
+    </CardHotkeyBadge>
+
+    <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.space : undefined}>
+      <CardPlace>
         <Card color={stackDeckCards[0]?.color} onClick={onStackDeckCardClick} />
-      </CardHotkeyBadge>
-    </CardPlace>
+      </CardPlace>
+    </CardHotkeyBadge>
   </CardsRow>
 )
