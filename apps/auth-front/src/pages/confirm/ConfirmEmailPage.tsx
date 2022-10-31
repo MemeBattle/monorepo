@@ -1,4 +1,5 @@
-import { Container, Typography, EmailSended, Box } from '@memebattle/ui'
+import { Container, Typography, Box } from '@memebattle/ui'
+import { EmailSended } from '../../components/EmailSended'
 
 import { t } from '../../utils/i18n'
 import { useLocation } from 'react-router'
