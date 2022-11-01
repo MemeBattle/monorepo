@@ -1,10 +1,16 @@
 import { Container, Typography, Box } from '@memebattle/ui'
+import { styled } from '@mui/material/styles'
 import { EmailSended } from '../../components/EmailSended'
 
 import { t } from '../../utils/i18n'
 import { useLocation } from 'react-router'
 import { useMemo } from 'react'
 import { Header } from '../../components/Header'
+
+const StyledContainer = styled('div')(() => ({
+  height: '100%',
+  overflow: 'auto',
+}))
 
 export const ConfirmEmailPage = () => {
   const { search } = useLocation()
@@ -15,39 +21,40 @@ export const ConfirmEmailPage = () => {
   }, [search])
 
   return (
-    <Container component="main" maxWidth="md">
-      <Header />
-      <Box m={2} justifyContent="center" display="flex">
-        <EmailSended />
-      </Box>
-      <Box m={2}>
-        <Typography align="center" variant="h3">
-          {t.confirmEmail.header}
-          {username && (
-            <Typography variant="inherit">
-              {' '}
-              <b>{username}</b>
-            </Typography>
-          )}
-          !
+    <StyledContainer>
+      <Container component="main" maxWidth="md">
+        <Header />
+        <Box m={2} justifyContent="center" display="flex">
+          <EmailSended />
+        </Box>
+        <Box m={2}>
+          <Typography align="center" variant="h3">
+            {t.confirmEmail.header}
+            {username && (
+              <Typography variant="inherit">
+                {' '}
+                <b>{username} !</b>
+              </Typography>
+            )}
+          </Typography>
+        </Box>
+        <Box m={1}>
+          <Typography align="center" paragraph>
+            {t.confirmEmail.message}
+            {email ? (
+              <Typography variant="inherit">
+                <b>{email}</b>
+              </Typography>
+            ) : (
+              'email'
+            )}
+            . {t.confirmEmail.messageEnd}
+          </Typography>
+        </Box>
+        <Typography align="center" color="textSecondary" variant="caption" paragraph>
+          {t.confirmEmail.submessage}
         </Typography>
-      </Box>
-      <Box m={1}>
-        <Typography align="center" paragraph>
-          {t.confirmEmail.message}
-          {email ? (
-            <Typography variant="inherit">
-              <b>{email}</b>
-            </Typography>
-          ) : (
-            'email'
-          )}
-          . {t.confirmEmail.messageEnd}
-        </Typography>
-      </Box>
-      <Typography align="center" color="textSecondary" variant="caption" paragraph>
-        {t.confirmEmail.submessage}
-      </Typography>
-    </Container>
+      </Container>
+    </StyledContainer>
   )
 }
