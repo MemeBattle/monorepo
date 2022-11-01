@@ -2,7 +2,7 @@ name: CI-pull-requests
 
 on:
   schedule:
-    - cron:  '0 0 * * *'
+    - cron:  '0 18 * * *'
 
 jobs:
 
@@ -21,12 +21,12 @@ jobs:
           cache: 'yarn'
 
       - name: Install yarn
-        run: npm install --global yarn
+        run: corepack enable
 
       - name: Auth npm
         run: |
           yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
-          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.CI_REGISTRY_TOKEN }}"
+          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Install dependencies
         run: yarn
@@ -39,6 +39,8 @@ jobs:
 
       - name: Run playwright tests
         run: npx playwright test
+        env:
+          LIGRETTO_CORE_APP_URL: https://ligretto.app/
       - uses: actions/upload-artifact@v2
         if: always()
         with:
