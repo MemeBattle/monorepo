@@ -2,7 +2,7 @@ name: CI-pull-requests
 
 on:
   schedule:
-    - cron:  '0 14 * * *'
+    - cron:  '0 15 * * *'
 
 jobs:
 
