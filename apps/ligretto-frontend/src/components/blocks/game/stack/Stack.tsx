@@ -1,10 +1,10 @@
 import React from 'react'
-import { CardHotkeyBadge } from '@memebattle/ui'
 import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
 import { Hotkey } from 'ducks/game'
 import { CardsRow } from 'components/blocks/game/CardsRow'
 import { CardPlace } from 'components/blocks/game/CardPlace'
 import { Card } from 'components/blocks/game/Card'
+import { CardHotkeyBadge } from 'components/blocks/game/CardHotkeyBadge'
 
 export interface StackProps {
   stackOpenDeckCard?: PlayerCard

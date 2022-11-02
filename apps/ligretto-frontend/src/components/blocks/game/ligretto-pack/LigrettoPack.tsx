@@ -1,6 +1,7 @@
 import React from 'react'
-import { CardHotkeyBadge, Typography } from '@memebattle/ui'
+import { Typography } from '@memebattle/ui'
 import type { Card as PlayerCards } from '@memebattle/ligretto-shared'
+import { CardHotkeyBadge } from 'components/blocks/game/CardHotkeyBadge'
 
 import styles from './LigrettoPack.module.scss'
 import { Hotkey } from 'ducks/game'
