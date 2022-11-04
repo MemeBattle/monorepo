@@ -32,8 +32,7 @@ export const ConfirmEmailPage = () => {
             {t.confirmEmail.header}
             {username && (
               <Typography variant="inherit">
-                {' '}
-                <b>{username} !</b>
+                <b>{username}&nbsp;!</b>
               </Typography>
             )}
           </Typography>
