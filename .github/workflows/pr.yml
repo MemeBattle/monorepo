@@ -104,21 +104,27 @@ jobs:
         run: yarn ts-check
 
   e2e:
-    services:
-      postgres:
-        image: postgres:13.4
-        ports:
-          - 5433:5432
-        env:
-          LIGRETTO_CORE_PG_USER: ligretto-core-user
-          LIGRETTO_CORE_PG_PASSWORD: ligretto_pg_password
-          LIGRETTO_CORE_PG_DB_NAME: ligretto-core
-        # Set health checks to wait until postgres has started
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    container-job:
+      # Containers must run in Linux based operating systems
+      runs-on: ubuntu-latest
+      # Docker Hub image that `container-job` executes in
+      container: node:10.18-jessie
+
+      services:
+        postgres:
+          image: postgres:13.4
+          ports:
+            - 5433:5432
+          env:
+            LIGRETTO_CORE_PG_USER: ligretto-core-user
+            LIGRETTO_CORE_PG_PASSWORD: ligretto_pg_password
+            LIGRETTO_CORE_PG_DB_NAME: ligretto-core
+          # Set health checks to wait until postgres has started
+          options: >-
+            --health-cmd pg_isready
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 5
 
     runs-on: ubuntu-20.04
     timeout-minutes: 10
