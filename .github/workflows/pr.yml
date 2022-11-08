@@ -153,5 +153,8 @@ jobs:
       - name: Migrate database
         run: yarn ligretto:core-backend:migrate
 
+      - name: Start application
+        run: yarn ligretto:start
+
       - name: Run playwright tests
         run: npx playwright test
