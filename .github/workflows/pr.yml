@@ -110,9 +110,9 @@ jobs:
         ports:
           - 5433:5432
         env:
-          LIGRETTO_CORE_PG_USER: ligretto-core-user
-          LIGRETTO_CORE_PG_PASSWORD: ligretto_pg_password
-          LIGRETTO_CORE_PG_DB_NAME: ligretto-core
+          POSTGRES_USER: ligretto-core-user
+          POSTGRES_PASSWORD: ligretto_pg_password
+          POSTGRES_DB: ligretto-core
         # Set health checks to wait until postgres has started
         options: >-
           --health-cmd pg_isready
@@ -135,8 +135,8 @@ jobs:
       - name: Install dependencies
         run: yarn
 
-      - name: Connect to PostgreSQL
-        run: node client.js
+#      - name: Connect to PostgreSQL
+#        run: node client.js
 
       - name: Download common packages
         uses: actions/download-artifact@v3
