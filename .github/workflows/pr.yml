@@ -6,102 +6,102 @@ on:
 
 jobs:
 
-  lint:
-
-    runs-on: ubuntu-20.04
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Install node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16.14.2'
-          cache: 'yarn'
-
-      - name: Install yarn
-        run: corepack enable
-
-      - name: Set npm @memebattle/* scope
-        run: |
-          yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
-          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.GITHUB_TOKEN }}"
-
-      - name: Install dependencies
-        run: yarn
-
-      - name: Lint code
-        run: yarn lint
-
-  tests:
-
-    runs-on: ubuntu-20.04
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Install node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16.14.2'
-          cache: 'yarn'
-
-      - name: Install yarn
-        run: corepack enable
-
-      - name: Set npm @memebattle/* scope
-        run: |
-          yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
-          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.GITHUB_TOKEN }}"
-
-      - name: Install dependencies
-        run: yarn
-
-      - name: Build shared
-        run: yarn ligretto-shared:build
-
-      - name: Run tests
-        run: yarn test:ci
-
-      - uses: jwalton/gh-find-current-pr@v1
-        id: findPr
-
-      - name: Collect coverage from ligretto-gameplay-backend
-        uses: ArtiomTr/jest-coverage-report-action@v2
-        with:
-          prnumber: ${{ steps.findPr.outputs.number }}
-          skip-step: all
-          working-directory: apps/ligretto-gameplay-backend
-
-  tsc:
-
-    runs-on: ubuntu-20.04
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Install node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16.14.2'
-          cache: 'yarn'
-
-      - name: Install yarn
-        run: corepack enable
-
-      - name: Set npm @memebattle/* scope
-        run: |
-          yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
-          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.GITHUB_TOKEN }}"
-
-      - name: Install dependencies
-        run: yarn
-
-      - name: TS check
-        run: yarn ts-check
+#  lint:
+#
+#    runs-on: ubuntu-20.04
+#
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v3
+#
+#      - name: Install node
+#        uses: actions/setup-node@v3
+#        with:
+#          node-version: '16.14.2'
+#          cache: 'yarn'
+#
+#      - name: Install yarn
+#        run: corepack enable
+#
+#      - name: Set npm @memebattle/* scope
+#        run: |
+#          yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
+#          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.GITHUB_TOKEN }}"
+#
+#      - name: Install dependencies
+#        run: yarn
+#
+#      - name: Lint code
+#        run: yarn lint
+#
+#  tests:
+#
+#    runs-on: ubuntu-20.04
+#
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v3
+#
+#      - name: Install node
+#        uses: actions/setup-node@v3
+#        with:
+#          node-version: '16.14.2'
+#          cache: 'yarn'
+#
+#      - name: Install yarn
+#        run: corepack enable
+#
+#      - name: Set npm @memebattle/* scope
+#        run: |
+#          yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
+#          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.GITHUB_TOKEN }}"
+#
+#      - name: Install dependencies
+#        run: yarn
+#
+#      - name: Build shared
+#        run: yarn ligretto-shared:build
+#
+#      - name: Run tests
+#        run: yarn test:ci
+#
+#      - uses: jwalton/gh-find-current-pr@v1
+#        id: findPr
+#
+#      - name: Collect coverage from ligretto-gameplay-backend
+#        uses: ArtiomTr/jest-coverage-report-action@v2
+#        with:
+#          prnumber: ${{ steps.findPr.outputs.number }}
+#          skip-step: all
+#          working-directory: apps/ligretto-gameplay-backend
+#
+#  tsc:
+#
+#    runs-on: ubuntu-20.04
+#
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v3
+#
+#      - name: Install node
+#        uses: actions/setup-node@v3
+#        with:
+#          node-version: '16.14.2'
+#          cache: 'yarn'
+#
+#      - name: Install yarn
+#        run: corepack enable
+#
+#      - name: Set npm @memebattle/* scope
+#        run: |
+#          yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
+#          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.GITHUB_TOKEN }}"
+#
+#      - name: Install dependencies
+#        run: yarn
+#
+#      - name: TS check
+#        run: yarn ts-check
 
   e2e:
     services:
