@@ -102,3 +102,49 @@ jobs:
 
       - name: TS check
         run: yarn ts-check
+
+  e2e:
+    services:
+      postgres:
+        image: postgres:13.4
+        ports:
+          - 5433:5432
+        env:
+          LIGRETTO_CORE_PG_USER: ligretto-core-user
+          LIGRETTO_CORE_PG_PASSWORD: ligretto_pg_password
+          LIGRETTO_CORE_PG_DB_NAME: ligretto-core
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+
+    needs: build-common-packages
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.14.2'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Download common packages
+        uses: actions/download-artifact@v3
+        with:
+          name: packages-builds
+          path: packages
+
+      - name: Migrate database
+        run: yarn ligretto:core-backend:migrate
+
+      - name: Run playwright tests
+        run: npx playwright test
