@@ -12,7 +12,7 @@ import { devices } from '@playwright/test'
  */
 const config: PlaywrightTestConfig = {
   webServer: {
-    command: 'yarn ligretto:start',
+    command: 'yarn ligretto:front:start:dev',
     url: 'http://localhost:5173/',
   },
   testDir: './e2e/tests',
