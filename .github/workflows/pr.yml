@@ -155,6 +155,3 @@ jobs:
 
       - name: Run playwright tests
         run: npx playwright test
-        env:
-          LIGRETTO_CORE_URL: https://core.ligretto.app
-          LIGRETTO_GAMEPLAY_URL: https://api.ligretto.app
