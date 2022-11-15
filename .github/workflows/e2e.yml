@@ -40,7 +40,7 @@ jobs:
       - name: Run playwright tests
         run: npx playwright test
         env:
-          LIGRETTO_CORE_APP_URL: https://ligretto.app/
+          LIGRETTO_APP_URL: https://ligretto.app/
       - uses: actions/upload-artifact@v2
         if: always()
         with:
