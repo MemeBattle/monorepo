@@ -147,9 +147,6 @@ jobs:
       - name: Install dependencies
         run: yarn
 
-      - name: Build shared
-        run: yarn ligretto-shared:build
-
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
 
@@ -158,6 +155,13 @@ jobs:
 
       - name: Start application
         run: yarn ligretto:start:ci &
+
+      - uses: cygnetdigital/wait_for_response@v2.0.0
+        with:
+          url: 'http://localhost:5173/'
+          responseCode: '200,500'
+          timeout: 2000
+          interval: 500
 
       - name: Run playwright tests
         run: npx playwright test
