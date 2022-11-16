@@ -156,6 +156,7 @@ jobs:
       - name: Start application
         run: yarn ligretto:start:ci &
 
+      - name: Wait on start application
       - uses: ifaxity/wait-on-action
         with:
           resource: http://localhost:5173
