@@ -104,6 +104,9 @@ jobs:
 #        run: yarn ts-check
 
   e2e:
+    env:
+      NODE_ENV: test
+
     services:
       postgres:
         image: postgres:13.4
@@ -152,6 +155,9 @@ jobs:
 
       - name: Migrate database
         run: yarn ligretto:core-backend:migrate
+
+      - name: Start application
+        run: yarn ligretto:start:ci &
 
       - name: Run playwright tests
         run: npx playwright test

@@ -11,11 +11,6 @@ import { devices } from '@playwright/test'
  * See https://playwright.dev/docs/test-configuration.
  */
 const config: PlaywrightTestConfig = {
-  webServer: {
-    command: 'yarn ligretto:start',
-    // url: process.env.LIGRETTO_APP_URL || 'http://localhost:5173',
-    port: 5173,
-  },
   testDir: './e2e/tests',
   /* Maximum time one test can run for. */
   timeout: 30 * 1000,
