@@ -156,10 +156,13 @@ jobs:
       - name: Start application
         run: yarn ligretto:start:ci &
 
-#      - name: Wait on start application
-#      - uses: ifaxity/wait-on-action
-#        with:
-#          resource: http://localhost:5173
+      - name: Wait on start application
+      - uses: cygnetdigital/wait_for_response@v2.0.0
+        with:
+          url: 'http://localhost:5173/'
+          responseCode: '200,500'
+          timeout: 30000
+          interval: 500
 
       - name: Run playwright tests
         run: npx playwright test
