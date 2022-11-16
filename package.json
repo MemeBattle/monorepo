@@ -14,6 +14,7 @@
     "ligretto:start:ci": "yarn workspaces foreach -vp --include '{@memebattle/ligretto-core-backend,@memebattle/ligretto-gameplay-backend,@memebattle/ligretto-frontend}' run start:dev",
     "ligretto:front:build": "yarn workspace @memebattle/ligretto-frontend run build",
     "ligretto:front:start:dev": "yarn workspace @memebattle/ligretto-frontend run start:dev",
+    "ligretto:gameplay-backend:start:dev": "yarn workspace @memebattle/ligretto-gameplay-backend run start:dev",
     "ligretto:gameplay-backend:build": "yarn workspace @memebattle/ligretto-gameplay-backend run build",
     "ligretto:core-backend:build": "yarn workspace @memebattle/ligretto-core-backend run build",
     "ligretto:core-backend:migrate": "yarn workspace @memebattle/ligretto-core-backend run migrate",

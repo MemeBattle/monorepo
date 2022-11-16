@@ -153,8 +153,14 @@ jobs:
       - name: Migrate database
         run: yarn ligretto:core-backend:migrate
 
-      - name: Start application
-        run: yarn ligretto:start &
+      - name: Start core backend
+        run: yarn ligretto:core-backend:start:dev &
+
+      - name: Start core backend
+        run: yarn ligretto:frontend:start:dev &
+
+      - name: Start core backend
+        run: yarn ligretto:gameplay-backend:start:dev &
 
       - uses: cygnetdigital/wait_for_response@v2.0.0
         with:
