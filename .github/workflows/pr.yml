@@ -156,11 +156,11 @@ jobs:
       - name: Start core backend
         run: yarn ligretto:core-backend:start:dev &
 
-      - name: Start core backend
-        run: yarn ligretto:frontend:start:dev &
-
-      - name: Start core backend
+      - name: Start gameplay backend
         run: yarn ligretto:gameplay-backend:start:dev &
+
+      - name: Start frontend
+        run: yarn ligretto:front:start:dev &
 
       - uses: cygnetdigital/wait_for_response@v2.0.0
         with:
