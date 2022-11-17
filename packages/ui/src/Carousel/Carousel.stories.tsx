@@ -10,7 +10,7 @@ export default {
 const items = ['1', '2', '3']
 
 const Square = ({ children }: { children: ReactNode }) => (
-  <Box display="flex" border="1px solid" borderColor="white" width="100%" background={'red'}>
+  <Box display="flex" border="1px solid" borderColor="white" width="100%" background="red">
     {children}
   </Box>
 )

@@ -23,7 +23,7 @@ module.exports = {
       },
     },
   },
-  plugins: ['@typescript-eslint', 'react-app', 'prettier', 'react-hooks'],
+  plugins: ['@typescript-eslint', 'react-app', 'prettier', 'react-hooks', 'eslint-plugin-react'],
   extends: ['plugin:@typescript-eslint/recommended', 'plugin:storybook/recommended'],
   rules: {
     'prettier/prettier': [
@@ -123,5 +123,6 @@ module.exports = {
     'react/react-in-jsx-scope': 'off',
     'react-hooks/exhaustive-deps': 'error',
     'react-hooks/rules-of-hooks': 'error',
+    'react/jsx-curly-brace-presence': ['error', { props: 'never', children: 'never', propElementValues: 'always' }],
   },
 }

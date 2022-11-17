@@ -48,7 +48,7 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({
   return (
     <Paper className={classes.createRoom}>
       <Grid container>
-        <Hidden only={'xs'}>
+        <Hidden only="xs">
           <Grid sm={6} container justifyContent="center" item>
             <span className={classes.roomNameLabel}>Room name:</span>
           </Grid>
