@@ -98,7 +98,7 @@ export const UserInfo: React.FC<UserInfoProps> = ({ onClick, username, onButtonC
           {username ? (
             <>
               <Button className={classes.clearIcon} onClick={handleLogoutClick}>
-                {<ClearIcon />}
+                <ClearIcon />
               </Button>
               <Button
                 className={classes.button}
@@ -109,7 +109,7 @@ export const UserInfo: React.FC<UserInfoProps> = ({ onClick, username, onButtonC
                 endIcon={<CreateIcon />}
                 onClick={handleButtonClick}
               >
-                {<div className={classes.userNameField}>{username}</div>}
+                <div className={classes.userNameField}>{username}</div>
               </Button>
             </>
           ) : (
