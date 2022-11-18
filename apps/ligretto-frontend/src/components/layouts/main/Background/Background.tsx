@@ -10,8 +10,8 @@ const Figure = styled('div')<{
   bottom?: import('csstype').Property.Bottom
 }>(({ top, right, left, bottom }) => ({
   position: 'absolute',
-  background: '#4BA671',
-  color: '#4BA671',
+  background: '#2C7D4E',
+  color: '#2C7D4E',
   zIndex: '-1',
   opacity: 0.2,
   top,

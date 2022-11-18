@@ -9,7 +9,7 @@ export const palette: Partial<Palette> = {
     contrastText: '#fff',
   },
   background: {
-    default: '#33905A',
+    default: '#247044',
     paper: '#2CAB61',
   },
   text: {
