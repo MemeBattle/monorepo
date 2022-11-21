@@ -166,7 +166,7 @@ jobs:
         run: curl 0.0.0.0:3333/health
 
       - name: Check core backend app
-        run: npx wait-on -c ./apps/ligretto-core-backend/waitOnConfig.json --timeout 60000 http-get://0.0.0.0:3333/health
+        run: npx wait-on --timeout 60000 http-get://127.0.0.1:3333/health
 
       - name: Start gameplay backend
         run: yarn ligretto:gameplay-backend:start:dev &
