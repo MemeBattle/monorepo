@@ -9,11 +9,7 @@ import styles from './Menu.module.scss'
 const menuItems: MenuItemProps[] = [
   // TODO: add correct "to" for every item
   {
-    title: 'Create game',
-    to: routes.CREATE_ROOM,
-  },
-  {
-    title: 'Enter room',
+    title: 'Create / enter room',
     to: routes.ROOMS,
   },
   {

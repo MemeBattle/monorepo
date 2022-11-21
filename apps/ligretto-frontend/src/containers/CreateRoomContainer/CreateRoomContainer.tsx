@@ -1,17 +1,17 @@
 import React, { useMemo, useState, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { CreateRoom } from '@memebattle/ui'
 import type { CreateRoomError } from '@memebattle/ligretto-shared/src/dto'
 
 import { createRoomAction, roomsErrorSelector } from 'ducks/rooms'
 
 import { roomNameValidation } from './utils'
+import { InputWithButton } from 'components/InputWithButton'
+import { Typography } from '@memebattle/ui'
 
 export const CreateRoomContainer = () => {
   const dispatch = useDispatch()
 
   const [name, setName] = useState('')
-  const [dndEnabled, setDndEnabled] = useState(true)
 
   const roomsErrors: CreateRoomError | null = useSelector(roomsErrorSelector)
 
@@ -24,23 +24,24 @@ export const CreateRoomContainer = () => {
     [setName],
   )
 
-  const handleDndChange = useCallback(() => {
-    setDndEnabled(prev => !prev)
-  }, [])
-
-  const onButtonClick = useCallback(() => {
+  const handleCreateRoomClick = useCallback(() => {
     const roomName = name.trim()
-    dispatch(createRoomAction({ name: roomName, config: { dndEnabled } }))
-  }, [dispatch, name, dndEnabled])
+    dispatch(createRoomAction({ name: roomName, config: { dndEnabled: true } }))
+  }, [dispatch, name])
 
   return (
-    <CreateRoom
-      onRoomNameChange={handleNameChange}
-      onCreateClick={onButtonClick}
-      validationErrors={validationErrors}
-      isCreateButtonDisabled={!name}
-      onChangeDndEnabled={handleDndChange}
-      dndEnabled={dndEnabled}
-    />
+    <InputWithButton>
+      <InputWithButton.Input inputProps={{ 'data-test-id': 'CreateGameInput' }} placeholder="Room name..." onChange={handleNameChange} />
+      <InputWithButton.ButtonWrapper>
+        <InputWithButton.Button
+          data-test-id="CreateGameButton"
+          onClick={handleCreateRoomClick}
+          disabled={!name || !!validationErrors}
+          variant="contained"
+        >
+          <Typography fontSize="inherit">Create</Typography>
+        </InputWithButton.Button>
+      </InputWithButton.ButtonWrapper>
+    </InputWithButton>
   )
 }

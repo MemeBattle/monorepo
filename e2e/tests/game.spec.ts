@@ -32,7 +32,7 @@ test.describe('Create and enter room', () => {
     const homePageUser2 = new HomePage(pageUser2)
     await homePageUser2.visitHomeUrl()
 
-    await (await homePageUser2.getEnterRoomButton()).click()
+    await (await homePageUser2.getMenuCreateGameButton()).click()
     await (await homePageUser2.getRoom(roomName)).click()
 
     const gamePageUser2 = new GamePage(pageUser2)
