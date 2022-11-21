@@ -31,9 +31,6 @@ jobs:
       - name: Install dependencies
         run: yarn
 
-      - name: Build shared
-        run: yarn ligretto-shared:build
-
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
 

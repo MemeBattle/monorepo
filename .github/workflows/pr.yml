@@ -156,6 +156,15 @@ jobs:
       - name: Start core backend
         run: yarn ligretto:core-backend:start:dev &
 
+      - name: check curl1
+        run: curl localhost:3333/health
+
+      - name: check curl2
+        run: curl 127.0.0.1:3333/health
+
+      - name: check curl3
+        run: curl 0.0.0.0:3333/health
+
       - name: Check core backend app
         run: npx wait-on -c ./apps/ligretto-core-backend/waitOnConfig.json --timeout 60000 http-get://0.0.0.0:3333/health
 
