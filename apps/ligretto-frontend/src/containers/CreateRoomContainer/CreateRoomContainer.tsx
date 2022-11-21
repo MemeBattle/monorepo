@@ -31,7 +31,7 @@ export const CreateRoomContainer = () => {
 
   return (
     <InputWithButton>
-      <InputWithButton.Input placeholder="Room name..." onChange={handleNameChange} />
+      <InputWithButton.Input inputProps={{ 'data-test-id': 'CreateGameInput' }} placeholder="Room name..." onChange={handleNameChange} />
       <InputWithButton.ButtonWrapper>
         <InputWithButton.Button
           data-test-id="CreateGameButton"
