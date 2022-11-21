@@ -29,7 +29,7 @@ export const SearchRoomsContainer: React.FC = () => {
 
   const inputRef = React.useRef<HTMLInputElement>(null)
 
-  const handleSearchClick = React.useCallback(() => {
+  const handleSearchRoomsClick = React.useCallback(() => {
     if (inputRef.current) {
       inputRef.current.focus()
     }
@@ -38,7 +38,7 @@ export const SearchRoomsContainer: React.FC = () => {
   return (
     <InputWithButton>
       <InputWithButton.Input defaultValue={search} onChange={handleChange} inputRef={inputRef} placeholder="Search..." />
-      <InputWithButton.ButtonWrapper onClick={handleSearchClick}>
+      <InputWithButton.ButtonWrapper onClick={handleSearchRoomsClick}>
         <InputWithButton.IconWrapper>{isLoading ? <CachedIcon fontSize="inherit" /> : <SearchIcon fontSize="inherit" />}</InputWithButton.IconWrapper>
       </InputWithButton.ButtonWrapper>
     </InputWithButton>

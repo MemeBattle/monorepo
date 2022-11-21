@@ -24,7 +24,7 @@ export const CreateRoomContainer = () => {
     [setName],
   )
 
-  const handleCreateClick = useCallback(() => {
+  const handleCreateRoomClick = useCallback(() => {
     const roomName = name.trim()
     dispatch(createRoomAction({ name: roomName, config: { dndEnabled: true } }))
   }, [dispatch, name])
@@ -35,7 +35,7 @@ export const CreateRoomContainer = () => {
       <InputWithButton.ButtonWrapper>
         <InputWithButton.Button
           data-test-id="CreateGameButton"
-          onClick={handleCreateClick}
+          onClick={handleCreateRoomClick}
           disabled={!name || !!validationErrors}
           variant="contained"
         >
