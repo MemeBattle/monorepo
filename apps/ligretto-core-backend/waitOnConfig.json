@@ -1,5 +1,5 @@
 {
   "headers": {
-    "accept": "json"
+    "accept": "application/json"
   }
 }
