@@ -156,18 +156,17 @@ jobs:
       - name: Start core backend
         run: yarn ligretto:core-backend:start:dev &
 
+      - name: Check core backend app
+        run: wait-on -c ./apps/ligretto-frontend/waitOnConfig.json --timeout 10000 http-get://localhost:3333/health
+
       - name: Start gameplay backend
         run: yarn ligretto:gameplay-backend:start:dev &
 
       - name: Start frontend
         run: yarn ligretto:front:start:dev &
 
-      - uses: cygnetdigital/wait_for_response@v2.0.0
-        with:
-          url: 'http://localhost:5173/'
-          responseCode: '200,500'
-          timeout: 60000
-          interval: 500
+      - name: Check frontend app
+        run: wait-on -c ./apps/ligretto-frontend/waitOnConfig.json --timeout 10000 http-get://localhost:5173
 
       - name: Run playwright tests
         run: npx playwright test
