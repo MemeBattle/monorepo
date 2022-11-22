@@ -10,6 +10,7 @@ export const palette: Partial<Palette> = {
   },
   background: {
     default: '#247044',
+    lighter: '#2C7D4E',
     paper: '#2CAB61',
   },
   text: {

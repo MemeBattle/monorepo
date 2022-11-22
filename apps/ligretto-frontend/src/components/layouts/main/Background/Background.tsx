@@ -1,17 +1,17 @@
 import React from 'react'
 import { styled } from '@mui/material/styles'
-
+//-----------------------------------------------------------------------------
 const Backdrop = styled('div')(() => ({ width: '100%', height: '100%', position: 'relative' }))
-
+//-----------------------------------------------------------------------------
 const Figure = styled('div')<{
   top?: import('csstype').Property.Top
   right?: import('csstype').Property.Right
   left?: import('csstype').Property.Left
   bottom?: import('csstype').Property.Bottom
-}>(({ top, right, left, bottom }) => ({
+}>(({ top, right, left, bottom, theme }) => ({
   position: 'absolute',
-  background: '#2C7D4E',
-  color: '#2C7D4E',
+  background: theme.palette.background.lighter,
+  color: theme.palette.background.lighter,
   zIndex: '-1',
   opacity: 0.2,
   top,
@@ -19,13 +19,13 @@ const Figure = styled('div')<{
   left,
   bottom,
 }))
-
+//-----------------------------------------------------------------------------
 const Circle = styled(Figure)<{ size: string }>(({ size }) => ({
   borderRadius: '100%',
   height: size,
   width: size,
 }))
-
+//-----------------------------------------------------------------------------
 const Rect = styled(Figure)<{
   width: import('csstype').Property.Width
   height: import('csstype').Property.Height
@@ -35,7 +35,7 @@ const Rect = styled(Figure)<{
   height,
   transform: `rotate(${rotate}deg)`,
 }))
-
+//-----------------------------------------------------------------------------
 const Triangle = styled(Figure)<{
   size: number
   rotate?: number
@@ -46,7 +46,7 @@ const Triangle = styled(Figure)<{
   background: 'transparent',
   transform: rotate ? `rotate(${rotate}deg)` : undefined,
 }))
-
+//-----------------------------------------------------------------------------
 export const Background: React.FC = ({ children }) => (
   <Backdrop>
     {children}
@@ -64,5 +64,6 @@ export const Background: React.FC = ({ children }) => (
     <Triangle size={6} right="7%" top="65%" />
   </Backdrop>
 )
-
+//-----------------------------------------------------------------------------
 Background.displayName = 'Background'
+//-----------------------------------------------------------------------------
