@@ -149,7 +149,7 @@ jobs:
         run: yarn
 
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps chromium
+        run: yarn dlx playwright install --with-deps chromium
 
       - name: Migrate database
         run: yarn ligretto:core-backend:migrate
@@ -158,7 +158,7 @@ jobs:
         run: yarn ligretto:core-backend:start:dev &
 
       - name: Check core backend app
-        run: dlx wait-on --timeout 60000 http-get://127.0.0.1:3333/health
+        run: yarn dlx wait-on --timeout 60000 http-get://127.0.0.1:3333/health
 
       - name: Start gameplay backend
         run: yarn ligretto:gameplay-backend:start:dev &
@@ -167,7 +167,7 @@ jobs:
         run: yarn ligretto:front:start:dev &
 
       - name: Check frontend app
-        run: dlx wait-on -c ./apps/ligretto-frontend/waitOnConfig.json --timeout 60000 http-get://127.0.0.1:5173
+        run: yarn dlx wait-on -c ./apps/ligretto-frontend/waitOnConfig.json --timeout 60000 http-get://127.0.0.1:5173
 
       - name: Run playwright tests
-        run: npx playwright test
+        run: yarn dlx playwright test
