@@ -10,40 +10,40 @@ on:
 
 jobs:
 
-  #  ligretto-frontend-image:
-  #
-  #    runs-on: ubuntu-20.04
-  #
-  #    steps:
-  #    - name: Checkout
-  #      uses: actions/checkout@v3
-  #
-  #    - name: Install node
-  #      uses: actions/setup-node@v3
-  #      with:
-  #        node-version: '16.14.2'
-  #        cache: 'yarn'
-  #
-  #    - name: Install yarn
-  #      run: corepack enable
-  #
-  #    - name: Auth npm
-  #      run: |
-  #        yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
-  #        yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.GITHUB_TOKEN }}"
-  #
-  #    - name: Install dependecies
-  #      run: yarn
-  #
-  #    - name: Build frontend
-  #      run: yarn run ligretto:front:build
-  #      env:
-  #        LIGRETTO_GAMEPLAY_URL: https://api.ligretto.app
-  #        LIGRETTO_CORE_URL: https://core.ligretto.app
-  #        CAS_PARTNER_ID: 61587c1bdc151b004107a2b5
-  #        CAS_STATIC_URL: https://cas.mems.fun/static
-  #        CAS_URL: https://cas.mems.fun/api
-  #        AMPLITUDE_TOKEN: f55f6d07422dfb26ca4dfbe59a54d609
+#  ligretto-frontend-image:
+#
+#    runs-on: ubuntu-20.04
+#
+#    steps:
+#    - name: Checkout
+#      uses: actions/checkout@v3
+#
+#    - name: Install node
+#      uses: actions/setup-node@v3
+#      with:
+#        node-version: '16.14.2'
+#        cache: 'yarn'
+#
+#    - name: Install yarn
+#      run: corepack enable
+#
+#    - name: Auth npm
+#      run: |
+#        yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
+#        yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.GITHUB_TOKEN }}"
+#
+#    - name: Install dependecies
+#      run: yarn
+#
+#    - name: Build frontend
+#      run: yarn run ligretto:front:build
+#      env:
+#        LIGRETTO_GAMEPLAY_URL: https://api.ligretto.app
+#        LIGRETTO_CORE_URL: https://core.ligretto.app
+#        CAS_PARTNER_ID: 61587c1bdc151b004107a2b5
+#        CAS_STATIC_URL: https://cas.mems.fun/static
+#        CAS_URL: https://cas.mems.fun/api
+#        AMPLITUDE_TOKEN: f55f6d07422dfb26ca4dfbe59a54d609
 
   ligretto-gameplay-backend-image:
 
