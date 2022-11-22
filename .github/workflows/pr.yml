@@ -106,7 +106,7 @@ jobs:
   e2e:
     env:
       NODE_ENV: test
-      LIGRETTO_CORE_APP_KEY: nwpdmmnko5ylXZt_5CMnofXYUVl9Ppte
+      APP_KEY: nwpdmmnko5ylXZt_5CMnofXYUVl9Ppte
 
     services:
       postgres:
