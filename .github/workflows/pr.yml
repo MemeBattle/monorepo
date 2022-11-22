@@ -170,4 +170,4 @@ jobs:
         run: yarn dlx wait-on -c ./apps/ligretto-frontend/waitOnConfig.json --timeout 60000 http-get://127.0.0.1:5173
 
       - name: Run playwright tests
-        run: yarn dlx playwright test
+        run: yarn e2e:start

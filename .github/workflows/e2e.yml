@@ -32,10 +32,10 @@ jobs:
         run: yarn
 
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps chromium
+        run: yarn dlx playwright install --with-deps chromium
 
       - name: Run playwright tests
-        run: npx playwright test
+        run: yarn e2e:start
         env:
           LIGRETTO_APP_URL: https://ligretto.app/
       - uses: actions/upload-artifact@v2
