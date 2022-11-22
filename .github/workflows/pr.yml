@@ -158,7 +158,7 @@ jobs:
         run: yarn ligretto:core-backend:start:dev &
 
       - name: Check core backend app
-        run: npx wait-on --timeout 60000 http-get://127.0.0.1:3333/health
+        run: dlx wait-on --timeout 60000 http-get://127.0.0.1:3333/health
 
       - name: Start gameplay backend
         run: yarn ligretto:gameplay-backend:start:dev &
@@ -167,7 +167,7 @@ jobs:
         run: yarn ligretto:front:start:dev &
 
       - name: Check frontend app
-        run: npx wait-on -c ./apps/ligretto-frontend/waitOnConfig.json --timeout 60000 http-get://127.0.0.1:5173
+        run: dlx wait-on -c ./apps/ligretto-frontend/waitOnConfig.json --timeout 60000 http-get://127.0.0.1:5173
 
       - name: Run playwright tests
         run: npx playwright test
