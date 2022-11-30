@@ -11,8 +11,10 @@
     "lint-fix": "run-p -l 'lint-fix:*'",
     "test:ci": "yarn workspaces foreach -vip run test:ci",
     "ligretto:start": "yarn workspaces foreach -vip --include '{@memebattle/ligretto-core-backend,@memebattle/ligretto-gameplay-backend,@memebattle/ligretto-frontend}' run start:dev",
+    "ligretto:start:ci": "yarn workspaces foreach -vp --include '{@memebattle/ligretto-core-backend,@memebattle/ligretto-gameplay-backend,@memebattle/ligretto-frontend}' run start:dev",
     "ligretto:front:build": "yarn workspace @memebattle/ligretto-frontend run build",
     "ligretto:front:start:dev": "yarn workspace @memebattle/ligretto-frontend run start:dev",
+    "ligretto:gameplay-backend:start:dev": "yarn workspace @memebattle/ligretto-gameplay-backend run start:dev",
     "ligretto:gameplay-backend:build": "yarn workspace @memebattle/ligretto-gameplay-backend run build",
     "ligretto:core-backend:build": "yarn workspace @memebattle/ligretto-core-backend run build",
     "ligretto:core-backend:migrate": "yarn workspace @memebattle/ligretto-core-backend run migrate",
@@ -40,7 +42,7 @@
     "not op_mini all"
   ],
   "devDependencies": {
-    "@playwright/test": "^1.25.1",
+    "@playwright/test": "^1.28.0",
     "@storybook/addon-actions": "^6.5.13",
     "@storybook/addon-docs": "^6.5.13",
     "@storybook/addon-essentials": "^6.5.13",
@@ -74,7 +76,8 @@
     "stylelint-config-prettier": "^8.0.2",
     "stylelint-prettier": "^1.2.0",
     "tsconfig-paths-webpack-plugin": "^4.0.0",
-    "typescript": "4.7.4"
+    "typescript": "4.7.4",
+    "wait-on": "^6.0.1"
   },
   "packageManager": "yarn@3.2.0"
 }

@@ -102,3 +102,72 @@ jobs:
 
       - name: TS check
         run: yarn ts-check
+
+  e2e:
+    env:
+      NODE_ENV: test
+      APP_KEY: nwpdmmnko5ylXZt_5CMnofXYUVl9Ppte
+
+    services:
+      postgres:
+        image: postgres:13.4
+        ports:
+          - 5433:5432
+        env:
+          POSTGRES_USER: ligretto-core-user
+          POSTGRES_PASSWORD: ligretto_pg_password
+          POSTGRES_DB: ligretto-core
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.14.2'
+          cache: 'yarn'
+
+      - name: Install yarn
+        run: corepack enable
+
+      - name: Auth npm
+        run: |
+          yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"
+          yarn config set -H npmScopes.memebattle.npmAuthToken "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Install Playwright Browsers
+        run: yarn dlx playwright install --with-deps chromium
+
+      - name: Migrate database
+        run: yarn ligretto:core-backend:migrate
+
+      - name: Start core backend
+        run: yarn ligretto:core-backend:start:dev &
+
+      - name: Check core backend app
+        run: yarn dlx wait-on --timeout 60000 http-get://127.0.0.1:3333/health
+
+      - name: Start gameplay backend
+        run: yarn ligretto:gameplay-backend:start:dev &
+
+      - name: Start frontend
+        run: yarn ligretto:front:start:dev &
+
+      - name: Check frontend app
+        run: yarn dlx wait-on -c ./apps/ligretto-frontend/waitOnConfig.json --timeout 60000 http-get://127.0.0.1:5173
+
+      - name: Run playwright tests
+        run: yarn e2e:start
