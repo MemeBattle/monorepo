@@ -12,10 +12,13 @@ export interface MenuItemProps {
   title: string
   to: ValueOf<typeof routes>
   disabled?: boolean
+  dataTestId: string
 }
 
-export const MenuItem: React.FC<MenuItemProps> = ({ title, to, disabled }) => (
+export const MenuItem: React.FC<MenuItemProps> = ({ title, to, disabled, dataTestId }) => (
   <li className={clsx(styles.menuItem, { [styles.disabled]: disabled })}>
-    <Link to={to}> {title} </Link>
+    <Link to={to} data-test-id={dataTestId}>
+      {title}
+    </Link>
   </li>
 )
