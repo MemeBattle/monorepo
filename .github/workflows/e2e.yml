@@ -1,4 +1,4 @@
-name: CI-pull-requests
+name: 'Run-E2E'
 
 on:
   schedule:
@@ -32,7 +32,7 @@ jobs:
         run: yarn
 
       - name: Install Playwright Browsers
-        run: yarn dlx playwright install --with-deps chromium
+        run: yarn dlx playwright@1.28.0 install --with-deps chromium
 
       - name: Run playwright tests
         run: yarn e2e:start
