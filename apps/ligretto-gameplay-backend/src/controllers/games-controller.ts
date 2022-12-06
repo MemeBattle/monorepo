@@ -16,8 +16,8 @@ import {
   GameStatus,
   leaveFromRoomEmitAction,
   removeRoomAction,
-  searchRoomsEmitAction,
-  searchRoomsFinishAction,
+  getRoomsEmitAction,
+  getRoomsFinishAction,
   setPlayerStatusEmitAction,
   updateGameAction,
   updateRooms,
@@ -33,7 +33,7 @@ export class GamesController extends Controller {
 
   protected handlers: Controller['handlers'] = {
     [createRoomEmitAction.type]: (socket, action) => this.createGame(socket, action),
-    [searchRoomsEmitAction.type]: (socket, action) => this.searchRooms(socket, action),
+    [getRoomsEmitAction.type]: socket => this.getRooms(socket),
     [connectToRoomEmitAction.type]: (socket, action) => this.joinGame(socket, action),
     [setPlayerStatusEmitAction.type]: (socket, action) => this.setPlayerStatus(socket, action),
     [leaveFromRoomEmitAction.type]: socket => this.leaveFromRoomHandler(socket),
@@ -50,12 +50,11 @@ export class GamesController extends Controller {
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(newGame)] }))
   }
 
-  private async searchRooms(socket: Socket, action: ReturnType<typeof searchRoomsEmitAction>) {
+  private async getRooms(socket: Socket) {
     socket.join(SOCKET_ROOM_LOBBY)
 
-    const games = await this.gameService.findGames(action.payload.search)
-    const message = searchRoomsFinishAction({
-      search: action.payload.search,
+    const games = await this.gameService.getGames()
+    const message = getRoomsFinishAction({
       rooms: games.map(gameToRoom),
     })
     socket.emit('event', message)

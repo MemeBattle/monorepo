@@ -32,13 +32,8 @@ export class GameRepository {
     return this.database.set(storage => delete storage.games[gameId])
   }
 
-  async getGames(pattern?: string): Promise<Game[]> {
+  async getGames(): Promise<Game[]> {
     const games = (await this.database.get(storage => Object.values(storage.games))).filter(Boolean) as Game[]
-
-    if (pattern) {
-      return games.filter(game => game.name.includes(pattern) || game.id.includes(pattern))
-    }
-
     return games
   }
 
