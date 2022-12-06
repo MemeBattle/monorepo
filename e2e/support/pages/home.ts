@@ -9,7 +9,7 @@ export class HomePage {
   }
 
   async getMenuCreateGameButton() {
-    return this.page.locator('text=Create / enter room')
+    return this.page.locator(byTestId('Menu-MenuItem-CreateOrEnterRoom'))
   }
 
   async getCreateGameButton() {
@@ -21,6 +21,6 @@ export class HomePage {
   }
 
   async getRoom(roomName: string) {
-    return this.page.locator(`text=${roomName}`)
+    return this.page.locator(byTestId(`RoomsList-RoomItem-${roomName}`))
   }
 }

@@ -41,7 +41,13 @@ export const RoomsList: React.FC<RoomsListProps> = ({ rooms }) => (
   <StyledStack spacing={{ xs: '0.25rem', sm: '0.5rem' }}>
     {rooms.map(({ name, id, playersCount, playersMaxCount, onClick, isDisabled }) => (
       <StyledRoomsListItem isDisabled={isDisabled} title={name} key={id} onClick={onClick}>
-        <Typography textOverflow="ellipsis" noWrap fontSize={{ xs: '1rem', sm: '1.25rem', md: '1.5rem' }} flex={1}>
+        <Typography
+          data-test-id={`RoomsList-RoomItem-${name}`}
+          textOverflow="ellipsis"
+          noWrap
+          fontSize={{ xs: '1rem', sm: '1.25rem', md: '1.5rem' }}
+          flex={1}
+        >
           {name}
         </Typography>
         <Stack alignItems="center" direction="row" spacing={{ xs: '1.375rem', sm: '4.25rem' }}>

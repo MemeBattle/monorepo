@@ -11,21 +11,25 @@ const menuItems: MenuItemProps[] = [
   {
     title: 'Create / enter room',
     to: routes.ROOMS,
+    dataTestId: 'Menu-MenuItem-CreateOrEnterRoom',
   },
   {
     title: 'Leaders board',
     to: '/',
     disabled: true,
+    dataTestId: 'Menu-MenuItem-LeadersBoard',
   },
   {
     title: 'Game rules',
     to: '/',
     disabled: true,
+    dataTestId: 'Menu-MenuItem-GameRules',
   },
   {
     title: 'News',
     to: '/',
     disabled: true,
+    dataTestId: 'Menu-MenuItem-News',
   },
 ]
 
