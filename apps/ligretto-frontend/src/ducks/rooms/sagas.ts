@@ -2,9 +2,9 @@ import { takeLatest, take, put, select } from 'redux-saga/effects'
 import type { updateRooms as updateRoomsFromServer } from '@memebattle/ligretto-shared'
 import {
   createRoomEmitAction,
-  searchRoomsEmitAction,
+  getRoomsEmitAction,
   connectToRoomEmitAction,
-  searchRoomsFinishAction,
+  getRoomsFinishAction,
   createRoomSuccessAction,
   createRoomErrorAction,
   updateRooms,
@@ -19,7 +19,7 @@ import { routes } from 'utils/constants'
 import {
   connectToRoomAction,
   createRoomAction,
-  searchRoomsAction,
+  getRoomsAction,
   updateRoomsAction,
   setRoomsAction,
   setErrorRoomsAction,
@@ -27,26 +27,10 @@ import {
 } from './slice'
 import { searchSelector } from './selectors'
 
-/**
- * Сага могла стрельнуть "запрос" на поиск комнат, но ответ еще не успел придти.
- * В этот момент появляется новая сага поиска, старая исчезает
- * стреляется новый "запрос" на поиск
- * приходит ответ на старый поиск.
- *
- * Для этого кейса добавляем 'search' в ответный экшен с бэка,
- * если текущий поиск не совпадает с тем, что вернулся, ждем нужный.
- *
- * @param action
- */
-function* searchRoomsSaga(action: ReturnType<typeof searchRoomsAction>) {
-  yield put(searchRoomsEmitAction({ search: action.payload.search }))
-  while (true) {
-    const finishAction: ReturnType<typeof searchRoomsFinishAction> = yield take(searchRoomsFinishAction.type)
-    if (finishAction.payload.search === action.payload.search) {
-      yield put(setRoomsAction(finishAction.payload))
-      return
-    }
-  }
+function* getRoomsSaga() {
+  yield put(getRoomsEmitAction())
+  const finishAction: ReturnType<typeof getRoomsFinishAction> = yield take(getRoomsFinishAction.type)
+  yield put(setRoomsAction(finishAction.payload))
 }
 
 function* createRoomSaga(action: ReturnType<typeof createRoomAction>) {
@@ -82,7 +66,7 @@ function* createRoomErrorSaga(action: ReturnType<typeof createRoomErrorAction>) 
 }
 
 export function* roomsRootSaga() {
-  yield takeLatest(searchRoomsAction, searchRoomsSaga)
+  yield takeLatest(getRoomsAction, getRoomsSaga)
   yield takeLatest(createRoomAction, createRoomSaga)
   yield takeLatest(connectToRoomAction, connectToRoomSaga)
   yield takeLatest(updateRooms, updateRoomsFromServerSaga)
