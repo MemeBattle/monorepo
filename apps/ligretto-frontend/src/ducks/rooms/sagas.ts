@@ -1,10 +1,9 @@
-import { takeLatest, take, put, select } from 'redux-saga/effects'
+import { takeLatest, put } from 'redux-saga/effects'
 import type { updateRooms as updateRoomsFromServer } from '@memebattle/ligretto-shared'
 import {
   createRoomEmitAction,
   getRoomsEmitAction,
   connectToRoomEmitAction,
-  getRoomsFinishAction,
   createRoomSuccessAction,
   createRoomErrorAction,
   updateRooms,
@@ -16,21 +15,10 @@ import { generatePath } from 'react-router-dom'
 
 import { routes } from 'utils/constants'
 
-import {
-  connectToRoomAction,
-  createRoomAction,
-  getRoomsAction,
-  updateRoomsAction,
-  setRoomsAction,
-  setErrorRoomsAction,
-  removeRoomAction,
-} from './slice'
-import { searchSelector } from './selectors'
+import { connectToRoomAction, createRoomAction, getRoomsAction, updateRoomsAction, setErrorRoomsAction, removeRoomAction } from './slice'
 
 function* getRoomsSaga() {
   yield put(getRoomsEmitAction())
-  const finishAction: ReturnType<typeof getRoomsFinishAction> = yield take(getRoomsFinishAction.type)
-  yield put(setRoomsAction(finishAction.payload))
 }
 
 function* createRoomSaga(action: ReturnType<typeof createRoomAction>) {
@@ -42,8 +30,7 @@ function* connectToRoomSaga(action: ReturnType<typeof connectToRoomAction>) {
 }
 
 function* updateRoomsFromServerSaga(action: ReturnType<typeof updateRoomsFromServer>) {
-  const search: ReturnType<typeof searchSelector> = yield select(searchSelector)
-  const rooms = action.payload.rooms.filter(({ name }) => name.includes(search))
+  const rooms = action.payload.rooms
   yield put(updateRoomsAction({ rooms }))
 }
 
