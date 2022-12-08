@@ -17,7 +17,6 @@ import {
   leaveFromRoomEmitAction,
   removeRoomAction,
   getRoomsEmitAction,
-  getRoomsFinishAction,
   setPlayerStatusEmitAction,
   updateGameAction,
   updateRooms,
@@ -52,12 +51,8 @@ export class GamesController extends Controller {
 
   private async getRooms(socket: Socket) {
     socket.join(SOCKET_ROOM_LOBBY)
-
     const games = await this.gameService.getGames()
-    const message = getRoomsFinishAction({
-      rooms: games.map(gameToRoom),
-    })
-    socket.emit('event', message)
+    socket.emit('event', updateRooms({ rooms: games.map(gameToRoom) }))
   }
 
   /**
