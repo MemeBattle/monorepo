@@ -1,9 +1,5 @@
 import type { Room, Game, PlayerStatus, Player, GameResults, CreateRoomErrorCode } from './types'
 
-export interface GetRoomsFinish {
-  rooms: Room[]
-}
-
 export interface UpdateRooms {
   rooms: Room[]
 }

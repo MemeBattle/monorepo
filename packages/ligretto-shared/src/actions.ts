@@ -7,8 +7,6 @@ export const putCardAction = createAction<dto.PutCard>('@@gameplay/WEBSOCKET/PUT
 
 export const putCardFromStackOpenDeck = createAction<dto.PutCardFromStackOpenDeck>('@@gameplay/WEBSOCKET/PUT_CARD_FROM_STACK_OPEN_DECK')
 
-export const getRoomsFinishAction = createAction<dto.GetRoomsFinish>('@@rooms/SERVER/GET_ROOMS_FINISH')
-
 export const createRoomEmitAction = createAction<dto.CreateGame>('@@rooms/WEBSOCKET/CREATE_ROOM')
 
 export const getRoomsEmitAction = createAction('@@rooms/WEBSOCKET/GET_ROOMS')
