@@ -24,7 +24,7 @@ To run application use [instructions](./ligretto.md)
 `data-test-id` is attributes on all elements which using in tests. Scheme for create new data-test-id: page-block-element. Example:
 
 ```
-data-test-id="TalentsList-Toolbar-SuspendButton"
+data-test-id="RoomsList-Toolbar-SuspendButton"
 ```
 
 ## CI/CD
