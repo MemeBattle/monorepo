@@ -77,7 +77,7 @@ interface BottomProps {
 
 const Bottom = styled('div')<BottomProps>(({ theme, status, isActivePlayer }) => ({
   borderRadius: 4,
-  background: theme.palette.primary.main,
+  background: theme.palette.background.paper,
   alignItems: 'center',
   display: 'flex',
   padding: '0.5rem',
