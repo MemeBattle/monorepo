@@ -9,6 +9,7 @@ export const roomsErrorSelector = (state: All) => state.rooms.error
 export const isLoadingSelector = (state: All) => state.rooms.isLoading
 export const searchSelector = (state: All) => state.rooms.search
 export const isRoomsListEmptySelector = (state: All) => roomsEntitiesSelectors.selectTotal(state) === 0
-export const foundRoomsSelector = createSelector(roomsListSelector, searchSelector, (roomsListSelector, searchSelector) =>
-  searchSelector ? roomsListSelector.filter(room => room.name.toLowerCase().includes(searchSelector.toLowerCase())) : roomsListSelector,
-)
+export const foundRoomsSelector = createSelector(roomsListSelector, searchSelector, (roomsList, search) => {
+  const lowCaseSearch = search.toLowerCase()
+  return search ? roomsList.filter(room => room.name.toLowerCase().includes(lowCaseSearch)) : roomsList
+})
