@@ -1,9 +1,7 @@
-version: '3.3'
+version: "3.3"
 services:
   ligretto-gameplay-backend:
     image: ghcr.io/memebattle/ligretto-gameplay-backend:latest
-    ports:
-      - "3005:3005"
     secrets:
       - source: LIGRETTO_CAS_KEY
         target: /ligretto-gameplay-backend/key.pem
@@ -11,7 +9,16 @@ services:
       - LIGRETTO_GAMEPLAY_CAS_KEY_PATH=/ligretto-gameplay-backend/key.pem
       - LIGRETTO_CORE_URL=http://ligretto-core-backend:3333/api
       - LIGRETTO_GAMEPLAY_SOCKET_PORT=3005
+    networks:
+      - ligretto_net
+      - traefik-public
     deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.ligretto-gameplay-backend.rule=Host(`api.ligretto.app`)"
+        - "traefik.http.routers.ligretto-gameplay-backend.entrypoints=web"
+        - "traefik.http.services.ligretto-gameplay-backend.loadbalancer.server.port=3005"
+        - "traefik.http.services.ligretto-gameplay-backend.loadbalancer.passhostheader=true"
       replicas: 1
       update_config:
         parallelism: 2
@@ -22,8 +29,9 @@ services:
         max_attempts: 3
   ligretto-core-backend:
     image: ghcr.io/memebattle/ligretto-core-backend:latest
-    ports:
-      - "3333:3333"
+    networks:
+      - ligretto_net
+      - traefik-public
     secrets:
       - source: LIGRETTO_CAS_KEY
         target: /ligretto-core-backend/key.pem
@@ -33,7 +41,7 @@ services:
       - HOST=0.0.0.0
       - NODE_ENV=production
       - LIGRETTO_CORE_APP_KEY=BYnNsw-r-ndJTCy15Uqo8JAF4ONCA4X1
-      - CAS_PARTNER_ID=61587c1bdc151b004107a2b5
+      - CAS_PARTNER_ID=63b567bfd594b5085866649a
       - CAS_URL=https://cas.mems.fun/api
       - LIGRETTO_CORE_DB_CONNECTION=pg
       - LIGRETTO_CORE_PG_HOST=ligretto-core-pg
@@ -43,6 +51,12 @@ services:
       - LIGRETTO_CORE_PG_DB_NAME=ligretto-core
       - LIGRETTO_CORE_APP_NAME=ligretto-core-backend
     deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.ligretto-core-backend.rule=Host(`core.ligretto.app`)"
+        - "traefik.http.routers.ligretto-core-backend.entrypoints=web"
+        - "traefik.http.services.ligretto-core-backend.loadbalancer.server.port=3333"
+        - "traefik.http.services.ligretto-core-backend.loadbalancer.passhostheader=true"
       replicas: 1
       update_config:
         parallelism: 2
@@ -53,16 +67,24 @@ services:
         max_attempts: 3
   ligretto-core-pg:
     image: postgres
-    ports:
-    - "5432:5432"
     environment:
       POSTGRES_PASSWORD: ligretto_pg_password
       POSTGRES_USER: ligretto-core-user
       POSTGRES_DB: ligretto-core
+    networks:
+      - ligretto_net
     volumes:
       - ligretto-core-pg:/var/lib/postgresql/data
+
 secrets:
   LIGRETTO_CAS_KEY:
     external: true
+
 volumes:
   ligretto-core-pg:
+
+networks:
+  traefik-public:
+    external: true
+  ligretto_net:
+    driver: overlay

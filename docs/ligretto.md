@@ -11,7 +11,7 @@
 1. Create `.env.development.local` in the root directory
 2. Set next variables:
 ```
-LIGRETTO_CORE_URL=https://core.ligretto.app
+LIGRETTO_CORE_URL=https://core.ligretto.app/api
 LIGRETTO_GAMEPLAY_URL=https://api.ligretto.app
 ```
 3. Run frontend locally

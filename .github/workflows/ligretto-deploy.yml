@@ -39,8 +39,8 @@ jobs:
 #      run: yarn run ligretto:front:build
 #      env:
 #        LIGRETTO_GAMEPLAY_URL: https://api.ligretto.app
-#        LIGRETTO_CORE_URL: https://core.ligretto.app
-#        CAS_PARTNER_ID: 61587c1bdc151b004107a2b5
+#        LIGRETTO_CORE_URL: https://core.ligretto.app/api
+#        CAS_PARTNER_ID: 63b567bfd594b5085866649a
 #        CAS_STATIC_URL: https://cas.mems.fun/static
 #        CAS_URL: https://cas.mems.fun/api
 #        AMPLITUDE_TOKEN: f55f6d07422dfb26ca4dfbe59a54d609
@@ -148,7 +148,7 @@ jobs:
 #          PORT: 3333
 #          HOST: 0.0.0.0
 #          LIGRETTO_CORE_APP_KEY: BYnNsw-r-ndJTCy15Uqo8JAF4ONCA4X1
-#          CAS_PARTNER_ID: 61587c1bdc151b004107a2b5
+#          CAS_PARTNER_ID: 63b567bfd594b5085866649a
 #          CAS_URL: https://cas.mems.fun/api
 #          LIGRETTO_CORE_DB_CONNECTION: pg
 #          LIGRETTO_CORE_PG_HOST: ${{ secrets.LIGRETTO_PG_HOST }}
