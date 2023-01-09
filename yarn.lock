@@ -2739,7 +2739,7 @@ __metadata:
     "@types/lodash": ^4.14.182
     cpx: ^1.5.0
     lodash: ^4.17.21
-    luxon: ^2.0.2
+    luxon: ^2.5.2
     pg: ^8.6.0
     pino-pretty: ^7.6.1
     proxy-addr: ^2.0.6
@@ -15633,10 +15633,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"luxon@npm:^2.0.2, luxon@npm:^2.3.1, luxon@npm:^2.4.0":
+"luxon@npm:^2.3.1, luxon@npm:^2.4.0":
   version: 2.4.0
   resolution: "luxon@npm:2.4.0"
   checksum: 6071028d65cc3d3bdab5e6a3995dd97411c92bb3b3163a02deb7b7014318ad3a6fd750ae77131c42141b717c14aef8880d3130f265281d500ef2365f7265b3f3
+  languageName: node
+  linkType: hard
+
+"luxon@npm:^2.5.2":
+  version: 2.5.2
+  resolution: "luxon@npm:2.5.2"
+  checksum: d8b671ffd2ff0b438af862ac11082a81b3aedd9f8b6a4ca636f944224f8dd381125cd4d274ca0a8aedcaf2cfca0fc2ca96fe4cc1b16a28b7af701afb95c0bff8
   languageName: node
   linkType: hard
 

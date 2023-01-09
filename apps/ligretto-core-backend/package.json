@@ -30,7 +30,7 @@
     "@memebattle/cas-services": "^3.6.1",
     "@memebattle/ligretto-shared": "workspace:^",
     "lodash": "^4.17.21",
-    "luxon": "^2.0.2",
+    "luxon": "^2.5.2",
     "pg": "^8.6.0",
     "proxy-addr": "^2.0.6",
     "reflect-metadata": "^0.1.13",
