@@ -141,7 +141,7 @@ jobs:
       - uses: actions/checkout@v3
         name: Checkout
 
-      - uses: .github/actions/deploy-to-swarm
+      - uses: ./.github/actions/deploy-to-swarm
         with:
           path-to-stack: '.deploy/ligretto.deploy.yml'
           name: 'LIGRETTO'
