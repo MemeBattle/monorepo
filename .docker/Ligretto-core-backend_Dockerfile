@@ -2,13 +2,12 @@ FROM node:16.15.0-bullseye-slim as builder
 
 ARG NPM_TOKEN
 
+COPY . /memebattle
+WORKDIR /memebattle
+
 RUN corepack enable \
     && yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com" \
     && yarn config set -H npmScopes.memebattle.npmAuthToken "$NPM_TOKEN"
-
-COPY . /memebattle
-
-WORKDIR /memebattle
 
 RUN yarn install
 RUN yarn run ligretto:core-backend:build \
