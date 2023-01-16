@@ -87,10 +87,8 @@ jobs:
             ghcr.io/memebattle/ligretto-gameplay-backend:latest
           context: '.'
           file: '.docker/Ligretto-gameplay-backend_Dockerfile'
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           build-args:
-            NPM_TOKEN=${{ secrets.NPM_TOKEN }}
+            NPM_TOKEN=${{ secrets.GITHUB_TOKEN }}
 
   ligretto-core-backend-image:
 
@@ -115,7 +113,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.NPM_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
         uses: docker/build-push-action@v3
@@ -127,8 +125,6 @@ jobs:
             ghcr.io/memebattle/ligretto-core-backend:latest
           context: '.'
           file: '.docker/Ligretto-core-backend_Dockerfile'
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           build-args:
             NPM_TOKEN=${{ secrets.GITHUB_TOKEN }}
 
