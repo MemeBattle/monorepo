@@ -25,6 +25,10 @@ inputs:
     required: false
     default: ''
     description: 'Docker password'
+  docker_registry:
+    required: false
+    default: ''
+    description: 'Docker registry'
 
 runs:
   using: "composite"
@@ -46,7 +50,7 @@ runs:
         AWS_SECRET_ACCESS_KEY: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
         REGION: ${{ inputs.region }}
         FunctionName: deploy-stack-lambda
-        Payload: '{ "body": {"name": "${{ inputs.name }}", "stack": ${{ toJSON(steps.package.outputs.content) }}, "dockerLogin": ${{ toJSON(inputs.docker_login) }}, "dockerPassword": ${{ toJSON(inputs.docker_password) }} } }'
+        Payload: '{ "body": {"name": "${{ inputs.name }}", "stack": ${{ toJSON(steps.package.outputs.content) }}, "dockerLogin": ${{ toJSON(inputs.docker_login) }}, "dockerPassword": ${{ toJSON(inputs.docker_password) }}, "dockerRegistry": ${{ toJSON(inputs.docker_registry) }} } }'
 
     - name: Invoke logs
       if: ${{ always() }}
