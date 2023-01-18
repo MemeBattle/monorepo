@@ -147,5 +147,5 @@ jobs:
           name: 'LIGRETTO'
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          docker_login: ${{ github.repository_owner }}
-          docker_password: ${{ secrets.GITHUB_TOKEN }}
+          docker_login: ${{ secrets.GHCR_USER }}
+          docker_password: ${{ secrets.GHCR_PULL_TOKEN }}
