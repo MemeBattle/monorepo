@@ -2,7 +2,7 @@ name: 'Build, push and deploy ligretto docker images'
 
 on:
   push:
-    branches: [ master, feature/193-ligretto-deploy ]
+    branches: [ master ]
     paths-ignore:
       - 'apps/gamehub-client/**'
       - '.deploy'
