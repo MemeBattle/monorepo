@@ -90,7 +90,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args:
-            NPM_TOKEN=${{ secrets.GITHUB_TOKEN }}
+            NPM_TOKEN=${{ secrets.GHCR_PULL_TOKEN }}
 
   ligretto-core-backend-image:
 
@@ -130,7 +130,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args:
-            NPM_TOKEN=${{ secrets.GITHUB_TOKEN }}
+            NPM_TOKEN=${{ secrets.GHCR_PULL_TOKEN }}
 
   deploy:
     needs: [ligretto-gameplay-backend-image, ligretto-core-backend-image]
