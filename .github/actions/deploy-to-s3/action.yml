@@ -16,7 +16,7 @@ inputs:
   backup-bucket:
     required: true
     description: 's3 bucket to backup'
-  region:
+  AWS_REGION:
     required: false
     description: 'AWS region'
     default: 'eu-north-1'
