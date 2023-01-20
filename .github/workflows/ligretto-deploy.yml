@@ -146,11 +146,12 @@ jobs:
         name: Checkout
 
       - uses: ./.github/actions/deploy-to-swarm
+        name: Deploy to swarm lambda
         with:
           path-to-stack: '.deploy/ligretto.deploy.yml'
           name: 'LIGRETTO'
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          docker_login: ${{ github.repository_owner }}
-          docker_password: ${{ secrets.GITHUB_TOKEN }}
+          docker_login: ${{ secrets.GHCR_PULL_TOKEN }}
+          docker_password: ${{ secrets.GHCR_USER }}
           docker_registry: 'ghcr.io'
