@@ -16,6 +16,9 @@ module.exports = {
     react: {
       version: 'detect',
     },
+    next: {
+      rootDir: ['apps/blog', 'apps/gamehub-client'],
+    },
     'import/resolver': {
       node: {
         extensions: ['.js', '.jsx', '.ts', '.tsx'],
