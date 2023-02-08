@@ -136,7 +136,7 @@ jobs:
             NPM_TOKEN=${{ secrets.GHCR_PULL_TOKEN }}
 
   deploy:
-    needs: [ligretto-gameplay-backend-image, ligretto-core-backend-image]
+    needs: [ligretto-gameplay-backend-image, ligretto-core-backend-image, ligretto-frontend-build]
 
     runs-on: ubuntu-20.04
 
@@ -165,11 +165,10 @@ jobs:
           docker_password: ${{ secrets.GHCR_PULL_TOKEN }}
           docker_registry: 'ghcr.io'
 
-
       - uses: ./.github/actions/deploy-to-s3
         name: Deploy to s3
         with:
-          path-to-folder: ./apps/ligretto-frontend/dist
+          path-to-folder: apps/ligretto-frontend/dist
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           bucket: 'lig-production-cdn-origin'
