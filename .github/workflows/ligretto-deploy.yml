@@ -148,7 +148,8 @@ jobs:
       - uses: actions/checkout@v3
         name: Checkout
 
-      - name: Download frontend build
+      - name: Download frontend dist
+        id: download_frontend_dist
         uses: actions/download-artifact@v3
         with:
           name: frontend-dist
@@ -165,12 +166,14 @@ jobs:
           docker_password: ${{ secrets.GHCR_PULL_TOKEN }}
           docker_registry: 'ghcr.io'
 
+      - name: 'Echo download path'
+        run: echo ${{steps.download_frontend_dist.outputs.download-path}}
+
       - name: Debug
         run: |
           pwd
           ls apps
-          ls apps/ligretto-frontend
-          ls apps/ligretto-frontend/dist
+          ls -R apps/ligretto-frontend
 
       - uses: ./.github/actions/deploy-to-s3
         name: Deploy to s3
