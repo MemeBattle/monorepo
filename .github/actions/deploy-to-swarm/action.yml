@@ -13,7 +13,7 @@ inputs:
   AWS_SECRET_ACCESS_KEY:
     required: true
     description: 'AWS_SECRET_ACCESS_KEY'
-  region:
+  AWS_REGION:
     required: false
     description: 'AWS region'
     default: 'eu-north-1'
@@ -45,7 +45,7 @@ runs:
       with:
         AWS_ACCESS_KEY_ID: ${{ inputs.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
-        REGION: ${{ inputs.region }}
+        REGION: ${{ inputs.AWS_REGION }}
         FunctionName: deploy-stack-lambda
         Payload: '{ "body": {"name": "${{ inputs.name }}", "stack": ${{ toJSON(steps.package.outputs.content) }}, "dockerLogin": ${{ toJSON(inputs.docker_login) }}, "dockerPassword": ${{ toJSON(inputs.docker_password) }}, "dockerRegistry": ${{ toJSON(inputs.docker_registry) }} } }'
 

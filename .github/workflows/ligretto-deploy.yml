@@ -2,7 +2,7 @@ name: 'Build, push and deploy ligretto docker images'
 
 on:
   push:
-    branches: [ master, feature/193-ligretto-deploy ]
+    branches: [ master ]
     paths-ignore:
       - 'apps/gamehub-client/**'
       - '.deploy'
@@ -165,15 +165,6 @@ jobs:
           docker_login: ${{ secrets.GHCR_USER }}
           docker_password: ${{ secrets.GHCR_PULL_TOKEN }}
           docker_registry: 'ghcr.io'
-
-      - name: 'Echo download path'
-        run: echo ${{steps.download_frontend_dist.outputs.download-path}}
-
-      - name: Debug
-        run: |
-          pwd
-          ls apps
-          ls -R apps/ligretto-frontend
 
       - uses: ./.github/actions/deploy-to-s3
         name: Deploy to s3
