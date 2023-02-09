@@ -1,0 +1,55 @@
+name: "Deploy to swarm"
+description: "Call deploy to swarm lambda with a stack"
+inputs:
+  path-to-stack:
+    required: true
+    description: "Path to swarm stack file (docker compose v3)"
+  name:
+    required: true
+    description: "Stack name"
+  AWS_ACCESS_KEY_ID:
+    required: true
+    description: 'AWS_ACCESS_KEY_ID'
+  AWS_SECRET_ACCESS_KEY:
+    required: true
+    description: 'AWS_SECRET_ACCESS_KEY'
+  AWS_REGION:
+    required: false
+    description: 'AWS region'
+    default: 'eu-north-1'
+  docker_login:
+    required: false
+    default: ''
+    description: 'Docker login'
+  docker_password:
+    required: false
+    default: ''
+    description: 'Docker password'
+  docker_registry:
+    required: false
+    default: ''
+    description: 'Docker registry'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Read stack file
+      id: package
+      uses: juliangruber/read-file-action@v1
+      with:
+        path: ${{ inputs.path-to-stack }}
+
+    - uses: gagoar/invoke-aws-lambda@master
+      name: Invoke deploy to swarm lambda
+      id: invoke-lambda
+      with:
+        AWS_ACCESS_KEY_ID: ${{ inputs.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
+        REGION: ${{ inputs.AWS_REGION }}
+        FunctionName: deploy-stack-lambda
+        Payload: '{ "body": {"name": "${{ inputs.name }}", "stack": ${{ toJSON(steps.package.outputs.content) }}, "dockerLogin": ${{ toJSON(inputs.docker_login) }}, "dockerPassword": ${{ toJSON(inputs.docker_password) }}, "dockerRegistry": ${{ toJSON(inputs.docker_registry) }} } }'
+
+    - name: Invoke logs
+      if: ${{ always() }}
+      shell: bash
+      run: echo "${{ steps.invoke-lambda.outputs.response }}"
