@@ -1,4 +1,4 @@
-name: 'Build, push and deploy ligretto docker images'
+name: 'Ligretto build, push and deploy'
 
 on:
   push:
