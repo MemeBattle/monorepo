@@ -10,4 +10,6 @@
 !package.json
 !packages/ui
 !packages/ligretto-shared
+!tsconfig.json
+!typings
 !.env*
