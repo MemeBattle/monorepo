@@ -7,7 +7,7 @@ on:
       - 'apps/gamehub-client/**'
       - '.deploy/gamehub.deploy.yml'
       - '.docker/GameHub-client_Dockerfile*'
-      - '.github/workflows/gamehub-deploy'
+      - '.github/workflows/gamehub-deploy.yml'
 
 env:
   AWS_REGION: 'eu-north-1'
