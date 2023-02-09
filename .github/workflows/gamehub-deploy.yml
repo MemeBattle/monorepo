@@ -2,7 +2,7 @@ name: 'GameHub build, push and deploy'
 
 on:
   push:
-    branches: [ master, feature/252-gamehub-deploy-from-master ]
+    branches: [ master ]
     paths:
       - 'apps/gamehub-client/**'
       - '.deploy/gamehub.deploy.yml'
