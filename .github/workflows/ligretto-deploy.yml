@@ -141,7 +141,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     environment:
-      name: production
+      name: Ligretto-production
       url: https://ligretto.app
 
     steps:
