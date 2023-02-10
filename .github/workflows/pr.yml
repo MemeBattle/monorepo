@@ -1,8 +1,8 @@
 name: CI-pull-requests
 
 on:
-  pull_request:
-    branches: [ master ]
+  merge_group:
+    types: [checks_requested]
 
 env:
   NODE_OPTIONS: --max-old-space-size=4096
