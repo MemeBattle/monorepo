@@ -1,10 +1,16 @@
-version: '3.3'
+version: "3.3"
 services:
   gamehub-client:
     image: ghcr.io/memebattle/gamehub-client:latest
-    ports:
-      - "4000:3000"
+    networks:
+      - traefik-public
     deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.gamehub-client.rule=Host(`mems.fun`)"
+        - "traefik.http.routers.gamehub-client.entrypoints=web"
+        - "traefik.http.services.gamehub-client.loadbalancer.server.port=3000"
+        - "traefik.http.services.gamehub-client.loadbalancer.passhostheader=true"
       replicas: 1
       update_config:
         parallelism: 2
@@ -13,3 +19,7 @@ services:
         condition: on-failure
         delay: 10s
         max_attempts: 3
+
+networks:
+  traefik-public:
+    external: true
