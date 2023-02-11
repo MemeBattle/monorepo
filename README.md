@@ -24,7 +24,4 @@ URL: https://mems.fun
 1. Read [documentation](./docs)
 2. Read [CONTRIBUTING.md](CONTRIBUTING.md) TODO: Create contribution doc [#215](https://github.com/MemeBattle/monorepo/issues/215)
 3. Download repository `git clone git@github.com:MemeBattle/monorepo.git`
-4. Generate token 'https://github.com/settings/tokens' and enable read:packages
-5. Set npm scope for `@memebattle/*` packages `yarn config set -H npmScopes.memebattle.npmRegistryServer "https://npm.pkg.github.com"`
-6. Set your token (from step 4) for **memebattle** scope `yarn config set -H npmScopes.memebattle.npmAuthToken "TOKEN"`
-7. Install dependencies `yarn`
+4. Install dependencies `yarn`

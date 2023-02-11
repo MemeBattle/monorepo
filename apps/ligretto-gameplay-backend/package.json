@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@codexsoft/dotenv-flow": "^3.3.5",
-    "@memebattle/cas-services": "^3.6.1",
+    "@memebattle/cas-services": "^3.6.3",
     "@memebattle/ligretto-shared": "workspace:^",
     "axios": "^0.24.0",
     "inversify": "^5.0.1",

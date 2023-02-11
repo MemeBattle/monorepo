@@ -50,8 +50,6 @@ jobs:
           file: '.docker/GameHub-client_Dockerfile'
           cache-from: type=gha,scope=$GITHUB_REF_NAME-gamehub-client
           cache-to: type=gha,mode=max,scope=$GITHUB_REF_NAME-gamehub-client
-          build-args:
-            NPM_TOKEN=${{ secrets.GHCR_PULL_TOKEN }}
 
   deploy:
     needs: [build-gamehub-client-image]
