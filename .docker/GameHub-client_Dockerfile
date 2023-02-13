@@ -1,4 +1,4 @@
-FROM node:16.15.0-bullseye-slim AS deps
+FROM node:18.14.0-bullseye-slim AS deps
 
 WORKDIR /memebattle
 COPY .yarn/ /memebattle/.yarn
@@ -22,7 +22,7 @@ ENV NODE_ENV=production
 
 RUN yarn workspaces focus --production @memebattle/gamehub-client
 
-FROM node:16.15.0-bullseye-slim as runtime
+FROM node:18.14.0-bullseye-slim as runtime
 
 RUN mkdir -p /memebattle/gamehub-client
 USER node

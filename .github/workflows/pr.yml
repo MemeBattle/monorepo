@@ -22,7 +22,7 @@ jobs:
       - name: Install node
         uses: actions/setup-node@v3
         with:
-          node-version: '16.14.2'
+          node-version: '18.14.0'
           cache: 'yarn'
 
       - name: Install yarn
@@ -45,7 +45,7 @@ jobs:
       - name: Install node
         uses: actions/setup-node@v3
         with:
-          node-version: '16.14.2'
+          node-version: '18.14.0'
           cache: 'yarn'
 
       - name: Install yarn
@@ -81,7 +81,7 @@ jobs:
       - name: Install node
         uses: actions/setup-node@v3
         with:
-          node-version: '16.14.2'
+          node-version: '18.14.0'
           cache: 'yarn'
 
       - name: Install yarn
@@ -124,7 +124,7 @@ jobs:
       - name: Install node
         uses: actions/setup-node@v3
         with:
-          node-version: '16.14.2'
+          node-version: '18.14.0'
           cache: 'yarn'
 
       - name: Install yarn

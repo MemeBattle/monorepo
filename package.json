@@ -29,7 +29,7 @@
     "e2e:start": "playwright test"
   },
   "engines": {
-    "node": ">=14"
+    "node": ">=18"
   },
   "workspaces": [
     "packages/**",
@@ -53,7 +53,7 @@
     "@storybook/manager-webpack5": "^6.5.13",
     "@storybook/preset-scss": "^1.0.3",
     "@storybook/react": "^6.5.13",
-    "@types/node": "^14.18.18",
+    "@types/node": "^18.13.0",
     "@typescript-eslint/eslint-plugin": "^4.26.1",
     "@typescript-eslint/parser": "^4.26.1",
     "css-loader": "^6.7.1",
