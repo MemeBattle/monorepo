@@ -29,7 +29,7 @@
     "e2e:start": "playwright test"
   },
   "engines": {
-    "node": ">=14"
+    "node": ">=18"
   },
   "workspaces": [
     "packages/**",
