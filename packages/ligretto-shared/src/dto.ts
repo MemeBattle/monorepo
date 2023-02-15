@@ -1,14 +1,5 @@
 import type { Room, Game, PlayerStatus, Player, GameResults, CreateRoomErrorCode } from './types'
 
-export interface SearchRooms {
-  search: string
-}
-
-export interface SearchRoomsFinish {
-  search: string
-  rooms: Room[]
-}
-
 export interface UpdateRooms {
   rooms: Room[]
 }

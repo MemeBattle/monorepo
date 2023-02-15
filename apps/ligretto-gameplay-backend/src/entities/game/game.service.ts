@@ -194,8 +194,8 @@ export class GameService {
     }
   }
 
-  findGames(pattern: string) {
-    return this.gameRepository.getGames(pattern)
+  getGames() {
+    return this.gameRepository.getGames()
   }
 
   async leaveGame(gameId: UUID, userId: Player['id'] | Spectator['id']): Promise<Game | undefined> {

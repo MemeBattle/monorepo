@@ -3,7 +3,7 @@ import React, { useCallback } from 'react'
 import { createSelector } from 'reselect'
 
 import { isLoadingSelector, searchSelector } from 'ducks/rooms/selectors'
-import { searchRoomsAction } from 'ducks/rooms'
+import { setSearchRoomsAction } from 'ducks/rooms'
 import { InputWithButton } from 'components/InputWithButton'
 
 import SearchIcon from '@mui/icons-material/Search'
@@ -22,7 +22,7 @@ export const SearchRoomsContainer: React.FC = () => {
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const { value } = e.target
-      dispatch(searchRoomsAction({ search: value }))
+      dispatch(setSearchRoomsAction({ search: value }))
     },
     [dispatch],
   )

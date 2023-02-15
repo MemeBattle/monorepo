@@ -27,15 +27,14 @@ export const roomsSlice = createSlice({
   name: 'rooms',
   initialState,
   reducers: {
-    searchRoomsAction: (state, action: PayloadAction<{ search: string }>) => {
+    getRoomsAction: state => {
       state.isLoading = true
+    },
+    setSearchRoomsAction: (state, action: PayloadAction<{ search: string }>) => {
       state.search = action.payload.search
     },
     updateRoomsAction: (state, action: PayloadAction<{ rooms: Room[] }>) => {
       roomsEntityAdapter.upsertMany(state, action.payload.rooms)
-    },
-    setRoomsAction: (state, action: PayloadAction<{ rooms: Room[] }>) => {
-      roomsEntityAdapter.setAll(state, action.payload.rooms)
       state.isLoading = false
     },
     removeRoomAction: (state, action: PayloadAction<{ uuid: Room['uuid'] }>) => {
@@ -47,5 +46,5 @@ export const roomsSlice = createSlice({
   },
 })
 
-export const { searchRoomsAction, updateRoomsAction, setRoomsAction, removeRoomAction, setErrorRoomsAction } = roomsSlice.actions
+export const { getRoomsAction, setSearchRoomsAction, updateRoomsAction, removeRoomAction, setErrorRoomsAction } = roomsSlice.actions
 export const roomsReducer = roomsSlice.reducer

@@ -6,7 +6,7 @@ import { useDispatch } from 'react-redux'
 import { RoomsListContainer } from 'containers/RoomsListContainer'
 import { CreateRoomContainer } from 'containers/CreateRoomContainer'
 import { SearchRoomsContainer } from 'containers/SearchRoomsContainer/SearchRoomsContainer'
-import { searchRoomsAction } from 'ducks/rooms'
+import { getRoomsAction } from 'ducks/rooms'
 
 const StyledRoomManager = styled(Paper)(({ theme }) => ({
   maxWidth: '80rem',
@@ -25,7 +25,7 @@ export const RoomsManager = () => {
   const dispatch = useDispatch()
 
   useEffect(() => {
-    dispatch(searchRoomsAction({ search: '' }))
+    dispatch(getRoomsAction())
   }, [dispatch])
 
   return (

@@ -5,10 +5,10 @@ import { RoomsList as RoomsListComponent } from 'components/blocks/home/RoomsLis
 import { useHistory, generatePath } from 'react-router'
 
 import { routes } from 'utils/constants'
-import { roomsListSelector } from 'ducks/rooms'
+import { foundRoomsSelector } from 'ducks/rooms'
 
 export const RoomsListContainer = () => {
-  const rooms = useSelector(roomsListSelector)
+  const rooms = useSelector(foundRoomsSelector)
   const history = useHistory()
 
   const roomsProps = useMemo<RoomsListProps['rooms']>(
