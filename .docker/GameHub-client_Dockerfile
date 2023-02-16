@@ -15,6 +15,7 @@ ENV NODE_ENV=production
 
 COPY . /memebattle
 RUN yarn run gamehub-client:build
+RUN rm -rf /memebattle/apps/gamehub-client/.next/cache
 
 FROM dependencies AS prod-dependencies
 ENV NODE_ENV=production
