@@ -14,7 +14,10 @@ FROM dependencies AS build
 ENV NODE_ENV=production
 
 COPY . /memebattle
-RUN yarn run gamehub-client:build
+WORKDIR /memebattle
+
+RUN node ./node_modules/.bin/next build apps/gamehub-client
+
 RUN rm -rf /memebattle/apps/gamehub-client/.next/cache
 
 FROM dependencies AS prod-dependencies
