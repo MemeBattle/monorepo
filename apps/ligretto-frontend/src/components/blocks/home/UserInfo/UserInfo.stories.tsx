@@ -1,3 +1,4 @@
+import type { UserInfoProps } from './UserInfo'
 import { UserInfo } from './UserInfo'
 
 export default {
@@ -10,9 +11,9 @@ export default {
   },
 }
 
-export const DefaultView = args => <UserInfo {...args} />
+export const DefaultView = (args: UserInfoProps) => <UserInfo {...args} />
 
-export const Authorized = args => <UserInfo {...args} />
+export const Authorized = (args: UserInfoProps) => <UserInfo {...args} />
 
 Authorized.argTypes = {
   onClick: { action: 'clicked' },

@@ -2,7 +2,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useHistory } from 'react-router'
 import React, { useCallback, useMemo } from 'react'
 
-import { UserInfo } from 'components/blocks/home/user-info'
+import { UserInfo } from 'components/blocks/home/UserInfo'
 import { authRoutes, routes } from 'utils/constants'
 import { logout, currentUserSelector } from 'ducks/auth'
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
@@ -39,7 +39,6 @@ export const UserInfoContainer = () => {
 
   return (
     <UserInfo
-      buttonText="Sign in"
       img={userAvatarUrl}
       username={user?.isTemporary ? undefined : user?.username}
       onButtonClick={onButtonClick}
