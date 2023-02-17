@@ -12,6 +12,7 @@ export { default as IconButton } from '@mui/material/IconButton'
 export { default as Snackbar } from '@mui/material/Snackbar'
 export { default as Link } from '@mui/material/Link'
 export { default as FormHelperText } from '@mui/material/FormHelperText'
+export { default as Paper } from '@mui/material/Paper'
 
 export * from './themes/themes.types'
 export * from './PasswordInput'
@@ -29,7 +30,5 @@ export * from './Box'
 export * from './Alert'
 
 export * from './LoaderCards'
-
-export * from './Paper'
 
 export * from './Carousel'

@@ -4,8 +4,7 @@ import Button from '@mui/material/Button'
 import { createStyles, makeStyles } from '@mui/styles'
 import CreateIcon from '@mui/icons-material/Create'
 import ClearIcon from '@mui/icons-material/Clear'
-
-import { Paper } from '../Paper'
+import Paper from '@mui/material/Paper'
 
 const useStyles = makeStyles(() =>
   createStyles({
