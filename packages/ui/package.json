@@ -1,23 +1,22 @@
 {
   "name": "@memebattle/ui",
   "version": "1.0.1",
-  "description": "> TODO: description",
+  "description": "MemeBattle UI-kit package",
   "keywords": [
-    "ligretto",
+    "memebattle",
     "ui",
-    "material"
+    "material",
+    "mui"
   ],
   "author": "Artem Zverev <themezv@gmail.com>",
-  "homepage": "",
+  "homepage": "https://github.com/MemeBattle/monorepo",
   "license": "MIT",
   "main": "src/index.ts",
   "types": "src/index.ts",
-  "publishConfig": {
-    "registry": "http://npm.mems.fun:4873"
-  },
   "repository": {
     "type": "git",
-    "url": "ssh://git@gitlab.mems.fun:2224/memebattle/frontend.git"
+    "url": "git@github.com:MemeBattle/monorepo.git",
+    "package": "packages/ui"
   },
   "scripts": {
     "ts-check": "tsc --noEmit"
@@ -36,8 +35,6 @@
     "@emotion/styled": "^11.10.4",
     "@mui/icons-material": "^5.10.3",
     "@mui/lab": "^5.0.0-alpha.99",
-    "@mui/material": "^5.10.5",
-    "@mui/styles": "^5.10.3",
-    "clsx": "^1.1.1"
+    "@mui/material": "^5.10.5"
   }
 }

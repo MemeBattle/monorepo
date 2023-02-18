@@ -1,5 +1,5 @@
 {
-  "files": ["typings/font.d.ts", "typings/images.d.ts", "typings/mui-theme-fix.d.ts"],
+  "files": ["typings/font.d.ts", "typings/images.d.ts"],
   "compilerOptions": {
     "jsx": "react-jsx"
   }
