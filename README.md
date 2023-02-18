@@ -7,6 +7,9 @@
 **MemeBattle** - open community
 
 ## Applications
+
+[![Maintainability](https://api.codeclimate.com/v1/badges/87e9a6dd862ad81868c3/maintainability)](https://codeclimate.com/github/MemeBattle/monorepo/maintainability)
+
 ### Ligretto
 URL: https://ligretto.app
 
