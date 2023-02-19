@@ -4,12 +4,15 @@ import { MainLayout } from 'components/layouts/main/MainLayout'
 import { Menu } from 'components/blocks/home/menu'
 import { HomePageWrapper } from 'components/blocks/home/homepage-wrapper'
 import { UserInfoContainer } from 'containers/main-page'
+import { Stack } from '@memebattle/ui'
 
 export const HomePage: React.FC = () => (
   <MainLayout>
     <HomePageWrapper>
-      <UserInfoContainer />
-      <Menu />
+      <Stack direction="column" spacing={3}>
+        <UserInfoContainer />
+        <Menu />
+      </Stack>
     </HomePageWrapper>
   </MainLayout>
 )

@@ -23,8 +23,6 @@ export * from './MemebattleLogo'
 
 export * from './Typography'
 
-export * from './UserInfo'
-
 export * from './Box'
 
 export * from './Alert'
