@@ -1,5 +1,5 @@
 import React, { memo } from 'react'
-import { HashRouter, Switch, Route, Redirect } from 'react-router-dom'
+import { Route, Routes, Navigate } from 'react-router-dom'
 import { ROUTES } from './constants/routes'
 import { LoginPage } from './pages/login/LoginPage'
 import { RegisterPage } from './pages/register/RegisterPage'
@@ -13,21 +13,11 @@ export interface AppProps {
 }
 
 export const App = memo<AppProps>(({ onLoginSucceeded }) => (
-  <HashRouter>
-    <Switch>
-      <Route path={ROUTES.LOGIN} exact>
-        <LoginPage onLoginSucceeded={onLoginSucceeded} />
-      </Route>
-      <Route path={ROUTES.REGISTER} exact>
-        <RegisterPage />
-      </Route>
-      <Route path={ROUTES.CONFIRM_EMAIL} exact>
-        <ConfirmEmailPage />
-      </Route>
-      <Route path={ROUTES.PROFILE} exact>
-        <ProfilePage onLoginSucceeded={onLoginSucceeded} />
-      </Route>
-      <Redirect to={ROUTES.LOGIN} />
-    </Switch>
-  </HashRouter>
+  <Routes>
+    <Route path={ROUTES.LOGIN} element={<LoginPage onLoginSucceeded={onLoginSucceeded} />} />
+    <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
+    <Route path={ROUTES.CONFIRM_EMAIL} element={<ConfirmEmailPage />} />
+    <Route path={ROUTES.PROFILE} element={<ProfilePage onLoginSucceeded={onLoginSucceeded} />} />
+    <Route element={<Navigate to={ROUTES.LOGIN} />} />
+  </Routes>
 ))
