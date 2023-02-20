@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useHistory } from 'react-router'
+import { useNavigate } from 'react-router'
 
 import { routes } from 'utils/constants'
 import { gameNameSelector, gameStatusSelector, playerSelector, startGameAction, togglePlayerStatusAction } from 'ducks/game'
@@ -8,7 +8,7 @@ import { GameSettings } from 'components/blocks/game/GameSettings'
 
 export const GameSettingsContainer = () => {
   const dispatch = useDispatch()
-  const history = useHistory()
+  const navigate = useNavigate()
 
   const gameName = useSelector(gameNameSelector)
   const gameStatus = useSelector(gameStatusSelector)
@@ -23,8 +23,8 @@ export const GameSettingsContainer = () => {
   }, [dispatch])
 
   const handleExitClick = useCallback(() => {
-    history.push(routes.HOME)
-  }, [history])
+    navigate(routes.HOME)
+  }, [navigate])
 
   return (
     <GameSettings

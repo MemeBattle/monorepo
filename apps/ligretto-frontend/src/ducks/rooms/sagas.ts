@@ -10,7 +10,7 @@ import {
   connectToRoomErrorAction,
   removeRoomAction as removeRoomFromServerAction,
 } from '@memebattle/ligretto-shared'
-import { replace, push } from 'connected-react-router'
+import { replace, push } from 'redux-first-history'
 import { generatePath } from 'react-router-dom'
 
 import { routes } from 'utils/constants'

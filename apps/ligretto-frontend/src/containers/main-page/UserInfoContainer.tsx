@@ -1,9 +1,9 @@
 import { useDispatch, useSelector } from 'react-redux'
-import { useHistory } from 'react-router'
+import { useNavigate } from 'react-router'
 import React, { useCallback, useMemo } from 'react'
 
 import { UserInfo } from 'components/blocks/home/UserInfo'
-import { authRoutes, routes } from 'utils/constants'
+import { authRoutes } from 'utils/constants'
 import { logout, currentUserSelector } from 'ducks/auth'
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 import { getRandomAvatar } from 'components/Avatar/getRandomAvatar'
@@ -11,17 +11,17 @@ import { getRandomAvatar } from 'components/Avatar/getRandomAvatar'
 export const UserInfoContainer = () => {
   const dispatch = useDispatch()
 
-  const { push } = useHistory()
+  const navigate = useNavigate()
 
   const user = useSelector(currentUserSelector)
 
   const onButtonClick = useCallback(() => {
     if (!user || user.isTemporary) {
-      push(routes.AUTH)
+      navigate(authRoutes.LOGIN)
     } else {
-      push(authRoutes.PROFILE)
+      navigate(authRoutes.PROFILE)
     }
-  }, [push, user])
+  }, [navigate, user])
 
   const logoutClick = useCallback(() => {
     dispatch(logout())
