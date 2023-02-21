@@ -6,7 +6,7 @@ import { ReactComponent as UploadIcon } from '../../images/UploadButton.svg'
 import { Alert, Button, Snackbar } from '@memebattle/ui'
 import clsx from 'clsx'
 import { DropBox } from '../DropBox'
-import { UserPhotoDrop } from '../UserPhotoDrop'
+import { UserPhotoDrop } from './UserPhotoDrop'
 import { t } from '../../utils/i18n'
 import { useUploadError } from '../../hooks/useUploadError'
 
@@ -15,17 +15,13 @@ interface DropZoneProps {
   avatarUrl?: string
 }
 
-type FilePreview = File & {
-  preview: string
-}
-
 export const MAX_FILE_SIZE = 2097152 // 2mb
 
 export const AvatarDropzone = memo(({ avatarUrl, onChange }: DropZoneProps) => {
-  const [file, setFile] = useState<FilePreview | null>(() => {
+  const [stateFile, setStateFile] = useState<{ file: File; previewUrl: string } | null>(() => {
     if (avatarUrl) {
-      const file: FilePreview = { ...new File([], 'default'), preview: avatarUrl }
-      return file
+      const file = new File([], 'default')
+      return { file, previewUrl: avatarUrl }
     }
     return null
   })
@@ -36,11 +32,10 @@ export const AvatarDropzone = memo(({ avatarUrl, onChange }: DropZoneProps) => {
     accept: ['image/png', 'image/svg+xml', 'image/jpeg', 'image/jpg'],
     maxSize: MAX_FILE_SIZE,
     onDropAccepted: acceptedFiles => {
-      const file = acceptedFiles[0]
-      const fileWithPreview: FilePreview = { ...file, preview: URL.createObjectURL(file) }
-      setFile(fileWithPreview)
+      const acceptedFile = acceptedFiles[0]
+      setStateFile({ file: acceptedFile, previewUrl: URL.createObjectURL(acceptedFile) })
       clearError()
-      onChange?.(file)
+      onChange?.(acceptedFile)
     },
     onDropRejected: fileRejections => {
       handleError(fileRejections[0])
@@ -50,11 +45,11 @@ export const AvatarDropzone = memo(({ avatarUrl, onChange }: DropZoneProps) => {
   useEffect(
     () => () => {
       // Make sure to revoke the data uris to avoid memory leaks
-      if (file) {
-        URL.revokeObjectURL(file.preview)
+      if (stateFile?.previewUrl) {
+        URL.revokeObjectURL(stateFile.previewUrl)
       }
     },
-    [file],
+    [stateFile?.previewUrl],
   )
 
   return (
@@ -63,7 +58,11 @@ export const AvatarDropzone = memo(({ avatarUrl, onChange }: DropZoneProps) => {
         <input {...getInputProps()} />
         {!isDragActive ? (
           <div className={clsx(styles.container, styles.containerBorder, { [styles.containerBorderError]: hasUploadError })}>
-            {file ? <UserPhotoDrop file={file} /> : <AvatarPlaceHolder className={styles.containerImg} />}
+            {stateFile?.file ? (
+              <UserPhotoDrop name={stateFile.file.name} src={stateFile.previewUrl} />
+            ) : (
+              <AvatarPlaceHolder className={styles.containerImg} />
+            )}
             <div className={styles.buttonWrapper}>
               <Button size="medium" variant="outlined" color="inherit" endIcon={<UploadIcon>send</UploadIcon>}>
                 {t.avatarDropZone.text}

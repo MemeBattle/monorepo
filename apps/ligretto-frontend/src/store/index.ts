@@ -2,7 +2,7 @@ import { configureStore, getDefaultMiddleware } from '@reduxjs/toolkit'
 import { createReduxHistoryContext } from 'redux-first-history'
 import { createBrowserHistory } from 'history'
 import createSagaMiddleware from 'redux-saga'
-import { combineReducers } from 'redux'
+import { combineReducers } from '@reduxjs/toolkit'
 
 import { authReducer } from 'ducks/auth'
 import { usersReducer } from 'ducks/users'
