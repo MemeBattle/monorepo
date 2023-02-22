@@ -8,7 +8,7 @@ interface ScreenCountdownProps {
 }
 
 const animation = (timeToGo: number) => {
-  const stepSize = Math.floor(100 / timeToGo)
+  const stepSize = Math.floor(100 / (timeToGo - 1))
   const steps = Array.from({ length: timeToGo }).map((_, index) => index * stepSize)
 
   const timerFrames = steps
