@@ -23,7 +23,7 @@
     "youch-terminal": "^1.1.1"
   },
   "dependencies": {
-    "@adonisjs/core": "^5.8.3",
+    "@adonisjs/core": "^5.9.0",
     "@adonisjs/lucid": "^17.2.0",
     "@adonisjs/repl": "^3.1.11",
     "@codexsoft/dotenv-flow": "^3.3.5",

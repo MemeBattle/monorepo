@@ -40,7 +40,6 @@
   },
   "devDependencies": {
     "@types/react": "^17.0.44",
-    "react-snap": "^1.23.0",
-    "typescript": "^4.7.4"
+    "typescript": "^4.9.5"
   }
 }
