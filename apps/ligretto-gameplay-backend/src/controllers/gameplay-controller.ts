@@ -14,6 +14,7 @@ import {
 import { IOC_TYPES } from '../IOC_TYPES'
 import { Gameplay } from '../gameplay/gameplay'
 import { GameService } from '../entities/game/game.service'
+import { wait } from '../utils/wait'
 
 @injectable()
 export class GameplayController extends Controller {
@@ -31,8 +32,10 @@ export class GameplayController extends Controller {
   private async startGame(socket: Socket, action: ReturnType<typeof startGameEmitAction>) {
     const gameId = action.payload.gameId
 
-    await this.gameplay.startGame(gameId)
+    const game = await this.gameService.initiateStartGame(gameId)
+    await this.updateGame(socket, gameId)
 
+    await Promise.all([this.gameplay.startGame(gameId), wait(game.config.startingDelayInSec * 1000)])
     await this.updateGame(socket, gameId)
   }
 

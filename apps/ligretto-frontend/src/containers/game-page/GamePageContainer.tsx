@@ -6,18 +6,20 @@ import { useNavigate, useParams } from 'react-router'
 import { connectToRoomAction } from 'ducks/rooms'
 import { leaveGameAction } from 'ducks/game'
 
+import { routes } from 'utils/constants'
+import { ScreenCountdown } from 'components/blocks/game/ScreenCountdown'
+
 import { GameContainer } from '../game'
 import { GameLobbyContainer } from '../game-lobby'
 import { GameSpectatorContainer } from '../game-spectator'
 import { gamePageContainerSelector } from './GamePageContainer.selector'
-import { routes } from 'utils/constants'
 
 export const GamePageContainer = () => {
   const dispatch = useDispatch()
 
   const navigate = useNavigate()
 
-  const { gameStatus, isGameLoaded, isPlayerSpectator } = useSelector(gamePageContainerSelector)
+  const { gameStatus, isGameLoaded, isPlayerSpectator, startingDelayInSec } = useSelector(gamePageContainerSelector)
 
   const { roomUuid } = useParams<{ roomUuid: string }>()
 
@@ -37,13 +39,14 @@ export const GamePageContainer = () => {
     return <>loading</>
   }
 
-  if (gameStatus === GameStatus.InGame && isPlayerSpectator) {
-    return <GameSpectatorContainer />
+  if (gameStatus === GameStatus.New || gameStatus === GameStatus.Pause || gameStatus === GameStatus.RoundFinished) {
+    return <GameLobbyContainer />
   }
 
-  if (gameStatus === GameStatus.InGame) {
-    return <GameContainer />
-  }
-
-  return <GameLobbyContainer />
+  return (
+    <>
+      {gameStatus === GameStatus.Starting && <ScreenCountdown timeToGo={startingDelayInSec} />}
+      {isPlayerSpectator ? <GameSpectatorContainer /> : <GameContainer />}
+    </>
+  )
 }

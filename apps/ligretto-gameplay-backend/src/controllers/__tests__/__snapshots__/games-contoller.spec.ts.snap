@@ -7,6 +7,7 @@ Object {
       "config": Object {
         "dndEnabled": false,
         "playersMaxCount": 4,
+        "startingDelayInSec": 4,
       },
       "id": "1",
       "name": "createGame",
@@ -30,6 +31,7 @@ Object {
       "config": Object {
         "dndEnabled": false,
         "playersMaxCount": 4,
+        "startingDelayInSec": 4,
       },
       "id": "1",
       "name": "createGame",
@@ -80,6 +82,7 @@ Object {
       "config": Object {
         "dndEnabled": false,
         "playersMaxCount": 4,
+        "startingDelayInSec": 4,
       },
       "id": "1",
       "name": "createGame",
@@ -131,6 +134,7 @@ Object {
       "config": Object {
         "dndEnabled": false,
         "playersMaxCount": 4,
+        "startingDelayInSec": 4,
       },
       "id": "1",
       "name": "createGame",
@@ -206,6 +210,7 @@ Object {
       "config": Object {
         "dndEnabled": false,
         "playersMaxCount": 4,
+        "startingDelayInSec": 4,
       },
       "id": "1",
       "name": "createGame",
@@ -278,6 +283,7 @@ Object {
       "config": Object {
         "dndEnabled": false,
         "playersMaxCount": 4,
+        "startingDelayInSec": 4,
       },
       "id": "1",
       "name": "createGame",

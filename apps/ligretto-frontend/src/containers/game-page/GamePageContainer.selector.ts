@@ -1,12 +1,13 @@
 import { createSelector } from 'reselect'
 
-import { gameStatusSelector, isGameLoadedSelector, isPlayerSpectatorSelector } from 'ducks/game'
+import { gameStatusSelector, isGameLoadedSelector, isPlayerSpectatorSelector, startingDelayInSecSelector } from 'ducks/game'
 
 export const gamePageContainerSelector = createSelector(
-  [gameStatusSelector, isGameLoadedSelector, isPlayerSpectatorSelector],
-  (gameStatus, isGameLoaded, isPlayerSpectator) => ({
+  [gameStatusSelector, isGameLoadedSelector, isPlayerSpectatorSelector, startingDelayInSecSelector],
+  (gameStatus, isGameLoaded, isPlayerSpectator, startingDelayInSec) => ({
     gameStatus,
     isGameLoaded,
     isPlayerSpectator,
+    startingDelayInSec,
   }),
 )
