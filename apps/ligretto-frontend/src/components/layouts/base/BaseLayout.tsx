@@ -1,10 +1,7 @@
 import React from 'react'
-import clsx from 'clsx'
+import type { BoxProps } from '@memebattle/ui'
+import { Box } from '@memebattle/ui'
 
-import styles from './BaseLayout.module.scss'
-
-interface Props {
-  className?: string
-}
-
-export const BaseLayout: React.FC<Props> = ({ className, children }) => <main className={clsx(styles.screen, className)}>{children}</main>
+export const BaseLayout = (props: BoxProps) => (
+  <Box component="main" display="flex" flex={1} flexDirection="column" width="100vw" height="100vh" {...props} />
+)

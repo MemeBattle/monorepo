@@ -48,6 +48,7 @@ export interface Spectator {
 
 export enum GameStatus {
   New = 'New',
+  Starting = 'Starting',
   InGame = 'InGame',
   Pause = 'Pause',
   RoundFinished = 'RoundFinished',
@@ -71,6 +72,7 @@ export interface Game {
   spectators: Record<UUID, Spectator | undefined>
   playground: Playground
   config: {
+    startingDelayInSec: number
     playersMaxCount: number
     dndEnabled: boolean
   }

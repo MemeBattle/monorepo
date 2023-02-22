@@ -28,6 +28,7 @@ export const playgroundDecksSelector = (state: All) => gameSelector(state).playg
 /** Game Config */
 export const gameConfigSelector = (state: All) => gameSelector(state).config
 export const isDndEnabledSelector = (state: All) => gameConfigSelector(state).dndEnabled
+export const startingDelayInSecSelector = (state: All) => gameConfigSelector(state).startingDelayInSec
 
 /** Player State */
 export const playerSelector = (state: All) => playersSelector(state)[currentUserIdSelector(state)]

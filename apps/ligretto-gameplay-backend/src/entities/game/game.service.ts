@@ -2,7 +2,7 @@ import { inject, injectable } from 'inversify'
 import { groupBy, mapValues, merge, mergeWith, omit } from 'lodash'
 import { GameRepository } from './game.repo'
 import type { Game, GameResults, Player, Spectator, UUID } from '@memebattle/ligretto-shared'
-import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
+import { PlayerStatus, GameStatus } from '@memebattle/ligretto-shared'
 import { createInitialPlayerCards } from '../../utils/create-initial-player-cards'
 import { IOC_TYPES } from '../../IOC_TYPES'
 import { nonNullable } from '../../utils/nonNullable'
@@ -18,7 +18,7 @@ const emptyGame: Game = {
     decks: [],
     droppedDecks: [],
   },
-  config: { playersMaxCount: 4, dndEnabled: false },
+  config: { playersMaxCount: 4, startingDelayInSec: 4, dndEnabled: false },
 }
 
 @injectable()
@@ -36,6 +36,13 @@ export class GameService {
     const game = await this.ligrettoCoreService.createGameService()
 
     return this.gameRepository.addGame(game.id, merge({}, emptyGame, { ...game, name, config: { ...emptyGame.config, ...config } }))
+  }
+
+  initiateStartGame(gameId: UUID) {
+    return this.gameRepository.updateGame(gameId, game => ({
+      ...game,
+      status: GameStatus.Starting,
+    }))
   }
 
   startGame(gameId: UUID) {
