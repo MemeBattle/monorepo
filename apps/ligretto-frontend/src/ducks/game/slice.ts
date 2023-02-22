@@ -28,6 +28,7 @@ const initialState: GameState = {
     },
     config: {
       dndEnabled: false,
+      startingDelayInSec: 4,
       playersMaxCount: 4,
     },
     spectators: {},
