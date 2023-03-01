@@ -26,7 +26,7 @@ module.exports = {
       },
     },
   },
-  plugins: ['@typescript-eslint', 'react-app', 'prettier', 'react-hooks', 'eslint-plugin-react'],
+  plugins: ['@typescript-eslint', 'prettier', 'react-hooks', 'eslint-plugin-react'],
   extends: ['plugin:@typescript-eslint/recommended', 'plugin:storybook/recommended'],
   rules: {
     'prettier/prettier': [
