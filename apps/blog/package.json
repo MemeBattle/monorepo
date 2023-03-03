@@ -6,8 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "ts-check": "tsc --noEmit",
     "generate": "contentlayer build",
+    "ts-check": "yarn generate && tsc --noEmit",
     "generate:dev": "contentlayer dev"
   },
   "dependencies": {
