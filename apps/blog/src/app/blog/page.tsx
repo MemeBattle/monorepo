@@ -11,7 +11,7 @@ export async function generateStaticParams() {
 export default function BlogPage() {
   return (
     <section>
-      <h1 className="font-bold text-3xl font-serif mb-5">Blog</h1>
+      <h1>Blog</h1>
       {allBlogs
         .sort((a: Blog, b: Blog) => {
           if (new Date(a.publishedAt) > new Date(b.publishedAt)) {
@@ -20,8 +20,8 @@ export default function BlogPage() {
           return 1
         })
         .map((post: Blog) => (
-          <Link key={post.slug} className="flex flex-col space-y-1 mb-4" href={`blog/${post.slug}`}>
-            <div className="w-full flex flex-col">
+          <Link key={post.slug} href={`blog/${post.slug}`}>
+            <div>
               <p>{post.title}</p>
             </div>
           </Link>
