@@ -19,7 +19,7 @@ const StyledGrid = styled('div')(({ theme }) => ({
   },
 }))
 
-export const TableCards: React.FC = ({ children }) => (
+export const TableCards: React.FC<React.PropsWithChildren> = ({ children }) => (
   <Box display="flex" justifyContent="center" alignItems="center" flex={1}>
     <StyledGrid>
       {Children.map(children, (child, index) => (

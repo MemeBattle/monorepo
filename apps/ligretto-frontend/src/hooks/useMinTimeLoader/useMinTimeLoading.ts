@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
  *
  * @returns fakedIsLoading
  */
-export const useMinTimeToShowLoader = (isLoading: boolean, ms: number) => {
+export const useMinTimeLoading = (isLoading: boolean, ms: number): boolean => {
   const [isMinTimeOver, setIsMinTimeOver] = useState(false)
 
   useEffect(() => {
@@ -19,5 +19,5 @@ export const useMinTimeToShowLoader = (isLoading: boolean, ms: number) => {
     return () => clearTimeout(timerId)
   }, [ms])
 
-  return isLoading && isMinTimeOver
+  return isLoading || !isMinTimeOver
 }

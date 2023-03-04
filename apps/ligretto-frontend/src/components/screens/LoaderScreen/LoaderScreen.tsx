@@ -13,7 +13,7 @@ export const LoaderScreen: React.FC = () => {
   return (
     <MainLayout>
       <Box display="flex" flexDirection="column" justify-items="center" align-items="center" height="100%">
-        <Box flex={1} minHeight="15rem">
+        <Box display="flex" flex={1} minHeight="15rem">
           <LigrettoLogo />
         </Box>
         {isMobile ? null : (

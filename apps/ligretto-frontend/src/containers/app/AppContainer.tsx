@@ -1,17 +1,17 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
 
-import { useMinTimeToShowLoader } from 'hooks/useMinTimeLoader'
+import { useMinTimeLoading } from 'hooks/useMinTimeLoader'
 import { Routes } from 'components/routes'
-import { currentUserIdSelector } from 'ducks/auth'
+import { isUserLoadingSelector } from 'ducks/auth'
 import { LoaderScreen } from 'components/screens/LoaderScreen'
 
 export const AppContainer = () => {
-  const currentUserId = useSelector(currentUserIdSelector)
+  const isUserLoading = useSelector(isUserLoadingSelector)
 
-  const isLoading = useMinTimeToShowLoader(!!currentUserId, 2000)
+  const isLoading = useMinTimeLoading(isUserLoading, 2000)
 
-  return isLoading ? <Routes /> : <LoaderScreen />
+  return isLoading ? <LoaderScreen /> : <Routes />
 }
 
 AppContainer.displayName = 'AppContainer'

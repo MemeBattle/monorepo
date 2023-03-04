@@ -7,7 +7,13 @@ import { store } from 'store'
 export default {
   component: CardsPanel,
   title: 'Ligretto / CardsPanel',
-  decorators: [story => <Provider store={store}>{story}</Provider>],
+  decorators: [
+    Story => (
+      <Provider store={store}>
+        <Story />
+      </Provider>
+    ),
+  ],
 } as ComponentMeta<typeof CardsPanel>
 
 export const Default: ComponentStory<typeof CardsPanel> = () => (

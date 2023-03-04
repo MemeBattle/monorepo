@@ -28,7 +28,7 @@ interface StyledButtonWrapperProps {
   onClick?: () => void
 }
 
-const StyledButtonWrapper: React.FC<StyledButtonWrapperProps> = ({ children, onClick }) => (
+const StyledButtonWrapper: React.FC<React.PropsWithChildren<StyledButtonWrapperProps>> = ({ children, onClick }) => (
   <Box display="flex" justifyContent="center" alignItems="center" background={theme.palette.primary.main} onClick={onClick}>
     {children}
   </Box>
@@ -57,7 +57,7 @@ const StyledButton = styled(Button)(({ theme }) => ({
   },
 }))
 
-const StyledIconWrapper: React.FC = ({ children }) => (
+const StyledIconWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
   <Box
     display="flex"
     justifyContent="center"
@@ -69,7 +69,7 @@ const StyledIconWrapper: React.FC = ({ children }) => (
   </Box>
 )
 
-export const InputWithButton: React.FC & InputWithButtonExtension = ({ children }) => (
+export const InputWithButton: React.FC<React.PropsWithChildren> & InputWithButtonExtension = ({ children }) => (
   <Box
     display="flex"
     width="100%"
