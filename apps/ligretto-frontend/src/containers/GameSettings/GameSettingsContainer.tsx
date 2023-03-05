@@ -3,8 +3,16 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
 
 import { routes } from 'utils/constants'
-import { gameNameSelector, gameStatusSelector, playerSelector, startGameAction, togglePlayerStatusAction } from 'ducks/game'
+import {
+  gameNameSelector,
+  gameStatusSelector,
+  isGameReadyToStartSelector,
+  playerSelector,
+  startGameAction,
+  togglePlayerStatusAction,
+} from 'ducks/game'
 import { GameSettings } from 'components/blocks/game/GameSettings'
+import { PlayerStatus } from '@memebattle/ligretto-shared'
 
 export const GameSettingsContainer = () => {
   const dispatch = useDispatch()
@@ -13,6 +21,7 @@ export const GameSettingsContainer = () => {
   const gameName = useSelector(gameNameSelector)
   const gameStatus = useSelector(gameStatusSelector)
   const currentPlayer = useSelector(playerSelector)
+  const isGameReadyToStart = useSelector(isGameReadyToStartSelector)
 
   const handleReadyClick = useCallback(() => {
     dispatch(togglePlayerStatusAction())
@@ -34,6 +43,8 @@ export const GameSettingsContainer = () => {
       onReadyClick={handleReadyClick}
       onStartClick={handleStartClick}
       onExitClick={handleExitClick}
+      isButtonDisabled={!!currentPlayer?.isHost && !isGameReadyToStart}
+      isPlayerReadyToPlay={currentPlayer?.status === PlayerStatus.ReadyToPlay}
     />
   )
 }

@@ -49,7 +49,7 @@ const StyledCard = styled('div')<{ size: CardPlaceSize }>(({ size, theme }) => (
   },
 }))
 
-export const CardPlace: React.FC<CardPlaceProps> = ({ children, size = 'medium' }) => (
+export const CardPlace: React.FC<React.PropsWithChildren<CardPlaceProps>> = ({ children, size = 'medium' }) => (
   <StyledCardPlace size={size}>
     <StyledCard size={size}>{children}</StyledCard>
   </StyledCardPlace>

@@ -4,6 +4,8 @@ import { userByIdSelector } from '../users'
 
 export const currentUserIdSelector = (state: All) => state.auth.userId
 
+export const isUserLoadingSelector = (state: All) => state.auth.isLoading
+
 export const currentUserSelector = (state: All) => {
   const userId = currentUserIdSelector(state)
 

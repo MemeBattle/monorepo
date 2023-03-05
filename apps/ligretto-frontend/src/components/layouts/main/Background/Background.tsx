@@ -1,3 +1,4 @@
+import type { PropsWithChildren } from 'react'
 import React from 'react'
 import { styled } from '@mui/material/styles'
 
@@ -47,7 +48,7 @@ const Triangle = styled(Figure)<{
   transform: rotate ? `rotate(${rotate}deg)` : undefined,
 }))
 
-export const Background: React.FC = ({ children }) => (
+export const Background: React.FC<PropsWithChildren> = ({ children }) => (
   <Backdrop>
     {children}
     <Circle size="34vmin" top="45%" />

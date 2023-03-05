@@ -12,9 +12,20 @@ interface GameSettingsProps {
   onStartClick: () => void
   onReadyClick: () => void
   onExitClick: () => void
+  isButtonDisabled: boolean
+  isPlayerReadyToPlay: boolean
 }
 
-export const GameSettings = ({ gameStatus, gameName, canStartGame, onReadyClick, onStartClick, onExitClick }: GameSettingsProps) => {
+export const GameSettings = ({
+  gameStatus,
+  gameName,
+  canStartGame,
+  onReadyClick,
+  onStartClick,
+  onExitClick,
+  isButtonDisabled,
+  isPlayerReadyToPlay,
+}: GameSettingsProps) => {
   const title = useMemo(() => {
     switch (gameStatus) {
       case GameStatus.New:
@@ -25,6 +36,16 @@ export const GameSettings = ({ gameStatus, gameName, canStartGame, onReadyClick,
         return 'Round results'
     }
   }, [gameStatus, gameName])
+
+  const buttonText: string = useMemo(() => {
+    if (canStartGame) {
+      return 'Start'
+    }
+    if (isPlayerReadyToPlay) {
+      return 'Not ready'
+    }
+    return 'Ready'
+  }, [canStartGame, isPlayerReadyToPlay])
 
   return (
     <Paper>
@@ -40,9 +61,9 @@ export const GameSettings = ({ gameStatus, gameName, canStartGame, onReadyClick,
             <Button onClick={onExitClick} size="large" variant="contained" fullWidth startIcon={<ExitToAppIcon />}>
               <Typography variant="button">Exit</Typography>
             </Button>
-            <Button onClick={canStartGame ? onStartClick : onReadyClick} size="large" variant="contained" fullWidth>
+            <Button disabled={isButtonDisabled} onClick={canStartGame ? onStartClick : onReadyClick} size="large" variant="contained" fullWidth>
               <Typography variant="button" fontWeight={500}>
-                {canStartGame ? 'Start' : 'Ready'}
+                {buttonText}
               </Typography>
             </Button>
           </Stack>

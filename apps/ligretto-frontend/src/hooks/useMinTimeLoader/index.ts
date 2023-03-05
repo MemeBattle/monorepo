@@ -1,1 +1,1 @@
-export { useMinTimeToShowLoader } from './useMinTimeLoader'
+export { useMinTimeLoading } from './useMinTimeLoading'

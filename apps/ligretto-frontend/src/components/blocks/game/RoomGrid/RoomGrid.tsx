@@ -26,7 +26,7 @@ const positionOnTableByIndexByLength: Record<number, PositionOnTable[] | undefin
   4: [PositionOnTable.Left, PositionOnTable.Top, PositionOnTable.Right, PositionOnTable.Bottom],
 }
 
-export const DesktopRoomGrid: React.FC<RoomGridProps> = ({ children, centerElement, bottomElement }) => (
+export const DesktopRoomGrid: React.FC<React.PropsWithChildren<RoomGridProps>> = ({ children, centerElement, bottomElement }) => (
   <Room>
     <Box pointerEvents="none">
       {React.Children.map(children, (child, index) => {
@@ -60,7 +60,7 @@ const MobileOpponentCardsWrapper = styled('div')<{ index: number }>(({ index }) 
   marginTop: '10px',
 }))
 
-export const MobileRoomGrid: React.FC<RoomGridProps> = ({ children, centerElement, bottomElement }) => (
+export const MobileRoomGrid: React.FC<React.PropsWithChildren<RoomGridProps>> = ({ children, centerElement, bottomElement }) => (
   <Room>
     <Box>
       {React.Children.map(children, (child, index) => {
@@ -83,7 +83,7 @@ export const MobileRoomGrid: React.FC<RoomGridProps> = ({ children, centerElemen
   </Room>
 )
 
-export const RoomGrid: React.FC<RoomGridProps> = ({ children, centerElement, bottomElement }) => {
+export const RoomGrid: React.FC<React.PropsWithChildren<RoomGridProps>> = ({ children, centerElement, bottomElement }) => {
   const theme = useTheme()
 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))

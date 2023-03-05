@@ -17,7 +17,7 @@ const StyledCardHotkeyBadge = styled(Badge)(({ theme }) => ({
   },
 }))
 
-export const CardHotkeyBadge: React.FC<CardHotkeyBadgeProps> = ({ hotkey, children }) => (
+export const CardHotkeyBadge: React.FC<React.PropsWithChildren<CardHotkeyBadgeProps>> = ({ hotkey, children }) => (
   <StyledCardHotkeyBadge
     anchorOrigin={{
       vertical: 'bottom',

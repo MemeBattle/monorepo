@@ -15,6 +15,9 @@ export const gameStatusSelector = (state: All) => gameSelector(state).status
 export const gameNameSelector = (state: All) => gameSelector(state).name
 
 export const playersSelector = (state: All) => gameSelector(state).players
+
+export const isGameReadyToStartSelector = createSelector(playersSelector, players => Object.keys(players).length > 1)
+
 export const playersIdsSelector = createSelector(playersSelector, players => Object.keys(players))
 
 export const spectatorsSelector = (state: All) => gameSelector(state).spectators

@@ -1,5 +1,5 @@
 import React from 'react'
-import ReactDOM from 'react-dom'
+import { createRoot } from 'react-dom/client'
 import { Provider } from 'react-redux'
 import { ThemeProvider, CssBaseline } from '@memebattle/ui'
 import { HistoryRouter as Router } from 'redux-first-history/rr6'
@@ -8,7 +8,15 @@ import { theme } from './themes/default'
 import { store, history } from 'store'
 import { AppContainer } from 'containers/app'
 
-ReactDOM.render(
+const reactRootContainer = document.getElementById('root')
+
+if (!reactRootContainer) {
+  throw new Error('Element #root does not found')
+}
+
+const root = createRoot(reactRootContainer)
+
+root.render(
   <Provider store={store}>
     <Router history={history}>
       <ThemeProvider theme={theme}>
@@ -17,5 +25,4 @@ ReactDOM.render(
       </ThemeProvider>
     </Router>
   </Provider>,
-  document.getElementById('root'),
 )
