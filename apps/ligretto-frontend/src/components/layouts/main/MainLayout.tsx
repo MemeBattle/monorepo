@@ -4,7 +4,7 @@ import { Background } from './Background'
 
 import { BaseLayout } from '../base/BaseLayout'
 
-export const MainLayout: React.FC<React.PropsWithChildren<PropsWithChildren>> = ({ children }) => (
+export const MainLayout: React.FC<PropsWithChildren> = ({ children }) => (
   <BaseLayout position="relative" overflow="hidden">
     <Background>{children}</Background>
   </BaseLayout>

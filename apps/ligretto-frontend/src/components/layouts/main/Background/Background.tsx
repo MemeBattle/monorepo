@@ -48,7 +48,7 @@ const Triangle = styled(Figure)<{
   transform: rotate ? `rotate(${rotate}deg)` : undefined,
 }))
 
-export const Background: React.FC<React.PropsWithChildren<PropsWithChildren>> = ({ children }) => (
+export const Background: React.FC<PropsWithChildren> = ({ children }) => (
   <Backdrop>
     {children}
     <Circle size="34vmin" top="45%" />
