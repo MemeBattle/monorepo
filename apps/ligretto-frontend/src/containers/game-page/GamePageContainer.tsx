@@ -1,12 +1,7 @@
-import React, { useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import React from 'react'
+import { useSelector } from 'react-redux'
 import { GameStatus } from '@memebattle/ligretto-shared'
-import { useNavigate, useParams } from 'react-router'
 
-import { connectToRoomAction } from 'ducks/rooms'
-import { leaveGameAction } from 'ducks/game'
-
-import { routes } from 'utils/constants'
 import { ScreenCountdown } from 'components/blocks/game/ScreenCountdown'
 
 import { GameContainer } from '../game'
@@ -15,25 +10,7 @@ import { GameSpectatorContainer } from '../game-spectator'
 import { gamePageContainerSelector } from './GamePageContainer.selector'
 
 export const GamePageContainer = () => {
-  const dispatch = useDispatch()
-
-  const navigate = useNavigate()
-
   const { gameStatus, isGameLoaded, isPlayerSpectator, startingDelayInSec } = useSelector(gamePageContainerSelector)
-
-  const { roomUuid } = useParams<{ roomUuid: string }>()
-
-  useEffect(() => {
-    if (!roomUuid) {
-      navigate(routes.HOME)
-      return
-    }
-    dispatch(connectToRoomAction({ roomUuid }))
-
-    return function cleanUp() {
-      dispatch(leaveGameAction())
-    }
-  }, [dispatch, navigate, roomUuid])
 
   if (!isGameLoaded) {
     return <>loading</>

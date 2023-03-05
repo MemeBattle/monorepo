@@ -1,4 +1,4 @@
-import { call, put, select, takeEvery, takeLatest } from 'redux-saga/effects'
+import { call, put, select, takeEvery, takeLatest, take, cancelled } from 'redux-saga/effects'
 import {
   PlayerStatus,
   putCardAction,
@@ -24,12 +24,17 @@ import {
   tapStackOpenDeckCardAction,
   tapStackDeckCardAction,
   tapLigrettoDeckCardAction,
-  leaveGameAction,
   setSelectedCardIndexAction,
   tapPlaygroundCardAction,
 } from './slice'
 import { gameIdSelector, isDndEnabledSelector, playerStatusSelector, selectedCardIndexSelector, selectPlayerCardByIndex } from './selectors'
 import { STACK_OPEN_DECK_INDEX } from './utils'
+import { matchPath } from 'react-router-dom'
+import { routes } from 'utils/constants'
+import { LOCATION_CHANGE, push } from 'redux-first-history'
+import { socketConnectedAction } from 'middlewares/saga/actions'
+import { locationSelector } from 'ducks/router'
+import { connectToRoomAction } from 'ducks/rooms'
 
 function* gameUpdateSaga(action: ReturnType<typeof updateGameAction>) {
   const game = action.payload
@@ -123,8 +128,32 @@ function* endRoundSaga({ payload }: ReturnType<typeof endRoundAction>) {
   yield put(setGameResultAction(payload))
 }
 
-function* leaveGameSaga() {
-  yield put(leaveFromRoomEmitAction())
+function* handleLocationChangeSaga() {
+  try {
+    const location: ReturnType<typeof locationSelector> = yield select(locationSelector)
+
+    const match = location?.pathname && matchPath(routes.GAME, location.pathname)
+
+    if (match) {
+      const roomUuid = match.params.roomUuid
+
+      if (!roomUuid) {
+        yield put(push(routes.HOME))
+        return
+      }
+      yield put(connectToRoomAction({ roomUuid }))
+      yield take(LOCATION_CHANGE)
+    }
+  } finally {
+    // @ts-expect-error TS7057 'yield' expression implicitly results in an 'any' type because its containing generator lacks a return-type annotation.
+    if (yield cancelled()) {
+      const newLocation: ReturnType<typeof locationSelector> = yield select(locationSelector)
+      const match = newLocation?.pathname && matchPath(routes.GAME, newLocation.pathname)
+      if (!match) {
+        yield put(leaveFromRoomEmitAction())
+      }
+    }
+  }
 }
 
 export function* gameRootSaga() {
@@ -138,5 +167,5 @@ export function* gameRootSaga() {
   yield takeEvery(tapPlaygroundCardAction, tapPlaygroundDeckActionSaga)
   yield takeEvery(endRoundAction, endRoundSaga)
   yield takeLatest(connectToRoomSuccessAction, connectToRoomSuccessSaga)
-  yield takeLatest(leaveGameAction, leaveGameSaga)
+  yield takeLatest([LOCATION_CHANGE, socketConnectedAction], handleLocationChangeSaga)
 }

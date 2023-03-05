@@ -45,7 +45,6 @@ export const tapStackOpenDeckCardAction = createAction('@@game/TapStackOpenDeckC
 export const tapStackDeckCardAction = createAction('@@game/TapStackDeckCardAction')
 export const tapLigrettoDeckCardAction = createAction('@@game/TapLigrettoDeckCardAction')
 export const tapPlaygroundCardAction = createAction<{ deckPosition: number }>('@@game/TapPlaygroundCardAction')
-export const leaveGameAction = createAction('@@game/leaveGameAction')
 
 const gameSlice = createSlice({
   name: 'game',

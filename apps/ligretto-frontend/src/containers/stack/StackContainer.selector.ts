@@ -1,4 +1,4 @@
-import { createSelector } from 'reselect'
+import { createSelector } from '@reduxjs/toolkit'
 
 import { isDndEnabledSelector, playerStackDeckCardsSelector, playerStackOpenDeckCardsSelector, selectedCardIndexSelector } from 'ducks/game'
 

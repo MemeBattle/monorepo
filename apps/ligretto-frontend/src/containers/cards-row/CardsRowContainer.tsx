@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { createSelector } from 'reselect'
+import { createSelector } from '@reduxjs/toolkit'
 import { CardsRow } from 'components/blocks/game/CardsRow'
 import { CardHotkeyBadge } from 'components/blocks/game/CardHotkeyBadge'
 
