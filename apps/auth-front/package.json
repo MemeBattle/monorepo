@@ -6,9 +6,9 @@
   "module": "src/module.tsx",
   "types": "src/module.tsx",
   "dependencies": {
-    "@memebattle/cas-services": "^3.6.3",
+    "@memebattle/cas-services": "^3.6.4",
     "@memebattle/ui": "workspace:^",
-    "axios": "^0.21.1",
+    "axios": "^1.3.4",
     "email-validator": "^2.0.4",
     "final-form": "^4.20.1",
     "react": "^18.2.0",
