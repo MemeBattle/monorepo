@@ -88,7 +88,9 @@ const colorByCardColors: Record<CardColors, string> = {
   [CardColors.empty]: 'transparent',
 }
 
-const StyledCard = styled(ButtonBase)<{
+const StyledCardNotForwardedPropsSet = new Set<PropertyKey>(['isDarkened', 'isDisabled', 'isSelected', 'size'])
+
+const StyledCard = styled(ButtonBase, { shouldForwardProp: prop => !StyledCardNotForwardedPropsSet.has(prop) })<{
   color: CardColors
   ref: React.RefObject<HTMLButtonElement>
   isDisabled?: boolean
