@@ -35,27 +35,21 @@ const StyledAuthorizedButton = styled(Button)(() => ({
 
 export const UserInfo: React.FC<UserInfoProps> = ({ onClick, username, onButtonClick, onLogoutClick, img }) => (
   <Paper>
-    <Box display="flex" maxWidth="20rem" position="relative" width="20rem" height="13rem" alignItems="center" flexDirection="column">
+    <Box display="flex" position="relative" height="13rem" alignItems="center" flexDirection="column">
       <Box marginTop="0.5rem" maxWidth="100%" width="9rem" height="9rem" minHeight="9rem" onClick={onClick}>
         <Avatar src={img} alt={username} size="auto" />
       </Box>
       <Box height="100%" width="100%" display="flex" justifyContent="center">
         {username ? (
-          <>
-            <StyledLogoutButton title="logout" onClick={onLogoutClick}>
-              <ClearIcon />
-            </StyledLogoutButton>
-            <StyledAuthorizedButton color="primary" variant="contained" size="large" endIcon={<CreateIcon />} onClick={onButtonClick}>
-              <Typography fontSize="1.5rem" textOverflow="ellipsis" width="10rem" overflow="hidden" marginLeft="1.375rem">
-                {username}
-              </Typography>
-            </StyledAuthorizedButton>
-          </>
-        ) : (
-          <Button color="primary" variant="contained" size="large" onClick={onButtonClick}>
-            Sign in
-          </Button>
-        )}
+          <StyledLogoutButton title="logout" onClick={onLogoutClick}>
+            <ClearIcon />
+          </StyledLogoutButton>
+        ) : null}
+        <StyledAuthorizedButton color="primary" variant="contained" size="large" endIcon={username ? <CreateIcon /> : null} onClick={onButtonClick}>
+          <Typography fontSize="1.5rem" textOverflow="ellipsis" width="10rem" overflow="hidden" marginLeft={username ? '1.375rem' : '0'}>
+            {username || 'Sign in'}
+          </Typography>
+        </StyledAuthorizedButton>
       </Box>
     </Box>
   </Paper>

@@ -3,5 +3,5 @@ import type { BoxProps } from '@memebattle/ui'
 import { Box } from '@memebattle/ui'
 
 export const BaseLayout = (props: BoxProps) => (
-  <Box component="main" display="flex" flex={1} flexDirection="column" width="100vw" height="100vh" {...props} />
+  <Box component="main" display="flex" flex={1} flexDirection="column" width="100vw" height="100vh" minHeight="100vh" {...props} />
 )

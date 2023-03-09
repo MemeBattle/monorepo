@@ -40,7 +40,7 @@ function* removeRoomFromServerSaga(action: ReturnType<typeof removeRoomFromServe
 }
 
 function* connectToRoomError() {
-  yield put(replace(routes.ROOMS))
+  yield put(replace(routes.HOME))
 }
 
 function* createRoomSuccessSaga(action: ReturnType<typeof createRoomSuccessAction>) {
