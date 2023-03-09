@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Provider } from 'react-redux'
 import { ThemeProvider, CssBaseline } from '@memebattle/ui'
@@ -17,12 +17,14 @@ if (!reactRootContainer) {
 const root = createRoot(reactRootContainer)
 
 root.render(
-  <Provider store={store}>
-    <Router history={history}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <AppContainer />
-      </ThemeProvider>
-    </Router>
-  </Provider>,
+  <StrictMode>
+    <Provider store={store}>
+      <Router history={history}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <AppContainer />
+        </ThemeProvider>
+      </Router>
+    </Provider>
+  </StrictMode>,
 )

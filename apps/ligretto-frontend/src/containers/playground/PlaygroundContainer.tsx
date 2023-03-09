@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { createSelector } from 'reselect'
+import { createSelector } from '@reduxjs/toolkit'
 
 import { Playground } from 'components/blocks/game'
 import { playgroundDecksSelector, tapPlaygroundCardAction } from 'ducks/game'

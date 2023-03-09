@@ -1,4 +1,4 @@
-import { createSelector } from 'reselect'
+import { createSelector } from '@reduxjs/toolkit'
 import sortBy from 'lodash/sortBy'
 
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'

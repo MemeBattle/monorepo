@@ -1,4 +1,4 @@
-import { createSelector } from 'reselect'
+import { createSelector } from '@reduxjs/toolkit'
 
 import { gameStatusSelector, isGameLoadedSelector, isPlayerSpectatorSelector, startingDelayInSecSelector } from 'ducks/game'
 

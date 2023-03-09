@@ -1,4 +1,5 @@
 import type { SagaIterator, EventChannel, Unsubscribe } from 'redux-saga'
+import type { NotUndefined } from '@redux-saga/types'
 import { eventChannel, END } from 'redux-saga'
 import { all, actionChannel, take, put, call } from 'redux-saga/effects'
 import io from 'socket.io-client'
@@ -7,11 +8,14 @@ import type { Socket } from 'socket.io-client'
 import { LOCAL_STORAGE_TOKEN_KEY } from 'ducks/auth/constants'
 
 import { LIGRETTO_GAMEPLAY_URL } from '../../config'
+import { socketConnectedAction } from './actions'
 
-function socketChannel(socket: Socket): EventChannel<unknown> {
-  return eventChannel<unknown>((emitter): Unsubscribe => {
+function socketChannel(socket: Socket): EventChannel<NotUndefined> {
+  return eventChannel<NotUndefined>((emitter): Unsubscribe => {
     socket.on('event', (data: unknown) => {
-      emitter(data)
+      if (data) {
+        emitter(data)
+      }
     })
 
     socket.on('disconnect', () => {
@@ -56,6 +60,5 @@ export function* socketSaga() {
     console.error(e)
     return
   }
-
-  yield all([call(socketSendSaga, socket), call(socketReceiveSaga, socket)])
+  yield all([call(socketSendSaga, socket), call(socketReceiveSaga, socket), put(socketConnectedAction())])
 }

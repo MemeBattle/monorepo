@@ -1,4 +1,4 @@
-import { createSelector } from 'reselect'
+import { createSelector } from '@reduxjs/toolkit'
 import last from 'lodash/last'
 
 import type { All } from 'types/store'

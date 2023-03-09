@@ -1,6 +1,6 @@
 import { useDispatch, useSelector } from 'react-redux'
 import React, { useCallback } from 'react'
-import { createSelector } from 'reselect'
+import { createSelector } from '@reduxjs/toolkit'
 
 import { isLoadingSelector, searchSelector } from 'ducks/rooms/selectors'
 import { setSearchRoomsAction } from 'ducks/rooms'

@@ -1,4 +1,4 @@
-import { createSelector } from 'reselect'
+import { createSelector } from '@reduxjs/toolkit'
 
 import { currentUserIdSelector } from 'ducks/auth'
 import { playersSelector, gameStatusSelector, opponentsSelector, mergePlayerAndUser } from 'ducks/game'
