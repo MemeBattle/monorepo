@@ -9,14 +9,11 @@ import { SearchRoomsContainer } from 'containers/SearchRoomsContainer/SearchRoom
 import { getRoomsAction } from 'ducks/rooms'
 
 const StyledRoomManager = styled(Paper)(({ theme }) => ({
-  maxWidth: '80rem',
   padding: '2.5rem 4rem',
   [theme.breakpoints.down('md')]: {
-    width: '37rem',
     padding: '2.5rem 2.5rem',
   },
   [theme.breakpoints.down('sm')]: {
-    width: '21.5rem',
     padding: '2.5rem 1.25rem',
   },
 }))

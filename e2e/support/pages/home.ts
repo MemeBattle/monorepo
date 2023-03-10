@@ -8,10 +8,6 @@ export class HomePage {
     await this.page.goto('/')
   }
 
-  async getMenuCreateGameButton() {
-    return this.page.locator(byTestId('Menu-MenuItem-CreateOrEnterRoom'))
-  }
-
   async getCreateGameButton() {
     return this.page.locator(byTestId('CreateGameButton'))
   }
