@@ -60,10 +60,6 @@ export interface TakeCardFromStackDeck {
   gameId: Game['id']
 }
 
-export interface TechConnectToGame {
-  gameId: Game['id']
-}
-
 export type GameResultsDTO = GameResults
 
 export interface AddBotDTO {
