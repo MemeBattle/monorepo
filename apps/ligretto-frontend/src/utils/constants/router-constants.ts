@@ -3,7 +3,6 @@ import { ROUTES as AuthFrontRoutes } from '@memebattle/auth-front'
 export const routes = {
   HOME: '/',
   GAME: '/game/:roomUuid',
-  TECH: '/tech/:gameId',
   AUTH_ALL: '/auth/*',
   AUTH_ROOT: '/auth',
 } as const

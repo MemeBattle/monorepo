@@ -3,7 +3,6 @@ import type { Server, Socket } from 'socket.io'
 import { IOC_TYPES } from '../IOC_TYPES'
 import { GameplayController } from '../controllers/gameplay-controller'
 import { GamesController } from '../controllers/games-controller'
-import { TechController } from '../controllers/tech-controller'
 import { UserService } from '../entities/user'
 import { BotController } from '../controllers/bot-controller'
 import { authMiddleware } from '../middlewares'
@@ -19,7 +18,6 @@ export class WebSocketHandler implements WebSocketHandler {
   @inject(IOC_TYPES.GamesController) private gamesController: GamesController
   @inject(IOC_TYPES.BotController) private botController: BotController
   @inject(IOC_TYPES.UserService) private userService: UserService
-  @inject(IOC_TYPES.TechController) private techController: TechController
 
   connect(socketServer: Server) {
     socketServer.use(authMiddleware).on('connection', socket => this.connectionHandler(socket))
@@ -50,7 +48,6 @@ export class WebSocketHandler implements WebSocketHandler {
   private messageHandler(socket: Socket, data: AnyAction) {
     this.gameplayController.handleMessage(socket, data)
     this.gamesController.handleMessage(socket, data)
-    this.techController.handleMessage(socket, data)
     this.botController.handleMessage(socket, data)
   }
 }

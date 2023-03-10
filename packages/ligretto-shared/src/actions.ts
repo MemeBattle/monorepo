@@ -1,8 +1,6 @@
 import type * as dto from './dto'
 import { createAction } from '@reduxjs/toolkit'
 
-export const techConnectToGame = createAction<dto.TechConnectToGame>('@@tech/WEBSOCKET/CONNECT_TO_GAME')
-
 export const putCardAction = createAction<dto.PutCard>('@@gameplay/WEBSOCKET/PUT_CARD')
 
 export const putCardFromStackOpenDeck = createAction<dto.PutCardFromStackOpenDeck>('@@gameplay/WEBSOCKET/PUT_CARD_FROM_STACK_OPEN_DECK')
