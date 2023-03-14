@@ -1,4 +1,4 @@
-import * as amplitude from 'amplitude-js'
+import amplitude from 'amplitude-js'
 import type { AmplitudeClient } from 'amplitude-js'
 
 export interface InitOptions {
