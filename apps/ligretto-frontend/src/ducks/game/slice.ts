@@ -16,7 +16,7 @@ export type GameState = {
   }
 }
 
-const initialState: GameState = {
+export const initialState: GameState = {
   game: {
     id: '',
     name: '',

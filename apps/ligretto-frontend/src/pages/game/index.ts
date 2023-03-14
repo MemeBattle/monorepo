@@ -1,1 +1,0 @@
-export { GamePage } from './Game'

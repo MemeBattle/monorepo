@@ -2,7 +2,7 @@ import React from 'react'
 import { Routes as ReactRouterRoutes, Route } from 'react-router-dom'
 
 import { HomePage } from 'pages/Home'
-import { GamePage } from 'pages/game'
+import { GamePage } from 'pages/game/GamePage'
 import { AuthContainer } from 'containers/AuthContainer'
 import { routes } from 'utils/constants'
 
