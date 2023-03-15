@@ -1,1 +1,0 @@
-export { techReducer } from './slice'

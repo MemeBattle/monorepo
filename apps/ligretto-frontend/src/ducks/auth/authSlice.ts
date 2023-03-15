@@ -3,7 +3,7 @@ import { createSlice } from '@reduxjs/toolkit'
 
 import type { AuthState } from './authTypes'
 
-const authInitialState: AuthState = {
+export const authInitialState: AuthState = {
   userId: '',
   token: '',
   isLoading: false,
