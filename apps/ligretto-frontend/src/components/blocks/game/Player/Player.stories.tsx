@@ -33,16 +33,16 @@ DefaultView.args = {
 
 export const Opponent = () => (
   <Stack spacing={1}>
-    <Player isActivePlayer={false} username="DontReadyToPlay" status={PlayerStatus.DontReadyToPlay} />
-    <Player isActivePlayer={false} username="ReadyToPlay" status={PlayerStatus.ReadyToPlay} />
-    <Player isActivePlayer={false} username="InGame" status={PlayerStatus.InGame} />
+    <Player isActivePlayer={false} username="DontReadyToPlay long name" status={PlayerStatus.DontReadyToPlay} />
+    <Player isActivePlayer={false} username="ReadyToPlay long name" status={PlayerStatus.ReadyToPlay} />
+    <Player isActivePlayer={false} username="InGame long name" status={PlayerStatus.InGame} />
   </Stack>
 )
 
 export const CurrentPlayer = () => (
   <Stack spacing={1}>
-    <Player isActivePlayer username="DontReadyToPlay" status={PlayerStatus.DontReadyToPlay} />
-    <Player isActivePlayer username="ReadyToPlay" status={PlayerStatus.ReadyToPlay} />
-    <Player isActivePlayer username="InGame" status={PlayerStatus.InGame} />
+    <Player isActivePlayer username="DontReadyToPlay long name" status={PlayerStatus.DontReadyToPlay} />
+    <Player isActivePlayer username="ReadyToPlay long name" status={PlayerStatus.ReadyToPlay} />
+    <Player isActivePlayer username="InGame long name" status={PlayerStatus.InGame} />
   </Stack>
 )

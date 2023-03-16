@@ -6,10 +6,12 @@ export type BoxProps = MUIBoxProps & {
   background?: import('csstype').Property.Background
   cursor?: import('csstype').Property.Cursor
   pointerEvents?: import('csstype').Property.PointerEvents
+  transform?: import('csstype').Property.Transform
 }
 
-export const Box = styled(MUIBox)<BoxProps>(({ background, cursor, pointerEvents }) => ({
+export const Box = styled(MUIBox)<BoxProps>(({ background, cursor, pointerEvents, transform }) => ({
   background,
   cursor,
   pointerEvents,
+  transform,
 }))

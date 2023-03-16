@@ -24,7 +24,7 @@ export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players }) => 
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   return (
-    <Box flexDirection="column">
+    <Box flex={1} flexDirection="column" overflow="scroll">
       <PlayersScoresTableHead>
         <Grid container item xs spacing={4}>
           {!isMobile && <PlayersScoresTableCell {...columnsProps.avatar}></PlayersScoresTableCell>}

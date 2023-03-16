@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
-import { Stack } from '@memebattle/ui'
-import type { Card as OpponentCard, PlayerStatus, UUID } from '@memebattle/ligretto-shared'
+import {Box, Stack} from '@memebattle/ui'
+import type { Card as OpponentCard, UUID } from '@memebattle/ligretto-shared'
+import { PlayerStatus } from '@memebattle/ligretto-shared'
 
 import { Player } from '../Player'
 import { Card } from '../Card'
@@ -19,23 +20,25 @@ export interface OpponentCardsProps {
 }
 
 export const Opponent: React.FC<OpponentCardsProps> = ({ stackOpenDeckCards, cards, avatar, username, status, id }) => {
-  const stackOpenDeckCard = stackOpenDeckCards.length ? stackOpenDeckCards.slice(-1)[0] : {}
+  const stackOpenDeckCard = useMemo(() => (stackOpenDeckCards.length ? stackOpenDeckCards.slice(-1)[0] : {}), [stackOpenDeckCards])
   const avatarImg = useMemo(() => (avatar ? buildCasStaticUrl(avatar) : getRandomAvatar(id)), [avatar, id])
 
   return (
-    <>
+    <Box>
       <Player status={status} avatar={avatarImg} username={username} />
-      <Stack direction="row" spacing={0.5}>
-        <CardPlace size="small">
-          <Card size="small" isDisabled {...stackOpenDeckCard} />
-        </CardPlace>
-        {cards.map((card, index) => (
-          <CardPlace size="small" key={index}>
-            {card ? <Card isDisabled size="small" {...card} /> : null}
+      {status === PlayerStatus.InGame ? (
+        <Stack direction="row" spacing={0.5}>
+          <CardPlace size="small">
+            <Card size="small" isDisabled {...stackOpenDeckCard} />
           </CardPlace>
-        ))}
-      </Stack>
-    </>
+          {cards.map((card, index) => (
+            <CardPlace size="small" key={index}>
+              {card ? <Card isDisabled size="small" {...card} /> : null}
+            </CardPlace>
+          ))}
+        </Stack>
+      ) : null}
+    </Box>
   )
 }
 

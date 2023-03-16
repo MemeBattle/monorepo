@@ -6,7 +6,7 @@ import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { Avatar } from 'components/Avatar'
 import { styled } from '@mui/material/styles'
 
-import { useMediaQuery, useTheme } from '@memebattle/ui'
+import { Box, useMediaQuery, useTheme } from '@memebattle/ui'
 
 interface CalcPlayerHeightParams {
   status: PlayerStatus
@@ -35,7 +35,6 @@ interface StyledPlayerProps {
 const StyledPlayer = styled('div')<StyledPlayerProps>(({ status, isActivePlayer, theme }) => ({
   display: 'flex',
   flexDirection: status === PlayerStatus.InGame && !isActivePlayer ? 'row' : 'column',
-  maxWidth: '9rem',
   height: calcPlayerHeight({ isActivePlayer, status }),
   [theme.breakpoints.down('sm')]: {
     maxWidth: '1.5rem',
@@ -68,6 +67,7 @@ const Username = styled('span')<UsernameProps>(({ status, isActivePlayer }) => (
   textOverflow: 'ellipsis',
   overflow: 'hidden',
   width: '100%',
+  whiteSpace: 'nowrap',
 }))
 
 interface BottomProps {
@@ -102,6 +102,12 @@ const IconByStatus = {
   [PlayerStatus.InGame]: null,
 }
 
+const TitlePostfixByStatus = {
+  [PlayerStatus.ReadyToPlay]: 'ready',
+  [PlayerStatus.DontReadyToPlay]: 'not ready',
+  [PlayerStatus.InGame]: 'playing',
+}
+
 export const Player: React.FC<PlayerProps> = props => {
   const { avatar, username, status, isActivePlayer } = props
 
@@ -117,8 +123,8 @@ export const Player: React.FC<PlayerProps> = props => {
   return (
     <StyledPlayer status={status} isActivePlayer={isActivePlayer}>
       <Avatar src={avatar} alt={username} size="auto" />
-      <Bottom isActivePlayer={isActivePlayer} status={status}>
-        <Username isActivePlayer={isActivePlayer} status={status} title={username}>
+      <Bottom isActivePlayer={isActivePlayer} status={status} title={`${username} (${TitlePostfixByStatus[status]})`}>
+        <Username isActivePlayer={isActivePlayer} status={status}>
           {username}
         </Username>
         {Icon ? (

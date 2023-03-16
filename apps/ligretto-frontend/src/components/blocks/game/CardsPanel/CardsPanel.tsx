@@ -1,5 +1,5 @@
 import React from 'react'
-import type { PlayerStatus } from '@memebattle/ligretto-shared'
+import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { Player } from '../Player'
 
 import { CardsRowContainer } from 'containers/cards-row'
@@ -41,9 +41,13 @@ export const CardsPanel: React.FC<CardsPanelProps> = ({ player }) => {
   return (
     <Box mb={1.5} display="flex" justifyContent="center">
       <Stack spacing={2} direction="row">
-        <StackContainer />
-        <CardsRowContainer />
-        <LigrettoDeckContainer />
+        {player?.status === PlayerStatus.InGame ? (
+          <>
+            <StackContainer />
+            <CardsRowContainer />
+            <LigrettoDeckContainer />
+          </>
+        ) : null}
         {player ? <Player status={player.status} username={player.username} avatar={player?.avatar} isActivePlayer /> : null}
       </Stack>
     </Box>
