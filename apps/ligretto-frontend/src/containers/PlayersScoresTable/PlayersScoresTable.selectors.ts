@@ -16,6 +16,7 @@ export const playersSelector = createSelector(
         const playerResults = gameResults?.[playerId] || { roundScore: 0, gameScore: 0 }
 
         return {
+          id: playerId,
           username: user?.isTemporary ? 'Guest' : user?.username || '',
           avatar: !user?.isTemporary && user?.avatar ? buildCasStaticUrl(user.avatar) : getRandomAvatar(user?.casId),
           roundPoints: [playerResults.roundScore],

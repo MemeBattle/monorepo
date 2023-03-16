@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import {Box, Stack} from '@memebattle/ui'
+import { Box, Stack } from '@memebattle/ui'
 import type { Card as OpponentCard, UUID } from '@memebattle/ligretto-shared'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 

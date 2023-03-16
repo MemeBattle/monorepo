@@ -6,7 +6,7 @@ import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { Avatar } from 'components/Avatar'
 import { styled } from '@mui/material/styles'
 
-import { Box, useMediaQuery, useTheme } from '@memebattle/ui'
+import { useMediaQuery, useTheme } from '@memebattle/ui'
 
 interface CalcPlayerHeightParams {
   status: PlayerStatus

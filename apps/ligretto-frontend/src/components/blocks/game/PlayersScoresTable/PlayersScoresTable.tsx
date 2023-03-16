@@ -9,7 +9,7 @@ import { PlayersScoresTableRow } from './PlayersScoresTableRow'
 
 export interface PlayersScoresTableProps {
   /** Players results */
-  players: Array<{ username: string; avatar?: string; roundPoints: number[]; totalPoints: number; isPlayer: boolean }>
+  players: Array<{ username: string; avatar?: string; roundPoints: number[]; totalPoints: number; isPlayer: boolean; id: string }>
 }
 
 const columnsProps = {
@@ -24,7 +24,7 @@ export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players }) => 
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   return (
-    <Box flex={1} flexDirection="column" overflow="scroll">
+    <Box flex={1} flexDirection="column" overflow="scroll" data-test-id="PlayersScoresTable">
       <PlayersScoresTableHead>
         <Grid container item xs spacing={4}>
           {!isMobile && <PlayersScoresTableCell {...columnsProps.avatar}></PlayersScoresTableCell>}
@@ -39,8 +39,12 @@ export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players }) => 
           </PlayersScoresTableCell>
         </Grid>
       </PlayersScoresTableHead>
-      {players.map(({ username, roundPoints, totalPoints, avatar, isPlayer }, index) => (
-        <PlayersScoresTableRow key={index} bgcolor={isPlayer ? theme.palette.primary.light : theme.palette.primary.lighter}>
+      {players.map(({ username, roundPoints, totalPoints, avatar, isPlayer, id }) => (
+        <PlayersScoresTableRow
+          key={id}
+          bgcolor={isPlayer ? theme.palette.primary.light : theme.palette.primary.lighter}
+          data-test-id="PlayersScoresTable-PlayersScoresTableRow"
+        >
           <Grid container item xs spacing={4}>
             {!isMobile && (
               <PlayersScoresTableCell {...columnsProps.avatar}>

@@ -5,10 +5,10 @@ export class GamePage {
   constructor(readonly page: Page) {}
 
   async getPlayerReadyButton() {
-    return this.page.locator(byTestId('playerReadyButton'))
+    return this.page.locator(byTestId('GameSettings-ReadyButton'))
   }
 
-  async getOpponentWaiting() {
-    return this.page.locator(byTestId('opponentWaiting'))
+  async getPlayersList() {
+    return this.page.locator(byTestId('PlayersScoresTable-PlayersScoresTableRow'))
   }
 }

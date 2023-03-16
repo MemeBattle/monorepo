@@ -35,6 +35,8 @@ test.describe('Create and enter room', () => {
 
     const gamePageUser2 = new GamePage(pageUser2)
 
-    await expect(await gamePageUser2.getOpponentWaiting()).toBeVisible()
+    const playersList = await gamePageUser2.getPlayersList()
+
+    await expect(await playersList.count()).toEqual(2)
   })
 })

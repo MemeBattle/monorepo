@@ -60,7 +60,7 @@ export const GameSettings = ({
   }, [canStartGame, isPlayerReadyToPlay])
 
   return (
-    <StyledPaper>
+    <StyledPaper data-test-id="GameSettings">
       <Box display="flex" justifyContent="center" marginBottom={3}>
         <Typography component="h4" variant="h4" fontWeight="bold" whiteSpace="nowrap" overflow="auto">
           {title}
@@ -69,10 +69,24 @@ export const GameSettings = ({
       <PlayersScoresTableContainer />
       <Box marginTop={2}>
         <Stack direction="row" flex={1} justifyContent="space-between" spacing={{ xs: 5, md: 12 }}>
-          <Button onClick={onExitClick} size="large" variant="contained" fullWidth startIcon={<StyledExitIcon />}>
+          <Button
+            onClick={onExitClick}
+            size="large"
+            variant="contained"
+            fullWidth
+            startIcon={<StyledExitIcon />}
+            data-test-id="GameSettings-ExitButton"
+          >
             <Typography variant="button">Exit</Typography>
           </Button>
-          <Button disabled={isButtonDisabled} onClick={canStartGame ? onStartClick : onReadyClick} size="large" variant="contained" fullWidth>
+          <Button
+            disabled={isButtonDisabled}
+            onClick={canStartGame ? onStartClick : onReadyClick}
+            size="large"
+            variant="contained"
+            fullWidth
+            data-test-id="GameSettings-ReadyButton"
+          >
             <Typography variant="button" fontWeight={500}>
               {buttonText}
             </Typography>
