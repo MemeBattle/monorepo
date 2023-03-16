@@ -45,7 +45,6 @@ export const GamePageContainer = () => {
           />
         ))}
       </GameGrid>
-      )
       <GameSettingsModal isOpen={gameStatus === GameStatus.New || gameStatus === GameStatus.Pause || gameStatus === GameStatus.RoundFinished} />
     </>
   )
