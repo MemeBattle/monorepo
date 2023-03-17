@@ -41,13 +41,7 @@ export const CardsPanel: React.FC<CardsPanelProps> = ({ player }) => {
   return (
     <Box mb={1.5} display="flex" justifyContent="center">
       <Stack spacing={2} direction="row">
-        {player?.status === PlayerStatus.InGame ? (
-          <>
-            <StackContainer />
-            <CardsRowContainer />
-            <LigrettoDeckContainer />
-          </>
-        ) : null}
+        {player?.status === PlayerStatus.InGame ? [<StackContainer />, <CardsRowContainer />, <LigrettoDeckContainer />] : null}
         {player ? <Player status={player.status} username={player.username} avatar={player?.avatar} isActivePlayer /> : null}
       </Stack>
     </Box>
