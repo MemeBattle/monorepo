@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit'
-import sortBy from 'lodash/sortBy'
+import orderBy from 'lodash/orderBy'
 
 import { buildCasStaticUrl } from 'utils/buildCasStaticUrl'
 import { gameResultsSelector, playersIdsSelector } from 'ducks/game'
@@ -10,12 +10,13 @@ import { getRandomAvatar } from 'components/Avatar/getRandomAvatar'
 export const playersSelector = createSelector(
   [playersIdsSelector, gameResultsSelector, usersMapSelector, currentUserIdSelector],
   (playersIds, gameResults, users, currentPlayerId) =>
-    sortBy(
+    orderBy(
       playersIds.map(playerId => {
         const user = users[playerId]
         const playerResults = gameResults?.[playerId] || { roundScore: 0, gameScore: 0 }
 
         return {
+          id: playerId,
           username: user?.isTemporary ? 'Guest' : user?.username || '',
           avatar: !user?.isTemporary && user?.avatar ? buildCasStaticUrl(user.avatar) : getRandomAvatar(user?.casId),
           roundPoints: [playerResults.roundScore],
@@ -24,5 +25,6 @@ export const playersSelector = createSelector(
         }
       }),
       'totalPoints',
+      'desc',
     ),
 )
