@@ -38,6 +38,7 @@ const StyledBox = styled(Box, { shouldForwardProp: prop => prop !== 'timeToGo' }
   left: 0,
   height: '100%',
   width: '100%',
+  overflow: 'hidden',
   backdropFilter: 'blur(2px)',
   filter: 'drop-shadow(2px 4px 6px #2E2E2E)',
   opacity: 0.5,
