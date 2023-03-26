@@ -5,7 +5,7 @@ import { random } from 'lodash'
 
 test.describe('Create and enter room', () => {
   test('Two users enter one room', async () => {
-    const roomName = String(random(0, 10000))
+    const roomName = `Test-room-${random(0, 10000)}`
     const browser = await chromium.launch()
     const contextUser1 = await browser.newContext()
     const contextUser2 = await browser.newContext()
@@ -35,8 +35,6 @@ test.describe('Create and enter room', () => {
 
     const gamePageUser2 = new GamePage(pageUser2)
 
-    const playersList = await gamePageUser2.getPlayersList()
-
-    await expect(await playersList.count()).toEqual(2)
+    await expect(await gamePageUser2.getPlayersList()).toHaveCount(2)
   })
 })
