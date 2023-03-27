@@ -15,4 +15,11 @@ export const gamehubClientTheme = createTheme({
       main: '#fff',
     },
   },
+  components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: { display: 'flex', flexDirection: 'column', minHeight: '100vh' },
+      },
+    },
+  },
 })
