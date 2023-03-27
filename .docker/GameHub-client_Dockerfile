@@ -33,7 +33,7 @@ WORKDIR /memebattle
 USER node
 
 COPY --chown=node:node --from=prod-dependencies /memebattle/node_modules ./node_modules
-COPY --chown=node:node --from=build /memebattle/apps/gamehub-client/next.config.js ./apps/gamehub-client/gamehub-client
+COPY --chown=node:node --from=build /memebattle/apps/gamehub-client/next.config.js ./apps/gamehub-client/next.config.js
 COPY --chown=node:node --from=build /memebattle/apps/gamehub-client/.next ./apps/gamehub-client/.next
 
 ENTRYPOINT [ "./node_modules/.bin/next", "start", "apps/gamehub-client" ]
