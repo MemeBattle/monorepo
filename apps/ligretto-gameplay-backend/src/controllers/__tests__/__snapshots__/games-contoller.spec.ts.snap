@@ -1,73 +1,73 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Games Controller createGame Should create relevant state on create game 1`] = `
-Object {
-  "games": Object {
-    "1": Object {
-      "config": Object {
+{
+  "games": {
+    "1": {
+      "config": {
         "dndEnabled": false,
         "playersMaxCount": 4,
         "startingDelayInSec": 4,
       },
       "id": "1",
       "name": "createGame",
-      "players": Object {},
-      "playground": Object {
-        "decks": Array [],
-        "droppedDecks": Array [],
+      "players": {},
+      "playground": {
+        "decks": [],
+        "droppedDecks": [],
       },
-      "spectators": Object {},
+      "spectators": {},
       "status": "New",
     },
   },
-  "users": Object {},
+  "users": {},
 }
 `;
 
 exports[`Games Controller joinGame Should create relevant state on join room as first player 1`] = `
-Object {
-  "games": Object {
-    "1": Object {
-      "config": Object {
+{
+  "games": {
+    "1": {
+      "config": {
         "dndEnabled": false,
         "playersMaxCount": 4,
         "startingDelayInSec": 4,
       },
       "id": "1",
       "name": "createGame",
-      "players": Object {
-        "userId": Object {
-          "cards": Array [],
+      "players": {
+        "userId": {
+          "cards": [],
           "id": "userId",
           "isHost": true,
-          "ligrettoDeck": Object {
-            "cards": Array [],
+          "ligrettoDeck": {
+            "cards": [],
             "isHidden": true,
           },
-          "stackDeck": Object {
-            "cards": Array [],
+          "stackDeck": {
+            "cards": [],
             "isHidden": true,
           },
-          "stackOpenDeck": Object {
-            "cards": Array [],
+          "stackOpenDeck": {
+            "cards": [],
             "isHidden": true,
           },
           "status": "DontReadyToPlay",
         },
       },
-      "playground": Object {
-        "decks": Array [],
-        "droppedDecks": Array [],
+      "playground": {
+        "decks": [],
+        "droppedDecks": [],
       },
-      "spectators": Object {},
+      "spectators": {},
       "status": "New",
     },
   },
-  "users": Object {
-    "userId": Object {
+  "users": {
+    "userId": {
       "currentGameId": "1",
       "id": "userId",
-      "socketIds": Array [
+      "socketIds": [
         "socketId",
       ],
     },
@@ -76,49 +76,49 @@ Object {
 `;
 
 exports[`Games Controller joinGame Should create relevant state on join room by second connection 1`] = `
-Object {
-  "games": Object {
-    "1": Object {
-      "config": Object {
+{
+  "games": {
+    "1": {
+      "config": {
         "dndEnabled": false,
         "playersMaxCount": 4,
         "startingDelayInSec": 4,
       },
       "id": "1",
       "name": "createGame",
-      "players": Object {
-        "userId": Object {
-          "cards": Array [],
+      "players": {
+        "userId": {
+          "cards": [],
           "id": "userId",
           "isHost": true,
-          "ligrettoDeck": Object {
-            "cards": Array [],
+          "ligrettoDeck": {
+            "cards": [],
             "isHidden": true,
           },
-          "stackDeck": Object {
-            "cards": Array [],
+          "stackDeck": {
+            "cards": [],
             "isHidden": true,
           },
-          "stackOpenDeck": Object {
-            "cards": Array [],
+          "stackOpenDeck": {
+            "cards": [],
             "isHidden": true,
           },
           "status": "DontReadyToPlay",
         },
       },
-      "playground": Object {
-        "decks": Array [],
-        "droppedDecks": Array [],
+      "playground": {
+        "decks": [],
+        "droppedDecks": [],
       },
-      "spectators": Object {},
+      "spectators": {},
       "status": "New",
     },
   },
-  "users": Object {
-    "userId": Object {
+  "users": {
+    "userId": {
       "currentGameId": "1",
       "id": "userId",
-      "socketIds": Array [
+      "socketIds": [
         "socketId",
         "socketId",
       ],
@@ -128,74 +128,74 @@ Object {
 `;
 
 exports[`Games Controller joinGame Should create relevant state on join room second player 1`] = `
-Object {
-  "games": Object {
-    "1": Object {
-      "config": Object {
+{
+  "games": {
+    "1": {
+      "config": {
         "dndEnabled": false,
         "playersMaxCount": 4,
         "startingDelayInSec": 4,
       },
       "id": "1",
       "name": "createGame",
-      "players": Object {
-        "secondUserId": Object {
-          "cards": Array [],
+      "players": {
+        "secondUserId": {
+          "cards": [],
           "id": "secondUserId",
           "isHost": false,
-          "ligrettoDeck": Object {
-            "cards": Array [],
+          "ligrettoDeck": {
+            "cards": [],
             "isHidden": true,
           },
-          "stackDeck": Object {
-            "cards": Array [],
+          "stackDeck": {
+            "cards": [],
             "isHidden": true,
           },
-          "stackOpenDeck": Object {
-            "cards": Array [],
+          "stackOpenDeck": {
+            "cards": [],
             "isHidden": true,
           },
           "status": "DontReadyToPlay",
         },
-        "userId": Object {
-          "cards": Array [],
+        "userId": {
+          "cards": [],
           "id": "userId",
           "isHost": true,
-          "ligrettoDeck": Object {
-            "cards": Array [],
+          "ligrettoDeck": {
+            "cards": [],
             "isHidden": true,
           },
-          "stackDeck": Object {
-            "cards": Array [],
+          "stackDeck": {
+            "cards": [],
             "isHidden": true,
           },
-          "stackOpenDeck": Object {
-            "cards": Array [],
+          "stackOpenDeck": {
+            "cards": [],
             "isHidden": true,
           },
           "status": "DontReadyToPlay",
         },
       },
-      "playground": Object {
-        "decks": Array [],
-        "droppedDecks": Array [],
+      "playground": {
+        "decks": [],
+        "droppedDecks": [],
       },
-      "spectators": Object {},
+      "spectators": {},
       "status": "New",
     },
   },
-  "users": Object {
-    "secondUserId": Object {
+  "users": {
+    "secondUserId": {
       "currentGameId": "1",
       "id": "userId",
-      "socketIds": Array [
+      "socketIds": [
         "secondUserSocketId",
       ],
     },
-    "userId": Object {
+    "userId": {
       "currentGameId": "1",
       "id": "secondUserId",
-      "socketIds": Array [
+      "socketIds": [
         "secondUserSocketId",
       ],
     },
@@ -204,56 +204,56 @@ Object {
 `;
 
 exports[`Games Controller leaveFromRoomHandler Should create a relevant game state if one of two players leaved 1`] = `
-Object {
-  "games": Object {
-    "1": Object {
-      "config": Object {
+{
+  "games": {
+    "1": {
+      "config": {
         "dndEnabled": false,
         "playersMaxCount": 4,
         "startingDelayInSec": 4,
       },
       "id": "1",
       "name": "createGame",
-      "players": Object {
-        "userTwoId": Object {
-          "cards": Array [],
+      "players": {
+        "userTwoId": {
+          "cards": [],
           "id": "userTwoId",
           "isHost": true,
-          "ligrettoDeck": Object {
-            "cards": Array [],
+          "ligrettoDeck": {
+            "cards": [],
             "isHidden": true,
           },
-          "stackDeck": Object {
-            "cards": Array [],
+          "stackDeck": {
+            "cards": [],
             "isHidden": true,
           },
-          "stackOpenDeck": Object {
-            "cards": Array [],
+          "stackOpenDeck": {
+            "cards": [],
             "isHidden": true,
           },
           "status": "DontReadyToPlay",
         },
       },
-      "playground": Object {
-        "decks": Array [],
-        "droppedDecks": Array [],
+      "playground": {
+        "decks": [],
+        "droppedDecks": [],
       },
-      "spectators": Object {},
+      "spectators": {},
       "status": "Pause",
     },
   },
-  "users": Object {
-    "userOneId": Object {
+  "users": {
+    "userOneId": {
       "currentGameId": "1",
       "id": "userOneId",
-      "socketIds": Array [
+      "socketIds": [
         "socketId",
       ],
     },
-    "userTwoId": Object {
+    "userTwoId": {
       "currentGameId": "1",
       "id": "userTwoId",
-      "socketIds": Array [
+      "socketIds": [
         "userTwoId",
       ],
     },
@@ -262,13 +262,13 @@ Object {
 `;
 
 exports[`Games Controller leaveFromRoomHandler Should create a relevant state if last user disconnected 1`] = `
-Object {
-  "games": Object {},
-  "users": Object {
-    "userOneId": Object {
+{
+  "games": {},
+  "users": {
+    "userOneId": {
       "currentGameId": "1",
       "id": "userOneId",
-      "socketIds": Array [
+      "socketIds": [
         "socketId",
       ],
     },
@@ -277,49 +277,49 @@ Object {
 `;
 
 exports[`Games Controller leaveFromRoomHandler Should remove current socketId from user socket ids if user connected from few accounts 1`] = `
-Object {
-  "games": Object {
-    "1": Object {
-      "config": Object {
+{
+  "games": {
+    "1": {
+      "config": {
         "dndEnabled": false,
         "playersMaxCount": 4,
         "startingDelayInSec": 4,
       },
       "id": "1",
       "name": "createGame",
-      "players": Object {
-        "userOneId": Object {
-          "cards": Array [],
+      "players": {
+        "userOneId": {
+          "cards": [],
           "id": "userOneId",
           "isHost": true,
-          "ligrettoDeck": Object {
-            "cards": Array [],
+          "ligrettoDeck": {
+            "cards": [],
             "isHidden": true,
           },
-          "stackDeck": Object {
-            "cards": Array [],
+          "stackDeck": {
+            "cards": [],
             "isHidden": true,
           },
-          "stackOpenDeck": Object {
-            "cards": Array [],
+          "stackOpenDeck": {
+            "cards": [],
             "isHidden": true,
           },
           "status": "DontReadyToPlay",
         },
       },
-      "playground": Object {
-        "decks": Array [],
-        "droppedDecks": Array [],
+      "playground": {
+        "decks": [],
+        "droppedDecks": [],
       },
-      "spectators": Object {},
+      "spectators": {},
       "status": "New",
     },
   },
-  "users": Object {
-    "userOneId": Object {
+  "users": {
+    "userOneId": {
       "currentGameId": "1",
       "id": "userOneId",
-      "socketIds": Array [
+      "socketIds": [
         "socket1",
         "socket2",
       ],
