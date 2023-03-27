@@ -16,7 +16,7 @@ ENV NODE_ENV=production
 COPY . /memebattle
 WORKDIR /memebattle
 
-RUN node apps/gamehub-client/node_modules/.bin/next build apps/gamehub-client/
+RUN node node_modules/.bin/next build apps/gamehub-client/
 
 RUN rm -rf /memebattle/apps/gamehub-client/.next/cache
 
