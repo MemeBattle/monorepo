@@ -16,14 +16,7 @@ ENV NODE_ENV=production
 COPY . /memebattle
 WORKDIR /memebattle
 
-RUN node node_modules/.bin/next build apps/gamehub-client/
-
-RUN rm -rf /memebattle/apps/gamehub-client/.next/cache
-
-FROM dependencies AS prod-dependencies
-ENV NODE_ENV=production
-
-RUN yarn workspaces focus --production @memebattle/gamehub-client
+RUN node node_modules/.bin/next build apps/gamehub-client
 
 FROM node:18.14-bullseye-slim AS runtime
 ENV NODE_ENV=production
@@ -32,8 +25,8 @@ RUN mkdir -p /memebattle
 WORKDIR /memebattle
 USER node
 
-COPY --chown=node:node --from=prod-dependencies /memebattle/node_modules ./node_modules
-COPY --chown=node:node --from=build /memebattle/apps/gamehub-client/next.config.js ./apps/gamehub-client/next.config.js
-COPY --chown=node:node --from=build /memebattle/apps/gamehub-client/.next ./apps/gamehub-client/.next
+COPY --chown=node:node --from=build /memebattle/apps/gamehub-client/public ./apps/gamehub-client/public
+COPY --chown=node:node --from=build /memebattle/apps/gamehub-client/.next/standalone ./
+COPY --chown=node:node --from=build /memebattle/apps/gamehub-client/.next/static ./apps/gamehub-client/.next/static
 
-ENTRYPOINT [ "./node_modules/.bin/next", "start", "apps/gamehub-client" ]
+ENTRYPOINT [ "node", "apps/gamehub-client/server.js" ]
