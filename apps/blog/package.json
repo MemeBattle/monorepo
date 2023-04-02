@@ -7,22 +7,24 @@
     "build": "next build",
     "start": "next start",
     "generate": "contentlayer build",
-    "ts-check": "yarn generate && tsc --noEmit",
-    "generate:dev": "contentlayer dev"
+    "ts-check": "yarn generate && tsc --noEmit"
   },
   "dependencies": {
-    "@next/font": "13.1.6",
-    "contentlayer": "^0.3.0",
+    "contentlayer": "^0.3.1",
     "date-fns": "^2.29.3",
-    "next": "^13.2.1",
-    "next-contentlayer": "^0.3.0",
+    "next": "^13.2.4",
+    "next-contentlayer": "^0.3.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.9",
     "@types/node": "^18.14.0",
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.21",
+    "tailwindcss": "^3.3.1",
     "typescript": "^5.0.2"
   }
 }

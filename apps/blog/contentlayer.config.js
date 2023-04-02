@@ -1,14 +1,25 @@
-import { defineDocumentType, makeSource } from 'contentlayer/source-files'
-// import remarkGfm from 'remark-gfm'
-// import rehypePrettyCode from 'rehype-pretty-code'
-// import rehypeSlug from 'rehype-slug'
-// import rehypeAutolinkHeadings from 'rehype-autolink-headings'
+// @ts-check
+
+import { defineDocumentType, makeSource, defineNestedType } from 'contentlayer/source-files'
+
+const Heading = defineNestedType(() => ({
+  name: 'Heading',
+  fields: {
+    level: { type: 'enum', options: ['h1', 'h2', 'h3', 'h4', 'h5'], required: true },
+    text: { type: 'string' },
+  },
+}))
 
 /** @type {import('contentlayer/source-files').ComputedFields} */
 const computedFields = {
   slug: {
     type: 'string',
     resolve: doc => doc._raw.flattenedPath,
+  },
+  toc: {
+    type: 'list',
+    of: Heading,
+    resolve: () => [{ level: 'h1', text: 'text' }],
   },
 }
 
@@ -22,12 +33,18 @@ export const Blog = defineDocumentType(() => ({
       required: true,
     },
     publishedAt: {
-      type: 'string',
+      type: 'date',
       required: true,
     },
     summary: {
       type: 'string',
       required: true,
+    },
+    tags: {
+      type: 'list',
+      of: {
+        type: 'string',
+      },
     },
     image: {
       type: 'string',

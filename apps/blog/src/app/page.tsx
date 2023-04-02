@@ -4,7 +4,7 @@ export default function BlogPage() {
   return (
     <section>
       <h1>Blog</h1>
-      <Link href="/blog">Posts</Link>
+      <Link href="/posts">Posts</Link>
     </section>
   )
 }

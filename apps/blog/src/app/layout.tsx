@@ -1,8 +1,13 @@
+import './globals.css'
+
+export const metadata = {
+  title: 'MemeBattle blog',
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html>
-      <head />
-      <body>{children}</body>
+      <body className="flex flex-col items-center">{children}</body>
     </html>
   )
 }

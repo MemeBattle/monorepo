@@ -10,7 +10,7 @@ export async function generateStaticParams() {
 
 export default function BlogPage() {
   return (
-    <section>
+    <main>
       <h1>Blog</h1>
       {allBlogs
         .sort((a: Blog, b: Blog) => {
@@ -20,12 +20,12 @@ export default function BlogPage() {
           return 1
         })
         .map((post: Blog) => (
-          <Link key={post.slug} href={`blog/${post.slug}`}>
+          <Link key={post.slug} href={`posts/${post.slug}`}>
             <div>
               <p>{post.title}</p>
             </div>
           </Link>
         ))}
-    </section>
+    </main>
   )
 }
