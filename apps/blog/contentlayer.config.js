@@ -19,10 +19,7 @@ const computedFields = {
   toc: {
     type: 'list',
     of: Heading,
-    resolve: doc => {
-      console.log('doc.body', doc.body)
-      return [{ level: 'h1', text: 'text' }]
-    },
+    resolve: () => [{ level: 'h1', text: 'text' }],
   },
 }
 
