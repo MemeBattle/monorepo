@@ -1,11 +1,22 @@
 import { Server } from 'socket.io'
-import { createServer } from 'http'
+import { createServer } from 'node:http'
 import { LIGRETTO_GAMEPLAY_SOCKET_PORT } from './config'
 import type { WebSocketHandler } from './websocket-handlers'
 import { IOC } from './inversify.config'
 import { IOC_TYPES } from './IOC_TYPES'
+import { promClient } from './metrics'
 
-const httpServer = createServer()
+const httpServer = createServer(async (req, res) => {
+  switch (req.url) {
+    case '/metrics':
+      res.writeHead(200)
+      res.end(await promClient.register.metrics())
+      break
+    default:
+      res.writeHead(404)
+      res.end()
+  }
+})
 
 export const io = new Server(httpServer, {
   serveClient: false,

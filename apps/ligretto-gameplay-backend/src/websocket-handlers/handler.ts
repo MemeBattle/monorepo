@@ -7,6 +7,7 @@ import { UserService } from '../entities/user'
 import { BotController } from '../controllers/bot-controller'
 import { authMiddleware } from '../middlewares'
 import type { AnyAction } from '../types/any-action'
+import { socketIOConnectionsCountMetric, socketIOConnectionsCountTotalMetric } from '../metrics'
 
 export interface WebSocketHandler {
   connectionHandler(socket: Socket): void
@@ -24,6 +25,9 @@ export class WebSocketHandler implements WebSocketHandler {
   }
 
   public async connectionHandler(socket: Socket): Promise<void> {
+    socketIOConnectionsCountMetric.inc()
+    socketIOConnectionsCountTotalMetric.inc()
+
     socket.on('message', data => {
       if (!data || !data.hasOwnProperty('type') || typeof data.type !== 'string') {
         console.error('data should contain type', data)
@@ -40,6 +44,10 @@ export class WebSocketHandler implements WebSocketHandler {
     socket.on('disconnecting', async () => {
       await this.gamesController.disconnectionHandler(socket)
       await this.userService.disconnectionHandler({ socketId: socket.id, userId: socket.data.user.id })
+    })
+
+    socket.on('disconnect', () => {
+      socketIOConnectionsCountMetric.dec()
     })
 
     await this.userService.connectUser({ socketId: socket.id, userId: socket.data.user.id })
