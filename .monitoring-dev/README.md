@@ -15,5 +15,5 @@ docker-compose -f .monitoring-dev/grafana.docker-compose.yml up
 5. Select prometheus datasource and press `import`
 
 > ⓘ **Access to host server from container** <br />
-> If you prefer to run node.js locally prometheus should can access to host network.
+> If you prefer to run node.js locally prometheus must access to host network.
 > Solution: https://docs.docker.com/desktop/networking/#i-want-to-connect-from-a-container-to-a-service-on-the-host
