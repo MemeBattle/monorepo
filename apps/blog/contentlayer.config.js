@@ -10,6 +10,17 @@ const Heading = defineNestedType(() => ({
   },
 }))
 
+/**
+ *
+ * @param {string} fileName
+ * @return {string} language
+ */
+const extractFileLanguage = fileName => {
+  const fileNameParts = fileName.split('.')
+
+  return fileNameParts.length > 2 ? fileNameParts[1] : 'en'
+}
+
 /** @type {import('contentlayer/source-files').ComputedFields} */
 const computedFields = {
   slug: {
@@ -20,6 +31,11 @@ const computedFields = {
     type: 'list',
     of: Heading,
     resolve: () => [{ level: 'h1', text: 'text' }],
+  },
+  lang: {
+    type: 'string',
+    required: true,
+    resolve: doc => extractFileLanguage(doc._raw.sourceFileName),
   },
 }
 

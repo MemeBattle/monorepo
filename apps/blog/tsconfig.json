@@ -24,6 +24,7 @@
         "./.contentlayer/generated"
       ]
     },
+    "types": ["./src/i18n/i18next.d.ts"],
     "plugins": [
       {
         "name": "next"

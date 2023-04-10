@@ -3155,17 +3155,22 @@ __metadata:
   resolution: "@memebattle/blog@workspace:apps/blog"
   dependencies:
     "@tailwindcss/typography": ^0.5.9
+    "@types/negotiator": ^0
     "@types/node": ^18.14.0
     "@types/react": ^18.0.28
     "@types/react-dom": ^18.0.11
     autoprefixer: ^10.4.14
     contentlayer: ^0.3.1
     date-fns: ^2.29.3
+    i18next: ^22.4.14
+    i18next-resources-to-backend: ^1.1.3
+    negotiator: ^0.6.3
     next: ^13.2.4
     next-contentlayer: ^0.3.1
     postcss: ^8.4.21
     react: ^18.2.0
     react-dom: ^18.2.0
+    react-i18next: ^12.2.0
     tailwindcss: ^3.3.1
     typescript: ^5.0.2
   languageName: unknown
@@ -6225,6 +6230,13 @@ __metadata:
   version: 0.7.31
   resolution: "@types/ms@npm:0.7.31"
   checksum: daadd354aedde024cce6f5aa873fefe7b71b22cd0e28632a69e8b677aeb48ae8caa1c60e5919bb781df040d116b01cb4316335167a3fc0ef6a63fa3614c0f6da
+  languageName: node
+  linkType: hard
+
+"@types/negotiator@npm:^0":
+  version: 0.6.1
+  resolution: "@types/negotiator@npm:0.6.1"
+  checksum: e39f985874a30bd13186249eaaede0c5eec107178f55f2bd719c2c9d1397de329a5e0869a25dd5e7c702cdd311bd5e4153e25963900b4353545842354a2d1bc4
   languageName: node
   linkType: hard
 
@@ -13802,6 +13814,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"html-parse-stringify@npm:^3.0.1":
+  version: 3.0.1
+  resolution: "html-parse-stringify@npm:3.0.1"
+  dependencies:
+    void-elements: 3.1.0
+  checksum: 334fdebd4b5c355dba8e95284cead6f62bf865a2359da2759b039db58c805646350016d2017875718bc3c4b9bf81a0d11be5ee0cf4774a3a5a7b97cde21cfd67
+  languageName: node
+  linkType: hard
+
 "html-tags@npm:^3.1.0":
   version: 3.1.0
   resolution: "html-tags@npm:3.1.0"
@@ -13959,6 +13980,24 @@ __metadata:
   dependencies:
     ms: ^2.0.0
   checksum: 9c7a74a2827f9294c009266c82031030eae811ca87b0da3dceb8d6071b9bde22c9f3daef0469c3c533cc67a97d8a167cd9fc0389350e5f415f61a79b171ded16
+  languageName: node
+  linkType: hard
+
+"i18next-resources-to-backend@npm:^1.1.3":
+  version: 1.1.3
+  resolution: "i18next-resources-to-backend@npm:1.1.3"
+  dependencies:
+    "@babel/runtime": ^7.20.6
+  checksum: 47fe45d29c403c2715a8b057a7e814500a39c26b514428fa6cc4026e9358d2bbb8eb690c3fa06346466fc096fec84830842a90d6b5cfd38c940f5483ad3a5613
+  languageName: node
+  linkType: hard
+
+"i18next@npm:^22.4.14":
+  version: 22.4.14
+  resolution: "i18next@npm:22.4.14"
+  dependencies:
+    "@babel/runtime": ^7.20.6
+  checksum: 963b70c7e1fee9666ef4d9ea87a63d0c9483007e2a0ea9520356e43a2cd550f3eb1cab24c57a102f3e84fd737fdff41bafc953dafc3bd6589dc9ea52ddb49905
   languageName: node
   linkType: hard
 
@@ -20291,6 +20330,24 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-i18next@npm:^12.2.0":
+  version: 12.2.0
+  resolution: "react-i18next@npm:12.2.0"
+  dependencies:
+    "@babel/runtime": ^7.20.6
+    html-parse-stringify: ^3.0.1
+  peerDependencies:
+    i18next: ">= 19.0.0"
+    react: ">= 16.8.0"
+  peerDependenciesMeta:
+    react-dom:
+      optional: true
+    react-native:
+      optional: true
+  checksum: ed2d6a5bb6746c2ea25cca9531b400d62edef6479631c1113eb7a3c3f6b28d493492171d7dc6d87f61a7d7e9b21d4be3bd7eaf0f7af00392fb546d8c50267345
+  languageName: node
+  linkType: hard
+
 "react-inspector@npm:^5.1.0":
   version: 5.1.0
   resolution: "react-inspector@npm:5.1.0"
@@ -24532,6 +24589,13 @@ __metadata:
   version: 1.1.2
   resolution: "vm-browserify@npm:1.1.2"
   checksum: 10a1c50aab54ff8b4c9042c15fc64aefccce8d2fb90c0640403242db0ee7fb269f9b102bdb69cfb435d7ef3180d61fd4fb004a043a12709abaf9056cfd7e039d
+  languageName: node
+  linkType: hard
+
+"void-elements@npm:3.1.0":
+  version: 3.1.0
+  resolution: "void-elements@npm:3.1.0"
+  checksum: 0390f818107fa8fce55bb0a5c3f661056001c1d5a2a48c28d582d4d847347c2ab5b7f8272314cac58acf62345126b6b09bea623a185935f6b1c3bbce0dfd7f7f
   languageName: node
   linkType: hard
 
