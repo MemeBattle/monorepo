@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import type { Blog } from 'contentlayer/generated'
 import { allBlogs } from 'contentlayer/generated'
+import { useTranslation } from '../../../i18n'
+import type { Language } from '../../../i18n/i18n.settings'
 
 export async function generateStaticParams() {
   return allBlogs.map((post: Blog) => ({
@@ -8,10 +10,12 @@ export async function generateStaticParams() {
   }))
 }
 
-export default function BlogPage() {
+export default async function BlogPage({ params: { locale } }: { params: { locale: Language } }) {
+  const { t } = await useTranslation(locale, 'posts')
+
   return (
     <main>
-      <h1>Blog</h1>
+      <h1>{t('title')}</h1>
       {allBlogs
         .sort((a: Blog, b: Blog) => {
           if (new Date(a.publishedAt) > new Date(b.publishedAt)) {
@@ -20,7 +24,7 @@ export default function BlogPage() {
           return 1
         })
         .map((post: Blog) => (
-          <Link key={post.slug} href={`posts/${post.slug}`}>
+          <Link key={post.slug} href={`/${locale}/posts/${post.slug}`}>
             <div>
               <p>{post.title}</p>
             </div>

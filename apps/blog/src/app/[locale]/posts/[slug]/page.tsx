@@ -1,12 +1,14 @@
 import { notFound } from 'next/navigation'
-import { Mdx } from '../../../components/Mdx'
+import { Mdx } from '../../../../components/Mdx'
 import type { Blog } from 'contentlayer/generated'
 import { allBlogs } from 'contentlayer/generated'
-import { Chip } from '../../../components/Chip'
+import { Chip } from '../../../../components/Chip'
+import type { Language } from '../../../../i18n/i18n.settings'
 
 interface BlogProps {
   params: {
     slug: string
+    locale: Language
   }
 }
 
@@ -24,13 +26,13 @@ export default function Post({ params }: BlogProps) {
   }
 
   return (
-    <article className="p-6 max-w-5xl">
-      <p className="text-gray-600 text-sm">{new Date(post.publishedAt).toLocaleDateString()}</p>
+    <article className="p-6 max-w-5xl" lang={post.lang}>
+      <p className="text-gray-600 text-sm">{new Intl.DateTimeFormat(params.locale).format(new Date(post.publishedAt))}</p>
       <h1 className="font-bold text-3xl my-6 lg:text-5xl lg:font-extrabold">{post.title}</h1>
       {post.tags ? (
         <div className="flex gap-2 my-6 flex-wrap">
-          {post.tags.map(tag => (
-            <Chip>{tag}</Chip>
+          {post.tags.map((tag, index) => (
+            <Chip key={index}>{tag}</Chip>
           ))}
         </div>
       ) : null}
