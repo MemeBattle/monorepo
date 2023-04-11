@@ -9,9 +9,12 @@ services:
       - LIGRETTO_GAMEPLAY_CAS_KEY_PATH=/ligretto-gameplay-backend/key.pem
       - LIGRETTO_CORE_URL=http://ligretto-core-backend:3333/api
       - LIGRETTO_GAMEPLAY_SOCKET_PORT=3005
+    labels:
+      prometheus-job: ligretto-gameplay-backend
     networks:
       - ligretto_net
       - traefik-public
+      - metrics-targets
     deploy:
       labels:
         - "traefik.enable=true"
@@ -85,6 +88,8 @@ volumes:
 
 networks:
   traefik-public:
+    external: true
+  metrics-targets:
     external: true
   ligretto_net:
     driver: overlay
