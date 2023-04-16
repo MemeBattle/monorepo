@@ -39,8 +39,8 @@ const computedFields = {
   },
 }
 
-export const Blog = defineDocumentType(() => ({
-  name: 'Blog',
+export const BlogPost = defineDocumentType(() => ({
+  name: 'BlogPost',
   filePathPattern: '**/*.mdx',
   contentType: 'mdx',
   fields: {
@@ -64,6 +64,10 @@ export const Blog = defineDocumentType(() => ({
     },
     image: {
       type: 'string',
+      required: true,
+    },
+    imageDescription: {
+      type: 'string',
     },
   },
   computedFields,
@@ -71,7 +75,7 @@ export const Blog = defineDocumentType(() => ({
 
 export default makeSource({
   contentDirPath: 'content',
-  documentTypes: [Blog],
+  documentTypes: [BlogPost],
   // Examples of mdx plugins
 
   // mdx: {
