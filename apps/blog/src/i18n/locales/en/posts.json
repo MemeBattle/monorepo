@@ -1,3 +1,5 @@
 {
-  "title": "Posts"
+  "searchPlaceholder": "Search",
+  "tagsTitle": "Popular tags",
+  "emptyListMessage": "Not found :("
 }
