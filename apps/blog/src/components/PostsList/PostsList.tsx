@@ -2,16 +2,16 @@
 
 import { useSearchParams } from 'next/navigation'
 import type { BlogPost } from 'contentlayer/generated'
-import type { Route } from 'next'
 import { PostsListItem } from '../PostsListItem'
 import type { Language } from '../../i18n/i18n.settings'
+import type { ReactNode } from 'react'
 import { useMemo } from 'react'
-import { Empty } from './Empty'
+import Link from 'next/link'
 
 interface PostsListProps {
   posts: BlogPost[]
   locale: Language
-  emptyListMessage: string
+  emptyListPlaceholder: ReactNode
 }
 
 function filterBlogPosts(blogPosts: BlogPost[], search = '', tags: string[] = []): BlogPost[] {
@@ -32,7 +32,7 @@ function filterBlogPosts(blogPosts: BlogPost[], search = '', tags: string[] = []
     return keywords.every(keyWord => words.some(word => word.startsWith(keyWord)))
   })
 }
-export function PostsList({ posts, locale, emptyListMessage }: PostsListProps) {
+export function PostsList({ posts, locale, emptyListPlaceholder }: PostsListProps) {
   const searchParams = useSearchParams()
 
   const filteredPosts = useMemo(() => filterBlogPosts(posts, searchParams.get('search') ?? '', searchParams.getAll('tags')), [searchParams, posts])
@@ -40,18 +40,18 @@ export function PostsList({ posts, locale, emptyListMessage }: PostsListProps) {
   return (
     <>
       {filteredPosts.map((post: BlogPost) => (
-        <PostsListItem
-          key={post.slug}
-          tags={post.tags?.map(tag => ({ text: tag, isActive: searchParams.getAll('tags').includes(tag) }))}
-          title={post.title}
-          summary={post.summary}
-          imageSrc={post.image}
-          imageDescription={post.imageDescription}
-          publishedAt={post.publishedAt}
-          postUrl={`/${locale}/posts/${post.slug}` as Route}
-        />
+        <Link key={post.slug} href={`/${locale}/posts/${post.slug}`} className="group">
+          <PostsListItem
+            tags={post.tags?.map(tag => ({ text: tag, isActive: searchParams.getAll('tags').includes(tag) }))}
+            title={post.title}
+            summary={post.summary}
+            imageSrc={post.image}
+            imageDescription={post.imageDescription}
+            publishedAt={post.publishedAt}
+          />
+        </Link>
       ))}
-      {filteredPosts.length === 0 ? <Empty message={emptyListMessage} /> : null}
+      {filteredPosts.length === 0 ? emptyListPlaceholder : null}
     </>
   )
 }

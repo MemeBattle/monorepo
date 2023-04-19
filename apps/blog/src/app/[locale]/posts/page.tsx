@@ -9,6 +9,7 @@ import { formatDate } from '../../../utils/formatDate'
 import { TagsSelector } from '../../../components/TagsSelector'
 import { ChipsRow } from '../../../components/ChipsRow'
 import { Chip } from '../../../components/Chip'
+import { EmptyPlaceholder } from '../../../components/PostsList/EmptyPlaceholder'
 
 function SearchLoader() {
   return <div className="rounded-md shadow-sm h-16 border-0 text-gray-900" />
@@ -48,7 +49,8 @@ export default async function BlogPage({ params: { locale } }: { params: { local
       <main className="flex flex-col space-y-6 max-w-3xl w-full">
         <Suspense fallback="loading">
           <PostsList
-            emptyListMessage={t('emptyListMessage')}
+            // @ts-expect-error Async Server Component */
+            emptyListPlaceholder={<EmptyPlaceholder language={locale} />}
             locale={locale}
             posts={allBlogPosts
               .sort((a: BlogPost, b: BlogPost) => {
