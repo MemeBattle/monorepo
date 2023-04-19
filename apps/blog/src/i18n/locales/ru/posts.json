@@ -1,5 +1,6 @@
 {
-  "searchPlaceholder": "Искать",
+  "searchPlaceholder": "Искать (ключевые слова)",
   "tagsTitle": "Популярные тэги",
-  "emptyListMessage": "Ничего не найдено :("
+  "emptyListPlaceholderMessage": "<h1>Увы! Нет результатов...</h1><p>Попробуйте другой запрос</p>",
+  "emptyListPlaceholderImageAlt": "Кот лезет в пустую банку"
 }

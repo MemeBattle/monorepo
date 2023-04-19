@@ -12,7 +12,13 @@ module.exports = {
       fontFamily: {
         sans: ['var(--font-gravity)', ...defaultTheme.fontFamily.sans],
       },
+      boxShadow: {
+        sm: ['0px 2px 5px 0px rgba(103, 110, 118, 0.08)', '0px 1px 1px 0px rgba(0, 0, 0, 0.12)'],
+        DEFAULT: ['0px 1px 1px 0px rgba(0, 0, 0, 0.12)', '0px 0px 0px 1px rgba(103, 110, 118, 0.16)', '0px 2px 5px 0px rgba(103, 110, 118, 0.08)'],
+        lg: ['0px 15px 35px 0px rgba(103, 110, 118, 0.08)', '0px 5px 15px 0px rgba(0, 0, 0, 0.12)'],
+      },
     },
   },
+
   plugins: [require('@tailwindcss/typography')],
 }

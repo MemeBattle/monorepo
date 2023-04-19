@@ -1,5 +1,6 @@
 {
-  "searchPlaceholder": "Search",
+  "searchPlaceholder": "Search (keywords)",
   "tagsTitle": "Popular tags",
-  "emptyListMessage": "Not found :("
+  "emptyListPlaceholderMessage": "<h1>No posts found :(</h1><p>Please try using different keywords</p>",
+  "emptyListPlaceholderImageAlt": "Cat in empty jar"
 }
