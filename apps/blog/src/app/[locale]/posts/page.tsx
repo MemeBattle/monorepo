@@ -1,15 +1,16 @@
 import type { BlogPost } from 'contentlayer/generated'
 import { allBlogPosts } from 'contentlayer/generated'
+import Link from 'next/link'
 import { useTranslation } from '../../../i18n'
 import type { Language } from '../../../i18n/i18n.settings'
 import { SearchInput } from '../../../components/SearchInput'
-import { PostsList } from '../../../components/PostsList'
 import { Suspense } from 'react'
 import { formatDate } from '../../../utils/formatDate'
 import { TagsSelector } from '../../../components/TagsSelector'
 import { ChipsRow } from '../../../components/ChipsRow'
 import { Chip } from '../../../components/Chip'
 import { EmptyPlaceholder } from '../../../components/PostsList/EmptyPlaceholder'
+import { PostsListItem } from '../../../components/PostsListItem'
 
 function SearchLoader() {
   return <div className="rounded-md shadow-sm h-16 border-0 text-gray-900" />
@@ -24,8 +25,59 @@ const uniqTags = [
   }, new Set<string>()),
 ]
 
-export default async function BlogPage({ params: { locale } }: { params: { locale: Language } }) {
+function filterBlogPosts(blogPosts: BlogPost[], search = '', tags: string[] = []): BlogPost[] {
+  const keywords = search
+    .toLowerCase()
+    .split(' ')
+    .filter(part => part !== '')
+
+  const filteredByTag = tags.length > 0 ? blogPosts.filter(blogPost => blogPost.tags?.some(tag => tags.includes(tag))) : blogPosts
+
+  if (keywords.length === 0) {
+    return filteredByTag
+  }
+
+  return filteredByTag.filter(blogPost => {
+    const words = (blogPost.title + ' ' + blogPost.summary + ' ' + blogPost.body.code).toLowerCase().split(' ')
+
+    return keywords.every(keyWord => words.some(word => word.startsWith(keyWord)))
+  })
+}
+
+function searchParamsSearchFormatter(searchQuery: string | string[] | undefined): string | undefined {
+  if (Array.isArray(searchQuery)) {
+    return searchQuery.join(' ')
+  }
+  return searchQuery
+}
+
+function searchParamsTagsFormatter(tagsQuery: string | string[] | undefined): string[] | undefined {
+  if (typeof tagsQuery === 'string') {
+    return [tagsQuery]
+  }
+  return tagsQuery
+}
+
+export default async function BlogPage({
+  params: { locale },
+  searchParams,
+}: {
+  params: { locale: Language }
+  searchParams: Record<string, string | string[] | undefined>
+}) {
   const { t } = await useTranslation(locale, 'posts')
+
+  const searchQueryTags = searchParamsTagsFormatter(searchParams.tags)
+  const searchQuerySearch = searchParamsSearchFormatter(searchParams.search)
+
+  const filteredPosts = filterBlogPosts(allBlogPosts, searchQuerySearch, searchQueryTags)
+    .sort((a: BlogPost, b: BlogPost) => {
+      if (new Date(a.publishedAt) > new Date(b.publishedAt)) {
+        return -1
+      }
+      return 1
+    })
+    .map(post => ({ ...post, publishedAt: formatDate(post.publishedAt, locale) }))
 
   return (
     <div className="container flex flex-col md:flex-row-reverse justify-center pt-10 px-1">
@@ -47,21 +99,20 @@ export default async function BlogPage({ params: { locale } }: { params: { local
         </Suspense>
       </nav>
       <main className="flex flex-col space-y-6 max-w-3xl w-full">
-        <Suspense fallback="loading">
-          <PostsList
-            // @ts-expect-error Async Server Component */
-            emptyListPlaceholder={<EmptyPlaceholder language={locale} />}
-            locale={locale}
-            posts={allBlogPosts
-              .sort((a: BlogPost, b: BlogPost) => {
-                if (new Date(a.publishedAt) > new Date(b.publishedAt)) {
-                  return -1
-                }
-                return 1
-              })
-              .map(post => ({ ...post, publishedAt: formatDate(post.publishedAt, locale) }))}
-          />
-        </Suspense>
+        {filteredPosts.map((post: BlogPost) => (
+          <Link key={post.slug} href={`/${locale}/posts/${post.slug}`} className="group">
+            <PostsListItem
+              tags={post.tags?.map(tag => ({ text: tag, isActive: searchQueryTags?.includes(tag) || false }))}
+              title={post.title}
+              summary={post.summary}
+              imageSrc={post.image}
+              imageDescription={post.imageDescription}
+              publishedAt={post.publishedAt}
+            />
+          </Link>
+        ))}
+        {/* @ts-expect-error React Server components */}
+        {filteredPosts.length === 0 ? <EmptyPlaceholder language={locale} /> : null}
       </main>
     </div>
   )
