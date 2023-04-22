@@ -1,4 +1,6 @@
-export const ROUTES = {
+import type { AuthRoutes } from '../types/authRoutes'
+
+export const ROUTES: AuthRoutes = {
   LOGIN: '/login',
   REGISTER: '/register',
   CONFIRM_EMAIL: '/confirm',

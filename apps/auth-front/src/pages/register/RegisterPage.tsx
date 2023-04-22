@@ -6,14 +6,18 @@ import { Paper } from '../../components/Paper'
 import { Footer } from '../../components/Footer'
 import { Button, Container, Input, PasswordInput, Link as UILink } from '@memebattle/ui'
 import { t } from '../../utils/i18n'
-import { ROUTES } from '../../constants/routes'
+import type { AuthRoutes } from '../../types/authRoutes'
 import type { RegisterFormSubmissionErrors, RegisterFormValues } from './RegisterPage.types'
 import { Header } from '../../components/Header'
 import { useRegisterValidation } from './useRegisterValidation'
 import { useCasServices } from '../../modules/cas-services'
 import { useNavigate } from 'react-router'
 
-export const RegisterPage = memo(() => {
+interface RegisterPageProps {
+  authRoutes: AuthRoutes
+}
+
+export const RegisterPage = memo<RegisterPageProps>(({ authRoutes }) => {
   const { signUpService } = useCasServices()
 
   const navigate = useNavigate()
@@ -39,7 +43,7 @@ export const RegisterPage = memo(() => {
         if (answer.success) {
           const query = new URLSearchParams({ username: values.username, email: values.email })
 
-          navigate(`${ROUTES.CONFIRM_EMAIL}?${query.toString()}`)
+          navigate(`${authRoutes.CONFIRM_EMAIL}?${query.toString()}`)
           return
         }
 
@@ -50,7 +54,7 @@ export const RegisterPage = memo(() => {
         return { [FORM_ERROR]: 'Something went wrong' }
       }
     },
-    [navigate, signUpService],
+    [navigate, signUpService, authRoutes],
   )
 
   const validate = useRegisterValidation()
@@ -144,7 +148,7 @@ export const RegisterPage = memo(() => {
                 {t.register.submit}
               </Button>
               <br />
-              <UILink underline="always" component={Link} to={ROUTES.LOGIN}>
+              <UILink underline="always" component={Link} to={authRoutes.LOGIN}>
                 {t.register.linkToLogin}
               </UILink>
             </Paper>

@@ -5,17 +5,18 @@ import { Paper } from '../../components/Paper'
 import { Header } from '../../components/Header'
 import { Footer } from '../../components/Footer'
 import { t } from '../../utils/i18n'
-import { ROUTES } from '../../constants/routes'
 import { Link } from 'react-router-dom'
 import type { LoginFormSubmissionError, LoginFormValues } from './LoginPage.types'
 import { FORM_ERROR } from 'final-form'
 import { useCasServices } from '../../modules/cas-services'
+import type { AuthRoutes } from '../../types/authRoutes'
 
 interface LoginPageProps {
   onLoginSucceeded: ({ token }: { token: string }) => void
+  authRoutes: AuthRoutes
 }
 
-export const LoginPage = memo<LoginPageProps>(({ onLoginSucceeded }) => {
+export const LoginPage = memo<LoginPageProps>(({ onLoginSucceeded, authRoutes }) => {
   const { loginService } = useCasServices()
 
   const initialValues = useMemo<LoginFormValues>(
@@ -113,7 +114,7 @@ export const LoginPage = memo<LoginPageProps>(({ onLoginSucceeded }) => {
                 {t.login.submit}
               </Button>
               <br />
-              <UILink underline="always" component={Link} to={ROUTES.REGISTER}>
+              <UILink underline="always" component={Link} to={authRoutes.REGISTER}>
                 {t.login.linkToRegister}
               </UILink>
             </Paper>
