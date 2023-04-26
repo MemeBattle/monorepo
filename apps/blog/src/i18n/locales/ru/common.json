@@ -1,5 +1,9 @@
 {
   "main": {
     "title": "Блог команды MemeBattle"
+  },
+  "header": {
+    "ru": "Русский",
+    "en": "English"
   }
 }
