@@ -28,7 +28,7 @@ export default function Post({ params }: BlogProps) {
   }
 
   return (
-    <article className="p-6 max-w-5xl" lang={post.lang}>
+    <article className="px-2 md:px-6 max-w-full md:max-w-5xl" lang={post.lang}>
       <p className="text-gray-600 text-sm">{formatDate(post.publishedAt, params.locale)}</p>
       <h1 className="font-bold text-3xl my-6 lg:text-5xl lg:font-extrabold">{post.title}</h1>
       {post.tags ? (
