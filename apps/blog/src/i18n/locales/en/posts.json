@@ -2,5 +2,9 @@
   "searchPlaceholder": "Search (keywords)",
   "tagsTitle": "Popular tags",
   "emptyListPlaceholderMessage": "<h1>No posts found :(</h1><p>Please try using different keywords</p>",
-  "emptyListPlaceholderImageAlt": "Cat in empty jar"
+  "emptyListPlaceholderImageAlt": "Cat in empty jar",
+  "breadcrumbs": {
+    "mainPage": "Main",
+    "posts": "Posts"
+  }
 }

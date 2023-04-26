@@ -2,5 +2,9 @@
   "searchPlaceholder": "Искать (ключевые слова)",
   "tagsTitle": "Популярные тэги",
   "emptyListPlaceholderMessage": "<h1>Увы! Нет результатов...</h1><p>Попробуйте другой запрос</p>",
-  "emptyListPlaceholderImageAlt": "Кот лезет в пустую банку"
+  "emptyListPlaceholderImageAlt": "Кот лезет в пустую банку",
+  "breadcrumbs": {
+    "mainPage": "Главная",
+    "posts": "Список постов"
+  }
 }

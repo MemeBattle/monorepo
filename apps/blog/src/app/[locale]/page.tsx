@@ -1,10 +1,6 @@
-import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import type { Language } from '../../i18n/i18n.settings'
 
-export default function BlogPage() {
-  return (
-    <section>
-      <h1>Blog</h1>
-      <Link href="/posts">Posts</Link>
-    </section>
-  )
+export default function BlogPage({ params: { locale } }: { params: { locale: Language } }) {
+  return redirect(`/${locale}/posts`)
 }
