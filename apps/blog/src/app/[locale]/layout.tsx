@@ -1,7 +1,7 @@
+import './globals.css'
 import type { Metadata } from 'next'
 import localFont from 'next/font/local'
 import { dir } from 'i18next'
-import './globals.css'
 import type { Language } from '../../i18n/i18n.settings'
 import { languages } from '../../i18n/i18n.settings'
 import { useTranslation } from '../../i18n'
@@ -15,7 +15,15 @@ export async function generateMetadata({ params }: { params: RootLayoutParams })
   const { t } = await useTranslation(params.locale)
 
   return {
-    title: t('main.title'),
+    title: {
+      default: t('main.title'),
+      template: `%s | ${t('main.title')}`,
+    },
+    icons: {
+      icon: '/favicon.ico',
+      apple: '/apple-touch-icon.png',
+    },
+    manifest: '/site.webmanifest',
   }
 }
 
