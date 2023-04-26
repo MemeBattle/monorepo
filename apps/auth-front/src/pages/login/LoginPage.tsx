@@ -113,7 +113,7 @@ export const LoginPage = memo<LoginPageProps>(({ onLoginSucceeded }) => {
                 {t.login.submit}
               </Button>
               <br />
-              <UILink underline="always" component={Link} to={ROUTES.REGISTER}>
+              <UILink underline="always" component={Link} to={`..${ROUTES.REGISTER}`}>
                 {t.login.linkToRegister}
               </UILink>
             </Paper>

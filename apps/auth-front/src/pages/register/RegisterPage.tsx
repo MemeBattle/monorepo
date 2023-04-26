@@ -144,7 +144,7 @@ export const RegisterPage = memo(() => {
                 {t.register.submit}
               </Button>
               <br />
-              <UILink underline="always" component={Link} to={ROUTES.LOGIN}>
+              <UILink underline="always" component={Link} to={`..${ROUTES.LOGIN}`}>
                 {t.register.linkToLogin}
               </UILink>
             </Paper>
