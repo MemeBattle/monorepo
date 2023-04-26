@@ -10,7 +10,6 @@ import { routes } from 'utils/constants'
 import { getMeRequest } from 'ducks/auth/authActions'
 import { tokenSelector } from 'ducks/auth'
 import { ligrettoAuthTheme } from '../../themes/ligrettoAuth'
-import { authRoutes } from 'utils/constants'
 
 import { CAS_STATIC_URL, CAS_PARTNER_ID, CAS_URL } from 'config'
 
@@ -38,7 +37,6 @@ export const AuthContainer = () => {
           token={token}
           headerComponent={<LigrettoLogo />}
           casURL={CAS_URL}
-          authRoutes={authRoutes}
         />
       </MainLayout>
     </ThemeProvider>
