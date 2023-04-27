@@ -2,6 +2,7 @@ import React from 'react'
 import { styled } from '@mui/material/styles'
 import PlayCircleOutlineOutlinedIcon from '@mui/icons-material/PlayCircleOutlineOutlined'
 import { Stack, Typography, Box } from '@memebattle/ui'
+import CatPlaceholder from './assets/cat.svg'
 
 type Room = { onClick?: () => void; name: string; id: string; playersCount: number; playersMaxCount: number; isDisabled?: boolean }
 
@@ -39,6 +40,20 @@ const StyledRoomsListItem = styled('div')<{ isDisabled?: boolean }>(({ theme, is
 
 export const RoomsList: React.FC<RoomsListProps> = ({ rooms }) => (
   <StyledStack spacing={{ xs: '0.25rem', sm: '0.5rem' }}>
+    {rooms.length === 0 && (
+      <Stack alignItems="center" spacing={{ xs: '1.375rem', sm: '4.25rem' }}>
+        <img src={CatPlaceholder} alt="Cat" />
+        <Typography
+          data-test-id="RoomsList-RoomItem-0"
+          textOverflow="ellipsis"
+          noWrap
+          fontSize={{ xs: '1rem', sm: '1.25rem', md: '1.5rem' }}
+          flex={1}
+        >
+          Список комнат пуст, но есть котик
+        </Typography>
+      </Stack>
+    )}
     {rooms.map(({ name, id, playersCount, playersMaxCount, onClick, isDisabled }) => (
       <StyledRoomsListItem isDisabled={isDisabled} title={name} key={id} onClick={onClick}>
         <Typography
