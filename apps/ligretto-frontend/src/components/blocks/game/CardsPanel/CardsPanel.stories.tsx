@@ -1,5 +1,5 @@
 import { CardsPanel } from './CardsPanel'
-import type { ComponentMeta, ComponentStory } from '@storybook/react'
+import type { Meta, StoryFn } from '@storybook/react'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { Provider } from 'react-redux'
 import { store } from 'store'
@@ -14,9 +14,9 @@ export default {
       </Provider>
     ),
   ],
-} as ComponentMeta<typeof CardsPanel>
+} as Meta<typeof CardsPanel>
 
-export const Default: ComponentStory<typeof CardsPanel> = () => (
+export const Default: StoryFn<typeof CardsPanel> = () => (
   <CardsPanel
     player={{
       status: PlayerStatus.InGame,

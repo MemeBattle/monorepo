@@ -30,7 +30,7 @@ export const RoomsManager = () => {
       <Grid container rowSpacing={1} columnSpacing={4} direction={{ xs: 'column-reverse', sm: 'row' }}>
         <Grid item xs={6} marginBottom={{ xs: '1rem', sm: 0 }}>
           <Box textAlign="center" marginBottom={{ xs: '1.5rem', sm: '2.5rem' }}>
-            <Typography component="h2" variant="h4">
+            <Typography component="h2" variant="h4" fontWeight="500">
               Enter to room
             </Typography>
           </Box>

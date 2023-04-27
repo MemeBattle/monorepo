@@ -1,6 +1,6 @@
 import { Player } from './Player'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
-import type { ComponentMeta, ComponentStory } from '@storybook/react'
+import type { Meta, StoryFn } from '@storybook/react'
 import { Stack } from '@memebattle/ui'
 
 export default {
@@ -20,9 +20,9 @@ export default {
       },
     },
   },
-} as ComponentMeta<typeof Player>
+} as Meta<typeof Player>
 
-const Template: ComponentStory<typeof Player> = args => <Player {...args} />
+const Template: StoryFn<typeof Player> = args => <Player {...args} />
 
 export const DefaultView = Template.bind({})
 DefaultView.args = {

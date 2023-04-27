@@ -1,7 +1,7 @@
 import { Card } from './Card'
 import { CardColors } from '@memebattle/ligretto-shared'
 import { Stack, Box } from '@memebattle/ui'
-import type { ComponentMeta, ComponentStory } from '@storybook/react'
+import type { Meta, StoryFn } from '@storybook/react'
 
 export default {
   title: 'Ligretto / Card',
@@ -22,9 +22,9 @@ export default {
       defaultValue: 'medium',
     },
   },
-} as ComponentMeta<typeof Card>
+} as Meta<typeof Card>
 
-export const Default: ComponentStory<typeof Card> = args => (
+export const Default: StoryFn<typeof Card> = args => (
   <Box m={2}>
     <Card {...args} />
   </Box>

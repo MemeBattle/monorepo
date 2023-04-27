@@ -1,29 +1,24 @@
-const path = require("path");
-const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
+const { mergeConfig } = require("vite")
+const { default: tsconfigPaths } = require('vite-tsconfig-paths')
+const { default: svgr } = require('vite-plugin-svgr')
 
 module.exports = {
+  stories: ['../apps/**/*.stories.tsx', '../packages/**/*.stories.tsx'],
   addons: ['@storybook/preset-scss', '@storybook/addon-essentials'],
-  core: {
-    builder: "webpack5",
+  framework: {
+    name: '@storybook/react-vite',
+    options: {},
   },
-  stories: ['../**/*.stories.tsx'],
   typescript: {
-    reactDocgen: 'react-docgen-typescript',
-    reactDocgenTypescriptOptions: {
-      compilerOptions: {
-        allowSyntheticDefaultImports: true,
-        esModuleInterop: true,
-      },
-    },
+    reactDocgen: 'react-docgen', // 👈 react-docgen configured here.
   },
-  webpackFinal(config) {
-    config.resolve.plugins = [
-      ...(config.resolve.plugins || []),
-      new TsconfigPathsPlugin({
-        configFile: path.resolve(__dirname, '../apps/ligretto-frontend/tsconfig.json'),
-        extensions: config.resolve.extensions,
-      }),
-    ];
-    return config;
+  async viteFinal(config) {
+    return mergeConfig(config, {
+      define: { 'process.env': {} },
+      plugins: [
+        tsconfigPaths(),
+        svgr(),
+      ]
+    })
   },
 }

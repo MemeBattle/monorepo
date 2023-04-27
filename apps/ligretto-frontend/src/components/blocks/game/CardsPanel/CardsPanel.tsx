@@ -1,11 +1,12 @@
-import React from 'react'
+import type { FC } from 'react'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
-import { Player } from '../Player'
 
 import { CardsRowContainer } from 'containers/cards-row'
 import { StackContainer } from 'containers/stack'
 import { LigrettoDeckContainer } from 'containers/ligretto-deck/LigrettoDeckContainer'
 import { Stack, useMediaQuery, useTheme, Box } from '@memebattle/ui'
+
+import { Player } from '../Player'
 
 export interface CardsPanelProps {
   player?: {
@@ -30,7 +31,7 @@ const CardsPanelMobile = () => (
   </Stack>
 )
 
-export const CardsPanel: React.FC<CardsPanelProps> = ({ player }) => {
+export const CardsPanel: FC<CardsPanelProps> = ({ player }) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 

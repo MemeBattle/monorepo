@@ -1,7 +1,7 @@
 import { Provider } from 'react-redux'
 
 import { GameSettings } from './GameSettings'
-import type { ComponentMeta } from '@storybook/react'
+import type { Meta } from '@storybook/react'
 import { GameStatus } from '@memebattle/ligretto-shared'
 import { createStoreForStories } from 'utils/createStoreForStories'
 
@@ -14,7 +14,7 @@ export default {
       </Provider>
     ),
   ],
-} as ComponentMeta<typeof GameSettings>
+} as Meta<typeof GameSettings>
 
 export const Default = () => (
   <div style={{ height: '44rem', width: '44rem', display: 'flex' }}>
