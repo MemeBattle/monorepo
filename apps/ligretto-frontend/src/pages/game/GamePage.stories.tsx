@@ -1,5 +1,5 @@
 import { Provider } from 'react-redux'
-import type { ComponentMeta, ComponentStory } from '@storybook/react'
+import type { Meta, StoryFn } from '@storybook/react'
 import { history, store } from 'store'
 
 import { GamePage } from './GamePage'
@@ -23,9 +23,9 @@ export default {
       </Provider>
     ),
   ],
-} as ComponentMeta<typeof GamePage>
+} as Meta<typeof GamePage>
 
-const Template: ComponentStory<typeof GamePage> = () => <GamePage />
+const Template: StoryFn<typeof GamePage> = () => <GamePage />
 export const Loading = Template.bind({})
 Loading.decorators = [
   Story => (

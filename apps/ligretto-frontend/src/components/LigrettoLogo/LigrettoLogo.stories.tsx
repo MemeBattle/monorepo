@@ -1,9 +1,9 @@
 import { LigrettoLogo } from './LigrettoLogo'
-import type { ComponentMeta, ComponentStory } from '@storybook/react'
+import type { Meta, StoryFn } from '@storybook/react'
 
 export default {
   title: 'Ligretto / LigrettoLogo',
   component: LigrettoLogo,
-} as ComponentMeta<typeof LigrettoLogo>
+} as Meta<typeof LigrettoLogo>
 
-export const DefaultView: ComponentStory<typeof LigrettoLogo> = () => <LigrettoLogo />
+export const DefaultView: StoryFn<typeof LigrettoLogo> = () => <LigrettoLogo />

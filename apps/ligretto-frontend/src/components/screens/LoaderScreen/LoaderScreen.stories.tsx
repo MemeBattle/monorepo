@@ -1,9 +1,9 @@
 import { LoaderScreen } from './LoaderScreen'
-import type { ComponentMeta, ComponentStory } from '@storybook/react'
+import type { Meta, StoryFn } from '@storybook/react'
 
 export default {
   title: 'Ligretto / LoaderScreen',
   component: LoaderScreen,
-} as ComponentMeta<typeof LoaderScreen>
+} as Meta<typeof LoaderScreen>
 
-export const DefaultView: ComponentStory<typeof LoaderScreen> = () => <LoaderScreen />
+export const DefaultView: StoryFn<typeof LoaderScreen> = () => <LoaderScreen />

@@ -2,11 +2,11 @@ import * as React from 'react'
 import { GameGrid } from './GameGrid'
 
 import type { FC } from 'react'
-import type { ComponentMeta } from '@storybook/react'
+import type { Meta } from '@storybook/react'
 
 export default {
   title: 'Ligretto / GameGrid',
-} as ComponentMeta<typeof GameGrid>
+} as Meta<typeof GameGrid>
 
 const SomeComponent: FC = () => <div style={{ width: '6rem', height: '6rem', background: 'red' }}></div>
 
