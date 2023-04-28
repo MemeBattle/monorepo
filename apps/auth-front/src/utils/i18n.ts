@@ -16,7 +16,7 @@ export const t = {
     confirmPassword: 'Confirm Password',
     submit: 'Sign up',
     linkToLogin: 'Already have an Ligretto account? Sign in',
-    userAlreadyExistsError: 'User with a same username or password exists',
+    userAlreadyExistsError: 'User with the same username or email already exists',
   },
   validation: {
     username: (minLength: number, maxLength: number) => `The user name must be between ${minLength} and ${maxLength} characters long`,
