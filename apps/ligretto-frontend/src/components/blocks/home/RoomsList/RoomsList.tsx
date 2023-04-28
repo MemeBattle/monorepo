@@ -40,42 +40,37 @@ const StyledRoomsListItem = styled('div')<{ isDisabled?: boolean }>(({ theme, is
 
 export const RoomsList: React.FC<RoomsListProps> = ({ rooms }) => (
   <StyledStack spacing={{ xs: '0.25rem', sm: '0.5rem' }}>
-    {rooms.length === 0 && (
+    {!rooms.length ? (
       <Stack alignItems="center" spacing={{ xs: '1.375rem', sm: '4.25rem' }}>
         <img src={CatPlaceholder} alt="Cat" />
-        <Typography
-          data-test-id="RoomsList-RoomItem-0"
-          textOverflow="ellipsis"
-          noWrap
-          fontSize={{ xs: '1rem', sm: '1.25rem', md: '1.5rem' }}
-          flex={1}
-        >
+        <Typography textOverflow="ellipsis" noWrap fontSize={{ xs: '1rem', sm: '1.25rem', md: '1.5rem' }} flex={1}>
           Список комнат пуст, но есть котик
         </Typography>
       </Stack>
+    ) : (
+      rooms.map(({ name, id, playersCount, playersMaxCount, onClick, isDisabled }) => (
+        <StyledRoomsListItem isDisabled={isDisabled} title={name} key={id} onClick={onClick}>
+          <Typography
+            data-test-id={`RoomsList-RoomItem-${name}`}
+            textOverflow="ellipsis"
+            noWrap
+            fontSize={{ xs: '1rem', sm: '1.25rem', md: '1.5rem' }}
+            flex={1}
+          >
+            {name}
+          </Typography>
+          <Stack alignItems="center" direction="row" spacing={{ xs: '1.375rem', sm: '4.25rem' }}>
+            <Box display="flex" alignItems="center">
+              <Typography fontSize={{ xs: '1rem', sm: '1.5rem', md: '2rem' }}>
+                {playersCount}/{playersMaxCount}
+              </Typography>
+            </Box>
+            <Box fontSize={{ xs: '1.5rem', sm: '2.25rem', md: '2.75rem' }} display="flex">
+              <PlayCircleOutlineOutlinedIcon opacity={isDisabled ? 0.5 : 1} fontSize="inherit" />
+            </Box>
+          </Stack>
+        </StyledRoomsListItem>
+      ))
     )}
-    {rooms.map(({ name, id, playersCount, playersMaxCount, onClick, isDisabled }) => (
-      <StyledRoomsListItem isDisabled={isDisabled} title={name} key={id} onClick={onClick}>
-        <Typography
-          data-test-id={`RoomsList-RoomItem-${name}`}
-          textOverflow="ellipsis"
-          noWrap
-          fontSize={{ xs: '1rem', sm: '1.25rem', md: '1.5rem' }}
-          flex={1}
-        >
-          {name}
-        </Typography>
-        <Stack alignItems="center" direction="row" spacing={{ xs: '1.375rem', sm: '4.25rem' }}>
-          <Box display="flex" alignItems="center">
-            <Typography fontSize={{ xs: '1rem', sm: '1.5rem', md: '2rem' }}>
-              {playersCount}/{playersMaxCount}
-            </Typography>
-          </Box>
-          <Box fontSize={{ xs: '1.5rem', sm: '2.25rem', md: '2.75rem' }} display="flex">
-            <PlayCircleOutlineOutlinedIcon opacity={isDisabled ? 0.5 : 1} fontSize="inherit" />
-          </Box>
-        </Stack>
-      </StyledRoomsListItem>
-    ))}
   </StyledStack>
 )
