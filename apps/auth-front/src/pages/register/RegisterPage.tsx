@@ -39,7 +39,7 @@ export const RegisterPage = memo(() => {
         if (answer.success) {
           const query = new URLSearchParams({ username: values.username, email: values.email })
 
-          navigate(`${ROUTES.CONFIRM_EMAIL}?${query.toString()}`)
+          navigate(`..${ROUTES.CONFIRM_EMAIL}?${query.toString()}`)
           return
         }
 
