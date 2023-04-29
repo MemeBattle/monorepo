@@ -4,7 +4,7 @@ import { FORM_ERROR } from 'final-form'
 import { Form, Field } from 'react-final-form'
 import { Paper } from '../../components/Paper'
 import { Footer } from '../../components/Footer'
-import { Button, Container, Input, PasswordInput, Link as UILink } from '@memebattle/ui'
+import { Button, Container, Input, PasswordInput, FormHelperText, Link as UILink } from '@memebattle/ui'
 import { t } from '../../utils/i18n'
 import { ROUTES } from '../../constants/routes'
 import type { RegisterFormSubmissionErrors, RegisterFormValues } from './RegisterPage.types'
@@ -44,7 +44,7 @@ export const RegisterPage = memo(() => {
         }
 
         if (answer.error.errorCode === 422) {
-          return { username: t.register.userAlreadyExistsError, email: t.register.userAlreadyExistsError }
+          return { [FORM_ERROR]: t.register.userAlreadyExistsError }
         }
       } catch (e) {
         return { [FORM_ERROR]: 'Something went wrong' }
@@ -62,7 +62,7 @@ export const RegisterPage = memo(() => {
         initialValues={initialValues}
         onSubmit={handleSubmit}
         validate={validate}
-        render={({ handleSubmit, submitError }) => (
+        render={({ handleSubmit, submitError, modifiedSinceLastSubmit }) => (
           <form onSubmit={handleSubmit} autoComplete="off">
             <Paper>
               <Field
@@ -79,8 +79,8 @@ export const RegisterPage = memo(() => {
                     name="username"
                     autoComplete="username"
                     autoFocus
-                    error={!!(meta.error && meta.dirty) || (meta.submitFailed && !meta.dirtySinceLastSubmit)}
-                    helperText={meta.error || meta.submitError}
+                    error={!!meta.error}
+                    helperText={!!meta.error && meta.error}
                   />
                 )}
               />
@@ -98,8 +98,8 @@ export const RegisterPage = memo(() => {
                     label={t.register.email}
                     name="email"
                     autoComplete="email"
-                    error={!!(meta.error && meta.dirty) || (meta.submitFailed && !meta.dirtySinceLastSubmit)}
-                    helperText={meta.error || meta.submitError}
+                    error={!!meta.error}
+                    helperText={!!meta.error && meta.error}
                   />
                 )}
               />
@@ -116,8 +116,8 @@ export const RegisterPage = memo(() => {
                     label={t.login.password}
                     id="password"
                     autoComplete="current-password"
-                    error={!!(meta.error && meta.dirty) || !!meta.submitError}
-                    helperText={meta.error || meta.submitError}
+                    error={!!meta.error}
+                    helperText={!!meta.error && meta.error}
                   />
                 )}
               />
@@ -133,12 +133,12 @@ export const RegisterPage = memo(() => {
                     name="confirmPassword"
                     label={t.register.confirmPassword}
                     id="confirmPassword"
-                    error={!!(meta.error && meta.dirty) || meta.submitError}
-                    helperText={meta.error}
+                    error={!!meta.error}
+                    helperText={!!meta.error && meta.error}
                   />
                 )}
               />
-              {submitError}
+              {!modifiedSinceLastSubmit && <FormHelperText error={true}>{submitError}</FormHelperText>}
               <br />
               <Button type="submit" fullWidth variant="contained" color="primary" size="large">
                 {t.register.submit}
