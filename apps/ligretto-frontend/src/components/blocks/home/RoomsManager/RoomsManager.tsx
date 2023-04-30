@@ -45,9 +45,7 @@ export const RoomsManager = () => {
           <CreateRoomContainer />
         </Grid>
       </Grid>
-      <Box height={{ xs: '12.25rem', sm: '16.5rem', md: '24.5rem' }}>
-        <RoomsListContainer />
-      </Box>
+      <RoomsListContainer />
     </StyledRoomManager>
   )
 }

@@ -2,7 +2,7 @@ import React from 'react'
 import { styled } from '@mui/material/styles'
 import PlayCircleOutlineOutlinedIcon from '@mui/icons-material/PlayCircleOutlineOutlined'
 import { Stack, Typography, Box } from '@memebattle/ui'
-import CatPlaceholder from './assets/cat.svg'
+import catPlaceholder from './assets/cat.svg'
 
 type Room = { onClick?: () => void; name: string; id: string; playersCount: number; playersMaxCount: number; isDisabled?: boolean }
 
@@ -38,39 +38,45 @@ const StyledRoomsListItem = styled('div')<{ isDisabled?: boolean }>(({ theme, is
   },
 }))
 
+const StyledEmptyPlaceholder = styled('img')(() => ({
+  maxWidth: '100%',
+}))
+
 export const RoomsList: React.FC<RoomsListProps> = ({ rooms }) => (
-  <StyledStack spacing={{ xs: '0.25rem', sm: '0.5rem' }}>
-    {!rooms.length ? (
-      <Stack alignItems="center" spacing={{ xs: '1.375rem', sm: '4.25rem' }}>
-        <img src={CatPlaceholder} alt="Cat" />
-        <Typography textOverflow="ellipsis" noWrap fontSize={{ xs: '1rem', sm: '1.25rem', md: '1.5rem' }} flex={1}>
-          Список комнат пуст, но есть котик
-        </Typography>
-      </Stack>
-    ) : (
-      rooms.map(({ name, id, playersCount, playersMaxCount, onClick, isDisabled }) => (
-        <StyledRoomsListItem isDisabled={isDisabled} title={name} key={id} onClick={onClick}>
-          <Typography
-            data-test-id={`RoomsList-RoomItem-${name}`}
-            textOverflow="ellipsis"
-            noWrap
-            fontSize={{ xs: '1rem', sm: '1.25rem', md: '1.5rem' }}
-            flex={1}
-          >
-            {name}
+  <Box minHeight={{ xs: '14rem', sm: '16.5rem', md: '24.5rem' }}>
+    <StyledStack spacing={{ xs: '0.25rem', sm: '0.5rem' }}>
+      {!rooms.length ? (
+        <Stack alignItems="center" padding="1rem" spacing={{ xs: '1.375rem', sm: '4.25rem' }}>
+          <StyledEmptyPlaceholder src={catPlaceholder} alt="Cat" />
+          <Typography textAlign="center" fontSize={{ xs: '1rem', sm: '1.25rem', md: '1.5rem' }} flex={1}>
+            Список комнат пуст, но есть котик
           </Typography>
-          <Stack alignItems="center" direction="row" spacing={{ xs: '1.375rem', sm: '4.25rem' }}>
-            <Box display="flex" alignItems="center">
-              <Typography fontSize={{ xs: '1rem', sm: '1.5rem', md: '2rem' }}>
-                {playersCount}/{playersMaxCount}
-              </Typography>
-            </Box>
-            <Box fontSize={{ xs: '1.5rem', sm: '2.25rem', md: '2.75rem' }} display="flex">
-              <PlayCircleOutlineOutlinedIcon opacity={isDisabled ? 0.5 : 1} fontSize="inherit" />
-            </Box>
-          </Stack>
-        </StyledRoomsListItem>
-      ))
-    )}
-  </StyledStack>
+        </Stack>
+      ) : (
+        rooms.map(({ name, id, playersCount, playersMaxCount, onClick, isDisabled }) => (
+          <StyledRoomsListItem isDisabled={isDisabled} title={name} key={id} onClick={onClick}>
+            <Typography
+              data-test-id={`RoomsList-RoomItem-${name}`}
+              textOverflow="ellipsis"
+              noWrap
+              fontSize={{ xs: '1rem', sm: '1.25rem', md: '1.5rem' }}
+              flex={1}
+            >
+              {name}
+            </Typography>
+            <Stack alignItems="center" direction="row" spacing={{ xs: '1.375rem', sm: '4.25rem' }}>
+              <Box display="flex" alignItems="center">
+                <Typography fontSize={{ xs: '1rem', sm: '1.5rem', md: '2rem' }}>
+                  {playersCount}/{playersMaxCount}
+                </Typography>
+              </Box>
+              <Box fontSize={{ xs: '1.5rem', sm: '2.25rem', md: '2.75rem' }} display="flex">
+                <PlayCircleOutlineOutlinedIcon opacity={isDisabled ? 0.5 : 1} fontSize="inherit" />
+              </Box>
+            </Stack>
+          </StyledRoomsListItem>
+        ))
+      )}
+    </StyledStack>
+  </Box>
 )
