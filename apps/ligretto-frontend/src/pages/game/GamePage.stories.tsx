@@ -11,7 +11,7 @@ import type { Player } from '@memebattle/ligretto-shared'
 import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 import { HistoryRouter as Router } from 'redux-first-history/rr6'
 
-export default {
+const meta: Meta<typeof GamePage> = {
   title: 'Ligretto / pages / GamePage',
   component: GamePage,
   decorators: [
@@ -23,7 +23,8 @@ export default {
       </Provider>
     ),
   ],
-} as Meta<typeof GamePage>
+}
+export default meta
 
 const Template: StoryFn<typeof GamePage> = () => <GamePage />
 export const Loading = Template.bind({})
