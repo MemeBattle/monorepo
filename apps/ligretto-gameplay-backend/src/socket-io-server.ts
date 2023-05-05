@@ -12,6 +12,10 @@ const httpServer = createServer(async (req, res) => {
       res.writeHead(200)
       res.end(await promClient.register.metrics())
       break
+    case '/health':
+      res.writeHead(200)
+      res.end()
+      break
     default:
       res.writeHead(404)
       res.end()
