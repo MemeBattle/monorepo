@@ -35,11 +35,15 @@ httpServer.listen(LIGRETTO_GAMEPLAY_SOCKET_PORT, () => {
 })
 
 process.on('SIGTERM', () => {
-  console.log('Server closed SIGTERM')
-  httpServer.close()
+  io.close(() => {
+    console.log('Server closed SIGTERM')
+    process.exit()
+  })
 })
 
 process.on('SIGINT', () => {
-  console.log('Server closed SIGINT')
-  httpServer.close()
+  io.close(() => {
+    console.log('Server closed SIGINT')
+    process.exit()
+  })
 })
