@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { useMDXComponent } from 'next-contentlayer/hooks'
 
 interface MdxProps {
@@ -9,7 +10,7 @@ export function Mdx({ code }: MdxProps) {
 
   return (
     <article className="prose lg:prose-xl">
-      <Component />
+      <Component components={{ Image }} />
     </article>
   )
 }
