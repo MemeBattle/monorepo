@@ -7,6 +7,9 @@ import type { Language } from '../../../../i18n/i18n.settings'
 import { ChipsRow } from '../../../../components/ChipsRow'
 import { formatDate } from '../../../../utils/formatDate'
 
+import { isPostShouldBePickedByLocale } from '../_utils/isPostShouldBePickedByLocale'
+import { localesBySlug } from '../_content'
+
 interface BlogProps {
   params: {
     slug: string
@@ -21,7 +24,7 @@ export async function generateStaticParams() {
 }
 
 export default function Post({ params }: BlogProps) {
-  const post = allBlogPosts.find((post: BlogPost) => post.slug === params.slug)
+  const post = allBlogPosts.find((post: BlogPost) => post.slug === params.slug && isPostShouldBePickedByLocale(localesBySlug, post, params.locale))
 
   if (!post) {
     notFound()

@@ -24,7 +24,7 @@
         "./.contentlayer/generated"
       ]
     },
-    "types": ["./src/i18n/i18next.d.ts"],
+    "types": ["./src/i18n/i18next.d.ts", "vitest/globals"],
     "plugins": [
       {
         "name": "next"
