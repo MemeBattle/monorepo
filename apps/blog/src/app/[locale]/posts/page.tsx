@@ -1,6 +1,5 @@
 import Link from 'next/link'
-import type { BlogPost } from './_content'
-import { allBlogPosts, localesBySlug, uniqTags } from './_content'
+import { allBlogPostsWithTranslates, uniqTags } from './_content'
 import { filterBlogPosts } from './_utils/filterBlogPosts'
 import { useTranslation } from '../../../i18n'
 import type { Language } from '../../../i18n/i18n.settings'
@@ -43,8 +42,8 @@ export default async function BlogPage({
   const searchQueryTags = searchParamsTagsFormatter(searchParams.tags)
   const searchQuerySearch = searchParamsSearchFormatter(searchParams.search)
 
-  const filteredPosts = filterBlogPosts(allBlogPosts, localesBySlug, locale, searchQuerySearch, searchQueryTags)
-    .sort((a: BlogPost, b: BlogPost) => {
+  const filteredPosts = filterBlogPosts(allBlogPostsWithTranslates, locale, searchQuerySearch, searchQueryTags)
+    .sort((a, b) => {
       if (new Date(a.publishedAt) > new Date(b.publishedAt)) {
         return -1
       }
@@ -72,7 +71,7 @@ export default async function BlogPage({
         </Suspense>
       </nav>
       <main className="flex flex-col space-y-6 max-w-3xl w-full">
-        {filteredPosts.map((post: BlogPost) => (
+        {filteredPosts.map(post => (
           <Link key={post.slug} href={`/${locale}/posts/${post.slug}`} className="group">
             <PostsListItem
               tags={post.tags?.map(tag => ({ text: tag, isActive: searchQueryTags?.includes(tag) || false }))}

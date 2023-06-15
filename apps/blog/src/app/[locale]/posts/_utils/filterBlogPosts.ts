@@ -1,15 +1,14 @@
-import type { BlogPost } from 'contentlayer/generated'
 import type { Language } from '../../../../i18n/i18n.settings'
-import type { LocalesBySlug } from './isPostShouldBePickedByLocale'
 import { isPostShouldBePickedByLocale } from './isPostShouldBePickedByLocale'
+import type { BlogPostWithTranslates } from '../_content'
 
-export function filterBlogPosts(blogPosts: BlogPost[], localesBySlug: LocalesBySlug, locale: Language, search = '', tags: string[] = []): BlogPost[] {
+export function filterBlogPosts(blogPosts: BlogPostWithTranslates[], locale: Language, search = '', tags: string[] = []): BlogPostWithTranslates[] {
   const keywords = search
     .toLowerCase()
     .split(' ')
     .filter(part => part !== '')
 
-  const filteredByLocale = blogPosts.filter(blogPost => isPostShouldBePickedByLocale(localesBySlug, blogPost, locale))
+  const filteredByLocale = blogPosts.filter(blogPost => isPostShouldBePickedByLocale(blogPost, locale))
 
   const filteredByTag = tags.length > 0 ? filteredByLocale.filter(blogPost => blogPost.tags?.some(tag => tags.includes(tag))) : filteredByLocale
 

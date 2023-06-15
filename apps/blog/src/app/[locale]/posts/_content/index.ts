@@ -1,9 +1,9 @@
 import type { BlogPost } from 'contentlayer/generated'
 import { allBlogPosts } from 'contentlayer/generated'
-import { createLocalesBySlugMap } from '../_utils/createLocalesBySlugMap'
+import type { Language } from '../../../../i18n/i18n.settings'
 
 export { allBlogPosts }
-export type { BlogPost }
+export type BlogPostWithTranslates = BlogPost & { translates: { [key in Language]?: BlogPost } }
 
 export const uniqTags = [
   ...allBlogPosts.reduce<Set<string>>((acc, { tags = [] }) => {
@@ -14,4 +14,9 @@ export const uniqTags = [
   }, new Set<string>()),
 ]
 
-export const localesBySlug = createLocalesBySlugMap(allBlogPosts)
+export const allBlogPostsWithTranslates: BlogPostWithTranslates[] = allBlogPosts.map((blogPost, index, blogPosts) => ({
+  ...blogPost,
+  translates: blogPosts
+    .filter(({ slug }) => blogPost.slug === slug)
+    .reduce((translatesAcc, blogPost) => ({ ...translatesAcc, [blogPost.lang]: blogPost }), {}),
+}))

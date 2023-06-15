@@ -15,6 +15,7 @@ export async function generateMetadata({ params }: { params: RootLayoutParams })
   const { t } = await useTranslation(params.locale)
 
   return {
+    metadataBase: new URL('https://blog.mems.fun'),
     title: {
       default: t('main.title'),
       template: `%s | ${t('main.title')}`,

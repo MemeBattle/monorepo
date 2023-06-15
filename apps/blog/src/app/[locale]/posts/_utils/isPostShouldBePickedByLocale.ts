@@ -1,10 +1,8 @@
-import type { BlogPost } from 'contentlayer/generated'
+import type { BlogPostWithTranslates } from '../_content'
 import type { Language } from '../../../../i18n/i18n.settings'
 import { fallbackLanguage } from '../../../../i18n/i18n.settings'
 
-export type LocalesBySlug = Map<string, Set<Language>>
-
-export const isPostShouldBePickedByLocale = (localesBySlug: LocalesBySlug, post: Pick<BlogPost, 'slug' | 'lang'>, locale: Language): boolean => {
+export const isPostShouldBePickedByLocale = (post: Pick<BlogPostWithTranslates, 'slug' | 'lang' | 'translates'>, locale: Language): boolean => {
   /**
    * Post in current locale should be picked
    */
@@ -12,10 +10,8 @@ export const isPostShouldBePickedByLocale = (localesBySlug: LocalesBySlug, post:
     return true
   }
 
-  const postLocales = localesBySlug.get(post.slug) || new Set()
-
   /**
    * Post in fallback locale should be picked if it doesn't exist in current
    */
-  return post.lang === fallbackLanguage && !postLocales.has(locale)
+  return post.lang === fallbackLanguage && !post.translates[locale]
 }
