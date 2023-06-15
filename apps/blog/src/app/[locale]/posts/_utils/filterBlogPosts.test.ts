@@ -1,8 +1,7 @@
-import type { LocalesBySlug } from './isPostShouldBePickedByLocale'
 import { filterBlogPosts } from './filterBlogPosts'
-import type { BlogPost } from 'contentlayer/generated'
+import type { BlogPostWithTranslates } from '../_content'
 
-const posts: BlogPost[] = [
+const posts: BlogPostWithTranslates[] = [
   {
     title: 'Заголовок поста 1',
     publishedAt: '2023-05-28T00:00:00.000Z',
@@ -30,6 +29,7 @@ const posts: BlogPost[] = [
       },
     ],
     lang: 'ru',
+    translates: {},
   },
   {
     title: 'Заголовок поста 2',
@@ -58,6 +58,7 @@ const posts: BlogPost[] = [
       },
     ],
     lang: 'ru',
+    translates: {},
   },
   {
     title: 'First post title',
@@ -86,28 +87,27 @@ const posts: BlogPost[] = [
       },
     ],
     lang: 'en',
+    translates: {},
   },
 ]
 
-const localesBySlug: LocalesBySlug = new Map([
-  ['first', new Set(['en', 'ru'])],
-  ['some-id', new Set(['ru'])],
-])
+posts[0].translates = { en: posts[2] }
+posts[2].translates = { ru: posts[1] }
 
 describe('filterBlogPosts', () => {
   it('Should return all (uniq by locale) posts if search and tags empty', () => {
-    expect(filterBlogPosts(posts, localesBySlug, 'ru')).toEqual([posts[0], posts[1]])
+    expect(filterBlogPosts(posts, 'ru')).toEqual([posts[0], posts[1]])
   })
 
   it("Should return empty posts if posts doesn't contain words from search", () => {
-    expect(filterBlogPosts(posts, localesBySlug, 'ru', 'some query')).toEqual([])
+    expect(filterBlogPosts(posts, 'ru', 'some query')).toEqual([])
   })
 
   it('Should return filtered post that contains words from search', () => {
-    expect(filterBlogPosts(posts, localesBySlug, 'ru', 'раз')).toEqual([posts[0]])
+    expect(filterBlogPosts(posts, 'ru', 'раз')).toEqual([posts[0]])
   })
 
   it('Should return filtered post that contains words from search', () => {
-    expect(filterBlogPosts(posts, localesBySlug, 'ru', 'раз')).toEqual([posts[0]])
+    expect(filterBlogPosts(posts, 'ru', 'раз')).toEqual([posts[0]])
   })
 })
