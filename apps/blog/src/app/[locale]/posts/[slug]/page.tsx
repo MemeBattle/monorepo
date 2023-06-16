@@ -1,4 +1,6 @@
 import { notFound } from 'next/navigation'
+import type { Metadata, Route } from 'next'
+
 import { Mdx } from '../../../../components/Mdx'
 import type { BlogPost } from 'contentlayer/generated'
 import { allBlogPosts } from 'contentlayer/generated'
@@ -6,6 +8,9 @@ import { Chip } from '../../../../components/Chip'
 import type { Language } from '../../../../i18n/i18n.settings'
 import { ChipsRow } from '../../../../components/ChipsRow'
 import { formatDate } from '../../../../utils/formatDate'
+
+import { isPostShouldBePickedByLocale } from '../_utils/isPostShouldBePickedByLocale'
+import { allBlogPostsWithTranslates } from '../_content'
 
 interface BlogProps {
   params: {
@@ -20,8 +25,21 @@ export async function generateStaticParams() {
   }))
 }
 
+export const generateMetadata = ({ params }: BlogProps): Metadata => {
+  const blogPost = allBlogPostsWithTranslates.find(post => post.slug === params.slug && isPostShouldBePickedByLocale(post, params.locale))
+
+  return {
+    alternates: {
+      languages: Object.keys(blogPost?.translates || {}).reduce<{ [key in Language]?: Route }>(
+        (acc, postLocale) => ({ ...acc, [postLocale]: `/${postLocale}/posts/${params.slug}` }),
+        {},
+      ),
+    },
+  }
+}
+
 export default function Post({ params }: BlogProps) {
-  const post = allBlogPosts.find((post: BlogPost) => post.slug === params.slug)
+  const post = allBlogPostsWithTranslates.find(post => post.slug === params.slug && isPostShouldBePickedByLocale(post, params.locale))
 
   if (!post) {
     notFound()
