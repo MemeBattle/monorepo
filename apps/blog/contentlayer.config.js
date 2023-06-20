@@ -21,10 +21,15 @@ const extractFileLanguage = fileName => {
 }
 
 /**
- * @param {string} rawFileName
+ * @param {string} flattenedPath
  * @return {string} language
  */
-const extractSlug = rawFileName => rawFileName.split('.')[0]
+const extractSlug = flattenedPath => {
+  const pathSegments = flattenedPath.split('/')
+  const lastSegment = pathSegments.at(-1)
+
+  return lastSegment.split('.')[0]
+}
 
 /** @type {import('contentlayer/source-files').ComputedFields} */
 const computedFields = {
@@ -47,7 +52,7 @@ const computedFields = {
 
 export const BlogPost = defineDocumentType(() => ({
   name: 'BlogPost',
-  filePathPattern: '**/*.mdx',
+  filePathPattern: 'posts/**/*.mdx',
   contentType: 'mdx',
   fields: {
     title: {
@@ -75,13 +80,32 @@ export const BlogPost = defineDocumentType(() => ({
     imageDescription: {
       type: 'string',
     },
+    author: {
+      type: 'string',
+      required: true,
+    },
   },
   computedFields,
 }))
 
+export const Memeber = defineDocumentType(() => ({
+  name: 'Memeber',
+  filePathPattern: 'memebers/**/*.mdx',
+  contentType: 'mdx',
+  fields: {
+    username: {
+      type: 'string',
+      required: true,
+    },
+    fullName: {
+      type: 'string',
+    },
+  },
+}))
+
 export default makeSource({
   contentDirPath: 'content',
-  documentTypes: [BlogPost],
+  documentTypes: [BlogPost, Memeber],
   // Examples of mdx plugins
 
   // mdx: {

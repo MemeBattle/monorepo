@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { allBlogPostsWithTranslates, uniqTags } from './_content'
 import { filterBlogPosts } from './_utils/filterBlogPosts'
 import { useTranslation } from '../../../i18n'
@@ -11,6 +12,7 @@ import { ChipsRow } from '../../../components/ChipsRow'
 import { Chip } from '../../../components/Chip'
 import { EmptyPlaceholder } from '../../../components/PostsList/EmptyPlaceholder'
 import { PostsListItem } from '../../../components/PostsListItem'
+import { generateFullUrl } from '../../../utils/generateFullUrl'
 
 function SearchLoader() {
   return <div className="rounded-md shadow-sm h-16 border-0 text-gray-900" />
@@ -28,6 +30,17 @@ function searchParamsTagsFormatter(tagsQuery: string | string[] | undefined): st
     return [tagsQuery]
   }
   return tagsQuery
+}
+
+export async function generateMetadata({ params }: { params: { locale: Language } }): Promise<Metadata> {
+  // useTranslation on server isn't react hook
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { t } = await useTranslation(params.locale, 'posts')
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  }
 }
 
 export default async function BlogPage({

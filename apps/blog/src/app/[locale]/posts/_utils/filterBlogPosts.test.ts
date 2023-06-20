@@ -1,7 +1,6 @@
 import { filterBlogPosts } from './filterBlogPosts'
-import type { BlogPostWithTranslates } from '../_content'
 
-const posts: BlogPostWithTranslates[] = [
+const posts = [
   {
     title: 'Заголовок поста 1',
     publishedAt: '2023-05-28T00:00:00.000Z',
@@ -11,14 +10,6 @@ const posts: BlogPostWithTranslates[] = [
     body: {
       raw: 'раз два три',
       code: '',
-    },
-    _id: 'first.ru.mdx',
-    _raw: {
-      sourceFilePath: 'first.ru.mdx',
-      sourceFileName: 'first.ru.mdx',
-      sourceFileDir: '.',
-      contentType: 'mdx',
-      flattenedPath: 'first.ru',
     },
     type: 'BlogPost',
     slug: 'first',
@@ -30,6 +21,7 @@ const posts: BlogPostWithTranslates[] = [
     ],
     lang: 'ru',
     translates: {},
+    author: 'authorNickName',
   },
   {
     title: 'Заголовок поста 2',
@@ -41,14 +33,6 @@ const posts: BlogPostWithTranslates[] = [
       raw: 'какой-то текст',
       code: '',
     },
-    _id: 'some-id.mdx',
-    _raw: {
-      sourceFilePath: 'some-id.mdx',
-      sourceFileName: 'some-id.mdx',
-      sourceFileDir: '.',
-      contentType: 'mdx',
-      flattenedPath: 'some-id',
-    },
     type: 'BlogPost',
     slug: 'some-id',
     toc: [
@@ -59,6 +43,7 @@ const posts: BlogPostWithTranslates[] = [
     ],
     lang: 'ru',
     translates: {},
+    author: 'authorNickName',
   },
   {
     title: 'First post title',
@@ -70,14 +55,6 @@ const posts: BlogPostWithTranslates[] = [
       raw: 'one two three',
       code: '',
     },
-    _id: 'first.en.mdx',
-    _raw: {
-      sourceFilePath: 'first.en.mdx',
-      sourceFileName: 'first.en.mdx',
-      sourceFileDir: '.',
-      contentType: 'mdx',
-      flattenedPath: 'first.en',
-    },
     type: 'BlogPost',
     slug: 'first',
     toc: [
@@ -88,6 +65,7 @@ const posts: BlogPostWithTranslates[] = [
     ],
     lang: 'en',
     translates: {},
+    author: 'authorNickName',
   },
 ]
 

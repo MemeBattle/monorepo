@@ -1,4 +1,6 @@
 {
+  "title": "All blog posts",
+  "description": "Posts list sorted by publication date with search by keywords and filtering by tags",
   "searchPlaceholder": "Search (keywords)",
   "tagsTitle": "Popular tags",
   "emptyListPlaceholderMessage": "<h1>No posts found :(</h1><p>Please try using different keywords</p>",
