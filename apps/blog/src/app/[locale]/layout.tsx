@@ -7,6 +7,7 @@ import { languages } from '../../i18n/i18n.settings'
 import { useTranslation } from '../../i18n'
 import { LanguageSwitcher } from '../../components/LanguageSwitcher'
 import { generateFullUrl } from '../../utils/generateFullUrl'
+import { Footer } from '../../components/Footer'
 
 type RootLayoutParams = { locale: Language }
 
@@ -118,12 +119,14 @@ const archerusFeralFont = localFont({
 export default function RootLayout({ children, params: { locale } }: { children: React.ReactNode; params: RootLayoutParams }) {
   return (
     <html lang={locale} dir={dir(locale)} className={`${gravityFont.variable} ${archerusFeralFont.variable}`}>
-      <body className="flex flex-col items-center">
+      <body className="flex flex-col items-center min-h-screen">
         <header className="h-18 w-full bg-gray-600 flex items-center">
           {/* @ts-expect-error React Server components */}
           <LanguageSwitcher locale={locale} />
         </header>
         {children}
+        {/** @ts-expect-error React Server components  */}
+        <Footer locale={locale} />
       </body>
     </html>
   )
