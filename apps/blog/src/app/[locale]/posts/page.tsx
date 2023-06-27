@@ -12,7 +12,6 @@ import { ChipsRow } from '../../../components/ChipsRow'
 import { Chip } from '../../../components/Chip'
 import { EmptyPlaceholder } from '../../../components/PostsList/EmptyPlaceholder'
 import { PostsListItem } from '../../../components/PostsListItem'
-import { generateFullUrl } from '../../../utils/generateFullUrl'
 
 function SearchLoader() {
   return <div className="rounded-md shadow-sm h-16 border-0 text-gray-900" />
