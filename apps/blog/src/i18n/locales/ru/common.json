@@ -1,6 +1,8 @@
 {
   "main": {
-    "title": "Блог команды MemeBattle"
+    "title": "Блог MemeBattle",
+    "description": "Технические статьи, посты и заметки. Новости MemeBattle",
+    "applicationName": "Блог MemeBattle"
   },
   "header": {
     "ru": "Русский",

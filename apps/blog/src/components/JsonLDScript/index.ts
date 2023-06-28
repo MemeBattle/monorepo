@@ -1,0 +1,1 @@
+export { JsonLDScript } from './JsonLDScript'

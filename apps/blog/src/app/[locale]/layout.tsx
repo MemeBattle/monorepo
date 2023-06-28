@@ -6,6 +6,7 @@ import type { Language } from '../../i18n/i18n.settings'
 import { languages } from '../../i18n/i18n.settings'
 import { useTranslation } from '../../i18n'
 import { LanguageSwitcher } from '../../components/LanguageSwitcher'
+import { generateFullUrl } from '../../utils/generateFullUrl'
 
 type RootLayoutParams = { locale: Language }
 
@@ -15,16 +16,28 @@ export async function generateMetadata({ params }: { params: RootLayoutParams })
   const { t } = await useTranslation(params.locale)
 
   return {
-    metadataBase: new URL('https://blog.mems.fun'),
+    metadataBase: new URL(generateFullUrl()),
     title: {
       default: t('main.title'),
       template: `%s | ${t('main.title')}`,
     },
+    description: t('main.description'),
     icons: {
       icon: '/favicon.ico',
       apple: '/apple-touch-icon.png',
     },
     manifest: '/site.webmanifest',
+    generator: 'Next.js',
+    applicationName: t('main.applicationName'),
+    openGraph: {
+      siteName: t('main.applicationName'),
+      title: t('main.title'),
+      description: t('main.description'),
+      type: 'website',
+      locale: params.locale,
+      alternateLocale: [...languages],
+      url: generateFullUrl(),
+    },
   }
 }
 

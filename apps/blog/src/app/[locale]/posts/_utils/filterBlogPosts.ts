@@ -2,7 +2,12 @@ import type { Language } from '../../../../i18n/i18n.settings'
 import { isPostShouldBePickedByLocale } from './isPostShouldBePickedByLocale'
 import type { BlogPostWithTranslates } from '../_content'
 
-export function filterBlogPosts(blogPosts: BlogPostWithTranslates[], locale: Language, search = '', tags: string[] = []): BlogPostWithTranslates[] {
+export function filterBlogPosts<T extends Pick<BlogPostWithTranslates, 'title' | 'summary' | 'tags' | 'slug' | 'lang' | 'translates' | 'body'>>(
+  blogPosts: T[],
+  locale: Language,
+  search = '',
+  tags: string[] = [],
+): T[] {
   const keywords = search
     .toLowerCase()
     .split(' ')

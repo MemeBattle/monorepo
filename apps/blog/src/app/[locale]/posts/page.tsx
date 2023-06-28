@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { allBlogPostsWithTranslates, uniqTags } from './_content'
 import { filterBlogPosts } from './_utils/filterBlogPosts'
 import { useTranslation } from '../../../i18n'
@@ -28,6 +29,17 @@ function searchParamsTagsFormatter(tagsQuery: string | string[] | undefined): st
     return [tagsQuery]
   }
   return tagsQuery
+}
+
+export async function generateMetadata({ params }: { params: { locale: Language } }): Promise<Metadata> {
+  // useTranslation on server isn't react hook
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { t } = await useTranslation(params.locale, 'posts')
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  }
 }
 
 export default async function BlogPage({
