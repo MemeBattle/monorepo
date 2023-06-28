@@ -7,5 +7,12 @@
   "header": {
     "ru": "Русский",
     "en": "English"
+  },
+  "footer": {
+    "projects": {
+      "title": "Our projects:",
+      "gameHub": "GameHub",
+      "ligretto": "Ligretto"
+    }
   }
 }

@@ -6,6 +6,7 @@ import { Breadcrumbs } from '../../../components/Breadcrumbs'
 import type { Language } from '../../../i18n/i18n.settings'
 import { useTranslation } from '../../../i18n'
 import { generateFullUrl } from '../../../utils/generateFullUrl'
+import memebattleLogo from '../../../assets/memebattle-logo.svg'
 
 export async function generateMetadata({ params }: { params: { locale: Language } }): Promise<Metadata> {
   // useTranslation on server isn't react hook
@@ -17,7 +18,7 @@ export async function generateMetadata({ params }: { params: { locale: Language 
       url: generateFullUrl(`/${params.locale}/posts`),
       description: t('description'),
       title: t('title'),
-      images: [generateFullUrl('/memebattle-logo.svg')],
+      images: [generateFullUrl(memebattleLogo)],
     },
   }
 }
