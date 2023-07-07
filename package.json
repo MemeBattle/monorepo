@@ -71,7 +71,7 @@
     "sass-loader": "^13.0.2",
     "storybook": "^7.0.6",
     "style-loader": "^3.3.1",
-    "stylelint": "^13.8.0",
+    "stylelint": "^15.10.1",
     "stylelint-config-prettier": "^8.0.2",
     "stylelint-prettier": "^1.2.0",
     "tsconfig-paths-webpack-plugin": "^4.0.0",
