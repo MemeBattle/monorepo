@@ -1,12 +1,17 @@
 // @ts-check
-
+import rehypeSlug from 'rehype-slug'
+import { addTOCRehypePlugin } from './src/generation-utils/addTOCRehypePlugin'
+import rehypeAutolinkHeadings from 'rehype-autolink-headings'
 import { defineDocumentType, makeSource, defineNestedType } from 'contentlayer/source-files'
+import { mapHeadingsToTOC } from './src/generation-utils/mapHeadingsToTOC'
 
 const Heading = defineNestedType(() => ({
   name: 'Heading',
   fields: {
-    level: { type: 'enum', options: ['h1', 'h2', 'h3', 'h4', 'h5'], required: true },
-    text: { type: 'string' },
+    level: { type: 'number', required: true },
+    value: { type: 'string', required: true },
+    slug: { type: 'string', required: true },
+    children: { type: 'nested', of: Heading },
   },
 }))
 
@@ -37,13 +42,9 @@ const computedFields = {
     type: 'string',
     resolve: doc => extractSlug(doc._raw.flattenedPath),
   },
-  toc: {
-    type: 'list',
-    of: Heading,
-    resolve: () => [{ level: 'h1', text: 'text' }],
-  },
+  toc: { type: '[]', of: Heading, resolve: doc => mapHeadingsToTOC(doc._raw.headings) },
   lang: {
-    type: 'enum',
+    type: "'en' | 'ru'",
     options: ['en', 'ru'],
     required: true,
     resolve: doc => extractFileLanguage(doc._raw.sourceFileName),
@@ -100,45 +101,34 @@ export const Memeber = defineDocumentType(() => ({
     fullName: {
       type: 'string',
     },
+    avatarFileName: {
+      type: 'string',
+      required: true,
+    },
+    title: {
+      type: 'string',
+    },
   },
 }))
 
 export default makeSource({
   contentDirPath: 'content',
   documentTypes: [BlogPost, Memeber],
-  // Examples of mdx plugins
 
-  // mdx: {
-  //   remarkPlugins: [remarkGfm],
-  //   rehypePlugins: [
-  //     rehypeSlug,
-  //     [
-  //       rehypePrettyCode,
-  //       {
-  //         theme: 'one-dark-pro',
-  //         onVisitLine(node) {
-  //           // Prevent lines from collapsing in `display: grid` mode, and allow empty
-  //           // lines to be copy/pasted
-  //           if (node.children.length === 0) {
-  //             node.children = [{ type: 'text', value: ' ' }]
-  //           }
-  //         },
-  //         onVisitHighlightedLine(node) {
-  //           node.properties.className.push('line--highlighted')
-  //         },
-  //         onVisitHighlightedWord(node) {
-  //           node.properties.className = ['word--highlighted']
-  //         },
-  //       },
-  //     ],
-  //     [
-  //       rehypeAutolinkHeadings,
-  //       {
-  //         properties: {
-  //           className: ['anchor'],
-  //         },
-  //       },
-  //     ],
-  //   ],
-  // },
+  mdx: {
+    remarkPlugins: [],
+    rehypePlugins: [
+      rehypeSlug,
+      [
+        rehypeAutolinkHeadings,
+        {
+          behavior: 'wrap',
+          properties: {
+            className: ['no-underline hover:underline font-bold text-inherit'],
+          },
+        },
+      ],
+      addTOCRehypePlugin,
+    ],
+  },
 })
