@@ -15,6 +15,8 @@ import { isPostShouldBePickedByLocale } from '../_utils/isPostShouldBePickedByLo
 import { allBlogPostsWithTranslates } from '../_content'
 import { generateFullUrl } from '../../../../utils/generateFullUrl'
 import { memeberToPostAuthor } from '../../../../utils/memeberToPostAuthor'
+import { TOC } from '../../../../components/TOC'
+import { PostAuthor } from '../../../../components/PostAuthor'
 
 interface BlogProps {
   params: {
@@ -79,7 +81,7 @@ export default function Post({ params }: BlogProps) {
   }
 
   return (
-    <article className="px-2 md:px-6 max-w-full md:max-w-5xl" lang={post.lang}>
+    <article className="px-2 md:px-6" lang={post.lang}>
       <JsonLDScript jsonLD={jsonLd} />
       <p className="text-gray-600 text-sm">{formatDate(post.publishedAt, params.locale)}</p>
       <h1 className="font-bold text-3xl my-6 lg:text-5xl lg:font-extrabold">{post.title}</h1>
@@ -92,7 +94,21 @@ export default function Post({ params }: BlogProps) {
           </ChipsRow>
         </div>
       ) : null}
-      <Mdx code={post.body.code} />
+      <main className="flex flex-col md:flex-row-reverse relative">
+        <aside className="md:sticky top-4 h-max mb-6 md:ml-6 md:w-60 lg:w-80 space-y-4">
+          <PostAuthor
+            title={postAuthor.title}
+            avatarUrl={`/memebers-avatars/${postAuthor.avatarFileName}`}
+            username={postAuthor.username}
+            fullName={postAuthor.fullName}
+          />
+          {/* @ts-expect-error React Server components */}
+          <TOC toc={post.toc} locale={params.locale} />
+        </aside>
+        <div className="max-w-full md:max-w-5xl">
+          <Mdx code={post.body.code} />
+        </div>
+      </main>
     </article>
   )
 }

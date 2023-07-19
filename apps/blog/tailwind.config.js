@@ -3,7 +3,7 @@ const defaultTheme = require('tailwindcss/defaultTheme')
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ['./src/**/*.{js,ts,jsx,tsx}'],
+  content: ['./src/**/*.{js,ts,jsx,tsx}', './contentlayer.config.js'],
   theme: {
     extend: {
       colors: {
@@ -34,6 +34,12 @@ module.exports = {
       },
       animation: {
         slideDown: 'slideDown 0.3s ease-in-out',
+      },
+      listStyleType: {
+        dash: '"—"',
+      },
+      letterSpacing: {
+        listDash: '0.5rem',
       },
     },
   },
