@@ -29,9 +29,23 @@ export const CreateRoomContainer = () => {
     dispatch(createRoomAction({ name: roomName, config: { dndEnabled: true } }))
   }, [dispatch, name])
 
+  const handleCreateRoomPressEnter = useCallback<React.KeyboardEventHandler<HTMLInputElement>>(
+    e => {
+      if (e.key === 'Enter' && name.trim() !== '') {
+        handleCreateRoomClick()
+      }
+    },
+    [name, handleCreateRoomClick],
+  )
+
   return (
     <InputWithButton>
-      <InputWithButton.Input inputProps={{ 'data-test-id': 'CreateGameInput' }} placeholder="Room name..." onChange={handleNameChange} />
+      <InputWithButton.Input
+        inputProps={{ 'data-test-id': 'CreateGameInput' }}
+        placeholder="Room name..."
+        onChange={handleNameChange}
+        onKeyDown={handleCreateRoomPressEnter}
+      />
       <InputWithButton.ButtonWrapper>
         <InputWithButton.Button
           data-test-id="CreateGameButton"
