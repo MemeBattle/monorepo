@@ -8,6 +8,7 @@ import { useTranslation } from '../../i18n'
 import { LanguageSwitcher } from '../../components/LanguageSwitcher'
 import { generateFullUrl } from '../../utils/generateFullUrl'
 import { Footer } from '../../components/Footer'
+import { Amplitude } from '../../components/Amplitude'
 
 type RootLayoutParams = { locale: Language }
 
@@ -127,6 +128,7 @@ export default function RootLayout({ children, params: { locale } }: { children:
         {children}
         {/** @ts-expect-error React Server components  */}
         <Footer locale={locale} />
+        <Amplitude />
       </body>
     </html>
   )
