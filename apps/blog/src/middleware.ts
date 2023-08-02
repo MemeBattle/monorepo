@@ -5,7 +5,7 @@ import { fallbackLanguage, languages } from './i18n/i18n.settings'
 
 export const config = {
   // matcher: '/:lng*'
-  matcher: ['/((?!api|_next/static|_next/image|assets|.*\\..*).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|assets|amplitude|.*\\..*).*)'],
 }
 
 const cookieName = 'i18next'
