@@ -74,7 +74,7 @@ export const InputWithButton: React.FC<React.PropsWithChildren> & InputWithButto
     display="flex"
     width="100%"
     height={{ xs: '2.5rem', sm: '3rem', md: '4rem' }}
-    fontSize={{ xs: '0.75rem', sm: '1rem', md: '1.5rem' }}
+    fontSize={{ xs: '1rem', md: '1.5rem' }}
     borderRadius="0.25rem"
     overflow="hidden"
   >
