@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import type { Metadata, Route } from 'next'
+import Image from 'next/image'
 import type { WithContext, BlogPosting } from 'schema-dts'
 
 import { Mdx } from '../../../../components/Mdx'
@@ -83,19 +84,24 @@ export default function Post({ params }: BlogProps) {
   return (
     <article className="px-2 md:px-6" lang={post.lang}>
       <JsonLDScript jsonLD={jsonLd} />
-      <p className="text-gray-600 text-sm">{formatDate(post.publishedAt, params.locale)}</p>
-      <h1 className="font-bold text-3xl my-6 lg:text-5xl lg:font-extrabold">{post.title}</h1>
-      {post.tags ? (
-        <div className="my-6">
-          <ChipsRow>
-            {post.tags.map((tag, index) => (
-              <Chip key={index}>{tag}</Chip>
-            ))}
-          </ChipsRow>
+      <main className="grid grid-cols-1 md:grid-cols-[auto_max-content] md:grid-rows-[16rem] md:gap-x-8 lg:gap-x-12 relative">
+        <div className="col-start-1 col-span-1 overflow-hidden relative h-32 sm:h-44 md:h-64">
+          <Image fill className="object-contain rounded-lg" src={post.image} alt={post.imageDescription || post.title} />
         </div>
-      ) : null}
-      <main className="flex flex-col md:flex-row-reverse relative">
-        <aside className="md:sticky top-4 h-max mb-6 md:ml-6 md:w-60 lg:w-80 space-y-4">
+        <div className="col-start-1 col-span-1 max-w-full md:max-w-5xl flex flex-col mt-6">
+          <p className="text-gray-600 text-sm">{formatDate(post.publishedAt, params.locale)}</p>
+          <h1 className="font-bold text-3xl mt-6 lg:text-5xl lg:font-extrabold">{post.title}</h1>
+          {post.tags ? (
+            <div className="my-8">
+              <ChipsRow>
+                {post.tags.map((tag, index) => (
+                  <Chip key={index}>{tag}</Chip>
+                ))}
+              </ChipsRow>
+            </div>
+          ) : null}
+        </div>
+        <aside className="md:col-start-2 md:col-span-1 md:row-span-full md:sticky md:order-2 top-4 h-max mb-6 md:w-60 lg:w-80 space-y-4">
           <PostAuthor
             title={postAuthor.title}
             avatarUrl={`/memebers-avatars/${postAuthor.avatarFileName}`}
@@ -105,7 +111,7 @@ export default function Post({ params }: BlogProps) {
           {/* @ts-expect-error React Server components */}
           <TOC toc={post.toc} locale={params.locale} />
         </aside>
-        <div className="max-w-full md:max-w-5xl">
+        <div className="md:col-start-1 md:col-span-1 max-w-full md:max-w-5xl">
           <Mdx code={post.body.code} />
         </div>
       </main>
