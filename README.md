@@ -10,7 +10,7 @@
 We are open to new ideas and projects and are happy to invite everyone to join us.
 
 > [!NOTE]
-> (Read more in blog)[https://blog.mems.fun/en/posts/what-is-memebattle]
+> [Read more in blog](https://blog.mems.fun/en/posts/what-is-memebattle)
 
 ## Projects
 
