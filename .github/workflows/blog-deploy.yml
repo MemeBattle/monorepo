@@ -2,7 +2,7 @@ name: 'Blog build, push and deploy'
 
 on:
   push:
-    branches: [ master, feature/198-blog-deploy-workflow ]
+    branches: [ master ]
     paths:
       - 'apps/blog/**'
       - '.deploy/blog.deploy.yml'
