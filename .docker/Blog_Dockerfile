@@ -1,0 +1,31 @@
+FROM node:18.14-bullseye-slim AS dependencies
+
+WORKDIR /memebattle
+
+COPY .yarn/ /memebattle/.yarn
+COPY package.json yarn.lock .yarnrc.yml /memebattle/
+COPY apps/blog/package.json /memebattle/apps/blog/
+
+RUN yarn install
+
+FROM dependencies AS build
+
+ENV NODE_ENV=production
+
+COPY . /memebattle
+WORKDIR /memebattle/apps/blog
+
+RUN node ../../node_modules/.bin/next build
+
+FROM node:18.14-bullseye-slim AS runtime
+ENV NODE_ENV=production
+
+RUN mkdir -p /memebattle
+WORKDIR /memebattle
+USER node
+
+COPY --chown=node:node --from=build /memebattle/apps/blog/public ./apps/blog/public
+COPY --chown=node:node --from=build /memebattle/apps/blog/.next/standalone ./
+COPY --chown=node:node --from=build /memebattle/apps/blog/.next/static ./apps/blog/.next/static
+
+ENTRYPOINT [ "node", "apps/blog/server.js" ]

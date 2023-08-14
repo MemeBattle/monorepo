@@ -5,8 +5,11 @@ on:
     branches: [ master ]
     paths-ignore:
       - 'apps/gamehub-client/**'
+      - 'apps/blog/**'
       - '.deploy'
       - '!.deploy/ligretto.deploy.yml'
+      - '.docker'
+      - '!.docker/Ligretto*'
 
 env:
   AWS_REGION: 'eu-north-1'

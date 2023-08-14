@@ -1,9 +1,13 @@
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { withContentlayer } = require('next-contentlayer')
+/* eslint-disable @typescript-eslint/no-var-requires */
+const { createContentlayerPlugin } = require('next-contentlayer')
+const { resolve } = require('node:path')
+
+const withContentlayer = createContentlayerPlugin({ configPath: resolve(__dirname, './contentlayer.config.js') })
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
   experimental: {
     appDir: true,
     typedRoutes: true,

@@ -1,0 +1,15 @@
+*
+!apps/blog
+
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+!yarn.lock
+!.yarnrc.yml
+!package.json
+!tsconfig.json
+!typings
+!.env*
