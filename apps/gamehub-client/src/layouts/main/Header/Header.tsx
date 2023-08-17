@@ -17,9 +17,7 @@ export const Header = () => {
     <Box component="header" display="flex" alignItems="center" justifyContent="center" height={theme.spacing(16)} maxHeight={theme.spacing(16)}>
       <Box>
         <HeaderButton href="/">Home</HeaderButton>
-        <HeaderButton href="/" isDisabled>
-          Blog
-        </HeaderButton>
+        <HeaderButton href="https://blog.mems.fun">Blog</HeaderButton>
         <HeaderButton href="/contacts" isDisabled>
           Contacts
         </HeaderButton>

@@ -102,9 +102,7 @@ export const GamesBanner = () => {
         <CarouselControls>
           {gamesList.map(([gameId, { title, logo }]) => (
             <CarouselControl key={gameId}>
-              <GameItem logo={logo} key={gameId}>
-                {title}
-              </GameItem>
+              <GameItem logo={logo}>{title}</GameItem>
             </CarouselControl>
           ))}
         </CarouselControls>
