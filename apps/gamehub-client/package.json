@@ -12,10 +12,10 @@
     "@emotion/server": "^11.4.0",
     "@memebattle/ui": "workspace:^",
     "lodash": "^4.17.21",
-    "next": "^13.2.4",
+    "next": "^13.4.17",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "sharp": "^0.32.4"
+    "sharp": "^0.32.5"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.182",

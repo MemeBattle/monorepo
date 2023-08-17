@@ -1,6 +1,6 @@
 'use client'
 
-import { usePathname, useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { ChipsRow } from '../ChipsRow'
 import { Chip } from '../Chip'
 import type { MouseEvent } from 'react'
@@ -13,7 +13,6 @@ interface TagsSelectorProps {
 export function TagsSelector({ tags }: TagsSelectorProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const pathname = usePathname()
 
   const queriedTags = searchParams.getAll('tags')
 
@@ -42,9 +41,9 @@ export function TagsSelector({ tags }: TagsSelectorProps) {
 
   const handleChipClick = useCallback<(event: MouseEvent<HTMLDivElement>, value: string) => void>(
     (_, value) => {
-      router.push(pathname + '?' + createQueryString('tags', value))
+      router.push(`?${createQueryString('tags', value)}`)
     },
-    [createQueryString, pathname, router],
+    [createQueryString, router],
   )
 
   return (
