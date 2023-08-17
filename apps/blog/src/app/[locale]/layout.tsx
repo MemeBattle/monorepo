@@ -24,10 +24,6 @@ export async function generateMetadata({ params }: { params: RootLayoutParams })
       template: `%s | ${t('main.title')}`,
     },
     description: t('main.description'),
-    icons: {
-      icon: '/favicon.ico',
-      apple: '/apple-touch-icon.png',
-    },
     manifest: '/site.webmanifest',
     generator: 'Next.js',
     applicationName: t('main.applicationName'),

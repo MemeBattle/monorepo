@@ -7,10 +7,6 @@ import { Main } from '../layouts/main/Main'
 export const metadata = {
   title: 'GameHub',
   description: 'MemeBattle',
-  icons: {
-    icon: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
-  },
   manifest: '/site.webmanifest',
   other: {
     'emotion-insertion-point': ' ',

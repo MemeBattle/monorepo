@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import type { ChangeEventHandler } from 'react'
 import { useCallback } from 'react'
 interface SearchInputProps {
@@ -9,7 +9,6 @@ interface SearchInputProps {
 
 export function SearchInput({ placeholder }: SearchInputProps) {
   const router = useRouter()
-  const pathName = usePathname()
   const searchParams = useSearchParams()
 
   const handleSearchChange = useCallback<ChangeEventHandler<HTMLInputElement>>(
@@ -22,9 +21,9 @@ export function SearchInput({ placeholder }: SearchInputProps) {
         newSearchParams.set('search', target.value)
       }
 
-      router.push(pathName + '?' + newSearchParams.toString())
+      router.push(`?${newSearchParams.toString()}`)
     },
-    [pathName, router, searchParams],
+    [router, searchParams],
   )
 
   return (
