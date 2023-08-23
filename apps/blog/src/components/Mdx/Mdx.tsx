@@ -5,7 +5,7 @@ import InstagramPost from '../InstagramPost'
 const Link = ({ href, ...rest }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
   let linkClass: string | undefined
   if (href?.startsWith('http')) {
-    linkClass = 'text-externalLink font-semibold no-underline after:content-[externalLink] after:ml-4'
+    linkClass = 'text-externalLink font-semibold no-underline after:content-externalLink after:ml-4'
   }
   return <a className={linkClass} {...rest} href={href} />
 }

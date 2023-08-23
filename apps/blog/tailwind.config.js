@@ -43,7 +43,7 @@ module.exports = {
         listDash: '0.5rem',
       },
       content: {
-        externalLink: 'url(../../assets/ext-link-icon.svg)',
+        externalLink: 'url("../../assets/ext-link-icon.svg")',
       },
     },
   },
