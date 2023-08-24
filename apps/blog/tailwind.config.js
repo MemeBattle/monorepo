@@ -8,6 +8,7 @@ module.exports = {
     extend: {
       colors: {
         memebattleYellow: '#fce26b',
+        externalLink: '#1ba2ee',
       },
       fontFamily: {
         sans: ['var(--font-gravity)', ...defaultTheme.fontFamily.sans],
@@ -40,6 +41,9 @@ module.exports = {
       },
       letterSpacing: {
         listDash: '0.5rem',
+      },
+      content: {
+        externalLink: 'url("../../assets/ext-link-icon.svg")',
       },
     },
   },
