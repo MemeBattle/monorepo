@@ -45,6 +45,13 @@ module.exports = {
       content: {
         externalLink: 'url("../../assets/ext-link-icon.svg")',
       },
+      typography: {
+        DEFAULT: {
+          css: {
+            blockquote: { quotes: 'auto' },
+          },
+        },
+      },
     },
   },
 
