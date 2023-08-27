@@ -46,7 +46,15 @@ export const UserInfo: React.FC<UserInfoProps> = ({ onClick, username, onButtonC
           </StyledLogoutButton>
         ) : null}
         <StyledAuthorizedButton color="primary" variant="contained" size="large" endIcon={username ? <CreateIcon /> : null} onClick={onButtonClick}>
-          <Typography fontSize="1.5rem" textOverflow="ellipsis" width="10rem" overflow="hidden" marginLeft={username ? '1.375rem' : '0'}>
+          <Typography
+            fontSize="1.5rem"
+            textOverflow="ellipsis"
+            maxWidth="80%"
+            whiteSpace="nowrap"
+            overflow="hidden"
+            marginLeft={username ? '1.375rem' : '0'}
+            padding="0rem 0.5rem"
+          >
             {username || 'Sign in'}
           </Typography>
         </StyledAuthorizedButton>
