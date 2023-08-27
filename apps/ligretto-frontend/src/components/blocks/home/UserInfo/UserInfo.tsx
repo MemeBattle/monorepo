@@ -49,7 +49,7 @@ export const UserInfo: React.FC<UserInfoProps> = ({ onClick, username, onButtonC
           <Typography
             fontSize="1.5rem"
             textOverflow="ellipsis"
-            max-width="80%"
+            maxWidth="80%"
             whiteSpace="nowrap"
             overflow="hidden"
             marginLeft={username ? '1.375rem' : '0'}
