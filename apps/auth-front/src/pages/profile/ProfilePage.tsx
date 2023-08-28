@@ -12,6 +12,7 @@ import { AvatarDropzone } from '../../components/AvatarDropzone'
 import type { ProfileFormValues } from './ProfilePage.types'
 import { useCasServices } from '../../modules/cas-services'
 import { useProfileRequest } from './useProfileRequest'
+import { useProfileValidation } from './useProfileValidation'
 
 interface ProfilePageProps {
   onLoginSucceeded: ({ token }: { token: string }) => void
@@ -54,13 +55,16 @@ export const ProfilePage = memo<ProfilePageProps>(({ onLoginSucceeded }) => {
     [profile, avatar, onLoginSucceeded, updateUserProfileService],
   )
 
+  const validate = useProfileValidation()
+
   return !isProfileLoading ? (
     <Container component="main" maxWidth="xs">
       <Header />
       <Form<ProfileFormValues>
         onSubmit={handleSubmit}
+        validate={validate}
         initialValues={initialValues}
-        render={({ handleSubmit, submitError }) => (
+        render={({ handleSubmit, submitError, hasValidationErrors }) => (
           <form onSubmit={handleSubmit}>
             <Paper>
               <AvatarDropzone avatarUrl={getAbsoluteUrl(profile?.avatarUrl || '')} onChange={setAvatar} />
@@ -82,14 +86,14 @@ export const ProfilePage = memo<ProfilePageProps>(({ onLoginSucceeded }) => {
                     id="username"
                     label={t.profile.username}
                     name="username"
-                    error={!meta.modifiedSinceLastSubmit && Boolean(meta.error || meta.submitError)}
-                    helperText={!meta.modifiedSinceLastSubmit && meta.submitError}
+                    error={meta.error || (!meta.modifiedSinceLastSubmit && meta.submitError)}
+                    helperText={meta.error || (!meta.modifiedSinceLastSubmit && meta.submitError)}
                   />
                 )}
               />
               {submitError}
               <br />
-              <Button type="submit" fullWidth variant="contained" color="primary" size="large">
+              <Button type="submit" fullWidth variant="contained" color="primary" size="large" disabled={hasValidationErrors}>
                 {t.profile.save}
               </Button>
             </Paper>

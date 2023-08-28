@@ -9,3 +9,7 @@ export type ProfileFormSubmissionError = Partial<{
   username: string
   [FORM_ERROR]: string
 }>
+
+export type ProfileFormValidationErrors = Partial<{
+  username: string
+}>
