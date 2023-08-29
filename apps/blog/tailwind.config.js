@@ -44,11 +44,14 @@ module.exports = {
       },
       content: {
         externalLink: 'url("../../assets/ext-link-icon.svg")',
+        quote: 'url("../../assets/quote.svg")',
       },
       typography: {
         DEFAULT: {
           css: {
-            blockquote: { quotes: 'auto' },
+            blockquote: {
+              quotes: 'auto',
+            },
           },
         },
       },
