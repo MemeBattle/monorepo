@@ -44,6 +44,7 @@ module.exports = {
       },
       content: {
         externalLink: 'url("../../assets/ext-link-icon.svg")',
+        quote: 'url("../../assets/quote.svg")',
       },
       typography: {
         DEFAULT: {
@@ -56,7 +57,6 @@ module.exports = {
               fontStyle: 'normal',
               paddingLeft: '2em',
             },
-            'blockquote::before': { content: 'url("../../assets/quote.svg")', position: 'absolute', left: '0em' },
           },
         },
         xl: {
