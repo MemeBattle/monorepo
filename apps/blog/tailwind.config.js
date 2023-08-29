@@ -51,17 +51,7 @@ module.exports = {
           css: {
             blockquote: {
               quotes: 'auto',
-              borderStyle: 'none',
-              position: 'relative',
-              fontWeight: '600',
-              fontStyle: 'normal',
-              paddingLeft: '2em',
             },
-          },
-        },
-        xl: {
-          css: {
-            blockquote: { paddingLeft: '2em' },
           },
         },
       },
