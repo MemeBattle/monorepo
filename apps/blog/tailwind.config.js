@@ -48,7 +48,20 @@ module.exports = {
       typography: {
         DEFAULT: {
           css: {
-            blockquote: { quotes: 'auto' },
+            blockquote: {
+              quotes: 'auto',
+              borderStyle: 'none',
+              position: 'relative',
+              fontWeight: '600',
+              fontStyle: 'normal',
+              paddingLeft: '2em',
+            },
+            'blockquote::before': { content: 'url("../../assets/quote.svg")', position: 'absolute', left: '0em' },
+          },
+        },
+        xl: {
+          css: {
+            blockquote: { paddingLeft: '2em' },
           },
         },
       },
