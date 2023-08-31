@@ -1,4 +1,4 @@
-import type { Language } from '../../../../i18n/i18n.settings'
+import type { Language } from '@/i18n'
 import { isPostShouldBePickedByLocale } from './isPostShouldBePickedByLocale'
 import type { BlogPostWithTranslates } from '../_content'
 

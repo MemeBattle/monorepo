@@ -15,6 +15,22 @@ export default defineConfig({
         find: 'contentlayer/generated',
         replacement: fileURLToPath(new URL('./.contentlayer/generated', import.meta.url)),
       },
+      {
+        find: './src/components',
+        replacement: fileURLToPath(new URL('@/components', import.meta.url)),
+      },
+      {
+        find: './src/utils',
+        replacement: fileURLToPath(new URL('@/utils', import.meta.url)),
+      },
+      {
+        find: './src/i18n',
+        replacement: fileURLToPath(new URL('@/i18n', import.meta.url)),
+      },
+      {
+        find: './src/assets',
+        replacement: fileURLToPath(new URL('@/assets', import.meta.url)),
+      },
     ],
   },
 })

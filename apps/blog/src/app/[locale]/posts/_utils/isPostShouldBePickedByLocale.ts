@@ -1,6 +1,6 @@
 import type { BlogPostWithTranslates } from '../_content'
-import type { Language } from '../../../../i18n/i18n.settings'
-import { fallbackLanguage } from '../../../../i18n/i18n.settings'
+import type { Language } from '@/i18n'
+import { fallbackLanguage } from '@/i18n'
 
 export const isPostShouldBePickedByLocale = (post: Pick<BlogPostWithTranslates, 'slug' | 'lang' | 'translates'>, locale: Language): boolean => {
   /**
