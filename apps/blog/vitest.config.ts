@@ -8,6 +8,11 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    alias: {
+      '@/i18n': new URL('./src/i18n', import.meta.url).pathname,
+      '@/components': new URL('./src/components', import.meta.url).pathname,
+      '@/utils': new URL('./src/utils', import.meta.url).pathname,
+    },
   },
   resolve: {
     alias: [
