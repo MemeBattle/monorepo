@@ -1,5 +1,6 @@
 import { Box, Paper, Typography } from '@memebattle/ui'
 import { styled } from '@mui/material/styles'
+import { LeaderListContainer } from 'containers/LeaderListContainer'
 
 const StyledRoomManager = styled(Paper)(({ theme }) => ({
   padding: '2.5rem 4rem',
@@ -18,5 +19,6 @@ export const LeaderBoard = () => (
         Leaders
       </Typography>
     </Box>
+    <LeaderListContainer></LeaderListContainer>
   </StyledRoomManager>
 )
