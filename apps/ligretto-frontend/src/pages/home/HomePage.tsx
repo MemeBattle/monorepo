@@ -5,6 +5,7 @@ import { UserInfoContainer } from 'containers/main-page'
 import { Grid, Box } from '@memebattle/ui'
 import { LigrettoLogo } from 'components/LigrettoLogo'
 import { RoomsManager } from 'components/blocks/home/RoomsManager'
+import { LeaderBoard } from 'components/blocks/home/LeaderBoard'
 
 export const HomePage: React.FC = () => (
   <MainLayout>
@@ -20,6 +21,9 @@ export const HomePage: React.FC = () => (
         </Grid>
         <Grid item xs={12}>
           <RoomsManager></RoomsManager>
+        </Grid>
+        <Grid item xs={12}>
+          <LeaderBoard></LeaderBoard>
         </Grid>
       </Grid>
     </Box>
