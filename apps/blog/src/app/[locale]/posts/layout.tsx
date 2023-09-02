@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: { params: { locale: Language 
       url: generateFullUrl(`/${params.locale}/posts`),
       description: t('description'),
       title: t('title'),
-      images: [generateFullUrl(memebattleLogo.src)],
+      images: [generateFullUrl(memebattleLogo)],
     },
   }
 }
