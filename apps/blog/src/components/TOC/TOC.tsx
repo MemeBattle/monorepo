@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import type { TOCTree, TOCTreeItem } from '../../types'
-import { useTranslation } from '../../i18n'
-import type { Language } from '../../i18n/i18n.settings'
+import { useTranslation } from '@/i18n'
+import type { Language } from '@/i18n/i18n.settings'
 
 interface TOCProps {
   toc: TOCTree

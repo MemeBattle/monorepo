@@ -1,6 +1,6 @@
-import type { Language } from '../../i18n/i18n.settings'
-import { languages } from '../../i18n/i18n.settings'
-import { useTranslation } from '../../i18n'
+import type { Language } from '@/i18n/i18n.settings'
+import { languages } from '@/i18n/i18n.settings'
+import { useTranslation } from '@/i18n'
 import { Dropdown } from './Dropdown'
 import { Suspense } from 'react'
 

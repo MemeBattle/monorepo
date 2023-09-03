@@ -2,7 +2,7 @@ import Image from 'next/image'
 import emptyImage from './empty_image.svg'
 import { Trans } from 'react-i18next/TransWithoutContext'
 import { useTranslation } from '@/i18n'
-import type { Language } from '@/i18n'
+import type { Language } from '@/i18n/i18n.settings'
 
 export async function EmptyPlaceholder({ language }: { language: Language }) {
   const { t } = await useTranslation(language, 'posts')

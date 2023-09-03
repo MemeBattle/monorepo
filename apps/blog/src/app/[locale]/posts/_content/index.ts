@@ -1,6 +1,6 @@
 import type { BlogPost } from 'contentlayer/generated'
 import { allBlogPosts } from 'contentlayer/generated'
-import type { Language } from '@/i18n'
+import type { Language } from '@/i18n/i18n.settings'
 
 export { allBlogPosts }
 export type BlogPostWithTranslates = BlogPost & { translates: { [key in Language]?: BlogPost } }

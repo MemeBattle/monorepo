@@ -8,16 +8,15 @@ import type { BlogPost } from 'contentlayer/generated'
 import { allBlogPosts, allMemebers } from 'contentlayer/generated'
 import { Chip } from '@/components/Chip'
 import { JsonLDScript } from '@/components/JsonLDScript'
-import type { Language } from '@/i18n'
 import { ChipsRow } from '@/components/ChipsRow'
-import { formatDate } from '@/utils'
-
 import { isPostShouldBePickedByLocale } from '../_utils/isPostShouldBePickedByLocale'
 import { allBlogPostsWithTranslates } from '../_content'
-import { generateFullUrl } from '@/utils'
-import { memeberToPostAuthor } from '@/utils'
 import { TOC } from '@/components/TOC'
 import { PostAuthor } from '@/components/PostAuthor'
+import { generateFullUrl } from '@/utils/generateFullUrl'
+import { memeberToPostAuthor } from '@/utils/memeberToPostAuthor'
+import { formatDate } from '@/utils/formatDate'
+import type { Language } from '@/i18n/i18n.settings'
 
 interface BlogProps {
   params: {

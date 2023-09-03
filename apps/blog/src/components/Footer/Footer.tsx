@@ -1,8 +1,8 @@
 import Image from 'next/image'
 
 import gitHubLogo from './GitHub_Logo_White.png'
-import type { Language } from '../../i18n/i18n.settings'
-import { useTranslation } from '../../i18n'
+import type { Language } from '@/i18n/i18n.settings'
+import { useTranslation } from '@/i18n'
 import memebattleLogo from '../../assets/memebattle-logo.svg'
 
 export async function Footer({ locale }: { locale: Language }) {
