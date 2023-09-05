@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import Negotiator from 'negotiator'
-import { fallbackLanguage, languages } from './i18n/i18n.settings'
+import { fallbackLanguage, languages } from '@/i18n/i18n.settings'
 
 export const config = {
   // matcher: '/:lng*'

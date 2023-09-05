@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
-import type { Language } from '../../i18n/i18n.settings'
+import type { Language } from '@/i18n/i18n.settings'
 import type { ReactNode } from 'react'
 import { useMemo } from 'react'
 import type { Route } from 'next'

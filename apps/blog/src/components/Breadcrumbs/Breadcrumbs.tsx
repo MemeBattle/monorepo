@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useSelectedLayoutSegment } from 'next/navigation'
-import type { Language } from '../../i18n/i18n.settings'
+import type { Language } from '@/i18n/i18n.settings'
 
 export function Breadcrumbs({ locale, translates }: { locale: Language; translates: { mainPage: string; posts: string } }) {
   const segment = useSelectedLayoutSegment()
