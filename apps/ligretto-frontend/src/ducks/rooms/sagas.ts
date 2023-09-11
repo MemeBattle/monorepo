@@ -13,7 +13,7 @@ import {
 import { replace, push } from 'redux-first-history'
 import { generatePath } from 'react-router-dom'
 
-import { routes } from 'utils/constants'
+import { routes } from 'shared/constants'
 
 import { connectToRoomAction, createRoomAction, getRoomsAction, updateRoomsAction, setErrorRoomsAction, removeRoomAction } from './slice'
 
