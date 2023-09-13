@@ -17,6 +17,13 @@ const cookieName = 'i18next'
  */
 export function middleware(req: NextRequest) {
   /**
+   * If a user requests a feed the middleware will do nothing
+   */
+  if (req.nextUrl.pathname.startsWith('/feed')) {
+    return NextResponse.next()
+  }
+
+  /**
    * cookies[cookieName] is first source of true
    */
   let language = req.cookies.get(cookieName)?.value
