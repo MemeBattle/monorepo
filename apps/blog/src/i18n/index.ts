@@ -21,3 +21,19 @@ export async function useTranslation(lng: Language, ns: keyof CustomTypeOptions[
     i18n: i18nextInstance,
   }
 }
+
+const initI18nextForFeed = async (lng: string, ns?: string) => {
+  const i18nInstance = createInstance()
+  await i18nInstance
+    .use(resourcesToBackend((language: string, namespace: string) => import(`./locales/${language}/${namespace}.json`)))
+    .init(getOptions(lng, ns))
+  return i18nInstance
+}
+
+export async function getTranslation(lng: string, ns: keyof CustomTypeOptions['resources'] = defaultNS) {
+  const i18nextInstance = await initI18nextForFeed(lng, ns)
+  return {
+    t: i18nextInstance.getFixedT(lng, ns),
+    i18n: i18nextInstance,
+  }
+}
