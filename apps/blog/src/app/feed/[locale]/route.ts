@@ -1,5 +1,12 @@
-import { NextResponse } from 'next/server'
+import { createChannelInfo } from './_utils/channelInfoCreator'
+import { buildAtomFeed } from './_utils/feedBuilder'
 
 export async function GET(_request: Request, { params }: { params: { locale: string } }) {
-  return NextResponse.json({ data: `Hello from a ${params.locale} feed` })
+  const channelInfo = await createChannelInfo(params.locale)
+  const atomFeed = buildAtomFeed(channelInfo)
+
+  return new Response(atomFeed, {
+    status: 200,
+    headers: { 'Content-Type': 'application/xml' },
+  })
 }
