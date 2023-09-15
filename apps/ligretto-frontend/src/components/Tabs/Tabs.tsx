@@ -7,7 +7,7 @@ export const Tabs = styled(TabsBase)(({ theme }) => ({
     fontSize: '1.5em',
     textTransform: 'none',
     minHeight: '2.7em',
-    backgroundColor: '#2FB166',
+    backgroundColor: theme.palette.primary.inactiveLight,
     [theme.breakpoints.down('sm')]: {
       fontSize: '1em',
     },
