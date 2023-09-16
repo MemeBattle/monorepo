@@ -84,7 +84,7 @@ services:
       - traefik-public
       - metrics-targets
     environment:
-      - PORT=4201
+      - APP_PORT=4201
       - APP_HOST=0.0.0.0
     deploy:
       labels:
@@ -92,7 +92,7 @@ services:
         - "traefik.enable=true"
         - "traefik.http.routers.ligretto-bot-clj.rule=Host(`bots.ligretto.app`)"
         - "traefik.http.routers.ligretto-bot-clj.entrypoints=web"
-        - "traefik.http.services.ligretto-bot-clj.loadbalancer.server.port=3333"
+        - "traefik.http.services.ligretto-bot-clj.loadbalancer.server.port=4201"
         - "traefik.http.services.ligretto-bot-clj.loadbalancer.passhostheader=true"
       replicas: 1
       update_config:
