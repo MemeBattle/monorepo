@@ -1,8 +1,13 @@
 name: 'Ligretto build, push and deploy'
 
 on:
+  workflow_dispatch:
+    branches:
+      - master
   push:
-    branches: [ master ]
+    branches:
+      - master
+      - update-deploy
     paths-ignore:
       - 'apps/gamehub-client/**'
       - 'apps/blog/**'

@@ -9,14 +9,13 @@ services:
       - LIGRETTO_GAMEPLAY_CAS_KEY_PATH=/ligretto-gameplay-backend/key.pem
       - LIGRETTO_CORE_URL=http://ligretto-core-backend:3333/api
       - LIGRETTO_GAMEPLAY_SOCKET_PORT=3005
-    labels:
-      prometheus-job: ligretto-gameplay-backend
     networks:
       - ligretto_net
       - traefik-public
       - metrics-targets
     deploy:
       labels:
+        - "prometheus-job=ligretto-gameplay-backend"
         - "traefik.enable=true"
         - "traefik.http.routers.ligretto-gameplay-backend.rule=Host(`api.ligretto.app`)"
         - "traefik.http.routers.ligretto-gameplay-backend.entrypoints=web"
@@ -78,6 +77,31 @@ services:
       - ligretto_net
     volumes:
       - ligretto-core-pg:/var/lib/postgresql/data
+  ligretto-bot-clj:
+    image: ghcr.io/memebattle/ligretto-bot-clj:latest
+    networks:
+      - ligretto_net
+      - traefik-public
+      - metrics-targets
+    environment:
+      - PORT=4201
+      - APP_HOST=0.0.0.0
+    deploy:
+      labels:
+        - "prometheus-job=ligretto-bot-clj"
+        - "traefik.enable=true"
+        - "traefik.http.routers.ligretto-bot-clj.rule=Host(`bots.ligretto.app`)"
+        - "traefik.http.routers.ligretto-bot-clj.entrypoints=web"
+        - "traefik.http.services.ligretto-bot-clj.loadbalancer.server.port=3333"
+        - "traefik.http.services.ligretto-bot-clj.loadbalancer.passhostheader=true"
+      replicas: 1
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
 
 secrets:
   LIGRETTO_CAS_KEY:
