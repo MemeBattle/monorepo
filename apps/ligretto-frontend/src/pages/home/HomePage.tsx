@@ -1,10 +1,10 @@
 import React from 'react'
 
-import { MainLayout } from 'components/layouts/main/MainLayout'
-import { UserInfoContainer } from 'containers/main-page'
+import { MainLayout } from 'shared/ui/layouts/main/MainLayout'
+import { UserInfoContainer } from 'widgets/user-info'
 import { Grid, Box } from '@memebattle/ui'
-import { LigrettoLogo } from 'components/LigrettoLogo'
-import { RoomsManager } from 'components/blocks/home/RoomsManager'
+import { LigrettoLogo } from 'shared/ui/LigrettoLogo'
+import { RoomsManager } from 'widgets/rooms-manager'
 
 export const HomePage: React.FC = () => (
   <MainLayout>

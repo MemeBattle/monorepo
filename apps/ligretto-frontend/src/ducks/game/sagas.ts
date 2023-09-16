@@ -30,9 +30,9 @@ import {
 import { gameIdSelector, isDndEnabledSelector, playerStatusSelector, selectedCardIndexSelector, selectPlayerCardByIndex } from './selectors'
 import { STACK_OPEN_DECK_INDEX } from './utils'
 import { matchPath } from 'react-router-dom'
-import { routes } from 'utils/constants'
+import { routes } from 'shared/constants'
 import { LOCATION_CHANGE, push } from 'redux-first-history'
-import { socketConnectedAction } from 'middlewares/saga/actions'
+import { socketConnectedAction } from 'entities/socket'
 import { locationSelector } from 'ducks/router'
 import { connectToRoomAction } from 'ducks/rooms'
 
