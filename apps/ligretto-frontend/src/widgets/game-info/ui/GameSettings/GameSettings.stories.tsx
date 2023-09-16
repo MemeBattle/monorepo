@@ -3,13 +3,13 @@ import { Provider } from 'react-redux'
 import { GameSettings } from './GameSettings'
 import type { Meta } from '@storybook/react'
 import { GameStatus } from '@memebattle/ligretto-shared'
-import { createStoreForStories } from 'shared/lib/createStoreForStories'
+import { createMockStore } from 'testing/lib/createMockStore'
 
 export default {
   title: 'Ligretto / GameSettings',
   decorators: [
     Story => (
-      <Provider store={createStoreForStories()}>
+      <Provider store={createMockStore()}>
         <Story />
       </Provider>
     ),

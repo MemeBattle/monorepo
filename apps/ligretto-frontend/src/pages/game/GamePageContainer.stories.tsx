@@ -3,7 +3,7 @@ import type { Meta, StoryFn } from '@storybook/react'
 import { history, store } from 'app/store'
 
 import { GamePageContainer } from './GamePageContainer'
-import { createStoreForStories } from 'shared/lib/createStoreForStories'
+import { createMockStore } from 'testing/lib/createMockStore'
 
 import { initialState as gameInitialState } from 'ducks/game'
 import { authInitialState } from 'ducks/auth/authSlice'
@@ -31,7 +31,7 @@ export const Loading = Template.bind({})
 Loading.decorators = [
   Story => (
     <Provider
-      store={createStoreForStories({
+      store={createMockStore({
         preloadedState: {
           game: { ...gameInitialState },
         },
@@ -56,7 +56,7 @@ export const OnlyPlayerWaiting = Template.bind({})
 OnlyPlayerWaiting.decorators = [
   Story => (
     <Provider
-      store={createStoreForStories({
+      store={createMockStore({
         preloadedState: {
           auth: { ...authInitialState, userId: 'userId' },
           users: {
@@ -92,7 +92,7 @@ export const TwoPlayersWaiting = Template.bind({})
 TwoPlayersWaiting.decorators = [
   Story => (
     <Provider
-      store={createStoreForStories({
+      store={createMockStore({
         preloadedState: {
           auth: { ...authInitialState, userId: 'userId' },
           users: {
@@ -134,7 +134,7 @@ export const ThreePlayersWaiting = Template.bind({})
 ThreePlayersWaiting.decorators = [
   Story => (
     <Provider
-      store={createStoreForStories({
+      store={createMockStore({
         preloadedState: {
           auth: { ...authInitialState, userId: 'userId' },
           users: {
@@ -181,7 +181,7 @@ export const FourthPlayersWaiting = Template.bind({})
 FourthPlayersWaiting.decorators = [
   Story => (
     <Provider
-      store={createStoreForStories({
+      store={createMockStore({
         preloadedState: {
           auth: { ...authInitialState, userId: 'userId' },
           users: {
@@ -233,7 +233,7 @@ export const TwoPlayersInGame = Template.bind({})
 TwoPlayersInGame.decorators = [
   Story => (
     <Provider
-      store={createStoreForStories({
+      store={createMockStore({
         preloadedState: {
           auth: { ...authInitialState, userId: 'userId' },
           users: {
@@ -276,7 +276,7 @@ export const ThreePlayersInGame = Template.bind({})
 ThreePlayersInGame.decorators = [
   Story => (
     <Provider
-      store={createStoreForStories({
+      store={createMockStore({
         preloadedState: {
           auth: { ...authInitialState, userId: 'userId' },
           users: {
@@ -324,7 +324,7 @@ export const FourPlayersInGame = Template.bind({})
 FourPlayersInGame.decorators = [
   Story => (
     <Provider
-      store={createStoreForStories({
+      store={createMockStore({
         preloadedState: {
           auth: { ...authInitialState, userId: 'userId' },
           users: {
@@ -377,7 +377,7 @@ export const FourPlayersStarting = Template.bind({})
 FourPlayersStarting.decorators = [
   Story => (
     <Provider
-      store={createStoreForStories({
+      store={createMockStore({
         preloadedState: {
           auth: { ...authInitialState, userId: 'userId' },
           users: {
