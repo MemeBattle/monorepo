@@ -1,6 +1,9 @@
 name: 'Run-E2E'
 
 on:
+  workflow_dispatch:
+    branches:
+      - master
   schedule:
     - cron:  '0 15 * * *'
 

@@ -1,6 +1,9 @@
 name: 'Blog build, push and deploy'
 
 on:
+  workflow_dispatch:
+    branches:
+      - master
   push:
     branches: [ master ]
     paths:
