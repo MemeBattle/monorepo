@@ -102,6 +102,9 @@ services:
         condition: on-failure
         delay: 10s
         max_attempts: 3
+      resources:
+        limits:
+          cpus: '0.5'
 
 secrets:
   LIGRETTO_CAS_KEY:

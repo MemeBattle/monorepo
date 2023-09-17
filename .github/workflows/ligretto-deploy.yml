@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - master
-      - update-deploy
     paths-ignore:
       - 'apps/gamehub-client/**'
       - 'apps/blog/**'
