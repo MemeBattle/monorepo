@@ -8,7 +8,7 @@
     "start": "node .next/standalone/apps/blog/server.js",
     "generate": "contentlayer build",
     "ts-check": "yarn build && tsc --noEmit",
-    "test": "vitest",
+    "test": "NODE_ENV=development vitest",
     "test:ci": "vitest run"
   },
   "dependencies": {
