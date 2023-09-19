@@ -16,6 +16,7 @@ services:
     deploy:
       labels:
         - "prometheus-job=ligretto-gameplay-backend"
+        - "prometheus-port=3005"
         - "traefik.enable=true"
         - "traefik.http.routers.ligretto-gameplay-backend.rule=Host(`api.ligretto.app`)"
         - "traefik.http.routers.ligretto-gameplay-backend.entrypoints=web"
@@ -89,6 +90,7 @@ services:
     deploy:
       labels:
         - "prometheus-job=ligretto-bot-clj"
+        - "prometheus-port=4201"
         - "traefik.enable=true"
         - "traefik.http.routers.ligretto-bot-clj.rule=Host(`bots.ligretto.app`)"
         - "traefik.http.routers.ligretto-bot-clj.entrypoints=web"
