@@ -14,5 +14,6 @@ declare module '@mui/material/styles' {
 
   interface PaletteColor {
     lighter?: Color
+    inactiveLight?: Color
   }
 }

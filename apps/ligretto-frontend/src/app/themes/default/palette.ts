@@ -7,6 +7,7 @@ export const palette: Partial<Palette> = {
     lighter: '#33BE6D',
     light: '#40DD82',
     contrastText: '#fff',
+    inactiveLight: '#2FB166',
   },
   background: {
     default: '#247044',
