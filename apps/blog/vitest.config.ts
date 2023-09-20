@@ -9,7 +9,7 @@ export default defineConfig({
   plugins: [react(), tsconfigPaths()],
   test: {
     globals: true,
-    environment: 'node',
+    environment: 'jsdom',
     exclude: [...configDefaults.exclude, '**/__tests__/*.fixture.ts'],
   },
   resolve: {
