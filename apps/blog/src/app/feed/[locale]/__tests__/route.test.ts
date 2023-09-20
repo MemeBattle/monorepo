@@ -1,9 +1,9 @@
 import { readFileSync } from 'fs'
-
 import { testAllBlogPosts } from './allBlogPosts.fixture'
-import { GET } from '../route'
 
 vi.mock('contentlayer/generated', () => ({ allBlogPosts: testAllBlogPosts }))
+
+import { GET } from '../route'
 
 const rawFeedXML = readFileSync(__dirname + '/feed.fixture.xml', 'utf8')
 const expectedFeedXML = rawFeedXML.trim()
