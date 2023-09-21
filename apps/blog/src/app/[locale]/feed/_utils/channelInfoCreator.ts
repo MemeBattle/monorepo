@@ -2,8 +2,9 @@ import type { BlogPost } from 'contentlayer/generated'
 import { allBlogPosts } from 'contentlayer/generated'
 import { convertMarkdownToHtml } from './converter'
 
-import { getTranslation } from '@/i18n'
+import { useTranslation } from '@/i18n'
 import { generateFullUrl } from '@/utils/generateFullUrl'
+import type { Language } from '@/i18n/i18n.settings'
 
 export type FeedBlogPost = BlogPost & { content: string; url: string }
 
@@ -16,7 +17,7 @@ export type ChannelInfo = {
   posts: FeedBlogPost[]
 }
 
-export const createChannelInfo = async (lang: string): Promise<ChannelInfo> => {
+export const createChannelInfo = async (lang: Language): Promise<ChannelInfo> => {
   const feedPosts = await Promise.all(
     [...allBlogPosts]
       .filter(post => post.lang === lang)
@@ -30,7 +31,8 @@ export const createChannelInfo = async (lang: string): Promise<ChannelInfo> => {
 
   const [latestPost] = feedPosts
 
-  const { t } = await getTranslation(lang)
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { t } = await useTranslation(lang)
   const channelMetadata = {
     title: t('main.title'),
     description: t('main.description'),
