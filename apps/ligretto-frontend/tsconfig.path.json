@@ -5,40 +5,30 @@
   "compilerOptions": {
     "baseUrl": "./src",
     "paths": {
-      "api": [
-        "api"
-      ],
-      "api/*": [
-        "api/*"
-      ],
       "assets/*": [
         "assets/*"
       ],
-      "components/*": [
-        "components/*"
-      ],
-      "containers/*": ["containers/*"],
       "ducks/*": [
         "ducks/*"
       ],
-      "hooks": [
-        "hooks"
-      ],
-      "middlewares/*": [
-        "middlewares/*"
-      ],
-      "pages": [
+       "pages": [
         "pages"
-      ],
-      "store": [
-        "store"
       ],
       "types/*": [
         "types/*"
       ],
-      "utils/*": [
-        "utils/*"
-      ]
+      "shared/*": [
+        "shared/*"
+      ],
+      "features/*": [
+        "features/*"
+      ],
+      "entities": [
+        "entities/*"
+      ],
+      "wigets/*": [
+        "wigets/*"
+      ],
     }
   },
 }

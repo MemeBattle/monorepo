@@ -1,11 +1,10 @@
 import React from 'react'
 
-import { MainLayout } from 'components/layouts/main/MainLayout'
-import { UserInfoContainer } from 'containers/main-page'
+import { MainLayout } from 'shared/ui/layouts/main/MainLayout'
+import { UserInfoContainer } from 'widgets/user-info'
 import { Grid, Box } from '@memebattle/ui'
-import { LigrettoLogo } from 'components/LigrettoLogo'
-import { RoomsManager } from 'components/blocks/home/RoomsManager'
-import { LeaderBoard } from 'components/blocks/home/LeaderBoard'
+import { LigrettoLogo } from 'shared/ui/LigrettoLogo'
+import { RoomsManager } from 'widgets/rooms-manager'
 
 export const HomePage: React.FC = () => (
   <MainLayout>
@@ -21,9 +20,6 @@ export const HomePage: React.FC = () => (
         </Grid>
         <Grid item xs={12}>
           <RoomsManager></RoomsManager>
-        </Grid>
-        <Grid item xs={12}>
-          <LeaderBoard></LeaderBoard>
         </Grid>
       </Grid>
     </Box>

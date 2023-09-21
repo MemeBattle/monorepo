@@ -1,6 +1,6 @@
-import type { Language } from '../../../../i18n/i18n.settings'
 import { isPostShouldBePickedByLocale } from './isPostShouldBePickedByLocale'
 import type { BlogPostWithTranslates } from '../_content'
+import type { Language } from '@/i18n/i18n.settings'
 
 export function filterBlogPosts<T extends Pick<BlogPostWithTranslates, 'title' | 'summary' | 'tags' | 'slug' | 'lang' | 'translates' | 'body'>>(
   blogPosts: T[],

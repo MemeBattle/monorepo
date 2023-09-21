@@ -2,11 +2,11 @@ import type { ReactNode } from 'react'
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 
-import { Breadcrumbs } from '../../../components/Breadcrumbs'
-import type { Language } from '../../../i18n/i18n.settings'
-import { useTranslation } from '../../../i18n'
-import { generateFullUrl } from '../../../utils/generateFullUrl'
-import memebattleLogo from '../../../assets/memebattle-logo.svg'
+import { Breadcrumbs } from '@/components/Breadcrumbs'
+import memebattleLogo from '@/assets/memebattle-logo.svg'
+import { generateFullUrl } from '@/utils/generateFullUrl'
+import type { Language } from '@/i18n/i18n.settings'
+import { useTranslation } from '@/i18n'
 
 export async function generateMetadata({ params }: { params: { locale: Language } }): Promise<Metadata> {
   // useTranslation on server isn't react hook

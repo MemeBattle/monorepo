@@ -2,13 +2,14 @@ import './globals.css'
 import type { Metadata } from 'next'
 import localFont from 'next/font/local'
 import { dir } from 'i18next'
-import type { Language } from '../../i18n/i18n.settings'
-import { languages } from '../../i18n/i18n.settings'
-import { useTranslation } from '../../i18n'
-import { LanguageSwitcher } from '../../components/LanguageSwitcher'
-import { generateFullUrl } from '../../utils/generateFullUrl'
-import { Footer } from '../../components/Footer'
-import { Amplitude } from '../../components/Amplitude'
+
+import { Amplitude } from '@/components/Amplitude'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { Footer } from '@/components/Footer'
+import { generateFullUrl } from '@/utils/generateFullUrl'
+import { languages } from '@/i18n/i18n.settings'
+import type { Language } from '@/i18n/i18n.settings'
+import { useTranslation } from '@/i18n'
 
 type RootLayoutParams = { locale: Language }
 

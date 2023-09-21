@@ -16,6 +16,8 @@ export { default as Paper } from '@mui/material/Paper'
 export { default as Modal } from '@mui/material/Modal'
 export { default as Fade } from '@mui/material/Fade'
 export { default as Slide } from '@mui/material/Slide'
+export { default as Tabs } from '@mui/material/Tabs'
+export { default as Tab } from '@mui/material/Tab'
 
 export * from './themes/themes.types'
 export * from './PasswordInput'
