@@ -15,14 +15,6 @@ export class PlaygroundRepository {
     return this.database.get(storage => storage.games[gameId].playground.decks[position])
   }
 
-  addDeck(gameId: UUID, cardsDeck: CardsDeck) {
-    return this.database.set(storage => {
-      const decks = storage.games[gameId].playground.decks
-      decks.push(cardsDeck)
-      return decks
-    })
-  }
-
   addDroppedDeck(gameId: UUID, cardsDeck: CardsDeck) {
     return this.database.set(storage => {
       const decks = storage.games[gameId].playground.droppedDecks
@@ -33,7 +25,7 @@ export class PlaygroundRepository {
 
   removeDeck(gameId: UUID, position: number) {
     return this.database.set(storage => {
-      delete storage.games[gameId].playground.decks[position]
+      storage.games[gameId].playground.decks[position] = null
     })
   }
 
