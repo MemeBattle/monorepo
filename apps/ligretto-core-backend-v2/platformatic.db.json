@@ -1,0 +1,45 @@
+{
+  "$schema": "https://platformatic.dev/schemas/v0.46.2/db",
+  "server": {
+    "hostname": "{PLT_SERVER_HOSTNAME}",
+    "port": "{PORT}",
+    "logger": {
+      "level": "{PLT_SERVER_LOGGER_LEVEL}"
+    }
+  },
+  "db": {
+    "connectionString": "{DATABASE_URL}",
+    "graphql": true,
+    "openapi": true,
+    "schemalock": true
+  },
+  "watch": {
+    "ignore": [
+      "*.sqlite",
+      "*.sqlite-journal"
+    ]
+  },
+  "plugins": {
+    "paths": [
+      {
+        "path": "./plugins",
+        "options": {
+          "partnerId": "{PLT_CAS_PARTNER_ID}",
+          "casURI": "{PLT_CAS_URI}",
+          "publicKeyPath": "{PLT_CAS_PUBLIC_KEY_PATH}"
+        },
+        "encapsulate": false
+      },
+      {
+        "path": "./routes"
+      }
+    ],
+    "typescript": "{PLT_TYPESCRIPT}"
+  },
+  "migrations": {
+    "dir": "migrations"
+  },
+  "types": {
+    "autogenerate": true
+  }
+}

@@ -19,5 +19,16 @@
   "gitlens.advanced.blame.customArguments": [],
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": true
-  }
+  },
+  "sqltools.connections": [
+    {
+      "previewLimit": 50,
+      "server": "localhost",
+      "port": 5433,
+      "driver": "PostgreSQL",
+      "name": "ligretto",
+      "database": "ligretto-core",
+      "username": "ligretto-core-user"
+    }
+  ]
 }

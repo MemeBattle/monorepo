@@ -1,0 +1,21 @@
+{
+  "scripts": {
+    "start": "platformatic start",
+    "clean": "rm -fr ./dist",
+    "build": "platformatic compile",
+    "migrate": "platformatic db migrations apply",
+    "test": "tsc && node --test dist/test/*/*.test.js"
+  },
+  "devDependencies": {
+    "fastify": "^4.23.2",
+    "typescript": "~5.2.0"
+  },
+  "dependencies": {
+    "@memebattle/cas-services": "^3.6.5",
+    "@platformatic/db": "^0.46.2",
+    "platformatic": "^0.46.2"
+  },
+  "engines": {
+    "node": "^18.8.0 || >=20.6.0"
+  }
+}

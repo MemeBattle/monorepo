@@ -1,0 +1,521 @@
+[
+  {
+    "schema": "public",
+    "table": "adonis_schema",
+    "constraints": [
+      {
+        "constraint_catalog": "ligretto-core",
+        "constraint_schema": "public",
+        "constraint_name": "adonis_schema_pkey",
+        "table_catalog": "ligretto-core",
+        "table_schema": "public",
+        "table_name": "adonis_schema",
+        "constraint_type": "PRIMARY KEY",
+        "is_deferrable": "NO",
+        "initially_deferred": "NO",
+        "enforced": "YES",
+        "nulls_distinct": null,
+        "column_name": "id",
+        "ordinal_position": 1,
+        "position_in_unique_constraint": null,
+        "foreign_table_name": "adonis_schema",
+        "foreign_column_name": "id",
+        "foreign_table_schema": "public"
+      }
+    ],
+    "columns": [
+      {
+        "column_name": "id",
+        "udt_name": "int4",
+        "is_nullable": "NO",
+        "is_generated": "NEVER",
+        "data_type": "integer",
+        "isArray": false
+      },
+      {
+        "column_name": "name",
+        "udt_name": "varchar",
+        "is_nullable": "NO",
+        "is_generated": "NEVER",
+        "data_type": "character varying",
+        "isArray": false
+      },
+      {
+        "column_name": "batch",
+        "udt_name": "int4",
+        "is_nullable": "NO",
+        "is_generated": "NEVER",
+        "data_type": "integer",
+        "isArray": false
+      },
+      {
+        "column_name": "migration_time",
+        "udt_name": "timestamptz",
+        "is_nullable": "YES",
+        "is_generated": "NEVER",
+        "data_type": "timestamp with time zone",
+        "isArray": false
+      }
+    ]
+  },
+  {
+    "schema": "public",
+    "table": "adonis_schema_versions",
+    "constraints": [],
+    "columns": [
+      {
+        "column_name": "version",
+        "udt_name": "int4",
+        "is_nullable": "NO",
+        "is_generated": "NEVER",
+        "data_type": "integer",
+        "isArray": false
+      }
+    ]
+  },
+  {
+    "schema": "public",
+    "table": "games",
+    "constraints": [
+      {
+        "constraint_catalog": "ligretto-core",
+        "constraint_schema": "public",
+        "constraint_name": "games_pkey",
+        "table_catalog": "ligretto-core",
+        "table_schema": "public",
+        "table_name": "games",
+        "constraint_type": "PRIMARY KEY",
+        "is_deferrable": "NO",
+        "initially_deferred": "NO",
+        "enforced": "YES",
+        "nulls_distinct": null,
+        "column_name": "id",
+        "ordinal_position": 1,
+        "position_in_unique_constraint": null,
+        "foreign_table_name": "games",
+        "foreign_column_name": "id",
+        "foreign_table_schema": "public"
+      }
+    ],
+    "columns": [
+      {
+        "column_name": "id",
+        "udt_name": "uuid",
+        "is_nullable": "NO",
+        "is_generated": "NEVER",
+        "data_type": "uuid",
+        "isArray": false
+      },
+      {
+        "column_name": "createdAt",
+        "udt_name": "timestamptz",
+        "is_nullable": "YES",
+        "is_generated": "NEVER",
+        "data_type": "timestamp with time zone",
+        "isArray": false
+      },
+      {
+        "column_name": "updatedAt",
+        "udt_name": "timestamptz",
+        "is_nullable": "YES",
+        "is_generated": "NEVER",
+        "data_type": "timestamp with time zone",
+        "isArray": false
+      }
+    ]
+  },
+  {
+    "schema": "public",
+    "table": "rounds",
+    "constraints": [
+      {
+        "constraint_catalog": "ligretto-core",
+        "constraint_schema": "public",
+        "constraint_name": "rounds_pkey",
+        "table_catalog": "ligretto-core",
+        "table_schema": "public",
+        "table_name": "rounds",
+        "constraint_type": "PRIMARY KEY",
+        "is_deferrable": "NO",
+        "initially_deferred": "NO",
+        "enforced": "YES",
+        "nulls_distinct": null,
+        "column_name": "id",
+        "ordinal_position": 1,
+        "position_in_unique_constraint": null,
+        "foreign_table_name": "rounds",
+        "foreign_column_name": "id",
+        "foreign_table_schema": "public"
+      },
+      {
+        "constraint_catalog": "ligretto-core",
+        "constraint_schema": "public",
+        "constraint_name": "rounds_gameid_foreign",
+        "table_catalog": "ligretto-core",
+        "table_schema": "public",
+        "table_name": "rounds",
+        "constraint_type": "FOREIGN KEY",
+        "is_deferrable": "NO",
+        "initially_deferred": "NO",
+        "enforced": "YES",
+        "nulls_distinct": null,
+        "column_name": "gameId",
+        "ordinal_position": 1,
+        "position_in_unique_constraint": 1,
+        "foreign_table_name": "games",
+        "foreign_column_name": "id",
+        "foreign_table_schema": "public",
+        "loweredTableWithSchemaName": "rounds",
+        "foreignEntityName": "game",
+        "entityName": "round"
+      }
+    ],
+    "columns": [
+      {
+        "column_name": "id",
+        "udt_name": "uuid",
+        "is_nullable": "NO",
+        "is_generated": "NEVER",
+        "data_type": "uuid",
+        "isArray": false
+      },
+      {
+        "column_name": "gameId",
+        "udt_name": "uuid",
+        "is_nullable": "YES",
+        "is_generated": "NEVER",
+        "data_type": "uuid",
+        "isArray": false
+      },
+      {
+        "column_name": "createdAt",
+        "udt_name": "timestamptz",
+        "is_nullable": "YES",
+        "is_generated": "NEVER",
+        "data_type": "timestamp with time zone",
+        "isArray": false
+      },
+      {
+        "column_name": "updatedAt",
+        "udt_name": "timestamptz",
+        "is_nullable": "YES",
+        "is_generated": "NEVER",
+        "data_type": "timestamp with time zone",
+        "isArray": false
+      }
+    ]
+  },
+  {
+    "schema": "public",
+    "table": "round_users",
+    "constraints": [
+      {
+        "constraint_catalog": "ligretto-core",
+        "constraint_schema": "public",
+        "constraint_name": "round_users_pkey",
+        "table_catalog": "ligretto-core",
+        "table_schema": "public",
+        "table_name": "round_users",
+        "constraint_type": "PRIMARY KEY",
+        "is_deferrable": "NO",
+        "initially_deferred": "NO",
+        "enforced": "YES",
+        "nulls_distinct": null,
+        "column_name": "id",
+        "ordinal_position": 1,
+        "position_in_unique_constraint": null,
+        "foreign_table_name": "round_users",
+        "foreign_column_name": "id",
+        "foreign_table_schema": "public"
+      },
+      {
+        "constraint_catalog": "ligretto-core",
+        "constraint_schema": "public",
+        "constraint_name": "round_users_roundid_userid_unique",
+        "table_catalog": "ligretto-core",
+        "table_schema": "public",
+        "table_name": "round_users",
+        "constraint_type": "UNIQUE",
+        "is_deferrable": "NO",
+        "initially_deferred": "NO",
+        "enforced": "YES",
+        "nulls_distinct": "YES",
+        "column_name": "roundId",
+        "ordinal_position": 1,
+        "position_in_unique_constraint": null,
+        "foreign_table_name": "round_users",
+        "foreign_column_name": "roundId",
+        "foreign_table_schema": "public"
+      },
+      {
+        "constraint_catalog": "ligretto-core",
+        "constraint_schema": "public",
+        "constraint_name": "round_users_roundid_userid_unique",
+        "table_catalog": "ligretto-core",
+        "table_schema": "public",
+        "table_name": "round_users",
+        "constraint_type": "UNIQUE",
+        "is_deferrable": "NO",
+        "initially_deferred": "NO",
+        "enforced": "YES",
+        "nulls_distinct": "YES",
+        "column_name": "roundId",
+        "ordinal_position": 1,
+        "position_in_unique_constraint": null,
+        "foreign_table_name": "round_users",
+        "foreign_column_name": "userId",
+        "foreign_table_schema": "public"
+      },
+      {
+        "constraint_catalog": "ligretto-core",
+        "constraint_schema": "public",
+        "constraint_name": "round_users_roundid_userid_unique",
+        "table_catalog": "ligretto-core",
+        "table_schema": "public",
+        "table_name": "round_users",
+        "constraint_type": "UNIQUE",
+        "is_deferrable": "NO",
+        "initially_deferred": "NO",
+        "enforced": "YES",
+        "nulls_distinct": "YES",
+        "column_name": "userId",
+        "ordinal_position": 2,
+        "position_in_unique_constraint": null,
+        "foreign_table_name": "round_users",
+        "foreign_column_name": "roundId",
+        "foreign_table_schema": "public"
+      },
+      {
+        "constraint_catalog": "ligretto-core",
+        "constraint_schema": "public",
+        "constraint_name": "round_users_roundid_userid_unique",
+        "table_catalog": "ligretto-core",
+        "table_schema": "public",
+        "table_name": "round_users",
+        "constraint_type": "UNIQUE",
+        "is_deferrable": "NO",
+        "initially_deferred": "NO",
+        "enforced": "YES",
+        "nulls_distinct": "YES",
+        "column_name": "userId",
+        "ordinal_position": 2,
+        "position_in_unique_constraint": null,
+        "foreign_table_name": "round_users",
+        "foreign_column_name": "userId",
+        "foreign_table_schema": "public"
+      },
+      {
+        "constraint_catalog": "ligretto-core",
+        "constraint_schema": "public",
+        "constraint_name": "round_users_roundid_foreign",
+        "table_catalog": "ligretto-core",
+        "table_schema": "public",
+        "table_name": "round_users",
+        "constraint_type": "FOREIGN KEY",
+        "is_deferrable": "NO",
+        "initially_deferred": "NO",
+        "enforced": "YES",
+        "nulls_distinct": null,
+        "column_name": "roundId",
+        "ordinal_position": 1,
+        "position_in_unique_constraint": 1,
+        "foreign_table_name": "rounds",
+        "foreign_column_name": "id",
+        "foreign_table_schema": "public",
+        "loweredTableWithSchemaName": "roundUsers",
+        "foreignEntityName": "round",
+        "entityName": "roundUser"
+      },
+      {
+        "constraint_catalog": "ligretto-core",
+        "constraint_schema": "public",
+        "constraint_name": "round_users_userid_foreign",
+        "table_catalog": "ligretto-core",
+        "table_schema": "public",
+        "table_name": "round_users",
+        "constraint_type": "FOREIGN KEY",
+        "is_deferrable": "NO",
+        "initially_deferred": "NO",
+        "enforced": "YES",
+        "nulls_distinct": null,
+        "column_name": "userId",
+        "ordinal_position": 1,
+        "position_in_unique_constraint": 1,
+        "foreign_table_name": "users",
+        "foreign_column_name": "casId",
+        "foreign_table_schema": "public",
+        "loweredTableWithSchemaName": "roundUsers",
+        "foreignEntityName": "user",
+        "entityName": "roundUser"
+      }
+    ],
+    "columns": [
+      {
+        "column_name": "id",
+        "udt_name": "int4",
+        "is_nullable": "NO",
+        "is_generated": "NEVER",
+        "data_type": "integer",
+        "isArray": false
+      },
+      {
+        "column_name": "roundId",
+        "udt_name": "uuid",
+        "is_nullable": "YES",
+        "is_generated": "NEVER",
+        "data_type": "uuid",
+        "isArray": false
+      },
+      {
+        "column_name": "userId",
+        "udt_name": "varchar",
+        "is_nullable": "YES",
+        "is_generated": "NEVER",
+        "data_type": "character varying",
+        "isArray": false
+      },
+      {
+        "column_name": "score",
+        "udt_name": "int4",
+        "is_nullable": "YES",
+        "is_generated": "NEVER",
+        "data_type": "integer",
+        "isArray": false
+      },
+      {
+        "column_name": "createdAt",
+        "udt_name": "timestamptz",
+        "is_nullable": "YES",
+        "is_generated": "NEVER",
+        "data_type": "timestamp with time zone",
+        "isArray": false
+      },
+      {
+        "column_name": "updatedAt",
+        "udt_name": "timestamptz",
+        "is_nullable": "YES",
+        "is_generated": "NEVER",
+        "data_type": "timestamp with time zone",
+        "isArray": false
+      }
+    ]
+  },
+  {
+    "schema": "public",
+    "table": "users",
+    "constraints": [
+      {
+        "constraint_catalog": "ligretto-core",
+        "constraint_schema": "public",
+        "constraint_name": "users_pkey",
+        "table_catalog": "ligretto-core",
+        "table_schema": "public",
+        "table_name": "users",
+        "constraint_type": "PRIMARY KEY",
+        "is_deferrable": "NO",
+        "initially_deferred": "NO",
+        "enforced": "YES",
+        "nulls_distinct": null,
+        "column_name": "casId",
+        "ordinal_position": 1,
+        "position_in_unique_constraint": null,
+        "foreign_table_name": "users",
+        "foreign_column_name": "casId",
+        "foreign_table_schema": "public"
+      }
+    ],
+    "columns": [
+      {
+        "column_name": "created_at",
+        "udt_name": "timestamptz",
+        "is_nullable": "YES",
+        "is_generated": "NEVER",
+        "data_type": "timestamp with time zone",
+        "isArray": false
+      },
+      {
+        "column_name": "updated_at",
+        "udt_name": "timestamptz",
+        "is_nullable": "YES",
+        "is_generated": "NEVER",
+        "data_type": "timestamp with time zone",
+        "isArray": false
+      },
+      {
+        "column_name": "casId",
+        "udt_name": "varchar",
+        "is_nullable": "NO",
+        "is_generated": "NEVER",
+        "data_type": "character varying",
+        "isArray": false
+      },
+      {
+        "column_name": "isTemporary",
+        "udt_name": "bool",
+        "is_nullable": "YES",
+        "is_generated": "NEVER",
+        "data_type": "boolean",
+        "isArray": false
+      }
+    ]
+  },
+  {
+    "schema": "public",
+    "table": "versions",
+    "constraints": [
+      {
+        "constraint_catalog": "ligretto-core",
+        "constraint_schema": "public",
+        "constraint_name": "versions_pkey",
+        "table_catalog": "ligretto-core",
+        "table_schema": "public",
+        "table_name": "versions",
+        "constraint_type": "PRIMARY KEY",
+        "is_deferrable": "NO",
+        "initially_deferred": "NO",
+        "enforced": "YES",
+        "nulls_distinct": null,
+        "column_name": "version",
+        "ordinal_position": 1,
+        "position_in_unique_constraint": null,
+        "foreign_table_name": "versions",
+        "foreign_column_name": "version",
+        "foreign_table_schema": "public"
+      }
+    ],
+    "columns": [
+      {
+        "column_name": "version",
+        "udt_name": "int8",
+        "is_nullable": "NO",
+        "is_generated": "NEVER",
+        "data_type": "bigint",
+        "isArray": false
+      },
+      {
+        "column_name": "name",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "is_generated": "NEVER",
+        "data_type": "text",
+        "isArray": false
+      },
+      {
+        "column_name": "md5",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "is_generated": "NEVER",
+        "data_type": "text",
+        "isArray": false
+      },
+      {
+        "column_name": "run_at",
+        "udt_name": "timestamptz",
+        "is_nullable": "YES",
+        "is_generated": "NEVER",
+        "data_type": "timestamp with time zone",
+        "isArray": false
+      }
+    ]
+  }
+]
