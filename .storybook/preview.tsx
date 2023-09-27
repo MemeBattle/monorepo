@@ -1,3 +1,4 @@
+import React from 'react'
 import { Parameters } from '@storybook/react'
 import { MINIMAL_VIEWPORTS } from '@storybook/addon-viewport'
 import { CssBaseline } from '@memebattle/ui'
