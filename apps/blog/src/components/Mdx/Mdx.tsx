@@ -11,6 +11,12 @@ interface MdxProps {
 
 const components = { Image: (props: ImageProps) => <Image {...props} />, InstagramPost, a: ExternalLink, blockquote: Blockquote }
 
+const rssComponents = {
+  ...components,
+  Image: (props: React.DetailedHTMLProps<React.ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>) => <img {...props} />,
+  InstagramPost: () => null, // TODO: https://github.com/MemeBattle/monorepo/issues/438 create InstagramPost fallback component
+}
+
 export function Mdx({ code }: MdxProps) {
   const Component = useMDXComponent(code)
 
@@ -33,9 +39,5 @@ TypeError: Cannot read properties of null (reading 'useMemo')
 export function ServerMdx({ code }: MdxProps) {
   const Component = getMDXComponent(code)
 
-  return (
-    <article className="prose lg:prose-xl">
-      <Component components={components} />
-    </article>
-  )
+  return <Component components={rssComponents} />
 }
