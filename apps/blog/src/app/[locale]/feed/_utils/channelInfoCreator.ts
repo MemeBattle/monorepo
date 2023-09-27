@@ -25,7 +25,7 @@ export const createChannelInfo = async (lang: Language): Promise<ChannelInfo> =>
       .map(async post => ({
         ...post,
         url: generateFullUrl(`/${lang}/posts/${post.slug}`),
-        content: await convertMarkdownToHtml(post.body.raw),
+        content: await convertMarkdownToHtml(post.body.code),
       })),
   )
 
