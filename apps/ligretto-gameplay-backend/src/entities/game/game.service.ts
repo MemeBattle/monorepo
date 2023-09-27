@@ -18,7 +18,7 @@ const emptyGame: Game = {
     decks: [],
     droppedDecks: [],
   },
-  config: { playersMaxCount: 4, startingDelayInSec: 4, dndEnabled: false },
+  config: { playersMaxCount: 4, startingDelayInSec: 4, dndEnabled: false, maxCardsOnTable: 12 },
 }
 
 @injectable()
@@ -78,7 +78,7 @@ export class GameService {
         status: GameStatus.InGame,
         players,
         playground: {
-          decks: [],
+          decks: new Array(game.config.maxCardsOnTable).fill(null),
           droppedDecks: [],
         },
       }

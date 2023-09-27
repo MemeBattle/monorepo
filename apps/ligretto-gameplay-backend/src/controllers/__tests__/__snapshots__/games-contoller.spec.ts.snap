@@ -6,6 +6,7 @@ exports[`Games Controller createGame Should create relevant state on create game
     "1": {
       "config": {
         "dndEnabled": false,
+        "maxCardsOnTable": 12,
         "playersMaxCount": 4,
         "startingDelayInSec": 4,
       },
@@ -30,6 +31,7 @@ exports[`Games Controller joinGame Should create relevant state on join room as 
     "1": {
       "config": {
         "dndEnabled": false,
+        "maxCardsOnTable": 12,
         "playersMaxCount": 4,
         "startingDelayInSec": 4,
       },
@@ -81,6 +83,7 @@ exports[`Games Controller joinGame Should create relevant state on join room by 
     "1": {
       "config": {
         "dndEnabled": false,
+        "maxCardsOnTable": 12,
         "playersMaxCount": 4,
         "startingDelayInSec": 4,
       },
@@ -133,6 +136,7 @@ exports[`Games Controller joinGame Should create relevant state on join room sec
     "1": {
       "config": {
         "dndEnabled": false,
+        "maxCardsOnTable": 12,
         "playersMaxCount": 4,
         "startingDelayInSec": 4,
       },
@@ -209,6 +213,7 @@ exports[`Games Controller leaveFromRoomHandler Should create a relevant game sta
     "1": {
       "config": {
         "dndEnabled": false,
+        "maxCardsOnTable": 12,
         "playersMaxCount": 4,
         "startingDelayInSec": 4,
       },
@@ -282,6 +287,7 @@ exports[`Games Controller leaveFromRoomHandler Should remove current socketId fr
     "1": {
       "config": {
         "dndEnabled": false,
+        "maxCardsOnTable": 12,
         "playersMaxCount": 4,
         "startingDelayInSec": 4,
       },
