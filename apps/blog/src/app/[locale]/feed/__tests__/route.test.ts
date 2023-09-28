@@ -1,9 +1,9 @@
 import { readFileSync } from 'fs'
 
-vi.mock('contentlayer/generated', () => ({ allBlogPosts: [JSON.parse(readFileSync(__dirname + '/testPost.fixture.json', 'utf8'))] }))
-
 import { GET } from '../route'
 import type { Language } from '@/i18n/i18n.settings'
+
+vi.mock('contentlayer/generated', () => ({ allBlogPosts: [JSON.parse(readFileSync(__dirname + '/testPost.fixture.json', 'utf8'))] }))
 
 const rawFeedXML = readFileSync(__dirname + '/feed.fixture.xml', 'utf8')
 const expectedFeedXML = rawFeedXML.trim()
