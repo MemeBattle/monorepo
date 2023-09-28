@@ -1,8 +1,3 @@
-// import { unified } from 'unified'
-// import remarkParse from 'remark-parse'
-// import remarkRehype from 'remark-rehype'
-// import rehypeSanitize from 'rehype-sanitize'
-// import rehypeStringify from 'rehype-stringify'
 import { ServerMdx } from '@/components/Mdx'
 
 // TODO: see https://github.com/unifiedjs/unified/issues/227 before update the dependencies;
@@ -22,12 +17,5 @@ export const convertMarkdownToHtml = async (code: string): Promise<string> => {
 
   const html = ReactDOMServer.renderToStaticMarkup(<ServerMdx code={code} />)
 
-  // const file = await unified()
-  //   .use(remarkParse) // Convert into markdown AST
-  //   .use(remarkRehype) // Transform to HTML AST
-  //   .use(rehypeSanitize) // Sanitize HTML input
-  //   .use(rehypeStringify) // Convert AST into serialized HTML
-  //   .process(content)
-
-  return String(html)
+  return html
 }
