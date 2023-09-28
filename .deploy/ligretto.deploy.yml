@@ -68,6 +68,7 @@ services:
         condition: on-failure
         delay: 10s
         max_attempts: 3
+
   ligretto-core-pg:
     image: postgres
     environment:
@@ -78,6 +79,11 @@ services:
       - ligretto_net
     volumes:
       - ligretto-core-pg:/var/lib/postgresql/data
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+
   ligretto-bot-clj:
     image: ghcr.io/memebattle/ligretto-bot-clj:latest
     networks:

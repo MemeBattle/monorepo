@@ -75,6 +75,7 @@ export interface Game {
     startingDelayInSec: number
     playersMaxCount: number
     dndEnabled: boolean
+    maxCardsOnTable: number
   }
 }
 
