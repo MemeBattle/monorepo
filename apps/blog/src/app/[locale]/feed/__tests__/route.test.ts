@@ -9,7 +9,7 @@ const rawFeedXML = readFileSync(__dirname + '/feed.fixture.xml', 'utf8')
 const expectedFeedXML = rawFeedXML.trim()
 describe('Feed GET hundler', () => {
   it("should return atom xml with blog's posts when a user requests it", async () => {
-    const request = new Request(`${process.env.VITE_APP_HOST_URL}/en/feed`)
+    const request = new Request(`${process.env.APP_HOST_URL}/en/feed`)
     const params: { locale: Language } = { locale: 'en' }
     const response = await GET(request, { params })
 
