@@ -28,11 +28,10 @@ export function Mdx({ code }: MdxProps) {
 }
 
 /**************************************
-Временно ввел новую функцию ServerMdx, чтобы убрать ошибку:
+useMDXComponent hook doesn't work on a server side.  It throws TypeError:
+    TypeError: Cannot read properties of null (reading 'useMemo')
 
-TypeError: Cannot read properties of null (reading 'useMemo')
-
-Решение взял отсюда https://github.com/vercel/next.js/issues/49267#issuecomment-1535932088
+See https://github.com/vercel/next.js/issues/49267#issuecomment-1535932088
 
 **************************************/
 
