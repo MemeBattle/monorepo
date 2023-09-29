@@ -9,7 +9,7 @@ const meta: Meta<typeof Tabs> = {
 export default meta
 type Story = StoryObj<typeof Tabs>
 
-export const TabsLeaderBoard: Story = {
+export const Default: Story = {
   args: {
     children: ['For day', 'For month', 'For all the time'].map(title => <Tab label={title} />),
     value: 0,
