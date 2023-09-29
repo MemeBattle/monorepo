@@ -1,11 +1,11 @@
 import type { FC } from 'react'
 import { useState } from 'react'
 import { Tab, useMediaQuery, useTheme, Typography, Grid } from '@memebattle/ui'
-import { Tabs } from '../../shared/ui/Tabs'
-import { LeaderListTable } from 'components/blocks/home/LeaderList'
-import { LeaderListTableCell } from '../../components/blocks/home/LeaderList/LeaderListTableCell'
-import { LeaderListTableHead } from '../../components/blocks/home/LeaderList/LeaderListTableHead'
-import type { LeaderBoardProps } from '../../components/blocks/home/LeaderBoard/LeaderBoard'
+import { Tabs } from '../../../../shared/ui/Tabs'
+import { LeaderListTable } from 'widgets/leader-board/ui/LeaderList'
+import { LeaderListTableCell } from '../LeaderList/LeaderListTableCell'
+import { LeaderListTableHead } from '../LeaderList/LeaderListTableHead'
+import type { LeaderBoardProps } from '../LeaderBoard/LeaderBoard'
 
 const columnsProps = [
   { title: '#', size: { xs: 2, md: 1.5 } },

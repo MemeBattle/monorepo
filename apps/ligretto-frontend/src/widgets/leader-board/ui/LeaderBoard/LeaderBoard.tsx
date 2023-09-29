@@ -1,7 +1,7 @@
 import type { FC } from 'react'
 import { Box, Paper, Typography } from '@memebattle/ui'
 import { styled } from '@mui/material/styles'
-import { LeaderListContainer } from '../../../../containers/LeaderListContainer'
+import { LeaderListContainer } from '../LeaderListContainer'
 
 const StyledLeaderBoard = styled(Paper)(({ theme }) => ({
   padding: '2.5rem 4rem',
