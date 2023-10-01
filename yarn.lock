@@ -454,16 +454,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apidevtools/json-schema-ref-parser@npm:^10.1.0":
-  version: 10.1.0
-  resolution: "@apidevtools/json-schema-ref-parser@npm:10.1.0"
+"@apidevtools/json-schema-ref-parser@npm:^11.0.0":
+  version: 11.1.0
+  resolution: "@apidevtools/json-schema-ref-parser@npm:11.1.0"
   dependencies:
     "@jsdevtools/ono": ^7.1.3
-    "@types/json-schema": ^7.0.11
+    "@types/json-schema": ^7.0.13
     "@types/lodash.clonedeep": ^4.5.7
     js-yaml: ^4.1.0
     lodash.clonedeep: ^4.5.0
-  checksum: 6220dea1ffa2f1b34da54583cf447cc97c51e25b96c10705e858f42c8290bc775b5821182282493a8f99ec6e0dae8f01ccd865d547aa29c1a6be6a38713c4571
+  checksum: b2a9c0749e9c190cbbb24fbcec069203cc317a30a32ad731f1b99cf48aa279fa956fe6951e3adc964989e983e7ea4d24313aa806430a53c81ded855fc94e5170
   languageName: node
   linkType: hard
 
@@ -3073,6 +3073,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@fastify/type-provider-typebox@npm:^3.5.0":
+  version: 3.5.0
+  resolution: "@fastify/type-provider-typebox@npm:3.5.0"
+  peerDependencies:
+    "@sinclair/typebox": ">=0.26 <=0.31"
+  checksum: 32f85c3b1be93bac684736202757330347dda9c76e3a613d305ca7f8fe00ab4da48424c231ec7c2bfccb40c5681c57dcebba60c7f2cb813879cc2ed34deeafa6
+  languageName: node
+  linkType: hard
+
 "@fastify/under-pressure@npm:^8.2.0":
   version: 8.3.0
   resolution: "@fastify/under-pressure@npm:8.3.0"
@@ -4682,32 +4691,32 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@platformatic/authenticate@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/authenticate@npm:0.46.2"
+"@platformatic/authenticate@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/authenticate@npm:1.0.0"
   dependencies:
     "@fastify/error": ^3.2.1
-    "@platformatic/config": 0.46.2
+    "@platformatic/config": 1.0.0
     colorette: ^2.0.20
     commist: ^3.2.0
     es-main: ^1.2.0
     minimist: ^1.2.8
     open: ^8.4.2
     undici: ^5.22.1
-  checksum: c40c7159d9ded58452a8188929970434bbd790b21885ae092a9e0facfa6e089b998688e439d592396d2b01cd3f1437809c51861c1296cd7df3db10e71647bf36
+  checksum: 30782a1344ee712c2a419c8471c19b46696d220fd1ee116140b2868a50667da713e7e16078f737023a6d6fd2ad795da98c30ceb4e8cdd626e3cb3ede89f0e3ef
   languageName: node
   linkType: hard
 
-"@platformatic/client-cli@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/client-cli@npm:0.46.2"
+"@platformatic/client-cli@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/client-cli@npm:1.0.0"
   dependencies:
     "@fastify/error": ^3.2.1
-    "@platformatic/client": 0.46.2
-    "@platformatic/config": 0.46.2
-    "@platformatic/metaconfig": 0.46.2
-    "@platformatic/runtime": 0.46.2
-    "@platformatic/service": 0.46.2
+    "@platformatic/client": 1.0.0
+    "@platformatic/config": 1.0.0
+    "@platformatic/metaconfig": 1.0.0
+    "@platformatic/runtime": 1.0.0
+    "@platformatic/service": 1.0.0
     abstract-logging: ^2.0.1
     camelcase: 6.x
     code-block-writer: ^12.0.0
@@ -4724,27 +4733,27 @@ __metadata:
     yaml: ^2.3.1
   bin:
     plt-client: cli.mjs
-  checksum: 427a18de6fec9e708da35d15ea9122ead9751bc76fabbaee31468daee6aea2a57c3f794438e8a64ada77d2d875159e4438c35d3648521049caf0329e972595ca
+  checksum: ab2449436dabc478d3c5dcf50758e561331c541a250258db94eedb09bf8fdbc78c4f6830c6d72977cad242f28d29de357520946ca1530a9a5da2bd43a3f6def6
   languageName: node
   linkType: hard
 
-"@platformatic/client@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/client@npm:0.46.2"
+"@platformatic/client@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/client@npm:1.0.0"
   dependencies:
-    "@apidevtools/json-schema-ref-parser": ^10.1.0
+    "@apidevtools/json-schema-ref-parser": ^11.0.0
     "@fastify/error": ^3.2.1
     abstract-logging: ^2.0.1
     ajv: ^8.12.0
     jsonpointer: ^5.0.1
     undici: ^5.22.1
-  checksum: e81aaeb4f957185b49e731eb28501c96152d779153eb48e0199e248507d522dd9c5c3ed1330e480f01a0c3fedd08ab8df8ec73a8e205aa29ece04a97011ea683
+  checksum: ae4d228ae2a61b1729407165266bc67489e203b786a53e91494e5d2a2d2d8c7f1b215335fa43384043221c4dd9d38ff31dccf33d3fb0c8c581dcbb7bda81fc2c
   languageName: node
   linkType: hard
 
-"@platformatic/composer@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/composer@npm:0.46.2"
+"@platformatic/composer@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/composer@npm:1.0.0"
   dependencies:
     "@fastify/error": ^3.2.1
     "@fastify/http-proxy": ^9.2.0
@@ -4752,10 +4761,10 @@ __metadata:
     "@fastify/static": ^6.10.2
     "@fastify/swagger": ^8.5.1
     "@fastify/swagger-ui": ^1.9.0
-    "@platformatic/config": 0.46.2
-    "@platformatic/service": 0.46.2
-    "@platformatic/swagger-ui-theme": 0.46.2
-    "@platformatic/telemetry": 0.46.2
+    "@platformatic/config": 1.0.0
+    "@platformatic/service": 1.0.0
+    "@platformatic/swagger-ui-theme": 1.0.0
+    "@platformatic/telemetry": 1.0.0
     ajv: ^8.0.0
     commist: ^3.2.0
     desm: ^1.3.0
@@ -4774,31 +4783,31 @@ __metadata:
     undici: ^5.22.1
   bin:
     plt-composer: composer.mjs
-  checksum: d0c0c1760a65a94309236f862a7a0760e59ef5473f171a7ef947b3028f86ae76810248db28a20c017a02f026f2dc4fa8d10a7a13b4477d32c21686a67f198382
+  checksum: bb44892ca1c181088c6a3243e2a6680fd3280067fea1366c83b7b2d20fa3006b254b84eec3e97f3a56a7b7c626f7316628481358b7a358757661c9a7abe52b58
   languageName: node
   linkType: hard
 
-"@platformatic/config@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/config@npm:0.46.2"
+"@platformatic/config@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/config@npm:1.0.0"
   dependencies:
     "@fastify/deepmerge": ^1.3.0
     "@fastify/error": ^3.2.1
-    "@platformatic/metaconfig": 0.46.2
-    "@platformatic/utils": 0.46.2
+    "@platformatic/metaconfig": 1.0.0
+    "@platformatic/utils": 1.0.0
     ajv: ^8.12.0
     dotenv: ^16.1.4
     minimist: ^1.2.8
     pupa: ^3.1.0
     semver: ^7.5.1
     undici: ^5.22.1
-  checksum: a58c62fd2cc72f2062b99b8ad5a6ce82e3f641c86e902467aa2645c558d75306229baf8baff44bf608dd05cebb45e228bd25d04071396a66443d666ae467a66e
+  checksum: 7973bd9ea3234d87e6ad73844eb71c82f969022abd5c9815159dac63c15f033f7e31f6521db1597778c5615f395cf32bacd9dfe8d44d50a7b1aca8726332ad37
   languageName: node
   linkType: hard
 
-"@platformatic/db-authorization@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/db-authorization@npm:0.46.2"
+"@platformatic/db-authorization@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/db-authorization@npm:1.0.0"
   dependencies:
     "@fastify/error": ^3.2.1
     "@fastify/jwt": ^7.0.0
@@ -4807,26 +4816,26 @@ __metadata:
     get-jwks: ^8.1.0
     leven: ~3.1.0
     undici: ^5.22.1
-  checksum: 88f415e62f4ca51a41788d64ddb7be1d529db377d79cee507c8d66abd4097dd661d21081f09d8fc3b1fd380a09b662b134f1394a0c7dd85abc874906e8f8ef54
+  checksum: 85dac74fc0dcf68a614cf258fb69448040ab3a6742b021ac475d5926ddb6548e8ab56b01d2e381fd5c8a8ea197c9fa1c6f183a2ae805e85a48934cd1eeefbfff
   languageName: node
   linkType: hard
 
-"@platformatic/db-core@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/db-core@npm:0.46.2"
+"@platformatic/db-core@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/db-core@npm:1.0.0"
   dependencies:
-    "@platformatic/sql-events": 0.46.2
-    "@platformatic/sql-graphql": 0.46.2
-    "@platformatic/sql-mapper": 0.46.2
-    "@platformatic/sql-openapi": 0.46.2
+    "@platformatic/sql-events": 1.0.0
+    "@platformatic/sql-graphql": 1.0.0
+    "@platformatic/sql-mapper": 1.0.0
+    "@platformatic/sql-openapi": 1.0.0
     fastify-plugin: ^4.5.0
-  checksum: a951d41a76735e58650781b7b12c574488ec833762bb2febd18078c6ca94a1d02b29838de91d210cb6c13a0ba3bfe1b6ebd833f8ddfe061c56a72f6ba59e5473
+  checksum: fe6803d242dea12608273b92e41379a27347f314e232b0679dd4b22911ed752eef0caabfb09dd45877991f293d24c45b666eeece5befffbfc320326eabc062d9
   languageName: node
   linkType: hard
 
-"@platformatic/db@npm:0.46.2, @platformatic/db@npm:^0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/db@npm:0.46.2"
+"@platformatic/db@npm:1.0.0, @platformatic/db@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/db@npm:1.0.0"
   dependencies:
     "@fastify/accepts": ^4.2.0
     "@fastify/basic-auth": ^5.0.0
@@ -4835,17 +4844,17 @@ __metadata:
     "@fastify/error": ^3.2.1
     "@fastify/static": ^6.10.2
     "@fastify/swagger": ^8.5.1
-    "@platformatic/config": 0.46.2
-    "@platformatic/db-authorization": 0.46.2
-    "@platformatic/db-core": 0.46.2
-    "@platformatic/service": 0.46.2
-    "@platformatic/sql-events": 0.46.2
-    "@platformatic/sql-graphql": 0.46.2
-    "@platformatic/sql-json-schema-mapper": 0.46.2
-    "@platformatic/sql-mapper": 0.46.2
-    "@platformatic/sql-openapi": 0.46.2
-    "@platformatic/telemetry": 0.46.2
-    "@platformatic/utils": 0.46.2
+    "@platformatic/config": 1.0.0
+    "@platformatic/db-authorization": 1.0.0
+    "@platformatic/db-core": 1.0.0
+    "@platformatic/service": 1.0.0
+    "@platformatic/sql-events": 1.0.0
+    "@platformatic/sql-graphql": 1.0.0
+    "@platformatic/sql-json-schema-mapper": 1.0.0
+    "@platformatic/sql-mapper": 1.0.0
+    "@platformatic/sql-openapi": 1.0.0
+    "@platformatic/telemetry": 1.0.0
+    "@platformatic/utils": 1.0.0
     camelcase: ^6.3.0
     close-with-grace: ^1.2.0
     code-block-writer: ^12.0.0
@@ -4869,31 +4878,31 @@ __metadata:
     ua-parser-js: ^1.0.35
   bin:
     plt-db: db.mjs
-  checksum: 9dfb67f62735818128ef63d51d2918634414d32f4a87d8bbb475030eb5662e974a4556d4ebb3033f1dc856082aa18c9186184e4e42950fe02b38e82de9b4d843
+  checksum: 6b6069cdc6d2f4067a9d070ce495b9677ab3cdf2ebc72771bbd4e5707713f3afca933d0b9be619f7f15d77439c6b2fabee93aec711b9512d1f61c11d2f87769b
   languageName: node
   linkType: hard
 
-"@platformatic/deploy-client@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/deploy-client@npm:0.46.2"
+"@platformatic/deploy-client@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/deploy-client@npm:1.0.0"
   dependencies:
     "@fastify/error": ^3.2.1
-    "@platformatic/config": 0.46.2
-    "@platformatic/runtime": 0.46.2
-    "@platformatic/service": 0.46.2
+    "@platformatic/config": 1.0.0
+    "@platformatic/runtime": 1.0.0
+    "@platformatic/service": 1.0.0
     pretty-bytes: ^6.1.0
     tar: ^6.1.15
     undici: ^5.22.1
-  checksum: 7fb3aa0873e688c8551ea21d1edd06a0b832a6c07d46bf7cd819f072a47877cbc49ca43e762ce632b063fe949bae8b35d8b328b5165b9f141437351f17049021
+  checksum: cbaedf357ccf3cafb398569b51df65fcdfe3117028ac18e05de57ef94504e2ea7ea7f5e924da18c05198c2c84bfea5b5c9742e2f2fd3a771ed9528c655d4da3d
   languageName: node
   linkType: hard
 
-"@platformatic/frontend-template@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/frontend-template@npm:0.46.2"
+"@platformatic/frontend-template@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/frontend-template@npm:1.0.0"
   dependencies:
-    "@platformatic/client": 0.46.2
-    "@platformatic/db": ^0.46.2
+    "@platformatic/client": 1.0.0
+    "@platformatic/db": ^1.0.0
     camelcase: ^8.0.0
     code-block-writer: ^12.0.0
     desm: ^1.3.0
@@ -4903,13 +4912,13 @@ __metadata:
     jsonpointer: ^5.0.1
     minimist: ^1.2.8
     undici: ^5.22.0
-  checksum: e2ecd41746dda414d0884a93a7b9d6beaee2a5ce6a8ba6799f5e171cff1f0e54879fe7e5c215d931b1b95d4a587b09898e339f222d6ed4628510450742fee9af
+  checksum: e6e2bbf60867caf984da10b4509c8a9055c3eba9937f0fbde4693216325ba97fc2666d8fed36b707897a538572295705b77828a761606a50ac3e7b3ff673c675
   languageName: node
   linkType: hard
 
-"@platformatic/metaconfig@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/metaconfig@npm:0.46.2"
+"@platformatic/metaconfig@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/metaconfig@npm:1.0.0"
   dependencies:
     "@fastify/error": ^3.2.1
     "@iarna/toml": ^2.2.5
@@ -4917,22 +4926,22 @@ __metadata:
     rfdc: ^1.3.0
     semver: ^7.5.1
     yaml: ^2.3.1
-  checksum: 28d5dc9e464d2670d6669a779f32cb4c866178059cfd9e6ff74f6c017b4d2409fea47c37abd4a74cdd465e9a9f17ebd69d6a0e646195f4e543249799acba6a08
+  checksum: f68eeca8ce4417520886df7b7f2b76d4add82de66092a0b505b582636dcf2fa99ea189a40c497f91f17802f0230c86787de18a4719400d18383132478a8d1869
   languageName: node
   linkType: hard
 
-"@platformatic/runtime@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/runtime@npm:0.46.2"
+"@platformatic/runtime@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/runtime@npm:1.0.0"
   dependencies:
     "@fastify/error": ^3.2.1
     "@hapi/topo": ^6.0.2
-    "@platformatic/composer": 0.46.2
-    "@platformatic/config": 0.46.2
-    "@platformatic/db": 0.46.2
-    "@platformatic/service": 0.46.2
-    "@platformatic/telemetry": 0.46.2
-    "@platformatic/utils": 0.46.2
+    "@platformatic/composer": 1.0.0
+    "@platformatic/config": 1.0.0
+    "@platformatic/db": 1.0.0
+    "@platformatic/service": 1.0.0
+    "@platformatic/telemetry": 1.0.0
+    "@platformatic/utils": 1.0.0
     close-with-grace: ^1.2.0
     commist: ^3.2.0
     debounce: ^1.2.1
@@ -4948,13 +4957,13 @@ __metadata:
     undici: ^5.22.1
   bin:
     plt-runtime: runtime.mjs
-  checksum: 17cbdb7e4be0e434e7f556292ce1c163df73d4061ddc9bb871447674a4f9a968e17c9f9f53d132d00a037531aabb38432e948b257331f71688bd02d36a812863
+  checksum: aecd37897cff279080c46bfdbe4a2a0bd297f4f415990479ead9bafc1b27c94dc9772735d665d6926cd39b004e0d5fffd9c141c2e1160bff6af46d74b7b2f1bd
   languageName: node
   linkType: hard
 
-"@platformatic/service@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/service@npm:0.46.2"
+"@platformatic/service@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/service@npm:1.0.0"
   dependencies:
     "@fastify/accepts": ^4.2.0
     "@fastify/autoload": ^5.7.1
@@ -4967,11 +4976,13 @@ __metadata:
     "@fastify/swagger-ui": ^1.9.0
     "@fastify/under-pressure": ^8.2.0
     "@mercuriusjs/federation": ^2.0.0
-    "@platformatic/client": 0.46.2
-    "@platformatic/config": 0.46.2
-    "@platformatic/swagger-ui-theme": 0.46.2
-    "@platformatic/telemetry": 0.46.2
-    "@platformatic/utils": 0.46.2
+    "@platformatic/client": 1.0.0
+    "@platformatic/config": 1.0.0
+    "@platformatic/swagger-ui-theme": 1.0.0
+    "@platformatic/telemetry": 1.0.0
+    "@platformatic/utils": 1.0.0
+    "@types/ws": ^8.5.5
+    ajv: ^8.12.0
     close-with-grace: ^1.2.0
     commist: ^3.2.0
     desm: ^1.3.0
@@ -4980,7 +4991,7 @@ __metadata:
     execa: ^8.0.0
     fastify: ^4.18.0
     fastify-metrics: ^10.3.0
-    fastify-plugin: ^4.5.0
+    fastify-plugin: ^4.5.1
     graphql: ^16.6.0
     help-me: ^4.2.0
     mercurius: ^13.0.0
@@ -4991,30 +5002,30 @@ __metadata:
     ua-parser-js: ^1.0.35
   bin:
     plt-service: service.mjs
-  checksum: 40c025b5903d9c6e811818805ccec8088023ba5efc852b5fa8e2fba2723dc10a7fd1b327ea6ae8d65e6ae9a4f6a3cbe77f0b4dbcae7ea1f5fe32466f6bf098b0
+  checksum: 8a28906bbfc1ea4aeff5e11745a26a05e18733b3cd6338fff566ec27cdfc8230146c6d64fd8e24c27f4b0679b4bf51d0732499fd4a2584ed5fd443674725eb72
   languageName: node
   linkType: hard
 
-"@platformatic/sql-events@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/sql-events@npm:0.46.2"
+"@platformatic/sql-events@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/sql-events@npm:1.0.0"
   dependencies:
     "@fastify/error": ^3.2.1
     camelcase: ^6.3.0
     fastify-plugin: ^4.5.0
     mqemitter: ^5.0.0
     mqemitter-redis: ^5.0.0
-  checksum: 8c2a72808e304a6d1436f32e5e57d143743d6d29d55a69799eb24bbd0dc8ddb9d65a440fb83dfe91a1442da6709a96b2f1ec728696ac4a5477369d6f68ba0975
+  checksum: b00e8edbabed80b62aaf185c380c13e0cd343a245923872e35207e776732ed5ddfa2117d86aafdd42f23a4531b462fe2bd507a894e3e8626b63f68e3b297a671
   languageName: node
   linkType: hard
 
-"@platformatic/sql-graphql@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/sql-graphql@npm:0.46.2"
+"@platformatic/sql-graphql@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/sql-graphql@npm:1.0.0"
   dependencies:
     "@fastify/error": ^3.2.1
     "@mercuriusjs/federation": ^2.0.0
-    "@platformatic/utils": 0.46.2
+    "@platformatic/utils": 1.0.0
     camelcase: ^6.3.0
     fastify-plugin: ^4.5.0
     graphql: ^16.6.0
@@ -5022,23 +5033,23 @@ __metadata:
     graphql-type-json: ^0.3.2
     inflected: ^2.1.0
     mercurius: ^13.0.0
-  checksum: 9f6d6fd2e7ab19feb80e2396cde3d390e19d4af3963606722e7617094303b654025da2f8ec67fd071b145d39a90d85fe954b583ba5910939c66a9dc163155f30
+  checksum: 61cf629b11c0e90af77f6dc94d857a66818e287d36f6b91a65d18e1e080f16c21d879db2f6bbac10d6a612061e19dbc5a1a35a526e66c0d72c576442dc2073df
   languageName: node
   linkType: hard
 
-"@platformatic/sql-json-schema-mapper@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/sql-json-schema-mapper@npm:0.46.2"
+"@platformatic/sql-json-schema-mapper@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/sql-json-schema-mapper@npm:1.0.0"
   dependencies:
     code-block-writer: ^12.0.0
     safe-identifier: ^0.4.2
-  checksum: 5df7f69276e653cdffa381dcb2a415a0ff5fbb941ac7cf3a5939319a70d834b75bd670bfd8ec07d12068d65763d9c5e1a003540f18c86df0d64ce719db325e90
+  checksum: 571f4c2b23cd4aa4f9f2fefd9ace6b4cf1607cad2d8bbe19eb63dd7b6bed984f65ce99d5c36c94538c9d4b40dcbe911c9915a1b417e2299ea31928fa056f28ee
   languageName: node
   linkType: hard
 
-"@platformatic/sql-mapper@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/sql-mapper@npm:0.46.2"
+"@platformatic/sql-mapper@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/sql-mapper@npm:1.0.0"
   dependencies:
     "@databases/mysql": ^6.0.0
     "@databases/pg": ^5.4.1
@@ -5046,42 +5057,42 @@ __metadata:
     "@fastify/error": ^3.2.1
     "@hapi/topo": ^6.0.2
     "@matteo.collina/sqlite-pool": ^0.3.0
-    "@platformatic/utils": 0.46.2
+    "@platformatic/utils": 1.0.0
     camelcase: ^6.3.0
     fastify-plugin: ^4.5.0
     inflected: ^2.1.0
-  checksum: 9f9e0ec2fe9e2c4b627aa5212a6af975b5f260eb4edd6bd583fce92c2c93cf9b689cff86e823760745f68c5e7c202181a535172e6c989af513997b891ed1dc80
+  checksum: db4f6886c3f8f04933d88b9d43aa8baaf9bb125e675f968dd16d910dba3daa28eb8886256c64908d2ccb7e7ca6241d6946e00c43e49bc3e8906a2aab1ec19396
   languageName: node
   linkType: hard
 
-"@platformatic/sql-openapi@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/sql-openapi@npm:0.46.2"
+"@platformatic/sql-openapi@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/sql-openapi@npm:1.0.0"
   dependencies:
     "@fastify/deepmerge": ^1.3.0
     "@fastify/error": ^3.2.1
     "@fastify/swagger": ^8.5.1
     "@fastify/swagger-ui": ^1.9.0
-    "@platformatic/sql-json-schema-mapper": 0.46.2
-    "@platformatic/swagger-ui-theme": 0.46.2
-    "@platformatic/utils": 0.46.2
+    "@platformatic/sql-json-schema-mapper": 1.0.0
+    "@platformatic/swagger-ui-theme": 1.0.0
+    "@platformatic/utils": 1.0.0
     camelcase: ^6.3.0
     fastify-plugin: ^4.5.0
     inflected: ^2.1.0
-  checksum: 4d392091792ce1873117a826eacae401b6c8b3c403ee3e94fd1d62b08e8e3ed83a3d1ddba9103eccc656d60eee34aef3646a04dfb4d2b52d1a121a80c77c97c0
+  checksum: dfe12fa07ab98177f20b9fc974620b6e80e1eb2ef4874eef18230ec2b732805d5e48d1be6aa49c7becb97ceb9170ba8d16f232a21b893bb2980b4482d10b65cf
   languageName: node
   linkType: hard
 
-"@platformatic/swagger-ui-theme@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/swagger-ui-theme@npm:0.46.2"
-  checksum: df3a6c3627fdcd6e31526bfcc365c2ed73465d1612e036cfd627bd507dd0d057a3cfa8676047e194a11801d0800ca3c994d2129cbfe83a37a3dc2fb038678c04
+"@platformatic/swagger-ui-theme@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/swagger-ui-theme@npm:1.0.0"
+  checksum: adf6ab8eba1c8feaa41845f8193f21e5499870040cfc977e747a2876a812c07f869ca61d788542af1a0ffec38ead4a227f812b9065f761a684e608a10864ac54
   languageName: node
   linkType: hard
 
-"@platformatic/telemetry@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/telemetry@npm:0.46.2"
+"@platformatic/telemetry@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/telemetry@npm:1.0.0"
   dependencies:
     "@fastify/swagger": ^8.9.0
     "@opentelemetry/api": ^1.4.1
@@ -5093,19 +5104,19 @@ __metadata:
     "@opentelemetry/semantic-conventions": ^1.15.0
     fast-uri: ^2.2.0
     fastify-plugin: ^4.5.0
-  checksum: 9e7ba61e0035f6bf8e394e0e46ba7e3470720b7b2bc4fb4984d6c3a81236ab0cbbd8024b18d281121bf265fd01ada4f2bd3070e7063ecee061a82fad5043593c
+  checksum: d30b80b63e595a87dd29f811c27dda26dedb6877fa4bf19200a0086bd039589e26961807a5522f332415046b5929d542668872addc7f9443dcf2f8f2baa1e2ca
   languageName: node
   linkType: hard
 
-"@platformatic/utils@npm:0.46.2":
-  version: 0.46.2
-  resolution: "@platformatic/utils@npm:0.46.2"
+"@platformatic/utils@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@platformatic/utils@npm:1.0.0"
   dependencies:
     "@fastify/deepmerge": ^1.3.0
     "@fastify/error": ^3.2.1
     leven: ~3.1.0
     minimatch: ^8.0.4
-  checksum: 99d4c670d1fbc11687859f85a23f9956c4b24d0ff6fd9154a7b4f3894f6c23c35405f8b87eb60677567c0bd1c117cae0fc9c15d600d6cc8ee31cf0c209c5a569
+  checksum: 6391a867793996557cc9c3edbbcd336d2bf37c9e0660b7fc671846d996541ee23118bcd42a7a71be47a97cc000d6123ce99d2d422a5177a4a265643b5de9a5b1
   languageName: node
   linkType: hard
 
@@ -5877,6 +5888,13 @@ __metadata:
   version: 0.25.24
   resolution: "@sinclair/typebox@npm:0.25.24"
   checksum: 10219c58f40b8414c50b483b0550445e9710d4fe7b2c4dccb9b66533dd90ba8e024acc776026cebe81e87f06fa24b07fdd7bc30dd277eb9cc386ec50151a3026
+  languageName: node
+  linkType: hard
+
+"@sinclair/typebox@npm:^0.31.17":
+  version: 0.31.17
+  resolution: "@sinclair/typebox@npm:0.31.17"
+  checksum: 44c760a07ec908e28a1dae9fddc65a0bf64dc48661c286dfa485274ed7022eb4f676f5e74b216d51aff503bd3934dfde14dbe4740327acdf8411efe1b5bba17e
   languageName: node
   linkType: hard
 
@@ -7408,7 +7426,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/json-schema@npm:^7.0.11":
+"@types/json-schema@npm:^7.0.13":
   version: 7.0.13
   resolution: "@types/json-schema@npm:7.0.13"
   checksum: 345df21a678fa72fb389f35f33de77833d09d4a142bb2bcb27c18690efa4cf70fc2876e43843cefb3fbdb9fcb12cd3e970a90936df30f53bbee899865ff605ab
@@ -7791,6 +7809,15 @@ __metadata:
   version: 13.7.12
   resolution: "@types/validator@npm:13.7.12"
   checksum: 98fc9cb0e0af31a8cf7f3234dbd8391a937b1596cdfea16f21f4228f46d70eea2ebc1128ff6c4041ec7db2d94f093eeb441e66ce1eb9902157b6c44d01066fe2
+  languageName: node
+  linkType: hard
+
+"@types/ws@npm:^8.5.5":
+  version: 8.5.6
+  resolution: "@types/ws@npm:8.5.6"
+  dependencies:
+    "@types/node": "*"
+  checksum: 7addb0c5fa4e7713d5209afb8a90f1852b12c02cb537395adf7a05fbaf21205dc5f7c110fd5ad6f3dbf147112cbff33fb11d8633059cb344f0c14f595b1ea1fb
   languageName: node
   linkType: hard
 
@@ -10920,11 +10947,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"create-platformatic@npm:0.46.2":
-  version: 0.46.2
-  resolution: "create-platformatic@npm:0.46.2"
+"create-platformatic@npm:1.0.0":
+  version: 1.0.0
+  resolution: "create-platformatic@npm:1.0.0"
   dependencies:
-    "@platformatic/config": 0.46.2
+    "@platformatic/config": 1.0.0
     boring-name-generator: ^1.0.3
     chalk: ^5.2.0
     columnify: ^1.6.0
@@ -10946,7 +10973,7 @@ __metadata:
     which: ^3.0.1
   bin:
     create-platformatic: create-platformatic.mjs
-  checksum: 75e1457c31af7e4b58a975192566851f90925408d1ef19bcc9081c3cf015bab210d06bab5d44b01a373198d64e51fd2b9e335070fa1aa3561e5d004008e65314
+  checksum: 5f3f4c31b1239fd2affad85b490b1de00a976af23c480529f14daf48dc5335a3b0553ae1d0abba47844fd1e278b5296accfb60716faffb1b3f3a62a4e70b7235
   languageName: node
   linkType: hard
 
@@ -17184,11 +17211,15 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "ligretto-core-backend-v2-cecb4e@workspace:apps/ligretto-core-backend-v2"
   dependencies:
+    "@fastify/type-provider-typebox": ^3.5.0
     "@memebattle/cas-services": ^3.6.5
-    "@platformatic/db": ^0.46.2
+    "@platformatic/db": ^1.0.0
+    "@sinclair/typebox": ^0.31.17
+    ajv: ^8.12.0
+    fast-uri: ^2.2.0
     fastify: ^4.23.2
-    platformatic: ^0.46.2
-    typescript: ~5.2.0
+    platformatic: ^1.0.0
+    typescript: ^5.0.4
   languageName: unknown
   linkType: soft
 
@@ -20650,24 +20681,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"platformatic@npm:^0.46.2":
-  version: 0.46.2
-  resolution: "platformatic@npm:0.46.2"
+"platformatic@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "platformatic@npm:1.0.0"
   dependencies:
     "@fastify/error": ^3.2.1
-    "@platformatic/authenticate": 0.46.2
-    "@platformatic/client-cli": 0.46.2
-    "@platformatic/composer": 0.46.2
-    "@platformatic/config": 0.46.2
-    "@platformatic/db": 0.46.2
-    "@platformatic/deploy-client": 0.46.2
-    "@platformatic/frontend-template": 0.46.2
-    "@platformatic/metaconfig": 0.46.2
-    "@platformatic/runtime": 0.46.2
-    "@platformatic/service": 0.46.2
+    "@platformatic/authenticate": 1.0.0
+    "@platformatic/client-cli": 1.0.0
+    "@platformatic/composer": 1.0.0
+    "@platformatic/config": 1.0.0
+    "@platformatic/db": 1.0.0
+    "@platformatic/deploy-client": 1.0.0
+    "@platformatic/frontend-template": 1.0.0
+    "@platformatic/metaconfig": 1.0.0
+    "@platformatic/runtime": 1.0.0
+    "@platformatic/service": 1.0.0
     colorette: ^2.0.20
     commist: ^3.2.0
-    create-platformatic: 0.46.2
+    create-platformatic: 1.0.0
     desm: ^1.3.0
     dotenv: ^16.1.4
     help-me: ^4.2.0
@@ -20678,7 +20709,7 @@ __metadata:
   bin:
     platformatic: cli.js
     plt: cli.js
-  checksum: 69bc131548a00265fdc2bc3765fb9f63c06f752d927363e255cfdf34bc5578d6d1494e6bc3c6e0a4b0b30e72b27064fe9299e91ad2b6d8faf232d0554d4edd60
+  checksum: df64215965648a56808465e2d8fd1720ba81b2ee664311c352e97ef8127a194c61e864ecd6e4ae4ac5952203dad61799db51c496d8758487f5b2bdc70339d1c3
   languageName: node
   linkType: hard
 
@@ -25215,16 +25246,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:~5.2.0":
-  version: 5.2.2
-  resolution: "typescript@npm:5.2.2"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: 7912821dac4d962d315c36800fe387cdc0a6298dba7ec171b350b4a6e988b51d7b8f051317786db1094bd7431d526b648aba7da8236607febb26cf5b871d2d3c
-  languageName: node
-  linkType: hard
-
 "typescript@patch:typescript@^5.0.4#~builtin<compat/typescript>":
   version: 5.0.4
   resolution: "typescript@patch:typescript@npm%3A5.0.4#~builtin<compat/typescript>::version=5.0.4&hash=ad5954"
@@ -25232,16 +25253,6 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 6a1fe9a77bb9c5176ead919cc4a1499ee63e46b4e05bf667079f11bf3a8f7887f135aa72460a4c3b016e6e6bb65a822cb8689a6d86cbfe92d22cc9f501f09213
-  languageName: node
-  linkType: hard
-
-"typescript@patch:typescript@~5.2.0#~builtin<compat/typescript>":
-  version: 5.2.2
-  resolution: "typescript@patch:typescript@npm%3A5.2.2#~builtin<compat/typescript>::version=5.2.2&hash=ad5954"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: 07106822b4305de3f22835cbba949a2b35451cad50888759b6818421290ff95d522b38ef7919e70fb381c5fe9c1c643d7dea22c8b31652a717ddbd57b7f4d554
   languageName: node
   linkType: hard
 

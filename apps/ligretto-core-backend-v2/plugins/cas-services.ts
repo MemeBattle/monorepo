@@ -26,6 +26,24 @@ interface CasServicesOptions {
 }
 
 export default async function (fastify: FastifyInstance, opts: CasServicesOptions) {
+  fastify.log.info('Registering CAS services')
+
+  const withLogger = (services: CasServices) => {
+    const result = {} as CasServices
+
+    for (const [key, value] of Object.entries(services)) {
+      result[key] = async (...args: unknown[]) => {
+        const start = Date.now()
+        const result = await value(...args)
+        const end = Date.now()
+        fastify.log.debug({ service: key, time: end - start, result })
+        return result
+      }
+    }
+
+    return result
+  }
+
   const { partnerId, casURI, publicKeyPath } = opts
   const publicKey = await fs.readFile(publicKeyPath).toString()
   const services = createCasServices({ partnerId, casURI, publicKey })
@@ -37,12 +55,15 @@ export default async function (fastify: FastifyInstance, opts: CasServicesOption
   const getUsers = services.getUsersService
   const createTemporaryToken = services.createTemporaryTokenService
 
-  fastify.decorate('casServices', {
-    login,
-    signUp,
-    verifyToken,
-    getMe,
-    getUsers,
-    createTemporaryToken,
-  })
+  fastify.decorate(
+    'casServices',
+    withLogger({
+      login,
+      signUp,
+      verifyToken,
+      getMe,
+      getUsers,
+      createTemporaryToken,
+    }),
+  )
 }

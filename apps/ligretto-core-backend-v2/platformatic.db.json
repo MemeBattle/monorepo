@@ -1,10 +1,15 @@
 {
-  "$schema": "https://platformatic.dev/schemas/v0.46.2/db",
+  "$schema": "https://platformatic.dev/schemas/v1.0.0/db",
   "server": {
     "hostname": "{PLT_SERVER_HOSTNAME}",
     "port": "{PORT}",
     "logger": {
       "level": "{PLT_SERVER_LOGGER_LEVEL}"
+    },
+    "healthCheck": {
+      "exposeStatusRoute": {
+        "url": "/health"
+      }
     }
   },
   "db": {
