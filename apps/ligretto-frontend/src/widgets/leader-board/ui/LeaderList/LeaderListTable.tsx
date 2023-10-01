@@ -1,5 +1,5 @@
 import type { FC } from 'react'
-import { Avatar } from '../../../../shared/ui/Avatar'
+import { Avatar } from 'shared/ui/Avatar'
 import { Box, Grid, Typography, useMediaQuery, useTheme } from '@memebattle/ui'
 
 import { LeaderListTableCell } from './LeaderListTableCell'
@@ -35,7 +35,7 @@ export const LeaderListTable: FC<LeaderListTableProps> = ({ leader }) => {
               {i < 3 ? (
                 <img src={placeImages[i]} alt="prize medal" />
               ) : (
-                <Typography variant="h4" whiteSpace="nowrap" overflow="auto">
+                <Typography display="flex" alignItems="center" minHeight="48px" variant="h4" whiteSpace="nowrap" overflow="auto">
                   {userPlace}
                 </Typography>
               )}

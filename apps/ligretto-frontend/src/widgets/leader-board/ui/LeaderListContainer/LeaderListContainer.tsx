@@ -1,7 +1,8 @@
 import type { FC } from 'react'
+import { useCallback } from 'react'
 import { useState } from 'react'
 import { Tab, useMediaQuery, useTheme, Typography, Grid } from '@memebattle/ui'
-import { Tabs } from '../../../../shared/ui/Tabs'
+import { Tabs } from 'shared/ui/Tabs'
 import { LeaderListTable } from 'widgets/leader-board/ui/LeaderList'
 import { LeaderListTableCell } from '../LeaderList/LeaderListTableCell'
 import { LeaderListTableHead } from '../LeaderList/LeaderListTableHead'
@@ -25,22 +26,22 @@ const CustomTabPanel: FC<TabPanelProps> = ({ children, value, index }) => (
   </div>
 )
 
+const getTitles = (isMobile: boolean) => (!isMobile ? ['For day', 'For month', 'For all the time'] : ['Day', 'Month', 'All'])
+
 export const LeaderListContainer: FC<LeaderBoardProps> = ({ leaders }) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   const [value, setValue] = useState(0)
 
-  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleChange = useCallback((event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue)
-  }
-
-  const title = !isMobile ? ['For day', 'For month', 'For all the time'] : ['Day', 'Month', 'All']
+  }, [])
 
   return (
     <>
       <Tabs variant="fullWidth" value={value} onChange={handleChange}>
-        {title.map(title => (
+        {getTitles(isMobile).map(title => (
           <Tab label={title} />
         ))}
       </Tabs>
