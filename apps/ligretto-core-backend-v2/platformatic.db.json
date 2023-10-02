@@ -15,7 +15,9 @@
   "db": {
     "connectionString": "{DATABASE_URL}",
     "graphql": true,
-    "openapi": true,
+    "openapi": {
+      "prefix": "/api"
+    },
     "schemalock": true
   },
   "watch": {
