@@ -1,6 +1,6 @@
 import { test, expect, chromium } from '@playwright/test'
-import { GamePage } from '../support/pages/game'
-import { HomePage } from '../support/pages/home'
+import { GamePage } from '../../src/pages/game/GamePage.page-object'
+import { HomePage } from '../../src/pages/home/HomePage.page-object'
 import { random } from 'lodash'
 
 test.describe('Create and enter room', () => {

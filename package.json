@@ -25,8 +25,7 @@
     "ligretto-shared:build": "yarn workspace @memebattle/ligretto-shared run build",
     "ts-check": "yarn workspaces foreach -vip run ts-check",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
-    "e2e:start": "playwright test"
+    "build-storybook": "storybook build"
   },
   "engines": {
     "node": ">=18"
@@ -42,7 +41,6 @@
     "not op_mini all"
   ],
   "devDependencies": {
-    "@playwright/test": "^1.28.0",
     "@storybook/addon-actions": "^7.0.6",
     "@storybook/addon-docs": "^7.0.6",
     "@storybook/addon-essentials": "^7.0.6",

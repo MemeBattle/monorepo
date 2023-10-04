@@ -37,6 +37,7 @@ const config: PlaywrightTestConfig = {
     actionTimeout: 0,
     trace: 'on-first-retry',
     baseURL: process.env.LIGRETTO_APP_URL || 'http://localhost:5173',
+    testIdAttribute: 'data-test-id',
   },
 
   /* Configure projects for major browsers */
