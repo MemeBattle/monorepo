@@ -4,6 +4,8 @@ services:
     image: ghcr.io/memebattle/blog:latest
     networks:
       - traefik-public
+    environment:
+      HOSTNAME: 0.0.0.0
     deploy:
       labels:
         - "traefik.enable=true"
