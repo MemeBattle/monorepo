@@ -1,5 +1,8 @@
-import path from 'node:path'
+/// <reference types="vitest" />
+
+import * as path from 'node:path'
 import { defineConfig, loadEnv } from 'vite'
+import { configDefaults } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import svgr from 'vite-plugin-svgr'
 
@@ -22,7 +25,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), svgr()],
     define: envVariables,
     test: {
-      globals: true,
+      exclude: [...configDefaults.exclude, 'e2e'],
     },
   }
 })
