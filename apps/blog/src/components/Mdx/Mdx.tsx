@@ -4,6 +4,7 @@ import { useMDXComponent, getMDXComponent } from 'next-contentlayer/hooks'
 import InstagramPost from '../InstagramPost'
 import { ExternalLink } from '../ExternalLink'
 import { Blockquote } from '../Blockquote'
+import { generateFullUrl } from '../../utils/generateFullUrl'
 
 interface MdxProps {
   code: string
@@ -13,7 +14,11 @@ const components = { Image: (props: ImageProps) => <Image {...props} />, Instagr
 
 const rssComponents = {
   ...components,
-  Image: (props: React.DetailedHTMLProps<React.ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>) => <img {...props} />,
+  Image: (props: React.DetailedHTMLProps<React.ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>) => {
+    const updatedProps = { ...props, src: generateFullUrl(props.src) }
+
+    return <img {...updatedProps} />
+  },
   InstagramPost: () => null, // TODO: https://github.com/MemeBattle/monorepo/issues/438 create InstagramPost fallback component
 }
 
