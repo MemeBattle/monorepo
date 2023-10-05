@@ -10,6 +10,7 @@
     "lint": "run-p -ln 'lint:*'",
     "lint-fix": "run-p -l 'lint-fix:*'",
     "test:ci": "yarn workspaces foreach -vip run test:ci",
+    "ligretto:test:ci": "yarn workspaces foreach -vip --include '@memebattle/ligretto-*' run test:ci",
     "ligretto:start": "yarn workspaces foreach --jobs unlimited -vip --include '{@memebattle/ligretto-core-backend,@memebattle/ligretto-gameplay-backend,@memebattle/ligretto-frontend}' run start:dev",
     "ligretto:start:ci": "yarn workspaces foreach --jobs unlimited -vp --include '{@memebattle/ligretto-core-backend,@memebattle/ligretto-gameplay-backend,@memebattle/ligretto-frontend}' run start:dev",
     "ligretto:front:build": "yarn workspace @memebattle/ligretto-frontend run build",

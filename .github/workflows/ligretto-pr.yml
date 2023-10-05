@@ -1,0 +1,160 @@
+name: Ligretto-pr-e2e
+
+on:
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'apps/ligretto-**'
+      - 'packages/ligretto-shared/**'
+      - '.docker/Ligretto-**'
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+
+  lint:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.14'
+          cache: 'yarn'
+
+      - name: Install yarn
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Lint code
+        run: yarn lint
+
+  tests:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.14'
+          cache: 'yarn'
+
+      - name: Install yarn
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Build shared
+        run: yarn ligretto-shared:build
+
+      - name: Run tests
+        run: yarn ligretto:test:ci
+
+      - uses: jwalton/gh-find-current-pr@v1
+        id: findPr
+
+      - name: Collect coverage from ligretto-gameplay-backend
+        uses: ArtiomTr/jest-coverage-report-action@v2
+        with:
+          prnumber: ${{ steps.findPr.outputs.number }}
+          skip-step: all
+          working-directory: apps/ligretto-gameplay-backend
+
+  tsc:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.14'
+          cache: 'yarn'
+
+      - name: Install yarn
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: TS check
+        run: yarn ts-check
+
+  e2e:
+    env:
+      NODE_ENV: test
+      APP_KEY: nwpdmmnko5ylXZt_5CMnofXYUVl9Ppte
+
+    services:
+      postgres:
+        image: postgres:13.4
+        ports:
+          - 5433:5432
+        env:
+          POSTGRES_USER: ligretto-core-user
+          POSTGRES_PASSWORD: ligretto_pg_password
+          POSTGRES_DB: ligretto-core
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.14'
+          cache: 'yarn'
+
+      - name: Install yarn
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Install Playwright Browsers
+        run: yarn dlx playwright@1.38.1 install --with-deps chromium
+
+      - name: Migrate database
+        run: yarn ligretto:core-backend:migrate
+
+      - name: Start core backend
+        run: yarn ligretto:core-backend:start:dev &
+
+      - name: Check core backend app
+        run: yarn dlx wait-on --timeout 60000 http-get://127.0.0.1:3333/health
+
+      - name: Start gameplay backend
+        run: yarn ligretto:gameplay-backend:start:dev &
+
+      - name: Start frontend
+        run: yarn ligretto:front:start:dev &
+
+      - name: Check frontend app
+        run: yarn dlx wait-on -c ./apps/ligretto-frontend/waitOnConfig.json --timeout 60000 http-get://127.0.0.1:5173
+
+      - name: Run playwright tests
+        run: yarn e2e:start
