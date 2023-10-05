@@ -1,6 +1,5 @@
 import { ServerMdx } from '@/components/Mdx'
 
-// TODO: see https://github.com/unifiedjs/unified/issues/227 before update the dependencies;
 export const convertMarkdownToHtml = async (code: string): Promise<string> => {
   /**************************************
   ReactDOMServer dynamic import is used to exclude a ReactServerComponentsError:
