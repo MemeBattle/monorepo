@@ -30,6 +30,7 @@ export const initialState: GameState = {
       dndEnabled: false,
       startingDelayInSec: 4,
       playersMaxCount: 4,
+      maxCardsOnTable: 12,
     },
     spectators: {},
   },

@@ -26,7 +26,7 @@ export class Gameplay {
         return
       }
 
-      const finalDeckPosition = await this.playgroundService.checkOrCreateDeck(gameId, card, deckPosition)
+      const finalDeckPosition = await this.playgroundService.getAvailableDeckPosition(gameId, card, deckPosition)
       if (finalDeckPosition === undefined || finalDeckPosition === -1) {
         return
       }
@@ -44,7 +44,7 @@ export class Gameplay {
       if (!card) {
         return
       }
-      const finalDeckPosition = await this.playgroundService.checkOrCreateDeck(gameId, card, deckPosition)
+      const finalDeckPosition = await this.playgroundService.getAvailableDeckPosition(gameId, card, deckPosition)
 
       if (finalDeckPosition === -1 || finalDeckPosition === undefined) {
         return

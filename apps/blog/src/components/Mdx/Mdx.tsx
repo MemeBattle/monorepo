@@ -4,13 +4,22 @@ import { useMDXComponent, getMDXComponent } from 'next-contentlayer/hooks'
 import InstagramPost from '../InstagramPost'
 import { ExternalLink } from '../ExternalLink'
 import { Blockquote } from '../Blockquote'
+import { Summary } from '../Summary'
+import { Details } from '../Details'
 import { generateFullUrl } from '../../utils/generateFullUrl'
 
 interface MdxProps {
   code: string
 }
 
-const components = { Image: (props: ImageProps) => <Image {...props} />, InstagramPost, a: ExternalLink, blockquote: Blockquote }
+const components = {
+  Image: (props: ImageProps) => <Image {...props} />,
+  InstagramPost,
+  a: ExternalLink,
+  blockquote: Blockquote,
+  Details,
+  Summary,
+}
 
 const rssComponents = {
   ...components,
