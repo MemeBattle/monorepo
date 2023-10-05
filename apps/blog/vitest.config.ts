@@ -1,4 +1,4 @@
-import { defineConfig, configDefaults } from 'vitest/config'
+import { defineConfig } from 'vitest/config'
 import { loadEnv } from 'vite'
 import tsconfigPaths from 'vite-tsconfig-paths'
 import path from 'node:path'
@@ -21,12 +21,6 @@ export default defineConfig(({ mode }) => {
     test: {
       globals: true,
       environment: 'jsdom',
-      exclude: [...configDefaults.exclude, '**/__tests__/*.fixture.ts'],
-    },
-    resolve: {
-      alias: {
-        'contentlayer/generated': path.resolve(__dirname, '../.contentlayer/generated'),
-      },
     },
   }
 })

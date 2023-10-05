@@ -9,7 +9,7 @@
     "generate": "contentlayer build",
     "ts-check": "yarn build && tsc --noEmit",
     "test": "vitest",
-    "test:ci": "vitest run"
+    "test:ci": "yarn build && vitest run"
   },
   "dependencies": {
     "@amplitude/analytics-browser": "^2.1.2",
