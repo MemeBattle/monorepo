@@ -1,4 +1,4 @@
-name: Ligretto-pr-e2e
+name: Ligretto-pr
 
 on:
   pull_request:
@@ -6,7 +6,11 @@ on:
     paths:
       - 'apps/ligretto-**'
       - 'packages/ligretto-shared/**'
+      - 'packages/auth-front/**'
+      - 'packages/ui/**'
       - '.docker/Ligretto-**'
+      - '.env*'
+      - 'yarn.lock'
 
 env:
   NODE_OPTIONS: --max-old-space-size=4096
