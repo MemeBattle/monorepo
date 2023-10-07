@@ -97,7 +97,7 @@ jobs:
         run: yarn
 
       - name: TS check
-        run: yarn ts-check
+        run: yarn ligretto:ts-check:ci
 
   e2e:
     env:
