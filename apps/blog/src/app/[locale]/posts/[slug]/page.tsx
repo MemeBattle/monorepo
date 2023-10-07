@@ -17,6 +17,8 @@ import { generateFullUrl } from '@/utils/generateFullUrl'
 import { memeberToPostAuthor } from '@/utils/memeberToPostAuthor'
 import { formatDate } from '@/utils/formatDate'
 import type { Language } from '@/i18n/i18n.settings'
+import { Popover } from '@/components/Popover'
+import { ShareButton } from '@/components/ShareButton'
 
 interface BlogProps {
   params: {
@@ -88,7 +90,19 @@ export default function Post({ params }: BlogProps) {
           <Image fill className="object-contain rounded-lg" src={post.image} alt={post.imageDescription || post.title} />
         </div>
         <div className="col-start-1 col-span-1 max-w-full md:max-w-5xl flex flex-col mt-6">
-          <p className="text-gray-600 text-sm">{formatDate(post.publishedAt, params.locale)}</p>
+          <div className="col-start-1 col-span-1 max-w-full md:max-w-5xl flex flex-col mt-6">
+            <div className="flex justify-between mb-4">
+              <p className="text-gray-600 text-sm">{formatDate(post.publishedAt, params.locale)}</p>
+              <Popover
+                trigger={
+                  <ShareButton shareData={{ title: post.title, text: post.summary, url: generateFullUrl(`/${params.locale}/posts/${post.slug}`) }} />
+                }
+                children="Copied"
+                direction="bottomLeft"
+                useShare
+              />
+            </div>
+          </div>
           <h1 className="font-bold text-3xl mt-6 lg:text-5xl lg:font-extrabold">{post.title}</h1>
           {post.tags ? (
             <div className="my-8">
