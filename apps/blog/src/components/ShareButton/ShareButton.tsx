@@ -10,7 +10,7 @@
 export function ShareButton({ shareData }: { shareData: ShareData }) {
   /**
    * Handles the click event for the button.
-   * If the browser does not support the share API, it will copy the text, otherwise it will open the share dialog.
+   * If the browser does not support the share API, it will copy the text (url/text/title), otherwise it will open the share dialog.
    *
    * @async
    * @return {void}

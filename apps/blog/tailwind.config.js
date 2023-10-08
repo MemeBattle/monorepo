@@ -58,5 +58,5 @@ module.exports = {
     },
   },
 
-  plugins: [require('@tailwindcss/typography'), require('@headlessui/tailwindcss')({ prefix: 'ui' })],
+  plugins: [require('@tailwindcss/typography')],
 }
