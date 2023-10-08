@@ -1,15 +1,26 @@
 'use client'
 
+/**
+ * Renders a share button component.
+ *
+ * @param {Object} props - The component props.
+ * @param {ShareData} props.shareData - The data to be shared.
+ * @return {JSX.Element} The share button component.
+ */
 export function ShareButton({ shareData }: { shareData: ShareData }) {
+  /**
+   * Handles the click event for the button.
+   * If the browser does not support the share API, it will copy the text, otherwise it will open the share dialog.
+   *
+   * @async
+   * @return {void}
+   */
   const handleClick = async () => {
     try {
       if (!navigator.share) {
-        console.log('!!!')
         await navigator.clipboard.writeText(shareData.url || shareData.text || shareData.title || '')
-        // window.alert('Copied to clipboard')
       } else {
         await navigator.share(shareData)
-        console.log('SHARED')
       }
     } catch (error: unknown) {
       const err = error as Error

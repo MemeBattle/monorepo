@@ -1,69 +1,78 @@
 'use client'
 
-import { Popover as HPopover } from '@headlessui/react'
+import { Popover as Popup } from '@headlessui/react'
 import type { ReactNode } from 'react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 type DropdownDirection = 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight'
 
 export interface PopoverProps {
-  children?: ReactNode | string
+  content?: ReactNode | string
   trigger?: ReactNode
   direction?: DropdownDirection
   useShare?: boolean
+  time?: number
+  useTimer?: boolean
+  customStyles?: string
 }
+
+/**
+ * Renders a popover component.
+ *
+ * @param {PopoverProps} props - The props object containing the following properties:
+ *   - content: The content to be displayed inside the popover.
+ *   - direction: The direction in which the popover should open. Defaults to 'topLeft'.
+ *   - trigger: The element that triggers the popover.
+ *   - time: The duration in milliseconds after which the popover should close. Defaults to 1000.
+ *   - useTimer: A boolean indicating whether to use the timer functionality. Defaults to false.
+ *   - useShare: A boolean indicating whether to use the share functionality. Defaults to false.
+ *   - customStyles: The custom styles to be applied to the popover.
+ * @return {ReactElement} - The rendered popover component.
+ */
 export const Popover = (props: PopoverProps) => {
-  const { children, direction = 'topRight', trigger, useShare = false } = props
-
-  let isShared = false
-  useEffect(() => {
-    if (navigator) {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      isShared = !!window.navigator.share
-      console.log(window.navigator, isShared)
-    }
-  })
-
-  console.log(isShared)
-
-  // eslint-disable-next-line prefer-const
+  const { content, direction = 'topLeft', trigger, time = 1000, useTimer = false, useShare = false, customStyles = '' } = props
+  const [isShared, setIsShared] = useState(false)
   const [timerId, setTimerId] = useState<NodeJS.Timeout | null>(null)
 
-  const handleClick = (open: boolean, close: () => void) => {
-    // Clear any existing timer when the popover is clicked
-    if (timerId) {
-      clearTimeout(timerId)
+  useEffect(() => {
+    if (navigator) {
+      setIsShared(!!navigator.share)
     }
+  }, [isShared])
 
-    if (open) {
-      // Set a new timer to close the popover after 4 seconds
-      const newTimerId = setTimeout(() => {
-        close()
-        setTimerId(null) // Clear the timer ID after it's executed
-      }, 2000)
-      setTimerId(newTimerId)
-    }
-  }
+  const handleClick = useCallback(
+    (open: boolean, close: () => void) => {
+      if (timerId) {
+        clearTimeout(timerId)
+      }
 
-  return useShare ? (
-    <HPopover className="relative">
+      if (!open && useTimer) {
+        const newTimerId = setTimeout(() => {
+          close()
+          setTimerId(null)
+        }, time)
+        setTimerId(newTimerId)
+      }
+    },
+    [time, timerId, useTimer],
+  )
+
+  return useShare && isShared ? (
+    <div>{trigger}</div>
+  ) : (
+    <Popup className="relative">
       {({ open, close }) => (
         <>
-          <HPopover.Button as="div" onClick={() => handleClick(open, close)}>
+          <Popup.Button as="div" onClick={() => handleClick(open, close)} className="flex">
             {trigger}
-          </HPopover.Button>
-          {open && (
-            <HPopover.Panel
-              static
-              className={`absolute flex flex-col border-solid rounded-lg bg-gray-500 overflow-hidden z-40 ui-open:[${direction}]`}
-            >
-              {children}
-            </HPopover.Panel>
-          )}
+          </Popup.Button>
+          <Popup.Panel
+            className={`absolute flex w-fit p-3 whitespace-nowrap flex-col border-solid rounded-lg bg-gray-300 overflow-hidden z-40 ${customStyles} ${direction}`}
+          >
+            {content}
+          </Popup.Panel>
         </>
       )}
-    </HPopover>
-  ) : (
-    <div>{trigger}</div>
+    </Popup>
   )
 }

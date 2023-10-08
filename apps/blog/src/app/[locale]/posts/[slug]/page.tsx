@@ -91,14 +91,14 @@ export default function Post({ params }: BlogProps) {
         </div>
         <div className="col-start-1 col-span-1 max-w-full md:max-w-5xl flex flex-col mt-6">
           <div className="col-start-1 col-span-1 max-w-full md:max-w-5xl flex flex-col mt-6">
-            <div className="flex justify-between mb-4">
+            <div className="flex justify-between items-center mb-4">
               <p className="text-gray-600 text-sm">{formatDate(post.publishedAt, params.locale)}</p>
               <Popover
                 trigger={
                   <ShareButton shareData={{ title: post.title, text: post.summary, url: generateFullUrl(`/${params.locale}/posts/${post.slug}`) }} />
                 }
-                children="Copied"
-                direction="bottomLeft"
+                content={post.lang === 'en' ? 'Copied to clipboard' : 'Ссылка скопирована'}
+                useTimer
                 useShare
               />
             </div>
