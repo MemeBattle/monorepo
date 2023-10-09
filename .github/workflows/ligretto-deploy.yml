@@ -45,7 +45,7 @@ jobs:
       env:
         LIGRETTO_GAMEPLAY_URL: https://api.ligretto.app
         LIGRETTO_CORE_URL: https://core.ligretto.app/api
-        CAS_PARTNER_ID: 65071bad6aa301d37e259828
+        CAS_PARTNER_ID: 652468293877db2de8390fa3
         CAS_STATIC_URL: https://cas.mems.fun/static
         CAS_URL: https://cas.mems.fun/api
         AMPLITUDE_TOKEN: f55f6d07422dfb26ca4dfbe59a54d609

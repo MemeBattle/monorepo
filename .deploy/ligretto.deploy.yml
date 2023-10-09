@@ -44,7 +44,7 @@ services:
       - HOST=0.0.0.0
       - NODE_ENV=production
       - LIGRETTO_CORE_APP_KEY=BYnNsw-r-ndJTCy15Uqo8JAF4ONCA4X1
-      - CAS_PARTNER_ID=65071bad6aa301d37e259828
+      - CAS_PARTNER_ID=652468293877db2de8390fa3
       - CAS_URL=https://cas.mems.fun/api
       - LIGRETTO_CORE_DB_CONNECTION=pg
       - LIGRETTO_CORE_PG_HOST=ligretto-core-pg
