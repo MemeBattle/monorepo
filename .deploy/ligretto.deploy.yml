@@ -91,16 +91,16 @@ services:
       - traefik-public
       - metrics-targets
     environment:
-      - APP_PORT=4201
+      - APP_PORT=3222
       - APP_HOST=0.0.0.0
     deploy:
       labels:
         - "prometheus-job=ligretto-bot-clj"
-        - "prometheus-port=4201"
+        - "prometheus-port=8080"
         - "traefik.enable=true"
         - "traefik.http.routers.ligretto-bot-clj.rule=Host(`bots.ligretto.app`)"
         - "traefik.http.routers.ligretto-bot-clj.entrypoints=web"
-        - "traefik.http.services.ligretto-bot-clj.loadbalancer.server.port=4201"
+        - "traefik.http.services.ligretto-bot-clj.loadbalancer.server.port=3222"
         - "traefik.http.services.ligretto-bot-clj.loadbalancer.passhostheader=true"
       replicas: 1
       update_config:
