@@ -17,8 +17,7 @@ import { generateFullUrl } from '@/utils/generateFullUrl'
 import { memeberToPostAuthor } from '@/utils/memeberToPostAuthor'
 import { formatDate } from '@/utils/formatDate'
 import type { Language } from '@/i18n/i18n.settings'
-import { Popup } from 'src/components/Popup'
-import { ShareButton } from '@/components/ShareButton'
+import { ShareButtonWithPopover } from 'src/components/ShareButtonWithPopover'
 
 interface BlogProps {
   params: {
@@ -93,13 +92,9 @@ export default function Post({ params }: BlogProps) {
           <div className="col-start-1 col-span-1 max-w-full md:max-w-5xl flex flex-col mt-6">
             <div className="flex justify-between items-center mb-4">
               <p className="text-gray-600 text-sm">{formatDate(post.publishedAt, params.locale)}</p>
-              <Popup
-                trigger={
-                  <ShareButton shareData={{ title: post.title, text: post.summary, url: generateFullUrl(`/${params.locale}/posts/${post.slug}`) }} />
-                }
-                content={post.lang === 'en' ? 'Copied to clipboard' : 'Ссылка скопирована'} // TODO Мне не нравится этот захардкоженый текст с переводом
-                useTimer
-                useShare
+              <ShareButtonWithPopover
+                locale={params.locale}
+                shareData={{ title: post.title, text: post.summary, url: generateFullUrl(`/${params.locale}/posts/${post.slug}`) }}
               />
             </div>
           </div>
