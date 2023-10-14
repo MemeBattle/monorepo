@@ -17,7 +17,7 @@ import { generateFullUrl } from '@/utils/generateFullUrl'
 import { memeberToPostAuthor } from '@/utils/memeberToPostAuthor'
 import { formatDate } from '@/utils/formatDate'
 import type { Language } from '@/i18n/i18n.settings'
-import { ShareButtonWithPopover } from 'src/components/ShareButtonWithPopover'
+import { ShareButton } from 'src/components/ShareButton'
 
 interface BlogProps {
   params: {
@@ -92,7 +92,7 @@ export default function Post({ params }: BlogProps) {
           <div className="col-start-1 col-span-1 max-w-full md:max-w-5xl flex flex-col mt-6">
             <div className="flex justify-between items-center mb-4">
               <p className="text-gray-600 text-sm">{formatDate(post.publishedAt, params.locale)}</p>
-              <ShareButtonWithPopover
+              <ShareButton
                 locale={params.locale}
                 shareData={{ title: post.title, text: post.summary, url: generateFullUrl(`/${params.locale}/posts/${post.slug}`) }}
               />
