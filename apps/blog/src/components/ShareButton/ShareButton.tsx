@@ -2,16 +2,12 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
-import type { Language } from '@/i18n/i18n.settings'
-import { useTranslation } from '@/i18n'
 
 const popoverTimer = 1000
 
-export const ShareButton = ({ shareData, locale }: { shareData: ShareData; locale: Language }) => {
+export const ShareButton = ({ shareData, content }: { shareData: ShareData; content: string }) => {
   const [open, setOpen] = useState(false)
   const timerIdRef = useRef<NodeJS.Timeout | null>(null)
-  const textRef = useRef('')
-  const translation = useTranslation(locale, 'posts')
 
   const handleTimerClear = useCallback(() => {
     if (timerIdRef.current) {
@@ -57,8 +53,6 @@ export const ShareButton = ({ shareData, locale }: { shareData: ShareData; local
     try {
       if (!navigator.share) {
         await navigator.clipboard.writeText(shareData.url || shareData.text || shareData.title || '')
-        const { t } = await translation
-        textRef.current = t('copied')
         handlePopoverClick()
       } else {
         await navigator.share(shareData)
@@ -72,7 +66,7 @@ export const ShareButton = ({ shareData, locale }: { shareData: ShareData; local
 
       console.error(error)
     }
-  }, [handlePopoverClick, handleTimerClear, shareData, translation])
+  }, [handlePopoverClick, handleTimerClear, shareData])
 
   return (
     <Popover.Root open={open} defaultOpen onOpenChange={handleClick}>
@@ -98,7 +92,7 @@ export const ShareButton = ({ shareData, locale }: { shareData: ShareData; local
           sideOffset={5}
           hideWhenDetached
         >
-          {textRef.current}
+          {content}
           <Popover.Arrow className="fill-gray-200" width={10} height={10} />
         </Popover.Content>
       </Popover.Portal>

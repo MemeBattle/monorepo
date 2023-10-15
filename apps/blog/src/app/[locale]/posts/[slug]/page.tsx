@@ -18,6 +18,7 @@ import { memeberToPostAuthor } from '@/utils/memeberToPostAuthor'
 import { formatDate } from '@/utils/formatDate'
 import type { Language } from '@/i18n/i18n.settings'
 import { ShareButton } from 'src/components/ShareButton'
+import { useTranslation } from '@/i18n'
 
 interface BlogProps {
   params: {
@@ -62,9 +63,10 @@ export const generateMetadata = ({ params }: BlogProps): Metadata => {
   }
 }
 
-export default function Post({ params }: BlogProps) {
+export default async function Post({ params }: BlogProps) {
   const post = allBlogPostsWithTranslates.find(post => post.slug === params.slug && isPostShouldBePickedByLocale(post, params.locale))
   const postAuthor = allMemebers.find(memeber => memeber.username === post?.author)
+  const { t } = await useTranslation(params.locale, 'posts')
 
   if (!post || !postAuthor) {
     notFound()
@@ -93,7 +95,7 @@ export default function Post({ params }: BlogProps) {
             <div className="flex justify-between items-center mb-4">
               <p className="text-gray-600 text-sm">{formatDate(post.publishedAt, params.locale)}</p>
               <ShareButton
-                locale={params.locale}
+                content={t('copied')}
                 shareData={{ title: post.title, text: post.summary, url: generateFullUrl(`/${params.locale}/posts/${post.slug}`) }}
               />
             </div>
