@@ -66,7 +66,7 @@ export const generateMetadata = ({ params }: BlogProps): Metadata => {
 export default async function Post({ params }: BlogProps) {
   const post = allBlogPostsWithTranslates.find(post => post.slug === params.slug && isPostShouldBePickedByLocale(post, params.locale))
   const postAuthor = allMemebers.find(memeber => memeber.username === post?.author)
-  const { t } = await useTranslation(params.locale, 'posts')
+  const { t } = await useTranslation(params.locale, 'post')
 
   if (!post || !postAuthor) {
     notFound()
