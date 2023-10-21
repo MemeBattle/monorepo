@@ -17,7 +17,7 @@ import { generateFullUrl } from '@/utils/generateFullUrl'
 import { memeberToPostAuthor } from '@/utils/memeberToPostAuthor'
 import { formatDate } from '@/utils/formatDate'
 import type { Language } from '@/i18n/i18n.settings'
-import { ShareButton } from 'src/components/ShareButton'
+import { ShareButton } from '@/components/ShareButton'
 import { useTranslation } from '@/i18n'
 
 interface BlogProps {
@@ -95,7 +95,7 @@ export default async function Post({ params }: BlogProps) {
             <div className="flex justify-between items-center mb-4">
               <p className="text-gray-600 text-sm">{formatDate(post.publishedAt, params.locale)}</p>
               <ShareButton
-                content={t('copied')}
+                tooltipContent={t('copied')}
                 shareData={{ title: post.title, text: post.summary, url: generateFullUrl(`/${params.locale}/posts/${post.slug}`) }}
               />
             </div>

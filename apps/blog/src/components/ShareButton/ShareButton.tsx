@@ -1,44 +1,32 @@
 'use client'
 
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
+import { useTimer } from '@/utils/hooks/useTimer'
 
 const popoverTimer = 1000
 
-export const ShareButton = ({ shareData, content }: { shareData: ShareData; content: string }) => {
+export const ShareButton = ({ shareData, tooltipContent }: { shareData: ShareData; tooltipContent: string }) => {
   const [open, setOpen] = useState(false)
-  const timerIdRef = useRef<NodeJS.Timeout | null>(null)
 
-  const handleTimerClear = useCallback(() => {
-    if (timerIdRef.current) {
-      clearTimeout(timerIdRef.current)
-      timerIdRef.current = null
-    }
-  }, [])
+  const setPopoverClosed = useCallback(() => setOpen(false), [setOpen])
+  const { startTimer, stopTimer } = useTimer(setPopoverClosed, popoverTimer)
 
-  const handleStartTimer = useCallback(() => {
-    timerIdRef.current = setTimeout(() => {
-      setOpen(false)
-      handleTimerClear()
-    }, popoverTimer)
-  }, [handleTimerClear])
-
-  const handlePopoverClick = useCallback(() => {
+  const handlePopoverOpen = useCallback(() => {
     if (open) {
       setOpen(false)
-      handleTimerClear()
+      stopTimer()
     } else {
       setOpen(true)
-      handleTimerClear()
-      handleStartTimer()
+      startTimer()
     }
-  }, [handleStartTimer, handleTimerClear, open])
+  }, [startTimer, stopTimer, open])
 
   useEffect(
     () => () => {
-      handleTimerClear()
+      stopTimer()
     },
-    [handleTimerClear],
+    [stopTimer],
   )
 
   /**
@@ -53,12 +41,12 @@ export const ShareButton = ({ shareData, content }: { shareData: ShareData; cont
     try {
       if (!navigator.share) {
         await navigator.clipboard.writeText(shareData.url || shareData.text || shareData.title || '')
-        handlePopoverClick()
+        handlePopoverOpen()
       } else {
         await navigator.share(shareData)
       }
     } catch (error: unknown) {
-      handleTimerClear()
+      stopTimer()
 
       if (error instanceof Error && error.name === 'AbortError') {
         return
@@ -66,10 +54,10 @@ export const ShareButton = ({ shareData, content }: { shareData: ShareData; cont
 
       console.error(error)
     }
-  }, [handlePopoverClick, handleTimerClear, shareData])
+  }, [handlePopoverOpen, stopTimer, shareData])
 
   return (
-    <Popover.Root open={open} defaultOpen onOpenChange={handleClick}>
+    <Popover.Root open={open} onOpenChange={handleClick}>
       <Popover.Trigger className="flex" asChild>
         <svg
           className="items-center justify-end opacity-30 hover:text-memebattleYellow hover:opacity-100"
@@ -90,9 +78,8 @@ export const ShareButton = ({ shareData, content }: { shareData: ShareData; cont
           side="top"
           align="end"
           sideOffset={5}
-          hideWhenDetached
         >
-          {content}
+          {tooltipContent}
           <Popover.Arrow className="fill-gray-200" width={10} height={10} />
         </Popover.Content>
       </Popover.Portal>
