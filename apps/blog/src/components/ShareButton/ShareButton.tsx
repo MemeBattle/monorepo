@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { useTimer } from '@/utils/hooks/useTimer'
 
@@ -21,13 +21,6 @@ export const ShareButton = ({ shareData, tooltipContent }: { shareData: ShareDat
       startTimer()
     }
   }, [startTimer, stopTimer, open])
-
-  useEffect(
-    () => () => {
-      stopTimer()
-    },
-    [stopTimer],
-  )
 
   /**
    * Handles the click event for the button.
