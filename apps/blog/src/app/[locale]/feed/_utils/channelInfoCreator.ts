@@ -17,6 +17,12 @@ export type ChannelInfo = {
   posts: FeedBlogPost[]
 }
 
+/**
+ * Composes blog data and metadata to build a feed from them.
+ *
+ * @param lang - The language in which blog posts will be served in the feed.
+ * @returns Promise with an object containing blog data and metadata
+ */
 export const createChannelInfo = async (lang: Language): Promise<ChannelInfo> => {
   const feedPosts = await Promise.all(
     [...allBlogPosts]
