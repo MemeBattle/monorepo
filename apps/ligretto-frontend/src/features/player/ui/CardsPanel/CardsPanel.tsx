@@ -1,7 +1,7 @@
 import type { FC } from 'react'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 
-import { PlayerCardsStack } from 'features/player/ui/PlayerCardsStack'
+import { PlayerCardsStack } from '#features/player/ui/PlayerCardsStack'
 import { LigrettoDeckContainer } from '../LigrettoDeckContainer'
 import { Stack, useMediaQuery, useTheme, Box } from '@memebattle/ui'
 

@@ -1,8 +1,8 @@
 import { useSelector } from 'react-redux'
 
-import { useMinTimeLoading } from 'shared/lib/hooks/useMinTimeLoader'
-import { LoaderScreen } from 'shared/ui/screens/LoaderScreen'
-import { isUserLoadingSelector } from 'ducks/auth'
+import { useMinTimeLoading } from '#shared/lib/hooks/useMinTimeLoader'
+import { LoaderScreen } from '#shared/ui/screens/LoaderScreen'
+import { isUserLoadingSelector } from '#ducks/auth'
 import { Routes } from './routes'
 
 export const AppContainer = () => {

@@ -1,5 +1,5 @@
 {
-  "extends": "./tsconfig.path.json",
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "target": "es2021",
     "lib": ["dom", "es2021"],
@@ -11,14 +11,17 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
     "baseUrl": "./src",
     "noImplicitAny": true,
-    "types": ["vitest/globals"]
+    "types": ["vitest/globals"],
+    "paths": {
+      "#*": ["./*"]
+    }
   },
   "include": [
     "./src"

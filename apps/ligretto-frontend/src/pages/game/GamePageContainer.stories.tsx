@@ -1,12 +1,12 @@
 import { Provider } from 'react-redux'
 import type { Meta, StoryFn } from '@storybook/react'
-import { history, store } from 'app/store'
+import { history, store } from '#app/store'
 
 import { GamePageContainer } from './GamePageContainer'
 import { createMockStore } from 'testing/lib/createMockStore'
 
-import { initialState as gameInitialState } from 'ducks/game'
-import { authInitialState } from 'ducks/auth/authSlice'
+import { initialState as gameInitialState } from '#ducks/game'
+import { authInitialState } from '#ducks/auth/authSlice'
 import type { Player } from '@memebattle/ligretto-shared'
 import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 import { HistoryRouter as Router } from 'redux-first-history/rr6'

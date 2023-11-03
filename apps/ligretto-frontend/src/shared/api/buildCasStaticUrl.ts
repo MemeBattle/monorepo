@@ -1,4 +1,4 @@
-import { CAS_STATIC_URL } from 'shared/constants/config'
+import { CAS_STATIC_URL } from '#shared/constants/config'
 
 /**
  * Return full path

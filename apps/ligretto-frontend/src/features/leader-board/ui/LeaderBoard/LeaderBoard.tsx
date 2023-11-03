@@ -4,7 +4,7 @@ import { styled } from '@mui/material/styles'
 import { useCallback } from 'react'
 import { useState } from 'react'
 import { Tab, useMediaQuery, useTheme } from '@memebattle/ui'
-import { Tabs } from 'shared/ui/Tabs'
+import { Tabs } from '#shared/ui/Tabs'
 import { LeaderListTable } from '../LeaderList'
 
 const StyledLeaderBoard = styled(Paper)(({ theme }) => ({

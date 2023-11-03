@@ -1,6 +1,6 @@
 import { call, put, takeLeading } from 'redux-saga/effects'
 
-import { getUserByTokenSaga } from 'ducks/users'
+import { getUserByTokenSaga } from '#ducks/users'
 
 import type { User } from '../users/usersTypes'
 import { logout, getMeRequest, getMeSuccess } from './authActions'

@@ -1,8 +1,8 @@
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { CardsStack } from 'entities/card'
-import { setSelectedCardIndexAction, STACK_OPEN_DECK_INDEX, tapStackDeckCardAction, tapStackOpenDeckCardAction } from 'ducks/game'
+import { CardsStack } from '#entities/card'
+import { setSelectedCardIndexAction, STACK_OPEN_DECK_INDEX, tapStackDeckCardAction, tapStackOpenDeckCardAction } from '#ducks/game'
 import { playerCardsStackSelector } from './PlayerCardsStack.selector'
 
 export const PlayerCardsStack = () => {

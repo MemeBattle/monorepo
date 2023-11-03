@@ -3,8 +3,8 @@ import type { SagaIterator } from 'redux-saga'
 import type { AxiosResponse } from 'axios'
 import { connectToRoomSuccessAction, userJoinToRoomAction } from '@memebattle/ligretto-shared'
 
-import { getMe, getUsersByIds } from 'shared/api'
-import type { GetMeResponse, GetUsersResponse } from 'shared/api'
+import { getMe, getUsersByIds } from '#shared/api'
+import type { GetMeResponse, GetUsersResponse } from '#shared/api'
 
 import { addUser, addUsers } from './usersActions'
 import type { User } from './usersTypes'

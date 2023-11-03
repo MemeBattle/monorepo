@@ -1,7 +1,6 @@
 import path from 'node:path'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
-import tsconfigPaths from 'vite-tsconfig-paths'
 import svgr from 'vite-plugin-svgr'
 
 const ENV_VARIABLES_SHARED_TO_BROWSER = [
@@ -20,7 +19,7 @@ export default defineConfig(({ mode }) => {
     {},
   )
   return {
-    plugins: [tsconfigPaths(), react(), svgr()],
+    plugins: [react(), svgr()],
     define: envVariables,
     test: {
       globals: true,

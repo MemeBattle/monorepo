@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
 
-import { routes } from 'shared/constants'
+import { routes } from '#shared/constants'
 import {
   gameNameSelector,
   gameStatusSelector,
@@ -10,8 +10,8 @@ import {
   playerSelector,
   startGameAction,
   togglePlayerStatusAction,
-} from 'ducks/game'
-import { GameSettings } from 'widgets/game-info'
+} from '#ducks/game'
+import { GameSettings } from '#widgets/game-info'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 
 export const GameSettingsContainer = () => {

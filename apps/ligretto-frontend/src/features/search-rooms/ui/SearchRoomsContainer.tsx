@@ -2,9 +2,9 @@ import { useDispatch, useSelector } from 'react-redux'
 import React, { useCallback } from 'react'
 import { createSelector } from '@reduxjs/toolkit'
 
-import { isLoadingSelector, searchSelector } from 'ducks/rooms/selectors'
-import { setSearchRoomsAction } from 'ducks/rooms'
-import { InputWithButton } from 'shared/ui/InputWithButton'
+import { isLoadingSelector, searchSelector } from '#ducks/rooms/selectors'
+import { setSearchRoomsAction } from '#ducks/rooms'
+import { InputWithButton } from '#shared/ui/InputWithButton'
 
 import SearchIcon from '@mui/icons-material/Search'
 import CachedIcon from '@mui/icons-material/Cached'

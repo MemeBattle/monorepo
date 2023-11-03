@@ -1,7 +1,7 @@
 import type { Game, Room } from '@memebattle/ligretto-shared'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice, createAction, createEntityAdapter } from '@reduxjs/toolkit'
-import type { CreateRoomError } from '@memebattle/ligretto-shared/src/dto'
+import type { CreateRoomError } from '@memebattle/ligretto-shared'
 
 export const roomsEntityAdapter = createEntityAdapter<Room>({
   selectId: room => room.uuid,

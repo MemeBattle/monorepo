@@ -1,5 +1,5 @@
 import type { FC } from 'react'
-import { Avatar } from 'shared/ui/Avatar'
+import { Avatar } from '#shared/ui/Avatar'
 import { Box, Grid, Typography, useMediaQuery, useTheme } from '@memebattle/ui'
 
 import { LeaderListTableCell } from './LeaderListTableCell'

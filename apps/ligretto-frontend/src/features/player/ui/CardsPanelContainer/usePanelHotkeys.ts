@@ -7,7 +7,7 @@ import {
   tapLigrettoDeckCardAction,
   tapStackDeckCardAction,
   tapStackOpenDeckCardAction,
-} from 'ducks/game'
+} from '#ducks/game'
 
 export const usePanelHotkeys = ({ enabled }: { enabled?: boolean } = { enabled: true }) => {
   const dispatch = useDispatch()

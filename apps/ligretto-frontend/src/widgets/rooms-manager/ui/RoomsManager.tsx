@@ -3,9 +3,9 @@ import { Box, Grid, Paper, Typography } from '@memebattle/ui'
 import { styled } from '@mui/material/styles'
 import { useDispatch } from 'react-redux'
 
-import { CreateRoomContainer } from 'features/create-room'
-import { SearchRoomsContainer, RoomsListContainer } from 'features/search-rooms'
-import { getRoomsAction } from 'ducks/rooms'
+import { CreateRoomContainer } from '#features/create-room'
+import { SearchRoomsContainer, RoomsListContainer } from '#features/search-rooms'
+import { getRoomsAction } from '#ducks/rooms'
 
 const StyledRoomManager = styled(Paper)(({ theme }) => ({
   padding: '2.5rem 4rem',

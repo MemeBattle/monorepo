@@ -1,4 +1,4 @@
-import type { CreateRoomError } from '@memebattle/ligretto-shared/src/dto'
+import type { CreateRoomError } from '@memebattle/ligretto-shared'
 
 const ROOM_MAX_LENGTH = 20
 

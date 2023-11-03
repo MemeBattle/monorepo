@@ -1,10 +1,10 @@
 import React, { useCallback, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from '@reduxjs/toolkit'
-import { CardsRow } from 'entities/card/ui/CardsRow'
+import { CardsRow } from '#entities/card/ui/CardsRow'
 
-import { tapCardAction, playerCardsSelector, isDndEnabledSelector, setSelectedCardIndexAction, selectedCardIndexSelector, Hotkey } from 'ducks/game'
-import { Card, CardPlace, CardHotkeyBadge } from 'entities/card'
+import { tapCardAction, playerCardsSelector, isDndEnabledSelector, setSelectedCardIndexAction, selectedCardIndexSelector, Hotkey } from '#ducks/game'
+import { Card, CardPlace, CardHotkeyBadge } from '#entities/card'
 
 const PlayerRowCardsContainerSelector = createSelector(
   [playerCardsSelector, isDndEnabledSelector, selectedCardIndexSelector],

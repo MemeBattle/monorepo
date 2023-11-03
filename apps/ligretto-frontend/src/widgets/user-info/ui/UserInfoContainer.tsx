@@ -2,10 +2,10 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
 import { useCallback, useMemo } from 'react'
 
-import { authRoutes } from 'shared/constants'
-import { logout, currentUserSelector } from 'ducks/auth'
-import { buildCasStaticUrl } from 'shared/api/buildCasStaticUrl'
-import { getRandomAvatar } from 'shared/ui/Avatar/getRandomAvatar'
+import { authRoutes } from '#shared/constants'
+import { logout, currentUserSelector } from '#ducks/auth'
+import { buildCasStaticUrl } from '#shared/api/buildCasStaticUrl'
+import { getRandomAvatar } from '#shared/ui/Avatar/getRandomAvatar'
 
 import { UserInfo } from './UserInfo'
 

@@ -2,7 +2,7 @@ import { CardsPanel } from './CardsPanel'
 import type { Meta, StoryFn } from '@storybook/react'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { Provider } from 'react-redux'
-import { store } from 'app/store'
+import { store } from '#app/store'
 
 export default {
   component: CardsPanel,
