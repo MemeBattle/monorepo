@@ -17,6 +17,8 @@ import { generateFullUrl } from '@/utils/generateFullUrl'
 import { memeberToPostAuthor } from '@/utils/memeberToPostAuthor'
 import { formatDate } from '@/utils/formatDate'
 import type { Language } from '@/i18n/i18n.settings'
+import { ShareButton } from '@/components/ShareButton'
+import { useTranslation } from '@/i18n'
 
 interface BlogProps {
   params: {
@@ -61,9 +63,10 @@ export const generateMetadata = ({ params }: BlogProps): Metadata => {
   }
 }
 
-export default function Post({ params }: BlogProps) {
+export default async function Post({ params }: BlogProps) {
   const post = allBlogPostsWithTranslates.find(post => post.slug === params.slug && isPostShouldBePickedByLocale(post, params.locale))
   const postAuthor = allMemebers.find(memeber => memeber.username === post?.author)
+  const { t } = await useTranslation(params.locale, 'post')
 
   if (!post || !postAuthor) {
     notFound()
@@ -88,7 +91,15 @@ export default function Post({ params }: BlogProps) {
           <Image fill className="object-contain rounded-lg" src={post.image} alt={post.imageDescription || post.title} />
         </div>
         <div className="col-start-1 col-span-1 max-w-full md:max-w-5xl flex flex-col mt-6">
-          <p className="text-gray-600 text-sm">{formatDate(post.publishedAt, params.locale)}</p>
+          <div className="col-start-1 col-span-1 max-w-full md:max-w-5xl flex flex-col mt-6">
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-gray-600 text-sm">{formatDate(post.publishedAt, params.locale)}</p>
+              <ShareButton
+                tooltipContent={t('copied')}
+                shareData={{ title: post.title, text: post.summary, url: generateFullUrl(`/${params.locale}/posts/${post.slug}`) }}
+              />
+            </div>
+          </div>
           <h1 className="font-bold text-3xl mt-6 lg:text-5xl lg:font-extrabold">{post.title}</h1>
           {post.tags ? (
             <div className="my-8">
