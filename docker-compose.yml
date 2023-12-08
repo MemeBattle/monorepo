@@ -1,7 +1,7 @@
 version: '3.3'
 services:
   ligretto-core-pg:
-    image: postgres
+    image: postgres:15.4
     ports:
     - 5433:5432
     environment:
@@ -10,6 +10,8 @@ services:
       POSTGRES_DB: ligretto-core
     volumes:
     - pg-ligretto:/var/lib/postgresql/data
+    - pg-ligretto-h:/dump
 
 volumes:
   pg-ligretto: {}
+  pg-ligretto-h: {}

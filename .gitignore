@@ -35,6 +35,7 @@ yarn-error.log*
 *.log
 
 .idea
+.vscode
 
 # vk-redirect-page
 .cache
@@ -56,3 +57,9 @@ tsconfig.tsbuildinfo
 
 # contentlayer
 .contentlayer
+
+# ctags
+tags
+
+# clinicjs
+.clinic/

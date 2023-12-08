@@ -1,0 +1,23 @@
+{
+  "scripts": {
+    "start": "platformatic start",
+    "clean": "rm -fr ./dist",
+    "build": "platformatic compile",
+    "migrate": "platformatic db migrations apply",
+    "test": "tsc && node --test dist/test/*/*.test.js"
+  },
+  "devDependencies": {
+    "fastify": "^4.23.2",
+    "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "@fastify/type-provider-typebox": "^3.5.0",
+    "@memebattle/cas-services": "^3.6.5",
+    "@platformatic/db": "^1.0.0",
+    "@sinclair/typebox": "^0.31.17",
+    "platformatic": "^1.0.0"
+  },
+  "engines": {
+    "node": "^18.8.0 || >=20.6.0"
+  }
+}

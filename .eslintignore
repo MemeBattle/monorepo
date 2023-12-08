@@ -4,3 +4,5 @@ build
 dist
 storybook-static
 .yarn
+apps/ligretto-core-backend-v2/global.d.ts
+apps/ligretto-core-backend-v2/types
