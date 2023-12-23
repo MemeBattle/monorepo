@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import { last } from 'lodash'
-import { PlaygroundRepository } from './playground.repo'
+import { IPlaygroundRepository } from './playground.repo'
 import type { Card, CardsDeck, Game, UUID } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
@@ -19,7 +19,7 @@ const isDeckAvailable = (deck: CardsDeck | null, card: Card) => {
 
 @injectable()
 export class PlaygroundService implements IPlaygroundService {
-  @inject(IOC_TYPES.PlaygroundRepository) private playgroundRepository: PlaygroundRepository
+  @inject(IOC_TYPES.IPlaygroundRepository) private playgroundRepository: IPlaygroundRepository
 
   private async getDecks(gameId: UUID) {
     return await this.playgroundRepository.getDecks(gameId)
