@@ -14,7 +14,7 @@ export const IOC_TYPES = {
   Emitter: Symbol.for('Emitter'),
   Database: Symbol.for('Database'),
   UserRepository: Symbol.for('UserRepository'),
-  UserService: Symbol.for('UserService'),
+  IUserService: Symbol.for('IUserService'),
   BotController: Symbol.for('BotController'),
   AuthService: Symbol.for('AuthService'),
   LigrettoCoreService: Symbol.for('LigrettoCoreService'),

@@ -3,9 +3,16 @@ import { IOC_TYPES } from '../../IOC_TYPES'
 import { UserRepository } from './user.repo'
 import type { User } from '../../types/user'
 import type { UUID } from '@memebattle/ligretto-shared'
+import type { Storage } from '../../database/storage'
 
+export interface IUserService {
+  connectUser: (payload: { userId: UUID; socketId: UUID }) => Promise<Storage>
+  joinGame: ({ userId, gameId }: { userId: UUID; gameId: UUID }) => Promise<void>
+  disconnectionHandler: (payload: { userId: User['id']; socketId: UUID }) => Promise<void | Pick<Record<string, User | undefined>, never>>
+  getUser: (userId: User['id']) => Promise<User | undefined>
+}
 @injectable()
-export class UserService {
+export class UserService implements IUserService {
   @inject(IOC_TYPES.UserRepository) private userRepository: UserRepository
 
   connectUser(payload: { userId: UUID; socketId: UUID }) {

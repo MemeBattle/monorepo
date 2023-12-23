@@ -3,7 +3,7 @@ import { IOC_TYPES } from '../IOC_TYPES'
 import { Controller } from './controller'
 import type { Socket } from 'socket.io'
 import { IGameService } from '../entities/game/game.service'
-import { UserService } from '../entities/user'
+import { IUserService } from '../entities/user'
 import type { Game } from '@memebattle/ligretto-shared'
 import {
   connectToRoomEmitAction,
@@ -31,7 +31,7 @@ interface IGameController {
 @injectable()
 export class GamesController extends Controller implements IGameController {
   @inject(IOC_TYPES.IGameService) private gameService: IGameService
-  @inject(IOC_TYPES.UserService) private userService: UserService
+  @inject(IOC_TYPES.IUserService) private userService: IUserService
 
   protected handlers: Controller['handlers'] = {
     [createRoomEmitAction.type]: (socket, action) => this.createGame(socket, action),
