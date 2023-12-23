@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import { last, shuffle } from 'lodash'
-import { PlayerRepository } from './player.repo'
+import { IPlayerRepository } from './player.repo'
 import type { Card, UUID, Player } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
@@ -15,7 +15,7 @@ export interface IPlayerService {
 
 @injectable()
 export class PlayerService implements IPlayerService {
-  @inject(IOC_TYPES.PlayerRepository) private playerRepository: PlayerRepository
+  @inject(IOC_TYPES.IPlayerRepository) private playerRepository: IPlayerRepository
 
   // XXX: For now this method is unused
   private async getPlayer(gameId: UUID, playerId: UUID): Promise<Player | undefined> {

@@ -5,7 +5,7 @@ export const IOC_TYPES = {
   PlaygroundService: Symbol.for('PlaygroundService'),
   PlaygroundRepository: Symbol.for('PlaygroundRepository'),
   IPlayerService: Symbol.for('IPlayerService'),
-  PlayerRepository: Symbol.for('PlayerRepository'),
+  IPlayerRepository: Symbol.for('IPlayerRepository'),
   Gameplay: Symbol.for('Gameplay'),
   GameplayController: Symbol.for('GameplayController'),
   GamesController: Symbol.for('GamesController'),
