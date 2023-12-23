@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import { groupBy, mapValues, merge, mergeWith, omit } from 'lodash'
-import { GameRepository } from './game.repo'
+import { IGameRepository } from './game.repo'
 import type { Game, GameResults, Player, Spectator, UUID } from '@memebattle/ligretto-shared'
 import { PlayerStatus, GameStatus } from '@memebattle/ligretto-shared'
 import { createInitialPlayerCards } from '../../utils/create-initial-player-cards'
@@ -39,7 +39,7 @@ const emptyGame: Game = {
 
 @injectable()
 export class GameService implements IGameService {
-  @inject(IOC_TYPES.GameRepository) private gameRepository: GameRepository
+  @inject(IOC_TYPES.IGameRepository) private gameRepository: IGameRepository
   @inject(IOC_TYPES.LigrettoCoreService) private ligrettoCoreService: LigrettoCoreService
 
   async createGame(name: string, config: Partial<Game['config']> = {}): Promise<Game | null> {
