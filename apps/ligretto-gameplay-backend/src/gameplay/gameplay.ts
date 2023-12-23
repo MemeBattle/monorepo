@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import { IPlayerService } from '../entities/player/player.service'
-import { PlaygroundService } from '../entities/playground'
+import { IPlaygroundService } from '../entities/playground'
 import { IGameService } from '../entities/game/game.service'
 import { IOC_TYPES } from '../IOC_TYPES'
 import type { Game, GameResults, UUID } from '@memebattle/ligretto-shared'
@@ -9,7 +9,7 @@ import type { Game, GameResults, UUID } from '@memebattle/ligretto-shared'
 export class Gameplay {
   @inject(IOC_TYPES.IGameService) private gameService: IGameService
   @inject(IOC_TYPES.IPlayerService) private playerService: IPlayerService
-  @inject(IOC_TYPES.PlaygroundService) private playgroundService: PlaygroundService
+  @inject(IOC_TYPES.IPlaygroundService) private playgroundService: IPlaygroundService
 
   async startGame(gameId: UUID) {
     try {

@@ -2,7 +2,7 @@ export const IOC_TYPES = {
   WebSocketHandler: Symbol.for('WebSocketHandler'),
   IGameService: Symbol.for('IGameService'),
   IGameRepository: Symbol.for('IGameRepository'),
-  PlaygroundService: Symbol.for('PlaygroundService'),
+  IPlaygroundService: Symbol.for('IPlaygroundService'),
   PlaygroundRepository: Symbol.for('PlaygroundRepository'),
   IPlayerService: Symbol.for('IPlayerService'),
   IPlayerRepository: Symbol.for('IPlayerRepository'),

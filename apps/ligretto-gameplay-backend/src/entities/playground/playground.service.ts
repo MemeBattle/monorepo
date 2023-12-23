@@ -4,6 +4,11 @@ import { PlaygroundRepository } from './playground.repo'
 import type { Card, CardsDeck, Game, UUID } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
+export interface IPlaygroundService {
+  putCard: (gameId: UUID, card: Card, deckIndex: number) => Promise<void>
+  getAvailableDeckPosition: (gameId: Game['id'], card: Card, deckPosition?: number) => Promise<number | undefined>
+}
+
 const isDeckAvailable = (deck: CardsDeck | null, card: Card) => {
   const topCard: Card | undefined = last(deck?.cards)
   if (!topCard) {
@@ -13,14 +18,14 @@ const isDeckAvailable = (deck: CardsDeck | null, card: Card) => {
 }
 
 @injectable()
-export class PlaygroundService {
+export class PlaygroundService implements IPlaygroundService {
   @inject(IOC_TYPES.PlaygroundRepository) private playgroundRepository: PlaygroundRepository
 
-  async getDecks(gameId: UUID) {
+  private async getDecks(gameId: UUID) {
     return await this.playgroundRepository.getDecks(gameId)
   }
 
-  async findAvailableDeckIndex(gameId: UUID, card: Card) {
+  private async findAvailableDeckIndex(gameId: UUID, card: Card) {
     const decks = await this.getDecks(gameId)
     return decks.findIndex(deck => isDeckAvailable(deck, card))
   }
@@ -50,7 +55,7 @@ export class PlaygroundService {
     }
   }
 
-  async checkIsDeckAvailable(gameId: UUID, card: Card, position: number) {
+  private async checkIsDeckAvailable(gameId: UUID, card: Card, position: number) {
     const deck = await this.playgroundRepository.getDeck(gameId, position)
     const topCard: Card | undefined = last(deck?.cards)
 
