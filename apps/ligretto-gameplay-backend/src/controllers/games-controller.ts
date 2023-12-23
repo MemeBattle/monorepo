@@ -25,8 +25,11 @@ import {
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
 
+interface IGameController {
+  disconnectionHandler: (socket: Socket) => Promise<void>
+}
 @injectable()
-export class GamesController extends Controller {
+export class GamesController extends Controller implements IGameController {
   @inject(IOC_TYPES.GameService) private gameService: GameService
   @inject(IOC_TYPES.UserService) private userService: UserService
 
