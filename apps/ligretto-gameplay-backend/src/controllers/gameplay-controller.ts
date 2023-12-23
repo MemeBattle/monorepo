@@ -13,13 +13,13 @@ import {
 } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../IOC_TYPES'
 import { Gameplay } from '../gameplay/gameplay'
-import { GameService } from '../entities/game/game.service'
+import { IGameService } from '../entities/game/game.service'
 import { wait } from '../utils/wait'
 
 @injectable()
 export class GameplayController extends Controller {
   @inject(IOC_TYPES.Gameplay) private gameplay: Gameplay
-  @inject(IOC_TYPES.GameService) private gameService: GameService
+  @inject(IOC_TYPES.IGameService) private gameService: IGameService
 
   protected handlers: Controller['handlers'] = {
     [startGameEmitAction.type]: (socket, action: ReturnType<typeof startGameEmitAction>) => this.startGame(socket, action),

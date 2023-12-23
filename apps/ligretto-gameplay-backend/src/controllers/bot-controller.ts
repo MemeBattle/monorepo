@@ -4,12 +4,12 @@ import type { Socket } from 'socket.io'
 import { inject, injectable } from 'inversify'
 import { initBot, stopBot } from '../bot'
 import { IOC_TYPES } from '../IOC_TYPES'
-import { GameService } from '../entities/game/game.service'
+import { IGameService } from '../entities/game/game.service'
 import { Controller } from './controller'
 
 @injectable()
 export class BotController extends Controller {
-  @inject(IOC_TYPES.GameService) private gameService: GameService
+  @inject(IOC_TYPES.IGameService) private gameService: IGameService
 
   handlers: Controller['handlers'] = {
     [addBotAction.type]: (socket, action) => this.addBotToGame(socket, action),

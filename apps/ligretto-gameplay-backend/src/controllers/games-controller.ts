@@ -2,7 +2,7 @@ import { inject, injectable } from 'inversify'
 import { IOC_TYPES } from '../IOC_TYPES'
 import { Controller } from './controller'
 import type { Socket } from 'socket.io'
-import { GameService } from '../entities/game/game.service'
+import { IGameService } from '../entities/game/game.service'
 import { UserService } from '../entities/user'
 import type { Game } from '@memebattle/ligretto-shared'
 import {
@@ -30,7 +30,7 @@ interface IGameController {
 }
 @injectable()
 export class GamesController extends Controller implements IGameController {
-  @inject(IOC_TYPES.GameService) private gameService: GameService
+  @inject(IOC_TYPES.IGameService) private gameService: IGameService
   @inject(IOC_TYPES.UserService) private userService: UserService
 
   protected handlers: Controller['handlers'] = {
