@@ -1,14 +1,24 @@
 import { inject, injectable } from 'inversify'
 import { last, shuffle } from 'lodash'
 import { PlayerRepository } from './player.repo'
-import type { Card, UUID } from '@memebattle/ligretto-shared'
+import type { Card, UUID, Player } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
+export interface IPlayerService {
+  getCard: (gameId: UUID, playerId: UUID, position: number) => Promise<Card | null | undefined>
+  removeCard: (gameId: UUID, playerId: UUID, position: number) => Promise<undefined>
+  removeCardFromStackOpenDeck: (gameId: UUID, playerId: UUID) => Promise<Card | undefined>
+  getCardFromStackOpenDeck: (gameId: UUID, playerId: UUID) => Promise<Card | undefined>
+  takeFromStackDeck: (gameId: UUID, playerId: UUID) => Promise<void>
+  takeFromLigrettoDeck: (gameId: UUID, playerId: string) => Promise<number | undefined>
+}
+
 @injectable()
-export class PlayerService {
+export class PlayerService implements IPlayerService {
   @inject(IOC_TYPES.PlayerRepository) private playerRepository: PlayerRepository
 
-  async getPlayer(gameId: UUID, playerId: UUID) {
+  // XXX: For now this method is unused
+  private async getPlayer(gameId: UUID, playerId: UUID): Promise<Player | undefined> {
     return await this.playerRepository.getPlayer(gameId, playerId)
   }
 
@@ -16,7 +26,7 @@ export class PlayerService {
     return await this.playerRepository.getCard(gameId, playerId, position)
   }
 
-  async addCard(gameId: UUID, playerId: UUID, card: Card) {
+  private async addCard(gameId: UUID, playerId: UUID, card: Card): Promise<void> {
     const cards = await this.playerRepository.getCards(gameId, playerId)
 
     const emptyCardIndex = cards?.findIndex(card => card === null)
@@ -32,7 +42,7 @@ export class PlayerService {
     return undefined
   }
 
-  async removeCardFromLigrettoDeck(gameId: UUID, playerId: UUID) {
+  private async removeCardFromLigrettoDeck(gameId: UUID, playerId: UUID): Promise<number | undefined> {
     return this.playerRepository.removeCardFromLigrettoDeck(gameId, playerId)
   }
 
@@ -47,7 +57,7 @@ export class PlayerService {
     return last(deck?.cards)
   }
 
-  async shuffleStackDeck(gameId: UUID, playerId: UUID) {
+  private async shuffleStackDeck(gameId: UUID, playerId: UUID): Promise<void> {
     const stackOpenDeck = await this.playerRepository.getStackOpenDeck(gameId, playerId)
     const stackDeck = await this.playerRepository.getStackDeck(gameId, playerId)
 
@@ -66,7 +76,7 @@ export class PlayerService {
     }))
   }
 
-  async takeFromStackDeck(gameId: UUID, playerId: UUID) {
+  async takeFromStackDeck(gameId: UUID, playerId: UUID): Promise<void> {
     const stackDeck = await this.playerRepository.getStackDeck(gameId, playerId)
     if (stackDeck?.cards.length === 0) {
       await this.shuffleStackDeck(gameId, playerId)
