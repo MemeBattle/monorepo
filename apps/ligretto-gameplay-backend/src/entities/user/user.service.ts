@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import { IOC_TYPES } from '../../IOC_TYPES'
-import { UserRepository } from './user.repo'
+import { IUserRepository } from './user.repo'
 import type { User } from '../../types/user'
 import type { UUID } from '@memebattle/ligretto-shared'
 import type { Storage } from '../../database/storage'
@@ -13,7 +13,7 @@ export interface IUserService {
 }
 @injectable()
 export class UserService implements IUserService {
-  @inject(IOC_TYPES.UserRepository) private userRepository: UserRepository
+  @inject(IOC_TYPES.IUserRepository) private userRepository: IUserRepository
 
   connectUser(payload: { userId: UUID; socketId: UUID }) {
     return this.userRepository.createOrUpdate(payload)

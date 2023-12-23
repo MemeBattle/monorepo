@@ -13,7 +13,7 @@ export const IOC_TYPES = {
   RoomService: Symbol.for('RoomService'),
   Emitter: Symbol.for('Emitter'),
   Database: Symbol.for('Database'),
-  UserRepository: Symbol.for('UserRepository'),
+  IUserRepository: Symbol.for('IUserRepository'),
   IUserService: Symbol.for('IUserService'),
   BotController: Symbol.for('BotController'),
   AuthService: Symbol.for('AuthService'),
