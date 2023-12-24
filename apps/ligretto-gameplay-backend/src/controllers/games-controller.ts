@@ -5,6 +5,7 @@ import type { Socket } from 'socket.io'
 import { IGameService } from '../entities/game/game.service'
 import { IUserService } from '../entities/user'
 import type { Game } from '@memebattle/ligretto-shared'
+import type { IController } from './controller'
 import {
   connectToRoomEmitAction,
   connectToRoomErrorAction,
@@ -25,11 +26,11 @@ import {
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
 
-interface IGameController {
+export interface IGamesController extends IController {
   disconnectionHandler: (socket: Socket) => Promise<void>
 }
 @injectable()
-export class GamesController extends Controller implements IGameController {
+export class GamesController extends Controller implements IGamesController {
   @inject(IOC_TYPES.IGameService) private gameService: IGameService
   @inject(IOC_TYPES.IUserService) private userService: IUserService
 

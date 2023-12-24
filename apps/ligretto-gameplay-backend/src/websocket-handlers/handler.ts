@@ -2,7 +2,7 @@ import { injectable, inject } from 'inversify'
 import type { Server, Socket } from 'socket.io'
 import { IOC_TYPES } from '../IOC_TYPES'
 import { GameplayController } from '../controllers/gameplay-controller'
-import { GamesController } from '../controllers/games-controller'
+import { IGamesController } from '../controllers/games-controller'
 import { IUserService } from '../entities/user'
 import { BotController } from '../controllers/bot-controller'
 import { authMiddleware } from '../middlewares'
@@ -16,7 +16,7 @@ export interface IWebSocketHandler {
 @injectable()
 export class WebSocketHandler implements IWebSocketHandler {
   @inject(IOC_TYPES.GameplayController) private gameplayController: GameplayController
-  @inject(IOC_TYPES.GamesController) private gamesController: GamesController
+  @inject(IOC_TYPES.IGamesController) private gamesController: IGamesController
   @inject(IOC_TYPES.BotController) private botController: BotController
   @inject(IOC_TYPES.IUserService) private userService: IUserService
 

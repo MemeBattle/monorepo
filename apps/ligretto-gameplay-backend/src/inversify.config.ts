@@ -4,6 +4,7 @@ import { IOC_TYPES } from './IOC_TYPES'
 import { GameService } from './entities/game/game.service'
 import { GameplayController } from './controllers/gameplay-controller'
 import { GamesController } from './controllers/games-controller'
+import type { IGamesController } from './controllers/games-controller'
 import { Gameplay } from './gameplay/gameplay'
 import { WebSocketHandler } from './websocket-handlers'
 import { GameRepository } from './entities/game/game.repo'
@@ -30,7 +31,7 @@ export const createIOC = () => {
   IOC.bind<UserRepository>(IOC_TYPES.IUserRepository).to(UserRepository)
   IOC.bind<Gameplay>(IOC_TYPES.IGameplay).to(Gameplay)
   IOC.bind<GameplayController>(IOC_TYPES.GameplayController).to(GameplayController)
-  IOC.bind<GamesController>(IOC_TYPES.GamesController).to(GamesController)
+  IOC.bind<IGamesController>(IOC_TYPES.IGamesController).to(GamesController)
   IOC.bind<BotController>(IOC_TYPES.BotController).to(BotController)
   IOC.bind<Database>(IOC_TYPES.Database).to(Database).inSingletonScope()
   IOC.bind<AuthService>(IOC_TYPES.IAuthService).to(AuthService).inSingletonScope()
