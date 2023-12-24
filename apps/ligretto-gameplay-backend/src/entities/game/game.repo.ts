@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify'
 import type { Game, Player, UUID, Spectator } from '@memebattle/ligretto-shared'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
-import { Database } from '../../database'
+import { IDatabase } from '../../database'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
 export interface IGameRepository {
@@ -17,7 +17,7 @@ export interface IGameRepository {
 }
 @injectable()
 export class GameRepository implements IGameRepository {
-  @inject(IOC_TYPES.Database) private database: Database
+  @inject(IOC_TYPES.IDatabase) private database: IDatabase
 
   async addGame(gameId: UUID, game: Game) {
     return this.database.set<Game>(storage => (storage.games[gameId] = game))

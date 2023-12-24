@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import type { Card, CardsDeck, UUID, Player } from '@memebattle/ligretto-shared'
-import { Database } from '../../database'
+import { IDatabase } from '../../database'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
 export interface IPlayerRepository {
@@ -20,7 +20,7 @@ export interface IPlayerRepository {
 
 @injectable()
 export class PlayerRepository implements IPlayerRepository {
-  @inject(IOC_TYPES.Database) private database: Database
+  @inject(IOC_TYPES.IDatabase) private database: IDatabase
 
   async getPlayer(gameId: UUID, playerId: UUID) {
     return this.database.get(storage => storage.games[gameId].players[playerId])

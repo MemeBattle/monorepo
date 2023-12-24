@@ -2,7 +2,7 @@ import type { Storage } from '../../database/storage'
 
 import { inject, injectable } from 'inversify'
 import { IOC_TYPES } from '../../IOC_TYPES'
-import { Database } from '../../database'
+import { IDatabase } from '../../database'
 import type { User } from '../../types/user'
 import { omit } from 'lodash'
 import type { UUID } from '@memebattle/ligretto-shared'
@@ -17,7 +17,7 @@ export interface IUserRepository {
 
 @injectable()
 export class UserRepository implements IUserRepository {
-  @inject(IOC_TYPES.Database) private database: Database
+  @inject(IOC_TYPES.IDatabase) private database: IDatabase
 
   createOrUpdate({ userId, socketId }: { userId: UUID; socketId: string }) {
     return this.database.set(storage => {

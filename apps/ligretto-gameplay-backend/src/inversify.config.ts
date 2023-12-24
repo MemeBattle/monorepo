@@ -20,6 +20,7 @@ import { PlayerService } from './entities/player/player.service'
 import type { IPlayerRepository } from './entities/player/player.repo'
 import type { IPlayerService } from './entities/player/player.service'
 import { Database } from './database'
+import type { IDatabase } from './database'
 import { UserService, UserRepository } from './entities/user'
 import type { IUserService, IUserRepository } from './entities/user'
 import { BotController } from './controllers/bot-controller'
@@ -44,7 +45,7 @@ export const createIOC = () => {
   IOC.bind<IController>(IOC_TYPES.IController).to(GameplayController).whenTargetNamed('gameplayController')
   IOC.bind<IGamesController>(IOC_TYPES.IGamesController).to(GamesController)
   IOC.bind<IController>(IOC_TYPES.IController).to(BotController).whenTargetNamed('botController')
-  IOC.bind<Database>(IOC_TYPES.Database).to(Database).inSingletonScope()
+  IOC.bind<IDatabase>(IOC_TYPES.IDatabase).to(Database).inSingletonScope()
   IOC.bind<IAuthService>(IOC_TYPES.IAuthService).to(AuthService).inSingletonScope()
   IOC.bind<ILigrettoCoreService>(IOC_TYPES.ILigrettoCoreService).to(LigrettoCoreService).inSingletonScope()
 

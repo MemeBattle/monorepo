@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import type { CardsDeck, UUID } from '@memebattle/ligretto-shared'
-import { Database } from '../../database/database'
+import { IDatabase } from '../../database/database'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
 export interface IPlaygroundRepository {
@@ -13,7 +13,7 @@ export interface IPlaygroundRepository {
 
 @injectable()
 export class PlaygroundRepository implements IPlaygroundRepository {
-  @inject(IOC_TYPES.Database) private database: Database
+  @inject(IOC_TYPES.IDatabase) private database: IDatabase
 
   getDecks(gameId: UUID) {
     return this.database.get(storage => storage.games[gameId].playground.decks)
