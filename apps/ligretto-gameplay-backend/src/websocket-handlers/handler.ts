@@ -9,12 +9,12 @@ import { authMiddleware } from '../middlewares'
 import type { AnyAction } from '../types/any-action'
 import { socketIOConnectionsCountMetric, socketIOConnectionsCountTotalMetric } from '../metrics'
 
-export interface WebSocketHandler {
-  connectionHandler(socket: Socket): void
+export interface IWebSocketHandler {
+  connect(socketServer: Server): void
 }
 
 @injectable()
-export class WebSocketHandler implements WebSocketHandler {
+export class WebSocketHandler implements IWebSocketHandler {
   @inject(IOC_TYPES.GameplayController) private gameplayController: GameplayController
   @inject(IOC_TYPES.GamesController) private gamesController: GamesController
   @inject(IOC_TYPES.BotController) private botController: BotController
@@ -24,7 +24,8 @@ export class WebSocketHandler implements WebSocketHandler {
     socketServer.use(authMiddleware).on('connection', socket => this.connectionHandler(socket))
   }
 
-  public async connectionHandler(socket: Socket): Promise<void> {
+  // XXX: why is this method public? It is used only inside itself
+  private async connectionHandler(socket: Socket): Promise<void> {
     socketIOConnectionsCountMetric.inc()
     socketIOConnectionsCountTotalMetric.inc()
 
