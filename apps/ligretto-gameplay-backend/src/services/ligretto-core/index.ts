@@ -1,1 +1,1 @@
-export { LigrettoCoreService } from './ligretto-core.service'
+export { LigrettoCoreService, ILigrettoCoreService } from './ligretto-core.service'

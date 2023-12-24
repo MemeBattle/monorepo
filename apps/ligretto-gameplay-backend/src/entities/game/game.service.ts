@@ -6,7 +6,7 @@ import { PlayerStatus, GameStatus } from '@memebattle/ligretto-shared'
 import { createInitialPlayerCards } from '../../utils/create-initial-player-cards'
 import { IOC_TYPES } from '../../IOC_TYPES'
 import { nonNullable } from '../../utils/nonNullable'
-import { LigrettoCoreService } from '../../services/ligretto-core'
+import { ILigrettoCoreService } from '../../services/ligretto-core'
 
 export interface IGameService {
   createGame: (name: string, config?: Partial<Game['config']>) => Promise<Game | null>
@@ -40,7 +40,7 @@ const emptyGame: Game = {
 @injectable()
 export class GameService implements IGameService {
   @inject(IOC_TYPES.IGameRepository) private gameRepository: IGameRepository
-  @inject(IOC_TYPES.LigrettoCoreService) private ligrettoCoreService: LigrettoCoreService
+  @inject(IOC_TYPES.ILigrettoCoreService) private ligrettoCoreService: ILigrettoCoreService
 
   async createGame(name: string, config: Partial<Game['config']> = {}): Promise<Game | null> {
     const isGameExists = !!(await this.gameRepository.getGameByName(name))
