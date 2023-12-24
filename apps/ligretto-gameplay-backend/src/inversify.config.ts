@@ -5,6 +5,7 @@ import { GameService } from './entities/game/game.service'
 import { GameplayController } from './controllers/gameplay-controller'
 import { GamesController } from './controllers/games-controller'
 import type { IGamesController } from './controllers/games-controller'
+import type { IController } from './controllers/controller'
 import { Gameplay } from './gameplay/gameplay'
 import { WebSocketHandler } from './websocket-handlers'
 import { GameRepository } from './entities/game/game.repo'
@@ -30,9 +31,9 @@ export const createIOC = () => {
   IOC.bind<UserService>(IOC_TYPES.IUserService).to(UserService)
   IOC.bind<UserRepository>(IOC_TYPES.IUserRepository).to(UserRepository)
   IOC.bind<Gameplay>(IOC_TYPES.IGameplay).to(Gameplay)
-  IOC.bind<GameplayController>(IOC_TYPES.GameplayController).to(GameplayController)
+  IOC.bind<IController>(IOC_TYPES.IController).to(GameplayController).whenTargetNamed('gameplayController')
   IOC.bind<IGamesController>(IOC_TYPES.IGamesController).to(GamesController)
-  IOC.bind<BotController>(IOC_TYPES.BotController).to(BotController)
+  IOC.bind<IController>(IOC_TYPES.IController).to(BotController).whenTargetNamed('botController')
   IOC.bind<Database>(IOC_TYPES.Database).to(Database).inSingletonScope()
   IOC.bind<AuthService>(IOC_TYPES.IAuthService).to(AuthService).inSingletonScope()
   IOC.bind<LigrettoCoreService>(IOC_TYPES.ILigrettoCoreService).to(LigrettoCoreService).inSingletonScope()
