@@ -4,11 +4,11 @@ import { Database } from '../../database/database'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
 export interface IPlaygroundRepository {
-  getDecks: (gameId: UUID) => Promise<(CardsDeck | null)[]>
-  getDeck: (gameId: UUID, position: number) => Promise<CardsDeck | null>
-  addDroppedDeck: (gameId: UUID, cardsDeck: CardsDeck) => Promise<CardsDeck[]>
-  removeDeck: (gameId: UUID, position: number) => Promise<void>
-  updateDeck: (gameId: UUID, position: number, updater: (deck: CardsDeck | null) => CardsDeck) => Promise<void>
+  getDecks(gameId: UUID): Promise<(CardsDeck | null)[]>
+  getDeck(gameId: UUID, position: number): Promise<CardsDeck | null>
+  addDroppedDeck(gameId: UUID, cardsDeck: CardsDeck): Promise<CardsDeck[]>
+  removeDeck(gameId: UUID, position: number): Promise<void>
+  updateDeck(gameId: UUID, position: number, updater: (deck: CardsDeck | null) => CardsDeck): Promise<void>
 }
 
 @injectable()

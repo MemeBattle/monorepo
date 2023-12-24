@@ -5,12 +5,12 @@ import type { Card, UUID, Player } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
 export interface IPlayerService {
-  getCard: (gameId: UUID, playerId: UUID, position: number) => Promise<Card | null | undefined>
-  removeCard: (gameId: UUID, playerId: UUID, position: number) => Promise<undefined>
-  removeCardFromStackOpenDeck: (gameId: UUID, playerId: UUID) => Promise<Card | undefined>
-  getCardFromStackOpenDeck: (gameId: UUID, playerId: UUID) => Promise<Card | undefined>
-  takeFromStackDeck: (gameId: UUID, playerId: UUID) => Promise<void>
-  takeFromLigrettoDeck: (gameId: UUID, playerId: string) => Promise<number | undefined>
+  getCard(gameId: UUID, playerId: UUID, position: number): Promise<Card | null | undefined>
+  removeCard(gameId: UUID, playerId: UUID, position: number): Promise<undefined>
+  removeCardFromStackOpenDeck(gameId: UUID, playerId: UUID): Promise<Card | undefined>
+  getCardFromStackOpenDeck(gameId: UUID, playerId: UUID): Promise<Card | undefined>
+  takeFromStackDeck(gameId: UUID, playerId: UUID): Promise<void>
+  takeFromLigrettoDeck(gameId: UUID, playerId: string): Promise<number | undefined>
 }
 
 @injectable()

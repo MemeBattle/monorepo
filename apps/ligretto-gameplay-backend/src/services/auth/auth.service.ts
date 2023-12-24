@@ -4,9 +4,9 @@ import { createCasServices } from '@memebattle/cas-services'
 import { CAS_URL, CAS_PARTNER_ID, PUBLIC_KEY } from '../../config'
 
 export interface IAuthService {
-  loginService: (credentials: LoginCredentials) => Promise<SuccessLoginData | null>
-  signUpService: (credentials: SignUpCredentials) => Promise<SuccessSignUpData | null>
-  verifyTokenService: (token: string) => Promise<{ userId: string } | null>
+  loginService(credentials: LoginCredentials): Promise<SuccessLoginData | null>
+  signUpService(credentials: SignUpCredentials): Promise<SuccessSignUpData | null>
+  verifyTokenService(token: string): Promise<{ userId: string } | null>
 }
 
 @injectable()

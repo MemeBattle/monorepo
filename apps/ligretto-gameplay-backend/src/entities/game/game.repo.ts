@@ -5,15 +5,15 @@ import { Database } from '../../database'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
 export interface IGameRepository {
-  addGame: (gameId: UUID, game: Game) => Promise<Game>
-  getGame: (gameId: UUID) => Promise<Game>
-  updateGame: (gameId: UUID, updater: (game: Game) => Game) => Promise<Game>
-  getGameByName: (gameName: string) => Promise<string | undefined>
-  removeGame: (gameId: UUID) => Promise<boolean>
-  getGames: () => Promise<Game[]>
-  getGamesByNames: (games: Record<UUID, Game>) => Record<string, UUID | undefined>
-  createPlayer: (playerData: Partial<Player> & { id: Player['id'] }) => Player
-  createSpectator: (playerData: Partial<Spectator> & { id: Spectator['id'] }) => Spectator
+  addGame(gameId: UUID, game: Game): Promise<Game>
+  getGame(gameId: UUID): Promise<Game>
+  updateGame(gameId: UUID, updater: (game: Game) => Game): Promise<Game>
+  getGameByName(gameName: string): Promise<string | undefined>
+  removeGame(gameId: UUID): Promise<boolean>
+  getGames(): Promise<Game[]>
+  getGamesByNames(games: Record<UUID, Game>): Record<string, UUID | undefined>
+  createPlayer(playerData: Partial<Player> & { id: Player['id'] }): Player
+  createSpectator(playerData: Partial<Spectator> & { id: Spectator['id'] }): Spectator
 }
 @injectable()
 export class GameRepository implements IGameRepository {

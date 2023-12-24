@@ -5,8 +5,8 @@ import type { Game, RoundInfo, CreateGameRequest, CreateGameResponse, SaveRoundR
 import { LIGRETTO_CORE_URL } from '../../config'
 
 export interface ILigrettoCoreService {
-  createGameService: () => Promise<CreateGameResponse>
-  saveGameRoundService: (gameId: Game['id'], round: RoundInfo) => Promise<SaveRoundResponse>
+  createGameService(): Promise<CreateGameResponse>
+  saveGameRoundService(gameId: Game['id'], round: RoundInfo): Promise<SaveRoundResponse>
 }
 
 @injectable()

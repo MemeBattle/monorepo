@@ -4,18 +4,18 @@ import { Database } from '../../database'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
 export interface IPlayerRepository {
-  getPlayer: (gameId: UUID, playerId: UUID) => Promise<Player | undefined>
-  getCards: (gameId: UUID, playerId: UUID) => Promise<(Card | null)[] | undefined>
-  getCard: (gameId: UUID, playerId: UUID, position: number) => Promise<Card | null | undefined>
-  addCard: (gameId: UUID, playerId: UUID, card: Card, position: number) => Promise<(Card | null)[] | undefined>
-  removeCard: (gameId: UUID, playerId: UUID, position: number) => Promise<(Card | null)[] | undefined>
-  getLigrettoDeck: (gameId: UUID, playerId: UUID) => Promise<CardsDeck | undefined>
-  removeCardFromLigrettoDeck: (gameId: UUID, playerId: UUID) => Promise<number | undefined>
-  getStackDeck: (gameId: UUID, playerId: UUID) => Promise<CardsDeck | undefined>
-  getStackOpenDeck: (gameId: UUID, playerId: UUID) => Promise<CardsDeck | undefined>
-  removeCardFromStackOpenDeck: (gameId: UUID, playerId: UUID) => Promise<Card | undefined>
-  updateStackDeck: (gameId: UUID, playerId: UUID, updater: (cardsDeck: CardsDeck) => CardsDeck) => Promise<CardsDeck | undefined>
-  updateStackOpenDeck: (gameId: UUID, playerId: UUID, updater: (cardsDeck: CardsDeck) => CardsDeck) => Promise<CardsDeck | undefined>
+  getPlayer(gameId: UUID, playerId: UUID): Promise<Player | undefined>
+  getCards(gameId: UUID, playerId: UUID): Promise<(Card | null)[] | undefined>
+  getCard(gameId: UUID, playerId: UUID, position: number): Promise<Card | null | undefined>
+  addCard(gameId: UUID, playerId: UUID, card: Card, position: number): Promise<(Card | null)[] | undefined>
+  removeCard(gameId: UUID, playerId: UUID, position: number): Promise<(Card | null)[] | undefined>
+  getLigrettoDeck(gameId: UUID, playerId: UUID): Promise<CardsDeck | undefined>
+  removeCardFromLigrettoDeck(gameId: UUID, playerId: UUID): Promise<number | undefined>
+  getStackDeck(gameId: UUID, playerId: UUID): Promise<CardsDeck | undefined>
+  getStackOpenDeck(gameId: UUID, playerId: UUID): Promise<CardsDeck | undefined>
+  removeCardFromStackOpenDeck(gameId: UUID, playerId: UUID): Promise<Card | undefined>
+  updateStackDeck(gameId: UUID, playerId: UUID, updater: (cardsDeck: CardsDeck) => CardsDeck): Promise<CardsDeck | undefined>
+  updateStackOpenDeck(gameId: UUID, playerId: UUID, updater: (cardsDeck: CardsDeck) => CardsDeck): Promise<CardsDeck | undefined>
 }
 
 @injectable()

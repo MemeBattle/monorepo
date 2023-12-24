@@ -10,9 +10,9 @@ import assert from 'node:assert'
 
 export interface IUserRepository {
   createOrUpdate({ userId, socketId }: { userId: UUID; socketId: string }): Promise<Storage>
-  updateUser: (updatePayload: Partial<User> & { id: User['id'] }) => Promise<void>
-  removeUser: (userId: User['id']) => Promise<Pick<Record<string, User | undefined>, never>>
-  getUser: (userId: User['id']) => Promise<User | undefined>
+  updateUser(updatePayload: Partial<User> & { id: User['id'] }): Promise<void>
+  removeUser(userId: User['id']): Promise<Pick<Record<string, User | undefined>, never>>
+  getUser(userId: User['id']): Promise<User | undefined>
 }
 
 @injectable()

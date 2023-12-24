@@ -5,8 +5,8 @@ import type { Card, CardsDeck, Game, UUID } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
 export interface IPlaygroundService {
-  putCard: (gameId: UUID, card: Card, deckIndex: number) => Promise<void>
-  getAvailableDeckPosition: (gameId: Game['id'], card: Card, deckPosition?: number) => Promise<number | undefined>
+  putCard(gameId: UUID, card: Card, deckIndex: number): Promise<void>
+  getAvailableDeckPosition(gameId: Game['id'], card: Card, deckPosition?: number): Promise<number | undefined>
 }
 
 const isDeckAvailable = (deck: CardsDeck | null, card: Card) => {

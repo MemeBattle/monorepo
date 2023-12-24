@@ -6,11 +6,11 @@ import { IOC_TYPES } from '../IOC_TYPES'
 import type { Game, GameResults, UUID } from '@memebattle/ligretto-shared'
 
 export interface IGameplay {
-  startGame: (gameId: UUID) => Promise<void>
-  playerPutCard: (gameId: UUID, playerId: UUID, cardPosition: number, deckPosition?: number) => Promise<void>
-  playerPutFromStackOpenDeck: (gameId: UUID, playerId: UUID, deckPosition?: number) => Promise<void>
-  playerTakeFromLigrettoDeck: (gameId: UUID, playerId: UUID) => Promise<{ game?: Game; gameResults?: GameResults }>
-  playerTakeFromStackDeck: (gameId: UUID, playerId: UUID) => Promise<void>
+  startGame(gameId: UUID): Promise<void>
+  playerPutCard(gameId: UUID, playerId: UUID, cardPosition: number, deckPosition?: number): Promise<void>
+  playerPutFromStackOpenDeck(gameId: UUID, playerId: UUID, deckPosition?: number): Promise<void>
+  playerTakeFromLigrettoDeck(gameId: UUID, playerId: UUID): Promise<{ game?: Game; gameResults?: GameResults }>
+  playerTakeFromStackDeck(gameId: UUID, playerId: UUID): Promise<void>
 }
 
 @injectable()
