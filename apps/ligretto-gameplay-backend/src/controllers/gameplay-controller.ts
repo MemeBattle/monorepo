@@ -12,13 +12,13 @@ import {
   takeFromStackDeckAction,
 } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../IOC_TYPES'
-import { Gameplay } from '../gameplay/gameplay'
+import { IGameplay } from '../gameplay/gameplay'
 import { IGameService } from '../entities/game/game.service'
 import { wait } from '../utils/wait'
 
 @injectable()
 export class GameplayController extends Controller {
-  @inject(IOC_TYPES.Gameplay) private gameplay: Gameplay
+  @inject(IOC_TYPES.IGameplay) private gameplay: IGameplay
   @inject(IOC_TYPES.IGameService) private gameService: IGameService
 
   protected handlers: Controller['handlers'] = {
