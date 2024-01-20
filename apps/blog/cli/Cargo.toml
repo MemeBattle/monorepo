@@ -1,13 +1,15 @@
 [package]
-name = "meme_battle_post"
+name = "memebattle_post"
 version = "0.0.1"
 edition = "2021"
 authors = ["Vasiliy Kuzenkove <batbondik0@gmail.com>"]
 rust-version = "1.75.0"
-keywords = ["AWS", "cli", "ECS"]
+keywords = ["blog-post", "cli"]
+description = "A CLI tool for creating blog posts for Memebattle blog"
+license = "Apache-2.0"
 
 [[bin]]
-name = "ecs_helpers"
+name = "memebattle_post"
 path = "src/main.rs"
 
 [dependencies]

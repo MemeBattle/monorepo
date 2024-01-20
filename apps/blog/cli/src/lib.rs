@@ -4,7 +4,11 @@ use arguments::CreateCommandArguments;
 use edit::{edit_file, Builder};
 use miette::Diagnostic;
 use owo_colors::{OwoColorize, Style};
-use std::{io::Write, path::{self, PathBuf}, fs};
+use std::{
+    fs,
+    io::Write,
+    path::{self, PathBuf},
+};
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum MemsPostError {
@@ -159,12 +163,12 @@ pub fn create(
 
 #[cfg(test)]
 mod test {
-  use super::*;
+    use super::*;
 
-  #[test]
-  fn test_extract_title_from_content() {
-    let content = String::from("title: Hello World\n");
-    let title = extract_title_from_content(content);
-    assert_eq!(title, Some(String::from("Hello World")));
-  }
+    #[test]
+    fn test_extract_title_from_content() {
+        let content = String::from("title: Hello World\n");
+        let title = extract_title_from_content(content);
+        assert_eq!(title, Some(String::from("Hello World")));
+    }
 }

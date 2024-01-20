@@ -1,9 +1,9 @@
 use clap::Parser;
-use miette::Context;
-use meme_battle_post::{
+use memebattle_post::{
     arguments::{Arguments, Command},
     create,
 };
+use miette::Context;
 
 fn main() -> miette::Result<()> {
     let arguments = Arguments::parse();
