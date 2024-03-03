@@ -12,8 +12,6 @@ on:
       - '.docker/GameHub-client_Dockerfile*'
       - '.github/workflows/gamehub-deploy.yml'
 
-env:
-  AWS_REGION: 'eu-north-1'
 
 jobs:
 

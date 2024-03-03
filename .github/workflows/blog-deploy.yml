@@ -13,8 +13,6 @@ on:
       - '.github/workflows/blog-deploy.yml'
       - '.github/actions/deploy-to-swarm/**'
 
-env:
-  AWS_REGION: 'eu-north-1'
 
 jobs:
 

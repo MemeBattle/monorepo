@@ -15,8 +15,6 @@ on:
       - '.docker'
       - '!.docker/Ligretto*'
 
-env:
-  AWS_REGION: 'eu-north-1'
 
 jobs:
 
