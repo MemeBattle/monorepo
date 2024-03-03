@@ -29,7 +29,7 @@ runs:
     - name: Install yc cli
       shell: bash
       id: install_yc_cli
-      run: curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s
+      run: curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -i /opt/yandex-cloud -n && ln -s /opt/yandex-cloud/bin/yc /usr/local/bin/yc
 
     - name: Configure yc cli
       id: configure_yc_cli
