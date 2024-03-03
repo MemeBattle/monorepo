@@ -11,7 +11,7 @@ on:
       - '.deploy/blog.deploy.yml'
       - '.docker/Blog_Dockerfile*'
       - '.github/workflows/blog-deploy.yml'
-      - '.github/actions/deploy-to-swarm/**'
+      - './.github/actions/deploy-to-swarm/**'
 
 env:
   AWS_REGION: 'eu-north-1'
@@ -62,7 +62,7 @@ jobs:
       - uses: actions/checkout@main
         name: Checkout
 
-      - uses: .github/actions/deploy-to-swarm
+      - uses: ./.github/actions/deploy-to-swarm
         name: Deploy to swarm lambda
         with:
           path-to-stack: '.deploy/blog.deploy.yml'

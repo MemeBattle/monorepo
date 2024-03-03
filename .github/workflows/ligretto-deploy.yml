@@ -141,7 +141,7 @@ jobs:
           name: frontend-dist
           path: apps/ligretto-frontend/dist
 
-      - uses: .github/actions/deploy-to-swarm
+      - uses: ./.github/actions/deploy-to-swarm
         name: Deploy to swarm lambda
         with:
           path-to-stack: '.deploy/ligretto.deploy.yml'
@@ -150,7 +150,7 @@ jobs:
           docker_registry_password: ${{ secrets.GHCR_PULL_TOKEN }}
           docker_registry: 'ghcr.io'
 
-      - uses: .github/actions/deploy-to-s3
+      - uses: ./.github/actions/deploy-to-s3
         name: Deploy to s3
         with:
           path-to-folder: apps/ligretto-frontend/dist

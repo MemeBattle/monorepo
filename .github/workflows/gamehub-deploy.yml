@@ -61,7 +61,7 @@ jobs:
       - uses: actions/checkout@main
         name: Checkout
 
-      - uses: .github/actions/deploy-to-swarm
+      - uses: ./.github/actions/deploy-to-swarm
         name: Deploy to swarm lambda
         with:
           path-to-stack: '.deploy/gamehub.deploy.yml'
