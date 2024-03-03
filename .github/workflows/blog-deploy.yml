@@ -66,6 +66,7 @@ jobs:
           path-to-stack: '.deploy/blog.deploy.yml'
           name: 'BLOG'
           sa_auth_key: ${{ secrets.YC_WORKER_KEY }}
+          yc_folder_id": 'b1gomjd9naqavtbdh4rp'
           docker_registry_login: ${{ secrets.GHCR_USER }}
           docker_registry_password: ${{ secrets.GHCR_PULL_TOKEN }}
           docker_registry: 'ghcr.io'

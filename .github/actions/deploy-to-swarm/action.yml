@@ -7,6 +7,8 @@ inputs:
   name:
     required: true
     description: "Stack name"
+  yc_folder_id:
+    required: true
   sa_auth_key:
     required: true
     description: "https://cloud.yandex.ru/en/docs/iam/concepts/authorization/key"
@@ -40,6 +42,7 @@ runs:
         ${{ inputs.sa_auth_key }}
         EOF
         yc config set service-account-key key.json
+
 
     - name: Read stack file
       id: package
