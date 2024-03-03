@@ -11,7 +11,7 @@ on:
       - '.deploy/blog.deploy.yml'
       - '.docker/Blog_Dockerfile*'
       - '.github/workflows/blog-deploy.yml'
-      - './.github/actions/deploy-to-swarm/**'
+      - '.github/actions/deploy-to-swarm/**'
 
 env:
   AWS_REGION: 'eu-north-1'
