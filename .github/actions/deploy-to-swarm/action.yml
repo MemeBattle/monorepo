@@ -36,7 +36,9 @@ runs:
       shell: bash
       run: |
         yc config profile create worker
-        echo "${{ inputs.sa_auth_key }}" | base64 -d > key.json
+        cat << 'EOF' > key.json
+        ${{ inputs.sa_auth_key }}
+        EOF
         yc config set service-account-key key.json
 
     - name: Read stack file
