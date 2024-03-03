@@ -19,7 +19,8 @@ services:
         - "prometheus-port=3005"
         - "traefik.enable=true"
         - "traefik.http.routers.ligretto-gameplay-backend.rule=Host(`api.ligretto.app`)"
-        - "traefik.http.routers.ligretto-gameplay-backend.entrypoints=web"
+        - "traefik.http.routers.ligretto-gameplay-backend.entrypoints=websecure"
+        - "traefik.http.routers.ligretto-gameplay-backend.tls=true"
         - "traefik.http.services.ligretto-gameplay-backend.loadbalancer.server.port=3005"
         - "traefik.http.services.ligretto-gameplay-backend.loadbalancer.passhostheader=true"
       replicas: 1
@@ -57,7 +58,8 @@ services:
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.ligretto-core-backend.rule=Host(`core.ligretto.app`)"
-        - "traefik.http.routers.ligretto-core-backend.entrypoints=web"
+        - "traefik.http.routers.ligretto-core-backend.entrypoints=websecure"
+        - "traefik.http.routers.ligretto-core-backend.tls=true"
         - "traefik.http.services.ligretto-core-backend.loadbalancer.server.port=3333"
         - "traefik.http.services.ligretto-core-backend.loadbalancer.passhostheader=true"
       replicas: 1
@@ -99,7 +101,8 @@ services:
         - "prometheus-port=8080"
         - "traefik.enable=true"
         - "traefik.http.routers.ligretto-bot-clj.rule=Host(`bots.ligretto.app`)"
-        - "traefik.http.routers.ligretto-bot-clj.entrypoints=web"
+        - "traefik.http.routers.ligretto-bot-clj.entrypoints=websecure"
+        - "traefik.http.routers.ligretto-bot-clj.tls=true"
         - "traefik.http.services.ligretto-bot-clj.loadbalancer.server.port=3222"
         - "traefik.http.services.ligretto-bot-clj.loadbalancer.passhostheader=true"
       replicas: 1

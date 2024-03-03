@@ -5,7 +5,7 @@ on:
     branches:
       - master
   push:
-    branches: [ master ]
+    branches: [ master, 475-modify-deploy-to-swarm-action-to-use-with-yandex-cloud ]
     paths:
       - 'apps/blog/**'
       - '.deploy/blog.deploy.yml'
@@ -66,8 +66,7 @@ jobs:
         with:
           path-to-stack: '.deploy/blog.deploy.yml'
           name: 'BLOG'
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          docker_login: ${{ secrets.GHCR_USER }}
-          docker_password: ${{ secrets.GHCR_PULL_TOKEN }}
+          sa_auth_key: ${{ secrets.YC_WORKER_KEY }}
+          docker_registry_login: ${{ secrets.GHCR_USER }}
+          docker_registry_password: ${{ secrets.GHCR_PULL_TOKEN }}
           docker_registry: 'ghcr.io'

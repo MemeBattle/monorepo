@@ -8,9 +8,10 @@ services:
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.gamehub-client.rule=Host(`mems.fun`)"
-        - "traefik.http.routers.gamehub-client.entrypoints=web"
+        - "traefik.http.routers.gamehub-client.entrypoints=websecure"
         - "traefik.http.services.gamehub-client.loadbalancer.server.port=3000"
         - "traefik.http.services.gamehub-client.loadbalancer.passhostheader=true"
+        - "traefik.http.routers.gamehub-client.tls=true"
       replicas: 1
       update_config:
         parallelism: 2

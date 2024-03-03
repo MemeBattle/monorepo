@@ -18,6 +18,6 @@
   "cSpell.words": ["injectable", "nestjs", "postgres", "styleguide", "typeorm"],
   "gitlens.advanced.blame.customArguments": [],
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
+    "source.fixAll.eslint": "explicit"
   }
 }

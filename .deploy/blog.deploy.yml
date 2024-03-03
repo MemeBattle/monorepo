@@ -10,7 +10,8 @@ services:
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.blog.rule=Host(`blog.mems.fun`)"
-        - "traefik.http.routers.blog.entrypoints=web"
+        - "traefik.http.routers.blog.entrypoints=websecure"
+        - "traefik.http.routers.blog.tls=true"
         - "traefik.http.services.blog.loadbalancer.server.port=3000"
         - "traefik.http.services.blog.loadbalancer.passhostheader=true"
       replicas: 1

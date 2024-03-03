@@ -7,21 +7,14 @@ inputs:
   name:
     required: true
     description: "Stack name"
-  AWS_ACCESS_KEY_ID:
+  sa_auth_key:
     required: true
-    description: 'AWS_ACCESS_KEY_ID'
-  AWS_SECRET_ACCESS_KEY:
-    required: true
-    description: 'AWS_SECRET_ACCESS_KEY'
-  AWS_REGION:
-    required: false
-    description: 'AWS region'
-    default: 'eu-north-1'
-  docker_login:
+    description: "https://cloud.yandex.ru/en/docs/iam/concepts/authorization/key"
+  docker_registry_login:
     required: false
     default: ''
     description: 'Docker login'
-  docker_password:
+  docker_registry_password:
     required: false
     default: ''
     description: 'Docker password'
@@ -33,23 +26,23 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Install yc cli
+      id: install_yc_cli
+      run: curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s
+
+    - name: Configure yc cli
+      id: configure_yc_cli
+      run: |
+        yc config profile create worker
+        echo ${{ inputs.sa_auth_key }} > key.json
+        yc config set service-account-key key.json
+
     - name: Read stack file
       id: package
       uses: juliangruber/read-file-action@v1
       with:
         path: ${{ inputs.path-to-stack }}
 
-    - uses: gagoar/invoke-aws-lambda@master
-      name: Invoke deploy to swarm lambda
+    - name: Invoke deploy to swarm lambda
       id: invoke-lambda
-      with:
-        AWS_ACCESS_KEY_ID: ${{ inputs.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
-        REGION: ${{ inputs.AWS_REGION }}
-        FunctionName: deploy-stack-lambda
-        Payload: '{ "body": {"name": "${{ inputs.name }}", "stack": ${{ toJSON(steps.package.outputs.content) }}, "dockerLogin": ${{ toJSON(inputs.docker_login) }}, "dockerPassword": ${{ toJSON(inputs.docker_password) }}, "dockerRegistry": ${{ toJSON(inputs.docker_registry) }} } }'
-
-    - name: Invoke logs
-      if: ${{ always() }}
-      shell: bash
-      run: echo "${{ steps.invoke-lambda.outputs.response }}"
+      run: yc serverless function invoke deploy-stack-lambda -d '{ "body": {"name": "${{ inputs.name }}", "stack": ${{ toJSON(steps.package.outputs.content) }}, "dockerLogin": ${{ toJSON(inputs.docker_registry_login) }}, "dockerPassword": ${{ toJSON(inputs.docker_registry_password) }}, "dockerRegistry": ${{ toJSON(inputs.docker_registry) }} } }'
