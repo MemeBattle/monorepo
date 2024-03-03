@@ -42,6 +42,7 @@ runs:
         ${{ inputs.sa_auth_key }}
         EOF
         yc config set service-account-key key.json
+        yc config set folder-id ${{ inputs.yc_folder_id }}
 
 
     - name: Read stack file
