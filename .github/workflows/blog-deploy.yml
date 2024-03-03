@@ -19,11 +19,11 @@ env:
 jobs:
 
   build-blog-image:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@main
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -52,17 +52,17 @@ jobs:
   deploy:
     needs: [build-blog-image]
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     environment:
       name: Blog-production
       url: https://blog.mems.fun
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@main
         name: Checkout
 
-      - uses: ./.github/actions/deploy-to-swarm
+      - uses: .github/actions/deploy-to-swarm
         name: Deploy to swarm lambda
         with:
           path-to-stack: '.deploy/blog.deploy.yml'
