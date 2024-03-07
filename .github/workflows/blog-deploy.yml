@@ -5,7 +5,7 @@ on:
     branches:
       - master
   push:
-    branches: [ master, 475-modify-deploy-to-swarm-action-to-use-with-yandex-cloud ]
+    branches: [ master ]
     paths:
       - 'apps/blog/**'
       - '.deploy/blog.deploy.yml'

@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - master
+      - 475-modify-deploy-to-swarm-action-to-use-with-yandex-cloud
     paths-ignore:
       - 'apps/gamehub-client/**'
       - 'apps/blog/**'
@@ -14,7 +15,6 @@ on:
       - '!.deploy/ligretto.deploy.yml'
       - '.docker'
       - '!.docker/Ligretto*'
-
 
 jobs:
 
