@@ -64,7 +64,7 @@ jobs:
         with:
           path-to-stack: '.deploy/gamehub.deploy.yml'
           name: 'GAMEHUB'
-          yc_folder_id: ${{ env.YC_FOLDER_ID }}
+          yc_folder_id: ${{ vars.YC_FOLDER_ID }}
           sa_auth_key: ${{ secrets.YC_WORKER_KEY }}
           docker_registry_login: ${{ secrets.GHCR_USER }}
           docker_registry_password: ${{ secrets.GHCR_PULL_TOKEN }}
