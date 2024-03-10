@@ -25,14 +25,15 @@ runs:
       shell: 'bash'
       run: |
         mkdir .aws
-        cat << 'EOF' > .aws/credentials
+        aws --version
+        cat << 'EOF' > ~/.aws/credentials
           [default]
             aws_access_key_id = ${{ inputs.AWS_ACCESS_KEY_ID }}
             aws_secret_access_key = ${{ inputs.AWS_SECRET_ACCESS_KEY }}
             endpoint_url = https://storage.yandexcloud.net
         EOF
 
-        cat << 'EOF' > .aws/config
+        cat << 'EOF' > ~/.aws/config
           [default]
             region = ${{ inputs.AWS_REGION }}
         EOF
