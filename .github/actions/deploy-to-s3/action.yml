@@ -24,8 +24,7 @@ runs:
     - name: Configure AWS
       shell: 'bash'
       run: |
-        mkdir .aws
-        aws --version
+        mkdir ~/.aws
         cat << 'EOF' > ~/.aws/credentials
           [default]
             aws_access_key_id = ${{ inputs.AWS_ACCESS_KEY_ID }}
