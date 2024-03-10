@@ -19,17 +19,26 @@ inputs:
   AWS_REGION:
     required: false
     description: 'AWS region'
-    default: 'eu-north-1'
+    default: 'ru-central1'
 
 runs:
   using: "composite"
   steps:
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1-node16
-      with:
-        aws-access-key-id: ${{ inputs.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ inputs.AWS_REGION }}
+    - name: Configure AWS
+      shell: 'bash'
+      run: |
+        mkdir .aws
+        cat << 'EOF' > .aws/credentials
+          [default]
+            aws_access_key_id = ${{ inputs.AWS_ACCESS_KEY_ID }}
+            aws_secret_access_key = ${{ inputs.AWS_SECRET_ACCESS_KEY }}
+            endpoint_url = https://storage.yandexcloud.net
+        EOF
+
+        cat << 'EOF' > .aws/config
+          [default]
+            region = ${{ inputs.AWS_REGION }}
+        EOF
 
     - name: Upload frontend build to s3
       shell: 'bash'
