@@ -156,6 +156,5 @@ jobs:
           path-to-folder: apps/ligretto-frontend/dist
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          bucket: 'lig-production-cdn-origin'
-          backup-bucket: 'lig-production-cdn-backup'
+          bucket: 'ligretto.app'
 
