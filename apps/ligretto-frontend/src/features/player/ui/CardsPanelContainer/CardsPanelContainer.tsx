@@ -2,9 +2,9 @@ import React, { useMemo } from 'react'
 import { useSelector } from 'react-redux'
 import { createSelector } from '@reduxjs/toolkit'
 
-import { playerLigrettoDeckCardsSelector, activePlayerSelector, isDndEnabledSelector } from 'ducks/game'
-import { buildCasStaticUrl } from 'shared/api/buildCasStaticUrl'
-import { getRandomAvatar } from 'shared/ui/Avatar/getRandomAvatar'
+import { playerLigrettoDeckCardsSelector, activePlayerSelector, isDndEnabledSelector } from '#ducks/game'
+import { buildCasStaticUrl } from '#shared/api/buildCasStaticUrl'
+import { getRandomAvatar } from '#shared/ui/Avatar/getRandomAvatar'
 
 import { CardsPanel } from '../CardsPanel'
 

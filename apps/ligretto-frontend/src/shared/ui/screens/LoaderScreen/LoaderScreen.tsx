@@ -1,9 +1,9 @@
 import React from 'react'
 import { LoaderCards, Box, useMediaQuery, useTheme } from '@memebattle/ui'
 
-import { MainLayout } from 'shared/ui/layouts/main'
+import { MainLayout } from '#shared/ui/layouts/main'
 
-import { LigrettoLogo } from 'shared/ui/LigrettoLogo'
+import { LigrettoLogo } from '#shared/ui/LigrettoLogo'
 
 export const LoaderScreen: React.FC = () => {
   const theme = useTheme()

@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from '@reduxjs/toolkit'
 
 import { Playground } from './Playground'
-import { playgroundDecksSelector, tapPlaygroundCardAction } from 'ducks/game'
+import { playgroundDecksSelector, tapPlaygroundCardAction } from '#ducks/game'
 
 const PlaygroundContainerSelector = createSelector([playgroundDecksSelector], playgroundDecks => ({
   playgroundDecks,

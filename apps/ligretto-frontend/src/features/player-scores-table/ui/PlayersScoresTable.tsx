@@ -1,7 +1,7 @@
 import type { FC } from 'react'
 import last from 'lodash/last'
 import { Box, Grid, Typography, useMediaQuery, useTheme } from '@memebattle/ui'
-import { Avatar } from 'shared/ui/Avatar'
+import { Avatar } from '#shared/ui/Avatar'
 
 import { PlayersScoresTableCell } from './PlayersScoresTableCell'
 import { PlayersScoresTableHead } from './PlayersScoresTableHead'

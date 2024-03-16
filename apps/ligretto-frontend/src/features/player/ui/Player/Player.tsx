@@ -4,7 +4,7 @@ import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { styled } from '@mui/material/styles'
 
-import { Avatar } from 'shared/ui/Avatar'
+import { Avatar } from '#shared/ui/Avatar'
 
 import { useMediaQuery, useTheme } from '@memebattle/ui'
 

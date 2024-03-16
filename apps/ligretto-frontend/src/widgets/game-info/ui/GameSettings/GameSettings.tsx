@@ -3,7 +3,7 @@ import ExitToAppIcon from '@mui/icons-material/ExitToApp'
 import { Box, Button, Paper, Stack, Typography } from '@memebattle/ui'
 import { styled } from '@mui/material/styles'
 
-import { PlayersScoresTableContainer } from 'features/player-scores-table'
+import { PlayersScoresTableContainer } from '#features/player-scores-table'
 import { GameStatus } from '@memebattle/ligretto-shared'
 
 interface GameSettingsProps {

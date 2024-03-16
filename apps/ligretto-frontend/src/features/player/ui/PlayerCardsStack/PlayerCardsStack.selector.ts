@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit'
 
-import { isDndEnabledSelector, playerStackDeckCardsSelector, playerStackOpenDeckCardsSelector, selectedCardIndexSelector } from 'ducks/game'
+import { isDndEnabledSelector, playerStackDeckCardsSelector, playerStackOpenDeckCardsSelector, selectedCardIndexSelector } from '#ducks/game'
 
 export const playerCardsStackSelector = createSelector(
   [playerStackOpenDeckCardsSelector, playerStackDeckCardsSelector, isDndEnabledSelector, selectedCardIndexSelector],

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import type { CardsDeck, Card } from '@memebattle/ligretto-shared'
 import last from 'lodash/last'
-import { CardPlace, Card as CardComponent } from 'entities/card'
+import { CardPlace, Card as CardComponent } from '#entities/card'
 import { TableCards } from './TableCards'
 
 export interface PlaygroundProps {

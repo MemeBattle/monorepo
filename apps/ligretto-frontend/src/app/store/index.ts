@@ -1,7 +1,7 @@
 import { configureStore, getDefaultMiddleware } from '@reduxjs/toolkit'
 import createSagaMiddleware from 'redux-saga'
 
-import { IS_DEV_MODE } from 'shared/constants/config'
+import { IS_DEV_MODE } from '#shared/constants/config'
 
 import rootSaga from './rootSaga'
 import { routerMiddleware, createReduxHistory } from './reduxHistoryContext'

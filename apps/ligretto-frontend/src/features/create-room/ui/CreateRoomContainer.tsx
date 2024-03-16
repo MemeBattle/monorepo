@@ -1,11 +1,11 @@
 import React, { useMemo, useState, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import type { CreateRoomError } from '@memebattle/ligretto-shared/src/dto'
+import type { CreateRoomError } from '@memebattle/ligretto-shared'
 
-import { createRoomAction, roomsErrorSelector } from 'ducks/rooms'
+import { createRoomAction, roomsErrorSelector } from '#ducks/rooms'
 
 import { roomNameValidation } from '../model/roomNameValidator'
-import { InputWithButton } from 'shared/ui/InputWithButton'
+import { InputWithButton } from '#shared/ui/InputWithButton'
 import { Typography } from '@memebattle/ui'
 
 export const CreateRoomContainer = () => {

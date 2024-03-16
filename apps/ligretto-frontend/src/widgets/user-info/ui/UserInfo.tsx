@@ -4,7 +4,7 @@ import React from 'react'
 import CreateIcon from '@mui/icons-material/Create'
 import ClearIcon from '@mui/icons-material/Clear'
 import { Paper, Button, Box, Typography } from '@memebattle/ui'
-import { Avatar } from 'shared/ui/Avatar'
+import { Avatar } from '#shared/ui/Avatar'
 
 export interface UserInfoProps {
   img?: string

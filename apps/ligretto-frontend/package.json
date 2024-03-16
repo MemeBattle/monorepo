@@ -4,6 +4,20 @@
   "private": true,
   "main": "./public/index.js",
   "module": "./public/index.js",
+  "type": "module",
+  "imports": {
+    "#*": [
+      "./src/*",
+      "./src/*.ts",
+      "./src/*.tsx",
+      "./src/*.js",
+      "./src/*.jsx",
+      "./src/*/index.ts",
+      "./src/*/index.tsx",
+      "./src/*/index.js",
+      "./src/*/index.jsx"
+    ]
+  },
   "scripts": {
     "start:dev": "vite --host",
     "build": "vite build",
@@ -17,14 +31,13 @@
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
     "@types/react-test-renderer": "^16.9.0",
-    "@vitejs/plugin-react": "^4.0.0",
+    "@vitejs/plugin-react": "^4.1.1",
     "react-test-renderer": "^16.9.0",
     "sass": "^1.53.0",
     "typescript": "^5.0.4",
-    "vite": "^4.3.9",
+    "vite": "^4.5.0",
     "vite-plugin-svgr": "^2.2.0",
-    "vite-tsconfig-paths": "^4.2.0",
-    "vitest": "^0.32.0"
+    "vitest": "^0.34.6"
   },
   "dependencies": {
     "@memebattle/analytics": "workspace:^",
