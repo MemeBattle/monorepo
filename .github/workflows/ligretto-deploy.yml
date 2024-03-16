@@ -2,12 +2,9 @@ name: 'Ligretto build, push and deploy'
 
 on:
   workflow_dispatch:
-    branches:
-      - master
   push:
     branches:
       - master
-      - 475-modify-deploy-to-swarm-action-to-use-with-yandex-cloud
     paths-ignore:
       - 'apps/gamehub-client/**'
       - 'apps/blog/**'

@@ -2,8 +2,6 @@ name: 'Blog build, push and deploy'
 
 on:
   workflow_dispatch:
-    branches:
-      - master
   push:
     branches: [ master ]
     paths:
@@ -12,7 +10,6 @@ on:
       - '.docker/Blog_Dockerfile*'
       - '.github/workflows/blog-deploy.yml'
       - '.github/actions/deploy-to-swarm/**'
-
 
 jobs:
 
