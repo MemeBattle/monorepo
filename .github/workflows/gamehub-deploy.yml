@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
     branches:
       - master
+      - 475-modify-deploy-to-swarm-action-to-use-with-yandex-cloud
   push:
     branches: [ master ]
     paths:
