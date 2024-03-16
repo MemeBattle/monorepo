@@ -13,30 +13,33 @@ inputs:
   bucket:
     required: true
     description: 's3 bucket to sync'
-  backup-bucket:
-    required: true
-    description: 's3 bucket to backup'
   AWS_REGION:
     required: false
     description: 'AWS region'
-    default: 'eu-north-1'
+    default: 'ru-central1'
 
 runs:
   using: "composite"
   steps:
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1-node16
-      with:
-        aws-access-key-id: ${{ inputs.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ inputs.AWS_REGION }}
+    - name: Configure AWS
+      shell: 'bash'
+      run: |
+        mkdir ~/.aws
+        cat << 'EOF' > ~/.aws/credentials
+          [default]
+            aws_access_key_id = ${{ inputs.AWS_ACCESS_KEY_ID }}
+            aws_secret_access_key = ${{ inputs.AWS_SECRET_ACCESS_KEY }}
+            endpoint_url = https://storage.yandexcloud.net
+        EOF
+
+        cat << 'EOF' > ~/.aws/config
+          [default]
+            region = ${{ inputs.AWS_REGION }}
+        EOF
 
     - name: Upload frontend build to s3
       shell: 'bash'
       env:
         PROD_CLIENT_APP_S3_BUCKET: ${{ inputs.bucket }}
-        PROD_CLIENT_APP_S3_BUCKET_BACKUP: ${{ inputs.backup-bucket }}
       run: |
-        aws s3 sync s3://$PROD_CLIENT_APP_S3_BUCKET s3://$PROD_CLIENT_APP_S3_BUCKET_BACKUP --delete
-        aws s3 cp s3://$PROD_CLIENT_APP_S3_BUCKET/index.html s3://$PROD_CLIENT_APP_S3_BUCKET_BACKUP/index.html # aws s3 sync cant correctly invalidate index.html file
         aws s3 sync ${{ inputs.path-to-folder }} s3://$PROD_CLIENT_APP_S3_BUCKET --delete
