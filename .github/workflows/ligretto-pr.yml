@@ -140,7 +140,7 @@ jobs:
         run: yarn
 
       - name: Install Playwright Browsers
-        run: yarn dlx playwright@1.38.1 install --with-deps chromium
+        run: yarn dlx playwright@1.42.1 install --with-deps chromium
 
       - name: Migrate database
         run: yarn ligretto:core-backend:migrate

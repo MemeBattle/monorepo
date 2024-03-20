@@ -27,7 +27,7 @@
     "e2e:start": "playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "^1.38.1",
+    "@playwright/test": "^1.42.1",
     "@redux-saga/types": "^1.2.1",
     "@types/history": "^4.7.2",
     "@types/react": "^18.0.28",
