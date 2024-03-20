@@ -5,7 +5,8 @@ on:
     branches: [ master ]
     paths:
       - 'apps/gamehub-client/**'
-      - '.docker/GameHub-client_**'
+      - '.docker/GameHub**'
+      - '.github/workflows/gamehub**'
       - 'yarn.lock'
 
 env:
@@ -15,11 +16,11 @@ jobs:
 
   lint:
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@main
 
       - name: Install node
         uses: actions/setup-node@v3
@@ -38,11 +39,11 @@ jobs:
 
   tsc:
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@main
 
       - name: Install node
         uses: actions/setup-node@v3

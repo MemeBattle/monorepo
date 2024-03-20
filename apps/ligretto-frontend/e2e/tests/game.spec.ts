@@ -1,11 +1,10 @@
 import { test, expect, chromium } from '@playwright/test'
-import { GamePage } from '../../src/pages/game/GamePage.page-object'
-import { HomePage } from '../../src/pages/home/HomePage.page-object'
-import { random } from 'lodash'
+import { GamePage } from '#pages/game/GamePage.page-object'
+import { HomePage } from '#pages/home/HomePage.page-object'
 
 test.describe('Create and enter room', () => {
-  test('Two users enter one room', async () => {
-    const roomName = `Test-room-${random(0, 10000)}`
+  test('Two users enter one room', async ({}, testInfo) => {
+    const roomName = `Test-room-${testInfo.retry}`
     const browser = await chromium.launch()
     const contextUser1 = await browser.newContext()
     const contextUser2 = await browser.newContext()

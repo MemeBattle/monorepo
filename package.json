@@ -77,7 +77,6 @@
     "stylelint": "^13.8.0",
     "stylelint-config-prettier": "^8.0.2",
     "stylelint-prettier": "^1.2.0",
-    "tsconfig-paths-webpack-plugin": "^4.0.0",
     "typescript": "^5.0.4",
     "wait-on": "^7.0.1"
   },
