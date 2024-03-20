@@ -4,8 +4,13 @@ import type { AxiosResponse } from 'axios'
 import type { Game, RoundInfo, CreateGameRequest, CreateGameResponse, SaveRoundRequest, SaveRoundResponse } from '@memebattle/ligretto-shared'
 import { LIGRETTO_CORE_URL } from '../../config'
 
+export interface ILigrettoCoreService {
+  createGameService(): Promise<CreateGameResponse>
+  saveGameRoundService(gameId: Game['id'], round: RoundInfo): Promise<SaveRoundResponse>
+}
+
 @injectable()
-export class LigrettoCoreService {
+export class LigrettoCoreService implements ILigrettoCoreService {
   private request = axios.create({
     baseURL: LIGRETTO_CORE_URL,
   })

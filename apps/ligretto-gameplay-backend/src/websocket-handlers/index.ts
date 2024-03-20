@@ -1,1 +1,1 @@
-export { WebSocketHandler } from './handler'
+export { WebSocketHandler, IWebSocketHandler } from './handler'
