@@ -3386,7 +3386,7 @@ __metadata:
     "@memebattle/auth-front": "workspace:^"
     "@memebattle/ligretto-shared": "workspace:^"
     "@memebattle/ui": "workspace:^"
-    "@playwright/test": ^1.38.1
+    "@playwright/test": ^1.42.1
     "@redux-saga/types": ^1.2.1
     "@reduxjs/toolkit": ^1.9.2
     "@types/history": ^4.7.2
@@ -4098,7 +4098,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@playwright/test@npm:^1.38.1":
+"@playwright/test@npm:^1.42.1":
   version: 1.42.1
   resolution: "@playwright/test@npm:1.42.1"
   dependencies:
