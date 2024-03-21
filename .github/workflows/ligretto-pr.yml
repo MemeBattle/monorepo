@@ -1,4 +1,4 @@
-name: Ligretto-pr
+name: 'Ligretto pull request'
 
 on:
   pull_request:

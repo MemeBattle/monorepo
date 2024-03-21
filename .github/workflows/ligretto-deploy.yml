@@ -1,4 +1,4 @@
-name: 'Ligretto build, push and deploy'
+name: 'Ligretto release'
 
 on:
   workflow_dispatch:

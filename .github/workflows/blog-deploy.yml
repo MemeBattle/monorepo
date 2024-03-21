@@ -1,4 +1,4 @@
-name: 'Blog build, push and deploy'
+name: 'Blog release'
 
 on:
   workflow_dispatch:

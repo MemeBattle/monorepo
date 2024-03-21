@@ -1,4 +1,4 @@
-name: 'Ligretto_schedule-E2E'
+name: 'Ligretto schedule-E2E'
 
 on:
   workflow_dispatch:

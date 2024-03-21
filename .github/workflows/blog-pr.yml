@@ -1,4 +1,4 @@
-name: CI-pull-requests
+name: 'Blog pull request'
 
 on:
   pull_request:
