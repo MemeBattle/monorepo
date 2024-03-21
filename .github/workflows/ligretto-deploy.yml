@@ -25,17 +25,8 @@ jobs:
     - name: Checkout
       uses: actions/checkout@main
 
-    - name: Install node
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18.14'
-        cache: 'yarn'
-
-    - name: Install yarn
-      run: corepack enable
-
-    - name: Install dependencies
-      run: yarn
+    - uses: ./.github/actions/prepare-nodejs
+      name: Prepare Node.js
 
     - name: Build frontend
       run: yarn run ligretto:front:build

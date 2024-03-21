@@ -1,0 +1,19 @@
+name: "Prepare nodejs"
+description: "Install nodejs. Install dependencies"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install node
+      uses: actions/setup-node@main
+      with:
+        node-version: "20.11.1"
+        cache: "yarn"
+
+    - name: Install yarn
+      shell: 'bash'
+      run: corepack enable
+
+    - name: Install dependencies
+      shell: 'bash'
+      run: yarn
