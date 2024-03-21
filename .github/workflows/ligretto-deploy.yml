@@ -10,6 +10,7 @@ on:
       - 'packages/ligretto-shared/**'
       - 'packages/auth-front/**'
       - 'packages/ui/**'
+      - .github/workflows/ligretto-deploy.yml
       - '.docker/Ligretto-**'
       - '.deploy/ligretto.deploy.yml'
       - '.env*'

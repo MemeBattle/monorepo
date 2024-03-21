@@ -6,6 +6,7 @@ on:
     paths:
       - 'apps/blog/**'
       - '.docker/Blog_**'
+      - '.github/workflows/blog-**'
       - 'yarn.lock'
 
 env:
