@@ -26,17 +26,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@main
 
-      - name: Install node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18.14'
-          cache: 'yarn'
-
-      - name: Install yarn
-        run: corepack enable
-
-      - name: Install dependencies
-        run: yarn
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
 
       - name: Lint code
         run: yarn lint
@@ -49,17 +40,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@main
 
-      - name: Install node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18.14'
-          cache: 'yarn'
-
-      - name: Install yarn
-        run: corepack enable
-
-      - name: Install dependencies
-        run: yarn
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
 
       - name: Build shared
         run: yarn ligretto-shared:build
@@ -85,17 +67,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@main
 
-      - name: Install node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18.14'
-          cache: 'yarn'
-
-      - name: Install yarn
-        run: corepack enable
-
-      - name: Install dependencies
-        run: yarn
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
 
       - name: TS check
         run: yarn ligretto:ts-check:ci
@@ -128,17 +101,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@main
 
-      - name: Install node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18.14'
-          cache: 'yarn'
-
-      - name: Install yarn
-        run: corepack enable
-
-      - name: Install dependencies
-        run: yarn
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
 
       - name: Install Playwright Browsers
         run: yarn dlx playwright@1.42.1 install --with-deps chromium
