@@ -1,5 +1,4 @@
 import type { Page } from '@playwright/test'
-import { byTestId } from '../utils/byTestId'
 
 export class HomePage {
   constructor(readonly page: Page) {}
@@ -9,14 +8,14 @@ export class HomePage {
   }
 
   async getCreateGameButton() {
-    return this.page.locator(byTestId('CreateGameButton'))
+    return this.page.getByTestId('CreateGameButton')
   }
 
   async getRoomNameInput() {
-    return this.page.locator(byTestId('CreateGameInput'))
+    return this.page.getByTestId('CreateGameInput')
   }
 
   async getRoom(roomName: string) {
-    return this.page.locator(byTestId(`RoomsList-RoomItem-${roomName}`))
+    return this.page.getByTestId(`RoomsList-RoomItem-${roomName}`)
   }
 }

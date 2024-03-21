@@ -8,7 +8,7 @@ on:
       - 'apps/blog/**'
       - '.deploy/blog.deploy.yml'
       - '.docker/Blog_Dockerfile*'
-      - '.github/workflows/blog-deploy.yml'
+      - '.github/workflows/blog-**'
       - '.github/actions/deploy-to-swarm/**'
 
 jobs:

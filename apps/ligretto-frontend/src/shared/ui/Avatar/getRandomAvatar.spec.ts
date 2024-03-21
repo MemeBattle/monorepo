@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest'
 import { getRandomAvatar } from './getRandomAvatar'
 
 describe('Avatar:getRandomAvatar', () => {

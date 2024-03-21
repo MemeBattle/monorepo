@@ -1,0 +1,86 @@
+name: CI-pull-requests
+
+on:
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'apps/blog/**'
+      - '.docker/Blog_**'
+      - 'yarn.lock'
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+
+  lint:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.14'
+          cache: 'yarn'
+
+      - name: Install yarn
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Lint code
+        run: yarn blog:lint
+
+  tests:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.14'
+          cache: 'yarn'
+
+      - name: Install yarn
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Run tests
+        run: yarn blog:test:ci
+
+  tsc:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.14'
+          cache: 'yarn'
+
+      - name: Install yarn
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Generate articles
+        run: yarn workspace @memebattle/blog run generate
+
+      - name: TS check
+        run: yarn workspace @memebattle/blog run ts-check

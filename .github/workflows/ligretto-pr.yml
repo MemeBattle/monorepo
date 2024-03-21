@@ -1,10 +1,16 @@
-name: CI-pull-requests
+name: Ligretto-pr
 
 on:
   pull_request:
     branches: [ master ]
-  merge_group:
-    types: [ checks_requested ]
+    paths:
+      - 'apps/ligretto-**'
+      - 'packages/ligretto-shared/**'
+      - 'packages/auth-front/**'
+      - 'packages/ui/**'
+      - '.docker/Ligretto-**'
+      - '.env*'
+      - 'yarn.lock'
 
 env:
   NODE_OPTIONS: --max-old-space-size=4096
@@ -58,7 +64,7 @@ jobs:
         run: yarn ligretto-shared:build
 
       - name: Run tests
-        run: yarn test:ci
+        run: yarn ligretto:test:ci
 
       - uses: jwalton/gh-find-current-pr@v1
         id: findPr
@@ -91,7 +97,7 @@ jobs:
         run: yarn
 
       - name: TS check
-        run: yarn ts-check
+        run: yarn ligretto:ts-check:ci
 
   e2e:
     env:
@@ -134,7 +140,7 @@ jobs:
         run: yarn
 
       - name: Install Playwright Browsers
-        run: yarn dlx playwright@1.28.0 install --with-deps chromium
+        run: yarn dlx playwright@1.42.1 install --with-deps chromium
 
       - name: Migrate database
         run: yarn ligretto:core-backend:migrate

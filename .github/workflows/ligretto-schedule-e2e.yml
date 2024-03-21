@@ -1,9 +1,9 @@
-name: 'Run-E2E'
+name: 'Ligretto_schedule-E2E'
 
 on:
   workflow_dispatch:
   schedule:
-    - cron:  '0 15 * * *'
+    - cron: '0 15 * * *'
 
 jobs:
 
@@ -28,12 +28,13 @@ jobs:
         run: yarn
 
       - name: Install Playwright Browsers
-        run: yarn dlx playwright@1.28.0 install --with-deps chromium
+        run: yarn dlx playwright@1.42.1 install --with-deps chromium
 
       - name: Run playwright tests
         run: yarn e2e:start
         env:
           LIGRETTO_APP_URL: https://ligretto.app/
+
       - uses: actions/upload-artifact@v2
         if: always()
         with:

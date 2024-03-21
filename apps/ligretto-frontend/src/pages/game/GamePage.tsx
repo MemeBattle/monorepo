@@ -14,7 +14,7 @@ const gamePageContainerSelector = createSelector([gameStatusSelector, isGameLoad
 
 const activeModalStatuses = new Set([GameStatus.New, GameStatus.Pause, GameStatus.RoundFinished])
 
-export const GamePageContainer = () => {
+export const GamePage = () => {
   const { gameStatus, isGameLoaded } = useSelector(gamePageContainerSelector)
 
   if (!isGameLoaded) {

@@ -2,7 +2,7 @@ import { Provider } from 'react-redux'
 import type { Meta, StoryFn } from '@storybook/react'
 import { history, store } from '#app/store'
 
-import { GamePageContainer } from './GamePageContainer'
+import { GamePage } from './GamePage'
 import { createMockStore } from 'testing/lib/createMockStore'
 
 import { initialState as gameInitialState } from '#ducks/game'
@@ -11,9 +11,9 @@ import type { Player } from '@memebattle/ligretto-shared'
 import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 import { HistoryRouter as Router } from 'redux-first-history/rr6'
 
-const meta: Meta<typeof GamePageContainer> = {
+const meta: Meta<typeof GamePage> = {
   title: 'Ligretto / pages / GamePageContainer',
-  component: GamePageContainer,
+  component: GamePage,
   decorators: [
     Story => (
       <Provider store={store}>
@@ -26,7 +26,7 @@ const meta: Meta<typeof GamePageContainer> = {
 }
 export default meta
 
-const Template: StoryFn<typeof GamePageContainer> = () => <GamePageContainer />
+const Template: StoryFn<typeof GamePage> = () => <GamePage />
 export const Loading = Template.bind({})
 Loading.decorators = [
   Story => (

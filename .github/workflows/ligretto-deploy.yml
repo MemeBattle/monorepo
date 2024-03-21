@@ -5,13 +5,14 @@ on:
   push:
     branches:
       - master
-    paths-ignore:
-      - 'apps/gamehub-client/**'
-      - 'apps/blog/**'
-      - '.deploy'
-      - '!.deploy/ligretto.deploy.yml'
-      - '.docker'
-      - '!.docker/Ligretto*'
+    paths:
+      - 'apps/ligretto-**'
+      - 'packages/ligretto-shared/**'
+      - 'packages/auth-front/**'
+      - 'packages/ui/**'
+      - '.docker/Ligretto-**'
+      - '.deploy/ligretto.deploy.yml'
+      - '.env*'
 
 jobs:
 

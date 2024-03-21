@@ -24,7 +24,8 @@
     }
   },
   "include": [
-    "./src"
+    "./src",
+    "./e2e"
   ],
   "exclude": [
     "public",

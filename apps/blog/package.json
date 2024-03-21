@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "node .next/standalone/apps/blog/server.js",
     "generate": "contentlayer build",
-    "ts-check": "yarn build && tsc --noEmit",
+    "ts-check": "tsc --noEmit",
     "test": "vitest",
     "test:ci": "yarn build && vitest run"
   },
