@@ -1,4 +1,4 @@
-name: CI-pull-requests
+name: 'Blog pull request'
 
 on:
   pull_request:
@@ -6,6 +6,7 @@ on:
     paths:
       - 'apps/blog/**'
       - '.docker/Blog_**'
+      - '.github/workflows/blog-**'
       - 'yarn.lock'
 
 env:

@@ -1,4 +1,4 @@
-name: 'GameHub build, push and deploy'
+name: 'GameHub release'
 
 on:
   workflow_dispatch:
