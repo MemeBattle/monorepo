@@ -1,4 +1,4 @@
-FROM node:18.14-bullseye-slim AS dependencies
+FROM node:20.11-bullseye-slim AS dependencies
 
 WORKDIR /memebattle
 
@@ -17,7 +17,7 @@ WORKDIR /memebattle/apps/blog
 
 RUN node ../../node_modules/.bin/next build
 
-FROM node:18.14-bullseye-slim AS runtime
+FROM node:20.11-bullseye-slim AS runtime
 ENV NODE_ENV=production
 
 RUN mkdir -p /memebattle
