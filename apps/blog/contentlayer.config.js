@@ -32,8 +32,6 @@ const extractSlug = flattenedPath => {
   const pathSegments = flattenedPath.split('/')
   const lastSegment = pathSegments.at(-1)
 
-  assert(lastSegment)
-
   return lastSegment.split('.')[0]
 }
 
