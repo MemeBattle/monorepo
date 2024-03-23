@@ -1,6 +1,5 @@
 import { connectToRoomEmitAction } from '@memebattle/ligretto-shared'
 import type { Socket } from 'socket.io'
-import { nanoid } from 'nanoid'
 import Timeout = NodeJS.Timeout
 
 /**
@@ -20,7 +19,7 @@ const makeTurn = (socket: Socket, botId: string) => {
 }
 
 const makeBot = (socket: Socket) => {
-  const botId = nanoid()
+  const botId = 'botId'
 
   makeTurn(socket, botId)
 

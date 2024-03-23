@@ -36,6 +36,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".contentlayer/generated",
+    "contentlayer.config.js",
     ".next/types/**/*.ts"
   ],
   "exclude": [

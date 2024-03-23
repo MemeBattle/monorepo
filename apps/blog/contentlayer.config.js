@@ -1,4 +1,3 @@
-// @ts-check
 import rehypeSlug from 'rehype-slug'
 import { addTOCRehypePlugin } from './src/generation-utils/addTOCRehypePlugin'
 import rehypeAutolinkHeadings from 'rehype-autolink-headings'
@@ -32,6 +31,8 @@ const extractFileLanguage = fileName => {
 const extractSlug = flattenedPath => {
   const pathSegments = flattenedPath.split('/')
   const lastSegment = pathSegments.at(-1)
+
+  assert(lastSegment)
 
   return lastSegment.split('.')[0]
 }
