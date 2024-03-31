@@ -40,6 +40,7 @@ jobs:
         CAS_STATIC_URL: https://cas.mems.fun/static
         CAS_URL: https://cas.mems.fun/api
         AMPLITUDE_TOKEN: f55f6d07422dfb26ca4dfbe59a54d609
+        SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
     - name: Archive frontend production dist
       uses: actions/upload-artifact@v3
