@@ -9,7 +9,9 @@ import type { GetMeResponse, GetUsersResponse } from '#shared/api'
 import { addUser, addUsers } from './usersActions'
 import type { User } from './usersTypes'
 
-export function* getUserByTokenSaga(token?: string): SagaIterator<{ userId: User['casId']; token: string; isTemporary: boolean } | null> {
+export function* getUserByTokenSaga(
+  token?: string,
+): SagaIterator<{ userId: User['casId']; token: string; isTemporary: boolean; username: string | null } | null> {
   try {
     const { data }: AxiosResponse<GetMeResponse> = yield call(getMe, token)
 
@@ -19,6 +21,7 @@ export function* getUserByTokenSaga(token?: string): SagaIterator<{ userId: User
       userId: data.user.casId,
       isTemporary: data.user.isTemporary,
       token: data.token,
+      username: data.user.isTemporary ? null : data.user.username,
     }
   } catch (e) {
     console.error(e)

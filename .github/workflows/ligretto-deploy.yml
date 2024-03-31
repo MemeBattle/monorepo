@@ -15,6 +15,9 @@ on:
       - '.deploy/ligretto.deploy.yml'
       - '.env*'
 
+env:
+  LIGRETTO_APP_VERSION: ${{ github.run_id }}
+
 jobs:
 
   ligretto-frontend-build:
@@ -71,6 +74,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/memebattle/ligretto-gameplay-backend:${{ github.sha }}
+            ghcr.io/memebattle/ligretto-gameplay-backend:${{ env.LIGRETTO_APP_VERSION }}
             ghcr.io/memebattle/ligretto-gameplay-backend:latest
           context: '.'
           file: '.docker/Ligretto-gameplay-backend_Dockerfile'
@@ -103,6 +107,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/memebattle/ligretto-core-backend:${{ github.sha }}
+            ghcr.io/memebattle/ligretto-core-backend:${{ env.LIGRETTO_APP_VERSION }}
             ghcr.io/memebattle/ligretto-core-backend:latest
           context: '.'
           file: '.docker/Ligretto-core-backend_Dockerfile'

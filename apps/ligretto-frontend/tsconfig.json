@@ -25,7 +25,8 @@
   },
   "include": [
     "./src",
-    "./e2e"
+    "./e2e",
+    "env.d.ts"
   ],
   "exclude": [
     "public",
