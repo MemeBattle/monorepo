@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node'
 import { injectable, inject } from 'inversify'
 import type { Server, Socket } from 'socket.io'
 import { IOC_TYPES } from '../IOC_TYPES'
@@ -25,32 +26,35 @@ export class WebSocketHandler implements WebSocketHandler {
   }
 
   public async connectionHandler(socket: Socket): Promise<void> {
-    socketIOConnectionsCountMetric.inc()
-    socketIOConnectionsCountTotalMetric.inc()
+    Sentry.runWithAsyncContext(async () => {
+      socketIOConnectionsCountMetric.inc()
+      socketIOConnectionsCountTotalMetric.inc()
 
-    socket.on('message', data => {
-      if (!data || !data.hasOwnProperty('type') || typeof data.type !== 'string') {
-        console.error('data should contain type', data)
-        return
-      }
-      this.messageHandler(socket, data)
+      socket.on('message', data => {
+        if (!data || !data.hasOwnProperty('type') || typeof data.type !== 'string') {
+          console.error('data should contain type', data)
+          Sentry.captureException('WebSocker message without type')
+          return
+        }
+        this.messageHandler(socket, data)
+      })
+
+      socket.on('echo', data => {
+        console.log('ECHO', data)
+        socket.emit(data.type, data.payload)
+      })
+
+      socket.on('disconnecting', async () => {
+        await this.gamesController.disconnectionHandler(socket)
+        await this.userService.disconnectionHandler({ socketId: socket.id, userId: socket.data.user.id })
+      })
+
+      socket.on('disconnect', () => {
+        socketIOConnectionsCountMetric.dec()
+      })
+
+      await this.userService.connectUser({ socketId: socket.id, userId: socket.data.user.id })
     })
-
-    socket.on('echo', data => {
-      console.log('ECHO', data)
-      socket.emit(data.type, data.payload)
-    })
-
-    socket.on('disconnecting', async () => {
-      await this.gamesController.disconnectionHandler(socket)
-      await this.userService.disconnectionHandler({ socketId: socket.id, userId: socket.data.user.id })
-    })
-
-    socket.on('disconnect', () => {
-      socketIOConnectionsCountMetric.dec()
-    })
-
-    await this.userService.connectUser({ socketId: socket.id, userId: socket.data.user.id })
   }
 
   private messageHandler(socket: Socket, data: AnyAction) {

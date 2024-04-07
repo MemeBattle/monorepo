@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/integrations'
 import type { SagaIterator, EventChannel, Unsubscribe } from 'redux-saga'
 import type { NotUndefined } from '@redux-saga/types'
 import { eventChannel, END } from 'redux-saga'
