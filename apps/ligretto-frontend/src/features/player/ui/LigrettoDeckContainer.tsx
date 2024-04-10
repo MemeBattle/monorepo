@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { isDndEnabledSelector, tapLigrettoDeckCardAction, playerLigrettoDeckCardsSelector } from 'ducks/game'
+import { isDndEnabledSelector, tapLigrettoDeckCardAction, playerLigrettoDeckCardsSelector } from '#ducks/game'
 import { LigrettoPack } from './LigrettoPack'
 
 export const LigrettoDeckContainer = () => {

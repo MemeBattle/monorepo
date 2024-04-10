@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>http://localhost:3000/en/posts</id>
+    <title>MemeBattle blog</title>
+    <updated>2023-05-28T00:00:00.000Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="http://localhost:3000/en/posts"/>
+    <link rel="self" href="http://localhost:3000/feed/en"/>
+    <subtitle>Technical articles, posts and notes. MemeBattle news</subtitle>
+    <rights>All rights reserved 2023, MemeBattle blog</rights>
+    <entry>
+        <title type="html"><![CDATA[What is MemeBattle?]]></title>
+        <id>http://localhost:3000/en/posts/what-is-memebattle</id>
+        <link href="http://localhost:3000/en/posts/what-is-memebattle"/>
+        <updated>2023-05-28T00:00:00.000Z</updated>
+        <summary type="html"><![CDATA[Post about MemeBattle. How it's started and what is MemeBattle today]]></summary>
+        <content type="html"><![CDATA[<h2 id="how-it-all-began"><a class="no-underline hover:underline font-bold text-inherit" href="#how-it-all-began">How it all began</a></h2>
+<p>In 2017, a group of students from Novosibirsk State Technical University teamed up to participate in an online hackathon.
+The hackathon was dedicated entertainment and fun. We created an application (web and Android) with an endless battle of memes. Every few seconds, users saw a pair of memes and voted for one of them.
+Players who rated the meme with a majority vote received the internal currency – MemeCoin.
+We won that hackathon and received investments for development.</p>
+<details class="my-6"><summary>First application version screenshots</summary><img src="/content-images/what-is-memebattle/memebattle_v1.png" alt="MemeBattle v1. Screenshow of web application"/><img src="/content-images/what-is-memebattle/memebattle-playmarket.png" alt="MemeBattle v1. Screenshot of application page on google play"/></details>
+<p>After that, we participated in hackathons for several years. Local hackathons in Siberia (Tomsk, Kemerovo, Novosibirsk) and large ones in Moscow. It was our hobby.
+Meanwhile, we periodically returned to the original idea, but never created a real product 😢</p>
+
+<p>In parallel with hackathons, we have done some educational projects. For example, in union with other students, owe organized the AVTF IT community – several meetups by different streams (web development, mobile development, databases, information security, data science). For you to know, our first meetup brought together more than 150 people!</p>
+<img src="http://localhost:3000/content-images/what-is-memebattle/ITC2.jpg" alt="Photo from first meetup of IT community AVTF" width="1920" height="925"/>
+<p>We often discussed MemeBattle and told our friends about it. But we have not been able to answer the question &quot;What is MemeBattle&quot;. We usually answer like this:</p>
+<blockquote class="relative border-none font-semibold not-italic pl-[2.5em] lg:pl-[2em] before:content-quote before:absolute before:left-[0]">
+<p>MemeBattle is not a dot on a map. MemeBattle is people.</p>
+</blockquote>
+
+<p>Looking back, I can answer:</p>
+<blockquote class="relative border-none font-semibold not-italic pl-[2.5em] lg:pl-[2em] before:content-quote before:absolute before:left-[0]">
+<p><b>MemeBattle</b> is a small community built around several technical projects that we have used to explore new technologies and approaches. <br/> It is also a team that we created to participate in hackathons and other activities.</p>
+</blockquote>
+<h2 id="memebattle-today"><a class="no-underline hover:underline font-bold text-inherit" href="#memebattle-today">MemeBattle today</a></h2>
+<p>The original concept of the application focused on meme battles is a thing of the past.</p>
+<p>At the moment, MemeBattle is primarily an <b>open community</b> united by common projects.
+We are open to new ideas and projects and are happy to invite everyone to join us.</p>
+<p>To date, MemeBattle has several projects in development.</p>
+<h3 id="ligretto"><a class="no-underline hover:underline font-bold text-inherit" href="#ligretto">Ligretto</a></h3>
+<p><b>Ligretto</b> is fast-paced online multiplayer game in which you need to lay out cards as quickly as possible and outperform your opponents with reaction and agility.</p>
+<p><a class="text-externalLink font-semibold after:content-externalLink after:ml-4" href="https://ligretto.app/">https://ligretto.app/</a></p>
+<p>Play with friends at any time - one round takes only a few minutes. Our colleagues sometimes spend their free time like this between meetings 😄</p>
+<h3 id="gamehub"><a class="no-underline hover:underline font-bold text-inherit" href="#gamehub">GameHub</a></h3>
+<p><b>GameHub</b> is online games service. Unfortunately, there is only one game so far. But in the ideal future, it will be a portal for multiple online games in one ecosystem.</p>
+<p><a class="text-externalLink font-semibold after:content-externalLink after:ml-4" href="https://mems.fun/">https://mems.fun/</a></p>
+<p>We are witnessing a profound transformation in people&#x27;s lives. The world is becoming global and remote.
+In the past, we used to have the chance to effortlessly gather with friends or colleagues at a party or in the office, enjoy ourselves, and engage in board games.</p>
+<p>Nowadays, many companies are scattered around the world, making it more difficult to gather around one table.
+GameHub and games within it can facilitate spending time together by playing.</p>
+<h3 id="blog"><a class="no-underline hover:underline font-bold text-inherit" href="#blog">Blog</a></h3>
+<p>This blog. There will be not only news from the MemeBattle team, but also various posts from everyone.
+First of all, we would like to share technical discoveries and experiences. For example, one of the following posts is planned as a description of using variable fonts research in this blog.</p>
+<p><a class="text-externalLink font-semibold after:content-externalLink after:ml-4" href="https://blog.mems.fun/">https://blog.mems.fun/</a></p>
+<h3 id="memebattle-as-paas"><a class="no-underline hover:underline font-bold text-inherit" href="#memebattle-as-paas">MemeBattle as PaaS</a></h3>
+<p>All our projects deployed to self infrastructure on AWS. We have well-established practices and solutions for quickly launching services into production.</p>
+<h3 id="education"><a class="no-underline hover:underline font-bold text-inherit" href="#education">Education</a></h3>
+<p>We continue to use our projects for education. New technologies, tools, approaches etc.</p>
+<blockquote class="relative border-none font-semibold not-italic pl-[2.5em] lg:pl-[2em] before:content-quote before:absolute before:left-[0]">
+<p>It&#x27;s better to try something on real-like projects than to read about it a thousand times.</p>
+</blockquote>
+<h4 id="experience"><a class="no-underline hover:underline font-bold text-inherit" href="#experience">Experience</a></h4>
+<p>Here you can practice solving problems like on real-life projects. For example, <a class="text-externalLink font-semibold after:content-externalLink after:ml-4" href="https://github.com/MemeBattle/monorepo/issues/177">add localization system to Ligretto</a>, so that the language barrier doesn&#x27;t spoil the gaming experience.
+Or add new features like <a class="text-externalLink font-semibold after:content-externalLink after:ml-4" href="https://github.com/MemeBattle/monorepo/milestone/11">leaderboard in Ligretto</a>.</p>
+<p>There are also smaller tasks that help newcomers take their <a class="text-externalLink font-semibold after:content-externalLink after:ml-4" href="https://github.com/MemeBattle/monorepo/labels/good%20first%20issue">first steps</a>.</p>
+<p>The experience gained on our projects constantly helps me in interviews and in my work.
+And since our repositories are open and projects are publicly accessible, every member of the community has tangible evidence of their experience.</p>
+<h4 id="mentoring"><a class="no-underline hover:underline font-bold text-inherit" href="#mentoring">Mentoring</a></h4>
+<p>Furthermore, I believe that MemeBattle projects provide a solid infrastructure for mentoring.</p>
+<p>We are always eager to assist everyone, and if you are a mentor or a buddy, we can support you with tasks. After all, collaborating on a project with others is much more enjoyable than working in isolation.</p>
+<h2 id="summary"><a class="no-underline hover:underline font-bold text-inherit" href="#summary">Summary</a></h2>
+<p>MemeBattle is projects, technical and education platform, team and community. Together we learn new things in practice, and our main resource is people.</p>
+<p><strong>Join us!</strong></p>
+<ul>
+<li><a class="text-externalLink font-semibold after:content-externalLink after:ml-4" href="https://github.com/MemeBattle">GitHub</a></li>
+<li><a class="text-externalLink font-semibold after:content-externalLink after:ml-4" href="https://www.linkedin.com/company/memebattle/">Linkedin</a></li>
+</ul>]]></content>
+        <author>
+            <name>themezv</name>
+        </author>
+        <published>2023-05-28T00:00:00.000Z</published>
+    </entry>
+</feed>

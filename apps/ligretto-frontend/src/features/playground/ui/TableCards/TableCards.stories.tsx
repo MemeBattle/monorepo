@@ -1,5 +1,5 @@
 import { TableCards } from './TableCards'
-import { CardPlace } from 'entities/card'
+import { CardPlace } from '#entities/card'
 
 export default {
   title: 'Ligretto / TableCards',

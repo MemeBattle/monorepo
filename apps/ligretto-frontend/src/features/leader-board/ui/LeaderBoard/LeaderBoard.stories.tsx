@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { LeaderBoard } from './LeaderBoard'
-import { history, store } from 'app/store'
+import { history, store } from '#app/store'
 import { Provider } from 'react-redux'
 import { HistoryRouter as Router } from 'redux-first-history/rr6'
 

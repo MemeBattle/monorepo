@@ -1,11 +1,11 @@
 import { createSelector } from '@reduxjs/toolkit'
 import orderBy from 'lodash/orderBy'
 
-import { buildCasStaticUrl } from 'shared/api/buildCasStaticUrl'
-import { gameResultsSelector, playersIdsSelector } from 'ducks/game'
-import { usersMapSelector } from 'ducks/users'
-import { currentUserIdSelector } from 'ducks/auth'
-import { getRandomAvatar } from 'shared/ui/Avatar/getRandomAvatar'
+import { buildCasStaticUrl } from '#shared/api/buildCasStaticUrl'
+import { gameResultsSelector, playersIdsSelector } from '#ducks/game'
+import { usersMapSelector } from '#ducks/users'
+import { currentUserIdSelector } from '#ducks/auth'
+import { getRandomAvatar } from '#shared/ui/Avatar/getRandomAvatar'
 
 export const playersSelector = createSelector(
   [playersIdsSelector, gameResultsSelector, usersMapSelector, currentUserIdSelector],

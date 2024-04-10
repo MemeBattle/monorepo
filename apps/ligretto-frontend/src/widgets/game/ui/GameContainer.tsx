@@ -1,9 +1,9 @@
 import { GameGrid } from './GameGrid'
-import { Opponent, CardsPanelContainer } from 'features/player'
-import { PlaygroundContainer } from 'features/playground'
+import { Opponent, CardsPanelContainer } from '#features/player'
+import { PlaygroundContainer } from '#features/playground'
 import { createSelector } from '@reduxjs/toolkit'
 import { useSelector } from 'react-redux'
-import { gameStatusSelector, isPlayerSpectatorSelector, opponentsSelector, startingDelayInSecSelector } from 'ducks/game'
+import { gameStatusSelector, isPlayerSpectatorSelector, opponentsSelector, startingDelayInSecSelector } from '#ducks/game'
 import { GameStatus } from '@memebattle/ligretto-shared'
 import { ScreenCountdown } from './ScreenCountdown'
 

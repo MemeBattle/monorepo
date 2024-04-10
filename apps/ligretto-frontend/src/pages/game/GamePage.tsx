@@ -2,10 +2,10 @@ import { useSelector } from 'react-redux'
 import { createSelector } from '@reduxjs/toolkit'
 import { GameStatus } from '@memebattle/ligretto-shared'
 
-import { gameStatusSelector, isGameLoadedSelector } from 'ducks/game'
-import { GameSettingsModal } from 'widgets/game-info'
-import { GameLayout } from 'shared/ui/layouts/game/GameLayout'
-import { GameContainer } from 'widgets/game'
+import { gameStatusSelector, isGameLoadedSelector } from '#ducks/game'
+import { GameSettingsModal } from '#widgets/game-info'
+import { GameLayout } from '#shared/ui/layouts/game/GameLayout'
+import { GameContainer } from '#widgets/game'
 
 const gamePageContainerSelector = createSelector([gameStatusSelector, isGameLoadedSelector], (gameStatus, isGameLoaded) => ({
   gameStatus,
@@ -14,7 +14,7 @@ const gamePageContainerSelector = createSelector([gameStatusSelector, isGameLoad
 
 const activeModalStatuses = new Set([GameStatus.New, GameStatus.Pause, GameStatus.RoundFinished])
 
-export const GamePageContainer = () => {
+export const GamePage = () => {
   const { gameStatus, isGameLoaded } = useSelector(gamePageContainerSelector)
 
   if (!isGameLoaded) {

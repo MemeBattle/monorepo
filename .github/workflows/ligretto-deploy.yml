@@ -1,44 +1,35 @@
-name: 'Ligretto build, push and deploy'
+name: 'Ligretto release'
 
 on:
   workflow_dispatch:
-    branches:
-      - master
   push:
     branches:
       - master
-    paths-ignore:
-      - 'apps/gamehub-client/**'
-      - 'apps/blog/**'
-      - '.deploy'
-      - '!.deploy/ligretto.deploy.yml'
-      - '.docker'
-      - '!.docker/Ligretto*'
+    paths:
+      - 'apps/ligretto-**'
+      - 'packages/ligretto-shared/**'
+      - 'packages/auth-front/**'
+      - 'packages/ui/**'
+      - .github/workflows/ligretto-deploy.yml
+      - '.docker/Ligretto-**'
+      - '.deploy/ligretto.deploy.yml'
+      - '.env*'
 
 env:
-  AWS_REGION: 'eu-north-1'
+  LIGRETTO_APP_VERSION: ${{ github.run_id }}
 
 jobs:
 
   ligretto-frontend-build:
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@main
 
-    - name: Install node
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18.14'
-        cache: 'yarn'
-
-    - name: Install yarn
-      run: corepack enable
-
-    - name: Install dependencies
-      run: yarn
+    - uses: ./.github/actions/prepare-nodejs
+      name: Prepare Node.js
 
     - name: Build frontend
       run: yarn run ligretto:front:build
@@ -49,6 +40,7 @@ jobs:
         CAS_STATIC_URL: https://cas.mems.fun/static
         CAS_URL: https://cas.mems.fun/api
         AMPLITUDE_TOKEN: f55f6d07422dfb26ca4dfbe59a54d609
+        SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
     - name: Archive frontend production dist
       uses: actions/upload-artifact@v3
@@ -59,16 +51,11 @@ jobs:
 
   ligretto-gameplay-backend-image:
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Docker Setup QEMU
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: 'arm64'
+        uses: actions/checkout@main
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -85,10 +72,10 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          platforms: linux/arm64
           push: true
           tags: |
             ghcr.io/memebattle/ligretto-gameplay-backend:${{ github.sha }}
+            ghcr.io/memebattle/ligretto-gameplay-backend:${{ env.LIGRETTO_APP_VERSION }}
             ghcr.io/memebattle/ligretto-gameplay-backend:latest
           context: '.'
           file: '.docker/Ligretto-gameplay-backend_Dockerfile'
@@ -97,16 +84,11 @@ jobs:
 
   ligretto-core-backend-image:
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Docker Setup QEMU
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: 'arm64'
+        uses: actions/checkout@main
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -123,10 +105,10 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          platforms: linux/arm64
           push: true
           tags: |
             ghcr.io/memebattle/ligretto-core-backend:${{ github.sha }}
+            ghcr.io/memebattle/ligretto-core-backend:${{ env.LIGRETTO_APP_VERSION }}
             ghcr.io/memebattle/ligretto-core-backend:latest
           context: '.'
           file: '.docker/Ligretto-core-backend_Dockerfile'
@@ -136,14 +118,14 @@ jobs:
   deploy:
     needs: [ligretto-gameplay-backend-image, ligretto-core-backend-image, ligretto-frontend-build]
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     environment:
       name: Ligretto-production
       url: https://ligretto.app
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@main
         name: Checkout
 
       - name: Download frontend dist
@@ -158,10 +140,10 @@ jobs:
         with:
           path-to-stack: '.deploy/ligretto.deploy.yml'
           name: 'LIGRETTO'
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          docker_login: ${{ secrets.GHCR_USER }}
-          docker_password: ${{ secrets.GHCR_PULL_TOKEN }}
+          yc_folder_id: ${{ vars.YC_FOLDER_ID }}
+          sa_auth_key: ${{ secrets.YC_WORKER_KEY }}
+          docker_registry_login: ${{ secrets.GHCR_USER }}
+          docker_registry_password: ${{ secrets.GHCR_PULL_TOKEN }}
           docker_registry: 'ghcr.io'
 
       - uses: ./.github/actions/deploy-to-s3
@@ -170,6 +152,5 @@ jobs:
           path-to-folder: apps/ligretto-frontend/dist
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          bucket: 'lig-production-cdn-origin'
-          backup-bucket: 'lig-production-cdn-backup'
+          bucket: 'ligretto.app'
 

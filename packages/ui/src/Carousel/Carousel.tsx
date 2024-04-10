@@ -177,13 +177,13 @@ export const Carousel = ({ children, initialSlideIndex = 0 }: CarouselProps) => 
   }, [])
 
   useEffect(() => {
-    let timerId: NodeJS.Timer
+    let timerId: number
     if (isAutoChangeEnabled) {
-      timerId = setInterval(() => {
+      timerId = window.setInterval(() => {
         setScrollToIndex(index => (index + 1) % slidesCount)
       }, 5000)
     }
-    return () => clearInterval(timerId)
+    return () => window.clearInterval(timerId)
   }, [isAutoChangeEnabled, slidesCount])
 
   const contextValue = useMemo<CarouselContextValue>(

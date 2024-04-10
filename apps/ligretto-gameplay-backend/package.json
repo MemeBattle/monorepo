@@ -12,23 +12,20 @@
     "start:dev": "yarn prestart && nodemon",
     "start": "yarn prestart && ts-node src/index.ts",
     "prestart": "ts-node src/cli/check-env.ts",
-    "build": "tsc",
+    "build": "tsc --project tsconfig.build.json",
     "ts-check": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/jest": "^28.1.6",
+    "@jest/globals": "^29.7.0",
     "@types/lodash": "^4.14.182",
-    "@types/node": "^18.14.0",
+    "@types/node": "20.11.30",
     "cross-env": "^7.0.3",
     "jest": "^29.5.0",
     "mock-socket": "^9.1.5",
     "nodemon": "^2.0.16",
-    "ts-jest": "^29.0.5",
-    "ts-loader": "^9.4.2",
+    "ts-jest": "^29.1.2",
     "ts-node": "^10.9.1",
-    "typescript": "^5.0.4",
-    "webpack": "^5.28.0",
-    "webpack-cli": "^4.6.0"
+    "typescript": "5.4.3"
   },
   "dependencies": {
     "@codexsoft/dotenv-flow": "^3.3.5",

@@ -1,4 +1,3 @@
-// @ts-check
 import rehypeSlug from 'rehype-slug'
 import { addTOCRehypePlugin } from './src/generation-utils/addTOCRehypePlugin'
 import rehypeAutolinkHeadings from 'rehype-autolink-headings'

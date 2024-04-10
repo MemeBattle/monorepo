@@ -4,10 +4,10 @@ import type { Card as OpponentCard, UUID } from '@memebattle/ligretto-shared'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 
 import { Player } from '../Player'
-import { Card, CardPlace } from 'entities/card'
+import { Card, CardPlace } from '#entities/card'
 
-import { buildCasStaticUrl } from 'shared/api/buildCasStaticUrl'
-import { getRandomAvatar } from 'shared/ui/Avatar/getRandomAvatar'
+import { buildCasStaticUrl } from '#shared/api/buildCasStaticUrl'
+import { getRandomAvatar } from '#shared/ui/Avatar/getRandomAvatar'
 
 export interface OpponentCardsProps {
   stackOpenDeckCards: OpponentCard[]

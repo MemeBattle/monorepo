@@ -10,7 +10,6 @@ module.exports = {
   parserOptions: {
     project: ['./apps/*/tsconfig.json', './packages/*/tsconfig.json'],
     sourceType: 'module',
-    createDefaultProgram: true, // TODO: waiting for normal fix in @typescript-eslint/parser
   },
   settings: {
     react: {
@@ -36,6 +35,7 @@ module.exports = {
       },
     ],
     '@typescript-eslint/adjacent-overload-signatures': 'error',
+    '@typescript-eslint/no-unsafe-declaration-merging': 'off',
     '@typescript-eslint/array-type': 'off',
     '@typescript-eslint/ban-types': 'error',
     '@typescript-eslint/explicit-member-accessibility': [

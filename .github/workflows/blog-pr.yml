@@ -1,0 +1,60 @@
+name: 'Blog pull request'
+
+on:
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'apps/blog/**'
+      - '.docker/Blog_**'
+      - '.github/workflows/blog-**'
+      - 'yarn.lock'
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+
+  lint:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Lint code
+        run: yarn blog:lint
+
+  tests:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Run tests
+        run: yarn blog:test:ci
+
+  tsc:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Generate articles
+        run: yarn workspace @memebattle/blog run generate
+
+      - name: TS check
+        run: yarn workspace @memebattle/blog run ts-check

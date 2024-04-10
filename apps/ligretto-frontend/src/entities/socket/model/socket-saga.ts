@@ -5,9 +5,9 @@ import { all, actionChannel, take, put, call } from 'redux-saga/effects'
 import io from 'socket.io-client'
 import type { Socket } from 'socket.io-client'
 
-import { LOCAL_STORAGE_TOKEN_KEY } from 'ducks/auth/constants'
+import { LOCAL_STORAGE_TOKEN_KEY } from '#ducks/auth/constants'
 
-import { LIGRETTO_GAMEPLAY_URL } from 'shared/constants/config'
+import { LIGRETTO_GAMEPLAY_URL } from '#shared/constants/config'
 import { socketConnectedAction } from './actions'
 
 function socketChannel(socket: Socket): EventChannel<NotUndefined> {

@@ -8,10 +8,6 @@ const withContentlayer = createContentlayerPlugin({ configPath: resolve(__dirnam
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
-  experimental: {
-    appDir: true,
-    typedRoutes: true,
-  },
   eslint: {
     ignoreDuringBuilds: true,
   },

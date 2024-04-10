@@ -4,14 +4,14 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
 import { ThemeProvider } from '@memebattle/ui'
 
-import { MainLayout } from 'shared/ui/layouts/main'
-import { LigrettoLogo } from 'shared/ui/LigrettoLogo'
-import { routes } from 'shared/constants'
-import { getMeRequest } from 'ducks/auth/authActions'
-import { tokenSelector } from 'ducks/auth'
+import { MainLayout } from '#shared/ui/layouts/main'
+import { LigrettoLogo } from '#shared/ui/LigrettoLogo'
+import { routes } from '#shared/constants'
+import { getMeRequest } from '#ducks/auth/authActions'
+import { tokenSelector } from '#ducks/auth'
 import { ligrettoAuthTheme } from './themes/ligrettoAuth'
 
-import { CAS_STATIC_URL, CAS_PARTNER_ID, CAS_URL } from 'shared/constants/config'
+import { CAS_STATIC_URL, CAS_PARTNER_ID, CAS_URL } from '#shared/constants/config'
 
 export const AuthContainer = () => {
   const dispatch = useDispatch()

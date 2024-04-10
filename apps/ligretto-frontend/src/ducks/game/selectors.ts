@@ -2,7 +2,7 @@ import { createSelector } from '@reduxjs/toolkit'
 import last from 'lodash/last'
 
 import type { All } from 'types/store'
-import { currentUserIdSelector } from 'ducks/auth'
+import { currentUserIdSelector } from '#ducks/auth'
 
 import { usersMapSelector } from '../users'
 import { mergePlayerAndUser, STACK_OPEN_DECK_INDEX } from './utils'

@@ -1,4 +1,5 @@
 import type { Socket } from 'socket.io'
+import { jest } from '@jest/globals'
 
 class _SocketMock {
   public id: string

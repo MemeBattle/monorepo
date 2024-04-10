@@ -3,13 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "lint:js": "eslint --ext .js,.vue,.jsx,.ts,.tsx .",
+    "lint:js": "eslint --ext .js,.jsx,.ts,.tsx .",
     "lint-fix:js": "yarn lint:js --fix",
     "lint:styles": "stylelint {apps,packages}/**/*.scss",
     "lint-fix:styles": "yarn lint:styles --fix",
     "lint": "run-p -ln 'lint:*'",
     "lint-fix": "run-p -l 'lint-fix:*'",
     "test:ci": "yarn workspaces foreach -vip run test:ci",
+    "blog:test:ci": "yarn workspace @memebattle/blog run test:ci",
+    "blog:lint": "eslint --ext .js,.jsx,.ts,.tsx apps/blog",
+    "ligretto:test:ci": "yarn workspaces foreach -vip --include '@memebattle/ligretto-*' run test:ci",
+    "ligretto:ts-check:ci": "yarn workspaces foreach -vip --include '@memebattle/ligretto-*' run ts-check",
     "ligretto:start": "yarn workspaces foreach --jobs unlimited -vip --include '{@memebattle/ligretto-core-backend,@memebattle/ligretto-gameplay-backend,@memebattle/ligretto-frontend}' run start:dev",
     "ligretto:start:ci": "yarn workspaces foreach --jobs unlimited -vp --include '{@memebattle/ligretto-core-backend,@memebattle/ligretto-gameplay-backend,@memebattle/ligretto-frontend}' run start:dev",
     "ligretto:front:build": "yarn workspace @memebattle/ligretto-frontend run build",
@@ -22,27 +26,20 @@
     "ligretto:core-backend:start:dev": "yarn workspace @memebattle/ligretto-core-backend run start:dev",
     "gamehub-client:build": "yarn workspace @memebattle/gamehub-client run build",
     "gamehub-client:start:dev": "yarn workspace @memebattle/gamehub-client run dev",
+    "gamehub-client:lint": "eslint --ext .js,.jsx,.ts,.tsx apps/gamehub-client",
     "ligretto-shared:build": "yarn workspace @memebattle/ligretto-shared run build",
     "ts-check": "yarn workspaces foreach -vip run ts-check",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
-    "e2e:start": "playwright test"
+    "build-storybook": "storybook build"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.11"
   },
   "workspaces": [
     "packages/**",
     "apps/*"
   ],
-  "browserslist": [
-    ">0.2%",
-    "not dead",
-    "not ie <= 11",
-    "not op_mini all"
-  ],
   "devDependencies": {
-    "@playwright/test": "^1.28.0",
     "@storybook/addon-actions": "^7.0.6",
     "@storybook/addon-docs": "^7.0.6",
     "@storybook/addon-essentials": "^7.0.6",
@@ -52,35 +49,35 @@
     "@storybook/preset-scss": "^1.0.3",
     "@storybook/react": "^7.0.6",
     "@storybook/react-vite": "^7.0.6",
-    "@types/node": "^18.14.0",
-    "@typescript-eslint/eslint-plugin": "^5.53.0",
-    "@typescript-eslint/parser": "^5.53.0",
+    "@types/node": "20.11.30",
+    "@typescript-eslint/eslint-plugin": "7.3.1",
+    "@typescript-eslint/parser": "7.3.1",
     "css-loader": "^6.7.1",
-    "eslint": "^8.35.0",
-    "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-import": "^2.25.2",
-    "eslint-plugin-prettier": "^3.4.0",
-    "eslint-plugin-react": "^7.29.4",
+    "eslint": "8.57.0",
+    "eslint-config-prettier": "9.1.0",
+    "eslint-plugin-import": "2.29.1",
+    "eslint-plugin-prettier": "5.1.3",
+    "eslint-plugin-react": "7.34.1",
     "eslint-plugin-react-hooks": "^4.5.0",
     "eslint-plugin-storybook": "^0.6.11",
     "npm-run-all": "^4.1.5",
-    "prettier": "^2.2.1",
+    "prettier": "3.2.5",
     "react-docgen-typescript-loader": "^3.7.2",
     "react-docgen-typescript-plugin": "^1.0.0",
     "sass": "^1.54.9",
     "sass-loader": "^13.0.2",
     "storybook": "^7.0.6",
     "style-loader": "^3.3.1",
-    "stylelint": "^13.8.0",
-    "stylelint-config-prettier": "^8.0.2",
-    "stylelint-prettier": "^1.2.0",
-    "tsconfig-paths-webpack-plugin": "^4.0.0",
-    "typescript": "^5.0.4",
+    "stylelint": "16.2.1",
+    "stylelint-config-prettier": "^9.0.5",
+    "stylelint-prettier": "5.0.0",
+    "typescript": "5.4.3",
     "wait-on": "^7.0.1"
   },
   "packageManager": "yarn@3.3.1",
   "resolutions": {
-    "@types/node": "18.14.0",
-    "@types/readable-stream": "2.3.15"
+    "@types/node": "20.11.30",
+    "@types/readable-stream": "2.3.15",
+    "vite": "4.5.0"
   }
 }

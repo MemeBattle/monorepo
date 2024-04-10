@@ -4,8 +4,8 @@ import type { RoomsListProps } from './RoomsList'
 import { RoomsList as RoomsListComponent } from './RoomsList'
 import { useNavigate, generatePath } from 'react-router'
 
-import { routes } from 'shared/constants'
-import { foundRoomsSelector } from 'ducks/rooms'
+import { routes } from '#shared/constants'
+import { foundRoomsSelector } from '#ducks/rooms'
 
 export const RoomsListContainer = () => {
   const rooms = useSelector(foundRoomsSelector)

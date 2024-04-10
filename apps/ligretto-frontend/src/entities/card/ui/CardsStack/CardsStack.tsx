@@ -1,6 +1,6 @@
 import React from 'react'
 import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
-import { Hotkey } from 'ducks/game'
+import { Hotkey } from '#ducks/game'
 import { CardsRow } from '../CardsRow'
 import { Card } from '../Card'
 import { CardHotkeyBadge } from '../CardHotkeyBadge'

@@ -1,41 +1,31 @@
-name: 'Run-E2E'
+name: 'Ligretto schedule-E2E'
 
 on:
   workflow_dispatch:
-    branches:
-      - master
   schedule:
-    - cron:  '0 15 * * *'
+    - cron: '0 15 * * *'
 
 jobs:
 
   e2e:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 10
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@main
 
-      - name: Install node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18.14'
-          cache: 'yarn'
-
-      - name: Install yarn
-        run: corepack enable
-
-      - name: Install dependencies
-        run: yarn
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
 
       - name: Install Playwright Browsers
-        run: yarn dlx playwright@1.28.0 install --with-deps chromium
+        run: yarn dlx playwright@1.42.1 install --with-deps chromium
 
       - name: Run playwright tests
         run: yarn e2e:start
         env:
           LIGRETTO_APP_URL: https://ligretto.app/
+
       - uses: actions/upload-artifact@v2
         if: always()
         with:

@@ -1,7 +1,7 @@
 import { CardHotkeyBadge } from './CardHotkeyBadge'
 import { CardColors } from '@memebattle/ligretto-shared'
 import { CardsRow } from '../CardsRow'
-import { Hotkey } from 'ducks/game'
+import { Hotkey } from '#ducks/game'
 import { CardPlace } from '../CardPlace'
 
 import { Card } from '../Card'

@@ -1,9 +1,10 @@
-import React, { StrictMode } from 'react'
+import '#app/sentry/initSentry'
+import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Provider } from 'react-redux'
 import { ThemeProvider, CssBaseline } from '@memebattle/ui'
 import { HistoryRouter as Router } from 'redux-first-history/rr6'
-import { store, history } from 'app/store'
+import { store, history } from './app/store'
 
 import { theme } from './app/themes/default'
 import { AppContainer } from './app/AppContainer'
