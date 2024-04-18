@@ -9,5 +9,13 @@ Sentry.init({
   debug: IS_DEV_MODE,
   environment: SENTRY_ENV,
   release: APP_VERSION,
-  integrations: [captureConsoleIntegration({ levels: ['error', 'warn'] })],
+  integrations: [
+    captureConsoleIntegration({ levels: ['error', 'warn'] }),
+    Sentry.browserTracingIntegration({
+      instrumentNavigation: false,
+      instrumentPageLoad: false,
+    }),
+  ],
+  tracePropagationTargets: ['localhost', '127.0.0.1', /^https:\/\/(core|api)\.ligretto\.app/, /^https:\/\/cas\.mems\.fun/],
+  tracesSampleRate: 1,
 })

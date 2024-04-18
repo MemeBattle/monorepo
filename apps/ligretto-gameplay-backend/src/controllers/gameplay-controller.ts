@@ -44,8 +44,8 @@ export class GameplayController extends Controller {
 
     const action = updateGameAction(game)
 
-    socket.to(gameId).emit('event', action)
-    socket.emit('event', action)
+    this.emit(socket.to(gameId), action)
+    this.emit(socket, action)
   }
 
   private async putCard(socket: Socket, action: ReturnType<typeof putCardAction>) {
@@ -65,8 +65,8 @@ export class GameplayController extends Controller {
     console.log('gameResults', gameResults)
     if (gameResults) {
       const action = endRoundAction(gameResults)
-      socket.to(gameId).emit('event', action)
-      socket.emit('event', action)
+      this.emit(socket.to(gameId), action)
+      this.emit(socket, action)
     }
   }
 

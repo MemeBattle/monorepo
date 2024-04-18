@@ -171,10 +171,8 @@ export class GameService {
   }
 
   async endGame(gameId: UUID) {
-    const { game, gameResults } = await this.finishRound(gameId)
+    await this.finishRound(gameId)
     await this.gameRepository.removeGame(gameId)
-
-    return [game, gameResults]
   }
 
   async finishRound(gameId: UUID): Promise<{ game?: Game; gameResults?: GameResults }> {

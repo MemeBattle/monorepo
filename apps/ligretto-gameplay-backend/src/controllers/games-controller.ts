@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node'
 import { inject, injectable } from 'inversify'
 import { IOC_TYPES } from '../IOC_TYPES'
 import { Controller } from './controller'
@@ -42,17 +43,19 @@ export class GamesController extends Controller {
     const newGame = await this.gameService.createGame(action.payload.name, action.payload.config)
 
     if (!newGame) {
-      return socket.emit('event', createRoomErrorAction({ errorCode: CreateRoomErrorCode.AlreadyExist, name: action.payload.name }))
+      return this.emit(socket, createRoomErrorAction({ errorCode: CreateRoomErrorCode.AlreadyExist, name: action.payload.name }))
     }
 
-    socket.emit('event', createRoomSuccessAction({ game: newGame }))
-    socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(newGame)] }))
+    this.emit(socket, createRoomSuccessAction({ game: newGame }))
+    this.emit(socket.to(SOCKET_ROOM_LOBBY), updateRooms({ rooms: [gameToRoom(newGame)] }))
   }
 
   private async getRooms(socket: Socket) {
-    socket.join(SOCKET_ROOM_LOBBY)
-    const games = await this.gameService.getGames()
-    socket.emit('event', updateRooms({ rooms: games.map(gameToRoom) }))
+    await Sentry.startSpan({ name: 'getRooms', op: 'perf.getRooms', scope: Sentry.getCurrentScope() }, async span => {
+      socket.join(SOCKET_ROOM_LOBBY)
+      const games = await this.gameService.getGames()
+      this.emit(socket, updateRooms({ rooms: games.map(gameToRoom) }))
+    })
   }
 
   /**
@@ -69,7 +72,7 @@ export class GamesController extends Controller {
     const game: Game | undefined = await this.gameService.getGame(roomUuid)
 
     if (!game) {
-      socket.emit('event', connectToRoomErrorAction())
+      this.emit(socket, connectToRoomErrorAction())
       return
     }
 
@@ -83,8 +86,8 @@ export class GamesController extends Controller {
     const isUserAlreadyInGame = isUserAlreadyPlayer || isUserAlreadySpectator
 
     if (isUserAlreadyInGame) {
-      socket.emit('event', connectToRoomSuccessAction({ game }))
-      socket.emit('event', updateGameAction(game))
+      this.emit(socket, connectToRoomSuccessAction({ game }))
+      this.emit(socket, updateGameAction(game))
       return
     }
 
@@ -97,11 +100,11 @@ export class GamesController extends Controller {
         ? await this.gameService.addSpectator(roomUuid, { id: userId })
         : await this.gameService.addPlayer(roomUuid, { id: userId })
 
-    socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(updatedGame)] }))
-    socket.to(roomUuid).emit('event', updateGameAction(updatedGame))
-    socket.to(roomUuid).emit('event', userJoinToRoomAction({ userId }))
-    socket.emit('event', connectToRoomSuccessAction({ game: updatedGame }))
-    socket.emit('event', updateGameAction(updatedGame))
+    this.emit(socket.to(SOCKET_ROOM_LOBBY), updateRooms({ rooms: [gameToRoom(updatedGame)] }))
+    this.emit(socket.to(roomUuid), updateGameAction(updatedGame))
+    this.emit(socket.to(roomUuid), userJoinToRoomAction({ userId }))
+    this.emit(socket, connectToRoomSuccessAction({ game: updatedGame }))
+    this.emit(socket, updateGameAction(updatedGame))
   }
 
   private async setPlayerStatus(socket: Socket, { payload }: ReturnType<typeof setPlayerStatusEmitAction>) {
@@ -109,8 +112,8 @@ export class GamesController extends Controller {
 
     const game = await this.gameService.updateGamePlayer(gameId, socket.data.user.id, { status })
 
-    socket.to(gameId).emit('event', updateGameAction(game))
-    socket.emit('event', updateGameAction(game))
+    this.emit(socket.to(gameId), updateGameAction(game))
+    this.emit(socket, updateGameAction(game))
   }
 
   /**
@@ -137,9 +140,9 @@ export class GamesController extends Controller {
 
     if (game) {
       socket.to(game.id).emit('event', updateGameAction(game))
-      socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(game)] }))
+      this.emit(socket.to(SOCKET_ROOM_LOBBY), updateRooms({ rooms: [gameToRoom(game)] }))
     } else {
-      socket.to(SOCKET_ROOM_LOBBY).emit('event', removeRoomAction({ uuid: user.currentGameId }))
+      this.emit(socket.to(SOCKET_ROOM_LOBBY), removeRoomAction({ uuid: user.currentGameId }))
     }
   }
 

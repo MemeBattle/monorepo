@@ -4,3 +4,4 @@ export { dto }
 export * from './dto'
 export * from './actions'
 export * from './apiTypes'
+export { extractSentryTracingHeaders } from './extractSentryTracingHeaders'
