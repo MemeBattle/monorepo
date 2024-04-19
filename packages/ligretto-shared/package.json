@@ -20,7 +20,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@reduxjs/toolkit": "^1.9.2"
+    "@reduxjs/toolkit": "^2.2.3"
   },
   "devDependencies": {
     "typescript": "5.4.3"

@@ -1,11 +1,10 @@
-export type UserModel =
+export type UserModel = { casId: string } & (
   | {
       isTemporary: false
-      casId: string
       username: string
       avatar?: string
     }
   | {
       isTemporary: true
-      casId: string
     }
+)
