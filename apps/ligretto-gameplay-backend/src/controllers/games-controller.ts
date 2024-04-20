@@ -19,7 +19,7 @@ import {
   getRoomsEmitAction,
   setPlayerStatusEmitAction,
   updateGameAction,
-  updateRooms,
+  updateRoomsAction,
   userJoinToRoomAction,
 } from '@memebattle/ligretto-shared'
 import { SOCKET_ROOM_LOBBY } from '../config'
@@ -46,13 +46,13 @@ export class GamesController extends Controller {
     }
 
     socket.emit('event', createRoomSuccessAction({ game: newGame }))
-    socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(newGame)] }))
+    socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRoomsAction({ rooms: [gameToRoom(newGame)] }))
   }
 
   private async getRooms(socket: Socket) {
     socket.join(SOCKET_ROOM_LOBBY)
     const games = await this.gameService.getGames()
-    socket.emit('event', updateRooms({ rooms: games.map(gameToRoom) }))
+    socket.emit('event', updateRoomsAction({ rooms: games.map(gameToRoom) }))
   }
 
   /**
@@ -97,7 +97,7 @@ export class GamesController extends Controller {
         ? await this.gameService.addSpectator(roomUuid, { id: userId })
         : await this.gameService.addPlayer(roomUuid, { id: userId })
 
-    socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(updatedGame)] }))
+    socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRoomsAction({ rooms: [gameToRoom(updatedGame)] }))
     socket.to(roomUuid).emit('event', updateGameAction(updatedGame))
     socket.to(roomUuid).emit('event', userJoinToRoomAction({ userId }))
     socket.emit('event', connectToRoomSuccessAction({ game: updatedGame }))
@@ -137,7 +137,7 @@ export class GamesController extends Controller {
 
     if (game) {
       socket.to(game.id).emit('event', updateGameAction(game))
-      socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRooms({ rooms: [gameToRoom(game)] }))
+      socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRoomsAction({ rooms: [gameToRoom(game)] }))
     } else {
       socket.to(SOCKET_ROOM_LOBBY).emit('event', removeRoomAction({ uuid: user.currentGameId }))
     }

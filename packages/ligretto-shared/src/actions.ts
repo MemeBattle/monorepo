@@ -9,7 +9,7 @@ export const createRoomEmitAction = createAction<dto.CreateGame>('@@rooms/WEBSOC
 
 export const getRoomsEmitAction = createAction('@@rooms/WEBSOCKET/GET_ROOMS')
 
-export const updateRooms = createAction<dto.UpdateRooms>('@@rooms/SERVER/UPDATE_ROOMS_LIST')
+export const updateRoomsAction = createAction<dto.UpdateRooms>('@@rooms/SERVER/UPDATE_ROOMS_LIST')
 
 export const removeRoomAction = createAction<dto.RemoveRoom>('@@rooms/SERVER/REMOVE_ROOM_FROM_LIST')
 
