@@ -5,7 +5,7 @@ import {
   createRoomErrorAction,
   CreateRoomErrorCode,
   createRoomSuccessAction,
-  updateRooms,
+  updateRoomsAction,
   connectToRoomEmitAction,
   connectToRoomErrorAction,
   updateGameAction,
@@ -62,7 +62,7 @@ describe('Games Controller', () => {
       expect(socketMockImpl.emit).toBeCalledTimes(2)
       expect(socketMockImpl.emit).toBeCalledWith('event', createRoomSuccessAction({ game: state.games[gameId] }))
       expect(socketMockImpl.to).toBeCalledWith(SOCKET_ROOM_LOBBY)
-      expect(socketMockImpl.emit).toBeCalledWith('event', updateRooms({ rooms: [gameToRoom(state.games[gameId])] }))
+      expect(socketMockImpl.emit).toBeCalledWith('event', updateRoomsAction({ rooms: [gameToRoom(state.games[gameId])] }))
     })
 
     it('Should emit createRoomErrorAction if room already exists', async () => {
@@ -216,7 +216,7 @@ describe('Games Controller', () => {
       const state = await database.get(storage => storage)
       expect(state).toMatchSnapshot()
       expect(socketOne.to).toBeCalledTimes(4)
-      expect(socketOne.emit).toBeCalledWith('event', updateRooms({ rooms: [gameToRoom(state.games[roomUuid])] }))
+      expect(socketOne.emit).toBeCalledWith('event', updateRoomsAction({ rooms: [gameToRoom(state.games[roomUuid])] }))
       expect(socketOne.emit).toBeCalledWith('event', updateGameAction(state.games[roomUuid]))
     })
 

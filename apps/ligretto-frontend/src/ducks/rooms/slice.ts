@@ -3,11 +3,11 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice, createAction, createEntityAdapter } from '@reduxjs/toolkit'
 import type { CreateRoomError } from '@memebattle/ligretto-shared'
 
-export const roomsEntityAdapter = createEntityAdapter<Room>({
-  selectId: room => room.uuid,
+export const roomsEntityAdapter = createEntityAdapter({
+  selectId: (room: Room) => room.uuid,
 })
 
-interface RoomsState extends ReturnType<typeof roomsEntityAdapter.getInitialState> {
+export interface RoomsState extends ReturnType<typeof roomsEntityAdapter.getInitialState> {
   isLoading: boolean
   search: string
   error: CreateRoomError | null
