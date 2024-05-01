@@ -6,6 +6,7 @@ import { gameStatusSelector, isGameLoadedSelector } from '#ducks/game'
 import { GameSettingsModal } from '#widgets/game-info'
 import { GameLayout } from '#shared/ui/layouts/game/GameLayout'
 import { GameContainer } from '#widgets/game'
+import { Opponent } from '#features/player'
 
 const gamePageContainerSelector = createSelector([gameStatusSelector, isGameLoadedSelector], (gameStatus, isGameLoaded) => ({
   gameStatus,
