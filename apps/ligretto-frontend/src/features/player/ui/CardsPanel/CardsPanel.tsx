@@ -1,5 +1,5 @@
-import type { FC } from 'react'
-import { PlayerStatus } from '@memebattle/ligretto-shared'
+import type { FC, PropsWithChildren } from 'react'
+import type { PlayerStatus } from '@memebattle/ligretto-shared'
 
 import { PlayerCardsStack } from '#features/player/ui/PlayerCardsStack'
 import { LigrettoDeckContainer } from '../LigrettoDeckContainer'
@@ -31,7 +31,7 @@ const CardsPanelMobile = () => (
   </Stack>
 )
 
-export const CardsPanel: FC<CardsPanelProps> = ({ player }) => {
+export const CardsPanel: FC<PropsWithChildren<CardsPanelProps>> = ({ player, children }) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
@@ -42,7 +42,7 @@ export const CardsPanel: FC<CardsPanelProps> = ({ player }) => {
   return (
     <Box mb={1.5} display="flex" justifyContent="center">
       <Stack spacing={2} direction="row">
-        {player?.status === PlayerStatus.InGame ? [<PlayerCardsStack />, <PlayerRowCardsContainer />, <LigrettoDeckContainer />] : null}
+        {children}
         {player ? <Player status={player.status} username={player.username} avatar={player?.avatar} isActivePlayer /> : null}
       </Stack>
     </Box>

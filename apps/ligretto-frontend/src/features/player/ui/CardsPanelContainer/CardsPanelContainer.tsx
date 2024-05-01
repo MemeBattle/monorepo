@@ -9,6 +9,10 @@ import { getRandomAvatar } from '#shared/ui/Avatar/getRandomAvatar'
 import { CardsPanel } from '../CardsPanel'
 
 import { usePanelHotkeys } from './usePanelHotkeys'
+import { PlayerStatus } from '@memebattle/ligretto-shared'
+import { LigrettoDeckContainer } from '../LigrettoDeckContainer'
+import { PlayerCardsStack } from '../PlayerCardsStack'
+import { PlayerRowCardsContainer } from '../PlayerRowCardsContainer'
 
 const cardsPanelContainerSelector = createSelector(
   [activePlayerSelector, playerLigrettoDeckCardsSelector, isDndEnabledSelector],
@@ -31,5 +35,9 @@ export const CardsPanelContainer = () => {
     }
   }, [player])
 
-  return <CardsPanel player={playerWithStaticAvatar} />
+  return (
+    <CardsPanel player={playerWithStaticAvatar}>
+      {player?.status === PlayerStatus.InGame ? [<PlayerCardsStack />, <PlayerRowCardsContainer />, <LigrettoDeckContainer />] : null}
+    </CardsPanel>
+  )
 }
