@@ -27,6 +27,8 @@
     "e2e:start": "playwright test"
   },
   "dependencies": {
+    "@fsmoothy/core": "^1.3.0",
+    "@fsmoothy/graphviz": "^1.1.0",
     "@memebattle/analytics": "workspace:^",
     "@memebattle/auth-front": "workspace:^",
     "@memebattle/cas-services": "workspace:^",
