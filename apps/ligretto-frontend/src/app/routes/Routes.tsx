@@ -11,6 +11,6 @@ export const Routes = () => (
     <Route index element={<HomePage />} />
     <Route path={routes.GAME} element={<GamePage />} />
     <Route path={routes.AUTH_ALL} element={<AuthContainer />} />
-    <Route path={routes.OBBOARDING} element={<OnboardingPage />} />
+    <Route path={routes.ONBOARDING} element={<OnboardingPage />} />
   </ReactRouterRoutes>
 )
