@@ -36,20 +36,6 @@ import { socketConnectedAction } from '#entities/socket'
 import { locationSelector } from '#ducks/router'
 import { connectToRoomAction } from '#ducks/rooms'
 
-function* gameUpdateSaga(action: ReturnType<typeof updateGameAction>) {
-  const game = action.payload
-  yield put(updateGameSliceAction(game))
-}
-
-function* togglePlayerStatusSaga() {
-  const currentStatus: ReturnType<typeof playerStatusSelector> = yield select(playerStatusSelector)
-  const gameId: ReturnType<typeof gameIdSelector> = yield select(gameIdSelector)
-
-  const status = currentStatus === PlayerStatus.DontReadyToPlay ? PlayerStatus.ReadyToPlay : PlayerStatus.DontReadyToPlay
-
-  yield put(setPlayerStatusEmitAction({ status, gameId }))
-}
-
 function* connectToRoomSuccessSaga(action: ReturnType<typeof connectToRoomSuccessAction>) {
   yield put(updateGameSliceAction(action.payload.game))
   yield put(setGameLoadedAction(true))
@@ -157,8 +143,6 @@ function* handleLocationChangeSaga() {
 }
 
 export function* gameRootSaga() {
-  yield takeLatest(updateGameAction, gameUpdateSaga)
-  yield takeLatest(togglePlayerStatusAction, togglePlayerStatusSaga)
   yield takeLatest(startGameAction, startGameSaga)
   yield takeEvery(tapCardAction, tapCardSaga)
   yield takeEvery(tapStackOpenDeckCardAction, tapStackOpenDeckCardActionSaga)
