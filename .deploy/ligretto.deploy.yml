@@ -39,6 +39,8 @@ services:
     secrets:
       - source: LIGRETTO_CAS_KEY
         target: /ligretto-core-backend/key.pem
+      - source: LIGRETTO_PRODUCTION_ENV
+        target: /memebattle/.env.production.local
     environment:
       - LIGRETTO_CORE_CAS_PUBLIC_KEY_PATH=/ligretto-core-backend/key.pem
       - PORT=3333
@@ -47,12 +49,6 @@ services:
       - LIGRETTO_CORE_APP_KEY=BYnNsw-r-ndJTCy15Uqo8JAF4ONCA4X1
       - CAS_PARTNER_ID=652468293877db2de8390fa3
       - CAS_URL=https://cas.mems.fun/api
-      - LIGRETTO_CORE_DB_CONNECTION=pg
-      - LIGRETTO_CORE_PG_HOST=ligretto-core-pg
-      - LIGRETTO_CORE_PG_PORT=5432
-      - LIGRETTO_CORE_PG_USER=ligretto-core-user
-      - LIGRETTO_CORE_PG_PASSWORD=ligretto_pg_password
-      - LIGRETTO_CORE_PG_DB_NAME=ligretto-core
       - LIGRETTO_CORE_APP_NAME=ligretto-core-backend
     deploy:
       labels:
@@ -70,21 +66,6 @@ services:
         condition: on-failure
         delay: 10s
         max_attempts: 3
-
-  ligretto-core-pg:
-    image: postgres
-    environment:
-      POSTGRES_PASSWORD: ligretto_pg_password
-      POSTGRES_USER: ligretto-core-user
-      POSTGRES_DB: ligretto-core
-    networks:
-      - ligretto_net
-    volumes:
-      - ligretto-core-pg:/var/lib/postgresql/data
-    deploy:
-      placement:
-        constraints:
-          - node.role == manager
 
   ligretto-bot-clj:
     image: ghcr.io/memebattle/ligretto-bot-clj:latest
@@ -117,9 +98,8 @@ services:
 secrets:
   LIGRETTO_CAS_KEY:
     external: true
-
-volumes:
-  ligretto-core-pg:
+  LIGRETTO_PRODUCTION_ENV:
+    external: true
 
 networks:
   traefik-public:
