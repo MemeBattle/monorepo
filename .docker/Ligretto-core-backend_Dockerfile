@@ -34,6 +34,6 @@ COPY --chown=node:node --from=build /memebattle/packages/ligretto-shared/package
 COPY --chown=node:node --from=build /memebattle/apps/ligretto-core-backend/package.json /memebattle/apps/ligretto-core-backend/package.json
 
 COPY --chown=node:node --from=build /memebattle/packages/ligretto-shared/build /memebattle/packages/ligretto-shared/build
-COPY --chown=node:node --from=build /memebattle/apps/ligretto-core-backend/build /memebattle/apps/ligretto-core-backend/build
+COPY --chown=node:node --from=build /memebattle/apps/ligretto-core-backend/build /memebattle/apps/ligretto-core-backend/
 
-ENTRYPOINT [ "node", "apps/ligretto-core-backend/build/server.js" ]
+ENTRYPOINT [ "node", "apps/ligretto-core-backend/server.js" ]
