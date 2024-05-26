@@ -1,5 +1,4 @@
-import type { PropsWithRef } from 'react'
-import React, { forwardRef, useMemo } from 'react'
+import { forwardRef, useMemo } from 'react'
 import { Box, Stack } from '@memebattle/ui'
 import type { Card as OpponentCard, UUID } from '@memebattle/ligretto-shared'
 import { PlayerStatus } from '@memebattle/ligretto-shared'

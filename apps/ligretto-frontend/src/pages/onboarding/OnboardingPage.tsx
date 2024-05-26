@@ -6,7 +6,6 @@ import { Opponent } from '#features/player'
 import { PlayerStatus, CardColors } from '@memebattle/ligretto-shared'
 import { CardsPanel } from '#features/player/ui/CardsPanel/CardsPanel.js'
 import { Overlay } from '#shared/ui/Overlay'
-import { useEffect, useRef } from 'react'
 
 const opponents: Array<OpponentCardsProps> = [
   {
@@ -45,12 +44,6 @@ const opponents: Array<OpponentCardsProps> = [
 ]
 
 export function OnboardingPage() {
-  const ref = useRef()
-
-  useEffect(() => {
-    console.log(ref)
-  }, [])
-
   return (
     <GameLayout>
       <Overlay />
@@ -59,7 +52,7 @@ export function OnboardingPage() {
         bottomElement={<CardsPanel player={{ status: PlayerStatus.ReadyToPlay, username: 'you' }} />}
       >
         {opponents.map(props => (
-          <Opponent ref={ref} key={props.id} {...props} />
+          <Opponent key={props.id} {...props} />
         ))}
       </GameGrid>
     </GameLayout>
