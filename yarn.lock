@@ -2995,10 +2995,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@fsmoothy/core@npm:^1.2.0":
-  version: 1.2.0
-  resolution: "@fsmoothy/core@npm:1.2.0"
-  checksum: 7a644a75da1aab2496bff6c7444a728101c589c598888a43e4a8dc6a0a60857616db62d1bad659f340d511fa1e72c3a77eca92faadbddcdfc7b6ac6f321bc59d
+"@fsmoothy/core@npm:1.3.0, @fsmoothy/core@npm:^1.3.0":
+  version: 1.3.0
+  resolution: "@fsmoothy/core@npm:1.3.0"
+  checksum: 6e8b6aeedf47eaff81e07b871a102db6795b3457133aa9a7935748a97a17cb59c9746410a48441c49ce3899a32be7f0fc6464f659cb8ac59e2c2df0111446467
+  languageName: node
+  linkType: hard
+
+"@fsmoothy/graphviz@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "@fsmoothy/graphviz@npm:1.1.0"
+  dependencies:
+    "@fsmoothy/core": 1.3.0
+    ts-graphviz: ^2.1.1
+  checksum: 89321c34f70c1ee4ce8ee9eaa8323b9ced4f493fc3627cbf95ff38835212be3c44333f5015032fea355b8cb3648c16b494b1cf86c0fa2aee44babaf9923e86f2
   languageName: node
   linkType: hard
 
@@ -3744,7 +3754,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@memebattle/ligretto-frontend@workspace:apps/ligretto-frontend"
   dependencies:
-    "@fsmoothy/core": ^1.2.0
+    "@fsmoothy/core": ^1.3.0
+    "@fsmoothy/graphviz": ^1.1.0
     "@memebattle/analytics": "workspace:^"
     "@memebattle/auth-front": "workspace:^"
     "@memebattle/ligretto-shared": "workspace:^"
@@ -3763,6 +3774,7 @@ __metadata:
     axios: ^1.3.4
     clsx: ^1.2.1
     history: ^5.3.0
+    immer: ^10.1.1
     lodash: ^4.17.21
     react: ^18.2.0
     react-dom: ^18.2.0
@@ -6925,6 +6937,41 @@ __metadata:
   version: 2.0.0
   resolution: "@tootallnate/once@npm:2.0.0"
   checksum: ad87447820dd3f24825d2d947ebc03072b20a42bfc96cbafec16bff8bbda6c1a81fcb0be56d5b21968560c5359a0af4038a68ba150c3e1694fe4c109a063bed8
+  languageName: node
+  linkType: hard
+
+"@ts-graphviz/adapter@npm:^2.0.3":
+  version: 2.0.3
+  resolution: "@ts-graphviz/adapter@npm:2.0.3"
+  dependencies:
+    "@ts-graphviz/common": ^2.1.2
+  checksum: 36af79c9ac12a8aebe4374237e6842a931b6df5508f7005599dca699d221cbeb96a7369beedc2ac6cee7c8ec428f9fdcd2a7000d9d363eb4fd45c99750091146
+  languageName: node
+  linkType: hard
+
+"@ts-graphviz/ast@npm:^2.0.3":
+  version: 2.0.3
+  resolution: "@ts-graphviz/ast@npm:2.0.3"
+  dependencies:
+    "@ts-graphviz/common": ^2.1.2
+  checksum: 761632345204830864a0252ae0d138e064c367ae804beee0de11fccad4065d95e939522ddd127b1545576e7d3898cf3936e1e6eec6267e367ca878087807d7a0
+  languageName: node
+  linkType: hard
+
+"@ts-graphviz/common@npm:^2.1.2":
+  version: 2.1.2
+  resolution: "@ts-graphviz/common@npm:2.1.2"
+  checksum: 4a30c1f5ddfad5e3e134f600915f0c0a5e6fb96201fe27d0ff5d0f645663b32e8eb27cf861263ee13534750596135d161ce871fb65ab1cb632e52916c3b7917d
+  languageName: node
+  linkType: hard
+
+"@ts-graphviz/core@npm:^2.0.3":
+  version: 2.0.3
+  resolution: "@ts-graphviz/core@npm:2.0.3"
+  dependencies:
+    "@ts-graphviz/ast": ^2.0.3
+    "@ts-graphviz/common": ^2.1.2
+  checksum: b7f9a634f794391783e3a1575b92ca8d845e4a1c3230f517521f520252a286e4636a182d726bad6c6a6bf52d164e2572988bcb5316a10c229a7de264d1b05ef6
   languageName: node
   linkType: hard
 
@@ -14229,6 +14276,13 @@ __metadata:
   version: 10.0.4
   resolution: "immer@npm:10.0.4"
   checksum: 8c69cad9adde7296b6857aadc0837b792840d46d5b5759002cfc168abe58815bd5b944a9533a03df4738d6ce3dc918cc0a88437324fd71e1fcbd2e77273c39f0
+  languageName: node
+  linkType: hard
+
+"immer@npm:^10.1.1":
+  version: 10.1.1
+  resolution: "immer@npm:10.1.1"
+  checksum: 07c67970b7d22aded73607193d84861bf786f07d47f7d7c98bb10016c7a88f6654ad78ae1e220b3c623695b133aabbf24f5eb8d9e8060cff11e89ccd81c9c10b
   languageName: node
   linkType: hard
 
@@ -22999,6 +23053,18 @@ __metadata:
   version: 2.2.0
   resolution: "ts-dedent@npm:2.2.0"
   checksum: 93ed8f7878b6d5ed3c08d99b740010eede6bccfe64bce61c5a4da06a2c17d6ddbb80a8c49c2d15251de7594a4f93ffa21dd10e7be75ef66a4dc9951b4a94e2af
+  languageName: node
+  linkType: hard
+
+"ts-graphviz@npm:^2.1.1":
+  version: 2.1.2
+  resolution: "ts-graphviz@npm:2.1.2"
+  dependencies:
+    "@ts-graphviz/adapter": ^2.0.3
+    "@ts-graphviz/ast": ^2.0.3
+    "@ts-graphviz/common": ^2.1.2
+    "@ts-graphviz/core": ^2.0.3
+  checksum: 0b06a00cbd1518d98c158d01541b47343ccfe46cadc63ed34bda19689e92f79126a42628cc6c2eb55014cce7672ec4260538d40baf8f90448b8d3c638191e7a9
   languageName: node
   linkType: hard
 
