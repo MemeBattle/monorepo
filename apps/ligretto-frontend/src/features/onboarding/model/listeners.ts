@@ -2,7 +2,16 @@ import type { UnknownAction } from '@reduxjs/toolkit'
 import { isAnyOf, type TypedStartListening } from '@reduxjs/toolkit'
 import { OnboardingEvent } from './fsm'
 import { OnboardingStateMachine, OnboardingStep } from './fsm'
-import { nextStepOnboardingAction, putLigrettoAction, setOnboardingState } from './slice'
+import {
+  nextStepOnboardingAction,
+  putLigrettoCardAction,
+  setOnboardingState,
+  putFirstCardAction,
+  putSecondCardAction,
+  putStackCardAction,
+  nextStackCardAction,
+  putThirdCardAction,
+} from './slice'
 import { All } from '@fsmoothy/core'
 import type { RouterActions } from 'redux-first-history'
 import { LOCATION_CHANGE } from 'redux-first-history'
@@ -15,9 +24,14 @@ const isLocationChangeAction = (action: UnknownAction): action is Extract<Router
   action.type === LOCATION_CHANGE
 
 const mapActionTypeToEvent = {
-  [nextStepOnboardingAction.type]: OnboardingEvent.Next,
-  [putLigrettoAction.type]: OnboardingEvent.PutLigretto,
-} as const
+  [nextStepOnboardingAction.type]: OnboardingEvent.NextStep,
+  [putLigrettoCardAction.type]: OnboardingEvent.PutLigretto,
+  [putFirstCardAction.type]: OnboardingEvent.PutFirstCard,
+  [putSecondCardAction.type]: OnboardingEvent.PutSecondCard,
+  [putThirdCardAction.type]: OnboardingEvent.PutThirdCard,
+  [putStackCardAction.type]: OnboardingEvent.PutStackCard,
+  [nextStackCardAction.type]: OnboardingEvent.NextStackCard,
+}
 
 export function addListeners(startListener: TypedStartListening<unknown>) {
   startListener({
@@ -39,7 +53,7 @@ export function addListeners(startListener: TypedStartListening<unknown>) {
       })
 
       while (true) {
-        const [action] = await listenerApi.take(isAnyOf(nextStepOnboardingAction, putLigrettoAction))
+        const [action] = await listenerApi.take(action => !!mapActionTypeToEvent[action.type])
 
         const event = mapActionTypeToEvent[action.type]
         await fsm.tryTransition(event)

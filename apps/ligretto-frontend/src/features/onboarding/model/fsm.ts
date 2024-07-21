@@ -25,7 +25,7 @@ export enum OnboardingStep {
 }
 
 export enum OnboardingEvent {
-  Next = 'next',
+  NextStep = 'nextStep',
   NextStackCard = 'nextStackCard',
   PutStackCard = 'putStackCard',
   PutFirstCard = 'putFirstCard',
@@ -164,12 +164,12 @@ export class OnboardingStateMachine extends StateMachine<OnboardingStep, Onboard
       },
       transitions: [
         // просто кликаем на далее
-        t(OnboardingStep.Opponents, OnboardingEvent.Next, OnboardingStep.Playground),
-        t(OnboardingStep.Playground, OnboardingEvent.Next, OnboardingStep.Cards),
-        t(OnboardingStep.Cards, OnboardingEvent.Next, OnboardingStep.Stack),
-        t(OnboardingStep.Stack, OnboardingEvent.Next, OnboardingStep.Row),
-        t(OnboardingStep.Row, OnboardingEvent.Next, OnboardingStep.Ligretto),
-        t(OnboardingStep.Ligretto, OnboardingEvent.Next, OnboardingStep.FirstCard),
+        t(OnboardingStep.Opponents, OnboardingEvent.NextStep, OnboardingStep.Playground),
+        t(OnboardingStep.Playground, OnboardingEvent.NextStep, OnboardingStep.Cards),
+        t(OnboardingStep.Cards, OnboardingEvent.NextStep, OnboardingStep.Stack),
+        t(OnboardingStep.Stack, OnboardingEvent.NextStep, OnboardingStep.Row),
+        t(OnboardingStep.Row, OnboardingEvent.NextStep, OnboardingStep.Ligretto),
+        t(OnboardingStep.Ligretto, OnboardingEvent.NextStep, OnboardingStep.FirstCard),
 
         t(OnboardingStep.FirstCard, OnboardingEvent.PutFirstCard, OnboardingStep.LigrettoCard),
         t(OnboardingStep.LigrettoCard, OnboardingEvent.PutLigretto, OnboardingStep.StackCard, {

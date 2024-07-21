@@ -1,7 +1,7 @@
 {
   "files.trimTrailingWhitespace": true,
   "npm.packageManager": "pnpm",
-  "cSpell.words": ["injectable", "memebattle", "memeber", "nestjs", "postgres", "styleguide", "typeorm"],
+  "cSpell.words": ["injectable", "Ligretto", "memebattle", "memeber", "nestjs", "postgres", "styleguide", "typeorm"],
   "gitlens.advanced.blame.customArguments": [],
   "typescript.experimental.useTsgo": true,
   "editor.defaultFormatter": "oxc.oxc-vscode",
