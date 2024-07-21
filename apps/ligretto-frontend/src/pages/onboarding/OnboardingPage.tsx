@@ -13,6 +13,7 @@ import { Box, IconButton } from '@memebattle/ui'
 import { CardsStack } from '#entities/card'
 import { PlayerRowCards } from './PlayerRowCards'
 import { Layer } from './Layer'
+import { TouchHint } from './TouchHint'
 
 const OnboardingCardPanel = () => {
   const game = useSelector(onboardingGameSelector)
@@ -88,9 +89,11 @@ export function OnboardingPage() {
 
       {isNextButtonVisible(step) ? (
         <Box position="absolute" right="2rem" top="2rem">
-          <IconButton onClick={handleNextButtonClick}>
-            <NextButton />
-          </IconButton>
+          <TouchHint key={step}>
+            <IconButton onClick={handleNextButtonClick}>
+              <NextButton />
+            </IconButton>
+          </TouchHint>
         </Box>
       ) : null}
     </GameLayout>
