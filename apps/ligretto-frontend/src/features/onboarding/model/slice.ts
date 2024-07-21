@@ -1,12 +1,17 @@
-import type { Game, GameResults } from '@memebattle/ligretto-shared'
+import { CardColors, PlayerStatus, type Game, type GameResults, type Player } from '@memebattle/ligretto-shared'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createAction, createSlice } from '@reduxjs/toolkit'
-import { OnboardingStep, OnboardingEvent } from './fsm'
+import { OnboardingStep } from './fsm'
 
 export type OnboardingState = {
   step: OnboardingStep
   game: {
-    players: Game['players']
+    players: {
+      id0: Player
+      id1: Player
+      id2: Player
+      id3: Player
+    }
     playground: {
       decks: Game['playground']['decks']
     }
@@ -17,7 +22,96 @@ export type OnboardingState = {
 export const initialState: OnboardingState = {
   step: OnboardingStep.Opponents,
   game: {
-    players: {},
+    players: {
+      id0: {
+        id: 'id0',
+        cards: [
+          { value: 5, color: CardColors.blue },
+          { value: 5, color: CardColors.blue },
+          { value: 5, color: CardColors.blue },
+        ],
+        status: PlayerStatus.InGame,
+        ligrettoDeck: {
+          isHidden: true,
+          cards: [{ value: 5, color: CardColors.blue }],
+        },
+        stackOpenDeck: {
+          isHidden: true,
+          cards: [],
+        },
+        stackDeck: {
+          isHidden: true,
+          cards: [],
+        },
+        isHost: true,
+      },
+      id1: {
+        id: 'id1',
+        cards: [
+          { value: 5, color: CardColors.blue },
+          { value: 5, color: CardColors.blue },
+          { value: 5, color: CardColors.blue },
+        ],
+        status: PlayerStatus.InGame,
+        ligrettoDeck: {
+          isHidden: true,
+          cards: [],
+        },
+        stackOpenDeck: {
+          isHidden: true,
+          cards: [],
+        },
+        stackDeck: {
+          isHidden: true,
+          cards: [],
+        },
+        isHost: false,
+      },
+      id2: {
+        id: 'id2',
+        cards: [
+          { value: 5, color: CardColors.yellow },
+          { value: 5, color: CardColors.yellow },
+          { value: 5, color: CardColors.yellow },
+        ],
+        status: PlayerStatus.InGame,
+        ligrettoDeck: {
+          isHidden: true,
+          cards: [],
+        },
+        stackOpenDeck: {
+          isHidden: true,
+          cards: [],
+        },
+        stackDeck: {
+          isHidden: true,
+          cards: [],
+        },
+        isHost: false,
+      },
+      id3: {
+        id: 'id3',
+        cards: [
+          { value: 5, color: CardColors.red },
+          { value: 5, color: CardColors.red },
+          { value: 5, color: CardColors.red },
+        ],
+        status: PlayerStatus.InGame,
+        ligrettoDeck: {
+          isHidden: true,
+          cards: [],
+        },
+        stackOpenDeck: {
+          isHidden: true,
+          cards: [],
+        },
+        stackDeck: {
+          isHidden: true,
+          cards: [],
+        },
+        isHost: false,
+      },
+    },
     playground: {
       decks: [],
     },
@@ -45,9 +139,14 @@ const onboardingSlice = createSlice({
     game(state) {
       return state.game
     },
+    step(state) {
+      return state.step
+    },
   },
 })
 
 export const { setOnboardingState } = onboardingSlice.actions
-export const { game: onboardingGame } = onboardingSlice.getSelectors((root: { onboarding: OnboardingState }) => root.onboarding)
+export const { game: onboardingGameSelector, step: onboardingStepSelector } = onboardingSlice.getSelectors(
+  (root: { onboarding: OnboardingState }) => root.onboarding,
+)
 export const onboardingReducer = onboardingSlice.reducer

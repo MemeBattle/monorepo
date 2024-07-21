@@ -7,6 +7,7 @@ import { HistoryRouter as Router } from 'redux-first-history/rr6'
 const meta: Meta<typeof LeaderBoard> = {
   title: 'Ligretto / LeaderBoard',
   component: LeaderBoard,
+  title: 'Ligretto / features / LeaderBoard',
   decorators: [
     Story => (
       <Provider store={store}>

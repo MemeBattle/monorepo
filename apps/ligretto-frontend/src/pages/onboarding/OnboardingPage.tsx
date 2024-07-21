@@ -4,33 +4,54 @@ import { Playground } from '#features/playground/ui/Playground'
 import { LigrettoPack, Opponent } from '#features/player'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { CardsPanel } from '#features/player/ui/CardsPanel/CardsPanel'
-import { onboardingGame, putLigrettoAction } from '#features/onboarding/model/slice'
+import { onboardingGameSelector, putLigrettoCardAction, nextStepOnboardingAction, OnboardingStep, onboardingStepSelector } from '#features/onboarding'
 import { useDispatch, useSelector } from 'react-redux'
 import { useCallback } from 'react'
 import { Overlay } from '#shared/ui/Overlay'
+import { NextButton } from '#shared/ui/NextButton/NextButton.js'
+import { Box, IconButton } from '@memebattle/ui'
+import { CardsStack } from '#entities/card'
+import { PlayerRowCards } from './PlayerRowCards'
+import { Layer } from './Layer'
 
 const OnboardingCardPanel = () => {
-  const game = useSelector(onboardingGame)
+  const game = useSelector(onboardingGameSelector)
   const dispatch = useDispatch()
   const current = game.players.id0
   const handleLigrettoDeckCardClick = useCallback(() => {
-    dispatch(putLigrettoAction())
+    dispatch(putLigrettoCardAction())
   }, [dispatch])
 
   return (
-    <CardsPanel player={{ status: PlayerStatus.InGame, username: 'you' }}>
-      <LigrettoPack
-        count={current?.ligrettoDeck.cards.length ?? 0}
-        isDndEnabled={false}
-        ligrettoDeckCards={current?.ligrettoDeck.cards ?? []}
-        onLigrettoDeckCardClick={handleLigrettoDeckCardClick}
-      />
-    </CardsPanel>
+    <Layer id="playerCards">
+      <CardsPanel player={{ status: PlayerStatus.InGame, username: 'you' }}>
+        <CardsStack stackDeckCards={current?.stackDeck} />
+        <PlayerRowCards />
+        <LigrettoPack
+          count={current?.ligrettoDeck.cards.length ?? 0}
+          isDndEnabled={false}
+          ligrettoDeckCards={current?.ligrettoDeck.cards ?? []}
+          onLigrettoDeckCardClick={handleLigrettoDeckCardClick}
+        />
+      </CardsPanel>
+    </Layer>
   )
 }
 
+const ONBOARDING_STEPS_VISIBLE_NEXT_BUTTON = new Set<OnboardingStep>([
+  OnboardingStep.Opponents,
+  OnboardingStep.Playground,
+  OnboardingStep.Cards,
+  OnboardingStep.Stack,
+  OnboardingStep.Row,
+])
+
+const isNextButtonVisible = (currentStep: OnboardingStep): boolean => ONBOARDING_STEPS_VISIBLE_NEXT_BUTTON.has(currentStep)
+
 export function OnboardingPage() {
-  const game = useSelector(onboardingGame)
+  const dispatch = useDispatch()
+  const game = useSelector(onboardingGameSelector)
+  const step = useSelector(onboardingStepSelector)
   const opponents = Object.values(game.players).flatMap(player =>
     player && !player.isHost
       ? [
@@ -42,14 +63,36 @@ export function OnboardingPage() {
         ]
       : [],
   )
+
+  const handleNextButtonClick = useCallback(() => {
+    dispatch(nextStepOnboardingAction())
+  }, [dispatch])
+
   return (
     <GameLayout>
-      <Overlay />
-      <GameGrid centerElement={<Playground cardsDecks={[]} onDeckClick={() => null} />} bottomElement={<OnboardingCardPanel />}>
+      <GameGrid
+        centerElement={
+          <Layer id="playgroundCards">
+            <Playground cardsDecks={[]} onDeckClick={() => null} />
+          </Layer>
+        }
+        bottomElement={<OnboardingCardPanel />}
+      >
         {opponents.map(props => (
-          <Opponent key={props.id} {...props} />
+          <Layer id="opponent" key={props.id}>
+            <Opponent {...props} />
+          </Layer>
         ))}
       </GameGrid>
+      <Overlay />
+
+      {isNextButtonVisible(step) ? (
+        <Box position="absolute" right="2rem" top="2rem">
+          <IconButton onClick={handleNextButtonClick}>
+            <NextButton />
+          </IconButton>
+        </Box>
+      ) : null}
     </GameLayout>
   )
 }
