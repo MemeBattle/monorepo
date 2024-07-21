@@ -1,7 +1,7 @@
 import type { Game, GameResults } from '@memebattle/ligretto-shared'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createAction, createSlice } from '@reduxjs/toolkit'
-import { OnboardingStep } from './fsm'
+import { OnboardingStep, OnboardingEvent } from './fsm'
 
 export type OnboardingState = {
   step: OnboardingStep
@@ -25,8 +25,13 @@ export const initialState: OnboardingState = {
   results: undefined,
 }
 
-export const nextStepOnboardingAction = createAction('@@onboarding/next')
-export const putLigrettoAction = createAction('@@onboarding/putLigretto')
+export const nextStepOnboardingAction = createAction('features/onboarding/next')
+export const putStackCardAction = createAction('features/onboarding/putStackCard')
+export const nextStackCardAction = createAction('features/onboarding/nextStackCard')
+export const putFirstCardAction = createAction('features/onboarding/putFirstCard')
+export const putSecondCardAction = createAction('features/onboarding/putSecondCard')
+export const putThirdCardAction = createAction('features/onboarding/putThirdCard')
+export const putLigrettoCardAction = createAction('features/onboarding/putLigrettoCard')
 
 const onboardingSlice = createSlice({
   name: 'onboarding',
