@@ -7,6 +7,7 @@ import { CardsPanel } from '#features/player/ui/CardsPanel/CardsPanel'
 import { onboardingGame, putLigrettoAction } from '#features/onboarding/model/slice'
 import { useDispatch, useSelector } from 'react-redux'
 import { useCallback } from 'react'
+import { Overlay } from '#shared/ui/Overlay'
 
 const OnboardingCardPanel = () => {
   const game = useSelector(onboardingGame)
@@ -43,7 +44,7 @@ export function OnboardingPage() {
   )
   return (
     <GameLayout>
-      {/* <Overlay /> */}
+      <Overlay />
       <GameGrid centerElement={<Playground cardsDecks={[]} onDeckClick={() => null} />} bottomElement={<OnboardingCardPanel />}>
         {opponents.map(props => (
           <Opponent key={props.id} {...props} />
