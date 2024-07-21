@@ -1,5 +1,5 @@
 import type { UnknownAction } from '@reduxjs/toolkit'
-import { isAnyOf, type TypedStartListening } from '@reduxjs/toolkit'
+import { type TypedStartListening } from '@reduxjs/toolkit'
 import { OnboardingEvent } from './fsm'
 import { OnboardingStateMachine, OnboardingStep } from './fsm'
 import {

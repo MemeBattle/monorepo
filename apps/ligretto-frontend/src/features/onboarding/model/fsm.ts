@@ -60,7 +60,7 @@ const cycledInfoHooks = {
 export class OnboardingStateMachine extends StateMachine<OnboardingStep, OnboardingEvent, OnboardingContext> {
   constructor() {
     super({
-      initial: OnboardingStep.LigrettoCard,
+      initial: OnboardingStep.Opponents,
       data() {
         return {
           stack: [],
@@ -70,9 +70,9 @@ export class OnboardingStateMachine extends StateMachine<OnboardingStep, Onboard
               id0: {
                 id: 'id0',
                 cards: [
-                  { value: 5, color: CardColors.blue },
-                  { value: 5, color: CardColors.blue },
-                  { value: 5, color: CardColors.blue },
+                  { value: 1, color: CardColors.blue },
+                  { value: 3, color: CardColors.blue },
+                  { value: 3, color: CardColors.green },
                 ],
                 status: PlayerStatus.InGame,
                 ligrettoDeck: {
@@ -81,7 +81,7 @@ export class OnboardingStateMachine extends StateMachine<OnboardingStep, Onboard
                 },
                 stackOpenDeck: {
                   isHidden: true,
-                  cards: [],
+                  cards: [{ value: 9, color: CardColors.blue }],
                 },
                 stackDeck: {
                   isHidden: true,
