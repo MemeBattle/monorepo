@@ -3617,7 +3617,7 @@ __metadata:
     "@memebattle/cas-services": ^3.6.5
     "@memebattle/ui": "workspace:^"
     "@types/react": ^18.0.28
-    axios: ^1.3.4
+    axios: ^1.7.4
     email-validator: ^2.0.4
     final-form: ^4.20.1
     react: ^18.2.0
@@ -3752,7 +3752,7 @@ __metadata:
     "@types/react-dom": ^18.0.11
     "@types/react-test-renderer": ^16.9.0
     "@vitejs/plugin-react": ^4.1.1
-    axios: ^1.3.4
+    axios: ^1.7.4
     clsx: ^1.2.1
     history: ^5.3.0
     lodash: ^4.17.21
@@ -3784,7 +3784,7 @@ __metadata:
     "@memebattle/ligretto-shared": "workspace:^"
     "@types/lodash": ^4.14.182
     "@types/node": 20.11.30
-    axios: ^1.3.4
+    axios: ^1.7.4
     cross-env: ^7.0.3
     inversify: ^5.0.1
     jest: ^29.5.0
@@ -8800,6 +8800,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"axios@npm:^1.7.4":
+  version: 1.7.7
+  resolution: "axios@npm:1.7.7"
+  dependencies:
+    follow-redirects: ^1.15.6
+    form-data: ^4.0.0
+    proxy-from-env: ^1.1.0
+  checksum: 882d4fe0ec694a07c7f5c1f68205eb6dc5a62aecdb632cc7a4a3d0985188ce3030e0b277e1a8260ac3f194d314ae342117660a151fabffdc5081ca0b5a8b47fe
+  languageName: node
+  linkType: hard
+
 "b4a@npm:^1.6.4":
   version: 1.6.4
   resolution: "b4a@npm:1.6.4"
@@ -12778,6 +12789,16 @@ __metadata:
     debug:
       optional: true
   checksum: faa66059b66358ba65c234c2f2a37fcec029dc22775f35d9ad6abac56003268baf41e55f9ee645957b32c7d9f62baf1f0b906e68267276f54ec4b4c597c2b190
+  languageName: node
+  linkType: hard
+
+"follow-redirects@npm:^1.15.6":
+  version: 1.15.8
+  resolution: "follow-redirects@npm:1.15.8"
+  peerDependenciesMeta:
+    debug:
+      optional: true
+  checksum: 14ea00a27257609328860f7792f4c2ba54e636cbce28ac4ae1d6b039d1f8285253081e43ffd29f7c2bf8854e95ab8f9d1db4e800c90a09d9ee78f75364a06deb
   languageName: node
   linkType: hard
 
