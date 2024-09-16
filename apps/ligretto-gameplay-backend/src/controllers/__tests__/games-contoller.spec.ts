@@ -31,15 +31,15 @@ describe('Games Controller', () => {
   let createGameService = jest.fn().mockReturnValue({ id: gameId })
   let saveGameRoundService = jest.fn().mockReturnValue({})
 
-  let gamesController: GamesController = container.get(IOC_TYPES.GamesController)
+  let gamesController: GamesController = container.get(IOC_TYPES.IGamesController)
 
   beforeEach(() => {
     container = createIOC()
     socketMockImpl = createSocketMockImpl()
     createGameService = jest.fn().mockReturnValue({ id: gameId })
     saveGameRoundService = jest.fn().mockReturnValue({})
-    container.rebind(IOC_TYPES.LigrettoCoreService).toConstantValue({ createGameService, saveGameRoundService })
-    gamesController = container.get(IOC_TYPES.GamesController)
+    container.rebind(IOC_TYPES.ILigrettoCoreService).toConstantValue({ createGameService, saveGameRoundService })
+    gamesController = container.get(IOC_TYPES.IGamesController)
   })
 
   it('should be defined', () => {
@@ -48,7 +48,7 @@ describe('Games Controller', () => {
 
   describe('createGame', () => {
     it('Should create relevant state on create game', async () => {
-      const database: Database = container.get(IOC_TYPES.Database)
+      const database: Database = container.get(IOC_TYPES.IDatabase)
 
       const roomName = 'createGame'
 
@@ -82,8 +82,8 @@ describe('Games Controller', () => {
 
     beforeEach(async () => {
       socketMockImpl.data = { user: { id: userId } }
-      gamesController = container.get(IOC_TYPES.GamesController)
-      const database: Database = container.get(IOC_TYPES.Database)
+      gamesController = container.get(IOC_TYPES.IGamesController)
+      const database: Database = container.get(IOC_TYPES.IDatabase)
 
       await database.set(storage => {
         storage.users = {
@@ -113,14 +113,14 @@ describe('Games Controller', () => {
 
     it('Should create relevant state on join room as first player', async () => {
       await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
-      const database: Database = container.get(IOC_TYPES.Database)
+      const database: Database = container.get(IOC_TYPES.IDatabase)
 
       const state = await database.get(db => db)
       expect(state).toMatchSnapshot()
     })
 
     it('Should create relevant state on join room second player', async () => {
-      const database: Database = container.get(IOC_TYPES.Database)
+      const database: Database = container.get(IOC_TYPES.IDatabase)
       const secondUserSocket = createSocketMockImpl({ id: 'secondUserSocketId' })
       secondUserSocket.data = { user: { id: 'secondUserId' } }
       const secondUserId = 'secondUserId'
@@ -142,7 +142,7 @@ describe('Games Controller', () => {
     })
 
     it('Should create relevant state on join room by second connection', async () => {
-      const database: Database = container.get(IOC_TYPES.Database)
+      const database: Database = container.get(IOC_TYPES.IDatabase)
       await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
       const secondUserSocket = createSocketMockImpl()
       secondUserSocket.data = { user: { id: userId } }
@@ -171,8 +171,8 @@ describe('Games Controller', () => {
     let socketTwo = createSocketMockImpl({ id: 'socket2', data: { user: { id: userTwoId } } })
 
     beforeEach(async () => {
-      gamesController = container.get(IOC_TYPES.GamesController)
-      const database: Database = container.get(IOC_TYPES.Database)
+      gamesController = container.get(IOC_TYPES.IGamesController)
+      const database: Database = container.get(IOC_TYPES.IDatabase)
       socketOne = createSocketMockImpl({ id: 'socket1', data: { user: { id: userOneId } } })
       socketTwo = createSocketMockImpl({ id: 'socket2', data: { user: { id: userTwoId } } })
 
@@ -197,7 +197,7 @@ describe('Games Controller', () => {
     })
 
     it('Should remove current socketId from user socket ids if user connected from few accounts', async () => {
-      const database: Database = container.get(IOC_TYPES.Database)
+      const database: Database = container.get(IOC_TYPES.IDatabase)
 
       await database.set(storage => {
         storage.users = {
@@ -221,7 +221,7 @@ describe('Games Controller', () => {
     })
 
     it('Should create a relevant game state if one of two players leaved', async () => {
-      const database: Database = container.get(IOC_TYPES.Database)
+      const database: Database = container.get(IOC_TYPES.IDatabase)
 
       await database.set(storage => {
         storage.users = {
@@ -251,7 +251,7 @@ describe('Games Controller', () => {
     })
 
     it('Should create a relevant state if last user disconnected', async () => {
-      const database: Database = container.get(IOC_TYPES.Database)
+      const database: Database = container.get(IOC_TYPES.IDatabase)
       await gamesController.handleMessage(socketOne, connectToRoomEmitAction({ roomUuid }) as AnyAction)
 
       await gamesController.disconnectionHandler(socketOne)

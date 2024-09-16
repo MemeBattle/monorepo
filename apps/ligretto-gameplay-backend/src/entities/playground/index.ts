@@ -1,2 +1,2 @@
-export { PlaygroundService } from './playground.service'
-export { PlaygroundRepository } from './playground.repo'
+export { IPlaygroundService, PlaygroundService } from './playground.service'
+export { IPlaygroundRepository, PlaygroundRepository } from './playground.repo'
