@@ -48,7 +48,7 @@
     "@memebattle/ligretto-shared": "workspace:^",
     "@memebattle/ui": "workspace:^",
     "@reduxjs/toolkit": "^2.2.3",
-    "@sentry/browser": "^7.108.0",
+    "@sentry/browser": "^7.119.1",
     "@sentry/integrations": "^7.108.0",
     "axios": "^1.3.4",
     "clsx": "^1.2.1",
