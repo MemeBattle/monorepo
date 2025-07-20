@@ -1,4 +1,4 @@
 export { usersReducer } from './usersSlice'
-export * from './usersSagas'
+export { addListeners } from './listeners'
 export * from './usersSelectors'
 export * from './usersActions'
