@@ -5,14 +5,15 @@ on:
   push:
     branches:
       - master
+      - helm
     paths:
       - 'apps/ligretto-**'
       - 'packages/ligretto-shared/**'
       - 'packages/auth-front/**'
       - 'packages/ui/**'
+      - 'packages/helm-lib/**'
       - .github/workflows/ligretto-deploy.yml
       - '.docker/Ligretto-**'
-      - '.deploy/ligretto.deploy.yml'
       - '.env*'
 
 env:
@@ -36,14 +37,14 @@ jobs:
       env:
         LIGRETTO_GAMEPLAY_URL: https://api.ligretto.app
         LIGRETTO_CORE_URL: https://core.ligretto.app/api
-        CAS_PARTNER_ID: 652468293877db2de8390fa3
+        CAS_PARTNER_ID: 685706c5ef9a1d005c9ef9b4
         CAS_STATIC_URL: https://cas.mems.fun/static
-        CAS_URL: https://cas.mems.fun/api
+        CAS_URL: https://cas.mems.fun
         AMPLITUDE_TOKEN: f55f6d07422dfb26ca4dfbe59a54d609
         SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
     - name: Archive frontend production dist
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: frontend-dist
         path: |
@@ -115,8 +116,48 @@ jobs:
           cache-from: type=gha,scope=$GITHUB_REF_NAME-ligretto-core-backend
           cache-to: type=gha,mode=max,scope=$GITHUB_REF_NAME-ligretto-core-backend
 
-  deploy:
-    needs: [ligretto-gameplay-backend-image, ligretto-core-backend-image, ligretto-frontend-build]
+  deploy-ligretto-core-backend:
+    name: Deploy Ligretto Core Backend
+    runs-on: ubuntu-22.04
+    needs: ligretto-core-backend-image
+    environment:
+      name: Ligretto-production
+      url: https://core.ligretto.app
+    steps:
+      - uses: actions/checkout@main
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Deploy
+        uses: ./.github/actions/deploy-helm
+        with:
+          chart-path: ./apps/ligretto-core-backend/chart
+          namespace: ligretto-core-backend
+          release-name: ligretto-core-backend
+          values-files: ./apps/ligretto-core-backend/chart/values.yaml
+          app-version: ${{ env.LIGRETTO_APP_VERSION }}
+          kube-config: ${{ secrets.KUBE_CONFIG_CORE }}
+  deploy-ligretto-gameplay-backend:
+    name: Deploy Ligretto Gameplay Backend
+    runs-on: ubuntu-22.04
+    needs: ligretto-gameplay-backend-image
+    environment:
+      name: Ligretto-production
+      url: https://api.ligretto.app
+    steps:
+      - uses: actions/checkout@main
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Deploy
+        uses: ./.github/actions/deploy-helm
+        with:
+          chart-path: ./apps/ligretto-gameplay-backend/chart
+          namespace: ligretto-gameplay-backend
+          release-name: ligretto-gameplay-backend
+          values-files: ./apps/ligretto-gameplay-backend/chart/values.yaml
+          app-version: ${{ env.LIGRETTO_APP_VERSION }}
+          kube-config: ${{ secrets.KUBE_CONFIG_GAMEPLAY }}
+  deploy-frontend:
+    needs: [ligretto-frontend-build]
 
     runs-on: ubuntu-22.04
 
@@ -130,21 +171,10 @@ jobs:
 
       - name: Download frontend dist
         id: download_frontend_dist
-        uses: actions/download-artifact@v4.1.7
+        uses: actions/download-artifact@v4
         with:
           name: frontend-dist
           path: apps/ligretto-frontend/dist
-
-      - uses: ./.github/actions/deploy-to-swarm
-        name: Deploy to swarm lambda
-        with:
-          path-to-stack: '.deploy/ligretto.deploy.yml'
-          name: 'LIGRETTO'
-          yc_folder_id: ${{ vars.YC_FOLDER_ID }}
-          sa_auth_key: ${{ secrets.YC_WORKER_KEY }}
-          docker_registry_login: ${{ secrets.GHCR_USER }}
-          docker_registry_password: ${{ secrets.GHCR_PULL_TOKEN }}
-          docker_registry: 'ghcr.io'
 
       - uses: ./.github/actions/deploy-to-s3
         name: Deploy to s3
