@@ -95,6 +95,6 @@ externalSecrets:
 
 # Deployer configuration
 deployer:
-  enabled: true
+  enabled: false
 
 
