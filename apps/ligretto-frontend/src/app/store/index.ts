@@ -6,7 +6,7 @@ import { IS_DEV_MODE } from '#shared/constants/config'
 import rootSaga from './rootSaga'
 import { routerMiddleware, createReduxHistory } from './reduxHistoryContext'
 import { rootReducer } from './rootReducer'
-import { listenerMiddleware } from './listenerModdleware'
+import { listenerMiddleware } from './listenerMiddleware'
 
 const sagaMiddleware = createSagaMiddleware()
 
