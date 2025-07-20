@@ -14,8 +14,7 @@ export const authSlice = createSlice({
   name: '@@auth',
   reducers: {
     logout: () => authInitialState,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    getMeRequest: (state, { payload }: PayloadAction<{ token?: string }>) => {
+    getMeRequest: (state, _action: PayloadAction<{ token?: string }>) => {
       state.isLoading = true
     },
     getMeSuccess: (state, { payload }: PayloadAction<{ userId: string; token: string; isTemporary: boolean }>) => {
