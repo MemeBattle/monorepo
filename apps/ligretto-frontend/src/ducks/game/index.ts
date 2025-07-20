@@ -1,5 +1,5 @@
 export { gameReducer } from './slice'
-export { gameRootSaga } from './sagas'
+export { addListeners } from './listeners'
 export * from './selectors'
 export * from './slice'
 export * from './utils'
