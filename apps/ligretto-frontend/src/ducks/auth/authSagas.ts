@@ -2,17 +2,40 @@ import * as Sentry from '@sentry/browser'
 
 import { call, put, takeLeading } from 'redux-saga/effects'
 
-import { getUserByTokenSaga } from '#ducks/users'
-
 import type { User } from '../users/usersTypes'
 import { logout, getMeRequest, getMeSuccess } from './authActions'
 import { LOCAL_STORAGE_TOKEN_KEY } from './constants'
 
 import { analytics } from '#entities/analytics'
+import { addUser } from '#ducks/users'
+import type { AxiosResponse } from 'axios'
+import type { SagaIterator } from 'redux-saga'
+import { getMe } from '#shared/api'
+import type { GetMeResponse } from '#shared/api'
 
 export function* initSaga() {
   const token = window.localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY) ?? undefined
   yield put(getMeRequest({ token }))
+}
+
+export function* getUserByTokenSaga(
+  token?: string,
+): SagaIterator<{ userId: User['casId']; token: string; isTemporary: boolean; username: string | null } | null> {
+  try {
+    const { data }: AxiosResponse<GetMeResponse> = yield call(getMe, token)
+
+    yield put(addUser(data.user))
+
+    return {
+      userId: data.user.casId,
+      isTemporary: data.user.isTemporary,
+      token: data.token,
+      username: data.user.isTemporary ? null : data.user.username,
+    }
+  } catch (e) {
+    console.error(e)
+    return null
+  }
 }
 
 export function* getMeSaga({ payload }: ReturnType<typeof getMeRequest>) {
