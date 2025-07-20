@@ -7,7 +7,7 @@ export const roomsEntityAdapter = createEntityAdapter({
   selectId: (room: Room) => room.uuid,
 })
 
-interface RoomsState extends ReturnType<typeof roomsEntityAdapter.getInitialState> {
+export interface RoomsState extends ReturnType<typeof roomsEntityAdapter.getInitialState> {
   isLoading: boolean
   search: string
   error: CreateRoomError | null
