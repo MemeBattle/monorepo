@@ -8,6 +8,8 @@ import type { User } from '../users/usersTypes'
 import { logout, getMeRequest, getMeSuccess } from './authActions'
 import { LOCAL_STORAGE_TOKEN_KEY } from './constants'
 
+import { analytics } from '#entities/analytics'
+
 export function* initSaga() {
   const token = window.localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY) ?? undefined
   yield put(getMeRequest({ token }))
@@ -25,6 +27,10 @@ export function* getMeSaga({ payload }: ReturnType<typeof getMeRequest>) {
     username: user?.username,
   })
   window.localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, user.token)
+
+  analytics.setUserProperties({ id: user.userId, isTemporary: user.isTemporary })
+  analytics.logEvent('User authorized')
+
   yield put(getMeSuccess({ ...user }))
 }
 
