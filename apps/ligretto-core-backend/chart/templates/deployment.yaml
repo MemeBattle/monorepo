@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "common.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "common.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "common.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      imagePullSecrets:
+      - name: github-registry-secret
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.env.PORT }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: LIGRETTO_CORE_APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "common.fullname" . }}-app-key-secret
+                  key: LIGRETTO_CORE_APP_KEY
+            - name: LIGRETTO_CORE_DB_CONNECTION
+              value: pg
+            - name: LIGRETTO_CORE_PG_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "common.fullname" . }}-ligretto-db-secret
+                  key: host
+            - name: LIGRETTO_CORE_PG_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "common.fullname" . }}-ligretto-db-secret
+                  key: port
+            - name: LIGRETTO_CORE_PG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "common.fullname" . }}-ligretto-db-secret
+                  key: username
+            - name: LIGRETTO_CORE_PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "common.fullname" . }}-ligretto-db-secret
+                  key: password
+            - name: LIGRETTO_CORE_PG_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "common.fullname" . }}-ligretto-db-secret
+                  key: database
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          volumeMounts:
+            - name: cas-key-volume
+              mountPath: {{ .Values.env.LIGRETTO_CORE_CAS_PUBLIC_KEY_PATH }}
+              subPath: key.pem
+            {{- with .Values.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: cas-key-volume
+          secret:
+            secretName: {{ include "common.fullname" . }}-cas-key-secret
+        {{- with .Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+

@@ -1,0 +1,25 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: {{ include "common.fullname" . }}-external-secret-ligretto-app
+  namespace: {{ .Release.Namespace  }}
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: secret-store
+    kind: ClusterSecretStore
+  target:
+    name: ligretto-app-tls-secret
+    template:
+      type: kubernetes.io/tls
+  data:
+    - secretKey: tls.crt
+      remoteRef:
+        key: fpqj4d7bpsjg9gs8cap5
+        property: chain
+    - secretKey: tls.key
+      remoteRef:
+        key: fpqj4d7bpsjg9gs8cap5
+        property: privateKey

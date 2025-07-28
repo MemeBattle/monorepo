@@ -1,0 +1,74 @@
+name: 'Deploy Helm Chart'
+description: 'Deploy application using Helm chart'
+
+inputs:
+  chart-path:
+    description: 'Path to the Helm chart'
+    required: true
+  namespace:
+    description: 'Kubernetes namespace'
+    required: true
+  values-files:
+    description: 'Comma-separated list of paths to values.yaml files'
+    required: true
+  release-name:
+    description: 'Name of the Helm release'
+    required: true
+  app-version:
+    description: 'Version of the application'
+    required: true
+  kube-config:
+    description: 'Kubernetes configuration'
+    required: true
+  build-deps:
+    description: 'Should be dependencies builded before deploying'
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Helm
+      shell: bash
+      run: |
+        curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        chmod 700 get_helm.sh
+        ./get_helm.sh
+
+    - name: Configure Kubernetes
+      shell: bash
+      run: |
+        mkdir -p $HOME/.kube
+        echo "${{ inputs.kube-config }}" > $HOME/.kube/config
+        chmod 600 $HOME/.kube/config
+    
+    - name: Build dependencies
+      shell: bash
+      run: |
+        if [ "${{ inputs.build-deps }}" = "true" ]; then
+          helm dependency build ${{ inputs.chart-path }}
+        fi
+
+    - name: Deploy Helm chart
+      shell: bash
+      run: |
+        RELEASE_NAME="${{ inputs.release-name }}"
+        VALUES_ARGS=""
+        
+        echo "📋 Values files to be used:"
+        IFS=',' read -ra VALUES_FILES <<< "${{ inputs.values-files }}"
+        for file in "${VALUES_FILES[@]}"; do
+          echo "   - $file"
+          VALUES_ARGS="$VALUES_ARGS --values $file"
+        done
+        
+        helm upgrade --install $RELEASE_NAME ${{ inputs.chart-path }} \
+          --namespace ${{ inputs.namespace }} \
+          --create-namespace \
+          $VALUES_ARGS \
+          --set image.tag=${{ inputs.app-version }} \
+          --wait \
+          --timeout 5m 
