@@ -1,4 +1,4 @@
 export { authReducer } from './authSlice'
-export { authRootSaga } from './authSagas'
+export { addListeners } from './listeners'
 export * from './authSelectors'
 export * from './authActions'
