@@ -1,7 +1,7 @@
 import { Server } from 'socket.io'
 import { createServer } from 'node:http'
 import { LIGRETTO_GAMEPLAY_SOCKET_PORT } from './config'
-import type { WebSocketHandler } from './websocket-handlers'
+import type { IWebSocketHandler } from './websocket-handlers'
 import { IOC } from './inversify.config'
 import { IOC_TYPES } from './IOC_TYPES'
 import { promClient } from './metrics'
@@ -30,7 +30,7 @@ export const io = new Server(httpServer, {
   },
 })
 
-export const webSocketHandler = IOC.get<WebSocketHandler>(IOC_TYPES.WebSocketHandler)
+export const webSocketHandler = IOC.get<IWebSocketHandler>(IOC_TYPES.IWebSocketHandler)
 
 webSocketHandler.connect(io)
 

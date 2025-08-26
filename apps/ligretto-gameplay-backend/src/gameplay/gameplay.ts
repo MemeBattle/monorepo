@@ -1,15 +1,23 @@
 import { inject, injectable } from 'inversify'
-import { PlayerService } from '../entities/player/player.service'
-import { PlaygroundService } from '../entities/playground'
-import { GameService } from '../entities/game/game.service'
+import { IPlayerService } from '../entities/player/player.service'
+import { IPlaygroundService } from '../entities/playground'
+import { IGameService } from '../entities/game/game.service'
 import { IOC_TYPES } from '../IOC_TYPES'
 import type { Game, GameResults, UUID } from '@memebattle/ligretto-shared'
 
+export interface IGameplay {
+  startGame(gameId: UUID): Promise<void>
+  playerPutCard(gameId: UUID, playerId: UUID, cardPosition: number, deckPosition?: number): Promise<void>
+  playerPutFromStackOpenDeck(gameId: UUID, playerId: UUID, deckPosition?: number): Promise<void>
+  playerTakeFromLigrettoDeck(gameId: UUID, playerId: UUID): Promise<{ game?: Game; gameResults?: GameResults }>
+  playerTakeFromStackDeck(gameId: UUID, playerId: UUID): Promise<void>
+}
+
 @injectable()
-export class Gameplay {
-  @inject(IOC_TYPES.GameService) private gameService: GameService
-  @inject(IOC_TYPES.PlayerService) private playerService: PlayerService
-  @inject(IOC_TYPES.PlaygroundService) private playgroundService: PlaygroundService
+export class Gameplay implements IGameplay {
+  @inject(IOC_TYPES.IGameService) private gameService: IGameService
+  @inject(IOC_TYPES.IPlayerService) private playerService: IPlayerService
+  @inject(IOC_TYPES.IPlaygroundService) private playgroundService: IPlaygroundService
 
   async startGame(gameId: UUID) {
     try {
@@ -81,7 +89,8 @@ export class Gameplay {
     }
   }
 
-  async endGame(gameId: UUID) {
+  // XXX: for now this method is not used
+  private async endGame(gameId: UUID) {
     try {
       const roundResult = await this.gameService.getRoundResult(gameId)
       await this.gameService.endGame(gameId)

@@ -9,7 +9,7 @@ export const storage: Storage = {
 type Accessor<T> = (storage: Storage) => T
 type Setter<T = void> = (storage: Storage) => T
 
-export interface Database {
+export interface IDatabase {
   get<T>(accessor: Accessor<T>): Promise<T>
   set<T>(setter: Setter<T>): Promise<T>
   // eslint-disable-next-line @typescript-eslint/ban-types
@@ -34,7 +34,7 @@ const createChangesWatcher = <T extends object>(obj: T) => {
 }
 
 @injectable()
-export class Database implements Database {
+export class Database implements IDatabase {
   private storage: Storage = {
     games: {},
     users: {},
