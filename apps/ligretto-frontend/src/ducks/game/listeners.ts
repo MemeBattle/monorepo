@@ -27,6 +27,7 @@ import {
   tapLigrettoDeckCardAction,
   setSelectedCardIndexAction,
   tapPlaygroundCardAction,
+  resetGameStateAction,
 } from './slice'
 import { gameIdSelector, isDndEnabledSelector, playerStatusSelector, selectedCardIndexSelector, selectPlayerCardByIndex } from './selectors'
 import { STACK_OPEN_DECK_INDEX } from './utils'
@@ -53,6 +54,7 @@ export function addListeners(startListener: TypedStartListening<All>) {
   startListener({
     predicate: action => action.type === LOCATION_CHANGE || socketConnectedAction.match(action),
     effect: async (action, listenerApi) => {
+      listenerApi.cancelActiveListeners()
       const state = listenerApi.getState()
       try {
         const location = locationSelector(state)
@@ -75,6 +77,7 @@ export function addListeners(startListener: TypedStartListening<All>) {
           const match = newLocation?.pathname && matchPath(routes.GAME, newLocation.pathname)
           if (!match) {
             listenerApi.dispatch(leaveFromRoomEmitAction())
+            listenerApi.dispatch(resetGameStateAction())
           }
         }
       }
