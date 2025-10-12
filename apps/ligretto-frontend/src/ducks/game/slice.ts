@@ -63,8 +63,9 @@ const gameSlice = createSlice({
     setSelectedCardIndexAction: (state, action: PayloadAction<SelectedCardIndex | undefined>) => {
       state.localPlayerState.selectedCardIndex = action.payload
     },
+    resetGameStateAction: () => initialState,
   },
 })
 
-export const { updateGameAction, setGameLoadedAction, setGameResultAction, setSelectedCardIndexAction } = gameSlice.actions
+export const { updateGameAction, setGameLoadedAction, setGameResultAction, setSelectedCardIndexAction, resetGameStateAction } = gameSlice.actions
 export const gameReducer = gameSlice.reducer
