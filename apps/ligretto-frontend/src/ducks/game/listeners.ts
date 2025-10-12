@@ -73,7 +73,7 @@ export function addListeners(startListener: TypedStartListening<All>) {
         }
       } catch (e) {
         if (e instanceof TaskAbortError) {
-          const newLocation = locationSelector(state)
+          const newLocation = locationSelector(listenerApi.getState())
           const match = newLocation?.pathname && matchPath(routes.GAME, newLocation.pathname)
           if (!match) {
             listenerApi.dispatch(leaveFromRoomEmitAction())
