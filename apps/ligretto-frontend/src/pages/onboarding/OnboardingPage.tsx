@@ -28,6 +28,7 @@ const OnboardingCardPanel = () => {
       <CardsPanel player={{ status: PlayerStatus.InGame, username: 'you' }}>
         <CardsStack stackDeckCards={current?.stackDeck} />
         <PlayerRowCards />
+
         <LigrettoPack
           count={current?.ligrettoDeck.cards.length ?? 0}
           isDndEnabled={false}
