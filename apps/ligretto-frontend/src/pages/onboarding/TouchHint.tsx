@@ -22,10 +22,28 @@ export function TouchHint({ children }: PropsWithChildren) {
     <>
       <Box ref={anchorRef}>{children}</Box>
 
-      <Popper open={isVisible} anchorEl={anchorRef.current} transition>
+      <Popper
+        modifiers={[
+          {
+            name: 'flip',
+            enabled: false,
+            options: {
+              altBoundary: false,
+              rootBoundary: 'document',
+              padding: 8,
+            },
+          },
+        ]}
+        open={isVisible}
+        anchorEl={anchorRef.current}
+        disablePortal
+        transition
+      >
         {({ TransitionProps }) => (
           <Fade {...TransitionProps}>
-            <TouchAppIcon fontSize="large" />
+            <Box marginTop="-1.2rem">
+              <TouchAppIcon fontSize="large" />
+            </Box>
           </Fade>
         )}
       </Popper>
