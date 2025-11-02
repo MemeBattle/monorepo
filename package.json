@@ -33,7 +33,7 @@
     "build-storybook": "storybook build"
   },
   "engines": {
-    "node": ">=20.11"
+    "node": "~20.11.0"
   },
   "workspaces": [
     "packages/**",
