@@ -3,12 +3,31 @@ import { useDispatch, useSelector } from 'react-redux'
 import { CardsRow } from '#entities/card/ui/CardsRow'
 
 import { Card, CardPlace } from '#entities/card'
-import { onboardingGameSelector, putFirstCardAction, putSecondCardAction, putThirdCardAction } from '#features/onboarding'
+import {
+  OnboardingStep,
+  onboardingGameSelector,
+  onboardingStepSelector,
+  putFirstCardAction,
+  putSecondCardAction,
+  putThirdCardAction,
+} from '#features/onboarding'
+
+const DISABLED_CARDS_STEPS = new Set<OnboardingStep>([
+  OnboardingStep.Opponents,
+  OnboardingStep.Playground,
+  OnboardingStep.Cards,
+  OnboardingStep.Stack,
+  OnboardingStep.Row,
+  OnboardingStep.Ligretto,
+])
 
 export const PlayerRowCards = () => {
   const dispatch = useDispatch()
 
   const game = useSelector(onboardingGameSelector)
+  const step = useSelector(onboardingStepSelector)
+
+  const areCardsDisabled = DISABLED_CARDS_STEPS.has(step)
 
   const current = game.players.id0
 
@@ -27,13 +46,13 @@ export const PlayerRowCards = () => {
   return (
     <CardsRow>
       <CardPlace>
-        <Card {...current.cards[0]} onClick={handleFirstCardClick} />
+        <Card isDisabled={areCardsDisabled} {...current.cards[0]} onClick={handleFirstCardClick} />
       </CardPlace>
       <CardPlace>
-        <Card {...current.cards[1]} onClick={handleSecondCardClick} />
+        <Card isDisabled={areCardsDisabled} {...current.cards[1]} onClick={handleSecondCardClick} />
       </CardPlace>
       <CardPlace>
-        <Card {...current.cards[2]} onClick={handleThirdCardClick} />
+        <Card isDisabled={areCardsDisabled} {...current.cards[2]} onClick={handleThirdCardClick} />
       </CardPlace>
     </CardsRow>
   )

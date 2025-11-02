@@ -77,11 +77,15 @@ export class OnboardingStateMachine extends StateMachine<OnboardingStep, Onboard
                 status: PlayerStatus.InGame,
                 ligrettoDeck: {
                   isHidden: true,
-                  cards: [{ value: 5, color: CardColors.blue }],
+                  cards: [
+                    { value: 5, color: CardColors.blue },
+                    { value: 1, color: CardColors.red },
+                    { value: 5, color: CardColors.yellow },
+                  ],
                 },
                 stackOpenDeck: {
                   isHidden: true,
-                  cards: [{ value: 9, color: CardColors.blue }],
+                  cards: [],
                 },
                 stackDeck: {
                   isHidden: true,
@@ -171,17 +175,55 @@ export class OnboardingStateMachine extends StateMachine<OnboardingStep, Onboard
         t(OnboardingStep.Row, OnboardingEvent.NextStep, OnboardingStep.Ligretto),
         t(OnboardingStep.Ligretto, OnboardingEvent.NextStep, OnboardingStep.FirstCard),
 
-        t(OnboardingStep.FirstCard, OnboardingEvent.PutFirstCard, OnboardingStep.LigrettoCard),
-        t(OnboardingStep.LigrettoCard, OnboardingEvent.PutLigretto, OnboardingStep.StackCard, {
+        t(OnboardingStep.FirstCard, OnboardingEvent.PutFirstCard, OnboardingStep.LigrettoCard, {
           onEnter(ctx) {
-            ctx.data.game.players.id0.ligrettoDeck.cards = []
+            ctx.data.game.players.id0.cards[0] = null
+            if (!ctx.data.game.playground.decks[0]) {
+              ctx.data.game.playground.decks[0] = {
+                cards: [],
+                isHidden: false,
+              }
+            }
+            ctx.data.game.playground.decks[0].cards = [{ value: 1, color: CardColors.blue }]
           },
         }),
-        t(OnboardingStep.StackCard, OnboardingEvent.NextStackCard, OnboardingStep.StackUnavailableCard),
-        t(OnboardingStep.StackUnavailableCard, OnboardingEvent.NextStackCard, OnboardingStep.StackAvailableCard),
-        t(OnboardingStep.StackAvailableCard, OnboardingEvent.PutStackCard, OnboardingStep.RowAvailableCard),
-        t(OnboardingStep.RowAvailableCard, OnboardingEvent.PutSecondCard, OnboardingStep.LigrettoAvailableCard),
-        t(OnboardingStep.LigrettoAvailableCard, OnboardingEvent.PutLigretto, OnboardingStep.GameStarted),
+        t(OnboardingStep.LigrettoCard, OnboardingEvent.PutLigretto, OnboardingStep.StackCard, {
+          onEnter(ctx) {
+            ctx.data.game.players.id0.ligrettoDeck.cards.splice(0, 1)
+            ctx.data.game.players.id0.cards[0] = { value: 4, color: CardColors.red }
+          },
+        }),
+        t(OnboardingStep.StackCard, OnboardingEvent.NextStackCard, OnboardingStep.StackUnavailableCard, {
+          onEnter(ctx) {
+            ctx.data.game.players.id0.stackOpenDeck.cards = [
+              { value: 9, color: CardColors.blue },
+              { value: 2, color: CardColors.blue },
+              { value: 6, color: CardColors.green },
+            ]
+          },
+        }),
+        t(OnboardingStep.StackUnavailableCard, OnboardingEvent.NextStackCard, OnboardingStep.StackAvailableCard, {
+          onEnter(ctx) {
+            ctx.data.game.players.id0.stackOpenDeck.cards.splice(0, 1)
+          },
+        }),
+        t(OnboardingStep.StackAvailableCard, OnboardingEvent.PutStackCard, OnboardingStep.RowAvailableCard, {
+          onEnter(ctx) {
+            ctx.data.game.players.id0.stackOpenDeck.cards.splice(0, 1)
+            ctx.data.game.playground.decks[0]?.cards.push({ value: 2, color: CardColors.blue })
+          },
+        }),
+        t(OnboardingStep.RowAvailableCard, OnboardingEvent.PutSecondCard, OnboardingStep.LigrettoAvailableCard, {
+          onEnter(ctx) {
+            ctx.data.game.players.id0.cards[1] = null
+            ctx.data.game.playground.decks[0]?.cards.push({ value: 3, color: CardColors.blue })
+          },
+        }),
+        t(OnboardingStep.LigrettoAvailableCard, OnboardingEvent.PutLigretto, OnboardingStep.GameStarted, {
+          onEnter(ctx) {
+            ctx.data.game.players.id0.cards[1] = ctx.data.game.players.id0.ligrettoDeck.cards.splice(0, 1)[0]
+          },
+        }),
 
         t(OnboardingStep.GameStarted, OnboardingEvent.NextStackCard, OnboardingStep.GameStartedCycledInfo, cycledInfoHooks),
         t(OnboardingStep.GameStarted, OnboardingEvent.NextStackCard, OnboardingStep.GameStarted),

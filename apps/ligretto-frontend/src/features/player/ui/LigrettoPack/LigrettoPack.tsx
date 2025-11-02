@@ -12,14 +12,23 @@ interface LigrettoPack {
   isDndEnabled: boolean
   ligrettoDeckCards: PlayerCards[]
   onLigrettoDeckCardClick: () => void
+  isHighlighted?: boolean
+  isDisabled?: boolean
 }
 
-export const LigrettoPack: React.FC<LigrettoPack> = ({ count, isDndEnabled, ligrettoDeckCards, onLigrettoDeckCardClick }) => (
+export const LigrettoPack: React.FC<LigrettoPack> = ({
+  count,
+  isDndEnabled,
+  ligrettoDeckCards,
+  onLigrettoDeckCardClick,
+  isHighlighted,
+  isDisabled,
+}) => (
   <div className={styles.ligrettoPack}>
     <div className={styles.cardWrapper}>
       <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.l : undefined}>
         <CardPlace>
-          <Card color={ligrettoDeckCards[0]?.color} onClick={onLigrettoDeckCardClick} />
+          <Card color={ligrettoDeckCards[0]?.color} onClick={onLigrettoDeckCardClick} isHighlighted={isHighlighted} isDisabled={isDisabled} />
         </CardPlace>
       </CardHotkeyBadge>
     </div>
