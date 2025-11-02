@@ -4,6 +4,23 @@ import Fade from '@mui/material/Fade'
 import TouchAppIcon from '@mui/icons-material/TouchApp'
 import { useEffect, useRef, useState, type PropsWithChildren } from 'react'
 import { Box } from '@memebattle/ui'
+import { styled, keyframes } from '@mui/material/styles'
+
+const pulse = keyframes({
+  '0%': {
+    transform: 'scale(1)',
+  },
+  '50%': {
+    transform: 'scale(1.5)',
+  },
+  '100%': {
+    transform: 'scale(1)',
+  },
+})
+
+const AnimatedTouchAppIcon = styled(TouchAppIcon)({
+  animation: `${pulse} 2s ease-in-out infinite`,
+})
 
 export function TouchHint({ children }: PropsWithChildren) {
   const anchorRef = useRef()
@@ -42,7 +59,7 @@ export function TouchHint({ children }: PropsWithChildren) {
         {({ TransitionProps }) => (
           <Fade {...TransitionProps}>
             <Box marginTop="-1.2rem">
-              <TouchAppIcon fontSize="large" />
+              <AnimatedTouchAppIcon fontSize="large" />
             </Box>
           </Fade>
         )}

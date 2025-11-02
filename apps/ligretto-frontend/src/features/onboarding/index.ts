@@ -8,5 +8,6 @@ export {
   putThirdCardAction,
   onboardingGameSelector,
   nextStepOnboardingAction,
+  nextStackCardAction,
   onboardingStepSelector,
 } from './model/slice'
