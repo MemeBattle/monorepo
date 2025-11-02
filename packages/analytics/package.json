@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "@types/amplitude-js": "8.16.2",
-    "typescript": "5.4.3"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "amplitude-js": "^8.21.6"

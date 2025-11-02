@@ -45,7 +45,7 @@
     "rehype-slug": "^5.1.0",
     "schema-dts": "^1.1.2",
     "tailwindcss": "^3.3.1",
-    "typescript": "5.4.3",
+    "typescript": "^5.9.3",
     "unist-util-visit": "^4.1.2",
     "vite-tsconfig-paths": "^4.2.1",
     "vitest": "^0.34.6"

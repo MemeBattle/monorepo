@@ -1,7 +1,11 @@
 import type { Page } from '@playwright/test'
 
 export class HomePage {
-  constructor(readonly page: Page) {}
+  private readonly page: Page
+
+  constructor(page: Page) {
+    this.page = page
+  }
 
   async visitHomeUrl() {
     await this.page.goto('/')

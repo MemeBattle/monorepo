@@ -13,7 +13,7 @@ export function SearchInput({ placeholder }: SearchInputProps) {
 
   const handleSearchChange = useCallback<ChangeEventHandler<HTMLInputElement>>(
     ({ target }) => {
-      const newSearchParams = new URLSearchParams(searchParams)
+      const newSearchParams = new URLSearchParams(searchParams.toString())
 
       if (!target.value) {
         newSearchParams.delete('search')

@@ -26,7 +26,7 @@ export function TagsSelector({ tags }: TagsSelectorProps) {
         currentTags = currentTags.concat(value)
       }
 
-      const newSearchParams = new URLSearchParams(searchParams)
+      const newSearchParams = new URLSearchParams(searchParams.toString())
 
       newSearchParams.delete('tags')
 
