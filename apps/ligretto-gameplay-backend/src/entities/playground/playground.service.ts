@@ -22,13 +22,18 @@ export class PlaygroundService {
 
   async findAvailableDeckIndex(gameId: UUID, card: Card) {
     const decks = await this.getDecks(gameId)
-    return decks.findIndex(deck => isDeckAvailable(deck, card))
+
+    if (!decks) {
+      return -1
+    }
+
+    return decks.findIndex(deck => isDeckAvailable(deck ?? null, card))
   }
 
   async putCard(gameId: UUID, card: Card, deckIndex: number) {
     const deck = await this.playgroundRepository.getDeck(gameId, deckIndex)
 
-    if (!isDeckAvailable(deck, card)) {
+    if (!isDeckAvailable(deck ?? null, card)) {
       return
     }
 

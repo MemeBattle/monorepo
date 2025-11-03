@@ -19,6 +19,10 @@ export class GameRepository {
   async updateGame(gameId: UUID, updater: (game: Game) => Game): Promise<Game> {
     const game = await this.getGame(gameId)
 
+    if (!game) {
+      throw new Error(`Game with id ${gameId} not found`)
+    }
+
     return this.database.set(storage => (storage.games[gameId] = updater(game)))
   }
 

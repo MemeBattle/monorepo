@@ -42,6 +42,10 @@ export class GameplayController extends Controller {
   private async updateGame(socket: Socket, gameId: string, gameState?: Game) {
     const game = gameState || (await this.gameService.getGame(gameId))
 
+    if (!game) {
+      return
+    }
+
     const action = updateGameAction(game)
 
     socket.to(gameId).emit('event', action)

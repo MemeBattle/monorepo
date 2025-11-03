@@ -1,6 +1,7 @@
 {
   "files": ["typings/font.d.ts", "typings/images.d.ts"],
   "compilerOptions": {
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "noUncheckedIndexedAccess": true
   }
 }

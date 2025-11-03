@@ -43,11 +43,8 @@ export class Database implements Database {
   private listeners: Record<string, (nextStorage: Storage) => void> = {}
 
   private notifyListeners() {
-    for (const listenerKey in this.listeners) {
-      if (this.listeners.hasOwnProperty(listenerKey)) {
-        const listener = this.listeners[listenerKey]
-        listener(this.storage)
-      }
+    for (const listener of Object.values(this.listeners)) {
+      listener(this.storage)
     }
   }
 

@@ -69,8 +69,8 @@ const posts = [
   },
 ]
 
-posts[0].translates = { en: posts[2] }
-posts[2].translates = { ru: posts[1] }
+posts[0]!.translates = { en: posts[2] }
+posts[2]!.translates = { ru: posts[1] }
 
 describe('filterBlogPosts', () => {
   it('Should return all (uniq by locale) posts if search and tags empty', () => {
