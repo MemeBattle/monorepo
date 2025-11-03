@@ -3606,7 +3606,7 @@ __metadata:
   dependencies:
     "@types/amplitude-js": 8.16.2
     amplitude-js: ^8.21.6
-    typescript: 5.4.3
+    typescript: ^5.9.3
   languageName: unknown
   linkType: soft
 
@@ -3626,7 +3626,7 @@ __metadata:
     react-final-form: ^6.5.2
     react-router: ^6.8.1
     react-router-dom: ^6.8.1
-    typescript: 5.4.3
+    typescript: ^5.9.3
   peerDependencies:
     "@memebattle/ui": "workspace:^"
     react: ^17.0.1
@@ -3643,7 +3643,7 @@ __metadata:
     "@radix-ui/react-popover": ^1.0.7
     "@tailwindcss/typography": ^0.5.9
     "@types/negotiator": ^0
-    "@types/node": 20.11.30
+    "@types/node": 24.9.2
     "@types/react": ^18.0.28
     "@types/react-dom": ^18.0.11
     "@vitejs/plugin-react": ^4.1.1
@@ -3669,7 +3669,7 @@ __metadata:
     server-only: ^0.0.1
     sharp: ^0.32.5
     tailwindcss: ^3.3.1
-    typescript: 5.4.3
+    typescript: ^5.9.3
     unist-util-visit: ^4.1.2
     vite-tsconfig-paths: ^4.2.1
     vitest: ^0.34.6
@@ -3696,7 +3696,7 @@ __metadata:
     "@emotion/server": ^11.4.0
     "@memebattle/ui": "workspace:^"
     "@types/lodash": ^4.14.182
-    "@types/node": 20.11.30
+    "@types/node": 24.9.2
     "@types/react": ^18.0.28
     "@types/react-dom": ^18.0.11
     lodash: ^4.17.21
@@ -3704,7 +3704,7 @@ __metadata:
     react: ^18.2.0
     react-dom: ^18.2.0
     sharp: ^0.32.5
-    typescript: 5.4.3
+    typescript: ^5.9.3
   languageName: unknown
   linkType: soft
 
@@ -3767,7 +3767,7 @@ __metadata:
     redux-saga: ^1.3.0
     sass: ^1.53.0
     socket.io-client: ^4.5.1
-    typescript: 5.4.3
+    typescript: ^5.9.3
     vite: ^4.5.0
     vite-plugin-svgr: ^2.2.0
     vitest: ^0.34.6
@@ -3783,7 +3783,7 @@ __metadata:
     "@memebattle/cas-services": ^3.6.5
     "@memebattle/ligretto-shared": "workspace:^"
     "@types/lodash": ^4.14.182
-    "@types/node": 20.11.30
+    "@types/node": 24.9.2
     axios: ^1.3.4
     cross-env: ^7.0.3
     inversify: ^5.0.1
@@ -3797,7 +3797,7 @@ __metadata:
     socket.io: ^4.5.1
     ts-jest: ^29.1.2
     ts-node: ^10.9.1
-    typescript: 5.4.3
+    typescript: ^5.9.3
   languageName: unknown
   linkType: soft
 
@@ -3806,7 +3806,7 @@ __metadata:
   resolution: "@memebattle/ligretto-shared@workspace:packages/ligretto-shared"
   dependencies:
     "@reduxjs/toolkit": ^2.2.3
-    typescript: 5.4.3
+    typescript: ^5.9.3
   languageName: unknown
   linkType: soft
 
@@ -3823,7 +3823,7 @@ __metadata:
     "@storybook/preset-scss": ^1.0.3
     "@storybook/react": ^7.0.6
     "@storybook/react-vite": ^7.0.6
-    "@types/node": 20.11.30
+    "@types/node": 24.9.2
     "@typescript-eslint/eslint-plugin": 7.3.1
     "@typescript-eslint/parser": 7.3.1
     css-loader: ^6.7.1
@@ -3845,7 +3845,7 @@ __metadata:
     stylelint: 16.2.1
     stylelint-config-prettier: ^9.0.5
     stylelint-prettier: 5.0.0
-    typescript: 5.4.3
+    typescript: ^5.9.3
     wait-on: ^7.0.1
   languageName: unknown
   linkType: soft
@@ -3860,7 +3860,7 @@ __metadata:
     "@mui/lab": ^5.0.0-alpha.99
     "@mui/material": ^5.10.5
     "@types/react": ^18.0.28
-    typescript: 5.4.3
+    typescript: ^5.9.3
   peerDependencies:
     lodash: ^4.17.21
     react: ^18.2.0
@@ -7381,12 +7381,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:20.11.30":
-  version: 20.11.30
-  resolution: "@types/node@npm:20.11.30"
+"@types/node@npm:24.9.2":
+  version: 24.9.2
+  resolution: "@types/node@npm:24.9.2"
   dependencies:
-    undici-types: ~5.26.4
-  checksum: 7597767aa3e44b0f1bf62efa522dd17741135f283c11de6a20ead8bb7016fb4999cc30adcd8f2bb29ebb216906c92894346ccd187de170927dc1e212d2c07c81
+    undici-types: ~7.16.0
+  checksum: 6f1d2c66ce14ef58934c7140b8b7003b3e55fc3b23128bfdabdf59a02f4ff4dbb89a58cd95cc11310cce6c6ffeb5cacc3afaa8753d4a9cd4afdc447a6ab61bee
   languageName: node
   linkType: hard
 
@@ -23362,23 +23362,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:5.4.3":
-  version: 5.4.3
-  resolution: "typescript@npm:5.4.3"
+"typescript@npm:^5.9.3":
+  version: 5.9.3
+  resolution: "typescript@npm:5.9.3"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: d74d731527e35e64d8d2dcf2f897cf8cfbc3428be0ad7c48434218ba4ae41239f53be7c90714089db1068c05cae22436af2ecba71fd36ecc5e7a9118af060198
+  checksum: 0d0ffb84f2cd072c3e164c79a2e5a1a1f4f168e84cb2882ff8967b92afe1def6c2a91f6838fb58b168428f9458c57a2ba06a6737711fdd87a256bbe83e9a217f
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@5.4.3#~builtin<compat/typescript>":
-  version: 5.4.3
-  resolution: "typescript@patch:typescript@npm%3A5.4.3#~builtin<compat/typescript>::version=5.4.3&hash=ad5954"
+"typescript@patch:typescript@^5.9.3#~builtin<compat/typescript>":
+  version: 5.9.3
+  resolution: "typescript@patch:typescript@npm%3A5.9.3#~builtin<compat/typescript>::version=5.9.3&hash=ad5954"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 3a62fe90aa79d68c9ce38ea5edb2957e62801c733b99f0e5a2b8b50922761f68f7d9a40d28c544b449866e81185cddb93cba2496d0ff3fa52ef5b1f8bcace38c
+  checksum: 8bb8d86819ac86a498eada254cad7fb69c5f74778506c700c2a712daeaff21d3a6f51fd0d534fe16903cb010d1b74f89437a3d02d4d0ff5ca2ba9a4660de8497
   languageName: node
   linkType: hard
 
@@ -23426,10 +23426,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici-types@npm:~5.26.4":
-  version: 5.26.5
-  resolution: "undici-types@npm:5.26.5"
-  checksum: 3192ef6f3fd5df652f2dc1cd782b49d6ff14dc98e5dced492aa8a8c65425227da5da6aafe22523c67f035a272c599bb89cfe803c1db6311e44bed3042fc25487
+"undici-types@npm:~7.16.0":
+  version: 7.16.0
+  resolution: "undici-types@npm:7.16.0"
+  checksum: 1ef68fc6c5bad200c8b6f17de8e5bc5cfdcadc164ba8d7208cd087cfa8583d922d8316a7fd76c9a658c22b4123d3ff847429185094484fbc65377d695c905857
   languageName: node
   linkType: hard
 

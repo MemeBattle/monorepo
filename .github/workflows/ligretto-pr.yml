@@ -49,16 +49,6 @@ jobs:
       - name: Run tests
         run: yarn ligretto:test:ci
 
-      - uses: jwalton/gh-find-current-pr@v1
-        id: findPr
-
-      - name: Collect coverage from ligretto-gameplay-backend
-        uses: ArtiomTr/jest-coverage-report-action@v2
-        with:
-          prnumber: ${{ steps.findPr.outputs.number }}
-          skip-step: all
-          working-directory: apps/ligretto-gameplay-backend
-
   tsc:
 
     runs-on: ubuntu-22.04

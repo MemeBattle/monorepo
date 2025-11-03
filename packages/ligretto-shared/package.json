@@ -23,6 +23,6 @@
     "@reduxjs/toolkit": "^2.2.3"
   },
   "devDependencies": {
-    "typescript": "5.4.3"
+    "typescript": "^5.9.3"
   }
 }

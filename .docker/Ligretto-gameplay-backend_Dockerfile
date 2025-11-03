@@ -1,4 +1,4 @@
-FROM node:20.11-trixie-slim AS dependencies
+FROM node:24.11-trixie-slim AS dependencies
 
 WORKDIR /memebattle
 
@@ -23,7 +23,7 @@ FROM dependencies AS prod-dependencies
 
 RUN yarn workspaces focus --production @memebattle/ligretto-gameplay-backend
 
-FROM node:20.11-trixie-slim AS runtime
+FROM node:24.11-trixie-slim AS runtime
 ENV NODE_ENV=production
 
 RUN mkdir -p /memebattle
