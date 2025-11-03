@@ -1,7 +1,14 @@
 {
   "files.trimTrailingWhitespace": true,
   "npm.packageManager": "yarn",
-  "cSpell.words": ["injectable", "nestjs", "postgres", "styleguide", "typeorm"],
+  "cSpell.words": [
+    "injectable",
+    "memeber",
+    "nestjs",
+    "postgres",
+    "styleguide",
+    "typeorm"
+  ],
   "gitlens.advanced.blame.customArguments": [],
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"

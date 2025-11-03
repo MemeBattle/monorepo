@@ -18,6 +18,7 @@
     "declaration": false,
     "moduleResolution": "node",
     "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true,
     "allowSyntheticDefaultImports": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,

@@ -33,12 +33,23 @@ export const AvatarDropzone = memo(({ avatarUrl, onChange }: DropZoneProps) => {
     maxSize: MAX_FILE_SIZE,
     onDropAccepted: acceptedFiles => {
       const acceptedFile = acceptedFiles[0]
+
+      if (!acceptedFile) {
+        return
+      }
+
       setStateFile({ file: acceptedFile, previewUrl: URL.createObjectURL(acceptedFile) })
       clearError()
       onChange?.(acceptedFile)
     },
     onDropRejected: fileRejections => {
-      handleError(fileRejections[0])
+      const fileRejection = fileRejections[0]
+
+      if (!fileRejection) {
+        return
+      }
+
+      handleError(fileRejection)
     },
   })
 
@@ -57,7 +68,7 @@ export const AvatarDropzone = memo(({ avatarUrl, onChange }: DropZoneProps) => {
       <div className={styles.dropZone} {...getRootProps()}>
         <input {...getInputProps()} />
         {!isDragActive ? (
-          <div className={clsx(styles.container, styles.containerBorder, { [styles.containerBorderError]: hasUploadError })}>
+          <div className={clsx(styles.container, styles.containerBorder, hasUploadError && styles.containerBorderError)}>
             {stateFile?.file ? (
               <UserPhotoDrop name={stateFile.file.name} src={stateFile.previewUrl} />
             ) : (

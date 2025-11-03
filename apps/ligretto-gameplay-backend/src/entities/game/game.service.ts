@@ -147,6 +147,10 @@ export class GameService {
   async getRoundResult(gameId: UUID) {
     const game = await this.getGame(gameId)
 
+    if (!game) {
+      throw new Error(`Game with id ${gameId} not found`)
+    }
+
     const initialScoresByPlayer = Object.keys(game.players).reduce<Record<string, 0>>((scores, playerId) => ({ ...scores, [playerId]: 0 }), {})
 
     const clearPlaygroundDecks = game.playground.decks.filter(nonNullable)

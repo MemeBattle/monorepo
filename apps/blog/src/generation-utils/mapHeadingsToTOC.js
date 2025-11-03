@@ -19,6 +19,7 @@ export function mapHeadingsToTOC(headings, tree = [], currentLevel = 2) {
     /**
      * @type {import('../types').TOCTreeItem}
      */
+    // @ts-expect-error -  headings[0] exists
     const heading = headings[0]
     if (heading.level < currentLevel) {
       return tree

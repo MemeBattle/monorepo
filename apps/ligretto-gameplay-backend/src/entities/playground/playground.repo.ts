@@ -8,24 +8,35 @@ export class PlaygroundRepository {
   @inject(IOC_TYPES.Database) private database: Database
 
   getDecks(gameId: UUID) {
-    return this.database.get(storage => storage.games[gameId].playground.decks)
+    return this.database.get(storage => storage.games[gameId]?.playground.decks)
   }
 
   getDeck(gameId: UUID, position: number) {
-    return this.database.get(storage => storage.games[gameId].playground.decks[position])
+    return this.database.get(storage => storage.games[gameId]?.playground.decks?.[position])
   }
 
   addDroppedDeck(gameId: UUID, cardsDeck: CardsDeck) {
     return this.database.set(storage => {
-      const decks = storage.games[gameId].playground.droppedDecks
-      decks.push(cardsDeck)
-      return decks
+      const game = storage.games[gameId]
+      const droppedDecks = game?.playground.droppedDecks
+
+      if (!droppedDecks) {
+        return
+      }
+
+      droppedDecks.push(cardsDeck)
+      return droppedDecks
     })
   }
 
   removeDeck(gameId: UUID, position: number) {
     return this.database.set(storage => {
-      storage.games[gameId].playground.decks[position] = null
+      const game = storage.games[gameId]
+      if (!game) {
+        return
+      }
+
+      game.playground.decks[position] = null
     })
   }
 
@@ -33,9 +44,14 @@ export class PlaygroundRepository {
     const deck = await this.getDeck(gameId, position)
 
     return this.database.set(storage => {
-      const updated = updater(deck)
+      const game = storage.games[gameId]
+      if (!game) {
+        return
+      }
+
+      const updated = updater(deck ?? null)
       console.log('Updated deck', position, updated)
-      storage.games[gameId].playground.decks[position] = updated
+      game.playground.decks[position] = updated
     })
   }
 }

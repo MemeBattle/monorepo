@@ -9,7 +9,7 @@ export interface PlaygroundProps {
   onDeckClick: (playgroundDeckIndex: number) => void
 }
 
-const getLastCard = (deck: CardsDeck | null): Card | undefined => last(deck?.cards)
+const getLastCard = (deck: CardsDeck | null | undefined): Card | undefined => last(deck?.cards)
 
 export const Playground: React.FC<PlaygroundProps> = ({ cardsDecks, onDeckClick }) => {
   const cards: (Card | undefined)[] = useMemo(() => {

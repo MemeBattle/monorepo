@@ -15,7 +15,7 @@ const leaderListTableSpecs = [
   { title: '#', size: { xs: 2, md: 1.5 } },
   { title: 'Player', size: { xs: 7.7, md: 8.7 } },
   { title: 'Points', size: { xs: 1.8, md: 1.8 } },
-]
+] as const
 
 const placeImages = [firstLevelImg, secondLevelImg, thirdLevelImg]
 
