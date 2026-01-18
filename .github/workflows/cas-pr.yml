@@ -1,0 +1,57 @@
+name: 'CAS pull request'
+
+on:
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'apps/cas/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/cas-**'
+
+jobs:
+  fmt:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Cargo fmt
+        working-directory: apps/cas
+        run: cargo fmt --check
+
+  test:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cargo test
+        working-directory: apps/cas
+        run: cargo test
+
+  clippy:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cargo clippy
+        working-directory: apps/cas
+        run: cargo clippy --all-targets --all-features
