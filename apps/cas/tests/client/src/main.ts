@@ -37,7 +37,9 @@ elemRegister.addEventListener('click', async () => {
     },
   });
 
-  const optionsJSON = await optionsResponse.json();
+  const optionsResponseJSON = await optionsResponse.json();
+  const optionsJSON = optionsResponseJSON.ccr.publicKey;
+  const registrationId = optionsResponseJSON.registrationId;
 
   let attResp;
   try {
@@ -62,14 +64,17 @@ elemRegister.addEventListener('click', async () => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(attResp),
+      body: JSON.stringify({
+        response: attResp,
+        registrationId,
+      }),
     });
 
     // Wait for the results of verification
     const verificationJSON = await verificationResp.json();
 
     // Show UI appropriate for the `verified` status
-    if (verificationJSON && verificationJSON.verified) {
+    if (verificationJSON && verificationJSON.cred.user_verified) {
       elemSuccess.innerHTML = 'Success!';
     } else {
       elemError.innerHTML = `Oh no, something went wrong! Response: <pre>${JSON.stringify(
