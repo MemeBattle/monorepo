@@ -1,11 +1,11 @@
 use std::{collections::HashMap, sync::Arc};
 
 use axum::{
+    Json, Router,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::post,
-    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;

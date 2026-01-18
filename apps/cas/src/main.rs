@@ -1,6 +1,6 @@
 mod webauthn;
 
-use axum::{http::HeaderValue, routing::get, Router};
+use axum::{Router, http::HeaderValue, routing::get};
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 use tower_http::{
@@ -11,10 +11,10 @@ use tracing::Level;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use webauthn_rs::prelude::{PasskeyRegistration, Url};
 
-use crate::webauthn::{router as webauthn_router, ApiState, UserId};
+use crate::webauthn::{ApiState, UserId, router as webauthn_router};
 use std::{collections::HashMap, sync::Arc};
-use tokio::sync::Mutex;
 use thiserror::Error;
+use tokio::sync::Mutex;
 
 #[derive(Debug, Error, miette::Diagnostic)]
 enum CasError {
@@ -88,7 +88,8 @@ fn app() -> Router {
         webauthn,
     };
 
-    Router::new().layer(middleware_stack)
+    Router::new()
+        .layer(middleware_stack)
         .route("/health", get(health_check))
         .nest("/api/webauthn", webauthn_router(api_state))
 }
