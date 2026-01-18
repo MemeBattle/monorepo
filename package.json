@@ -37,7 +37,8 @@
   },
   "workspaces": [
     "packages/**",
-    "apps/*"
+    "apps/*",
+    "apps/cas/tests/*"
   ],
   "devDependencies": {
     "@storybook/addon-actions": "^7.0.6",
