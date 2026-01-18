@@ -4,39 +4,30 @@ import { logger } from 'hono/logger'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 
-import {
-  generateRegistrationOptions,
-  verifyRegistrationResponse,
-  generateAuthenticationOptions,
-  verifyAuthenticationResponse,
-  type PublicKeyCredentialCreationOptionsJSON
-} from '@simplewebauthn/server';
-import { generateUserID } from '@simplewebauthn/server/helpers';
+import { generateRegistrationOptions, verifyRegistrationResponse, type PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/server'
+import { generateUserID } from '@simplewebauthn/server/helpers'
 
 const app = new Hono().basePath('/api').use(cors()).use(logger())
 
 const webauthnRouter = new Hono()
 
-
-app.get('/', (c) => {
-  return c.text('Hello Hono!')
-})
+app.get('/', c => c.text('Hello Hono!'))
 
 /**
  * Human-readable title for your website
  */
-const rpName = 'MemeBattle CAS';
+const rpName = 'MemeBattle CAS'
 /**
  * A unique identifier for your website. 'localhost' is okay for
  * local dev
  */
-const rpID = 'localhost';
+const rpID = 'localhost'
 
 const origin = 'http://localhost:5173'
 
 let currentCreationOptions: PublicKeyCredentialCreationOptionsJSON
 
-webauthnRouter.post('/register-options', async (c) => {
+webauthnRouter.post('/register-options', async c => {
   const options = await generateRegistrationOptions({
     rpID,
     rpName,
@@ -54,22 +45,23 @@ webauthnRouter.post('/register-options', async (c) => {
   return c.json(options)
 })
 
-webauthnRouter.post('/verify-registration', async (c) => {
+webauthnRouter.post('/verify-registration', async c => {
   const body = await c.req.json()
-  const response = await verifyRegistrationResponse({response: body, expectedChallenge: currentCreationOptions.challenge, expectedOrigin: origin})
+  const response = await verifyRegistrationResponse({ response: body, expectedChallenge: currentCreationOptions.challenge, expectedOrigin: origin })
   return c.json(response)
 })
 
-
 app.route('/webauthn', webauthnRouter)
 
-
-serve({
-  fetch: app.fetch,
-  port: 3000
-}, (info) => {
-  app.routes.forEach(route => {
-    console.log(`${route.method} ${route.path} ${route.handler.name}`)
-  })
-  console.log(`Server is running on http://localhost:${info.port}`)
-})
+serve(
+  {
+    fetch: app.fetch,
+    port: 3000,
+  },
+  info => {
+    app.routes.forEach(route => {
+      console.log(`${route.method} ${route.path} ${route.handler.name}`)
+    })
+    console.log(`Server is running on http://localhost:${info.port}`)
+  },
+)

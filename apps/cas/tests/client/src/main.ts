@@ -2,7 +2,7 @@ import './style.css'
 
 import { startRegistration } from '@simplewebauthn/browser'
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'http://localhost:3000'
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div>
@@ -17,68 +17,65 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </div>
 `
 
-const elemRegister = document.getElementById('register');
-const elemSuccess = document.getElementById('success');
-const elemError = document.getElementById('error');
+const elemRegister = document.getElementById('register')
+const elemSuccess = document.getElementById('success')
+const elemError = document.getElementById('error')
 
-if(!elemRegister || !elemSuccess || !elemError) {
-  throw new Error('Register button not found');
+if (!elemRegister || !elemSuccess || !elemError) {
+  throw new Error('Register button not found')
 }
 
 elemRegister.addEventListener('click', async () => {
-
-  elemSuccess.innerHTML = '';
-  elemError.innerHTML = '';
+  elemSuccess.innerHTML = ''
+  elemError.innerHTML = ''
 
   const optionsResponse = await fetch(`${API_URL}/api/webauthn/register-options`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-  });
+  })
 
-  const optionsResponseJSON = await optionsResponse.json();
-  const optionsJSON = optionsResponseJSON.ccr.publicKey;
-  const registrationId = optionsResponseJSON.registrationId;
+  const optionsResponseJSON = await optionsResponse.json()
+  const optionsJSON = optionsResponseJSON.ccr.publicKey
+  const registrationId = optionsResponseJSON.registrationId
 
-  let attResp;
+  let attResp
   try {
     attResp = await startRegistration({
       optionsJSON,
-    });
-  } catch(error) {
-    console.error(error);
+    })
+  } catch (error) {
+    console.error(error)
     if (error.name === 'InvalidStateError') {
-      elemError.innerText = 'Error: Authenticator was probably already registered by user';
+      elemError.innerText = 'Error: Authenticator was probably already registered by user'
     } else {
-      elemError.innerText = error;
+      elemError.innerText = error
     }
 
-    throw error;
+    throw error
   }
 
-    // POST the response to the endpoint that calls
-    // @simplewebauthn/server -> verifyRegistrationResponse()
-    const verificationResp = await fetch(`${API_URL}/api/webauthn/verify-registration`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        response: attResp,
-        registrationId,
-      }),
-    });
+  // POST the response to the endpoint that calls
+  // @simplewebauthn/server -> verifyRegistrationResponse()
+  const verificationResp = await fetch(`${API_URL}/api/webauthn/verify-registration`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      response: attResp,
+      registrationId,
+    }),
+  })
 
-    // Wait for the results of verification
-    const verificationJSON = await verificationResp.json();
+  // Wait for the results of verification
+  const verificationJSON = await verificationResp.json()
 
-    // Show UI appropriate for the `verified` status
-    if (verificationJSON && verificationJSON.cred.user_verified) {
-      elemSuccess.innerHTML = 'Success!';
-    } else {
-      elemError.innerHTML = `Oh no, something went wrong! Response: <pre>${JSON.stringify(
-        verificationJSON,
-      )}</pre>`;
-    }
-});
+  // Show UI appropriate for the `verified` status
+  if (verificationJSON && verificationJSON.cred.user_verified) {
+    elemSuccess.innerHTML = 'Success!'
+  } else {
+    elemError.innerHTML = `Oh no, something went wrong! Response: <pre>${JSON.stringify(verificationJSON)}</pre>`
+  }
+})
