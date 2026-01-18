@@ -8,3 +8,5 @@ storybook-static
 *.config.js
 *.config.ts
 .next
+coverage
+playwright-report

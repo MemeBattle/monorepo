@@ -58,3 +58,7 @@ tsconfig.tsbuildinfo
 .contentlayer
 
 *.tgz
+
+# Added by cargo
+
+/target
