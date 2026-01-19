@@ -14,6 +14,7 @@
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
+    "noUncheckedIndexedAccess": true,
     "resolveJsonModule": true,
     "baseUrl": "./src",
     "noImplicitAny": true

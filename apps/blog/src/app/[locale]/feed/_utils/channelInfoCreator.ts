@@ -44,7 +44,7 @@ export const createChannelInfo = async (lang: Language): Promise<ChannelInfo> =>
     description: t('main.description'),
     atomUrl: generateFullUrl(`/feed/${lang}`),
     url: generateFullUrl(`/${lang}/posts`),
-    updatedAt: latestPost.publishedAt,
+    updatedAt: latestPost?.publishedAt ?? new Date().toISOString(),
   }
 
   return { ...channelMetadata, posts: feedPosts }
