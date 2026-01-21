@@ -1,12 +1,28 @@
 import { inject, injectable } from 'inversify'
 import { groupBy, mapValues, merge, mergeWith, omit } from 'lodash'
-import { GameRepository } from './game.repo'
+import { IGameRepository } from './game.repo'
 import type { Game, GameResults, Player, Spectator, UUID } from '@memebattle/ligretto-shared'
 import { PlayerStatus, GameStatus } from '@memebattle/ligretto-shared'
 import { createInitialPlayerCards } from '../../utils/create-initial-player-cards'
 import { IOC_TYPES } from '../../IOC_TYPES'
 import { nonNullable } from '../../utils/nonNullable'
-import { LigrettoCoreService } from '../../services/ligretto-core'
+import { ILigrettoCoreService } from '../../services/ligretto-core'
+
+export interface IGameService {
+  createGame(name: string, config?: Partial<Game['config']>): Promise<Game | null>
+  initiateStartGame(gameId: UUID): Promise<Game>
+  startGame(gameId: UUID): Promise<Game>
+  pauseGame(gameId: UUID): Promise<Game>
+  addPlayer(gameId: UUID, playerData: Partial<Player> & { id: Player['id'] }): Promise<{ game: Game; player: Player }>
+  addSpectator(gameId: UUID, spectatorData: Partial<Spectator> & { id: Spectator['id'] }): Promise<{ game: Game; spectator: Spectator }>
+  updateGamePlayer(gameId: Game['id'], playerId: Player['id'], playerData: Partial<Player>): Promise<Game>
+  getGame(gameId: UUID): Promise<Game>
+  getRoundResult(gameId: UUID): Promise<{ [x: string]: { roundScore: number } }>
+  endGame(gameId: UUID): Promise<(Game | GameResults | undefined)[]>
+  finishRound(gameId: UUID): Promise<{ game?: Game; gameResults?: GameResults }>
+  getGames(): Promise<Game[]>
+  leaveGame(gameId: UUID, userId: Player['id'] | Spectator['id']): Promise<Game | undefined>
+}
 
 const emptyGame: Game = {
   id: 'base',
@@ -22,9 +38,9 @@ const emptyGame: Game = {
 }
 
 @injectable()
-export class GameService {
-  @inject(IOC_TYPES.GameRepository) private gameRepository: GameRepository
-  @inject(IOC_TYPES.LigrettoCoreService) private ligrettoCoreService: LigrettoCoreService
+export class GameService implements IGameService {
+  @inject(IOC_TYPES.IGameRepository) private gameRepository: IGameRepository
+  @inject(IOC_TYPES.ILigrettoCoreService) private ligrettoCoreService: ILigrettoCoreService
 
   async createGame(name: string, config: Partial<Game['config']> = {}): Promise<Game | null> {
     const isGameExists = !!(await this.gameRepository.getGameByName(name))

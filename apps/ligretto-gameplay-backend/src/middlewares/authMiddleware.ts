@@ -1,7 +1,7 @@
 import type { Socket } from 'socket.io'
 import { IOC } from '../inversify.config'
 import { IOC_TYPES } from '../IOC_TYPES'
-import type { AuthService } from '../services/auth'
+import type { IAuthService } from '../services/auth'
 
 /**
  * Add userId to socket.data.user.id
@@ -10,7 +10,7 @@ import type { AuthService } from '../services/auth'
  * @param next
  */
 export const authMiddleware = async (socket: Socket, next: (error?: Error) => void) => {
-  const authService = IOC.get<AuthService>(IOC_TYPES.AuthService)
+  const authService = IOC.get<IAuthService>(IOC_TYPES.IAuthService)
   const token = socket.handshake?.auth?.token
   if (!token) {
     const error = new Error('socket.handshake?.auth?.token is null')

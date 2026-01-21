@@ -1,30 +1,30 @@
-import { injectable, inject } from 'inversify'
+import { injectable, inject, named } from 'inversify'
 import type { Server, Socket } from 'socket.io'
 import { IOC_TYPES } from '../IOC_TYPES'
-import { GameplayController } from '../controllers/gameplay-controller'
-import { GamesController } from '../controllers/games-controller'
-import { UserService } from '../entities/user'
-import { BotController } from '../controllers/bot-controller'
+import { IGamesController } from '../controllers/games-controller'
+import { IUserService } from '../entities/user'
+import { IController } from '../controllers/controller'
 import { authMiddleware } from '../middlewares'
 import type { AnyAction } from '../types/any-action'
 import { socketIOConnectionsCountMetric, socketIOConnectionsCountTotalMetric } from '../metrics'
 
-export interface WebSocketHandler {
-  connectionHandler(socket: Socket): void
+export interface IWebSocketHandler {
+  connect(socketServer: Server): void
 }
 
 @injectable()
-export class WebSocketHandler implements WebSocketHandler {
-  @inject(IOC_TYPES.GameplayController) private gameplayController: GameplayController
-  @inject(IOC_TYPES.GamesController) private gamesController: GamesController
-  @inject(IOC_TYPES.BotController) private botController: BotController
-  @inject(IOC_TYPES.UserService) private userService: UserService
+export class WebSocketHandler implements IWebSocketHandler {
+  @inject(IOC_TYPES.IController) @named('gameplayController') private gameplayController: IController
+  @inject(IOC_TYPES.IGamesController) private gamesController: IGamesController
+  @inject(IOC_TYPES.IController) @named('botController') private botController: IController
+  @inject(IOC_TYPES.IUserService) private userService: IUserService
 
   connect(socketServer: Server) {
     socketServer.use(authMiddleware).on('connection', socket => this.connectionHandler(socket))
   }
 
-  public async connectionHandler(socket: Socket): Promise<void> {
+  // XXX: why is this method public? It is used only inside itself
+  private async connectionHandler(socket: Socket): Promise<void> {
     socketIOConnectionsCountMetric.inc()
     socketIOConnectionsCountTotalMetric.inc()
 

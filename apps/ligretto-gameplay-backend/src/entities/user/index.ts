@@ -1,2 +1,2 @@
-export { UserRepository } from './user.repo'
-export { UserService } from './user.service'
+export { UserRepository, IUserRepository } from './user.repo'
+export { UserService, IUserService } from './user.service'

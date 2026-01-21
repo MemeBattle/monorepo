@@ -2,9 +2,10 @@ import { inject, injectable } from 'inversify'
 import { IOC_TYPES } from '../IOC_TYPES'
 import { Controller } from './controller'
 import type { Socket } from 'socket.io'
-import { GameService } from '../entities/game/game.service'
-import { UserService } from '../entities/user'
+import { IGameService } from '../entities/game/game.service'
+import { IUserService } from '../entities/user'
 import type { Game } from '@memebattle/ligretto-shared'
+import type { IController } from './controller'
 import {
   connectToRoomEmitAction,
   connectToRoomErrorAction,
@@ -25,10 +26,13 @@ import {
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
 
+export interface IGamesController extends IController {
+  disconnectionHandler: (socket: Socket) => Promise<void>
+}
 @injectable()
-export class GamesController extends Controller {
-  @inject(IOC_TYPES.GameService) private gameService: GameService
-  @inject(IOC_TYPES.UserService) private userService: UserService
+export class GamesController extends Controller implements IGamesController {
+  @inject(IOC_TYPES.IGameService) private gameService: IGameService
+  @inject(IOC_TYPES.IUserService) private userService: IUserService
 
   protected handlers: Controller['handlers'] = {
     [createRoomEmitAction.type]: (socket, action) => this.createGame(socket, action),
