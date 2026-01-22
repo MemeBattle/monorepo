@@ -26,7 +26,7 @@
     "@codexsoft/dotenv-flow": "^3.3.5",
     "@memebattle/cas-services": "^3.6.5",
     "@memebattle/ligretto-shared": "workspace:^",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "luxon": "^2.0.2",
     "pg": "^8.6.0",
     "proxy-addr": "^2.0.6",
