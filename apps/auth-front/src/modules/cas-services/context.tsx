@@ -1,8 +1,8 @@
 import { createContext } from 'react'
-import { createFrontServices } from '@memebattle/cas-services/dist/createFrontServices'
+import * as casServicesModule from '@memebattle/cas-services'
 
 export const CasServicesContext = createContext({
-  ...createFrontServices({ partnerId: '', casURI: '', successLogger: window.console.log, errorLogger: window.console.error }),
+  ...casServicesModule.createFrontServices({ partnerId: '', casURI: '', successLogger: window.console.log, errorLogger: window.console.error }),
   getAbsoluteUrl: (relativePath: string): string => relativePath,
 })
 CasServicesContext.displayName = 'CasServicesContext'

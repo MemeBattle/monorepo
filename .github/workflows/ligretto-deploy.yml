@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - master
+      - pnpm
     paths:
       - 'apps/ligretto-**'
       - 'packages/ligretto-shared/**'
@@ -32,7 +33,7 @@ jobs:
       name: Prepare Node.js
 
     - name: Build frontend
-      run: yarn run ligretto:front:build
+      run: pnpm run ligretto:front:build
       env:
         LIGRETTO_GAMEPLAY_URL: https://api.ligretto.app
         LIGRETTO_CORE_URL: https://core.ligretto.app/api

@@ -1,6 +1,8 @@
 name: 'Ligretto schedule-E2E'
 
 on:
+  pull_request:
+    branches: [ pnpm ]
   workflow_dispatch:
   schedule:
     - cron: '0 15 * * *'
@@ -19,10 +21,10 @@ jobs:
         name: Prepare Node.js
 
       - name: Install Playwright Browsers
-        run: yarn dlx playwright@1.42.1 install --with-deps chromium
+        run: pnpm dlx playwright@1.42.1 install --with-deps chromium
 
       - name: Run playwright tests
-        run: yarn e2e:start
+        run: pnpm e2e:start
         env:
           LIGRETTO_APP_URL: https://ligretto.app/
 

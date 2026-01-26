@@ -6,31 +6,33 @@
     "build": "node ace build --production",
     "start": "node server.js",
     "start:dev": "node ace serve --watch",
-    "postbuild": "yarn copy:yarn_lock && yarn copy:npm_rc",
     "migrate": "node ace migration:run --force",
     "production-migrate": "node ace migration:run --force",
     "ts-check": "tsc --noEmit"
   },
   "devDependencies": {
-    "@adonisjs/assembler": "^5.7.0",
-    "@types/lodash": "^4.14.182",
-    "cpx": "^1.5.0",
-    "pino-pretty": "^7.6.1",
-    "youch": "^2.2.2",
-    "youch-terminal": "^1.1.1"
+    "@adonisjs/assembler": "catalog:",
+    "@types/lodash": "catalog:",
+    "cpx": "catalog:",
+    "pino-pretty": "catalog:",
+    "youch": "catalog:",
+    "youch-terminal": "catalog:"
   },
   "dependencies": {
-    "@adonisjs/core": "^5.9.0",
-    "@adonisjs/lucid": "^17.2.0",
-    "@adonisjs/repl": "^3.1.11",
-    "@codexsoft/dotenv-flow": "^3.3.5",
-    "@memebattle/cas-services": "^3.6.5",
+    "@adonisjs/core": "catalog:",
+    "@adonisjs/lucid": "catalog:",
+    "@adonisjs/repl": "catalog:",
+    "@codexsoft/dotenv-flow": "catalog:",
+    "@memebattle/cas-services": "catalog:",
     "@memebattle/ligretto-shared": "workspace:^",
-    "lodash": "^4.17.21",
-    "luxon": "^2.0.2",
-    "pg": "^8.6.0",
-    "proxy-addr": "^2.0.6",
-    "reflect-metadata": "^0.1.13",
-    "source-map-support": "^0.5.19"
-  }
+    "lodash": "catalog:",
+    "luxon": "catalog:",
+    "pg": "catalog:",
+    "proxy-addr": "catalog:",
+    "reflect-metadata": "catalog:",
+    "source-map-support": "catalog:"
+  },
+  "files": [
+    "build"
+  ]
 }

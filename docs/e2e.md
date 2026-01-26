@@ -12,7 +12,7 @@ npx playwright install
 To run `Playwright Test Runner` for development purpose
 
 ```
-yarn e2e:start
+pnpm e2e:start
 ```
 
 > **NOTE:** Be sure you ran frontend and backend or only frontend provided that the frontend is connected to the deployed backend application locally and frontend application may be accessed by localhost url, which is defined in `./playwright.config.ts`

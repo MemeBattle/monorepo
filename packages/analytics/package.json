@@ -15,10 +15,10 @@
     "ts-check": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/amplitude-js": "8.16.2",
-    "typescript": "^5.9.3"
+    "@types/amplitude-js": "catalog:",
+    "typescript": "catalog:"
   },
   "dependencies": {
-    "amplitude-js": "^8.21.6"
+    "amplitude-js": "catalog:"
   }
 }

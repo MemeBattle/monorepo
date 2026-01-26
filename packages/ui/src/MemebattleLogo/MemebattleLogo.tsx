@@ -1,4 +1,3 @@
-import React from 'react'
 import { styled, keyframes } from '@mui/material/styles'
 
 const logoResize = keyframes({
@@ -67,7 +66,7 @@ const UnderLine = styled('path')(() => ({
   animation: `${underLineMotion} 1.4s`,
 }))
 
-export const MemebattleLogo: React.FC = () => (
+export const MemebattleLogo = () => (
   <IconWrapper xmlns="http://www.w3.org/2000/svg" viewBox="0 0 318 318">
     <AnimatedCircle cx="159" cy="159" r="159" fill="#FCE26B" />
     <AnimatedCircle cx="159" cy="159" r="125" fill="#FFF" />

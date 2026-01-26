@@ -17,7 +17,7 @@ export const usePanelHotkeys = ({ enabled }: { enabled?: boolean } = { enabled: 
     (e, handler) => {
       e.preventDefault()
 
-      switch (handler.key) {
+      switch (handler.hotkey) {
         case Hotkey.space:
           dispatch(tapStackDeckCardAction())
           break

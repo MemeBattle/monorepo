@@ -26,8 +26,8 @@ export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players }) => 
   return (
     <Box flex={1} flexDirection="column" overflow="auto" data-test-id="PlayersScoresTable">
       <PlayersScoresTableHead>
-        <Grid container item xs spacing={4}>
-          {!isMobile && <PlayersScoresTableCell {...columnsProps.avatar}></PlayersScoresTableCell>}
+        <Grid container spacing={4}>
+          {!isMobile && <PlayersScoresTableCell size={columnsProps.avatar}></PlayersScoresTableCell>}
           <PlayersScoresTableCell {...columnsProps.name}>
             <Typography variant="body2">Name</Typography>
           </PlayersScoresTableCell>
@@ -45,7 +45,7 @@ export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players }) => 
           bgcolor={isPlayer ? theme.palette.primary.light : theme.palette.primary.lighter}
           data-test-id="PlayersScoresTable-PlayersScoresTableRow"
         >
-          <Grid container item xs spacing={4}>
+          <Grid container spacing={4}>
             {!isMobile && (
               <PlayersScoresTableCell {...columnsProps.avatar}>
                 <Avatar src={avatar} size="small" />

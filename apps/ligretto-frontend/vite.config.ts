@@ -39,6 +39,12 @@ export default defineConfig(({ mode }) => {
     build: {
       sourcemap: true,
     },
+    optimizeDeps: {
+      include: ['react-dropzone', 'attr-accept', '@memebattle/cas-services', '@memebattle/auth-front'],
+    },
+    ssr: {
+      noExternal: ['react-dropzone', 'attr-accept', '@memebattle/cas-services', '@memebattle/auth-front'],
+    },
     test: {
       exclude: [...configDefaults.exclude, 'e2e'],
     },

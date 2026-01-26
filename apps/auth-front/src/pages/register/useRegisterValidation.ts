@@ -1,4 +1,3 @@
-import { validate as validateEmail } from 'email-validator'
 import type { RegisterFormValidationErrors, RegisterFormValues } from './RegisterPage.types'
 import { useCallback } from 'react'
 import { t } from '../../utils/i18n'
@@ -8,12 +7,13 @@ const USERNAME_MIN_LENGTH = 2
 const USERNAME_MAX_LENGTH = 20
 const PASSWORD_MIN_LENGTH = 6
 const PASSWORD_MAX_LENGTH = 256
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export const useRegisterValidation = () =>
   useCallback((values: RegisterFormValues): RegisterFormValidationErrors => {
     const errors: RegisterFormValidationErrors = {}
     const isValidUsername = stringLengthInRange(values.username, { minLength: USERNAME_MIN_LENGTH, maxLength: USERNAME_MAX_LENGTH })
-    const isValidEmail = validateEmail(values?.email || '')
+    const isValidEmail = emailRegex.test(values?.email || '')
     const isValidPassword = stringLengthInRange(values.password, { minLength: PASSWORD_MIN_LENGTH, maxLength: PASSWORD_MAX_LENGTH })
 
     if (values.email && !isValidEmail) {
