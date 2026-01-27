@@ -4,7 +4,7 @@ import type { AppContextValue } from './modules/app'
 import { AppContext } from './modules/app'
 import type { FC, ReactNode } from 'react'
 import React, { useMemo } from 'react'
-import * as casServicesModule from '@memebattle/cas-services'
+import { createFrontServices } from '@memebattle/cas-services/dist/createFrontServices.js'
 
 export { ROUTES } from './constants/routes'
 
@@ -20,7 +20,7 @@ export interface AuthFrontModuleProps {
 export const AuthFrontModule: FC<AuthFrontModuleProps> = ({ partnerId, onLoginSucceeded, staticFilesUrl, headerComponent, token, casURL }) => {
   const casServices = useMemo(
     () => ({
-      ...casServicesModule.createFrontServices({ partnerId, casURI: casURL }),
+      ...createFrontServices({ partnerId, casURI: casURL }),
       getAbsoluteUrl: (relativePath: string) => `${staticFilesUrl}${relativePath}`,
     }),
     [casURL, partnerId, staticFilesUrl],

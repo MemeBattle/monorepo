@@ -44,7 +44,7 @@ catalog:
   '@types/react-dom': ^18.3.1
   '@typescript-eslint/eslint-plugin': 7.3.1
   '@typescript-eslint/parser': 7.3.1
-  '@vitejs/plugin-react': ^4.1.1
+  '@vitejs/plugin-react': 5.1.2
   '@vitest/coverage-v8': ^0.32.0
   amplitude-js: ^8.21.6
   autoprefixer: ^10.4.14
@@ -91,7 +91,7 @@ catalog:
   react-docgen-typescript-loader: ^3.7.2
   react-docgen-typescript-plugin: ^1.0.0
   react-dom: ^18.2.0
-  react-dropzone: ^11.3.2
+  react-dropzone: 14.3.8
   react-final-form: ^6.5.2
   react-hotkeys-hook: 5.2.1
   react-i18next: ^12.2.0
@@ -119,9 +119,9 @@ catalog:
   ts-node: ^10.9.1
   typescript: ^5.9.3
   unist-util-visit: ^4.1.2
-  vite: ^4.5.0
-  vite-plugin-svgr: ^2.2.0
-  vite-tsconfig-paths: ^4.2.1
+  vite: 7.3.1
+  vite-plugin-svgr: 4.5.0
+  vite-tsconfig-paths: 6.0.5
   vitest: ^0.34.6
   wait-on: ^7.0.1
   youch: ^2.2.2
