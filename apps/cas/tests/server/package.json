@@ -9,7 +9,7 @@
   "dependencies": {
     "@hono/node-server": "^1.19.9",
     "@simplewebauthn/server": "^13.2.2",
-    "hono": "^4.11.4"
+    "hono": "^4.11.7"
   },
   "devDependencies": {
     "@types/node": "^20.11.17",
