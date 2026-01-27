@@ -6,7 +6,7 @@
   "module": "src/module.tsx",
   "types": "src/module.tsx",
   "dependencies": {
-    "@memebattle/cas-services": "catalog:",
+    "@memebattle/cas-services": "workspace:^",
     "@memebattle/ui": "workspace:^",
     "@mui/material": "catalog:",
     "axios": "catalog:",

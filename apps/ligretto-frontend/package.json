@@ -45,7 +45,7 @@
   "dependencies": {
     "@memebattle/analytics": "workspace:^",
     "@memebattle/auth-front": "workspace:^",
-    "@memebattle/cas-services": "catalog:",
+    "@memebattle/cas-services": "workspace:^",
     "@memebattle/ligretto-shared": "workspace:^",
     "@memebattle/ui": "workspace:^",
     "@mui/icons-material": "catalog:",

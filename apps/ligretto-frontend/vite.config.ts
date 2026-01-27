@@ -37,11 +37,17 @@ export default defineConfig(({ mode }) => {
       authToken: process.env.SENTRY_AUTH_TOKEN,
     })],
     define: envVariables,
+    resolve: {
+      conditions: ['import', 'module', 'browser', 'default'],
+      alias: {
+        '@memebattle/cas-services/createFrontServices': path.resolve(__dirname, '../../packages/cas-services/src/createFrontServices.ts'),
+      },
+    },
     build: {
       sourcemap: true,
     },
     optimizeDeps: {
-      include: ['react-dropzone', 'attr-accept', '@memebattle/cas-services', '@memebattle/auth-front'],
+      include: ['react-dropzone', 'attr-accept', '@memebattle/cas-services', '@memebattle/cas-services/createFrontServices', '@memebattle/auth-front'],
     },
     ssr: {
       noExternal: ['react-dropzone', 'attr-accept', '@memebattle/cas-services', '@memebattle/auth-front'],

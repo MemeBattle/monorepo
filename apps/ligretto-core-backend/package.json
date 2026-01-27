@@ -23,7 +23,7 @@
     "@adonisjs/lucid": "catalog:",
     "@adonisjs/repl": "catalog:",
     "@codexsoft/dotenv-flow": "catalog:",
-    "@memebattle/cas-services": "catalog:",
+    "@memebattle/cas-services": "workspace:^",
     "@memebattle/ligretto-shared": "workspace:^",
     "lodash": "catalog:",
     "luxon": "catalog:",

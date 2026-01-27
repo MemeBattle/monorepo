@@ -14,7 +14,6 @@ catalog:
   '@emotion/server': ^11.4.0
   '@emotion/styled': 11.10.4
   '@jest/globals': ^29.7.0
-  '@memebattle/cas-services': ^3.6.5
   '@mui/icons-material': 7.3.7
   '@mui/material': 7.3.7
   '@mui/system': 7.3.7
