@@ -118,7 +118,6 @@ export default async function Post({ params }: BlogProps) {
             username={postAuthor.username}
             fullName={postAuthor.fullName}
           />
-          {/* @ts-expect-error React Server components */}
           <TOC toc={post.toc} locale={params.locale} />
         </aside>
         <div className="md:col-start-1 md:col-span-1 max-w-full md:max-w-5xl">

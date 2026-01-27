@@ -7,7 +7,7 @@ on:
       - 'apps/blog/**'
       - '.docker/Blog_**'
       - '.github/workflows/blog-**'
-      - 'yarn.lock'
+      - 'pnpm-lock.yaml'
 
 env:
   NODE_OPTIONS: --max-old-space-size=4096
@@ -26,7 +26,7 @@ jobs:
         name: Prepare Node.js
 
       - name: Lint code
-        run: yarn blog:lint
+        run: pnpm blog:lint
 
   tests:
 
@@ -40,7 +40,7 @@ jobs:
         name: Prepare Node.js
 
       - name: Run tests
-        run: yarn blog:test:ci
+        run: pnpm blog:test:ci
 
   tsc:
 
@@ -54,7 +54,7 @@ jobs:
         name: Prepare Node.js
 
       - name: Generate articles
-        run: yarn workspace @memebattle/blog run generate
+        run: pnpm run --filter @memebattle/blog generate
 
       - name: TS check
-        run: yarn workspace @memebattle/blog run ts-check
+        run: pnpm run --filter @memebattle/blog ts-check

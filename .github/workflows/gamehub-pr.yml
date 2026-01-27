@@ -7,7 +7,7 @@ on:
       - 'apps/gamehub-client/**'
       - '.docker/GameHub**'
       - '.github/workflows/gamehub**'
-      - 'yarn.lock'
+      - 'pnpm-lock.yaml'
 
 env:
   NODE_OPTIONS: --max-old-space-size=4096
@@ -26,7 +26,7 @@ jobs:
         name: Prepare Node.js
 
       - name: Lint code
-        run: yarn gamehub-client:lint
+        run: pnpm gamehub-client:lint
 
   tsc:
 
@@ -40,4 +40,4 @@ jobs:
         name: Prepare Node.js
 
       - name: TS check
-        run: yarn workspace @memebattle/gamehub-client run ts-check
+        run: pnpm run --filter @memebattle/gamehub-client ts-check

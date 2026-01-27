@@ -1,1 +1,1 @@
-export { Alert } from '@mui/lab'
+export { Alert } from '@mui/material'
