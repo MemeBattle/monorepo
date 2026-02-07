@@ -50,12 +50,14 @@ const checkNotEmptyString = (inputString: string, errorMessage = ''): boolean =>
 
 type ShowLoader = <A>(func: (...rest: A[]) => Promise<unknown>) => () => void
 
-const showLoader: ShowLoader = asyncFunc => async (...args) => {
-  const loader = chalkAnimation.rainbow('Wait CAS answer...')
-  const answer = await asyncFunc(...args)
-  loader.stop()
-  return answer
-}
+const showLoader: ShowLoader =
+  asyncFunc =>
+  async (...args) => {
+    const loader = chalkAnimation.rainbow('Wait CAS answer...')
+    const answer = await asyncFunc(...args)
+    loader.stop()
+    return answer
+  }
 
 type Credentials = {
   login: string

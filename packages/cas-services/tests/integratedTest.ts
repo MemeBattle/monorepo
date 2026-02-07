@@ -4,7 +4,7 @@ import chalk from 'chalk'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 
-load()
+load({ path: resolve(__dirname, '.env') })
 
 console.log(
   chalk.gray(

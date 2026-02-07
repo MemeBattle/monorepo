@@ -4,8 +4,10 @@ import { CreateJWTServices, VerifyTokenSuccess, VerifyTokenError } from '../type
 export const createJWTServices = ({ publicKey }: CreateJWTServices) => ({
   verifyToken(token: string): Promise<VerifyTokenSuccess | VerifyTokenError> {
     return new Promise(resolve => {
-      verify(token, publicKey, { algorithms: ['RS256'] }, (err, decoded: { _id: string }) =>
-        err ? resolve({ success: false, error: err }) : resolve({ success: true, data: decoded }),
+      verify(token, publicKey, { algorithms: ['RS256'] }, (err, decoded) =>
+        err || !decoded
+          ? resolve({ success: false, error: err })
+          : resolve({ success: true, data: decoded }),
       )
     })
   },

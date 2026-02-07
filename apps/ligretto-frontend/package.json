@@ -19,7 +19,7 @@
     ]
   },
   "scripts": {
-    "start:dev": "vite --host",
+    "start:dev": "vite --host --force",
     "build": "vite build",
     "ts-check": "tsc --noEmit",
     "test": "vitest",
