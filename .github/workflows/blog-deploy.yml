@@ -3,13 +3,12 @@ name: 'Blog release'
 on:
   workflow_dispatch:
   push:
-    branches: [ master ]
+    branches: [ master, pnpm ]
     paths:
       - 'apps/blog/**'
       - '.deploy/blog.deploy.yml'
       - '.docker/Blog_Dockerfile*'
       - '.github/workflows/blog-**'
-      - '.github/actions/deploy-to-swarm/**'
 
 jobs:
 
@@ -56,14 +55,3 @@ jobs:
     steps:
       - uses: actions/checkout@main
         name: Checkout
-
-      - uses: ./.github/actions/deploy-to-swarm
-        name: Deploy to swarm lambda
-        with:
-          path-to-stack: '.deploy/blog.deploy.yml'
-          name: 'BLOG'
-          sa_auth_key: ${{ secrets.YC_WORKER_KEY }}
-          yc_folder_id: ${{ vars.YC_FOLDER_ID }}
-          docker_registry_login: ${{ secrets.GHCR_USER }}
-          docker_registry_password: ${{ secrets.GHCR_PULL_TOKEN }}
-          docker_registry: 'ghcr.io'

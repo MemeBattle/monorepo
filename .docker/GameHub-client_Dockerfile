@@ -1,22 +1,24 @@
 FROM node:24.11-trixie-slim AS dependencies
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
 
 WORKDIR /memebattle
 
-COPY .yarn/ /memebattle/.yarn
-COPY package.json yarn.lock .yarnrc.yml /memebattle/
+COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml /memebattle/
 COPY packages/ui/package.json /memebattle/packages/ui/
 COPY apps/gamehub-client/package.json /memebattle/apps/gamehub-client/
 
-RUN yarn install
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 FROM dependencies AS build
 
 ENV NODE_ENV=production
 
 COPY . /memebattle
-WORKDIR /memebattle
+WORKDIR /memebattle/apps/gamehub-client
 
-RUN node node_modules/.bin/next build apps/gamehub-client
+RUN pnpm next build
 
 FROM node:24.11-trixie-slim AS runtime
 ENV NODE_ENV=production

@@ -3,8 +3,8 @@
 ## Start all
 
 1. Start postgresql `docker-compose up`
-2. Migrate ligretto-core-backend database `yarn ligretto:core-backend:migrate`
-3. Start `yarn ligretto:start`
+2. Migrate ligretto-core-backend database `pnpm ligretto:core-backend:migrate`
+3. Start `pnpm ligretto:start`
 
 ## Start Ligretto frontend only
 
@@ -16,5 +16,5 @@ LIGRETTO_GAMEPLAY_URL=https://api.ligretto.app
 ```
 3. Run frontend locally
 ```
-yarn ligretto:front:start:dev
+pnpm ligretto:front:start:dev
 ```

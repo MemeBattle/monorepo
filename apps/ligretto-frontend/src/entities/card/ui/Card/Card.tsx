@@ -128,10 +128,6 @@ const StyledCard = styled(ButtonBase, { shouldForwardProp: prop => !StyledCardNo
   borderRadius: '0.25rem',
 }))
 
-const StyledCardValue = styled(Typography)(() => ({
-  fontSize: 'inherit',
-}))
-
 export const Card: React.FC<CardProps> = ({
   value,
   isDisabled = false,
@@ -157,7 +153,9 @@ export const Card: React.FC<CardProps> = ({
       color={color}
       ref={ref}
     >
-      <StyledCardValue component="span">{value}</StyledCardValue>
+      <Typography fontSize="inherit" component="span">
+        {value}
+      </Typography>
     </StyledCard>
   )
 }

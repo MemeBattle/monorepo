@@ -3,7 +3,6 @@ rollup.config.js
 build
 dist
 storybook-static
-.yarn
 .eslintrc.js
 *.config.js
 *.config.ts

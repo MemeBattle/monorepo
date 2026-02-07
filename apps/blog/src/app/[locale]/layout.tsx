@@ -119,11 +119,9 @@ export default function RootLayout({ children, params: { locale } }: { children:
     <html lang={locale} dir={dir(locale)} className={`${gravityFont.variable} ${archerusFeralFont.variable}`}>
       <body className="flex flex-col items-center min-h-screen">
         <header className="h-18 w-full bg-gray-600 flex items-center">
-          {/* @ts-expect-error React Server components */}
           <LanguageSwitcher locale={locale} />
         </header>
         {children}
-        {/** @ts-expect-error React Server components  */}
         <Footer locale={locale} />
         <Amplitude />
       </body>

@@ -96,7 +96,6 @@ export default async function BlogPage({
             />
           </Link>
         ))}
-        {/* @ts-expect-error React Server components */}
         {filteredPosts.length === 0 ? <EmptyPlaceholder language={locale} /> : null}
       </main>
     </div>

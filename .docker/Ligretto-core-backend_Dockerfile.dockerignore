@@ -2,14 +2,9 @@
 !apps/ligretto-core-backend
 !packages/ligretto-shared
 
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
-
-!yarn.lock
-!.yarnrc.yml
+!.npmrc
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
 !package.json
 !tsconfig.json
 !typings
