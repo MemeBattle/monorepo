@@ -121,7 +121,7 @@ catalog:
   vite: 7.3.1
   vite-plugin-svgr: 4.5.0
   vite-tsconfig-paths: 6.0.5
-  vitest: ^0.34.6
+  vitest: 4.0.18
   wait-on: ^7.0.1
   youch: ^2.2.2
   youch-terminal: ^1.1.1

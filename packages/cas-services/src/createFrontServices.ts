@@ -24,3 +24,5 @@ export const createFrontServices = ({
 
   return { loginService, signUpService, updateUserProfileService, getMeService }
 }
+
+export type FrontServices = ReturnType<typeof createFrontServices>
