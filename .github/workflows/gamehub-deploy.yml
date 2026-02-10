@@ -3,7 +3,7 @@ name: 'GameHub release'
 on:
   workflow_dispatch:
   push:
-    branches: [ master, pnpm ]
+    branches: [ master ]
     paths:
       - 'apps/gamehub-client/**'
       - '.deploy/gamehub.deploy.yml'

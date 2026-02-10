@@ -3,7 +3,7 @@ name: 'Blog release'
 on:
   workflow_dispatch:
   push:
-    branches: [ master, pnpm ]
+    branches: [ master ]
     paths:
       - 'apps/blog/**'
       - '.deploy/blog.deploy.yml'
