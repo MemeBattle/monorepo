@@ -43,4 +43,4 @@ URL: https://blog.mems.fun/
 1. Read [documentation](./docs)
 2. Read [CONTRIBUTING.md](CONTRIBUTING.md) TODO: Create contribution doc [#215](https://github.com/MemeBattle/monorepo/issues/215)
 3. Download repository `git clone git@github.com:MemeBattle/monorepo.git`
-4. Install dependencies `yarn`
+4. Install dependencies `pnpm install`

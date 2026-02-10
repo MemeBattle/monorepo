@@ -15,9 +15,9 @@ export interface PlayersScoresTableProps {
 const columnsProps = {
   avatar: { sm: 2, md: 1 },
   name: { xs: 6, sm: 4 },
-  round: { xs: 3, sm: true },
+  round: { xs: 3, sm: 'grow' },
   total: { xs: 3, sm: 2, md: 1 },
-}
+} as const
 
 export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players }) => {
   const theme = useTheme()
@@ -26,15 +26,15 @@ export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players }) => 
   return (
     <Box flex={1} flexDirection="column" overflow="auto" data-test-id="PlayersScoresTable">
       <PlayersScoresTableHead>
-        <Grid container item xs spacing={4}>
-          {!isMobile && <PlayersScoresTableCell {...columnsProps.avatar}></PlayersScoresTableCell>}
-          <PlayersScoresTableCell {...columnsProps.name}>
+        <Grid container spacing={4}>
+          {!isMobile && <PlayersScoresTableCell size={columnsProps.avatar}></PlayersScoresTableCell>}
+          <PlayersScoresTableCell size={columnsProps.name}>
             <Typography variant="body2">Name</Typography>
           </PlayersScoresTableCell>
-          <PlayersScoresTableCell {...columnsProps.round} justifyContent="flex-end">
+          <PlayersScoresTableCell size={columnsProps.round} justifyContent="flex-end">
             <Typography variant="body2">Round</Typography>
           </PlayersScoresTableCell>
-          <PlayersScoresTableCell {...columnsProps.total} justifyContent="flex-end">
+          <PlayersScoresTableCell size={columnsProps.total} justifyContent="flex-end">
             <Typography variant="body2">Total</Typography>
           </PlayersScoresTableCell>
         </Grid>
@@ -45,23 +45,23 @@ export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players }) => 
           bgcolor={isPlayer ? theme.palette.primary.light : theme.palette.primary.lighter}
           data-test-id="PlayersScoresTable-PlayersScoresTableRow"
         >
-          <Grid container item xs spacing={4}>
+          <Grid container spacing={4}>
             {!isMobile && (
-              <PlayersScoresTableCell {...columnsProps.avatar}>
+              <PlayersScoresTableCell size={columnsProps.avatar}>
                 <Avatar src={avatar} size="small" />
               </PlayersScoresTableCell>
             )}
-            <PlayersScoresTableCell {...columnsProps.name}>
+            <PlayersScoresTableCell size={columnsProps.name}>
               <Typography variant="h5" whiteSpace="nowrap" overflow="auto">
                 {username}
               </Typography>
             </PlayersScoresTableCell>
-            <PlayersScoresTableCell {...columnsProps.round} justifyContent="flex-end">
+            <PlayersScoresTableCell size={columnsProps.round} justifyContent="flex-end">
               <Typography fontWeight={500} variant="h5">
                 {last(roundPoints)}
               </Typography>
             </PlayersScoresTableCell>
-            <PlayersScoresTableCell {...columnsProps.total} justifyContent="flex-end">
+            <PlayersScoresTableCell size={columnsProps.total} justifyContent="flex-end">
               <Typography fontWeight={500} variant="h5">
                 {totalPoints}
               </Typography>

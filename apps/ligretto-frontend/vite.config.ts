@@ -34,10 +34,13 @@ export default defineConfig(({ mode }) => {
         inject: false,
       },
       authToken: process.env.SENTRY_AUTH_TOKEN,
-    }),],
+    })],
     define: envVariables,
     build: {
       sourcemap: true,
+    },
+    optimizeDeps: {
+      include: ['react-dropzone', 'attr-accept', '@memebattle/cas-services', '@memebattle/cas-services/createFrontServices', '@memebattle/auth-front'],
     },
     test: {
       exclude: [...configDefaults.exclude, 'e2e'],

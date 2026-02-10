@@ -1,40 +1,36 @@
 FROM node:24.11-trixie-slim AS dependencies
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
 
 WORKDIR /memebattle
 
-COPY .yarn/ /memebattle/.yarn
-COPY package.json yarn.lock .yarnrc.yml /memebattle/
+COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml /memebattle/
 COPY packages/ligretto-shared/package.json /memebattle/packages/ligretto-shared/
+COPY packages/cas-services/package.json /memebattle/packages/cas-services/
 COPY apps/ligretto-gameplay-backend/package.json /memebattle/apps/ligretto-gameplay-backend/
 
-RUN yarn install
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 FROM dependencies AS build
 
 ENV NODE_ENV=production
 
+COPY packages/cas-services/ /memebattle/packages/cas-services/
 COPY packages/ligretto-shared/ /memebattle/packages/ligretto-shared/
-RUN yarn run ligretto-shared:build
+RUN pnpm run ligretto-shared:build
 
 COPY apps/ligretto-gameplay-backend/ /memebattle/apps/ligretto-gameplay-backend/
-RUN yarn run ligretto:gameplay-backend:build
+RUN pnpm run ligretto:gameplay-backend:build
 
-FROM dependencies AS prod-dependencies
-
-RUN yarn workspaces focus --production @memebattle/ligretto-gameplay-backend
+RUN pnpm deploy --prod --filter=@memebattle/ligretto-gameplay-backend /prod
 
 FROM node:24.11-trixie-slim AS runtime
 ENV NODE_ENV=production
 
-RUN mkdir -p /memebattle
-WORKDIR /memebattle
 USER node
 
-COPY --chown=node:node --from=prod-dependencies /memebattle/node_modules /memebattle/node_modules
-COPY --chown=node:node --from=build /memebattle/packages/ligretto-shared/package.json /memebattle/packages/ligretto-shared/package.json
-COPY --chown=node:node --from=build /memebattle/apps/ligretto-gameplay-backend/package.json /memebattle/apps/ligretto-gameplay-backend/package.json
+COPY --chown=node:node --from=build /prod /ligretto-gameplay-backend
+WORKDIR /ligretto-gameplay-backend
 
-COPY --chown=node:node --from=build /memebattle/packages/ligretto-shared/build /memebattle/packages/ligretto-shared/build
-COPY --chown=node:node --from=build /memebattle/apps/ligretto-gameplay-backend/build /memebattle/apps/ligretto-gameplay-backend/build
-
-ENTRYPOINT [ "node", "apps/ligretto-gameplay-backend/build/index.js" ]
+ENTRYPOINT [ "node", "build/index.js" ]

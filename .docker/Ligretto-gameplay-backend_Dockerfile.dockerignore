@@ -1,15 +1,11 @@
 *
 !apps/ligretto-gameplay-backend
 !packages/ligretto-shared
+!packages/cas-services
 
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
-
-!yarn.lock
-!.yarnrc.yml
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!.npmrc
 !package.json
 !tsconfig.json
 !typings

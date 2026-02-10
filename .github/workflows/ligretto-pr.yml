@@ -11,7 +11,7 @@ on:
       - '.docker/Ligretto-**'
       - .github/workflows/ligretto-pr.yml
       - '.env*'
-      - 'yarn.lock'
+      - 'pnpm-lock.yaml'
 
 env:
   NODE_OPTIONS: --max-old-space-size=4096
@@ -30,7 +30,7 @@ jobs:
         name: Prepare Node.js
 
       - name: Lint code
-        run: yarn lint
+        run: pnpm lint
 
   tests:
 
@@ -44,10 +44,10 @@ jobs:
         name: Prepare Node.js
 
       - name: Build shared
-        run: yarn ligretto-shared:build
+        run: pnpm ligretto-shared:build
 
       - name: Run tests
-        run: yarn ligretto:test:ci
+        run: pnpm ligretto:test:ci
 
   tsc:
 
@@ -61,7 +61,7 @@ jobs:
         name: Prepare Node.js
 
       - name: TS check
-        run: yarn ligretto:ts-check:ci
+        run: pnpm ligretto:ts-check:ci
 
   e2e:
     env:
@@ -95,25 +95,25 @@ jobs:
         name: Prepare Node.js
 
       - name: Install Playwright Browsers
-        run: yarn dlx playwright@1.42.1 install --with-deps chromium
+        run: pnpm --filter=@memebattle/ligretto-frontend exec playwright install --with-deps chromium
 
       - name: Migrate database
-        run: yarn ligretto:core-backend:migrate
+        run: pnpm ligretto:core-backend:migrate
 
       - name: Start core backend
-        run: yarn ligretto:core-backend:start:dev &
+        run: pnpm ligretto:core-backend:start:dev &
 
       - name: Check core backend app
-        run: yarn dlx wait-on --timeout 60000 http-get://127.0.0.1:3333/health
+        run: pnpm dlx wait-on --timeout 60000 http-get://127.0.0.1:3333/health
 
       - name: Start gameplay backend
-        run: yarn ligretto:gameplay-backend:start:dev &
+        run: pnpm ligretto:gameplay-backend:start:dev &
 
       - name: Start frontend
-        run: yarn ligretto:front:start:dev &
+        run: pnpm ligretto:front:start:dev &
 
       - name: Check frontend app
-        run: yarn dlx wait-on -c ./apps/ligretto-frontend/waitOnConfig.json --timeout 60000 http-get://127.0.0.1:5173
+        run: pnpm dlx wait-on -c ./apps/ligretto-frontend/waitOnConfig.json --timeout 60000 http-get://127.0.0.1:5173
 
       - name: Run playwright tests
-        run: yarn e2e:start
+        run: pnpm --filter=@memebattle/ligretto-frontend e2e:start

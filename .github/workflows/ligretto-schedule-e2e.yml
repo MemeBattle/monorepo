@@ -19,10 +19,10 @@ jobs:
         name: Prepare Node.js
 
       - name: Install Playwright Browsers
-        run: yarn dlx playwright@1.42.1 install --with-deps chromium
+        run: pnpm --filter=@memebattle/ligretto-frontend exec playwright install --with-deps chromium
 
       - name: Run playwright tests
-        run: yarn e2e:start
+        run: pnpm --filter=@memebattle/ligretto-frontend e2e:start
         env:
           LIGRETTO_APP_URL: https://ligretto.app/
 

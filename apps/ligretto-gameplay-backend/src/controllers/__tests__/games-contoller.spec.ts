@@ -59,10 +59,10 @@ describe('Games Controller', () => {
       const state = await database.get(db => db)
       expect(state).toMatchSnapshot()
 
-      expect(socketMockImpl.emit).toBeCalledTimes(2)
-      expect(socketMockImpl.emit).toBeCalledWith('event', createRoomSuccessAction({ game: state.games[gameId] }))
-      expect(socketMockImpl.to).toBeCalledWith(SOCKET_ROOM_LOBBY)
-      expect(socketMockImpl.emit).toBeCalledWith('event', updateRoomsAction({ rooms: [gameToRoom(state.games[gameId])] }))
+      expect(socketMockImpl.emit).toHaveBeenCalledTimes(2)
+      expect(socketMockImpl.emit).toHaveBeenCalledWith('event', createRoomSuccessAction({ game: state.games[gameId] }))
+      expect(socketMockImpl.to).toHaveBeenCalledWith(SOCKET_ROOM_LOBBY)
+      expect(socketMockImpl.emit).toHaveBeenCalledWith('event', updateRoomsAction({ rooms: [gameToRoom(state.games[gameId])] }))
     })
 
     it('Should emit createRoomErrorAction if room already exists', async () => {
@@ -71,8 +71,11 @@ describe('Games Controller', () => {
       const newSocketMock = createSocketMockImpl()
       await gamesController.handleMessage(newSocketMock, createGameAction)
 
-      expect(newSocketMock.emit).toBeCalledTimes(1)
-      expect(newSocketMock.emit).toBeCalledWith('event', createRoomErrorAction({ errorCode: CreateRoomErrorCode.AlreadyExist, name: 'createGame' }))
+      expect(newSocketMock.emit).toHaveBeenCalledTimes(1)
+      expect(newSocketMock.emit).toHaveBeenCalledWith(
+        'event',
+        createRoomErrorAction({ errorCode: CreateRoomErrorCode.AlreadyExist, name: 'createGame' }),
+      )
     })
   })
 
@@ -101,14 +104,14 @@ describe('Games Controller', () => {
     it('Should dispatch connectToRoomErrorAction if room does not exists', async () => {
       await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid: 'notExistsRoomUuid' }) as AnyAction)
 
-      expect(socketMockImpl.emit).toBeCalledWith('event', connectToRoomErrorAction())
+      expect(socketMockImpl.emit).toHaveBeenCalledWith('event', connectToRoomErrorAction())
     })
 
     it('Should join to room and leave from lobby if game exist', async () => {
       await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
 
-      expect(socketMockImpl.join).toBeCalledWith(roomUuid)
-      expect(socketMockImpl.leave).toBeCalledWith(SOCKET_ROOM_LOBBY)
+      expect(socketMockImpl.join).toHaveBeenCalledWith(roomUuid)
+      expect(socketMockImpl.leave).toHaveBeenCalledWith(SOCKET_ROOM_LOBBY)
     })
 
     it('Should create relevant state on join room as first player', async () => {
@@ -215,9 +218,9 @@ describe('Games Controller', () => {
 
       const state = await database.get(storage => storage)
       expect(state).toMatchSnapshot()
-      expect(socketOne.to).toBeCalledTimes(4)
-      expect(socketOne.emit).toBeCalledWith('event', updateRoomsAction({ rooms: [gameToRoom(state.games[roomUuid])] }))
-      expect(socketOne.emit).toBeCalledWith('event', updateGameAction(state.games[roomUuid]))
+      expect(socketOne.to).toHaveBeenCalledTimes(4)
+      expect(socketOne.emit).toHaveBeenCalledWith('event', updateRoomsAction({ rooms: [gameToRoom(state.games[roomUuid])] }))
+      expect(socketOne.emit).toHaveBeenCalledWith('event', updateGameAction(state.games[roomUuid]))
     })
 
     it('Should create a relevant game state if one of two players leaved', async () => {
@@ -247,7 +250,7 @@ describe('Games Controller', () => {
 
       await gamesController.disconnectionHandler(socketOne)
 
-      expect(saveGameRoundService).toBeCalledTimes(0)
+      expect(saveGameRoundService).toHaveBeenCalledTimes(0)
     })
 
     it('Should create a relevant state if last user disconnected', async () => {
