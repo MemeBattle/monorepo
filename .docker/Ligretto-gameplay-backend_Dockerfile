@@ -16,6 +16,7 @@ FROM dependencies AS build
 
 ENV NODE_ENV=production
 
+COPY packages/cas-services/ /memebattle/packages/cas-services/
 COPY packages/ligretto-shared/ /memebattle/packages/ligretto-shared/
 RUN pnpm run ligretto-shared:build
 
