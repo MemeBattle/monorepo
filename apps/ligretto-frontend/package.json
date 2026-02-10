@@ -28,7 +28,6 @@
   },
   "devDependencies": {
     "@playwright/test": "catalog:",
-    "@rollup/plugin-commonjs": "^29.0.0",
     "@sentry/vite-plugin": "catalog:",
     "@types/history": "catalog:",
     "@types/lodash": "catalog:",

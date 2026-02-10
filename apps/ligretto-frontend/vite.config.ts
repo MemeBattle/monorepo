@@ -6,7 +6,6 @@ import { configDefaults } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import svgr from 'vite-plugin-svgr'
 import { sentryVitePlugin } from "@sentry/vite-plugin";
-import commonjs from '@rollup/plugin-commonjs';
 
 const ENV_VARIABLES_SHARED_TO_BROWSER = [
   'LIGRETTO_CORE_URL',
@@ -27,7 +26,7 @@ export default defineConfig(({ mode }) => {
     {},
   )
   return {
-    plugins: [react(), svgr(), commonjs(), sentryVitePlugin({
+    plugins: [react(), svgr(), sentryVitePlugin({
       org: "memebattle-1x",
       project: "ligretto-frontend",
       release: {
