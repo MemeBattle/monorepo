@@ -54,7 +54,6 @@ catalog:
   cross-env: ^7.0.3
   csstype: ^3.2.3
   date-fns: ^2.29.3
-  email-validator: ^2.0.4
   eslint: 8.57.0
   eslint-config-prettier: 9.1.0
   eslint-plugin-import: 2.29.1

@@ -148,9 +148,6 @@ catalogs:
     date-fns:
       specifier: ^2.29.3
       version: 2.30.0
-    email-validator:
-      specifier: ^2.0.4
-      version: 2.0.4
     eslint:
       specifier: 8.57.0
       version: 8.57.0
@@ -471,9 +468,6 @@ importers:
       clsx:
         specifier: 'catalog:'
         version: 1.2.1
-      email-validator:
-        specifier: 'catalog:'
-        version: 2.0.4
       final-form:
         specifier: 'catalog:'
         version: 4.20.10
@@ -6549,10 +6543,6 @@ packages:
 
   elliptic@6.6.1:
     resolution: {integrity: sha512-RaddvvMatK2LJHqFJ+YA4WysVN5Ita9E35botqIYspQ4TkRAlCicdzKOjlyv/1Za5RyTNn7di//eEV0uTAfe3g==}
-
-  email-validator@2.0.4:
-    resolution: {integrity: sha512-gYCwo7kh5S3IDyZPLZf6hSS0MnZT8QmJFqYvbqlDZSbwdZlY6QZWxJ4i/6UhITOJ4XzyI647Bm2MXKCLqnJ4nQ==}
-    engines: {node: '>4.0'}
 
   emittery@0.10.2:
     resolution: {integrity: sha512-aITqOwnLanpHLNXZJENbOgjUBeHocD+xsSJmNrjovKBW5HbSpW3d1pEls7GFQPUWXiwG9+0P4GtHfEqC/4M0Iw==}
@@ -14092,7 +14082,6 @@ snapshots:
       '@mui/material': 7.3.7(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       axios: 1.13.2
       clsx: 1.2.1
-      email-validator: 2.0.4
       final-form: 4.20.10
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
@@ -18689,8 +18678,6 @@ snapshots:
       inherits: 2.0.4
       minimalistic-assert: 1.0.1
       minimalistic-crypto-utils: 1.0.1
-
-  email-validator@2.0.4: {}
 
   emittery@0.10.2: {}
 

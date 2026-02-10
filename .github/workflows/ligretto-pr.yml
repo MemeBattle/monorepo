@@ -95,7 +95,7 @@ jobs:
         name: Prepare Node.js
 
       - name: Install Playwright Browsers
-        run: pnpm dlx playwright@1.42.1 install --with-deps chromium
+        run: pnpx playwright install --with-deps chromium
 
       - name: Migrate database
         run: pnpm ligretto:core-backend:migrate
