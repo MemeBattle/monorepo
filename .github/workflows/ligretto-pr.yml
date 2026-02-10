@@ -116,4 +116,4 @@ jobs:
         run: pnpm dlx wait-on -c ./apps/ligretto-frontend/waitOnConfig.json --timeout 60000 http-get://127.0.0.1:5173
 
       - name: Run playwright tests
-        run: pnpm e2e:start
+        run: pnpm --filter=@memebattle/ligretto-frontend e2e:start
