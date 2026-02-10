@@ -7,6 +7,7 @@ WORKDIR /memebattle
 
 COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml /memebattle/
 COPY packages/ligretto-shared/package.json /memebattle/packages/ligretto-shared/
+COPY packages/cas-services/package.json /memebattle/packages/cas-services/
 COPY apps/ligretto-core-backend/package.json /memebattle/apps/ligretto-core-backend/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile

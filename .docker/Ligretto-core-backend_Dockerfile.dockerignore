@@ -1,6 +1,7 @@
 *
 !apps/ligretto-core-backend
 !packages/ligretto-shared
+!packages/cas-services
 
 !.npmrc
 !pnpm-lock.yaml
