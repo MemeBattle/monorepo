@@ -23,7 +23,7 @@ import { render } from '@fsmoothy/graphviz'
 const isLocationChangeAction = (action: UnknownAction): action is Extract<RouterActions, { type: typeof LOCATION_CHANGE }> =>
   action.type === LOCATION_CHANGE
 
-const mapActionTypeToEvent = {
+const mapActionTypeToEvent: Record<string, OnboardingEvent> = {
   [nextStepOnboardingAction.type]: OnboardingEvent.NextStep,
   [putLigrettoCardAction.type]: OnboardingEvent.PutLigretto,
   [putFirstCardAction.type]: OnboardingEvent.PutFirstCard,
