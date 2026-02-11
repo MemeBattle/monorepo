@@ -5,7 +5,7 @@ packages:
 catalog:
   '@adonisjs/assembler': 5.7.0
   '@adonisjs/core': 5.9.0
-  '@adonisjs/lucid': 17.2.0
+  '@adonisjs/lucid': 21.8.2
   '@adonisjs/repl': 3.1.11
   '@amplitude/analytics-browser': ^2.1.2
   '@codexsoft/dotenv-flow': ^3.3.5
