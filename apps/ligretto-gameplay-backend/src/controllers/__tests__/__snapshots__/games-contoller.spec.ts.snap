@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Games Controller createGame Should create relevant state on create game 1`] = `
+exports[`Games Controller > createGame > Should create relevant state on create game 1`] = `
 {
   "games": {
     "1": {
@@ -25,7 +25,7 @@ exports[`Games Controller createGame Should create relevant state on create game
 }
 `;
 
-exports[`Games Controller joinGame Should create relevant state on join room as first player 1`] = `
+exports[`Games Controller > joinGame > Should create relevant state on join room as first player 1`] = `
 {
   "games": {
     "1": {
@@ -77,7 +77,7 @@ exports[`Games Controller joinGame Should create relevant state on join room as 
 }
 `;
 
-exports[`Games Controller joinGame Should create relevant state on join room by second connection 1`] = `
+exports[`Games Controller > joinGame > Should create relevant state on join room by second connection 1`] = `
 {
   "games": {
     "1": {
@@ -130,7 +130,7 @@ exports[`Games Controller joinGame Should create relevant state on join room by 
 }
 `;
 
-exports[`Games Controller joinGame Should create relevant state on join room second player 1`] = `
+exports[`Games Controller > joinGame > Should create relevant state on join room second player 1`] = `
 {
   "games": {
     "1": {
@@ -207,7 +207,7 @@ exports[`Games Controller joinGame Should create relevant state on join room sec
 }
 `;
 
-exports[`Games Controller leaveFromRoomHandler Should create a relevant game state if one of two players leaved 1`] = `
+exports[`Games Controller > leaveFromRoomHandler > Should create a relevant game state if one of two players leaved 1`] = `
 {
   "games": {
     "1": {
@@ -266,7 +266,7 @@ exports[`Games Controller leaveFromRoomHandler Should create a relevant game sta
 }
 `;
 
-exports[`Games Controller leaveFromRoomHandler Should create a relevant state if last user disconnected 1`] = `
+exports[`Games Controller > leaveFromRoomHandler > Should create a relevant state if last user disconnected 1`] = `
 {
   "games": {},
   "users": {
@@ -281,7 +281,7 @@ exports[`Games Controller leaveFromRoomHandler Should create a relevant state if
 }
 `;
 
-exports[`Games Controller leaveFromRoomHandler Should remove current socketId from user socket ids if user connected from few accounts 1`] = `
+exports[`Games Controller > leaveFromRoomHandler > Should remove current socketId from user socket ids if user connected from few accounts 1`] = `
 {
   "games": {
     "1": {

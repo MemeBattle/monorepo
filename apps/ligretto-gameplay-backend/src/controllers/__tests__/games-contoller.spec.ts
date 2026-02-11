@@ -1,4 +1,4 @@
-import { describe, it, jest, beforeEach, expect } from '@jest/globals'
+import { describe, it, vi, beforeEach, expect } from 'vitest'
 
 import {
   createRoomEmitAction,
@@ -28,16 +28,16 @@ describe('Games Controller', () => {
 
   const gameId = '1'
 
-  let createGameService = jest.fn().mockReturnValue({ id: gameId })
-  let saveGameRoundService = jest.fn().mockReturnValue({})
+  let createGameService = vi.fn().mockReturnValue({ id: gameId })
+  let saveGameRoundService = vi.fn().mockReturnValue({})
 
   let gamesController: GamesController = container.get(IOC_TYPES.GamesController)
 
   beforeEach(() => {
     container = createIOC()
     socketMockImpl = createSocketMockImpl()
-    createGameService = jest.fn().mockReturnValue({ id: gameId })
-    saveGameRoundService = jest.fn().mockReturnValue({})
+    createGameService = vi.fn().mockReturnValue({ id: gameId })
+    saveGameRoundService = vi.fn().mockReturnValue({})
     container.rebind(IOC_TYPES.LigrettoCoreService).toConstantValue({ createGameService, saveGameRoundService })
     gamesController = container.get(IOC_TYPES.GamesController)
   })
