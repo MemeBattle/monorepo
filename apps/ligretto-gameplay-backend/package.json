@@ -6,7 +6,7 @@
   "scripts": {
     "init:partner": "init-partner",
     "test": "NODE_ENV=test vitest run",
-    "test:ci": "NODE_ENV=test vitest run --coverage --reporter=json --outputFile=report.json",
+    "test:ci": "NODE_ENV=test vitest run --reporter=json --outputFile=report.json",
     "test:update-snapshot": "NODE_ENV=test vitest run -u",
     "test:watch": "NODE_ENV=test vitest",
     "start:dev": "pnpm prestart && nodemon",
