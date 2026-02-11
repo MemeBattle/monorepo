@@ -5,10 +5,10 @@
   "license": "MIT",
   "scripts": {
     "init:partner": "init-partner",
-    "test": "NODE_ENV=test jest .",
-    "test:ci": "pnpm test --ci --json --coverage --testLocationInResults --outputFile=report.json",
-    "test:update-snapshot": "pnpm test -u",
-    "test:watch": "NODE_ENV=test jest --watch",
+    "test": "NODE_ENV=test vitest run",
+    "test:ci": "NODE_ENV=test vitest run --coverage --reporter=json --outputFile=report.json",
+    "test:update-snapshot": "NODE_ENV=test vitest run -u",
+    "test:watch": "NODE_ENV=test vitest",
     "start:dev": "pnpm prestart && nodemon",
     "start": "pnpm prestart && ts-node src/index.ts",
     "prestart": "ts-node src/cli/check-env.ts",
@@ -16,16 +16,14 @@
     "ts-check": "tsc --noEmit"
   },
   "devDependencies": {
-    "@jest/globals": "catalog:",
     "@types/lodash": "catalog:",
     "@types/node": "catalog:",
     "cross-env": "catalog:",
-    "jest": "catalog:",
     "mock-socket": "catalog:",
     "nodemon": "catalog:",
-    "ts-jest": "catalog:",
     "ts-node": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "dependencies": {
     "@codexsoft/dotenv-flow": "catalog:",

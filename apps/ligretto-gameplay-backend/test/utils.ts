@@ -1,5 +1,5 @@
 import type { Socket } from 'socket.io'
-import { jest } from '@jest/globals'
+import { vi } from 'vitest'
 
 class _SocketMock {
   public id: string
@@ -11,13 +11,13 @@ class _SocketMock {
     this.data = data
   }
 
-  to = jest.fn().mockReturnThis()
+  to = vi.fn().mockReturnThis()
 
-  emit = jest.fn()
+  emit = vi.fn()
 
-  join = jest.fn()
+  join = vi.fn()
 
-  leave = jest.fn()
+  leave = vi.fn()
 }
 
 export const createSocketMockImpl = (fields?: { id?: string; data?: { user?: { id: string } } }) => new _SocketMock(fields) as unknown as Socket
