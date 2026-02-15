@@ -42,7 +42,7 @@ jobs:
       - name: Run tests
         run: pnpm blog:test:ci
 
-  tsc:
+  typecheck:
 
     runs-on: ubuntu-22.04
 
