@@ -19,13 +19,13 @@
     "package": "packages/ui"
   },
   "scripts": {
-    "ts-check": "tsc --noEmit"
+    "ts-check": "tsgo --noEmit"
   },
   "devDependencies": {
     "@types/lodash": "catalog:",
     "@types/react": "catalog:",
-    "csstype": "catalog:",
-    "typescript": "catalog:"
+    "@typescript/native-preview": "catalog:",
+    "csstype": "catalog:"
   },
   "peerDependencies": {
     "lodash": "catalog:",

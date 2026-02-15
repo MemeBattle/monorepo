@@ -15,7 +15,6 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "baseUrl": "./src",
     "noImplicitAny": true
   },
   "include": ["src/**/*"]

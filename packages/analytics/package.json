@@ -12,11 +12,11 @@
     "url": "git+https://github.com/MemeBattle/monorepo.git"
   },
   "scripts": {
-    "ts-check": "tsc --noEmit"
+    "ts-check": "tsgo --noEmit"
   },
   "devDependencies": {
     "@types/amplitude-js": "catalog:",
-    "typescript": "catalog:"
+    "@typescript/native-preview": "catalog:"
   },
   "dependencies": {
     "amplitude-js": "catalog:"

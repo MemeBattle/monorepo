@@ -3,7 +3,7 @@ import type { ConfigureStoreOptions } from '@reduxjs/toolkit'
 
 import { rootReducer } from '#app/store/rootReducer'
 import { routerMiddleware } from '#app/store/reduxHistoryContext'
-import type { All } from 'types/store'
+import type { All } from '#types/store'
 
 export const createMockStore = (options: { preloadedState?: Partial<ConfigureStoreOptions<All>['preloadedState']> } = {}) =>
   configureStore({

@@ -12,8 +12,8 @@
     "start:dev": "pnpm prestart && nodemon",
     "start": "pnpm prestart && ts-node src/index.ts",
     "prestart": "ts-node src/cli/check-env.ts",
-    "build": "tsc --project tsconfig.build.json",
-    "ts-check": "tsc --noEmit"
+    "build": "tsgo --project tsconfig.build.json",
+    "ts-check": "tsgo --noEmit"
   },
   "devDependencies": {
     "@types/lodash": "catalog:",

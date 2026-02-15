@@ -42,6 +42,7 @@ catalog:
   '@types/react-dom': ^18.3.1
   '@typescript-eslint/eslint-plugin': 7.3.1
   '@typescript-eslint/parser': 7.3.1
+  '@typescript/native-preview': 7.0.0-dev.20260215.1
   '@vitejs/plugin-react': 5.1.2
   '@vitest/coverage-v8': ^0.32.0
   amplitude-js: ^8.21.6
@@ -91,7 +92,7 @@ catalog:
   react-final-form: ^6.5.2
   react-hotkeys-hook: 5.2.1
   react-i18next: ^12.2.0
-  react-redux: ^8.0.5
+  react-redux: 9.2.0
   react-router: ^6.8.1
   react-router-dom: ^6.8.1
   redux: 5.0.1
