@@ -18,6 +18,8 @@ interface CardProps {
   isDisabled?: boolean
   /** Darkened state of card (E.x. when other card selected) **/
   isDarkened?: boolean
+  /** Highlighted state of card **/
+  isHighlighted?: boolean
   /** Callback on click outside **/
   onClick?: () => void
   /** Callback on click **/
@@ -88,7 +90,7 @@ const colorByCardColors: Record<CardColors, string> = {
   [CardColors.empty]: 'transparent',
 }
 
-const StyledCardNotForwardedPropsSet = new Set<PropertyKey>(['isDarkened', 'isDisabled', 'isSelected', 'size'])
+const StyledCardNotForwardedPropsSet = new Set<PropertyKey>(['isDarkened', 'isDisabled', 'isHighlighted', 'isSelected', 'size'])
 
 const StyledCard = styled(ButtonBase, { shouldForwardProp: prop => !StyledCardNotForwardedPropsSet.has(prop) })<{
   color: CardColors
@@ -96,8 +98,9 @@ const StyledCard = styled(ButtonBase, { shouldForwardProp: prop => !StyledCardNo
   isDisabled?: boolean
   isSelected?: boolean
   isDarkened?: boolean
+  isHighlighted?: boolean
   size: CardSize
-}>(({ color, isDisabled, isSelected, isDarkened, size, theme }) => ({
+}>(({ color, isDisabled, isSelected, isDarkened, isHighlighted, size, theme }) => ({
   height: heightByCardSize[size],
   width: widthByCardSize[size],
   opacity: color === CardColors.empty ? 0 : 1,
@@ -112,9 +115,9 @@ const StyledCard = styled(ButtonBase, { shouldForwardProp: prop => !StyledCardNo
   cursor: isDisabled ? 'default' : 'pointer',
   transition: 'box-shadow 100ms',
   ':hover': {
-    boxShadow: isDisabled ? undefined : `0.1rem 0.1rem 0.8rem ${isSelected ? 'rgba(255,255,255,0.7)' : 'rgba(0, 0, 0, 0.5)'} `,
+    boxShadow: isDisabled ? undefined : `0.1rem 0.1rem 0.8rem ${isSelected || isHighlighted ? 'rgba(255,255,255,0.7)' : 'rgba(0, 0, 0, 0.5)'} `,
   },
-  boxShadow: isSelected ? '0.1rem 0.1rem 0.8rem rgba(255,255,255,0.7)' : undefined,
+  boxShadow: isSelected || isHighlighted ? '0.1rem 0.1rem 0.8rem rgba(255,255,255,0.7)' : undefined,
   [theme.breakpoints.down('lg')]: {
     height: tabletHeightBySize[size],
     width: tabletWidthBySize[size],
@@ -133,6 +136,7 @@ export const Card: React.FC<CardProps> = ({
   isDisabled = false,
   isSelected,
   isDarkened,
+  isHighlighted,
   onClick,
   onClickOutside,
   color = CardColors.empty,
@@ -145,6 +149,7 @@ export const Card: React.FC<CardProps> = ({
   return (
     <StyledCard
       isDarkened={isDarkened}
+      isHighlighted={isHighlighted}
       disableRipple={isDisabled}
       size={size}
       onMouseDown={onClick}
