@@ -25,7 +25,7 @@
     "react-dom": "^17.0.1"
   },
   "scripts": {
-    "ts-check": "tsc --noEmit"
+    "ts-check": "tsgo --noEmit"
   },
   "browserslist": {
     "production": [
@@ -41,6 +41,6 @@
   },
   "devDependencies": {
     "@types/react": "catalog:",
-    "typescript": "catalog:"
+    "@typescript/native-preview": "catalog:"
   }
 }

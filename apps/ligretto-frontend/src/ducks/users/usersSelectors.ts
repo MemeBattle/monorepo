@@ -1,4 +1,4 @@
-import type { All } from 'types/store'
+import type { All } from '#types/store'
 
 import { usersEntityAdapter } from './usersSlice'
 import type { User } from './usersTypes'

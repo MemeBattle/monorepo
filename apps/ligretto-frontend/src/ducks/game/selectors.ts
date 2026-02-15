@@ -1,7 +1,7 @@
 import { createSelector } from '@reduxjs/toolkit'
 import last from 'lodash/last'
 
-import type { All } from 'types/store'
+import type { All } from '#types/store'
 import { currentUserIdSelector } from '#ducks/auth'
 
 import { usersMapSelector } from '../users'

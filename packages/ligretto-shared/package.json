@@ -16,14 +16,14 @@
   "author": "MemeBattle",
   "license": "MIT",
   "scripts": {
-    "ts-check": "tsc --noEmit",
-    "build": "tsc"
+    "ts-check": "tsgo --noEmit",
+    "build": "tsgo"
   },
   "dependencies": {
     "@reduxjs/toolkit": "catalog:"
   },
   "devDependencies": {
-    "typescript": "catalog:"
+    "@typescript/native-preview": "catalog:"
   },
   "files": [
     "build"

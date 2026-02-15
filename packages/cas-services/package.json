@@ -22,16 +22,17 @@
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build --watch",
-    "test": "vitest run"
+    "test": "vitest run",
+    "ts-check": "tsgo --noEmit"
   },
   "devDependencies": {
     "@rslib/core": "^0.19.5",
-    "@types/node": "^24.10.9",
-    "typescript": "^5.9.3",
     "@types/jsonwebtoken": "^9.0.1",
+    "@types/node": "catalog:",
     "@types/qs": "^6.9.7",
     "@typescript-eslint/eslint-plugin": "^4.11.1",
     "@typescript-eslint/parser": "^4.11.1",
+    "@typescript/native-preview": "catalog:",
     "chalk": "^2.4.2",
     "chalk-animation": "^1.6.0",
     "dotenv-extended": "^2.9.0",
