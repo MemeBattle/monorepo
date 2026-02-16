@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit'
-import type { All } from 'types/store'
+import type { All } from '#types/store'
 import { roomsEntityAdapter } from '#ducks/rooms/slice'
 
 const roomsEntitiesSelectors = roomsEntityAdapter.getSelectors<All>(state => state.rooms)

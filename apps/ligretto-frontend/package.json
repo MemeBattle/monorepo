@@ -21,7 +21,7 @@
   "scripts": {
     "start:dev": "vite --host --force",
     "build": "vite build",
-    "ts-check": "tsc --noEmit",
+    "ts-check": "tsgo --noEmit",
     "test": "vitest",
     "test:ci": "vitest run",
     "e2e:start": "playwright test"
@@ -33,10 +33,10 @@
     "@types/lodash": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@typescript/native-preview": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "playwright": "catalog:",
     "sass": "^1.53.0",
-    "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-svgr": "catalog:",
     "vitest": "catalog:"

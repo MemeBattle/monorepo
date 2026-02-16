@@ -1,6 +1,6 @@
 import { test, expect, chromium } from '@playwright/test'
-import { GamePage } from '#pages/game/GamePage.page-object'
-import { HomePage } from '#pages/home/HomePage.page-object'
+import { GamePage } from '#pages/game/GamePage.page-object.ts'
+import { HomePage } from '#pages/home/HomePage.page-object.ts'
 
 test.describe('Create and enter room', () => {
   test('Two users enter one room', async ({}, testInfo) => {

@@ -28,7 +28,7 @@ jobs:
       - name: Lint code
         run: pnpm gamehub-client:lint
 
-  tsc:
+  typecheck:
 
     runs-on: ubuntu-22.04
 

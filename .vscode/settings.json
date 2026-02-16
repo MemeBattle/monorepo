@@ -13,6 +13,7 @@
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   },
+  "typescript.experimental.useTsgo": true,
   "eslint.format.enable": true,
   "eslint.run": "onSave"
 }

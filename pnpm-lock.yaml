@@ -112,6 +112,9 @@ catalogs:
     '@typescript-eslint/parser':
       specifier: 7.3.1
       version: 7.3.1
+    '@typescript/native-preview':
+      specifier: 7.0.0-dev.20260215.1
+      version: 7.0.0-dev.20260215.1
     '@vitejs/plugin-react':
       specifier: 5.1.2
       version: 5.1.2
@@ -120,7 +123,7 @@ catalogs:
       version: 0.32.4
     amplitude-js:
       specifier: ^8.21.6
-      version: 8.21.9
+      version: 8.21.10
     autoprefixer:
       specifier: ^10.4.14
       version: 10.4.23
@@ -257,8 +260,8 @@ catalogs:
       specifier: ^12.2.0
       version: 12.3.1
     react-redux:
-      specifier: ^8.0.5
-      version: 8.1.3
+      specifier: 9.2.0
+      version: 9.2.0
     react-router:
       specifier: ^6.8.1
       version: 6.30.2
@@ -390,6 +393,9 @@ importers:
       '@typescript-eslint/parser':
         specifier: 'catalog:'
         version: 7.3.1(eslint@8.57.0)(typescript@5.9.3)
+      '@typescript/native-preview':
+        specifier: 'catalog:'
+        version: 7.0.0-dev.20260215.1
       eslint:
         specifier: 'catalog:'
         version: 8.57.0
@@ -435,9 +441,6 @@ importers:
       stylelint-prettier:
         specifier: 'catalog:'
         version: 5.0.0(prettier@3.2.5)(stylelint@16.2.1(typescript@5.9.3))
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
       wait-on:
         specifier: 'catalog:'
         version: 7.2.0
@@ -484,9 +487,9 @@ importers:
       '@types/react':
         specifier: ^18.3.12
         version: 18.3.27
-      typescript:
+      '@typescript/native-preview':
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 7.0.0-dev.20260215.1
 
   apps/blog:
     dependencies:
@@ -557,6 +560,9 @@ importers:
       '@types/react-dom':
         specifier: ^18.3.1
         version: 18.3.7(@types/react@18.3.27)
+      '@typescript/native-preview':
+        specifier: 'catalog:'
+        version: 7.0.0-dev.20260215.1
       '@vitejs/plugin-react':
         specifier: 'catalog:'
         version: 5.1.2(rolldown-vite@7.3.1(@types/node@24.9.2)(esbuild@0.18.20)(jiti@1.21.7)(sass@1.97.1)(yaml@2.8.2))
@@ -584,9 +590,6 @@ importers:
       tailwindcss:
         specifier: 'catalog:'
         version: 3.4.19(yaml@2.8.2)
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
       unist-util-visit:
         specifier: 'catalog:'
         version: 4.1.2
@@ -648,9 +651,9 @@ importers:
       '@types/react-dom':
         specifier: ^18.3.1
         version: 18.3.7(@types/react@18.3.27)
-      typescript:
+      '@typescript/native-preview':
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 7.0.0-dev.20260215.1
 
   apps/ligretto-core-backend:
     dependencies:
@@ -697,12 +700,18 @@ importers:
       '@types/lodash':
         specifier: 'catalog:'
         version: 4.17.21
+      '@typescript/native-preview':
+        specifier: 'catalog:'
+        version: 7.0.0-dev.20260215.1
       cpx:
         specifier: 'catalog:'
         version: 1.5.0
       pino-pretty:
         specifier: 'catalog:'
         version: 7.6.1
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
       youch:
         specifier: 'catalog:'
         version: 2.2.2
@@ -714,7 +723,7 @@ importers:
     dependencies:
       '@memebattle/analytics':
         specifier: workspace:^
-        version: file:packages/analytics
+        version: link:../../packages/analytics
       '@memebattle/auth-front':
         specifier: workspace:^
         version: file:apps/auth-front(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@memebattle/ui@file:packages/ui(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(lodash@4.17.21)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -738,7 +747,7 @@ importers:
         version: 7.3.7(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1)
       '@reduxjs/toolkit':
         specifier: 'catalog:'
-        version: 2.11.2(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@5.0.1))(react@18.3.1)
+        version: 2.11.2(react-redux@9.2.0(@types/react@18.3.27)(react@18.3.1)(redux@5.0.1))(react@18.3.1)
       '@sentry/browser':
         specifier: 'catalog:'
         version: 7.120.4
@@ -774,7 +783,7 @@ importers:
         version: 5.2.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-redux:
         specifier: 'catalog:'
-        version: 8.1.3(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@5.0.1)
+        version: 9.2.0(@types/react@18.3.27)(react@18.3.1)(redux@5.0.1)
       react-router:
         specifier: 'catalog:'
         version: 6.30.2(react@18.3.1)
@@ -812,6 +821,9 @@ importers:
       '@types/react-dom':
         specifier: ^18.3.1
         version: 18.3.7(@types/react@18.3.27)
+      '@typescript/native-preview':
+        specifier: 'catalog:'
+        version: 7.0.0-dev.20260215.1
       '@vitejs/plugin-react':
         specifier: 'catalog:'
         version: 5.1.2(rolldown-vite@7.3.1(@types/node@24.9.2)(esbuild@0.27.3)(jiti@2.6.1)(sass@1.97.1)(yaml@2.8.2))
@@ -821,9 +833,6 @@ importers:
       sass:
         specifier: ^1.53.0
         version: 1.97.1
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
       vite:
         specifier: npm:rolldown-vite@latest
         version: rolldown-vite@7.3.1(@types/node@24.9.2)(esbuild@0.27.3)(jiti@2.6.1)(sass@1.97.1)(yaml@2.8.2)
@@ -896,14 +905,14 @@ importers:
     dependencies:
       amplitude-js:
         specifier: 'catalog:'
-        version: 8.21.9
+        version: 8.21.10
     devDependencies:
       '@types/amplitude-js':
         specifier: 'catalog:'
         version: 8.16.2
-      typescript:
+      '@typescript/native-preview':
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 7.0.0-dev.20260215.1
 
   packages/cas-services:
     dependencies:
@@ -919,7 +928,7 @@ importers:
     devDependencies:
       '@rslib/core':
         specifier: ^0.19.5
-        version: 0.19.5(typescript@5.9.3)
+        version: 0.19.5(@typescript/native-preview@7.0.0-dev.20260215.1)(typescript@5.9.3)
       '@types/jsonwebtoken':
         specifier: ^9.0.1
         version: 9.0.10
@@ -935,6 +944,9 @@ importers:
       '@typescript-eslint/parser':
         specifier: ^4.11.1
         version: 4.33.0(eslint@7.32.0)(typescript@5.9.3)
+      '@typescript/native-preview':
+        specifier: 'catalog:'
+        version: 7.0.0-dev.20260215.1
       chalk:
         specifier: ^2.4.2
         version: 2.4.2
@@ -962,19 +974,16 @@ importers:
       ts-node:
         specifier: ^10.9.1
         version: 10.9.2(@types/node@24.9.2)(typescript@5.9.3)
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
 
   packages/ligretto-shared:
     dependencies:
       '@reduxjs/toolkit':
         specifier: 'catalog:'
-        version: 2.11.2(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@5.0.1))(react@18.3.1)
+        version: 2.11.2(react-redux@9.2.0(@types/react@18.3.27)(react@18.3.1)(redux@5.0.1))(react@18.3.1)
     devDependencies:
-      typescript:
+      '@typescript/native-preview':
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 7.0.0-dev.20260215.1
 
   packages/ui:
     dependencies:
@@ -1003,12 +1012,12 @@ importers:
       '@types/react':
         specifier: ^18.3.12
         version: 18.3.27
+      '@typescript/native-preview':
+        specifier: 'catalog:'
+        version: 7.0.0-dev.20260215.1
       csstype:
         specifier: 'catalog:'
         version: 3.2.3
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
 
 packages:
 
@@ -2565,9 +2574,6 @@ packages:
     resolution: {integrity: sha512-zQH//gdOmuu7nt2oJR29vFhDv88oGPmVw6BggmrHeMI+xgEkp1B2dX9/bMBSYtK0dyLX/aOmesKS09g222K1/g==}
     peerDependencies:
       react: '>=16'
-
-  '@memebattle/analytics@file:packages/analytics':
-    resolution: {directory: packages/analytics, type: directory}
 
   '@memebattle/auth-front@file:apps/auth-front':
     resolution: {directory: apps/auth-front, type: directory}
@@ -4509,11 +4515,6 @@ packages:
   '@types/history@4.7.11':
     resolution: {integrity: sha512-qjDJRrmvBMiTx+jyLxvLfJU7UznFuokDv4f3WRuriHKERccVpFU+8XMQUAbDzoiJCsmexxRExQeMwwCdamSKDA==}
 
-  '@types/hoist-non-react-statics@3.3.7':
-    resolution: {integrity: sha512-PQTyIulDkIDro8P+IHbKCsw7U2xxBYflVzW/FgWdCAePD9xGSidgA76/GeJ6lBKoblyhf9pBY763gbrN+1dI8g==}
-    peerDependencies:
-      '@types/react': ^18.3.12
-
   '@types/http-errors@2.0.5':
     resolution: {integrity: sha512-r8Tayk8HJnX0FztbZN7oVqGccWgw98T/0neJphO91KkmOzug1KkofZURD4UaD5uH8AqcFLfdPErnBod0u71/qg==}
 
@@ -4638,8 +4639,8 @@ packages:
   '@types/unist@2.0.11':
     resolution: {integrity: sha512-CmBKiL6NNo/OqgmMn95Fk9Whlp2mtvIv+KNpQKN2F4SjvrEesubTRWGYSg+BnWZOnlCaSTU1sMpsBOzgbYhnsA==}
 
-  '@types/use-sync-external-store@0.0.3':
-    resolution: {integrity: sha512-EwmlvuaxPNej9+T4v5AuBPJa2x2UOJVdjCtDHgcDqitUeOtjnJKJ+apYjVcAoBEMjKW1VVFGZLUb5+qqa09XFA==}
+  '@types/use-sync-external-store@0.0.6':
+    resolution: {integrity: sha512-zFDAD+tlpf2r4asuHEj0XH6pY6i0g5NeAHPn+15wk3BV6JA69eERFXC1gyGThDkVa1zCyKr5jox1+2LbV/AMLg==}
 
   '@types/uuid@9.0.8':
     resolution: {integrity: sha512-jg+97EGIcY9AGHJJRaaPVgetKDsrTgbRjQ5Msgjh/DQKEFl0DtyRr/VCOyD1T2R1MNeWPK/u7JoGhlDZnKBAfA==}
@@ -4821,6 +4822,45 @@ packages:
   '@typescript-eslint/visitor-keys@7.3.1':
     resolution: {integrity: sha512-9RMXwQF8knsZvfv9tdi+4D/j7dMG28X/wMJ8Jj6eOHyHWwDW4ngQJcqEczSsqIKKjFiLFr40Mnr7a5ulDD3vmw==}
     engines: {node: ^18.18.0 || >=20.0.0}
+
+  '@typescript/native-preview-darwin-arm64@7.0.0-dev.20260215.1':
+    resolution: {integrity: sha512-icVO/hEMXjWlKhmpjIpqDyCzPvtHqfrPB+2rkd6M3rz84Bmw+o8Xgd7JvRxryZhR+D0y55me/bKh9xgvsgzuhA==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@typescript/native-preview-darwin-x64@7.0.0-dev.20260215.1':
+    resolution: {integrity: sha512-Wz73wf1o9+4KwCLg8wnnIZZDAvv2KRZlDyP4X8GfBNzajfIAwYvI0ANWuIDznUUGeDAcqhBJXNe0Bkf4H9y4mg==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@typescript/native-preview-linux-arm64@7.0.0-dev.20260215.1':
+    resolution: {integrity: sha512-AYyXRxVwLZzfkEYN8FGdV4vqXwbTmv93nAZ6gMLvpDG4ItOybAE1R2obFjlFc+Or/rfQmVvfdkTym3c4bRJ3XQ==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@typescript/native-preview-linux-arm@7.0.0-dev.20260215.1':
+    resolution: {integrity: sha512-6WVXFVSp3LBBiBgBMtAHQgTDN72mDhgjrmXH7GoABTxR9asK8oPfmy5cwTp1sPD46pYhqjnSHMrARyg2FaNSeA==}
+    cpu: [arm]
+    os: [linux]
+
+  '@typescript/native-preview-linux-x64@7.0.0-dev.20260215.1':
+    resolution: {integrity: sha512-Ui6qbTO+nE7fwh5OGTGfL4ndaT+SpiUiv0F1m3+nMaiAKysY5GbgXUfzWzkSrOODsT8F/4jZ4wCzEzJordt8sQ==}
+    cpu: [x64]
+    os: [linux]
+
+  '@typescript/native-preview-win32-arm64@7.0.0-dev.20260215.1':
+    resolution: {integrity: sha512-dBFyAH9h3bMUaIp/84c3gKwyQ6jQmtzVoIBamSrYNw0xinJ56A/Ln5igdNOYrH8+/Aofmeh7pAWaa8U456XMjw==}
+    cpu: [arm64]
+    os: [win32]
+
+  '@typescript/native-preview-win32-x64@7.0.0-dev.20260215.1':
+    resolution: {integrity: sha512-bEMSwX71OGGvfsfHEa/aX7ZUWbPSI2oKEmeWcDQVY8vH1VK1ZwcFzMhKfgVJPt5pKH2bK3EO3xYnAyKkDO/Ung==}
+    cpu: [x64]
+    os: [win32]
+
+  '@typescript/native-preview@7.0.0-dev.20260215.1':
+    resolution: {integrity: sha512-grs0BbJyPR7VLNerBVteEToPku1InMKVKVKBUTJi19LfK+LU3+pkU6/fsTfZhH3xmIzIxD/sNRQHLt4x/Yb9yg==}
+    hasBin: true
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
@@ -5052,9 +5092,6 @@ packages:
 
   amplitude-js@8.21.10:
     resolution: {integrity: sha512-FUAnk+eFb9mOLOkwE3Dh1sVOeamuSLXs7AvfI3i81urq3T8L+aYiZE2jxS+e3+6v5Qcl6x5oBAsctSSNzfzLqg==}
-
-  amplitude-js@8.21.9:
-    resolution: {integrity: sha512-d0jJH00wbXu7sxKtVwkdSXtVffjqdUrxuACKlnzP7jU5qt9wriXXMgHifdH5Oq+buKmyF8wKL9S02gAykysURA==}
 
   ansi-colors@4.1.3:
     resolution: {integrity: sha512-/6w/C21Pm1A7aZitlI5Ni/2J6FFQN8i1Cvz3kHABAAbw93v/NlvKdVOqz7CCWz/3iv/JplRSEEZ83XION15ovw==}
@@ -9527,10 +9564,6 @@ packages:
     resolution: {integrity: sha512-n13AWriBMPYxnpbb6bnaY5YoY6rGj8vPLrz6CZF3o0qJNEwlcfJVxBzYZ0NJsQ21UbdJoijPCDrM++SUVEz7+w==}
     engines: {node: '>=8.16.0'}
 
-  qs@6.14.1:
-    resolution: {integrity: sha512-4EK3+xJl8Ts67nLYNwqw/dsFVnCf+qR7RgXSK9jEEm9unao3njwMDdmsdvoKBKHzxd7tCYz5e5M+SnMjdtXGQQ==}
-    engines: {node: '>=0.6'}
-
   qs@6.14.2:
     resolution: {integrity: sha512-V/yCWTTF7VJ9hIh18Ugr2zhJMP01MY7c5kh4J870L7imm6/DIzBsNLTXzMwUA3yZ5b/KBqLx8Kp3uRvd7xSe3Q==}
     engines: {node: '>=0.6'}
@@ -9664,29 +9697,17 @@ packages:
   react-is@18.1.0:
     resolution: {integrity: sha512-Fl7FuabXsJnV5Q1qIOQwx/sagGF18kogb4gpfcG4gjLBWO0WDiiz1ko/ExayuxE7InyQkBLkxRFG5oxY6Uu3Kg==}
 
-  react-is@18.3.1:
-    resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
-
   react-is@19.2.3:
     resolution: {integrity: sha512-qJNJfu81ByyabuG7hPFEbXqNcWSU3+eVus+KJs+0ncpGfMyYdvSmxiJxbWR65lYi1I+/0HBcliO029gc4F+PnA==}
 
-  react-redux@8.1.3:
-    resolution: {integrity: sha512-n0ZrutD7DaX/j9VscF+uTALI3oUPa/pO4Z3soOBIjuRn/FzVu6aehhysxZCLi6y7duMf52WNZGMl7CtuK5EnRw==}
+  react-redux@9.2.0:
+    resolution: {integrity: sha512-ROY9fvHhwOD9ySfrF0wmvu//bKCQ6AeZZq1nJNtbDC+kk5DuSuNX/n6YWYF/SYy7bSba4D4FSz8DJeKY/S/r+g==}
     peerDependencies:
       '@types/react': ^18.3.12
-      '@types/react-dom': ^18.3.1
-      react: ^16.8 || ^17.0 || ^18.0
-      react-dom: ^16.8 || ^17.0 || ^18.0
-      react-native: '>=0.59'
-      redux: ^4 || ^5.0.0-beta.0
+      react: ^18.0 || ^19
+      redux: ^5.0.0
     peerDependenciesMeta:
       '@types/react':
-        optional: true
-      '@types/react-dom':
-        optional: true
-      react-dom:
-        optional: true
-      react-native:
         optional: true
       redux:
         optional: true
@@ -11654,7 +11675,7 @@ snapshots:
       '@adonisjs/logger': 4.1.6
       '@adonisjs/profiler': 6.0.9(@adonisjs/logger@4.1.6)
       '@poppinss/utils': 5.0.0
-      semver: 7.7.3
+      semver: 7.7.4
 
   '@adonisjs/assembler@5.7.0(@adonisjs/core@5.9.0)':
     dependencies:
@@ -11805,7 +11826,7 @@ snapshots:
       luxon: 2.4.0
       macroable: 7.0.2
       pretty-hrtime: 1.0.3
-      qs: 6.14.1
+      qs: 6.14.2
       slash: 3.0.0
     transitivePeerDependencies:
       - '@adonisjs/application'
@@ -13477,10 +13498,6 @@ snapshots:
       '@types/react': 18.3.27
       react: 18.3.1
 
-  '@memebattle/analytics@file:packages/analytics':
-    dependencies:
-      amplitude-js: 8.21.10
-
   '@memebattle/auth-front@file:apps/auth-front(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@memebattle/ui@file:packages/ui(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(lodash@4.17.21)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@memebattle/cas-services': file:packages/cas-services
@@ -13812,7 +13829,7 @@ snapshots:
       '@opentelemetry/propagator-b3': 1.30.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/propagator-jaeger': 1.30.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base': 1.30.1(@opentelemetry/api@1.9.0)
-      semver: 7.7.3
+      semver: 7.7.4
 
   '@opentelemetry/semantic-conventions@1.13.0': {}
 
@@ -14571,7 +14588,7 @@ snapshots:
 
   '@radix-ui/rect@1.1.1': {}
 
-  '@reduxjs/toolkit@2.11.2(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@5.0.1))(react@18.3.1)':
+  '@reduxjs/toolkit@2.11.2(react-redux@9.2.0(@types/react@18.3.27)(react@18.3.1)(redux@5.0.1))(react@18.3.1)':
     dependencies:
       '@standard-schema/spec': 1.1.0
       '@standard-schema/utils': 0.3.0
@@ -14581,7 +14598,7 @@ snapshots:
       reselect: 5.1.1
     optionalDependencies:
       react: 18.3.1
-      react-redux: 8.1.3(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@5.0.1)
+      react-redux: 9.2.0(@types/react@18.3.27)(react@18.3.1)(redux@5.0.1)
 
   '@remix-run/router@1.23.1': {}
 
@@ -14719,10 +14736,10 @@ snapshots:
       core-js: 3.47.0
       jiti: 2.6.1
 
-  '@rslib/core@0.19.5(typescript@5.9.3)':
+  '@rslib/core@0.19.5(@typescript/native-preview@7.0.0-dev.20260215.1)(typescript@5.9.3)':
     dependencies:
       '@rsbuild/core': 1.7.3
-      rsbuild-plugin-dts: 0.19.5(@rsbuild/core@1.7.3)(typescript@5.9.3)
+      rsbuild-plugin-dts: 0.19.5(@rsbuild/core@1.7.3)(@typescript/native-preview@7.0.0-dev.20260215.1)(typescript@5.9.3)
     optionalDependencies:
       typescript: 5.9.3
     transitivePeerDependencies:
@@ -15191,7 +15208,7 @@ snapshots:
       prompts: 2.4.2
       puppeteer-core: 2.1.1
       read-pkg-up: 7.0.1
-      semver: 7.7.3
+      semver: 7.7.4
       strip-json-comments: 3.1.1
       tempy: 1.0.1
       ts-dedent: 2.2.0
@@ -15323,7 +15340,7 @@ snapshots:
       pretty-hrtime: 1.0.3
       prompts: 2.4.2
       read-pkg-up: 7.0.1
-      semver: 7.7.3
+      semver: 7.7.4
       telejson: 7.2.0
       tiny-invariant: 1.3.3
       ts-dedent: 2.2.0
@@ -15803,11 +15820,6 @@ snapshots:
 
   '@types/history@4.7.11': {}
 
-  '@types/hoist-non-react-statics@3.3.7(@types/react@18.3.27)':
-    dependencies:
-      '@types/react': 18.3.27
-      hoist-non-react-statics: 3.3.2
-
   '@types/http-errors@2.0.5': {}
 
   '@types/istanbul-lib-coverage@2.0.6': {}
@@ -15927,7 +15939,7 @@ snapshots:
 
   '@types/unist@2.0.11': {}
 
-  '@types/use-sync-external-store@0.0.3': {}
+  '@types/use-sync-external-store@0.0.6': {}
 
   '@types/uuid@9.0.8': {}
 
@@ -15971,7 +15983,7 @@ snapshots:
       graphemer: 1.4.0
       ignore: 5.3.2
       natural-compare: 1.4.0
-      semver: 7.7.3
+      semver: 7.7.4
       ts-api-utils: 1.4.3(typescript@5.9.3)
     optionalDependencies:
       typescript: 5.9.3
@@ -16084,7 +16096,7 @@ snapshots:
       glob: 7.2.3
       is-glob: 4.0.3
       lodash: 4.17.21
-      semver: 7.7.3
+      semver: 7.7.4
       tsutils: 3.21.0(typescript@3.9.10)
     optionalDependencies:
       typescript: 3.9.10
@@ -16112,7 +16124,7 @@ snapshots:
       debug: 4.4.3
       globby: 11.1.0
       is-glob: 4.0.3
-      semver: 7.7.3
+      semver: 7.7.4
       tsutils: 3.21.0(typescript@5.9.3)
     optionalDependencies:
       typescript: 5.9.3
@@ -16127,7 +16139,7 @@ snapshots:
       globby: 11.1.0
       is-glob: 4.0.3
       minimatch: 9.0.3
-      semver: 7.7.3
+      semver: 7.7.4
       ts-api-utils: 1.4.3(typescript@5.9.3)
     optionalDependencies:
       typescript: 5.9.3
@@ -16144,7 +16156,7 @@ snapshots:
       '@typescript-eslint/typescript-estree': 5.62.0(typescript@5.9.3)
       eslint: 8.57.0
       eslint-scope: 5.1.1
-      semver: 7.7.3
+      semver: 7.7.4
     transitivePeerDependencies:
       - supports-color
       - typescript
@@ -16158,7 +16170,7 @@ snapshots:
       '@typescript-eslint/types': 7.3.1
       '@typescript-eslint/typescript-estree': 7.3.1(typescript@5.9.3)
       eslint: 8.57.0
-      semver: 7.7.3
+      semver: 7.7.4
     transitivePeerDependencies:
       - supports-color
       - typescript
@@ -16181,6 +16193,37 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 7.3.1
       eslint-visitor-keys: 3.4.3
+
+  '@typescript/native-preview-darwin-arm64@7.0.0-dev.20260215.1':
+    optional: true
+
+  '@typescript/native-preview-darwin-x64@7.0.0-dev.20260215.1':
+    optional: true
+
+  '@typescript/native-preview-linux-arm64@7.0.0-dev.20260215.1':
+    optional: true
+
+  '@typescript/native-preview-linux-arm@7.0.0-dev.20260215.1':
+    optional: true
+
+  '@typescript/native-preview-linux-x64@7.0.0-dev.20260215.1':
+    optional: true
+
+  '@typescript/native-preview-win32-arm64@7.0.0-dev.20260215.1':
+    optional: true
+
+  '@typescript/native-preview-win32-x64@7.0.0-dev.20260215.1':
+    optional: true
+
+  '@typescript/native-preview@7.0.0-dev.20260215.1':
+    optionalDependencies:
+      '@typescript/native-preview-darwin-arm64': 7.0.0-dev.20260215.1
+      '@typescript/native-preview-darwin-x64': 7.0.0-dev.20260215.1
+      '@typescript/native-preview-linux-arm': 7.0.0-dev.20260215.1
+      '@typescript/native-preview-linux-arm64': 7.0.0-dev.20260215.1
+      '@typescript/native-preview-linux-x64': 7.0.0-dev.20260215.1
+      '@typescript/native-preview-win32-arm64': 7.0.0-dev.20260215.1
+      '@typescript/native-preview-win32-x64': 7.0.0-dev.20260215.1
 
   '@ungap/structured-clone@1.3.0': {}
 
@@ -16493,15 +16536,6 @@ snapshots:
       require-from-string: 2.0.2
 
   amplitude-js@8.21.10:
-    dependencies:
-      '@amplitude/analytics-connector': 1.6.4
-      '@amplitude/ua-parser-js': 0.7.33
-      '@amplitude/utils': 1.10.2
-      '@babel/runtime': 7.28.6
-      blueimp-md5: 2.19.0
-      query-string: 8.1.0
-
-  amplitude-js@8.21.9:
     dependencies:
       '@amplitude/analytics-connector': 1.6.4
       '@amplitude/ua-parser-js': 0.7.33
@@ -20273,7 +20307,7 @@ snapshots:
 
   make-dir@4.0.0:
     dependencies:
-      semver: 7.7.3
+      semver: 7.7.4
 
   make-error@1.3.6: {}
 
@@ -21003,7 +21037,7 @@ snapshots:
 
   node-abi@3.85.0:
     dependencies:
-      semver: 7.7.3
+      semver: 7.7.4
 
   node-addon-api@6.1.0: {}
 
@@ -21820,10 +21854,6 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  qs@6.14.1:
-    dependencies:
-      side-channel: 1.1.0
-
   qs@6.14.2:
     dependencies:
       side-channel: 1.1.0
@@ -21974,23 +22004,15 @@ snapshots:
 
   react-is@18.1.0: {}
 
-  react-is@18.3.1: {}
-
   react-is@19.2.3: {}
 
-  react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@5.0.1):
+  react-redux@9.2.0(@types/react@18.3.27)(react@18.3.1)(redux@5.0.1):
     dependencies:
-      '@babel/runtime': 7.28.6
-      '@types/hoist-non-react-statics': 3.3.7(@types/react@18.3.27)
-      '@types/use-sync-external-store': 0.0.3
-      hoist-non-react-statics: 3.3.2
+      '@types/use-sync-external-store': 0.0.6
       react: 18.3.1
-      react-is: 18.3.1
       use-sync-external-store: 1.6.0(react@18.3.1)
     optionalDependencies:
       '@types/react': 18.3.27
-      '@types/react-dom': 18.3.7(@types/react@18.3.27)
-      react-dom: 18.3.1(react@18.3.1)
       redux: 5.0.1
 
   react-refresh@0.14.2: {}
@@ -22463,11 +22485,12 @@ snapshots:
 
   rrweb-cssom@0.6.0: {}
 
-  rsbuild-plugin-dts@0.19.5(@rsbuild/core@1.7.3)(typescript@5.9.3):
+  rsbuild-plugin-dts@0.19.5(@rsbuild/core@1.7.3)(@typescript/native-preview@7.0.0-dev.20260215.1)(typescript@5.9.3):
     dependencies:
       '@ast-grep/napi': 0.37.0
       '@rsbuild/core': 1.7.3
     optionalDependencies:
+      '@typescript/native-preview': 7.0.0-dev.20260215.1
       typescript: 5.9.3
 
   run-parallel@1.2.0:
@@ -22653,7 +22676,7 @@ snapshots:
       detect-libc: 2.1.2
       node-addon-api: 6.1.0
       prebuild-install: 7.1.3
-      semver: 7.7.3
+      semver: 7.7.4
       simple-get: 4.0.1
       tar-fs: 3.1.1
       tunnel-agent: 0.6.0
@@ -22666,7 +22689,7 @@ snapshots:
     dependencies:
       '@img/colour': 1.0.0
       detect-libc: 2.1.2
-      semver: 7.7.3
+      semver: 7.7.4
     optionalDependencies:
       '@img/sharp-darwin-arm64': 0.34.5
       '@img/sharp-darwin-x64': 0.34.5

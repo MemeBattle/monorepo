@@ -6,12 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "ts-check": "tsc --noEmit"
+    "ts-check": "tsgo --noEmit"
   },
   "dependencies": {
     "@emotion/cache": "catalog:",
-    "@emotion/server": "catalog:",
     "@emotion/react": "catalog:",
+    "@emotion/server": "catalog:",
     "@memebattle/ui": "workspace:^",
     "lodash": "catalog:",
     "next": "catalog:",
@@ -24,6 +24,6 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "typescript": "catalog:"
+    "@typescript/native-preview": "catalog:"
   }
 }

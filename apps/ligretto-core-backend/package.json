@@ -13,8 +13,10 @@
   "devDependencies": {
     "@adonisjs/assembler": "catalog:",
     "@types/lodash": "catalog:",
+    "@typescript/native-preview": "catalog:",
     "cpx": "catalog:",
     "pino-pretty": "catalog:",
+    "typescript": "catalog:",
     "youch": "catalog:",
     "youch-terminal": "catalog:"
   },

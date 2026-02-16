@@ -3,7 +3,7 @@ import type { Meta, StoryFn } from '@storybook/react'
 import { history, store } from '#app/store'
 
 import { GamePage } from './GamePage'
-import { createMockStore } from 'testing/lib/createMockStore'
+import { createMockStore } from '#testing/lib/createMockStore'
 
 import { initialState as gameInitialState } from '#ducks/game'
 import { authInitialState } from '#ducks/auth/authSlice'

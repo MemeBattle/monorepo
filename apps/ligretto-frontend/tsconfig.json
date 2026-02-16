@@ -7,6 +7,7 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
@@ -16,12 +17,8 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "baseUrl": "./src",
     "noImplicitAny": true,
-    "types": ["vitest/globals"],
-    "paths": {
-      "#*": ["./*"]
-    }
+    "types": ["vitest/globals"]
   },
   "include": [
     "./src",
