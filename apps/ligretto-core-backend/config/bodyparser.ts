@@ -5,9 +5,9 @@
  * file.
  */
 
-import type { BodyParserConfig } from '@ioc:Adonis/Core/BodyParser'
+import { defineConfig } from '@adonisjs/core/bodyparser'
 
-const bodyParserConfig: BodyParserConfig = {
+const bodyParserConfig = defineConfig({
   /*
   |--------------------------------------------------------------------------
   | White listed methods
@@ -17,7 +17,7 @@ const bodyParserConfig: BodyParserConfig = {
   | to avoid body parsing for `GET` requests.
   |
   */
-  whitelistedMethods: ['POST', 'PUT', 'PATCH', 'DELETE'],
+  allowedMethods: ['POST', 'PUT', 'PATCH', 'DELETE'],
 
   /*
   |--------------------------------------------------------------------------
@@ -47,7 +47,6 @@ const bodyParserConfig: BodyParserConfig = {
   form: {
     encoding: 'utf-8',
     limit: '1mb',
-    queryString: {},
 
     /*
     |--------------------------------------------------------------------------
@@ -77,7 +76,6 @@ const bodyParserConfig: BodyParserConfig = {
   raw: {
     encoding: 'utf-8',
     limit: '1mb',
-    queryString: {},
     types: ['text/*'],
   },
 
@@ -143,16 +141,6 @@ const bodyParserConfig: BodyParserConfig = {
 
     /*
     |--------------------------------------------------------------------------
-    | Encoding
-    |--------------------------------------------------------------------------
-    |
-    | Request body encoding
-    |
-    */
-    encoding: 'utf-8',
-
-    /*
-    |--------------------------------------------------------------------------
     | Convert empty strings to null
     |--------------------------------------------------------------------------
     |
@@ -195,6 +183,6 @@ const bodyParserConfig: BodyParserConfig = {
     */
     types: ['multipart/form-data'],
   },
-}
+})
 
 export default bodyParserConfig

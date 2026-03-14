@@ -1,7 +1,7 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-import GameModel from 'App/Models/Game'
-import SaveRoundValidator from 'App/Validators/SaveRoundValidator'
-import GamesService from 'App/Services/GamesService'
+import type { HttpContext } from '@adonisjs/core/http'
+import GameModel from '#models/Game'
+import { saveRoundValidator } from '#validators/SaveRoundValidator'
+import GamesService from '#services/GamesService'
 
 import type { UUID } from '@memebattle/ligretto-shared'
 import type { SaveRoundResponse } from '@memebattle/ligretto-shared'
@@ -20,10 +20,10 @@ export default class GamesController {
     return game
   }
 
-  public async saveRound(ctx: HttpContextContract): Promise<SaveRoundResponse> {
+  public async saveRound(ctx: HttpContext): Promise<SaveRoundResponse> {
     const gameId: UUID = ctx.params.id
 
-    const { results } = await ctx.request.validate(SaveRoundValidator)
+    const { results } = await saveRoundValidator.validate(ctx.request.all())
 
     return await this.gamesService.saveRound(gameId, results)
   }

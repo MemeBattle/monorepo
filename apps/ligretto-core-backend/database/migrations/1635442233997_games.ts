@@ -1,4 +1,4 @@
-import BaseSchema from '@ioc:Adonis/Lucid/Schema'
+import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class Games extends BaseSchema {
   protected tableName = 'games'

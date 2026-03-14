@@ -1,8 +1,9 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, ManyToMany, manyToMany, BelongsTo, belongsTo, beforeCreate } from '@ioc:Adonis/Lucid/Orm'
-import User from './User'
-import Game from './Game'
+import { BaseModel, column, manyToMany, belongsTo, beforeCreate } from '@adonisjs/lucid/orm'
+import User from './User.js'
+import Game from './Game.js'
 import { randomUUID } from 'node:crypto'
+import { type ManyToMany, type BelongsTo } from '@adonisjs/lucid/types/relations'
 
 export default class Round extends BaseModel {
   public static selfAssignPrimaryKey = true
@@ -23,10 +24,10 @@ export default class Round extends BaseModel {
     pivotTable: 'round_users',
     pivotColumns: ['score'],
     relatedKey: 'casId',
-    pivotRelatedForeignKey: 'userId',
+    pivotRelatedForeignKey: 'user_id',
     pivotTimestamps: {
-      createdAt: 'createdAt',
-      updatedAt: 'updatedAt',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
     },
   })
   public users: ManyToMany<typeof User>

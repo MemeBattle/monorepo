@@ -1,7 +1,6 @@
 import type { UUID } from '@memebattle/ligretto-shared'
-import GameModel from 'App/Models/Game'
+import GameModel from '#models/Game'
 import type { SaveRoundResponse } from '@memebattle/ligretto-shared'
-import mergeWith from 'lodash/mergeWith'
 
 type GameResults = Array<{ playerId: UUID; score: number }>
 
@@ -35,11 +34,24 @@ export default class GamesService {
       return roundResults
     }, {})
 
-    const gameResults: SaveRoundResponse['gameResults'] = mergeWith(gameScoresByUserId, roundScoresByUserId, (gameScore, { score: roundScore }) => ({
-      gameScore,
-      roundScore,
-    }))
+    const gameResults: SaveRoundResponse['gameResults'] = mergeGameResults(gameScoresByUserId, roundScoresByUserId)
 
     return { game, roundResults, round, gameResults }
   }
+}
+
+function mergeGameResults(
+  gameScoresByUserId: Record<string, number>,
+  roundScoresByUserId: Record<string, { score: number }>,
+): Record<string, { roundScore: number; gameScore: number }> {
+  const result: Record<string, { roundScore: number; gameScore: number }> = {}
+
+  Object.entries(gameScoresByUserId).forEach(([userId, gameScore]) => {
+    result[userId] = {
+      roundScore: roundScoresByUserId[userId]?.score ?? 0,
+      gameScore,
+    }
+  })
+
+  return result
 }

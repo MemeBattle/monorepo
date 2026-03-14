@@ -1,16 +1,17 @@
-import type { User as CasUser } from '@ioc:CasServices'
-import { getUsers } from '@ioc:CasServices'
-import UserModel from 'App/Models/User'
-import UsersListValidator from 'App/Validators/UsersListValidator'
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-import { validator } from '@ioc:Adonis/Core/Validator'
+import type { User as CasUser } from '#contracts/CasServices'
+import app from '@adonisjs/core/services/app'
+import UserModel from '#models/User'
+import { usersListValidator } from '#validators/UsersListValidator'
+import { ensureArray } from '#helpers/ensureArray'
+import type { HttpContext } from '@adonisjs/core/http'
 
 export default class UsersController {
-  public async index(ctx: HttpContextContract) {
-    const { schema } = new UsersListValidator(ctx)
-
-    const { ids } = await validator.validate({ schema, data: ctx.request.qs() })
-    const [casUsersResponse, users] = await Promise.all([getUsers({ ids }), UserModel.query().whereIn('casId', ids)])
+  public async index(ctx: HttpContext) {
+    const rawQs = ctx.request.qs()
+    const normalizedQs = { ...rawQs, ids: ensureArray(rawQs.ids) }
+    const { ids } = await usersListValidator.validate(normalizedQs)
+    const casServices = await app.container.make('casServices')
+    const [casUsersResponse, users] = await Promise.all([casServices.getUsers({ ids }), UserModel.query().whereIn('casId', ids)])
     if (!casUsersResponse.success) {
       return ctx.response.status(casUsersResponse.error.errorCode).json(casUsersResponse.error)
     }

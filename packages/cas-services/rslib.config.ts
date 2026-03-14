@@ -7,11 +7,13 @@ export default defineConfig({
       syntax: ['node 18'],
       dts: true,
       bundle: false,
+      autoExternal: false,
     },
     {
       format: 'cjs',
       syntax: ['node 18'],
       bundle: false,
+      autoExternal: false,
     },
   ],
 });

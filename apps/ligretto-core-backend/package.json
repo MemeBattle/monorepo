@@ -5,14 +5,24 @@
   "scripts": {
     "build": "node ace build --production",
     "start": "node server.js",
-    "start:dev": "node ace serve --watch",
+    "start:dev": "NODE_ENV=development node ace serve --watch",
     "migrate": "node ace migration:run --force",
     "production-migrate": "node ace migration:run --force",
-    "ts-check": "tsc --noEmit"
+    "ts-check": "tsc --noEmit",
+    "test": "node ace test",
+    "test:ci": "node ace test"
   },
   "devDependencies": {
+    "better-sqlite3": "catalog:",
     "@adonisjs/assembler": "catalog:",
+    "@adonisjs/tsconfig": "catalog:",
+    "@japa/api-client": "catalog:",
+    "@japa/assert": "catalog:",
+    "@japa/plugin-adonisjs": "catalog:",
+    "@japa/runner": "catalog:",
+    "@poppinss/ts-exec": "catalog:",
     "@types/lodash": "catalog:",
+    "@types/luxon": "catalog:",
     "@typescript/native-preview": "catalog:",
     "cpx": "catalog:",
     "pino-pretty": "catalog:",
@@ -22,19 +32,38 @@
   },
   "dependencies": {
     "@adonisjs/core": "catalog:",
+    "@adonisjs/cors": "catalog:",
     "@adonisjs/lucid": "catalog:",
-    "@adonisjs/repl": "catalog:",
     "@codexsoft/dotenv-flow": "catalog:",
     "@memebattle/cas-services": "workspace:^",
     "@memebattle/ligretto-shared": "workspace:^",
+    "@vinejs/vine": "catalog:",
     "lodash": "catalog:",
     "luxon": "catalog:",
     "pg": "catalog:",
     "proxy-addr": "catalog:",
-    "reflect-metadata": "catalog:",
-    "source-map-support": "catalog:"
+    "reflect-metadata": "catalog:"
   },
   "files": [
     "build"
-  ]
+  ],
+  "type": "module",
+  "imports": {
+    "#controllers/*": "./app/controllers/*.js",
+    "#exceptions/*": "./app/exceptions/*.js",
+    "#models/*": "./app/models/*.js",
+    "#services/*": "./app/services/*.js",
+    "#listeners/*": "./app/listeners/*.js",
+    "#events/*": "./app/events/*.js",
+    "#middleware/*": "./app/middleware/*.js",
+    "#validators/*": "./app/validators/*.js",
+    "#start/*": "./start/*.js",
+    "#config/*": "./config/*.js",
+    "#app/*": "./app/*.js",
+    "#database/*": "./database/*.js",
+    "#contracts/*": "./contracts/*.js",
+    "#helpers/*": "./app/helpers/*.js",
+    "#generated/*": "./.adonisjs/server/*.js",
+    "#transformers/*": "./app/transformers/*.js"
+  }
 }

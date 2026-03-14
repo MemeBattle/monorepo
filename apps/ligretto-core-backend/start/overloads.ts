@@ -8,4 +8,4 @@
 |
 */
 
-import('../overloads/camelCaseNamingStrategy')
+import('../overloads/camelCaseNamingStrategy.js')

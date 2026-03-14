@@ -1,32 +1,34 @@
 import { DateTime } from 'luxon'
-import omit from 'lodash/omit'
-import { BaseModel, column, ManyToMany, manyToMany } from '@ioc:Adonis/Lucid/Orm'
-import type { User as CasUser, TemporaryUser as CasTemporaryUser } from '@ioc:CasServices'
-import Round from 'App/Models/Round'
+import lodash from 'lodash'
+import { BaseModel, column, manyToMany } from '@adonisjs/lucid/orm'
+import type { User as CasUser, TemporaryUser as CasTemporaryUser } from '#contracts/CasServices'
+import Round from '#models/Round'
+import { type ManyToMany } from '@adonisjs/lucid/types/relations'
 
 export default class User extends BaseModel {
   public static table = 'users'
 
   public static selfAssignPrimaryKey = true
 
-  public static connection = 'pg'
-
-  @column.dateTime({ autoCreate: true, columnName: 'created_at' })
+  @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
 
-  @column.dateTime({ autoCreate: true, autoUpdate: true, columnName: 'updated_at' })
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime
 
-  @column({ columnName: 'casId', isPrimary: true })
+  @column({ isPrimary: true })
   public casId: string
 
-  @column({ columnName: 'isTemporary' })
+  @column()
   public isTemporary: boolean
 
   public mergeWithCasUser(casUser: CasUser | CasTemporaryUser | undefined) {
-    return { ...this.serialize(), ...omit(casUser, '_id') }
+    return { ...this.serialize(), ...lodash.omit(casUser, '_id') }
   }
 
-  @manyToMany(() => Round)
+  @manyToMany(() => Round, {
+    pivotTable: 'round_users',
+    pivotForeignKey: 'user_id',
+  })
   public rounds: ManyToMany<typeof Round>
 }

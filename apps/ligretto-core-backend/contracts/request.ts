@@ -1,5 +1,5 @@
-declare module '@ioc:Adonis/Core/Request' {
-  interface RequestContract {
+declare module '@adonisjs/core/http' {
+  interface HttpRequest {
     userCasId?: string
   }
 }

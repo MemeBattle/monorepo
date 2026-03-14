@@ -5,10 +5,12 @@
  * file.
  */
 
-import Env from '@ioc:Adonis/Core/Env'
-import type { DatabaseConfig } from '@ioc:Adonis/Lucid/Database'
+import env from '#start/env'
+import { defineConfig } from '@adonisjs/lucid'
 
-const databaseConfig: DatabaseConfig = {
+const isTest = process.env.NODE_ENV === 'test'
+
+const databaseConfig = defineConfig({
   /*
   |--------------------------------------------------------------------------
   | Connection
@@ -19,7 +21,7 @@ const databaseConfig: DatabaseConfig = {
   | file.
   |
   */
-  connection: Env.get('LIGRETTO_CORE_DB_CONNECTION'),
+  connection: (isTest ? 'sqlite' : env.get('LIGRETTO_CORE_DB_CONNECTION')) as 'pg',
 
   connections: {
     /*
@@ -36,11 +38,11 @@ const databaseConfig: DatabaseConfig = {
     pg: {
       client: 'pg',
       connection: {
-        host: Env.get('LIGRETTO_CORE_PG_HOST'),
-        port: Env.get('LIGRETTO_CORE_PG_PORT'),
-        user: Env.get('LIGRETTO_CORE_PG_USER'),
-        password: Env.get('LIGRETTO_CORE_PG_PASSWORD', ''),
-        database: Env.get('LIGRETTO_CORE_PG_DB_NAME'),
+        host: env.get('LIGRETTO_CORE_PG_HOST'),
+        port: env.get('LIGRETTO_CORE_PG_PORT'),
+        user: env.get('LIGRETTO_CORE_PG_USER'),
+        password: env.get('LIGRETTO_CORE_PG_PASSWORD', ''),
+        database: env.get('LIGRETTO_CORE_PG_DB_NAME'),
       },
       migrations: {
         naturalSort: true,
@@ -51,10 +53,20 @@ const databaseConfig: DatabaseConfig = {
         acquireTimeoutMillis: 60000,
         idleTimeoutMillis: 600000,
       },
-      healthCheck: true,
       debug: false,
     },
+
+    sqlite: {
+      client: 'better-sqlite3' as 'sqlite3',
+      connection: {
+        filename: ':memory:',
+      },
+      useNullAsDefault: true,
+      migrations: {
+        naturalSort: true,
+      },
+    },
   },
-}
+})
 
 export default databaseConfig

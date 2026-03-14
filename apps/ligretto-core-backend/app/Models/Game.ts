@@ -1,8 +1,8 @@
 import { DateTime } from 'luxon'
-import { HasMany } from '@ioc:Adonis/Lucid/Orm'
-import { BaseModel, column, hasMany, beforeCreate } from '@ioc:Adonis/Lucid/Orm'
-import Round from './Round'
+import { BaseModel, column, hasMany, beforeCreate } from '@adonisjs/lucid/orm'
+import Round from './Round.js'
 import { randomUUID } from 'node:crypto'
+import { type HasMany } from '@adonisjs/lucid/types/relations'
 
 export default class Game extends BaseModel {
   public static selfAssignPrimaryKey = true

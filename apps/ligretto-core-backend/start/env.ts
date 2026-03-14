@@ -11,14 +11,9 @@
 | and hence do not rename or move this file to a different location.
 |
 */
+import { Env } from '@adonisjs/core/env'
 
-import Env from '@ioc:Adonis/Core/Env'
-import dotenv from '@codexsoft/dotenv-flow'
-import path from 'node:path'
-
-dotenv.config({ default_node_env: 'development', path: path.resolve(__dirname, '../..') })
-
-export default Env.rules({
+export default await Env.create(new URL('../../../', import.meta.url), {
   LIGRETTO_CORE_APP_KEY: Env.schema.string(),
   LIGRETTO_CORE_APP_NAME: Env.schema.string(),
   CAS_PARTNER_ID: Env.schema.string(),

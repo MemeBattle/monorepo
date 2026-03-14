@@ -1,13 +1,14 @@
-import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-import { getMe, createTemporaryToken } from '@ioc:CasServices'
-import UserModel from 'App/Models/User'
-import GetMeValidator from 'App/Validators/GetMeValidator'
+import type { HttpContext } from '@adonisjs/core/http'
+import app from '@adonisjs/core/services/app'
+import UserModel from '#models/User'
+import { getMeValidator } from '#validators/GetMeValidator'
 
 export default class AuthController {
-  async me({ request, response }: HttpContextContract) {
-    const { token } = await request.validate(GetMeValidator)
+  async me({ request, response }: HttpContext) {
+    const { token } = await getMeValidator.validate(request.all())
+    const casServices = await app.container.make('casServices')
     if (token) {
-      const casGetMeResult = await getMe({ token })
+      const casGetMeResult = await casServices.getMe({ token })
       if (casGetMeResult.success) {
         const user = await UserModel.firstOrCreate({ casId: casGetMeResult.data.user._id }, {})
         return { user: user.mergeWithCasUser(casGetMeResult.data.user), token }
@@ -16,7 +17,7 @@ export default class AuthController {
         return response.status(casGetMeResult.error.errorCode).json(casGetMeResult.error)
       }
     }
-    const temporaryResult = await createTemporaryToken()
+    const temporaryResult = await casServices.createTemporaryToken()
     if (temporaryResult.success) {
       const user = await UserModel.create({ casId: temporaryResult.data.temporaryUser._id, isTemporary: true })
 
