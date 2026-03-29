@@ -28,7 +28,7 @@ catalog:
   '@reduxjs/toolkit': 2.11.2
   '@sentry/browser': ^7.108.0
   '@sentry/integrations': ^7.108.0
-  '@sentry/vite-plugin': ^2.16.0
+  '@sentry/vite-plugin': ^5.1.1
   '@storybook/addon-actions': ^7.0.6
   '@storybook/addon-docs': ^7.0.6
   '@storybook/addon-essentials': ^7.0.6
@@ -51,8 +51,8 @@ catalog:
   '@typescript-eslint/parser': 7.3.1
   '@typescript/native-preview': 7.0.0-dev.20260215.1
   '@vinejs/vine': 4.3.0
-  '@vitejs/plugin-react': 5.1.2
-  '@vitest/coverage-v8': ^0.32.0
+  '@vitejs/plugin-react': 6.0.1
+  '@vitest/coverage-v8': ^4.1.2
   amplitude-js: ^8.21.6
   autoprefixer: ^10.4.14
   axios: 1.13.5
@@ -123,10 +123,10 @@ catalog:
   ts-node: ^10.9.2
   typescript: ^5.9.3
   unist-util-visit: ^4.1.2
-  vite: 7.3.1
-  vite-plugin-svgr: 4.5.0
-  vite-tsconfig-paths: 6.0.5
-  vitest: 4.0.18
+  vite: 8.0.3
+  vite-plugin-svgr: 5.0.0
+  vite-tsconfig-paths: 6.1.1
+  vitest: 4.1.2
   wait-on: ^7.0.1
   youch: 4.1.0
   youch-terminal: 2.2.3
