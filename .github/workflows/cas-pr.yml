@@ -11,7 +11,7 @@ on:
 
 jobs:
   fmt:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
@@ -27,7 +27,7 @@ jobs:
         run: cargo fmt --check
 
   test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
@@ -41,7 +41,7 @@ jobs:
         run: cargo test
 
   clippy:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
