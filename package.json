@@ -75,8 +75,7 @@
     "overrides": {
       "@types/react": "catalog:",
       "@types/react-dom": "catalog:",
-      "@types/node": "catalog:",
-      "vite": "npm:rolldown-vite@latest"
+      "@types/node": "catalog:"
     }
   }
 }
