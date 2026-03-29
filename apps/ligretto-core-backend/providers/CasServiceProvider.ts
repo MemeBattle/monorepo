@@ -1,42 +1,29 @@
 import { createCasServices } from '@memebattle/cas-services'
-import type { ApplicationContract } from '@ioc:Adonis/Core/Application'
-import type { Services } from '@ioc:CasServices'
+import type { Services } from '#contracts/CasServices'
 import { readFile } from 'fs/promises'
+import type { ApplicationService } from '@adonisjs/core/types'
 
-/*
-|--------------------------------------------------------------------------
-| Provider
-|--------------------------------------------------------------------------
-|
-| Your application is not ready when this file is loaded by the framework.
-| Hence, the level imports relying on the IoC container will not work.
-| You must import them inside the life-cycle methods defined inside
-| the provider class.
-|
-| @example:
-|
-| public async ready () {
-|   const Database = (await import('@ioc:Adonis/Lucid/Database')).default
-|   const Event = (await import('@ioc:Adonis/Core/Event')).default
-|   Event.on('db:query', Database.prettyPrint)
-| }
-|
-*/
+declare module '@adonisjs/core/types' {
+  interface ContainerBindings {
+    casServices: Services
+  }
+}
+
 export default class CasServiceProvider {
-  constructor(protected application: ApplicationContract) {
+  constructor(protected application: ApplicationService) {
     this.application = application
   }
 
   public static needsApplication = true
 
   public async register() {
-    const Env = (await import('@ioc:Adonis/Core/Env')).default
+    const Env = (await import('#start/env')).default
     const partnerId = Env.get('CAS_PARTNER_ID')
     const publicKeyPath = Env.get('LIGRETTO_CORE_CAS_PUBLIC_KEY_PATH')
     const casURI = Env.get('CAS_URL')
     const publicKey = Env.get('LIGRETTO_CORE_APP_MODE') === 'migrations' ? '' : (await readFile(publicKeyPath)).toString()
 
-    this.application.container.bind('CasServices', (): Services => {
+    this.application.container.bind('casServices', (): Services => {
       const services = createCasServices({ partnerId, casURI, publicKey })
       const login = services.loginService
 

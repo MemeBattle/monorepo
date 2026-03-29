@@ -5,8 +5,7 @@
  * file.
  */
 
-import Env from '@ioc:Adonis/Core/Env'
-import type { HashConfig } from '@ioc:Adonis/Core/Hash'
+import { defineConfig, drivers } from '@adonisjs/core/hash'
 
 /*
 |--------------------------------------------------------------------------
@@ -17,59 +16,21 @@ import type { HashConfig } from '@ioc:Adonis/Core/Hash'
 | defined inside `contracts` directory.
 |
 */
-const hashConfig: HashConfig = {
+const hashConfig = defineConfig({
   /*
   |--------------------------------------------------------------------------
   | Default hasher
   |--------------------------------------------------------------------------
   |
-  | By default we make use of the bcrypt hasher to hash values. However, feel
+  | By default we make use of the scrypt hasher to hash values. However, feel
   | free to change the default value
   |
   */
-  default: Env.get('HASH_DRIVER', 'argon'),
+  default: 'scrypt',
 
   list: {
-    /*
-    |--------------------------------------------------------------------------
-    | Argon
-    |--------------------------------------------------------------------------
-    |
-    | Argon mapping uses the `argon2` driver to hash values.
-    |
-    | Make sure you install the underlying dependency for this driver to work.
-    | https://www.npmjs.com/package/phc-argon2.
-    |
-    | npm install phc-argon2
-    |
-    */
-    argon: {
-      driver: 'argon2',
-      variant: 'id',
-      iterations: 3,
-      memory: 4096,
-      parallelism: 1,
-      saltSize: 16,
-    },
-
-    /*
-    |--------------------------------------------------------------------------
-    | Bcrypt
-    |--------------------------------------------------------------------------
-    |
-    | Bcrypt mapping uses the `bcrypt` driver to hash values.
-    |
-    | Make sure you install the underlying dependency for this driver to work.
-    | https://www.npmjs.com/package/phc-bcrypt.
-    |
-    | npm install phc-bcrypt
-    |
-    */
-    bcrypt: {
-      driver: 'bcrypt',
-      rounds: 10,
-    },
+    scrypt: drivers.scrypt({}),
   },
-}
+})
 
 export default hashConfig

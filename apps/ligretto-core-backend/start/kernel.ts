@@ -9,7 +9,8 @@
 |
 */
 
-import Server from '@ioc:Adonis/Core/Server'
+import server from '@adonisjs/core/services/server'
+import router from '@adonisjs/core/services/router'
 
 /*
 |--------------------------------------------------------------------------
@@ -20,7 +21,7 @@ import Server from '@ioc:Adonis/Core/Server'
 | are defined for every HTTP requests.
 |
 */
-Server.middleware.register([() => import('@ioc:Adonis/Core/BodyParser')])
+server.use([() => import('@adonisjs/core/bodyparser_middleware'), () => import('@adonisjs/cors/cors_middleware')])
 
 /*
 |--------------------------------------------------------------------------
@@ -38,6 +39,6 @@ Server.middleware.register([() => import('@ioc:Adonis/Core/BodyParser')])
 | Route.get('dashboard', 'UserController.dashboard').middleware('auth')
 |
 */
-Server.middleware.registerNamed({
-  casAuth: () => import('App/Middleware/CasAuth'),
+router.named({
+  casAuth: () => import('#middleware/CasAuth'),
 })

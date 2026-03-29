@@ -18,23 +18,25 @@
 |
 */
 
-import Route from '@ioc:Adonis/Core/Route'
-import HealthCheck from '@ioc:Adonis/Core/HealthCheck'
+import router from '@adonisjs/core/services/router'
+const HealthChecksController = () => import('#controllers/HealthChecksController')
 
-Route.group(() => {
-  Route.get('/', async () => ({ hello: 'world' }))
+const UsersController = () => import('#controllers/Http/UsersController')
+const GamesController = () => import('#controllers/Http/GamesController')
+const AuthController = () => import('#controllers/Http/AuthController')
 
-  Route.resource('users', 'UsersController').apiOnly()
+router
+  .group(() => {
+    router.get('/', async () => ({ hello: 'world' }))
 
-  Route.post('/games', 'GamesController.create')
-  Route.get('/games', 'GamesController.index')
-  Route.post('/games/:id/rounds', 'GamesController.saveRound').where('id', Route.matchers.uuid())
+    router.resource('users', UsersController).apiOnly()
 
-  Route.post('/auth/me', 'AuthController.me')
-}).prefix('/api')
+    router.post('/games', [GamesController, 'create'])
+    router.get('/games', [GamesController, 'index'])
+    router.post('/games/:id/rounds', [GamesController, 'saveRound']).where('id', router.matchers.uuid())
 
-Route.get('health', async ({ response }) => {
-  const report = await HealthCheck.getReport()
+    router.post('/auth/me', [AuthController, 'me'])
+  })
+  .prefix('/api')
 
-  return report.healthy ? response.ok(report) : response.badRequest(report)
-})
+router.get('/health', [HealthChecksController])

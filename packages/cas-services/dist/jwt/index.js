@@ -1,8 +1,8 @@
-import { verify } from "jsonwebtoken";
+import jsonwebtoken from "jsonwebtoken";
 const createJWTServices = ({ publicKey })=>({
         verifyToken (token) {
             return new Promise((resolve)=>{
-                verify(token, publicKey, {
+                jsonwebtoken.verify(token, publicKey, {
                     algorithms: [
                         'RS256'
                     ]

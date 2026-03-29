@@ -1,57 +1,55 @@
-declare module '@ioc:CasServices' {
-  import type {
-    LoginCredentials,
-    SignUpCredentials,
-    SuccessLogin,
-    ErrorLogin,
-    ErrorSignUp,
-    SuccessSignUp,
-    VerifyTokenSuccess,
-    VerifyTokenError,
-    GetMePayload,
-    SuccessGetMe,
-    ErrorGetMe,
-    SuccessGetUsers,
-    ErrorGetUsers,
-    GetUsersPayload,
-    SuccessCreateTemporaryToken,
-    ErrorCreateTemporaryToken,
-    User,
-    TemporaryUser,
-  } from '@memebattle/cas-services'
+import type {
+  LoginCredentials,
+  SignUpCredentials,
+  SuccessLogin,
+  ErrorLogin,
+  ErrorSignUp,
+  SuccessSignUp,
+  VerifyTokenSuccess,
+  VerifyTokenError,
+  GetMePayload,
+  SuccessGetMe,
+  ErrorGetMe,
+  SuccessGetUsers,
+  ErrorGetUsers,
+  GetUsersPayload,
+  SuccessCreateTemporaryToken,
+  ErrorCreateTemporaryToken,
+  User,
+  TemporaryUser,
+} from '@memebattle/cas-services'
 
-  export type Login = (credentials: LoginCredentials) => Promise<SuccessLogin | ErrorLogin>
+export type { User, TemporaryUser }
 
-  declare const login: Login
+export type Login = (credentials: LoginCredentials) => Promise<SuccessLogin | ErrorLogin>
 
-  export type SignUp = (credentials: SignUpCredentials) => Promise<SuccessSignUp | ErrorSignUp>
+declare const login: Login
 
-  declare const signUp: SignUp
+export type SignUp = (credentials: SignUpCredentials) => Promise<SuccessSignUp | ErrorSignUp>
 
-  export type VerifyToken = (token: string) => Promise<VerifyTokenSuccess | VerifyTokenError>
+declare const signUp: SignUp
 
-  declare const verifyToken: VerifyToken
+export type VerifyToken = (token: string) => Promise<VerifyTokenSuccess | VerifyTokenError>
 
-  export type GetMe = (payload: GetMePayload) => Promise<ErrorGetMe | SuccessGetMe>
+declare const verifyToken: VerifyToken
 
-  declare const getMe: GetMe
+export type GetMe = (payload: GetMePayload) => Promise<ErrorGetMe | SuccessGetMe>
 
-  export type GetUsers = (payload?: GetUsersPayload) => Promise<SuccessGetUsers | ErrorGetUsers>
+declare const getMe: GetMe
 
-  declare const getUsers: GetUsers
+export type GetUsers = (payload?: GetUsersPayload) => Promise<SuccessGetUsers | ErrorGetUsers>
 
-  export type CreateTemporaryToken = () => Promise<SuccessCreateTemporaryToken | ErrorCreateTemporaryToken>
+declare const getUsers: GetUsers
 
-  declare const createTemporaryToken: CreateTemporaryToken
+export type CreateTemporaryToken = () => Promise<SuccessCreateTemporaryToken | ErrorCreateTemporaryToken>
 
-  export type Services = {
-    login: Login
-    signUp: SignUp
-    verifyToken: VerifyToken
-    getMe: GetMe
-    getUsers: GetUsers
-    createTemporaryToken: CreateTemporaryToken
-  }
+declare const createTemporaryToken: CreateTemporaryToken
 
-  export { login, signUp, verifyToken, getMe, getUsers, createTemporaryToken, User, TemporaryUser }
+export type Services = {
+  login: Login
+  signUp: SignUp
+  verifyToken: VerifyToken
+  getMe: GetMe
+  getUsers: GetUsers
+  createTemporaryToken: CreateTemporaryToken
 }
