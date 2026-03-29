@@ -74,7 +74,7 @@ jobs:
       LIGRETTO_CORE_PG_PASSWORD: ligretto_pg_password
       LIGRETTO_CORE_PG_DB_NAME: ligretto-core
       CAS_PARTNER_ID: 685706c5ef9a1d005c9ef9b4
-      CAS_URL: https://cas.mems.fun/api
+      CAS_URL: https://cas.mems.fun
       LIGRETTO_CORE_CAS_PUBLIC_KEY_PATH: ../../key.pem
       LOG_LEVEL: debug
 
