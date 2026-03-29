@@ -8,6 +8,8 @@ on:
       - '.docker/GameHub**'
       - '.github/workflows/gamehub**'
       - 'pnpm-lock.yaml'
+      - package.json
+      - .npmrc
 
 env:
   NODE_OPTIONS: --max-old-space-size=4096
