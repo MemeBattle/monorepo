@@ -12,6 +12,8 @@ on:
       - .github/workflows/ligretto-pr.yml
       - '.env*'
       - 'pnpm-lock.yaml'
+      - package.json
+      - .npmrc
 
 env:
   NODE_OPTIONS: --max-old-space-size=4096
