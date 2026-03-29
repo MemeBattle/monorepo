@@ -46,7 +46,8 @@ export const RegisterPage = memo(() => {
         if (answer.error.errorCode === 422) {
           return { [FORM_ERROR]: t.register.userAlreadyExistsError }
         }
-      } catch (e) {
+      } catch (error) {
+        console.error(error)
         return { [FORM_ERROR]: 'Something went wrong' }
       }
     },

@@ -41,8 +41,8 @@ new Ignitor(APP_ROOT, { importer: IMPORTER })
   .start()
   .catch(error => {
     process.exitCode = 1
-    prettyPrintError(error)
     if (error?.stack) {
       console.error(error.stack)
     }
+    return prettyPrintError(error)
   })

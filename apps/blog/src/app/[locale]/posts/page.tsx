@@ -34,7 +34,7 @@ function searchParamsTagsFormatter(tagsQuery: string | string[] | undefined): st
 
 export async function generateMetadata({ params }: { params: { locale: Language } }): Promise<Metadata> {
   // useTranslation on server isn't react hook
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+  //
   const { t } = await useTranslation(params.locale, 'posts')
 
   return {

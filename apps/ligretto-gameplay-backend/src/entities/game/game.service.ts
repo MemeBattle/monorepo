@@ -1,12 +1,12 @@
 import { inject, injectable } from 'inversify'
 import { groupBy, mapValues, merge, mergeWith, omit } from 'lodash'
-import { GameRepository } from './game.repo'
+import type { GameRepository } from './game.repo'
 import type { Game, GameResults, Player, Spectator, UUID } from '@memebattle/ligretto-shared'
 import { PlayerStatus, GameStatus } from '@memebattle/ligretto-shared'
 import { createInitialPlayerCards } from '../../utils/create-initial-player-cards'
 import { IOC_TYPES } from '../../IOC_TYPES'
 import { nonNullable } from '../../utils/nonNullable'
-import { LigrettoCoreService } from '../../services/ligretto-core'
+import type { LigrettoCoreService } from '../../services/ligretto-core'
 
 const emptyGame: Game = {
   id: 'base',

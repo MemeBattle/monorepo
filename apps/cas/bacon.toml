@@ -42,11 +42,7 @@ need_stdout = false
 # Run clippy in pedantic mode
 # The 'dismiss' feature may come handy
 [jobs.pedantic]
-command = [
-	"cargo", "clippy",
-	"--",
-	"-W", "clippy::pedantic",
-]
+command = ["cargo", "clippy", "--", "-W", "clippy::pedantic"]
 need_stdout = false
 
 # This job lets you run
@@ -58,10 +54,7 @@ command = ["cargo", "test"]
 need_stdout = true
 
 [jobs.nextest]
-command = [
-    "cargo", "nextest", "run",
-    "--hide-progress-bar", "--failure-output", "final"
-]
+command = ["cargo", "nextest", "run", "--hide-progress-bar", "--failure-output", "final"]
 need_stdout = true
 analyzer = "nextest"
 
@@ -89,8 +82,9 @@ on_success = "back" # so that we don't open the browser at each change
 # long running programs (uncomment it if you need it)
 [jobs.run]
 command = [
-    "cargo", "run",
-    # put launch parameters for your program behind a `--` separator
+  "cargo",
+  "run",
+  # put launch parameters for your program behind a `--` separator
 ]
 need_stdout = true
 allow_warnings = true

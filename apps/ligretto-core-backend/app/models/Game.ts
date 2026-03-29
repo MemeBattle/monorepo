@@ -1,4 +1,4 @@
-import { DateTime } from 'luxon'
+import type { DateTime } from 'luxon'
 import { BaseModel, column, hasMany, beforeCreate } from '@adonisjs/lucid/orm'
 import Round from './Round.js'
 import { randomUUID } from 'node:crypto'

@@ -1,4 +1,4 @@
-import { DateTime } from 'luxon'
+import type { DateTime } from 'luxon'
 import lodash from 'lodash'
 import { BaseModel, column, manyToMany } from '@adonisjs/lucid/orm'
 import type { User as CasUser, TemporaryUser as CasTemporaryUser } from '#contracts/CasServices'

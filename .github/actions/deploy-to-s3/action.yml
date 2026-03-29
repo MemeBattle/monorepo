@@ -1,9 +1,9 @@
-name: "Deploy to s3"
-description: "Sync files with s3 bucket"
+name: 'Deploy to s3'
+description: 'Sync files with s3 bucket'
 inputs:
   path-to-folder:
     required: true
-    description: "Path to dist folder"
+    description: 'Path to dist folder'
   AWS_ACCESS_KEY_ID:
     required: true
     description: 'AWS_ACCESS_KEY_ID'
@@ -19,7 +19,7 @@ inputs:
     default: 'ru-central1'
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Configure AWS
       shell: 'bash'

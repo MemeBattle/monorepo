@@ -1,56 +1,23 @@
 {
-  "include": [
-    "**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "build"
-  ],
+  "include": ["**/*"],
+  "exclude": ["node_modules", "build"],
   "compilerOptions": {
     "noUnusedLocals": true,
     "paths": {
-      "#controllers/*": [
-        "./app/controllers/*.js"
-      ],
-      "#exceptions/*": [
-        "./app/exceptions/*.js"
-      ],
-      "#models/*": [
-        "./app/models/*.js"
-      ],
-      "#services/*": [
-        "./app/services/*.js"
-      ],
-      "#listeners/*": [
-        "./app/listeners/*.js"
-      ],
-      "#events/*": [
-        "./app/events/*.js"
-      ],
-      "#middleware/*": [
-        "./app/middleware/*.js"
-      ],
-      "#validators/*": [
-        "./app/validators/*.js"
-      ],
-      "#start/*": [
-        "./start/*.js"
-      ],
-      "#config/*": [
-        "./config/*.js"
-      ],
-      "#app/*": [
-        "./app/*.js"
-      ],
-      "#database/*": [
-        "./database/*.js"
-      ],
-      "#contracts/*": [
-        "./contracts/*.js"
-      ],
-      "#helpers/*": [
-        "./app/helpers/*.js"
-      ]
+      "#controllers/*": ["./app/controllers/*.js"],
+      "#exceptions/*": ["./app/exceptions/*.js"],
+      "#models/*": ["./app/models/*.js"],
+      "#services/*": ["./app/services/*.js"],
+      "#listeners/*": ["./app/listeners/*.js"],
+      "#events/*": ["./app/events/*.js"],
+      "#middleware/*": ["./app/middleware/*.js"],
+      "#validators/*": ["./app/validators/*.js"],
+      "#start/*": ["./start/*.js"],
+      "#config/*": ["./config/*.js"],
+      "#app/*": ["./app/*.js"],
+      "#database/*": ["./database/*.js"],
+      "#contracts/*": ["./contracts/*.js"],
+      "#helpers/*": ["./app/helpers/*.js"]
     },
     "types": [],
     "strictPropertyInitialization": false

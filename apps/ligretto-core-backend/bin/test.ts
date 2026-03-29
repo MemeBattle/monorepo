@@ -49,14 +49,12 @@ new Ignitor(APP_ROOT, { importer: IMPORTER })
     configure({
       ...app.rcFile.tests,
       ...config,
-      ...{
-        setup: runnerHooks.setup,
-        teardown: runnerHooks.teardown.concat([() => app.terminate()]),
-      },
+      setup: runnerHooks.setup,
+      teardown: runnerHooks.teardown.concat([() => app.terminate()]),
     })
   })
   .run(() => run())
   .catch(error => {
     process.exitCode = 1
-    prettyPrintError(error)
+    return prettyPrintError(error)
   })

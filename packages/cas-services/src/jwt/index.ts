@@ -1,13 +1,11 @@
 import jwt from 'jsonwebtoken'
-import { CreateJWTServices, VerifyTokenSuccess, VerifyTokenError } from '../types'
+import type { CreateJWTServices, VerifyTokenSuccess, VerifyTokenError } from '../types'
 
 export const createJWTServices = ({ publicKey }: CreateJWTServices) => ({
   verifyToken(token: string): Promise<VerifyTokenSuccess | VerifyTokenError> {
     return new Promise(resolve => {
       jwt.verify(token, publicKey, { algorithms: ['RS256'] }, (err, decoded) =>
-        err || !decoded
-          ? resolve({ success: false, error: err })
-          : resolve({ success: true, data: decoded }),
+        err || !decoded ? resolve({ success: false, error: err }) : resolve({ success: true, data: decoded }),
       )
     })
   },

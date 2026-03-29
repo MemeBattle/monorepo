@@ -4,7 +4,6 @@
     "target": "es2021",
     "lib": ["dom", "es2021"],
     "module": "commonjs",
-    "moduleResolution": "node",
     "outDir": "./build",
     "sourceMap": true,
     "strict": true,

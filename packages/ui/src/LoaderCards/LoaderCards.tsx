@@ -1,6 +1,4 @@
-import React from 'react'
-
-export const LoaderCards: React.FC = () => (
+export const LoaderCards = () => (
   <svg width="100%" fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2103 1121">
     <path
       opacity=".2"
@@ -96,5 +94,4 @@ export const LoaderCards: React.FC = () => (
     </defs>
   </svg>
 )
-
 LoaderCards.displayName = 'LoaderCards'

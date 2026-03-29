@@ -1,6 +1,6 @@
-import { VerifyErrors } from 'jsonwebtoken'
-import { AxiosRequestConfig, AxiosResponseHeaders } from 'axios'
-import { RawAxiosResponseHeaders } from 'axios'
+import type { VerifyErrors } from 'jsonwebtoken'
+import type { AxiosRequestConfig, AxiosResponseHeaders } from 'axios'
+import type { RawAxiosResponseHeaders } from 'axios'
 
 export type TemporaryUser = {
   isTemporary: true

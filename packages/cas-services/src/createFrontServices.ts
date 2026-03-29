@@ -1,18 +1,8 @@
 import { createBaseRequest } from './request'
-import {
-  createGetMeService,
-  createLoginService,
-  createSignUpService,
-  createUpdateUserProfileService,
-} from './services'
-import { CreateFrontServices } from './types'
+import { createGetMeService, createLoginService, createSignUpService, createUpdateUserProfileService } from './services'
+import type { CreateFrontServices } from './types'
 
-export const createFrontServices = ({
-  casURI,
-  partnerId,
-  successLogger,
-  errorLogger,
-}: CreateFrontServices) => {
+export const createFrontServices = ({ casURI, partnerId, successLogger, errorLogger }: CreateFrontServices) => {
   const baseRequest = createBaseRequest({ casURI, successLogger, errorLogger })
 
   const loginService = createLoginService(baseRequest)

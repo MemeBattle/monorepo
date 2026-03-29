@@ -1,5 +1,5 @@
 import React from 'react'
-import { Parameters } from '@storybook/react'
+import type { Parameters } from '@storybook/react'
 import { MINIMAL_VIEWPORTS } from '@storybook/addon-viewport'
 import { CssBaseline } from '@memebattle/ui'
 import { ThemeProvider } from '@mui/material/styles'
@@ -14,9 +14,7 @@ const themesByNames = {
   gameHub: gamehubClientTheme,
 }
 
-const getTheme = (themeName: string) => {
-  return themesByNames[themeName] || theme
-}
+const getTheme = (themeName: string) => themesByNames[themeName] || theme
 
 export const globalTypes = {
   theme: {

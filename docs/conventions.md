@@ -1,3 +1,3 @@
 # MemeBattle Team Conventions
 
-* [Naming convention](./naming-convention.md)
+- [Naming convention](./naming-convention.md)

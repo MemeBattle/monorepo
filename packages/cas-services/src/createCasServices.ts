@@ -8,15 +8,9 @@ import {
   createCreateTemporaryTokenService,
 } from './services'
 import { createJWTServices } from './jwt'
-import { CreateCasServices } from './types'
+import type { CreateCasServices } from './types'
 
-export const createCasServices = ({
-  casURI,
-  partnerId,
-  publicKey,
-  successLogger,
-  errorLogger,
-}: CreateCasServices) => {
+export const createCasServices = ({ casURI, partnerId, publicKey, successLogger, errorLogger }: CreateCasServices) => {
   const baseRequest = createBaseRequest({ casURI, errorLogger, successLogger })
 
   const loginService = createLoginService(baseRequest)

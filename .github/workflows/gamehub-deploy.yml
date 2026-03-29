@@ -3,7 +3,7 @@ name: 'GameHub release'
 on:
   workflow_dispatch:
   push:
-    branches: [ master ]
+    branches: [master]
     paths:
       - 'apps/gamehub-client/**'
       - '.deploy/gamehub.deploy.yml'
@@ -11,7 +11,6 @@ on:
       - '.github/workflows/gamehub-deploy.yml'
 
 jobs:
-
   build-gamehub-client-image:
     runs-on: ubuntu-24.04
 

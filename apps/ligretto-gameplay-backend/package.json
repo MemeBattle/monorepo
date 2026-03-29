@@ -1,8 +1,11 @@
 {
   "name": "@memebattle/ligretto-gameplay-backend",
   "version": "1.0.9",
-  "main": "index.js",
   "license": "MIT",
+  "files": [
+    "build"
+  ],
+  "main": "index.js",
   "scripts": {
     "init:partner": "init-partner",
     "test": "NODE_ENV=test vitest run",
@@ -14,16 +17,6 @@
     "prestart": "ts-node src/cli/check-env.ts",
     "build": "tsgo --project tsconfig.build.json",
     "ts-check": "tsgo --noEmit"
-  },
-  "devDependencies": {
-    "@types/lodash": "catalog:",
-    "@types/node": "catalog:",
-    "cross-env": "catalog:",
-    "mock-socket": "catalog:",
-    "nodemon": "catalog:",
-    "ts-node": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
   },
   "dependencies": {
     "@codexsoft/dotenv-flow": "catalog:",
@@ -37,7 +30,14 @@
     "reflect-metadata": "catalog:",
     "socket.io": "catalog:"
   },
-  "files": [
-    "build"
-  ]
+  "devDependencies": {
+    "@types/lodash": "catalog:",
+    "@types/node": "catalog:",
+    "cross-env": "catalog:",
+    "mock-socket": "catalog:",
+    "nodemon": "catalog:",
+    "ts-node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
 }

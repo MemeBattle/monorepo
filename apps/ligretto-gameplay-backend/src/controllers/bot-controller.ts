@@ -4,7 +4,7 @@ import type { Socket } from 'socket.io'
 import { inject, injectable } from 'inversify'
 import { initBot, stopBot } from '../bot'
 import { IOC_TYPES } from '../IOC_TYPES'
-import { GameService } from '../entities/game/game.service'
+import type { GameService } from '../entities/game/game.service'
 import { Controller } from './controller'
 
 @injectable()

@@ -2,8 +2,8 @@ import { inject, injectable } from 'inversify'
 import { IOC_TYPES } from '../IOC_TYPES'
 import { Controller } from './controller'
 import type { Socket } from 'socket.io'
-import { GameService } from '../entities/game/game.service'
-import { UserService } from '../entities/user'
+import type { GameService } from '../entities/game/game.service'
+import type { UserService } from '../entities/user'
 import type { Game } from '@memebattle/ligretto-shared'
 import {
   connectToRoomEmitAction,

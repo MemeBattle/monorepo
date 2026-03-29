@@ -1,20 +1,16 @@
 import { injectable, inject } from 'inversify'
 import type { Server, Socket } from 'socket.io'
 import { IOC_TYPES } from '../IOC_TYPES'
-import { GameplayController } from '../controllers/gameplay-controller'
-import { GamesController } from '../controllers/games-controller'
-import { UserService } from '../entities/user'
-import { BotController } from '../controllers/bot-controller'
+import type { GameplayController } from '../controllers/gameplay-controller'
+import type { GamesController } from '../controllers/games-controller'
+import type { UserService } from '../entities/user'
+import type { BotController } from '../controllers/bot-controller'
 import { authMiddleware } from '../middlewares'
 import type { AnyAction } from '../types/any-action'
 import { socketIOConnectionsCountMetric, socketIOConnectionsCountTotalMetric } from '../metrics'
 
-export interface WebSocketHandler {
-  connectionHandler(socket: Socket): void
-}
-
 @injectable()
-export class WebSocketHandler implements WebSocketHandler {
+export class WebSocketHandler {
   @inject(IOC_TYPES.GameplayController) private gameplayController: GameplayController
   @inject(IOC_TYPES.GamesController) private gamesController: GamesController
   @inject(IOC_TYPES.BotController) private botController: BotController
@@ -54,8 +50,8 @@ export class WebSocketHandler implements WebSocketHandler {
   }
 
   private messageHandler(socket: Socket, data: AnyAction) {
-    this.gameplayController.handleMessage(socket, data)
-    this.gamesController.handleMessage(socket, data)
-    this.botController.handleMessage(socket, data)
+    void this.gameplayController.handleMessage(socket, data)
+    void this.gamesController.handleMessage(socket, data)
+    void this.botController.handleMessage(socket, data)
   }
 }

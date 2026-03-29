@@ -20,11 +20,7 @@ export default class GamesService {
 
     await round.related('users').attach(roundScoresByUserId)
 
-    await game.load(loader =>
-      loader.preload('rounds', roundsQuery => {
-        roundsQuery.preload('users')
-      }),
-    )
+    await game.load(loader => loader.preload('rounds', roundsQuery => roundsQuery.preload('users')))
 
     const gameScoresByUserId = game.rounds.reduce<Record<string, number>>((roundResults, round) => {
       round.users.forEach(user => {

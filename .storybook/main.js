@@ -1,4 +1,4 @@
-const { mergeConfig } = require("vite")
+const { mergeConfig } = require('vite')
 const { default: tsconfigPaths } = require('vite-tsconfig-paths')
 const { default: svgr } = require('vite-plugin-svgr')
 
@@ -15,10 +15,7 @@ module.exports = {
   async viteFinal(config) {
     return mergeConfig(config, {
       define: { 'process.env': {} },
-      plugins: [
-        tsconfigPaths(),
-        svgr(),
-      ]
+      plugins: [tsconfigPaths(), svgr()],
     })
   },
 }

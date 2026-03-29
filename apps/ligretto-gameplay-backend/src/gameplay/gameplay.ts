@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify'
-import { PlayerService } from '../entities/player/player.service'
-import { PlaygroundService } from '../entities/playground'
-import { GameService } from '../entities/game/game.service'
+import type { PlayerService } from '../entities/player/player.service'
+import type { PlaygroundService } from '../entities/playground'
+import type { GameService } from '../entities/game/game.service'
 import { IOC_TYPES } from '../IOC_TYPES'
 import type { Game, GameResults, UUID } from '@memebattle/ligretto-shared'
 

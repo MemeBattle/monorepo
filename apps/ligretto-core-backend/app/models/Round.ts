@@ -1,4 +1,4 @@
-import { DateTime } from 'luxon'
+import type { DateTime } from 'luxon'
 import { BaseModel, column, manyToMany, belongsTo, beforeCreate } from '@adonisjs/lucid/orm'
 import User from './User.js'
 import Game from './Game.js'

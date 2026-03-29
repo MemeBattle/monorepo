@@ -2,13 +2,11 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "declaration": true,
-    "declarationDir": "dist/types",
     "module": "esnext",
     "target": "es2021",
     "lib": ["dom", "es2021"],
     "sourceMap": true,
     "jsx": "react-jsx",
-    "moduleResolution": "node",
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,

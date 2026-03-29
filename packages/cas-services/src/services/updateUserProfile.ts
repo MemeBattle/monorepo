@@ -1,6 +1,6 @@
-import { AxiosInstance } from 'axios'
+import type { AxiosInstance } from 'axios'
 import { CAS_ROUTES } from '../constants'
-import { UpdateUserProfilePayload, SuccessUpdateUser, ErrorUpdateUser } from '../types'
+import type { UpdateUserProfilePayload, SuccessUpdateUser, ErrorUpdateUser } from '../types'
 
 export const createUpdateUserProfileService =
   (request: AxiosInstance) =>
@@ -13,9 +13,7 @@ export const createUpdateUserProfileService =
       formData.append('username', username)
     }
 
-    return request.patch<SuccessUpdateUser | ErrorUpdateUser, SuccessUpdateUser | ErrorUpdateUser>(
-      `${CAS_ROUTES.users}/${userId}`,
-      formData,
-      { headers: { 'Content-Type': 'multipart/form-data', Authorization: token } },
-    )
+    return request.patch<SuccessUpdateUser | ErrorUpdateUser, SuccessUpdateUser | ErrorUpdateUser>(`${CAS_ROUTES.users}/${userId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data', Authorization: token },
+    })
   }

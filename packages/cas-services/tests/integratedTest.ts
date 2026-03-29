@@ -6,11 +6,7 @@ import { resolve } from 'path'
 
 load({ path: resolve(__dirname, '.env') })
 
-console.log(
-  chalk.gray(
-    `Start integratedTest\n============\nCAS_PUBLIC_KEY_PATH: ${process.env.CAS_PUBLIC_KEY_PATH}`,
-  ),
-)
+console.log(chalk.gray(`Start integratedTest\n============\nCAS_PUBLIC_KEY_PATH: ${process.env.CAS_PUBLIC_KEY_PATH}`))
 
 const key = readFileSync(resolve(__dirname, process.env.CAS_PUBLIC_KEY_PATH)).toString()
 
@@ -28,6 +24,7 @@ const services = createCasServices({
   successLogger: logger,
 })
 
+// oxlint-disable-next-line typescript/no-floating-promises
 ;(async () => {
   console.log(chalk.yellow.bold('Start integratedTest'))
 

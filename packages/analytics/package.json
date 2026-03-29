@@ -2,23 +2,23 @@
   "name": "@memebattle/analytics",
   "version": "1.0.0",
   "description": "> TODO: description",
-  "author": "Artem Zverev <themezv@gmail.com>",
   "homepage": "https://github.com/MemeBattle/monorepo#readme",
   "license": "MIT",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "author": "Artem Zverev <themezv@gmail.com>",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MemeBattle/monorepo.git"
   },
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "scripts": {
     "ts-check": "tsgo --noEmit"
+  },
+  "dependencies": {
+    "amplitude-js": "catalog:"
   },
   "devDependencies": {
     "@types/amplitude-js": "catalog:",
     "@typescript/native-preview": "catalog:"
-  },
-  "dependencies": {
-    "amplitude-js": "catalog:"
   }
 }
