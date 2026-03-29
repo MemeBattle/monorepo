@@ -29,8 +29,7 @@ test.group('GET /api/users', group => {
   })
 
   test('CAS getUsers returns error — returns CAS error code', async ({ client }) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    activeCasMock.getUsers = async () => ({ success: false, error: { errorCode: 503, message: 'CAS error' } }) as any
+    activeCasMock.getUsers = async () => ({ success: false, error: { errorCode: 503, message: 'CAS error' } })
     const response = await client.get('/api/users').qs({ ids: [mockCasUser._id] })
     response.assertStatus(503)
   })

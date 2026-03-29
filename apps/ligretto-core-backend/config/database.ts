@@ -21,7 +21,7 @@ const databaseConfig = defineConfig({
   | file.
   |
   */
-  connection: (isTest ? 'sqlite' : env.get('LIGRETTO_CORE_DB_CONNECTION')) as 'pg',
+  connection: isTest ? 'sqlite' : env.get('LIGRETTO_CORE_DB_CONNECTION'),
 
   connections: {
     /*
@@ -57,7 +57,7 @@ const databaseConfig = defineConfig({
     },
 
     sqlite: {
-      client: 'better-sqlite3' as 'sqlite3',
+      client: 'better-sqlite3',
       connection: {
         filename: ':memory:',
       },
