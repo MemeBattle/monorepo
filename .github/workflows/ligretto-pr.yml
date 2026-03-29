@@ -76,6 +76,7 @@ jobs:
       CAS_PARTNER_ID: 685706c5ef9a1d005c9ef9b4
       CAS_URL: https://cas.mems.fun/api
       LIGRETTO_CORE_CAS_PUBLIC_KEY_PATH: ../../key.pem
+      LOG_LEVEL: debug
 
     services:
       postgres:
@@ -110,19 +111,31 @@ jobs:
         run: pnpm ligretto:core-backend:migrate
 
       - name: Start core backend
-        run: pnpm ligretto:core-backend:start:dev &
+        run: pnpm ligretto:core-backend:start:dev > /tmp/core-backend.log 2>&1 &
 
       - name: Check core backend app
         run: pnpm dlx wait-on --timeout 60000 http-get://127.0.0.1:3333/health
 
       - name: Start gameplay backend
-        run: pnpm ligretto:gameplay-backend:start:dev &
+        run: pnpm ligretto:gameplay-backend:start:dev > /tmp/gameplay-backend.log 2>&1 &
 
       - name: Start frontend
-        run: pnpm ligretto:front:start:dev &
+        run: pnpm ligretto:front:start:dev > /tmp/frontend.log 2>&1 &
 
       - name: Check frontend app
         run: pnpm dlx wait-on -c ./apps/ligretto-frontend/waitOnConfig.json --timeout 60000 http-get://127.0.0.1:5173
 
       - name: Run playwright tests
         run: pnpm --filter=@memebattle/ligretto-frontend e2e:start
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-report
+          path: |
+            apps/ligretto-frontend/playwright-report/
+            apps/ligretto-frontend/test-results/
+            /tmp/core-backend.log
+            /tmp/gameplay-backend.log
+            /tmp/frontend.log
+          retention-days: 7
