@@ -20,13 +20,6 @@
     "noImplicitAny": true,
     "types": ["vitest/globals"]
   },
-  "include": [
-    "./src",
-    "./e2e",
-    "env.d.ts"
-  ],
-  "exclude": [
-    "public",
-    "node_modules"
-  ]
+  "include": ["./src", "./e2e", "env.d.ts"],
+  "exclude": ["public", "node_modules"]
 }

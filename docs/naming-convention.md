@@ -9,6 +9,7 @@ const ComponentName = () => ...
 ```
 
 ### File naming
+
 File with react component should have a same name as component
 
 **Good**
@@ -26,6 +27,7 @@ const ComponentName = () => ...
 
 const ComponentName = () => ...
 ```
+
 ### Directory with component files
 
 Directory with component files should have a same name like both component and file

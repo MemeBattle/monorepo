@@ -2,9 +2,9 @@
   "name": "@memebattle/ligretto-frontend",
   "version": "0.2.7",
   "private": true,
+  "type": "module",
   "main": "./public/index.js",
   "module": "./public/index.js",
-  "type": "module",
   "imports": {
     "#*": [
       "./src/*",
@@ -25,21 +25,6 @@
     "test": "vitest",
     "test:ci": "vitest run",
     "e2e:start": "playwright test"
-  },
-  "devDependencies": {
-    "@playwright/test": "catalog:",
-    "@sentry/vite-plugin": "catalog:",
-    "@types/history": "catalog:",
-    "@types/lodash": "catalog:",
-    "@types/react": "catalog:",
-    "@types/react-dom": "catalog:",
-    "@typescript/native-preview": "catalog:",
-    "@vitejs/plugin-react": "catalog:",
-    "playwright": "catalog:",
-    "sass": "^1.53.0",
-    "vite": "catalog:",
-    "vite-plugin-svgr": "catalog:",
-    "vitest": "catalog:"
   },
   "dependencies": {
     "@memebattle/analytics": "workspace:^",
@@ -69,6 +54,21 @@
     "redux-first-history": "catalog:",
     "reselect": "catalog:",
     "socket.io-client": "catalog:"
+  },
+  "devDependencies": {
+    "@playwright/test": "catalog:",
+    "@sentry/vite-plugin": "catalog:",
+    "@types/history": "catalog:",
+    "@types/lodash": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@typescript/native-preview": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "playwright": "catalog:",
+    "sass": "^1.53.0",
+    "vite": "catalog:",
+    "vite-plugin-svgr": "catalog:",
+    "vitest": "catalog:"
   },
   "browserslist": {
     "production": [

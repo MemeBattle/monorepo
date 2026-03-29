@@ -1,7 +1,12 @@
 {
   "name": "@memebattle/cas-services",
   "version": "4.0.0",
+  "files": [
+    "dist"
+  ],
   "type": "module",
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -14,38 +19,26 @@
       "require": "./dist/createFrontServices.cjs"
     }
   },
-  "main": "./dist/index.cjs",
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build --watch",
     "test": "vitest run",
     "ts-check": "tsgo --noEmit"
   },
+  "dependencies": {
+    "axios": "catalog:",
+    "jsonwebtoken": "^9.0.0",
+    "qs": "^6.14.2"
+  },
   "devDependencies": {
     "@rslib/core": "^0.19.5",
     "@types/jsonwebtoken": "^9.0.1",
     "@types/node": "catalog:",
     "@types/qs": "^6.9.7",
-    "@typescript-eslint/eslint-plugin": "^4.11.1",
-    "@typescript-eslint/parser": "^4.11.1",
     "@typescript/native-preview": "catalog:",
     "chalk": "^2.4.2",
     "chalk-animation": "^1.6.0",
     "dotenv-extended": "^2.9.0",
-    "eslint": "^7.17.0",
-    "eslint-config-prettier": "^7.1.0",
-    "eslint-plugin-prettier": "^3.3.0",
-    "prettier": "^2.2.1",
-    "prettier-eslint": "^12.0.0",
     "ts-node": "^10.9.1"
-  },
-  "dependencies": {
-    "axios": "catalog:",
-    "jsonwebtoken": "^9.0.0",
-    "qs": "^6.14.2"
   }
 }

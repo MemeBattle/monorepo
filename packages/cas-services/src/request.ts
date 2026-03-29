@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { stringify } from 'qs'
-import { ErrorLoggerFunction, SuccessLoggerFunction } from './types'
+import type { ErrorLoggerFunction, SuccessLoggerFunction } from './types'
 
 export const createBaseRequest = ({
   casURI,

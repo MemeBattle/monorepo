@@ -6,6 +6,7 @@
 </div>
 
 ## What is MemeBattle?
+
 **MemeBattle** is an <b>open community</b> united by common projects.
 We are open to new ideas and projects and are happy to invite everyone to join us.
 
@@ -40,6 +41,7 @@ First of all, we would like to share technical discoveries and experiences.
 URL: https://blog.mems.fun/
 
 ## First steps
+
 1. Read [documentation](./docs)
 2. Read [CONTRIBUTING.md](CONTRIBUTING.md) TODO: Create contribution doc [#215](https://github.com/MemeBattle/monorepo/issues/215)
 3. Download repository `git clone git@github.com:MemeBattle/monorepo.git`

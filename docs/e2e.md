@@ -3,6 +3,7 @@
 ## Installation
 
 Before run playwright tests you have to install playwright browsers.
+
 ```
 npx playwright install
 ```

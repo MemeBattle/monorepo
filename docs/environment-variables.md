@@ -1,8 +1,10 @@
 # Monorepo environment variables
+
 In development uses one source of truth:
 `.env` `.env.{NODE_ENV}` and `.env.{NODE_ENV}.local` files in root of repository
 
 ## Environment Variable Load Order
+
 Inspired by https://nextjs.org/docs/basic-features/environment-variables#environment-variable-load-order
 
 Environment variables are looked up in the following places, in order, stopping once the variable is found.

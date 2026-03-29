@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import type { Card, CardsDeck, UUID } from '@memebattle/ligretto-shared'
-import { Database } from '../../database'
+import type { Database } from '../../database'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
 @injectable()

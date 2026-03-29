@@ -10,9 +10,7 @@ declare module '@adonisjs/core/types' {
 }
 
 export default class CasServiceProvider {
-  constructor(protected application: ApplicationService) {
-    this.application = application
-  }
+  constructor(protected application: ApplicationService) {}
 
   public static needsApplication = true
 

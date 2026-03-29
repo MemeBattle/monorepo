@@ -12,8 +12,8 @@ import {
   takeFromStackDeckAction,
 } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../IOC_TYPES'
-import { Gameplay } from '../gameplay/gameplay'
-import { GameService } from '../entities/game/game.service'
+import type { Gameplay } from '../gameplay/gameplay'
+import type { GameService } from '../entities/game/game.service'
 import { wait } from '../utils/wait'
 
 @injectable()

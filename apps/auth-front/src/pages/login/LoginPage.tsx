@@ -54,7 +54,8 @@ export const LoginPage = memo<LoginPageProps>(({ onLoginSucceeded }) => {
         return {
           [FORM_ERROR]: 'Something went wrong',
         }
-      } catch (e) {
+      } catch (error) {
+        console.error(error)
         return { username: 'Invalid login or password', password: 'Invalid login or password' }
       }
     },

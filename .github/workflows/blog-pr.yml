@@ -2,7 +2,7 @@ name: 'Blog pull request'
 
 on:
   pull_request:
-    branches: [ master ]
+    branches: [master]
     paths:
       - 'apps/blog/**'
       - '.docker/Blog_**'
@@ -15,23 +15,7 @@ env:
   NODE_OPTIONS: --max-old-space-size=4096
 
 jobs:
-
-  lint:
-
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@main
-
-      - uses: ./.github/actions/prepare-nodejs
-        name: Prepare Node.js
-
-      - name: Lint code
-        run: pnpm blog:lint
-
   tests:
-
     runs-on: ubuntu-24.04
 
     steps:
@@ -45,7 +29,6 @@ jobs:
         run: pnpm blog:test:ci
 
   typecheck:
-
     runs-on: ubuntu-24.04
 
     steps:

@@ -6,7 +6,7 @@
   "show_completions_on_input": true,
   "languages": {
     "TypeScript": {
-      "language_servers": ["tsgo"],
-    },
-  },
+      "language_servers": ["tsgo"]
+    }
+  }
 }

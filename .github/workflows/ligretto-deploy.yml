@@ -19,38 +19,35 @@ env:
   LIGRETTO_APP_VERSION: ${{ github.run_id }}
 
 jobs:
-
   ligretto-frontend-build:
-
     runs-on: ubuntu-24.04
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@main
+      - name: Checkout
+        uses: actions/checkout@main
 
-    - uses: ./.github/actions/prepare-nodejs
-      name: Prepare Node.js
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
 
-    - name: Build frontend
-      run: pnpm run ligretto:front:build
-      env:
-        LIGRETTO_GAMEPLAY_URL: https://api.ligretto.app
-        LIGRETTO_CORE_URL: https://core.ligretto.app/api
-        CAS_PARTNER_ID: 685706c5ef9a1d005c9ef9b4
-        CAS_STATIC_URL: https://cas.mems.fun/static
-        CAS_URL: https://cas.mems.fun
-        AMPLITUDE_TOKEN: f55f6d07422dfb26ca4dfbe59a54d609
-        SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      - name: Build frontend
+        run: pnpm run ligretto:front:build
+        env:
+          LIGRETTO_GAMEPLAY_URL: https://api.ligretto.app
+          LIGRETTO_CORE_URL: https://core.ligretto.app/api
+          CAS_PARTNER_ID: 685706c5ef9a1d005c9ef9b4
+          CAS_STATIC_URL: https://cas.mems.fun/static
+          CAS_URL: https://cas.mems.fun
+          AMPLITUDE_TOKEN: f55f6d07422dfb26ca4dfbe59a54d609
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
-    - name: Archive frontend production dist
-      uses: actions/upload-artifact@v7
-      with:
-        name: frontend-dist
-        path: |
-          apps/ligretto-frontend/dist
+      - name: Archive frontend production dist
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-dist
+          path: |
+            apps/ligretto-frontend/dist
 
   ligretto-gameplay-backend-image:
-
     runs-on: ubuntu-24.04
 
     steps:
@@ -83,7 +80,6 @@ jobs:
           cache-to: type=gha,mode=max,scope=$GITHUB_REF_NAME-ligretto-gameplay-backend
 
   ligretto-core-backend-image:
-
     runs-on: ubuntu-24.04
 
     steps:
@@ -182,4 +178,3 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           bucket: 'ligretto.app'
-

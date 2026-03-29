@@ -28,10 +28,7 @@ const styles = {
 }
 
 function decorateObjectMethods<O>(obj: O, decorator: (func: () => Promise<void>) => () => void): O {
-  return Object.entries(obj).reduce(
-    (decoratedObject: O, [key, prop]): O => ({ ...decoratedObject, [key]: decorator(prop) }),
-    {} as O,
-  )
+  return Object.entries(obj).reduce((decoratedObject: O, [key, prop]): O => ({ ...decoratedObject, [key]: decorator(prop) }), {} as O)
 }
 
 const createQuestion = (questionText: string, defaultValue = ''): Promise<string> =>
@@ -112,10 +109,7 @@ const createRequests = CAS_URI => {
 }
 
 const partnerSignUp = async (user, createPartner, token): Promise<string> => {
-  const partnerUsername = await createQuestion(
-    `Partner username (${styles.defaultString(user.username)}): `,
-    user.username,
-  )
+  const partnerUsername = await createQuestion(`Partner username (${styles.defaultString(user.username)}): `, user.username)
   checkNotEmptyString(partnerUsername, 'Username must be not empty')
 
   const partnerEmail = await createQuestion(`Partner email (${styles.defaultString(user.email)}): `)
@@ -138,15 +132,9 @@ const partnerSignUp = async (user, createPartner, token): Promise<string> => {
 
 const initPartner = async () => {
   try {
-    const CAS_URI = await createQuestion(
-      `CAS uri (${styles.defaultString(CAS_BASE_URI)}): `,
-      CAS_BASE_URI,
-    )
+    const CAS_URI = await createQuestion(`CAS uri (${styles.defaultString(CAS_BASE_URI)}): `, CAS_BASE_URI)
 
-    const { loginRequest, createPartner, getKey } = decorateObjectMethods(
-      createRequests(CAS_URI),
-      showLoader,
-    )
+    const { loginRequest, createPartner, getKey } = decorateObjectMethods(createRequests(CAS_URI), showLoader)
 
     const username = await createQuestion(`username: `)
     checkNotEmptyString(username, 'Username must be not empty')
@@ -158,9 +146,7 @@ const initPartner = async () => {
 
     console.log(styles.success(`Hello, ${user.username}`))
 
-    const partnerId = await createQuestion(
-      `partnerId (${styles.helper('blank field to create new')}): `,
-    )
+    const partnerId = await createQuestion(`partnerId (${styles.helper('blank field to create new')}): `)
 
     const newPartnerId = (partnerId as string) || (await partnerSignUp(user, createPartner, token))
 
@@ -168,10 +154,7 @@ const initPartner = async () => {
 
     console.log('key: ', key)
 
-    const keyPath = await createQuestion(
-      `Path to save a key (${styles.defaultString(DEFAULT_KEY_PATH)}): `,
-      DEFAULT_KEY_PATH,
-    )
+    const keyPath = await createQuestion(`Path to save a key (${styles.defaultString(DEFAULT_KEY_PATH)}): `, DEFAULT_KEY_PATH)
 
     fs.writeFileSync(keyPath, key, { flag: 'w+' })
   } catch (e) {
@@ -182,4 +165,7 @@ const initPartner = async () => {
   }
 }
 
-initPartner()
+initPartner().catch(error => {
+  console.error(error)
+  process.exit(1)
+})

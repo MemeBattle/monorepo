@@ -3,7 +3,7 @@ name: 'Blog release'
 on:
   workflow_dispatch:
   push:
-    branches: [ master ]
+    branches: [master]
     paths:
       - 'apps/blog/**'
       - '.deploy/blog.deploy.yml'
@@ -11,7 +11,6 @@ on:
       - '.github/workflows/blog-**'
 
 jobs:
-
   build-blog-image:
     runs-on: ubuntu-24.04
 

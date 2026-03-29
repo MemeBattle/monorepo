@@ -2,47 +2,6 @@
   "name": "@memebattle/ligretto-core-backend",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "build": "node ace build --production",
-    "start": "node server.js",
-    "start:dev": "NODE_ENV=development node ace serve --watch",
-    "migrate": "node ace migration:run --force",
-    "production-migrate": "node ace migration:run --force",
-    "ts-check": "tsgo --noEmit",
-    "test": "node ace test",
-    "test:ci": "node ace test"
-  },
-  "devDependencies": {
-    "better-sqlite3": "catalog:",
-    "@adonisjs/assembler": "catalog:",
-    "@adonisjs/tsconfig": "catalog:",
-    "@japa/api-client": "catalog:",
-    "@japa/assert": "catalog:",
-    "@japa/plugin-adonisjs": "catalog:",
-    "@japa/runner": "catalog:",
-    "@poppinss/ts-exec": "catalog:",
-    "@types/lodash": "catalog:",
-    "@types/luxon": "catalog:",
-    "@typescript/native-preview": "catalog:",
-    "cpx": "catalog:",
-    "pino-pretty": "catalog:",
-    "youch": "catalog:",
-    "youch-terminal": "catalog:"
-  },
-  "dependencies": {
-    "@adonisjs/core": "catalog:",
-    "@adonisjs/cors": "catalog:",
-    "@adonisjs/lucid": "catalog:",
-    "@codexsoft/dotenv-flow": "catalog:",
-    "@memebattle/cas-services": "workspace:^",
-    "@memebattle/ligretto-shared": "workspace:^",
-    "@vinejs/vine": "catalog:",
-    "lodash": "catalog:",
-    "luxon": "catalog:",
-    "pg": "catalog:",
-    "proxy-addr": "catalog:",
-    "reflect-metadata": "catalog:"
-  },
   "files": [
     "build"
   ],
@@ -64,5 +23,46 @@
     "#helpers/*": "./app/helpers/*.js",
     "#generated/*": "./.adonisjs/server/*.js",
     "#transformers/*": "./app/transformers/*.js"
+  },
+  "scripts": {
+    "build": "node ace build --production",
+    "start": "node server.js",
+    "start:dev": "NODE_ENV=development node ace serve --watch",
+    "migrate": "node ace migration:run --force",
+    "production-migrate": "node ace migration:run --force",
+    "ts-check": "tsgo --noEmit",
+    "test": "node ace test",
+    "test:ci": "node ace test"
+  },
+  "dependencies": {
+    "@adonisjs/core": "catalog:",
+    "@adonisjs/cors": "catalog:",
+    "@adonisjs/lucid": "catalog:",
+    "@codexsoft/dotenv-flow": "catalog:",
+    "@memebattle/cas-services": "workspace:^",
+    "@memebattle/ligretto-shared": "workspace:^",
+    "@vinejs/vine": "catalog:",
+    "lodash": "catalog:",
+    "luxon": "catalog:",
+    "pg": "catalog:",
+    "proxy-addr": "catalog:",
+    "reflect-metadata": "catalog:"
+  },
+  "devDependencies": {
+    "@adonisjs/assembler": "catalog:",
+    "@adonisjs/tsconfig": "catalog:",
+    "@japa/api-client": "catalog:",
+    "@japa/assert": "catalog:",
+    "@japa/plugin-adonisjs": "catalog:",
+    "@japa/runner": "catalog:",
+    "@poppinss/ts-exec": "catalog:",
+    "@types/lodash": "catalog:",
+    "@types/luxon": "catalog:",
+    "@typescript/native-preview": "catalog:",
+    "better-sqlite3": "catalog:",
+    "cpx": "catalog:",
+    "pino-pretty": "catalog:",
+    "youch": "catalog:",
+    "youch-terminal": "catalog:"
   }
 }

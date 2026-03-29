@@ -2,7 +2,7 @@ name: 'CAS pull request'
 
 on:
   pull_request:
-    branches: [ master ]
+    branches: [master]
     paths:
       - 'apps/cas/**'
       - 'Cargo.toml'

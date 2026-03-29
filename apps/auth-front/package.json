@@ -5,6 +5,9 @@
   "main": "src/module.tsx",
   "module": "src/module.tsx",
   "types": "src/module.tsx",
+  "scripts": {
+    "ts-check": "tsgo --noEmit"
+  },
   "dependencies": {
     "@memebattle/cas-services": "workspace:^",
     "@memebattle/ui": "workspace:^",
@@ -19,13 +22,14 @@
     "react-router": "catalog:",
     "react-router-dom": "catalog:"
   },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "@typescript/native-preview": "catalog:"
+  },
   "peerDependencies": {
     "@memebattle/ui": "workspace:^",
     "react": "^17.0.1",
     "react-dom": "^17.0.1"
-  },
-  "scripts": {
-    "ts-check": "tsgo --noEmit"
   },
   "browserslist": {
     "production": [
@@ -38,9 +42,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "devDependencies": {
-    "@types/react": "catalog:",
-    "@typescript/native-preview": "catalog:"
   }
 }

@@ -15,7 +15,7 @@ export function Amplitude() {
         logLevel: amplitude.Types.LogLevel.Warn,
       })
     }
-    initAmplitude()
+    initAmplitude().catch(console.error)
   })
 
   return null

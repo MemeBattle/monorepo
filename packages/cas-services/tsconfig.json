@@ -10,7 +10,7 @@
     "moduleResolution": "bundler",
     "useDefineForClassFields": true,
     "allowImportingTsExtensions": true,
-    "noCheck": true,
+    "noCheck": true
   },
   "include": ["src"]
 }

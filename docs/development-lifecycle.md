@@ -27,9 +27,9 @@ git switch -c feature/<github-issue-id>-<feature-name>
 ## 3. Do the Job
 
 1. Read the task description and clarify all the details
-3. Move the issue to `In Progress` column
-2. Write the code ⌨️
-3. Review your work:
+2. Move the issue to `In Progress` column
+3. Write the code ⌨️
+4. Review your work:
 
 - Make sure all tests are pass
 - Make sure linter has no errors or warnings

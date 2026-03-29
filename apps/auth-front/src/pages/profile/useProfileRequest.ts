@@ -29,7 +29,7 @@ export const useProfileRequest = () => {
       }
     }
 
-    getProfile()
+    void getProfile()
   }, [token, setIsProfileLoading, getMeService])
 
   return [profile, isProfileLoading] as const
