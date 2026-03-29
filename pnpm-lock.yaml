@@ -757,9 +757,6 @@ importers:
       pino-pretty:
         specifier: 'catalog:'
         version: 7.6.1
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
       youch:
         specifier: 'catalog:'
         version: 4.1.0

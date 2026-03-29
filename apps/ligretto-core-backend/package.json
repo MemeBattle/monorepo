@@ -8,7 +8,7 @@
     "start:dev": "NODE_ENV=development node ace serve --watch",
     "migrate": "node ace migration:run --force",
     "production-migrate": "node ace migration:run --force",
-    "ts-check": "tsc --noEmit",
+    "ts-check": "tsgo --noEmit",
     "test": "node ace test",
     "test:ci": "node ace test"
   },
@@ -26,7 +26,6 @@
     "@typescript/native-preview": "catalog:",
     "cpx": "catalog:",
     "pino-pretty": "catalog:",
-    "typescript": "catalog:",
     "youch": "catalog:",
     "youch-terminal": "catalog:"
   },
