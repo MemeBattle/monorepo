@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 
 type AnyEvent = MouseEvent | TouchEvent
 
-export function useOnClickOutside<T extends HTMLElement = HTMLElement>(ref: RefObject<T>, handler?: (event: AnyEvent) => void): void {
+export function useOnClickOutside<T extends HTMLElement = HTMLElement>(ref: RefObject<T | null>, handler?: (event: AnyEvent) => void): void {
   useEffect(() => {
     const listener = (event: AnyEvent) => {
       const el = ref?.current
@@ -23,5 +23,5 @@ export function useOnClickOutside<T extends HTMLElement = HTMLElement>(ref: RefO
     }
 
     // Reload only if ref or handler changes
-  }, [ref, handler])
+  }, [ref?.current, handler])
 }

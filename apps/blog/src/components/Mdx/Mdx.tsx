@@ -24,7 +24,7 @@ const components = {
 const rssComponents = {
   ...components,
   Image: (props: React.DetailedHTMLProps<React.ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>) => {
-    const updatedProps = { ...props, src: generateFullUrl(props.src) }
+    const updatedProps = { ...props, src: generateFullUrl(props.src?.toString()) }
 
     return <img {...updatedProps} />
   },
