@@ -188,8 +188,8 @@ catalogs:
       specifier: ^22.1.0
       version: 22.1.0
     lodash:
-      specifier: 4.17.23
-      version: 4.17.23
+      specifier: 4.18.1
+      version: 4.18.1
     luxon:
       specifier: 3.2.1
       version: 3.2.1
@@ -576,7 +576,7 @@ importers:
         version: link:../../packages/ui
       lodash:
         specifier: 'catalog:'
-        version: 4.17.23
+        version: 4.18.1
       next:
         specifier: 'catalog:'
         version: 15.5.14(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.97.1)
@@ -631,7 +631,7 @@ importers:
         version: 4.3.0
       lodash:
         specifier: 'catalog:'
-        version: 4.17.23
+        version: 4.18.1
       luxon:
         specifier: 'catalog:'
         version: 3.2.1
@@ -698,7 +698,7 @@ importers:
         version: link:../../packages/analytics
       '@memebattle/auth-front':
         specifier: workspace:^
-        version: file:apps/auth-front(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@memebattle/ui@file:packages/ui(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(lodash@4.17.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: file:apps/auth-front(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@memebattle/ui@file:packages/ui(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(lodash@4.18.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@memebattle/cas-services':
         specifier: workspace:^
         version: link:../../packages/cas-services
@@ -737,7 +737,7 @@ importers:
         version: 5.3.0
       lodash:
         specifier: 'catalog:'
-        version: 4.17.23
+        version: 4.18.1
       react:
         specifier: 'catalog:'
         version: 18.3.1
@@ -828,7 +828,7 @@ importers:
         version: 5.1.1
       lodash:
         specifier: 'catalog:'
-        version: 4.17.23
+        version: 4.18.1
       nanoid:
         specifier: 'catalog:'
         version: 3.3.11
@@ -940,7 +940,7 @@ importers:
         version: 7.3.7(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1)
       lodash:
         specifier: 'catalog:'
-        version: 4.17.23
+        version: 4.18.1
       react:
         specifier: 'catalog:'
         version: 18.3.1
@@ -8219,11 +8219,11 @@ packages:
   lodash.once@4.1.1:
     resolution: {integrity: sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6dSJoNTSJUUswT651yww3Mg==}
 
-  lodash@4.17.21:
-    resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
-
   lodash@4.17.23:
     resolution: {integrity: sha512-LgVTMpQtIopCi79SJeDiP0TfWi5CNEc/L/aRdTh3yIvmZXTnheWpKjSZhnvMl8iXbC1tFg9gdHHDMLoV7CnG+w==}
+
+  lodash@4.18.1:
+    resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
 
   log-symbols@2.2.0:
     resolution: {integrity: sha512-VeIAFslyIerEJLXHziedo2basKbMKtTw3vfn5IzG0XTjhAVEJyNHnL2p7vc+wBDSdQuUpNw3M2u6xb9QsAY5Eg==}
@@ -13183,10 +13183,10 @@ snapshots:
       '@types/react': 18.3.27
       react: 18.3.1
 
-  '@memebattle/auth-front@file:apps/auth-front(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@memebattle/ui@file:packages/ui(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(lodash@4.17.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@memebattle/auth-front@file:apps/auth-front(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@memebattle/ui@file:packages/ui(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(lodash@4.18.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@memebattle/cas-services': file:packages/cas-services
-      '@memebattle/ui': file:packages/ui(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(lodash@4.17.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@memebattle/ui': file:packages/ui(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(lodash@4.18.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@mui/material': 7.3.7(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       clsx: 1.2.1
       final-form: 4.20.10
@@ -13207,12 +13207,12 @@ snapshots:
       jsonwebtoken: 9.0.3
       qs: 6.14.2
 
-  '@memebattle/ui@file:packages/ui(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(lodash@4.17.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@memebattle/ui@file:packages/ui(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(lodash@4.18.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@mui/icons-material': 7.3.7(@mui/material@7.3.7(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.27)(react@18.3.1)
       '@mui/material': 7.3.7(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@mui/system': 7.3.7(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1)
-      lodash: 4.17.23
+      lodash: 4.18.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
     transitivePeerDependencies:
@@ -14788,7 +14788,7 @@ snapshots:
   '@storybook/addon-controls@7.6.21(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@storybook/blocks': 7.6.21(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      lodash: 4.17.21
+      lodash: 4.17.23
       ts-dedent: 2.2.0
     transitivePeerDependencies:
       - '@types/react'
@@ -14904,7 +14904,7 @@ snapshots:
       '@types/lodash': 4.17.21
       color-convert: 2.0.1
       dequal: 2.0.3
-      lodash: 4.17.21
+      lodash: 4.17.23
       markdown-to-jsx: 7.7.17(react@18.3.1)
       memoizerific: 1.11.3
       polished: 4.3.1
@@ -15055,7 +15055,7 @@ snapshots:
       cross-spawn: 7.0.6
       globby: 11.1.0
       jscodeshift: 0.15.2(@babel/preset-env@7.28.5(@babel/core@7.28.5))
-      lodash: 4.17.21
+      lodash: 4.17.23
       prettier: 2.8.8
       recast: 0.23.11
     transitivePeerDependencies:
@@ -15150,7 +15150,7 @@ snapshots:
       express: 4.22.1
       fs-extra: 11.3.3
       globby: 11.1.0
-      lodash: 4.17.21
+      lodash: 4.17.23
       open: 8.4.2
       pretty-hrtime: 1.0.3
       prompts: 2.4.2
@@ -15204,7 +15204,7 @@ snapshots:
       '@types/doctrine': 0.0.3
       assert: 2.1.0
       doctrine: 3.0.0
-      lodash: 4.17.21
+      lodash: 4.17.23
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -15222,7 +15222,7 @@ snapshots:
       '@storybook/theming': 7.6.17(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@storybook/types': 7.6.17
       dequal: 2.0.3
-      lodash: 4.17.21
+      lodash: 4.17.23
       memoizerific: 1.11.3
       store2: 2.14.4
       telejson: 7.2.0
@@ -15242,7 +15242,7 @@ snapshots:
       '@storybook/theming': 7.6.21(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@storybook/types': 7.6.21
       dequal: 2.0.3
-      lodash: 4.17.21
+      lodash: 4.17.23
       memoizerific: 1.11.3
       store2: 2.14.4
       telejson: 7.2.0
@@ -15275,7 +15275,7 @@ snapshots:
       '@storybook/types': 7.6.17
       '@types/qs': 6.14.0
       dequal: 2.0.3
-      lodash: 4.17.21
+      lodash: 4.17.23
       memoizerific: 1.11.3
       qs: 6.14.2
       synchronous-promise: 2.0.17
@@ -15292,7 +15292,7 @@ snapshots:
       '@storybook/types': 7.6.21
       '@types/qs': 6.14.0
       dequal: 2.0.3
-      lodash: 4.17.21
+      lodash: 4.17.23
       memoizerific: 1.11.3
       qs: 6.14.2
       synchronous-promise: 2.0.17
@@ -15343,7 +15343,7 @@ snapshots:
       acorn-walk: 7.2.0
       escodegen: 2.1.0
       html-tags: 3.3.1
-      lodash: 4.17.21
+      lodash: 4.17.23
       prop-types: 15.8.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
@@ -19000,7 +19000,7 @@ snapshots:
       get-package-type: 0.1.0
       getopts: 2.3.0
       interpret: 2.2.0
-      lodash: 4.17.23
+      lodash: 4.18.1
       pg-connection-string: 2.6.2
       rechoir: 0.8.0
       resolve-from: 5.0.0
@@ -19022,7 +19022,7 @@ snapshots:
       get-package-type: 0.1.0
       getopts: 2.3.0
       interpret: 2.2.0
-      lodash: 4.17.23
+      lodash: 4.18.1
       pg-connection-string: 2.6.2
       rechoir: 0.8.0
       resolve-from: 5.0.0
@@ -19158,9 +19158,9 @@ snapshots:
 
   lodash.once@4.1.1: {}
 
-  lodash@4.17.21: {}
-
   lodash@4.17.23: {}
+
+  lodash@4.18.1: {}
 
   log-symbols@2.2.0:
     dependencies:
@@ -22574,7 +22574,7 @@ snapshots:
     dependencies:
       axios: 1.13.5
       joi: 17.13.3
-      lodash: 4.17.21
+      lodash: 4.17.23
       minimist: 1.2.8
       rxjs: 7.8.2
     transitivePeerDependencies:
