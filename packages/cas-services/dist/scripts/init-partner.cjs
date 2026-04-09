@@ -23,8 +23,6 @@ var __webpack_require__ = {};
 })();
 var __webpack_exports__ = {};
 const external_fs_namespaceObject = require("fs");
-const external_axios_namespaceObject = require("axios");
-var external_axios_default = /*#__PURE__*/ __webpack_require__.n(external_axios_namespaceObject);
 const external_readline_namespaceObject = require("readline");
 const external_chalk_namespaceObject = require("chalk");
 var external_chalk_default = /*#__PURE__*/ __webpack_require__.n(external_chalk_namespaceObject);
@@ -69,24 +67,35 @@ const createRequests = (CAS_URI)=>{
     const CAS_ROUTES = createCasRoutes(CAS_URI);
     return {
         loginRequest: async (credentials)=>{
-            const answer = await external_axios_default().post(CAS_ROUTES.loginRequest, credentials);
-            return answer.data.data;
+            const response = await fetch(CAS_ROUTES.loginRequest, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(credentials)
+            });
+            const answer = await response.json();
+            return answer.data;
         },
         createPartner: async (userData, token)=>{
-            const answer = await external_axios_default().post(CAS_ROUTES.createPartner, userData, {
+            const response = await fetch(CAS_ROUTES.createPartner, {
+                method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     Authorization: token
-                }
+                },
+                body: JSON.stringify(userData)
             });
-            return answer.data.data;
+            const answer = await response.json();
+            return answer.data;
         },
         getKey: async (partnerId, token)=>{
-            const answer = await external_axios_default().get(CAS_ROUTES.getPartnerKey(partnerId), {
+            const response = await fetch(CAS_ROUTES.getPartnerKey(partnerId), {
                 headers: {
                     Authorization: token
                 }
             });
-            return answer.data;
+            return response.json();
         }
     };
 };
@@ -132,7 +141,10 @@ const initPartner = async ()=>{
         rl.close();
     }
 };
-initPartner();
+initPartner().catch((error)=>{
+    console.error(error);
+    process.exit(1);
+});
 for(var __rspack_i in __webpack_exports__)exports[__rspack_i] = __webpack_exports__[__rspack_i];
 Object.defineProperty(exports, '__esModule', {
     value: true

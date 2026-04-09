@@ -1,3 +1,3 @@
-import { AxiosInstance } from 'axios';
-import { ErrorGetMe, SuccessGetMe, GetMePayload } from '../types';
-export declare const createGetMeService: (request: AxiosInstance) => ({ token }: GetMePayload) => Promise<SuccessGetMe | ErrorGetMe>;
+import type { HttpClient } from '../request';
+import type { ErrorGetMe, SuccessGetMe, GetMePayload } from '../types';
+export declare const createGetMeService: (request: HttpClient) => ({ token }: GetMePayload) => Promise<SuccessGetMe | ErrorGetMe>;

@@ -33,7 +33,6 @@ const createUpdateUserProfileService = (request)=>({ userId, token, avatar, user
         if (username) formData.append('username', username);
         return request.patch(`${external_constants_cjs_namespaceObject.CAS_ROUTES.users}/${userId}`, formData, {
             headers: {
-                'Content-Type': 'multipart/form-data',
                 Authorization: token
             }
         });

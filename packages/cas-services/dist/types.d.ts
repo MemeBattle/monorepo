@@ -1,6 +1,4 @@
-import { VerifyErrors } from 'jsonwebtoken';
-import { AxiosRequestConfig, AxiosResponseHeaders } from 'axios';
-import { RawAxiosResponseHeaders } from 'axios';
+import type { VerifyErrors } from 'jsonwebtoken';
 export type TemporaryUser = {
     isTemporary: true;
     _id: string;
@@ -71,7 +69,7 @@ export type VerifyTokenError = {
     success: false;
     error: VerifyErrors;
 };
-export type SuccessLoggerFunction = (status: number, data: unknown, headers: RawAxiosResponseHeaders | AxiosResponseHeaders, config: AxiosRequestConfig) => void;
+export type SuccessLoggerFunction = (status: number, data: unknown, headers: Record<string, string>, url: string) => void;
 export type ErrorLoggerFunction = (error: unknown) => void;
 export type CreateCasServices = {
     casURI: string;
