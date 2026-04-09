@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createBaseRequest } from './request'
+import { createBaseRequest } from '../src/request'
 
 function makeFetchResponse(body: unknown, status = 200, headers: Record<string, string> = {}) {
   return {

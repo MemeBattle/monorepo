@@ -77,12 +77,7 @@ export type VerifyTokenError = {
   error: VerifyErrors
 }
 
-export type SuccessLoggerFunction = (
-  status: number,
-  data: unknown,
-  headers: Record<string, string>,
-  url: string,
-) => void
+export type SuccessLoggerFunction = (status: number, data: unknown, headers: Record<string, string>, url: string) => void
 
 export type ErrorLoggerFunction = (error: unknown) => void
 
