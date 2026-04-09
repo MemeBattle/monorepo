@@ -1,5 +1,4 @@
 import type { TypedStartListening, ListenerEffectAPI, Dispatch } from '@reduxjs/toolkit'
-import type { AxiosResponse } from 'axios'
 import { connectToRoomSuccessAction, userJoinToRoomAction } from '@memebattle/ligretto-shared'
 
 import { getUsersByIds } from '#shared/api'
@@ -10,7 +9,7 @@ import type { All } from '#types/store'
 
 async function getUsersByIdsEffect(ids: string[], listenerApi: ListenerEffectAPI<All, Dispatch>) {
   try {
-    const { data }: AxiosResponse<GetUsersResponse> = await getUsersByIds(ids)
+    const { data } = await getUsersByIds(ids)
     listenerApi.dispatch(addUsers(data))
   } catch (e) {
     console.error(e)

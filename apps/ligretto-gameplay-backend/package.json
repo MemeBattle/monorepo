@@ -22,7 +22,6 @@
     "@codexsoft/dotenv-flow": "catalog:",
     "@memebattle/cas-services": "workspace:^",
     "@memebattle/ligretto-shared": "workspace:^",
-    "axios": "catalog:",
     "inversify": "catalog:",
     "lodash": "catalog:",
     "nanoid": "catalog:",

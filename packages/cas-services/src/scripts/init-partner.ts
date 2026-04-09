@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import * as fs from 'fs'
-import axios from 'axios'
 import * as readline from 'readline'
 import chalk from 'chalk'
 import * as chalkAnimation from 'chalk-animation'
@@ -88,22 +87,30 @@ const createRequests = CAS_URI => {
 
   return {
     loginRequest: async (credentials: Credentials): Promise<UserAnswer> => {
-      const answer = await axios.post(CAS_ROUTES.loginRequest, credentials)
-      return answer.data.data
+      const response = await fetch(CAS_ROUTES.loginRequest, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials),
+      })
+      const answer = await response.json()
+      return answer.data
     },
 
     createPartner: async (userData: CreatePartner, token: string): Promise<UserAnswer> => {
-      const answer = await axios.post(CAS_ROUTES.createPartner, userData, {
-        headers: { Authorization: token },
+      const response = await fetch(CAS_ROUTES.createPartner, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: token },
+        body: JSON.stringify(userData),
       })
-      return answer.data.data
+      const answer = await response.json()
+      return answer.data
     },
 
     getKey: async (partnerId: string, token: string): Promise<string> => {
-      const answer = await axios.get(CAS_ROUTES.getPartnerKey(partnerId), {
+      const response = await fetch(CAS_ROUTES.getPartnerKey(partnerId), {
         headers: { Authorization: token },
       })
-      return answer.data
+      return response.json()
     },
   }
 }
