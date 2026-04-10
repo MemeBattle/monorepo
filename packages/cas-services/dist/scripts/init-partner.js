@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { writeFileSync } from "fs";
-import axios from "axios";
 import { createInterface } from "readline";
 import chalk from "chalk";
 import { rainbow } from "chalk-animation";
@@ -44,24 +43,35 @@ const createRequests = (CAS_URI)=>{
     const CAS_ROUTES = createCasRoutes(CAS_URI);
     return {
         loginRequest: async (credentials)=>{
-            const answer = await axios.post(CAS_ROUTES.loginRequest, credentials);
-            return answer.data.data;
+            const response = await fetch(CAS_ROUTES.loginRequest, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(credentials)
+            });
+            const answer = await response.json();
+            return answer.data;
         },
         createPartner: async (userData, token)=>{
-            const answer = await axios.post(CAS_ROUTES.createPartner, userData, {
+            const response = await fetch(CAS_ROUTES.createPartner, {
+                method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     Authorization: token
-                }
+                },
+                body: JSON.stringify(userData)
             });
-            return answer.data.data;
+            const answer = await response.json();
+            return answer.data;
         },
         getKey: async (partnerId, token)=>{
-            const answer = await axios.get(CAS_ROUTES.getPartnerKey(partnerId), {
+            const response = await fetch(CAS_ROUTES.getPartnerKey(partnerId), {
                 headers: {
                     Authorization: token
                 }
             });
-            return answer.data;
+            return response.json();
         }
     };
 };
@@ -107,4 +117,7 @@ const initPartner = async ()=>{
         rl.close();
     }
 };
-initPartner();
+initPartner().catch((error)=>{
+    console.error(error);
+    process.exit(1);
+});

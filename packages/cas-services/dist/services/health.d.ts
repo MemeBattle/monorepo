@@ -1,3 +1,3 @@
-import { AxiosInstance } from 'axios';
-import { SuccessHealthCheck, ErrorHealthCheck } from '../types';
-export declare const createHealthService: (request: AxiosInstance) => () => Promise<ErrorHealthCheck | SuccessHealthCheck>;
+import type { HttpClient } from '../request';
+import type { SuccessHealthCheck, ErrorHealthCheck } from '../types';
+export declare const createHealthService: (request: HttpClient) => () => Promise<ErrorHealthCheck | SuccessHealthCheck>;

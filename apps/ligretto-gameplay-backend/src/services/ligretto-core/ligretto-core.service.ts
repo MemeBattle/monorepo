@@ -1,29 +1,31 @@
 import { injectable } from 'inversify'
-import axios from 'axios'
-import type { AxiosResponse } from 'axios'
-import type { Game, RoundInfo, CreateGameRequest, CreateGameResponse, SaveRoundRequest, SaveRoundResponse } from '@memebattle/ligretto-shared'
+import type { Game, RoundInfo, CreateGameResponse, SaveRoundResponse } from '@memebattle/ligretto-shared'
 import { LIGRETTO_CORE_URL } from '../../config'
+
+async function post<T>(path: string, body?: unknown): Promise<{ data: T }> {
+  const response = await fetch(`${LIGRETTO_CORE_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  })
+  const data = (await response.json()) as T
+  return { data }
+}
 
 @injectable()
 export class LigrettoCoreService {
-  private request = axios.create({
-    baseURL: LIGRETTO_CORE_URL,
-  })
-
   public async createGameService() {
-    const res = await this.request.post<CreateGameResponse, AxiosResponse<CreateGameResponse>, CreateGameRequest>('/games')
-
+    const res = await post<CreateGameResponse>('/games')
     return res.data
   }
 
   public async saveGameRoundService(gameId: Game['id'], round: RoundInfo) {
-    const res = await this.request.post<SaveRoundResponse, AxiosResponse<SaveRoundResponse>, SaveRoundRequest>(`/games/${gameId}/rounds`, {
+    const res = await post<SaveRoundResponse>(`/games/${gameId}/rounds`, {
       results: Object.entries(round.results).map(([playerId, { roundScore }]) => ({
         playerId,
         score: roundScore,
       })),
     })
-
     return res.data
   }
 }

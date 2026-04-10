@@ -12,7 +12,6 @@
     "@memebattle/cas-services": "workspace:^",
     "@memebattle/ui": "workspace:^",
     "@mui/material": "catalog:",
-    "axios": "catalog:",
     "clsx": "catalog:",
     "final-form": "catalog:",
     "react": "catalog:",

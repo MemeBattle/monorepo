@@ -38,7 +38,6 @@
     "@reduxjs/toolkit": "catalog:",
     "@sentry/browser": "catalog:",
     "@sentry/integrations": "catalog:",
-    "axios": "catalog:",
     "clsx": "catalog:",
     "csstype": "catalog:",
     "history": "catalog:",

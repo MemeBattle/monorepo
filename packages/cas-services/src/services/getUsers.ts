@@ -1,8 +1,6 @@
-import type { AxiosInstance } from 'axios'
+import type { HttpClient } from '../request'
 import { CAS_ROUTES } from '../constants'
 import type { SuccessGetUsers, GetUsersPayload, ErrorGetUsers } from '../types'
 
-export const createGetUsersService = (request: AxiosInstance) => (params?: GetUsersPayload) =>
-  request.get<SuccessGetUsers | ErrorGetUsers, SuccessGetUsers | ErrorGetUsers>(`${CAS_ROUTES.users}`, {
-    params,
-  })
+export const createGetUsersService = (request: HttpClient) => (params?: GetUsersPayload) =>
+  request.get<SuccessGetUsers | ErrorGetUsers>(`${CAS_ROUTES.users}`, { params })

@@ -145,9 +145,6 @@ catalogs:
     autoprefixer:
       specifier: ^10.4.14
       version: 10.4.23
-    axios:
-      specifier: 1.13.5
-      version: 1.13.5
     better-sqlite3:
       specifier: ^11.0.0
       version: 11.10.0
@@ -413,9 +410,6 @@ importers:
       '@mui/material':
         specifier: 'catalog:'
         version: 7.3.7(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      axios:
-        specifier: 'catalog:'
-        version: 1.13.5
       clsx:
         specifier: 'catalog:'
         version: 1.2.1
@@ -732,9 +726,6 @@ importers:
       '@sentry/integrations':
         specifier: 'catalog:'
         version: 7.114.0
-      axios:
-        specifier: 'catalog:'
-        version: 1.13.5
       clsx:
         specifier: 'catalog:'
         version: 1.2.1
@@ -832,9 +823,6 @@ importers:
       '@memebattle/ligretto-shared':
         specifier: workspace:^
         version: link:../../packages/ligretto-shared
-      axios:
-        specifier: 'catalog:'
-        version: 1.13.5
       inversify:
         specifier: 'catalog:'
         version: 5.1.1
@@ -894,9 +882,6 @@ importers:
 
   packages/cas-services:
     dependencies:
-      axios:
-        specifier: 'catalog:'
-        version: 1.13.5
       jsonwebtoken:
         specifier: ^9.0.0
         version: 9.0.3
@@ -13203,7 +13188,6 @@ snapshots:
       '@memebattle/cas-services': file:packages/cas-services
       '@memebattle/ui': file:packages/ui(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(lodash@4.17.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@mui/material': 7.3.7(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      axios: 1.13.5
       clsx: 1.2.1
       final-form: 4.20.10
       react: 18.3.1
@@ -13217,15 +13201,11 @@ snapshots:
       - '@emotion/styled'
       - '@mui/material-pigment-css'
       - '@types/react'
-      - debug
 
   '@memebattle/cas-services@file:packages/cas-services':
     dependencies:
-      axios: 1.13.5
       jsonwebtoken: 9.0.3
       qs: 6.14.2
-    transitivePeerDependencies:
-      - debug
 
   '@memebattle/ui@file:packages/ui(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@emotion/styled@11.10.4(@babel/core@7.28.5)(@emotion/react@11.10.4(@babel/core@7.28.5)(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(react@18.3.1))(@types/react@18.3.27)(lodash@4.17.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:

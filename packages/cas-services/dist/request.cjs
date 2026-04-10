@@ -1,15 +1,6 @@
 "use strict";
 var __webpack_require__ = {};
 (()=>{
-    __webpack_require__.n = (module)=>{
-        var getter = module && module.__esModule ? ()=>module['default'] : ()=>module;
-        __webpack_require__.d(getter, {
-            a: getter
-        });
-        return getter;
-    };
-})();
-(()=>{
     __webpack_require__.d = (exports1, definition)=>{
         for(var key in definition)if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports1, key)) Object.defineProperty(exports1, key, {
             enumerable: true,
@@ -35,32 +26,50 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
     createBaseRequest: ()=>createBaseRequest
 });
-const external_axios_namespaceObject = require("axios");
-var external_axios_default = /*#__PURE__*/ __webpack_require__.n(external_axios_namespaceObject);
 const external_qs_namespaceObject = require("qs");
 const createBaseRequest = ({ casURI, errorLogger, successLogger })=>{
-    const baseRequest = external_axios_default().create({
-        baseURL: casURI,
-        validateStatus: (status)=>status >= 200 && status < 500,
-        paramsSerializer: {
-            indexes: false,
-            serialize: (params)=>(0, external_qs_namespaceObject.stringify)(params, {
-                    arrayFormat: 'repeat'
-                })
-        }
-    });
-    baseRequest.interceptors.response.use((response)=>{
-        if (successLogger) successLogger(response.status, response.data, response.headers, response.config);
-        return response.data;
-    }, (error)=>{
-        if (errorLogger) errorLogger(error);
-        return {
-            success: false,
-            error: error.toJSON(),
-            errorCode: error.code || 500
+    const doRequest = async (method, path, body, config)=>{
+        let url = `${casURI}${path}`;
+        if (config?.params) url += `?${(0, external_qs_namespaceObject.stringify)(config.params, {
+            arrayFormat: 'repeat',
+            indices: false
+        })}`;
+        const headers = {
+            ...config?.headers
         };
-    });
-    return baseRequest;
+        let fetchBody;
+        if (body instanceof FormData) fetchBody = body;
+        else if (void 0 !== body) {
+            headers['Content-Type'] = 'application/json';
+            fetchBody = JSON.stringify(body);
+        }
+        let response;
+        try {
+            response = await fetch(url, {
+                method,
+                headers,
+                body: fetchBody
+            });
+        } catch (error) {
+            if (errorLogger) errorLogger(error);
+            return {
+                success: false,
+                error,
+                errorCode: 500
+            };
+        }
+        const data = await response.json();
+        if (successLogger) {
+            const headersObj = Object.fromEntries(response.headers.entries());
+            successLogger(response.status, data, headersObj, url);
+        }
+        return data;
+    };
+    return {
+        get: (url, config)=>doRequest('GET', url, void 0, config),
+        post: (url, data, config)=>doRequest('POST', url, data, config),
+        patch: (url, data, config)=>doRequest('PATCH', url, data, config)
+    };
 };
 exports.createBaseRequest = __webpack_exports__.createBaseRequest;
 for(var __rspack_i in __webpack_exports__)if (-1 === [

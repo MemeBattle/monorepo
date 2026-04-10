@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/browser'
 import type { TypedStartListening } from '@reduxjs/toolkit'
-import type { AxiosResponse } from 'axios'
 
 import { logout, getMeRequest, getMeSuccess } from './authActions'
 import { LOCAL_STORAGE_TOKEN_KEY } from './constants'
@@ -8,12 +7,11 @@ import { LOCAL_STORAGE_TOKEN_KEY } from './constants'
 import { analytics } from '#entities/analytics'
 import { addUser } from '#ducks/users'
 import { getMe } from '#shared/api'
-import type { GetMeResponse } from '#shared/api'
 import type { All } from '#types/store'
 
 async function getUserByTokenEffect(token?: string) {
   try {
-    const { data }: AxiosResponse<GetMeResponse> = await getMe(token)
+    const { data } = await getMe(token)
 
     return {
       userId: data.user.casId,

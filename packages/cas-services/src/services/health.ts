@@ -1,6 +1,5 @@
-import type { AxiosInstance } from 'axios'
+import type { HttpClient } from '../request'
 import { CAS_ROUTES } from '../constants'
 import type { SuccessHealthCheck, ErrorHealthCheck } from '../types'
 
-export const createHealthService = (request: AxiosInstance) => () =>
-  request.get<ErrorHealthCheck | SuccessHealthCheck, ErrorHealthCheck | SuccessHealthCheck>(CAS_ROUTES.health)
+export const createHealthService = (request: HttpClient) => () => request.get<ErrorHealthCheck | SuccessHealthCheck>(CAS_ROUTES.health)
