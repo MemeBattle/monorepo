@@ -2,7 +2,6 @@ import type { TypedStartListening, ListenerEffectAPI, Dispatch } from '@reduxjs/
 import { connectToRoomSuccessAction, userJoinToRoomAction } from '@memebattle/ligretto-shared'
 
 import { getUsersByIds } from '#shared/api'
-import type { GetUsersResponse } from '#shared/api'
 
 import { addUsers } from './usersActions'
 import type { All } from '#types/store'

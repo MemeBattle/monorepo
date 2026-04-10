@@ -7,7 +7,6 @@ import { LOCAL_STORAGE_TOKEN_KEY } from './constants'
 import { analytics } from '#entities/analytics'
 import { addUser } from '#ducks/users'
 import { getMe } from '#shared/api'
-import type { GetMeResponse } from '#shared/api'
 import type { All } from '#types/store'
 
 async function getUserByTokenEffect(token?: string) {
