@@ -3,10 +3,45 @@
 // For a full list of overridable settings, and general information on folder-specific settings,
 // see the documentation: https://zed.dev/docs/configuring-zed#settings-files
 {
+  "lsp": {
+    "oxlint": {
+      "initialization_options": {
+        "settings": {
+          "configPath": null,
+          "run": "onType",
+          "disableNestedConfig": false,
+          "fixKind": "safe_fix",
+          "unusedDisableDirectives": "deny"
+        }
+      }
+    },
+    "oxfmt": {
+      "initialization_options": {
+        "settings": {
+          "run": "onSave"
+        }
+      }
+    }
+  },
   "show_completions_on_input": true,
+
+  "format_on_save": "on",
+  "formatter": [
+    {
+      "language_server": {
+        "name": "oxfmt"
+      }
+    }
+  ],
   "languages": {
     "TypeScript": {
-      "language_servers": ["tsgo"]
+      "language_servers": ["tsgo"],
+      "prettier": {
+        "allowed": false
+      }
+    },
+    "Rust": {
+      "formatter": "language_server"
     }
   }
 }
