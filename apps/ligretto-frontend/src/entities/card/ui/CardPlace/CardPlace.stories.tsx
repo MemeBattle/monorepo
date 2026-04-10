@@ -1,14 +1,21 @@
+import type { Meta, StoryObj } from '@storybook/react'
 import { CardPlace } from './CardPlace'
 import { Stack } from '@memebattle/ui'
 
-export default {
+const meta: Meta<typeof CardPlace> = {
   title: 'Ligretto / CardPlace',
+  component: CardPlace,
 }
+export default meta
 
-export const DefaultView = () => (
-  <Stack spacing={2} direction="row">
-    <CardPlace size="small" />
-    <CardPlace size="medium" />
-    <CardPlace size="large" />
-  </Stack>
-)
+type Story = StoryObj<typeof CardPlace>
+
+export const DefaultView: Story = {
+  render: () => (
+    <Stack spacing={2} direction="row">
+      <CardPlace size="small" />
+      <CardPlace size="medium" />
+      <CardPlace size="large" />
+    </Stack>
+  ),
+}

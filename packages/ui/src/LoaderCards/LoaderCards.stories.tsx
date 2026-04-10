@@ -1,10 +1,14 @@
+import type { Meta, StoryObj } from '@storybook/react'
 import { LoaderCards } from './LoaderCards'
 
-export default {
+const meta: Meta<typeof LoaderCards> = {
   title: 'Ligretto-ui / LoaderCards',
   component: LoaderCards,
 }
+export default meta
 
-const Template = () => <LoaderCards />
+type Story = StoryObj<typeof LoaderCards>
 
-export const DefaultView = Template.bind({})
+export const DefaultView: Story = {
+  render: () => <LoaderCards />,
+}

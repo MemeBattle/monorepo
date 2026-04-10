@@ -1,7 +1,14 @@
+import type { Meta, StoryObj } from '@storybook/react'
 import { Typography } from './Typography'
 
-export default {
+const meta: Meta<typeof Typography> = {
   title: 'UI / Typography',
+  component: Typography,
 }
+export default meta
 
-export const DefaultView = () => <Typography>Typhography</Typography>
+type Story = StoryObj<typeof Typography>
+
+export const DefaultView: Story = {
+  render: () => <Typography>Typhography</Typography>,
+}

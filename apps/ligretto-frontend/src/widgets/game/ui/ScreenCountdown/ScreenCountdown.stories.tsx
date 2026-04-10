@@ -1,10 +1,14 @@
-import type { Meta, StoryFn } from '@storybook/react'
+import type { Meta, StoryObj } from '@storybook/react'
 import { ScreenCountdown } from './ScreenCountdown'
 
-export default {
+const meta: Meta<typeof ScreenCountdown> = {
   title: 'Ligretto / ScreenCountdown',
   component: ScreenCountdown,
-  argTypes: {},
-} as Meta<typeof ScreenCountdown>
+}
+export default meta
 
-export const Default: StoryFn<typeof ScreenCountdown> = args => <ScreenCountdown {...args} timeToGo={4} />
+type Story = StoryObj<typeof ScreenCountdown>
+
+export const Default: Story = {
+  args: { timeToGo: 4 },
+}

@@ -1,0 +1,37 @@
+name: 'Storybook pull request'
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'apps/**/*.stories.*'
+      - 'packages/**/*.stories.*'
+      - '.storybook/**'
+      - 'packages/ui/**'
+      - '.github/workflows/storybook-pr.yml'
+      - 'pnpm-lock.yaml'
+      - package.json
+      - .npmrc
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+  build-storybook:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Build Storybook
+        run: pnpm build-storybook
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: storybook-static
+          path: storybook-static/
+          retention-days: 7

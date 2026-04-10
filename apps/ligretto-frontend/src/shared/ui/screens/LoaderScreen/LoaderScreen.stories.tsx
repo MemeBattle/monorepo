@@ -1,9 +1,14 @@
+import type { Meta, StoryObj } from '@storybook/react'
 import { LoaderScreen } from './LoaderScreen'
-import type { Meta, StoryFn } from '@storybook/react'
 
-export default {
+const meta: Meta<typeof LoaderScreen> = {
   title: 'Ligretto / LoaderScreen',
   component: LoaderScreen,
-} as Meta<typeof LoaderScreen>
+}
+export default meta
 
-export const DefaultView: StoryFn<typeof LoaderScreen> = () => <LoaderScreen />
+type Story = StoryObj<typeof LoaderScreen>
+
+export const DefaultView: Story = {
+  render: () => <LoaderScreen />,
+}

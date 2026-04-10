@@ -1,7 +1,14 @@
+import type { Meta, StoryObj } from '@storybook/react'
 import { MemebattleLogo } from './MemebattleLogo'
 
-export default {
+const meta: Meta<typeof MemebattleLogo> = {
   title: 'UI / MemebattleLogo',
+  component: MemebattleLogo,
 }
+export default meta
 
-export const DefaultView = () => <MemebattleLogo />
+type Story = StoryObj<typeof MemebattleLogo>
+
+export const DefaultView: Story = {
+  render: () => <MemebattleLogo />,
+}

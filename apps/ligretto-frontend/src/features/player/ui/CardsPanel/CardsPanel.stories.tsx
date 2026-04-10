@@ -1,10 +1,10 @@
+import type { Meta, StoryObj } from '@storybook/react'
 import { CardsPanel } from './CardsPanel'
-import type { Meta, StoryFn } from '@storybook/react'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { Provider } from 'react-redux'
 import { store } from '#app/store'
 
-export default {
+const meta: Meta<typeof CardsPanel> = {
   component: CardsPanel,
   title: 'Ligretto / CardsPanel',
   decorators: [
@@ -14,13 +14,18 @@ export default {
       </Provider>
     ),
   ],
-} as Meta<typeof CardsPanel>
+}
+export default meta
 
-export const Default: StoryFn<typeof CardsPanel> = () => (
-  <CardsPanel
-    player={{
-      status: PlayerStatus.InGame,
-      username: 'Username',
-    }}
-  />
-)
+type Story = StoryObj<typeof CardsPanel>
+
+export const Default: Story = {
+  render: () => (
+    <CardsPanel
+      player={{
+        status: PlayerStatus.InGame,
+        username: 'Username',
+      }}
+    />
+  ),
+}

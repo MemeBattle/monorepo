@@ -1,8 +1,14 @@
+import type { Meta, StoryObj } from '@storybook/react'
 import { Alert } from './Alert'
 
-export default {
+const meta: Meta<typeof Alert> = {
   title: 'UI / Alert',
   component: Alert,
 }
+export default meta
 
-export const DefaultView = () => <Alert />
+type Story = StoryObj<typeof Alert>
+
+export const DefaultView: Story = {
+  render: () => <Alert />,
+}

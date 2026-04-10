@@ -1,16 +1,22 @@
-import React, { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
+import type { ChangeEventHandler } from 'react'
+import type { Meta, StoryObj } from '@storybook/react'
 import { InputWithButton } from './InputWithButton'
 import { Typography } from '@memebattle/ui'
 import CachedIcon from '@mui/icons-material/Cached'
 
-export default {
+const meta: Meta<typeof InputWithButton> = {
   title: 'Ligretto / InputWithButton',
+  component: InputWithButton,
 }
+export default meta
 
-export const Search = () => {
-  const inputRef = React.useRef<HTMLInputElement>(null)
+type Story = StoryObj<typeof InputWithButton>
 
-  const handleSearchRoomsClick = React.useCallback(() => {
+const SearchStory = () => {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleSearchRoomsClick = useCallback(() => {
     if (inputRef.current) {
       inputRef.current.focus()
     }
@@ -30,15 +36,16 @@ export const Search = () => {
   )
 }
 
-export const CreateRoom = () => {
+export const Search: Story = {
+  render: () => <SearchStory />,
+}
+
+const CreateRoomStory = () => {
   const [name, setName] = useState('')
 
-  const handleNameChange = useCallback<React.ChangeEventHandler<HTMLInputElement>>(
-    e => {
-      setName(e.target.value)
-    },
-    [setName],
-  )
+  const handleNameChange = useCallback<ChangeEventHandler<HTMLInputElement>>(e => {
+    setName(e.target.value)
+  }, [])
 
   return (
     <div style={{ width: '35rem' }}>
@@ -52,4 +59,8 @@ export const CreateRoom = () => {
       </InputWithButton>
     </div>
   )
+}
+
+export const CreateRoom: Story = {
+  render: () => <CreateRoomStory />,
 }

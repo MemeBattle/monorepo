@@ -1,9 +1,14 @@
+import type { Meta, StoryObj } from '@storybook/react'
 import { Background } from './Background'
-import type { Meta, StoryFn } from '@storybook/react'
 
-export default {
+const meta: Meta<typeof Background> = {
   title: 'Ligretto / Background',
   component: Background,
-} as Meta<typeof Background>
+}
+export default meta
 
-export const DefaultView: StoryFn<typeof Background> = () => <Background />
+type Story = StoryObj<typeof Background>
+
+export const DefaultView: Story = {
+  render: () => <Background />,
+}
