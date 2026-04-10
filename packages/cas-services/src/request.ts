@@ -40,7 +40,9 @@ export const createBaseRequest = ({
     try {
       response = await fetch(url, { method, headers, body: fetchBody })
     } catch (error) {
-      if (errorLogger) { errorLogger(error) }
+      if (errorLogger) {
+        errorLogger(error)
+      }
       return { success: false, error, errorCode: 500 } as T
     }
 
