@@ -9,13 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@simplewebauthn/browser": "^13.2.2"
+    "@simplewebauthn/browser": "catalog:"
   },
   "devDependencies": {
     "@typescript/native-preview": "catalog:",
-    "vite": "npm:rolldown-vite@7.2.5"
-  },
-  "resolutions": {
-    "vite": "npm:rolldown-vite@7.2.5"
+    "vite": "catalog:rolldown"
   }
 }

@@ -10,6 +10,6 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@simplewebauthn/browser": "^13.2.2"
+    "@simplewebauthn/browser": "catalog:"
   }
 }
