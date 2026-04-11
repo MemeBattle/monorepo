@@ -1,6 +1,5 @@
-import React from 'react'
-import type { Parameters } from '@storybook/react'
-import { MINIMAL_VIEWPORTS } from '@storybook/addon-viewport'
+import type { Decorator, Preview } from '@storybook/react'
+import { MINIMAL_VIEWPORTS } from 'storybook/viewport'
 import { CssBaseline } from '@memebattle/ui'
 import { ThemeProvider } from '@mui/material/styles'
 
@@ -8,47 +7,46 @@ import { theme } from '../apps/ligretto-frontend/src/app/themes/default'
 import { ligrettoAuthTheme } from '../apps/ligretto-frontend/src/app/themes/ligrettoAuth'
 import { gamehubClientTheme } from '../apps/gamehub-client/src/themes/gamehubClient'
 
-const themesByNames = {
+const themesByNames: Record<string, object> = {
   ligretto: theme,
   ligrettoAuth: ligrettoAuthTheme,
   gameHub: gamehubClientTheme,
 }
 
-const getTheme = (themeName: string) => themesByNames[themeName] || theme
+const getTheme = (themeName: string) => themesByNames[themeName] ?? theme
 
-export const globalTypes = {
-  theme: {
-    name: 'Theme',
-    description: 'Global theme for components',
-    defaultValue: 'ligretto',
-    toolbar: {
-      icon: 'circlehollow',
-      // Array of plain string values or MenuItem shape (see below)
-      items: Object.keys(themesByNames),
-      // Property that specifies if the name of the item will be displayed
-      showName: true,
-      // Change title based on selected value
-      dynamicTitle: true,
-    },
-  },
-}
-
-export const parameters: Parameters = {
-  viewport: {
-    viewports: MINIMAL_VIEWPORTS,
-  },
-  layout: 'fullscreen',
-}
-
-const withThemeProvider = (Story, context) => {
-  const currentTheme = getTheme(context.globals.theme)
+const withThemeProvider: Decorator = (Story, context) => {
+  const currentTheme = getTheme(context.globals['theme'] as string)
 
   return (
     <ThemeProvider theme={currentTheme}>
       <CssBaseline />
-      <Story {...context} />
+      <Story />
     </ThemeProvider>
   )
 }
 
-export const decorators = [withThemeProvider]
+const preview: Preview = {
+  globalTypes: {
+    theme: {
+      name: 'Theme',
+      description: 'Global theme for components',
+      defaultValue: 'ligretto',
+      toolbar: {
+        icon: 'circlehollow',
+        items: Object.keys(themesByNames),
+        showName: true,
+        dynamicTitle: true,
+      },
+    },
+  },
+  parameters: {
+    viewport: {
+      viewports: MINIMAL_VIEWPORTS,
+    },
+    layout: 'fullscreen',
+  },
+  decorators: [withThemeProvider],
+}
+
+export default preview

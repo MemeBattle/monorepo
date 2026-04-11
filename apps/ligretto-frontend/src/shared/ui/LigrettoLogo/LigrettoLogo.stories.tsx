@@ -1,9 +1,14 @@
+import type { Meta, StoryObj } from '@storybook/react'
 import { LigrettoLogo } from './LigrettoLogo'
-import type { Meta, StoryFn } from '@storybook/react'
 
-export default {
+const meta: Meta<typeof LigrettoLogo> = {
   title: 'Ligretto / LigrettoLogo',
   component: LigrettoLogo,
-} as Meta<typeof LigrettoLogo>
+}
+export default meta
 
-export const DefaultView: StoryFn<typeof LigrettoLogo> = () => <LigrettoLogo />
+type Story = StoryObj<typeof LigrettoLogo>
+
+export const DefaultView: Story = {
+  render: () => <LigrettoLogo />,
+}

@@ -1,8 +1,8 @@
+import type { Meta, StoryObj } from '@storybook/react'
 import { Avatar } from './Avatar'
 import { userAvatars } from './getRandomAvatar'
-import type { Meta, StoryFn } from '@storybook/react'
 
-export default {
+const meta: Meta<typeof Avatar> = {
   title: 'Ligretto / Avatar',
   component: Avatar,
   argTypes: {
@@ -15,30 +15,39 @@ export default {
       control: { type: 'radio' },
     },
   },
-} as Meta<typeof Avatar>
+}
+export default meta
 
-export const DefaultView: StoryFn<typeof Avatar> = args => <Avatar {...args} />
+type Story = StoryObj<typeof Avatar>
 
-export const AvatarSize = DefaultView.bind({})
-AvatarSize.argTypes = {
-  src: {
-    control: { type: 'label' },
-    defaultValue: userAvatars[0],
+export const DefaultView: Story = {}
+
+export const AvatarSize: Story = {
+  argTypes: {
+    src: {
+      control: { type: 'text' },
+    },
+    size: {
+      options: ['small', 'medium', 'large', 'auto'],
+      control: { type: 'radio' },
+    },
   },
-  size: {
-    options: ['small', 'medium', 'large', 'auto'],
-    control: { type: 'radio' },
+  args: {
+    src: userAvatars[0],
   },
 }
 
-export const AvatarUrl = DefaultView.bind({})
-AvatarUrl.argTypes = {
-  src: {
-    control: { type: 'text' },
-    defaultValue: userAvatars[0],
+export const AvatarUrl: Story = {
+  argTypes: {
+    src: {
+      control: { type: 'text' },
+    },
+    alt: {
+      control: { type: 'text' },
+    },
   },
-  alt: {
-    control: { type: 'text' },
-    defaultValue: 'Avatar',
+  args: {
+    src: userAvatars[0],
+    alt: 'Avatar',
   },
 }

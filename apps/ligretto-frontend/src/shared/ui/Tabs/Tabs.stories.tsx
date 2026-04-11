@@ -3,6 +3,7 @@ import { Tabs } from './Tabs'
 import { Tab } from '@memebattle/ui'
 
 const meta: Meta<typeof Tabs> = {
+  title: 'Ligretto / Tabs',
   component: Tabs,
 }
 

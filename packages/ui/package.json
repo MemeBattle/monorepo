@@ -28,6 +28,7 @@
     "@mui/system": "catalog:"
   },
   "devDependencies": {
+    "@storybook/react": "catalog:",
     "@types/lodash": "catalog:",
     "@types/react": "catalog:",
     "@typescript/native-preview": "catalog:",

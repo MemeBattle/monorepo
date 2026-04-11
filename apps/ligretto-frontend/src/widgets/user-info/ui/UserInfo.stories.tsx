@@ -1,24 +1,28 @@
-import type { UserInfoProps } from './UserInfo'
+import type { Meta, StoryObj } from '@storybook/react'
 import { UserInfo } from './UserInfo'
 
-export default {
-  title: 'Ligretto-ui / UserInfo',
+const meta: Meta<typeof UserInfo> = {
+  title: 'Ligretto / UserInfo',
   component: UserInfo,
   argTypes: {
     onClick: { action: 'clicked' },
-    buttonText: { control: 'text', defaultValue: 'Sign in' },
     onButtonClick: { action: 'buttonClicked' },
   },
 }
+export default meta
 
-export const DefaultView = (args: UserInfoProps) => <UserInfo {...args} />
+type Story = StoryObj<typeof UserInfo>
 
-export const Authorized = (args: UserInfoProps) => <UserInfo {...args} />
+export const DefaultView: Story = {}
 
-Authorized.argTypes = {
-  onClick: { action: 'clicked' },
-  username: { control: 'text', defaultValue: 'themezv' },
-  buttonText: { control: 'text', defaultValue: 'Sign in' },
-  onButtonClick: { action: 'button clicked' },
-  img: { control: 'text' },
+export const Authorized: Story = {
+  argTypes: {
+    onClick: { action: 'clicked' },
+    username: { control: 'text' },
+    onButtonClick: { action: 'button clicked' },
+    img: { control: 'text' },
+  },
+  args: {
+    username: 'themezv',
+  },
 }

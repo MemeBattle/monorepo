@@ -1,0 +1,39 @@
+name: 'Storybook main'
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'apps/**/*.stories.*'
+      - 'packages/**/*.stories.*'
+      - '.storybook/**'
+      - 'packages/ui/**'
+      - '.github/workflows/storybook-main.yml'
+      - 'pnpm-lock.yaml'
+      - package.json
+      - .npmrc
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+  chromatic-main:
+    runs-on: ubuntu-24.04
+    environment:
+      name: storybook
+      url: ${{ steps.chromatic.outputs.storybookUrl }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          fetch-depth: 0
+
+      - name: Prepare Node.js
+        uses: ./.github/actions/prepare-nodejs
+
+      - name: Run Chromatic
+        id: chromatic
+        uses: chromaui/action@latest
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}

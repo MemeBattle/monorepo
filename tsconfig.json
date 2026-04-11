@@ -2,6 +2,7 @@
   "files": ["typings/font.d.ts", "typings/images.d.ts"],
   "compilerOptions": {
     "jsx": "react-jsx",
-    "preserveSymlinks": false
+    "preserveSymlinks": false,
+    "skipLibCheck": true
   }
 }

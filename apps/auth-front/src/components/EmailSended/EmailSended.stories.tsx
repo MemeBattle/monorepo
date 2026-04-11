@@ -1,7 +1,14 @@
+import type { Meta, StoryObj } from '@storybook/react'
 import { EmailSended } from './EmailSended'
 
-export default {
-  title: 'Ligretto-ui / EmailSended',
+const meta: Meta<typeof EmailSended> = {
+  title: 'Ligretto / EmailSended',
+  component: EmailSended,
 }
+export default meta
 
-export const DefaultView = () => <EmailSended />
+type Story = StoryObj<typeof EmailSended>
+
+export const DefaultView: Story = {
+  render: () => <EmailSended />,
+}
