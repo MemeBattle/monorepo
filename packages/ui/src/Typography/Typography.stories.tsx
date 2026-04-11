@@ -12,3 +12,7 @@ type Story = StoryObj<typeof Typography>
 export const DefaultView: Story = {
   render: () => <Typography>Typhography</Typography>,
 }
+
+export const WithVariant: Story = {
+  render: () => <Typography textTransform="uppercase">uppercased text</Typography>,
+}

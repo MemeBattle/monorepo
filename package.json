@@ -23,7 +23,8 @@
     "ligretto-shared:build": "pnpm run --filter @memebattle/ligretto-shared build",
     "ts-check": "pnpm run --parallel --no-bail ts-check",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "chromatic": "npx chromatic"
   },
   "devDependencies": {
     "@emotion/react": "catalog:",
@@ -33,6 +34,7 @@
     "@storybook/react-vite": "catalog:",
     "@types/node": "catalog:",
     "@typescript/native-preview": "catalog:",
+    "chromatic": "^16.2.0",
     "oxfmt": "^0.42.0",
     "oxlint": "^1.57.0",
     "oxlint-tsgolint": "^0.18.1",
