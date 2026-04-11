@@ -25,7 +25,7 @@ export const DefaultView: Story = {}
 export const AvatarSize: Story = {
   argTypes: {
     src: {
-      control: { type: 'label' },
+      control: { type: 'text' },
     },
     size: {
       options: ['small', 'medium', 'large', 'auto'],

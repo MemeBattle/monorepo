@@ -6,11 +6,7 @@ const meta: Meta<typeof UserInfo> = {
   component: UserInfo,
   argTypes: {
     onClick: { action: 'clicked' },
-    buttonText: { control: 'text' },
     onButtonClick: { action: 'buttonClicked' },
-  },
-  args: {
-    buttonText: 'Sign in',
   },
 }
 export default meta
@@ -23,12 +19,10 @@ export const Authorized: Story = {
   argTypes: {
     onClick: { action: 'clicked' },
     username: { control: 'text' },
-    buttonText: { control: 'text' },
     onButtonClick: { action: 'button clicked' },
     img: { control: 'text' },
   },
   args: {
     username: 'themezv',
-    buttonText: 'Sign in',
   },
 }
