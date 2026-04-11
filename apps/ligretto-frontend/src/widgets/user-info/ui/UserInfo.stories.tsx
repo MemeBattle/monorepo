@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { UserInfo } from './UserInfo'
 
 const meta: Meta<typeof UserInfo> = {
-  title: 'Ligretto-ui / UserInfo',
+  title: 'Ligretto / UserInfo',
   component: UserInfo,
   argTypes: {
     onClick: { action: 'clicked' },

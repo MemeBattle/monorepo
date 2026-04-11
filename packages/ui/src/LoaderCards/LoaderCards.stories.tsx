@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { LoaderCards } from './LoaderCards'
 
 const meta: Meta<typeof LoaderCards> = {
-  title: 'Ligretto-ui / LoaderCards',
+  title: 'UI / LoaderCards',
   component: LoaderCards,
 }
 export default meta
