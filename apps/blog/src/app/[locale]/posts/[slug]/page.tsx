@@ -21,10 +21,10 @@ import { ShareButton } from '@/components/ShareButton'
 import { useTranslation } from '@/i18n'
 
 interface BlogProps {
-  params: {
+  params: Promise<{
     slug: string
     locale: Language
-  }
+  }>
 }
 
 export async function generateStaticParams() {
@@ -34,7 +34,8 @@ export async function generateStaticParams() {
   }))
 }
 
-export const generateMetadata = async ({ params }: BlogProps): Promise<Metadata> => {
+export const generateMetadata = async (props: BlogProps): Promise<Metadata> => {
+  const params = await props.params;
   const allBlogPostsWithTranslates = await getAllBlogPostsWithTranslates()
   const allMembers = getAllMembers()
 
@@ -67,7 +68,8 @@ export const generateMetadata = async ({ params }: BlogProps): Promise<Metadata>
   }
 }
 
-export default async function Post({ params }: BlogProps) {
+export default async function Post(props: BlogProps) {
+  const params = await props.params;
   const allBlogPostsWithTranslates = await getAllBlogPostsWithTranslates()
   const allMembers = getAllMembers()
 
