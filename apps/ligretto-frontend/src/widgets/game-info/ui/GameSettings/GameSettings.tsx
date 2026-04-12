@@ -61,14 +61,14 @@ export const GameSettings = ({
 
   return (
     <StyledPaper data-test-id="GameSettings">
-      <Box display="flex" justifyContent="center" marginBottom={3}>
+      <Box display="flex" justifyContent="center" sx={{ mb: 3 }}>
         <Typography component="h4" variant="h4" fontWeight="bold" whiteSpace="nowrap" overflow="auto">
           {title}
         </Typography>
       </Box>
       <PlayersScoresTableContainer />
-      <Box marginTop={2}>
-        <Stack direction="row" flex={1} justifyContent="space-between" spacing={{ xs: 5, md: 12 }}>
+      <Box sx={{ mt: 2 }}>
+        <Stack direction="row" sx={{ flex: 1, justifyContent: 'space-between' }} spacing={{ xs: 5, md: 12 }}>
           <Button
             onClick={onExitClick}
             size="large"

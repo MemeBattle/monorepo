@@ -23,6 +23,6 @@ export const LigrettoPack: React.FC<LigrettoPack> = ({ count, isDndEnabled, ligr
         </CardPlace>
       </CardHotkeyBadge>
     </div>
-    <Typography fontSize={['0.375rem', '1rem']}>В колоде: {count}</Typography>
+    <Typography sx={{ fontSize: { xs: '0.375rem', sm: '1rem' } }}>В колоде: {count}</Typography>
   </div>
 )

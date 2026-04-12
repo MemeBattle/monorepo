@@ -17,7 +17,7 @@ export interface CardsPanelProps {
 }
 
 const CardsPanelMobile = () => (
-  <Stack mb={2} spacing={1}>
+  <Stack sx={{ mb: 2 }} spacing={1}>
     <Box display="flex" justifyContent="center">
       <PlayerRowCardsContainer />
     </Box>
@@ -40,7 +40,7 @@ export const CardsPanel: FC<CardsPanelProps> = ({ player }) => {
   }
 
   return (
-    <Box mb={1.5} display="flex" justifyContent="center">
+    <Box sx={{ mb: 1.5 }} display="flex" justifyContent="center">
       <Stack spacing={2} direction="row">
         {player?.status === PlayerStatus.InGame ? [<PlayerCardsStack />, <PlayerRowCardsContainer />, <LigrettoDeckContainer />] : null}
         {player ? <Player status={player.status} username={player.username} avatar={player?.avatar} isActivePlayer /> : null}

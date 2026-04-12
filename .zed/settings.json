@@ -40,6 +40,12 @@
         "allowed": false
       }
     },
+    "TSX": {
+      "language_servers": ["tsgo"],
+      "prettier": {
+        "allowed": false
+      }
+    },
     "Rust": {
       "formatter": "language_server"
     }

@@ -42,7 +42,7 @@ export const CreateRoomContainer = () => {
   return (
     <InputWithButton>
       <InputWithButton.Input
-        inputProps={{ 'data-test-id': 'CreateGameInput' }}
+        slotProps={{ input: { 'data-test-id': 'CreateGameInput' } as object }}
         placeholder="Room name..."
         onChange={handleNameChange}
         onKeyDown={handleCreateRoomKeyDown}
