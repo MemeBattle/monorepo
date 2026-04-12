@@ -1,22 +1,22 @@
-import { readFileSync, readdirSync } from 'fs'
+import { readdirSync } from 'fs'
 import path from 'path'
-import matter from 'gray-matter'
 import type { Member } from './types'
 
 const MEMBERS_DIR = path.join(process.cwd(), 'content/memebers')
 
-export function getAllMembers(): Member[] {
+export async function getAllMembers(): Promise<Member[]> {
   const filenames = readdirSync(MEMBERS_DIR).filter(f => f.endsWith('.mdx'))
 
-  return filenames.map(filename => {
-    const fullPath = path.join(MEMBERS_DIR, filename)
-    const fileContent = readFileSync(fullPath, 'utf8')
-    const { data } = matter(fileContent)
-    return {
-      username: data.username,
-      fullName: data.fullName,
-      avatarFileName: data.avatarFileName,
-      title: data.title,
-    } satisfies Member
-  })
+  return Promise.all(
+    filenames.map(async filename => {
+      const { member } = await import(`../../content/memebers/${filename}`)
+
+      return {
+        username: member.username,
+        fullName: member.fullName,
+        avatarFileName: member.avatarFileName,
+        title: member.title,
+      } satisfies Member
+    }),
+  )
 }

@@ -4,7 +4,6 @@ import path from 'node:path'
 
 import react from '@vitejs/plugin-react'
 import mdx from '@mdx-js/rollup'
-import remarkFrontmatter from 'remark-frontmatter'
 import rehypeSlug from 'rehype-slug'
 import rehypeAutolinkHeadings from 'rehype-autolink-headings'
 
@@ -21,7 +20,6 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       mdx({
-        remarkPlugins: [remarkFrontmatter],
         rehypePlugins: [
           rehypeSlug,
           [

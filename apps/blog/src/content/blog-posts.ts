@@ -1,6 +1,5 @@
 import { readFileSync, readdirSync } from 'fs'
 import path from 'path'
-import matter from 'gray-matter'
 import type { BlogPost, BlogPostWithTranslates } from './types'
 import type { Language } from '@/i18n/i18n.settings'
 import { extractTOC } from '@/generation-utils/extractTOC'
@@ -16,27 +15,34 @@ function extractLang(filename: string): Language {
   return parts.length > 2 ? (parts[1] as Language) : 'en'
 }
 
+function stripMdxExports(content: string): string {
+  return content.replace(/^export\s+const\s+\w+\s*=\s*\{[\s\S]*?^\}\s*$/gm, '').trim()
+}
+
 export async function getAllBlogPosts(): Promise<BlogPost[]> {
   const filenames = readdirSync(POSTS_DIR).filter(f => f.endsWith('.mdx'))
 
   return Promise.all(
     filenames.map(async filename => {
-      const fullPath = path.join(POSTS_DIR, filename)
-      const fileContent = readFileSync(fullPath, 'utf8')
-      const { data, content: rawBody } = matter(fileContent)
       const slug = extractSlug(filename)
       const lang = extractLang(filename)
       const importPath = filename.replace(/\.mdx$/, '')
+
+      const fullPath = path.join(POSTS_DIR, filename)
+      const fileContent = readFileSync(fullPath, 'utf8')
+      const rawBody = stripMdxExports(fileContent)
+
+      const { metadata } = await import(`../../content/posts/${importPath}.mdx`)
       const toc = await extractTOC(rawBody)
 
       return {
-        title: data.title,
-        publishedAt: data.publishedAt,
-        summary: data.summary,
-        tags: data.tags,
-        image: data.image,
-        imageDescription: data.imageDescription,
-        author: data.author,
+        title: metadata.title,
+        publishedAt: metadata.publishedAt,
+        summary: metadata.summary,
+        tags: metadata.tags,
+        image: metadata.image,
+        imageDescription: metadata.imageDescription,
+        author: metadata.author,
         slug,
         lang,
         toc,

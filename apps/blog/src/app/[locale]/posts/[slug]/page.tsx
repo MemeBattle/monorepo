@@ -35,9 +35,9 @@ export async function generateStaticParams() {
 }
 
 export const generateMetadata = async (props: BlogProps): Promise<Metadata> => {
-  const params = await props.params;
+  const params = await props.params
   const allBlogPostsWithTranslates = await getAllBlogPostsWithTranslates()
-  const allMembers = getAllMembers()
+  const allMembers = await getAllMembers()
 
   const blogPost = allBlogPostsWithTranslates.find(post => post.slug === params.slug && isPostShouldBePickedByLocale(post, params.locale))
 
@@ -69,9 +69,9 @@ export const generateMetadata = async (props: BlogProps): Promise<Metadata> => {
 }
 
 export default async function Post(props: BlogProps) {
-  const params = await props.params;
+  const params = await props.params
   const allBlogPostsWithTranslates = await getAllBlogPostsWithTranslates()
-  const allMembers = getAllMembers()
+  const allMembers = await getAllMembers()
 
   const post = allBlogPostsWithTranslates.find(post => post.slug === params.slug && isPostShouldBePickedByLocale(post, params.locale))
   const postAuthor = allMembers.find(memeber => memeber.username === post?.author)

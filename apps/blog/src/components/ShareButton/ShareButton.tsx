@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useState } from 'react'
+import { useCallback, useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { useTimer } from '@/utils/hooks/useTimer'
 
@@ -51,7 +51,7 @@ export const ShareButton = ({ shareData, tooltipContent }: { shareData: ShareDat
 
   return (
     <Popover.Root open={open} onOpenChange={handleClick}>
-      <Popover.Trigger className="flex" asChild>
+      <Popover.Trigger className="flex cursor-pointer" asChild>
         <svg
           className="items-center justify-end opacity-30 hover:text-memebattleYellow hover:opacity-100"
           xmlns="http://www.w3.org/2000/svg"
