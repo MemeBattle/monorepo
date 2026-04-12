@@ -3,7 +3,7 @@ import { createChannelInfo } from './_utils/channelInfoCreator'
 import { buildAtomFeed } from './_utils/feedBuilder'
 
 export async function GET(_request: Request, props: { params: Promise<{ locale: Language }> }) {
-  const params = await props.params;
+  const params = await props.params
   const channelInfo = await createChannelInfo(params.locale)
   const atomFeed = buildAtomFeed(channelInfo)
 

@@ -14,7 +14,7 @@ import { useTranslation } from '@/i18n'
 type RootLayoutParams = { locale: Language }
 
 export async function generateMetadata(props: { params: Promise<RootLayoutParams> }): Promise<Metadata> {
-  const params = await props.params;
+  const params = await props.params
   // useTranslation on server isn't react hook
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const { t } = await useTranslation(params.locale)
@@ -116,15 +116,11 @@ const archerusFeralFont = localFont({
 })
 
 export default async function RootLayout(props: { children: React.ReactNode; params: Promise<RootLayoutParams> }) {
-  const params = await props.params;
+  const params = await props.params
 
-  const {
-    locale
-  } = params;
+  const { locale } = params
 
-  const {
-    children
-  } = props;
+  const { children } = props
 
   return (
     <html lang={locale} dir={dir(locale)} className={`${gravityFont.variable} ${archerusFeralFont.variable}`}>

@@ -9,7 +9,7 @@ import type { Language } from '@/i18n/i18n.settings'
 import { useTranslation } from '@/i18n'
 
 export async function generateMetadata(props: { params: Promise<{ locale: Language }> }): Promise<Metadata> {
-  const params = await props.params;
+  const params = await props.params
   // useTranslation on server isn't react hook
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const { t } = await useTranslation(params.locale, 'posts')
@@ -29,15 +29,11 @@ interface PostsLayoutProps {
   params: Promise<{ locale: Language }>
 }
 export default async function PostsLayout(props: PostsLayoutProps) {
-  const params = await props.params;
+  const params = await props.params
 
-  const {
-    locale
-  } = params;
+  const { locale } = params
 
-  const {
-    children
-  } = props;
+  const { children } = props
 
   const { t } = await useTranslation(locale, 'posts')
 

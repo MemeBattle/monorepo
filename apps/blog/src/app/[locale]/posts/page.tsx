@@ -33,7 +33,7 @@ function searchParamsTagsFormatter(tagsQuery: string | string[] | undefined): st
 }
 
 export async function generateMetadata(props: { params: Promise<{ locale: Language }> }): Promise<Metadata> {
-  const params = await props.params;
+  const params = await props.params
   // useTranslation on server isn't react hook
   //
   const { t } = await useTranslation(params.locale, 'posts')
@@ -44,18 +44,14 @@ export async function generateMetadata(props: { params: Promise<{ locale: Langua
   }
 }
 
-export default async function BlogPage(
-  props: {
-    params: Promise<{ locale: Language }>
-    searchParams: Promise<Record<string, string | string[] | undefined>>
-  }
-) {
-  const searchParams = await props.searchParams;
-  const params = await props.params;
+export default async function BlogPage(props: {
+  params: Promise<{ locale: Language }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const searchParams = await props.searchParams
+  const params = await props.params
 
-  const {
-    locale
-  } = params;
+  const { locale } = params
 
   const { t } = await useTranslation(locale, 'posts')
 

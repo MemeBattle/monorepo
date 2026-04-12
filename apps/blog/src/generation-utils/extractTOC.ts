@@ -17,7 +17,7 @@ export async function extractTOC(mdxContent: string): Promise<TOCTree> {
   const hast = await processor.run(mdast)
 
   visit(hast, 'element', (node: any) => {
-    if (!headingTags.has(node.tagName)) return
+    if (!headingTags.has(node.tagName)) {return}
     const textNode = node.children?.find((c: any) => c.type === 'text')
     headings.push({
       level: Number(node.tagName[1]),

@@ -57,9 +57,7 @@ export async function getAllBlogPostsWithTranslates(): Promise<BlogPostWithTrans
   const allPosts = await getAllBlogPosts()
   return allPosts.map(post => ({
     ...post,
-    translates: allPosts
-      .filter(p => p.slug === post.slug)
-      .reduce((acc, p) => ({ ...acc, [p.lang]: p }), {} as { [key in Language]?: BlogPost }),
+    translates: allPosts.filter(p => p.slug === post.slug).reduce((acc, p) => ({ ...acc, [p.lang]: p }), {} as { [key in Language]?: BlogPost }),
   }))
 }
 

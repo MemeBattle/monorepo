@@ -79,7 +79,12 @@ export const GamesBanner = () => {
       <Carousel>
         <CarouselSlides>
           {gamesList.map(([gameId, { title, description, link, logo }]) => (
-            <Stack key={gameId} sx={{ flex: 1, justifyContent: 'space-around', maxHeight: '100%', padding: [1, 2, 6] }} direction="column" spacing={2}>
+            <Stack
+              key={gameId}
+              sx={{ flex: 1, justifyContent: 'space-around', maxHeight: '100%', padding: [1, 2, 6] }}
+              direction="column"
+              spacing={2}
+            >
               <Typography variant="h2" fontWeight="bold">
                 {title}
               </Typography>
