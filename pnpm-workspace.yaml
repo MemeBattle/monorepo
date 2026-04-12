@@ -44,8 +44,10 @@ catalog:
   '@types/lodash': 4.17.24
   '@types/luxon': ^3.7.1
   '@types/negotiator': ^0
+  '@types/node': 24.9.2
   '@types/qs': ^6.9.7
   '@types/react': ^19.2.14
+  '@types/react-dom': ^19.2.3
   '@typescript/native-preview': 7.0.0-dev.20260215.1
   '@vinejs/vine': 4.3.0
   '@vitejs/plugin-react': 6.0.1
