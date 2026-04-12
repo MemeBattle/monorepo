@@ -26,13 +26,13 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
     filenames.map(async filename => {
       const slug = extractSlug(filename)
       const lang = extractLang(filename)
-      const importPath = filename.replace(/\.mdx$/, '')
 
       const fullPath = path.join(POSTS_DIR, filename)
       const fileContent = readFileSync(fullPath, 'utf8')
       const rawBody = stripMdxExports(fileContent)
 
-      const { metadata } = await import(`../../content/posts/${importPath}.mdx`)
+      const { metadata } = await import(`../../content/posts/${filename}`)
+      //      ^?
       const toc = await extractTOC(rawBody)
 
       return {
@@ -47,7 +47,7 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
         lang,
         toc,
         rawBody,
-        importPath,
+        fileName: filename,
       } satisfies BlogPost
     }),
   )

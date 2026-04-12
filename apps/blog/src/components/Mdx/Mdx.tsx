@@ -8,7 +8,7 @@ import { Details } from '../Details'
 import { generateFullUrl } from '../../utils/generateFullUrl'
 
 interface MdxProps {
-  importPath: string
+  filename: string
 }
 
 const components = {
@@ -30,8 +30,8 @@ const rssComponents = {
   InstagramPost: () => null, // TODO: https://github.com/MemeBattle/monorepo/issues/438 create InstagramPost fallback component
 }
 
-export async function Mdx({ importPath }: MdxProps) {
-  const { default: MdxContent } = await import(`../../../content/posts/${importPath}.mdx`)
+export async function Mdx({ filename }: MdxProps) {
+  const { default: MdxContent } = await import(`../../../content/posts/${filename}`)
 
   return (
     <article className="prose lg:prose-xl">
@@ -46,8 +46,8 @@ export async function Mdx({ importPath }: MdxProps) {
  * renderToStaticMarkup can render it without async support.
  **************************************/
 
-export async function ServerMdx({ importPath }: MdxProps) {
-  const { default: MdxContent } = await import(`../../../content/posts/${importPath}.mdx`)
+export async function ServerMdx({ filename }: MdxProps) {
+  const { default: MdxContent } = await import(`../../../content/posts/${filename}`)
 
   return <MdxContent components={rssComponents} />
 }

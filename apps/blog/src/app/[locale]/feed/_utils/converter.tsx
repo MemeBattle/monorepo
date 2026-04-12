@@ -12,7 +12,7 @@ export const convertMarkdownToHtml = async (importPath: string): Promise<string>
   **************************************/
   const ReactDOMServer = (await import('react-dom/server')).default
 
-  const mdxContent = await ServerMdx({ importPath })
+  const mdxContent = await ServerMdx({ filename: importPath })
   const html = ReactDOMServer.renderToStaticMarkup(mdxContent)
 
   return html

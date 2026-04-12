@@ -130,7 +130,7 @@ export default async function Post(props: BlogProps) {
           <TOC toc={post.toc} locale={params.locale} />
         </aside>
         <div className="md:col-start-1 md:col-span-1 max-w-full md:max-w-5xl">
-          <Mdx importPath={post.importPath} />
+          <Mdx filename={post.fileName} />
         </div>
       </main>
     </article>

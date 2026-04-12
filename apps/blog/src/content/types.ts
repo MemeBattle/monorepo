@@ -15,7 +15,7 @@ export interface BlogPost {
   /** MDX body text with frontmatter stripped */
   rawBody: string
   /** Filename without extension for dynamic import, e.g. "what-is-memebattle.en" */
-  importPath: string
+  fileName: string
 }
 
 export interface Member {

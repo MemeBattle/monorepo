@@ -38,8 +38,5 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
-      - name: Generate articles
-        run: pnpm run --filter @memebattle/blog generate
-
       - name: TS check
         run: pnpm run --filter @memebattle/blog ts-check
