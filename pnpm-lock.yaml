@@ -224,7 +224,7 @@ catalogs:
       specifier: ^0.6.3
       version: 0.6.4
     next:
-      specifier: ^16.2.1
+      specifier: ^16.2.3
       version: 16.2.3
     nodemon:
       specifier: ^2.0.16

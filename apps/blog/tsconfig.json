@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
     "target": "es2021",
-    "lib": ["dom", "es2021"],
+    "lib": [
+      "dom",
+      "es2021"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -12,18 +15,32 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     },
-    "types": ["./src/i18n/i18next.d.ts", "vitest/globals"],
+    "types": [
+      "./src/i18n/i18next.d.ts",
+      "vitest/globals"
+    ],
     "plugins": [
       {
         "name": "next"
       }
     ]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "mdx-components.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "mdx-components.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
