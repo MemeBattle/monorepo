@@ -15,7 +15,6 @@
     "jsx": "preserve",
     "incremental": true,
     "paths": {
-      "contentlayer/generated": ["./.contentlayer/generated"],
       "@/*": ["./src/*"]
     },
     "types": ["./src/i18n/i18next.d.ts", "vitest/globals"],
@@ -25,6 +24,6 @@
       }
     ]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".contentlayer/generated", "contentlayer.config.js", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "mdx-components.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
 }

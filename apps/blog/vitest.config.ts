@@ -1,9 +1,12 @@
 import { defineConfig } from 'vitest/config'
 import { loadEnv } from 'vite'
-import tsconfigPaths from 'vite-tsconfig-paths'
 import path from 'node:path'
 
 import react from '@vitejs/plugin-react'
+import mdx from '@mdx-js/rollup'
+import remarkFrontmatter from 'remark-frontmatter'
+import rehypeSlug from 'rehype-slug'
+import rehypeAutolinkHeadings from 'rehype-autolink-headings'
 
 const ENV_VARIABLES_SHARED_TO_TESTS = ['APP_HOST_URL']
 
@@ -16,7 +19,29 @@ export default defineConfig(({ mode }) => {
   )
 
   return {
-    plugins: [react(), tsconfigPaths()],
+    plugins: [
+      mdx({
+        remarkPlugins: [remarkFrontmatter],
+        rehypePlugins: [
+          rehypeSlug,
+          [
+            rehypeAutolinkHeadings,
+            {
+              behavior: 'wrap',
+              properties: {
+                className: ['no-underline hover:underline font-bold text-inherit'],
+              },
+            },
+          ],
+        ],
+      }),
+      react(),
+    ],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
+    },
     define: envVariables,
     test: {
       globals: true,

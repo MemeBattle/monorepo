@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 
-import { allBlogPostsWithTranslates, uniqTags } from './_content'
+import { getAllBlogPostsWithTranslates, getUniqTags } from './_content'
 import { filterBlogPosts } from './_utils/filterBlogPosts'
 import { useTranslation } from '@/i18n'
 import { SearchInput } from '@/components/SearchInput'
@@ -55,6 +55,8 @@ export default async function BlogPage({
   const searchQueryTags = searchParamsTagsFormatter(searchParams.tags)
   const searchQuerySearch = searchParamsSearchFormatter(searchParams.search)
 
+  const allBlogPostsWithTranslates = await getAllBlogPostsWithTranslates()
+  const uniqTags = await getUniqTags()
   const filteredPosts = filterBlogPosts(allBlogPostsWithTranslates, locale, searchQuerySearch, searchQueryTags)
     .sort((a, b) => {
       if (new Date(a.publishedAt) > new Date(b.publishedAt)) {

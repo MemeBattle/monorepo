@@ -56,7 +56,10 @@ catalog:
   chalk-animation: ^1.6.0
   chromatic: ^16.2.0
   clsx: ^1.2.1
-  contentlayer: ^0.3.4
+  '@mdx-js/loader': ^3.1.0
+  '@mdx-js/rollup': ^3.1.0
+  '@next/mdx': ^15.3.0
+  gray-matter: ^4.0.3
   cpx: ^1.5.0
   cross-env: ^7.0.3
   csstype: ^3.2.3
@@ -75,8 +78,11 @@ catalog:
   mock-socket: ^9.1.5
   nanoid: ^3.1.20
   negotiator: ^0.6.3
-  next: ^15.5.14
-  next-contentlayer: ^0.3.4
+  next: ^16.2.1
+  'remark-frontmatter': ^5.0.0
+  'remark-parse': ^11.0.0
+  'remark-rehype': ^11.0.0
+  unified: ^11.0.0
   nodemon: ^2.0.16
   oxfmt: ^0.42.0
   oxlint: ^1.57.0
@@ -116,7 +122,6 @@ catalog:
   unist-util-visit: ^4.1.2
   vite: 8.0.8
   vite-plugin-svgr: 5.0.0
-  vite-tsconfig-paths: 6.1.1
   vitest: 4.1.2
   wait-on: ^7.0.1
   youch: 4.1.0

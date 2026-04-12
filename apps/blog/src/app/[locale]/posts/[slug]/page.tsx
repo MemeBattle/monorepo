@@ -4,13 +4,13 @@ import Image from 'next/image'
 import type { WithContext, BlogPosting } from 'schema-dts'
 
 import { Mdx } from '@/components/Mdx'
-import type { BlogPost } from 'contentlayer/generated'
-import { allBlogPosts, allMemebers } from 'contentlayer/generated'
+import { getAllBlogPosts } from '@/content/blog-posts'
+import { getAllMembers } from '@/content/members'
 import { Chip } from '@/components/Chip'
 import { JsonLDScript } from '@/components/JsonLDScript'
 import { ChipsRow } from '@/components/ChipsRow'
 import { isPostShouldBePickedByLocale } from '../_utils/isPostShouldBePickedByLocale'
-import { allBlogPostsWithTranslates } from '../_content'
+import { getAllBlogPostsWithTranslates } from '../_content'
 import { TOC } from '@/components/TOC'
 import { PostAuthor } from '@/components/PostAuthor'
 import { generateFullUrl } from '@/utils/generateFullUrl'
@@ -28,15 +28,19 @@ interface BlogProps {
 }
 
 export async function generateStaticParams() {
-  return allBlogPosts.map((post: BlogPost) => ({
+  const allBlogPosts = await getAllBlogPosts()
+  return allBlogPosts.map(post => ({
     slug: post.slug,
   }))
 }
 
-export const generateMetadata = ({ params }: BlogProps): Metadata => {
+export const generateMetadata = async ({ params }: BlogProps): Promise<Metadata> => {
+  const allBlogPostsWithTranslates = await getAllBlogPostsWithTranslates()
+  const allMembers = getAllMembers()
+
   const blogPost = allBlogPostsWithTranslates.find(post => post.slug === params.slug && isPostShouldBePickedByLocale(post, params.locale))
 
-  const author = allMemebers.find(memeber => blogPost?.author === memeber.username)
+  const author = allMembers.find(memeber => blogPost?.author === memeber.username)
 
   return {
     title: blogPost?.title,
@@ -64,8 +68,11 @@ export const generateMetadata = ({ params }: BlogProps): Metadata => {
 }
 
 export default async function Post({ params }: BlogProps) {
+  const allBlogPostsWithTranslates = await getAllBlogPostsWithTranslates()
+  const allMembers = getAllMembers()
+
   const post = allBlogPostsWithTranslates.find(post => post.slug === params.slug && isPostShouldBePickedByLocale(post, params.locale))
-  const postAuthor = allMemebers.find(memeber => memeber.username === post?.author)
+  const postAuthor = allMembers.find(memeber => memeber.username === post?.author)
   const { t } = await useTranslation(params.locale, 'post')
 
   if (!post || !postAuthor) {
@@ -121,7 +128,7 @@ export default async function Post({ params }: BlogProps) {
           <TOC toc={post.toc} locale={params.locale} />
         </aside>
         <div className="md:col-start-1 md:col-span-1 max-w-full md:max-w-5xl">
-          <Mdx code={post.body.code} />
+          <Mdx importPath={post.importPath} />
         </div>
       </main>
     </article>

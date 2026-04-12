@@ -7,21 +7,19 @@ const posts = [
     summary: 'Первый пост в блоге',
     tags: ['тэг1'],
     image: '/content-images/what-is-memebattle/memeBattle-logo.svg',
-    body: {
-      raw: 'раз два три',
-      code: '',
-    },
-    type: 'BlogPost',
+    rawBody: 'раз два три',
     slug: 'first',
     toc: [
       {
-        level: 'h1',
-        text: 'text',
+        level: 2,
+        value: 'text',
+        slug: 'text',
       },
     ],
     lang: 'ru' as const,
     translates: {},
     author: 'authorNickName',
+    importPath: 'first.ru',
   },
   {
     title: 'Заголовок поста 2',
@@ -29,21 +27,19 @@ const posts = [
     summary: 'Тезисное содержание поста 2',
     tags: [],
     image: '/content-images/what-is-memebattle/memeBattle-logo.svg',
-    body: {
-      raw: 'какой-то текст',
-      code: '',
-    },
-    type: 'BlogPost',
+    rawBody: 'какой-то текст',
     slug: 'some-id',
     toc: [
       {
-        level: 'h1',
-        text: 'text',
+        level: 2,
+        value: 'text',
+        slug: 'text',
       },
     ],
     lang: 'ru' as const,
     translates: {},
     author: 'authorNickName',
+    importPath: 'some-id.ru',
   },
   {
     title: 'First post title',
@@ -51,21 +47,19 @@ const posts = [
     summary: 'First blog post',
     tags: ['tag1'],
     image: '/content-images/what-is-memebattle/memeBattle-logo.svg',
-    body: {
-      raw: 'one two three',
-      code: '',
-    },
-    type: 'BlogPost',
+    rawBody: 'one two three',
     slug: 'first',
     toc: [
       {
-        level: 'h1',
-        text: 'text',
+        level: 2,
+        value: 'text',
+        slug: 'text',
       },
     ],
     lang: 'en' as const,
     translates: {},
     author: 'authorNickName',
+    importPath: 'first.en',
   },
 ]
 
