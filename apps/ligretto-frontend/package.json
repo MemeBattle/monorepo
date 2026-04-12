@@ -65,7 +65,7 @@
     "@typescript/native-preview": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "playwright": "catalog:",
-    "sass": "^1.53.0",
+    "sass": "catalog:",
     "vite": "catalog:",
     "vite-plugin-svgr": "catalog:",
     "vitest": "catalog:"

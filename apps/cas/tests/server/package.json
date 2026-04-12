@@ -7,13 +7,13 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@hono/node-server": "^1.19.9",
-    "@simplewebauthn/server": "^13.2.2",
-    "hono": "^4.11.4"
+    "@hono/node-server": "catalog:",
+    "@simplewebauthn/server": "catalog:",
+    "hono": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^20.11.17",
+    "@types/node": "catalog:",
     "@typescript/native-preview": "catalog:",
-    "tsx": "^4.7.1"
+    "tsx": "catalog:"
   }
 }
