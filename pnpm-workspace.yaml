@@ -3,6 +3,7 @@ packages:
   - apps/*
 
 cleanupUnusedCatalogs: true
+catalogMode: strict
 
 catalogs:
   rolldown:
