@@ -32,7 +32,7 @@
     "@mui/material": "catalog:",
     "@storybook/addon-a11y": "catalog:",
     "@storybook/react-vite": "catalog:",
-    "@types/node": "catalog:",
+    "@types/node": "24.9.2",
     "@typescript/native-preview": "catalog:",
     "chromatic": "catalog:",
     "oxfmt": "catalog:",
@@ -44,7 +44,6 @@
     "storybook": "catalog:",
     "vite": "catalog:",
     "vite-plugin-svgr": "catalog:",
-    "vite-tsconfig-paths": "catalog:",
     "wait-on": "catalog:"
   },
   "engines": {

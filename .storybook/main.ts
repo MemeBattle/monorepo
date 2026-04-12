@@ -1,7 +1,6 @@
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { mergeConfig } from 'vite'
-import tsconfigPaths from 'vite-tsconfig-paths'
 import svgr from 'vite-plugin-svgr'
 import type { StorybookConfig } from '@storybook/react-vite'
 
@@ -21,7 +20,7 @@ const config: StorybookConfig = {
   async viteFinal(config) {
     return mergeConfig(config, {
       define: { 'process.env': {} },
-      plugins: [tsconfigPaths(), svgr()],
+      plugins: [svgr()],
       resolve: {
         alias: {
           '@memebattle/ui': path.resolve(root, 'packages/ui/src/index.ts'),

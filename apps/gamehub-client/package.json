@@ -21,9 +21,9 @@
   },
   "devDependencies": {
     "@types/lodash": "catalog:",
-    "@types/node": "catalog:",
+    "@types/node": "24.9.2",
     "@types/react": "catalog:",
-    "@types/react-dom": "catalog:",
+    "@types/react-dom": "^18.3.1",
     "@typescript/native-preview": "catalog:"
   }
 }

@@ -32,7 +32,7 @@
   "devDependencies": {
     "@rslib/core": "catalog:",
     "@types/jsonwebtoken": "catalog:",
-    "@types/node": "catalog:",
+    "@types/node": "24.9.2",
     "@types/qs": "catalog:",
     "@typescript/native-preview": "catalog:",
     "chalk": "catalog:",
