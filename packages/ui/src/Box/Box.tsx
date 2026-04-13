@@ -47,7 +47,52 @@ export type BoxProps = MUIBoxProps & {
   bgcolor?: Property.BackgroundColor
 }
 
-export const Box: ComponentType<BoxProps> = styled(MUIBox)<BoxProps>(
+const BOX_CUSTOM_PROPS = new Set([
+  'background',
+  'cursor',
+  'pointerEvents',
+  'transform',
+  'display',
+  'position',
+  'flex',
+  'flexDirection',
+  'justifyContent',
+  'justifySelf',
+  'alignItems',
+  'alignSelf',
+  'flexWrap',
+  'gridArea',
+  'width',
+  'height',
+  'minHeight',
+  'maxHeight',
+  'minWidth',
+  'maxWidth',
+  'padding',
+  'margin',
+  'marginTop',
+  'marginBottom',
+  'marginLeft',
+  'marginRight',
+  'overflow',
+  'overflowX',
+  'overflowY',
+  'textAlign',
+  'gap',
+  'borderRadius',
+  'fontSize',
+  'fontWeight',
+  'whiteSpace',
+  'textOverflow',
+  'border',
+  'borderColor',
+  'opacity',
+  'bgcolor',
+])
+
+export const Box: ComponentType<BoxProps> = styled(MUIBox, {
+  shouldForwardProp: prop => !BOX_CUSTOM_PROPS.has(prop),
+})<BoxProps>(
   ({
     background,
     cursor,

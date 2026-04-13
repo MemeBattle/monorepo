@@ -26,7 +26,31 @@ export type TypographyProps<D extends ElementType = TypographyTypeMap['defaultCo
   textAlign?: Property.TextAlign
 }
 
-const StyledTypography = styled(MUITypography)<TypographyProps>(
+const TYPOGRAPHY_CUSTOM_PROPS = new Set([
+  'textTransform',
+  'verticalAlign',
+  'textDecoration',
+  'userSelect',
+  'wordBreak',
+  'cursor',
+  'fontSize',
+  'fontWeight',
+  'display',
+  'flex',
+  'alignItems',
+  'minHeight',
+  'maxWidth',
+  'whiteSpace',
+  'overflow',
+  'textOverflow',
+  'padding',
+  'marginLeft',
+  'textAlign',
+])
+
+const StyledTypography = styled(MUITypography, {
+  shouldForwardProp: prop => !TYPOGRAPHY_CUSTOM_PROPS.has(prop),
+})<TypographyProps>(
   ({
     textTransform,
     verticalAlign,

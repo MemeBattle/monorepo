@@ -1,6 +1,6 @@
 import { ServerMdx } from '@/components/Mdx'
 
-export const convertMarkdownToHtml = async (importPath: string): Promise<string> => {
+export const convertMarkdownToHtml = async (filename: string): Promise<string> => {
   /**************************************
   ReactDOMServer dynamic import is used to exclude a ReactServerComponentsError:
     ReactServerComponentsError:
@@ -12,7 +12,7 @@ export const convertMarkdownToHtml = async (importPath: string): Promise<string>
   **************************************/
   const ReactDOMServer = (await import('react-dom/server')).default
 
-  const mdxContent = await ServerMdx({ filename: importPath })
+  const mdxContent = await ServerMdx({ filename })
   const html = ReactDOMServer.renderToStaticMarkup(mdxContent)
 
   return html

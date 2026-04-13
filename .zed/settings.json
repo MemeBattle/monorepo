@@ -3,11 +3,11 @@
 // For a full list of overridable settings, and general information on folder-specific settings,
 // see the documentation: https://zed.dev/docs/configuring-zed#settings-files
 {
+  "semantic_tokens": "combined",
   "lsp": {
     "oxlint": {
       "initialization_options": {
         "settings": {
-          "configPath": null,
           "run": "onType",
           "disableNestedConfig": false,
           "fixKind": "safe_fix",
@@ -24,7 +24,6 @@
     }
   },
   "show_completions_on_input": true,
-
   "format_on_save": "on",
   "formatter": [
     {
@@ -35,13 +34,16 @@
   ],
   "languages": {
     "TypeScript": {
-      "language_servers": ["tsgo"],
+      "language_servers": ["tsgo", "oxlint", "oxfmt"],
       "prettier": {
         "allowed": false
       }
     },
     "TSX": {
-      "language_servers": ["tsgo"],
+      "inlay_hints": {
+        "enabled": true
+      },
+      "language_servers": ["tsgo", "oxlint", "oxfmt"],
       "prettier": {
         "allowed": false
       }

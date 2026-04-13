@@ -42,7 +42,9 @@ export const CardsPanel: FC<CardsPanelProps> = ({ player }) => {
   return (
     <Box sx={{ mb: 1.5 }} display="flex" justifyContent="center">
       <Stack spacing={2} direction="row">
-        {player?.status === PlayerStatus.InGame ? [<PlayerCardsStack />, <PlayerRowCardsContainer />, <LigrettoDeckContainer />] : null}
+        {player?.status === PlayerStatus.InGame
+          ? [<PlayerCardsStack key="stack" />, <PlayerRowCardsContainer key="row" />, <LigrettoDeckContainer key="deck" />]
+          : null}
         {player ? <Player status={player.status} username={player.username} avatar={player?.avatar} isActivePlayer /> : null}
       </Stack>
     </Box>
