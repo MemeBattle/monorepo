@@ -13,7 +13,7 @@ vi.mock('@/content/blog-posts', () => ({
       lang: 'en',
       toc: [],
       rawBody: '',
-      importPath: 'what-is-memebattle.en',
+      fileName: 'what-is-memebattle.en',
     },
   ]),
 }))
@@ -23,7 +23,7 @@ const expectedFeedXML = rawFeedXML.trim()
 describe('Feed GET hundler', () => {
   it("should return atom xml with blog's posts when a user requests it", async () => {
     const request = new Request(`${process.env.APP_HOST_URL}/en/feed`)
-    const params: { locale: Language } = { locale: 'en' }
+    const params: Promise<{ locale: Language }> = Promise.resolve({ locale: 'en' })
     const response = await GET(request, { params })
 
     expect(response.status).toEqual(200)

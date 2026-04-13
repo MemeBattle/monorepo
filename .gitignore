@@ -30,6 +30,7 @@ npm-debug.log*
 
 # next.js
 .next
+next-env.d.ts
 
 !rollup.config.js
 !webpack.config.js

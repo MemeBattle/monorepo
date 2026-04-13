@@ -35,6 +35,7 @@
   "devDependencies": {
     "@mdx-js/rollup": "catalog:",
     "@tailwindcss/typography": "catalog:",
+    "@types/mdx": "catalog:",
     "@types/negotiator": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
