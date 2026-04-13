@@ -23,5 +23,5 @@ export function useOnClickOutside<T extends HTMLElement = HTMLElement>(ref: RefO
     }
 
     // Reload only if ref or handler changes
-  }, [ref?.current, handler])
+  }, [ref, handler])
 }

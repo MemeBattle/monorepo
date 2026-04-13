@@ -3,6 +3,7 @@ import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import rehypeSlug from 'rehype-slug'
 import { visit } from 'unist-util-visit'
+import type { Element } from 'hast'
 import { mapHeadingsToTOC } from './mapHeadingsToTOC'
 import type { HeadingsItem, TOCTree } from '../types'
 
@@ -16,15 +17,15 @@ export async function extractTOC(mdxContent: string): Promise<TOCTree> {
   const mdast = processor.parse(mdxContent)
   const hast = await processor.run(mdast)
 
-  visit(hast, 'element', (node: any) => {
+  visit(hast, 'element', (node: Element) => {
     if (!headingTags.has(node.tagName)) {
       return
     }
-    const textNode = node.children?.find((c: any) => c.type === 'text')
+    const textNode = node.children?.find(c => c.type === 'text')
     headings.push({
       level: Number(node.tagName[1]),
       value: textNode?.value ?? '',
-      slug: node.properties?.id ?? '',
+      slug: String(node.properties?.id ?? ''),
     })
   })
 
