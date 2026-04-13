@@ -49,7 +49,7 @@ const TYPOGRAPHY_CUSTOM_PROPS = new Set([
 ])
 
 const StyledTypography = styled(MUITypography, {
-  shouldForwardProp: prop => !TYPOGRAPHY_CUSTOM_PROPS.has(prop),
+  shouldForwardProp: (prop: string) => !TYPOGRAPHY_CUSTOM_PROPS.has(prop),
 })<TypographyProps>(
   ({
     textTransform,

@@ -91,7 +91,7 @@ const BOX_CUSTOM_PROPS = new Set([
 ])
 
 export const Box: ComponentType<BoxProps> = styled(MUIBox, {
-  shouldForwardProp: prop => !BOX_CUSTOM_PROPS.has(prop),
+  shouldForwardProp: (prop: string) => !BOX_CUSTOM_PROPS.has(prop),
 })<BoxProps>(
   ({
     background,
