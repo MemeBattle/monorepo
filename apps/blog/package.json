@@ -34,8 +34,8 @@
   },
   "devDependencies": {
     "@mdx-js/rollup": "catalog:",
-    "@types/hast": "catalog:",
     "@tailwindcss/typography": "catalog:",
+    "@types/hast": "catalog:",
     "@types/mdx": "catalog:",
     "@types/negotiator": "catalog:",
     "@types/node": "catalog:",
