@@ -27,6 +27,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  typedRoutes: false,
   turbopack: {
     root: path.resolve(__dirname, '../..'),
   },
