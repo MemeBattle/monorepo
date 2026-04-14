@@ -52,12 +52,10 @@ const GameItem = ({ isActive, children, logo }: GameItemProps) => {
       justifyContent="space-between"
     >
       <Box
-        width={[, , , '30rem']}
+        sx={{ width: [undefined, undefined, undefined, '30rem'], flexDirection: ['column', 'row'], justifyContent: ['space-between', 'start'] }}
         display="flex"
         flex={1}
         alignItems="center"
-        flexDirection={['column', 'row']}
-        justifyContent={['space-between', 'start']}
       >
         <Box display="flex" maxHeight="6rem" width="4rem">
           {logo}
@@ -81,12 +79,17 @@ export const GamesBanner = () => {
       <Carousel>
         <CarouselSlides>
           {gamesList.map(([gameId, { title, description, link, logo }]) => (
-            <Stack key={gameId} flex={1} justifyContent="space-around" maxHeight="100%" padding={[1, 2, 6]} direction="column" spacing={2}>
+            <Stack
+              key={gameId}
+              sx={{ flex: 1, justifyContent: 'space-around', maxHeight: '100%', padding: [1, 2, 6] }}
+              direction="column"
+              spacing={2}
+            >
               <Typography variant="h2" fontWeight="bold">
                 {title}
               </Typography>
               <Typography>{description}</Typography>
-              <Box display="flex" minHeight={0} justifyContent="space-between" flexDirection={['column', 'row']}>
+              <Box display="flex" minHeight={0} justifyContent="space-between" sx={{ flexDirection: ['column', 'row'] }}>
                 <Box>
                   <Button size="large" variant="contained" href={link}>
                     Играть!

@@ -61,7 +61,7 @@
     "@types/history": "catalog:",
     "@types/lodash": "catalog:",
     "@types/react": "catalog:",
-    "@types/react-dom": "catalog:",
+    "@types/react-dom": "^18.3.1",
     "@typescript/native-preview": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "playwright": "catalog:",

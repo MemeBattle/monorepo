@@ -31,9 +31,9 @@ export const LeaderListTable: FC<LeaderListTableProps> = ({ leader }) => {
     <>
       {!isMobile && (
         <LeaderListTableHead>
-          <Grid container minHeight="2.5em">
+          <Grid container sx={{ minHeight: '2.5em' }}>
             {leaderListTableSpecs.map(prop => (
-              <LeaderListTableCell {...prop.size} justifyContent="center">
+              <LeaderListTableCell {...prop.size} sx={{ justifyContent: 'center' }}>
                 <Typography variant="body1" color={theme.palette.text.disabled}>
                   {prop.title}
                 </Typography>
@@ -42,11 +42,11 @@ export const LeaderListTable: FC<LeaderListTableProps> = ({ leader }) => {
           </Grid>
         </LeaderListTableHead>
       )}
-      <Grid container flexDirection="column" gap="0.5em">
+      <Grid container sx={{ flexDirection: 'column', gap: '0.5em' }}>
         {leader.map(({ username, avatar, totalPoints, userPlace }, i) => (
           <LeaderListTableRow key={i} background={theme.palette.primary.lighter} width="100%">
             <Grid container>
-              <LeaderListTableCell {...leaderListTableSpecs[0].size} justifyContent="center">
+              <LeaderListTableCell {...leaderListTableSpecs[0].size} sx={{ justifyContent: 'center' }}>
                 {i < 3 ? (
                   <img src={placeImages[i]} alt="prize medal" />
                 ) : (
@@ -63,7 +63,7 @@ export const LeaderListTable: FC<LeaderListTableProps> = ({ leader }) => {
                   </Typography>
                 </Box>
               </LeaderListTableCell>
-              <LeaderListTableCell {...leaderListTableSpecs[2].size} justifyContent="center">
+              <LeaderListTableCell {...leaderListTableSpecs[2].size} sx={{ justifyContent: 'center' }}>
                 <Typography variant="h4">{totalPoints}</Typography>
               </LeaderListTableCell>
             </Grid>

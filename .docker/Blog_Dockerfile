@@ -27,6 +27,11 @@ WORKDIR /memebattle
 USER node
 
 COPY --chown=node:node --from=build /memebattle/apps/blog/public ./apps/blog/public
+
+# Set the correct permission for prerender cache
+RUN mkdir .next
+RUN chown node:node .next
+
 COPY --chown=node:node --from=build /memebattle/apps/blog/.next/standalone ./
 COPY --chown=node:node --from=build /memebattle/apps/blog/.next/static ./apps/blog/.next/static
 

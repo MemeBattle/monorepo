@@ -24,10 +24,10 @@ export const ConfirmEmailPage = () => {
     <StyledContainer>
       <Container component="main" maxWidth="md">
         <Header />
-        <Box m={2} justifyContent="center" display="flex">
+        <Box sx={{ m: 2 }} justifyContent="center" display="flex">
           <EmailSended />
         </Box>
-        <Box m={2}>
+        <Box sx={{ m: 2 }}>
           <Typography align="center" variant="h3">
             {t.confirmEmail.header}
             {username && (
@@ -37,8 +37,8 @@ export const ConfirmEmailPage = () => {
             )}
           </Typography>
         </Box>
-        <Box m={1}>
-          <Typography align="center" paragraph>
+        <Box sx={{ m: 1 }}>
+          <Typography align="center" component="p">
             {t.confirmEmail.message}
             {email ? (
               <Typography variant="inherit">
@@ -50,7 +50,7 @@ export const ConfirmEmailPage = () => {
             . {t.confirmEmail.messageEnd}
           </Typography>
         </Box>
-        <Typography align="center" color="textSecondary" variant="caption" paragraph>
+        <Typography align="center" sx={{ color: 'text.secondary' }} variant="caption" component="p">
           {t.confirmEmail.submessage}
         </Typography>
       </Container>

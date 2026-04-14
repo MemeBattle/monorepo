@@ -63,7 +63,7 @@ export const LeaderBoard: FC<LeaderBoardProps> = ({ leaders }) => {
 
   return (
     <StyledLeaderBoard>
-      <Box textAlign="center" marginBottom={{ xs: '1.5rem', sm: '2.5rem' }}>
+      <Box textAlign="center" sx={{ marginBottom: { xs: '1.5rem', sm: '2.5rem' } }}>
         <Typography component="h2" variant="h4" fontWeight="500">
           Leaders
         </Typography>

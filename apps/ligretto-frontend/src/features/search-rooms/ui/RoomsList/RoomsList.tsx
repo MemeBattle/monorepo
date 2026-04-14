@@ -43,12 +43,12 @@ const StyledEmptyPlaceholder = styled('img')(() => ({
 }))
 
 export const RoomsList: React.FC<RoomsListProps> = ({ rooms }) => (
-  <Box minHeight={{ xs: '14rem', sm: '16.5rem', md: '24.5rem' }}>
+  <Box sx={{ minHeight: { xs: '14rem', sm: '16.5rem', md: '24.5rem' } }}>
     <StyledStack spacing={{ xs: '0.25rem', sm: '0.5rem' }}>
       {!rooms.length ? (
-        <Stack alignItems="center" padding="1rem" spacing={{ xs: '1.375rem', sm: '4.25rem' }}>
+        <Stack sx={{ alignItems: 'center', padding: '1rem' }} spacing={{ xs: '1.375rem', sm: '4.25rem' }}>
           <StyledEmptyPlaceholder src={catPlaceholder} alt="Cat" />
-          <Typography textAlign="center" fontSize={{ xs: '1rem', sm: '1.25rem', md: '1.5rem' }} flex={1}>
+          <Typography textAlign="center" sx={{ fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' } }} flex={1}>
             Список комнат пуст, но есть котик
           </Typography>
         </Stack>
@@ -59,18 +59,18 @@ export const RoomsList: React.FC<RoomsListProps> = ({ rooms }) => (
               data-test-id={`RoomsList-RoomItem-${name}`}
               textOverflow="ellipsis"
               noWrap
-              fontSize={{ xs: '1rem', sm: '1.25rem', md: '1.5rem' }}
+              sx={{ fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' } }}
               flex={1}
             >
               {name}
             </Typography>
-            <Stack alignItems="center" direction="row" spacing={{ xs: '1.375rem', sm: '4.25rem' }}>
+            <Stack sx={{ alignItems: 'center' }} direction="row" spacing={{ xs: '1.375rem', sm: '4.25rem' }}>
               <Box display="flex" alignItems="center">
-                <Typography fontSize={{ xs: '1rem', sm: '1.5rem', md: '2rem' }}>
+                <Typography sx={{ fontSize: { xs: '1rem', sm: '1.5rem', md: '2rem' } }}>
                   {playersCount}/{playersMaxCount}
                 </Typography>
               </Box>
-              <Box fontSize={{ xs: '1.5rem', sm: '2.25rem', md: '2.75rem' }} display="flex">
+              <Box sx={{ fontSize: { xs: '1.5rem', sm: '2.25rem', md: '2.75rem' } }} display="flex">
                 <PlayCircleOutlineOutlinedIcon opacity={isDisabled ? 0.5 : 1} fontSize="inherit" />
               </Box>
             </Stack>

@@ -31,10 +31,10 @@ export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players }) => 
           <PlayersScoresTableCell size={columnsProps.name}>
             <Typography variant="body2">Name</Typography>
           </PlayersScoresTableCell>
-          <PlayersScoresTableCell size={columnsProps.round} justifyContent="flex-end">
+          <PlayersScoresTableCell size={columnsProps.round} sx={{ justifyContent: 'flex-end' }}>
             <Typography variant="body2">Round</Typography>
           </PlayersScoresTableCell>
-          <PlayersScoresTableCell size={columnsProps.total} justifyContent="flex-end">
+          <PlayersScoresTableCell size={columnsProps.total} sx={{ justifyContent: 'flex-end' }}>
             <Typography variant="body2">Total</Typography>
           </PlayersScoresTableCell>
         </Grid>
@@ -56,12 +56,12 @@ export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players }) => 
                 {username}
               </Typography>
             </PlayersScoresTableCell>
-            <PlayersScoresTableCell size={columnsProps.round} justifyContent="flex-end">
+            <PlayersScoresTableCell size={columnsProps.round} sx={{ justifyContent: 'flex-end' }}>
               <Typography fontWeight={500} variant="h5">
                 {last(roundPoints)}
               </Typography>
             </PlayersScoresTableCell>
-            <PlayersScoresTableCell size={columnsProps.total} justifyContent="flex-end">
+            <PlayersScoresTableCell size={columnsProps.total} sx={{ justifyContent: 'flex-end' }}>
               <Typography fontWeight={500} variant="h5">
                 {totalPoints}
               </Typography>

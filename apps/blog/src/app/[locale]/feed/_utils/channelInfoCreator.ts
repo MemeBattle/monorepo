@@ -1,5 +1,5 @@
-import type { BlogPost } from 'contentlayer/generated'
-import { allBlogPosts } from 'contentlayer/generated'
+import type { BlogPost } from '@/content/types'
+import { getAllBlogPosts } from '@/content/blog-posts'
 import { convertMarkdownToHtml } from './converter'
 
 import { useTranslation } from '@/i18n'
@@ -24,6 +24,8 @@ export type ChannelInfo = {
  * @returns Promise with an object containing blog data and metadata
  */
 export const createChannelInfo = async (lang: Language): Promise<ChannelInfo> => {
+  const allBlogPosts = await getAllBlogPosts()
+
   const feedPosts = await Promise.all(
     [...allBlogPosts]
       .filter(post => post.lang === lang)
@@ -31,7 +33,7 @@ export const createChannelInfo = async (lang: Language): Promise<ChannelInfo> =>
       .map(async post => ({
         ...post,
         url: generateFullUrl(`/${lang}/posts/${post.slug}`),
-        content: await convertMarkdownToHtml(post.body.code),
+        content: await convertMarkdownToHtml(post.fileName),
       })),
   )
 

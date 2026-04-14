@@ -2,7 +2,7 @@ import { isPostShouldBePickedByLocale } from './isPostShouldBePickedByLocale'
 import type { BlogPostWithTranslates } from '../_content'
 import type { Language } from '@/i18n/i18n.settings'
 
-export function filterBlogPosts<T extends Pick<BlogPostWithTranslates, 'title' | 'summary' | 'tags' | 'slug' | 'lang' | 'translates' | 'body'>>(
+export function filterBlogPosts<T extends Pick<BlogPostWithTranslates, 'title' | 'summary' | 'tags' | 'slug' | 'lang' | 'translates' | 'rawBody'>>(
   blogPosts: T[],
   locale: Language,
   search = '',
@@ -22,7 +22,7 @@ export function filterBlogPosts<T extends Pick<BlogPostWithTranslates, 'title' |
   }
 
   return filteredByTag.filter(blogPost => {
-    const words = (blogPost.title + ' ' + blogPost.summary + ' ' + blogPost.body.raw).toLowerCase().split(' ')
+    const words = (blogPost.title + ' ' + blogPost.summary + ' ' + blogPost.rawBody).toLowerCase().split(' ')
 
     return keywords.every(keyWord => words.some(word => word.startsWith(keyWord)))
   })

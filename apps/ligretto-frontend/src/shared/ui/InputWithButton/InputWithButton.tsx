@@ -65,8 +65,7 @@ const StyledIconWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
     display="flex"
     justifyContent="center"
     alignItems="center"
-    width={{ xs: '4.75rem', sm: '4.75rem', md: '6.5rem' }}
-    fontSize={{ xs: '1.25rem', sm: '1.5rem', md: '2.185rem' }}
+    sx={{ width: { xs: '4.75rem', sm: '4.75rem', md: '6.5rem' }, fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2.185rem' } }}
   >
     {children}
   </Box>
@@ -76,8 +75,7 @@ export const InputWithButton: React.FC<React.PropsWithChildren> & InputWithButto
   <Box
     display="flex"
     width="100%"
-    height={{ xs: '2.5rem', sm: '3rem', md: '4rem' }}
-    fontSize={{ xs: '1rem', md: '1.5rem' }}
+    sx={{ height: { xs: '2.5rem', sm: '3rem', md: '4rem' }, fontSize: { xs: '1rem', md: '1.5rem' } }}
     borderRadius="0.25rem"
     overflow="hidden"
   >

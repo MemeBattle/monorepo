@@ -6,32 +6,37 @@
     "dev": "next dev",
     "build": "next build",
     "start": "node .next/standalone/apps/blog/server.js",
-    "generate": "contentlayer build",
     "ts-check": "tsgo --noEmit",
     "test": "vitest",
     "test:ci": "pnpm build && vitest run"
   },
   "dependencies": {
     "@amplitude/analytics-browser": "catalog:",
+    "@mdx-js/loader": "catalog:",
+    "@next/mdx": "catalog:",
     "@radix-ui/react-dropdown-menu": "catalog:",
     "@radix-ui/react-popover": "catalog:",
     "clsx": "catalog:",
-    "contentlayer": "catalog:",
     "date-fns": "catalog:",
     "feed": "catalog:",
     "i18next": "catalog:",
     "i18next-resources-to-backend": "catalog:",
     "negotiator": "catalog:",
     "next": "catalog:",
-    "next-contentlayer": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-i18next": "catalog:",
+    "remark-parse": "catalog:",
+    "remark-rehype": "catalog:",
     "server-only": "catalog:",
-    "sharp": "catalog:"
+    "sharp": "catalog:",
+    "unified": "catalog:"
   },
   "devDependencies": {
+    "@mdx-js/rollup": "catalog:",
     "@tailwindcss/typography": "catalog:",
+    "@types/hast": "catalog:",
+    "@types/mdx": "catalog:",
     "@types/negotiator": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
@@ -48,7 +53,6 @@
     "tailwindcss": "catalog:",
     "unist-util-visit": "catalog:",
     "vite": "catalog:",
-    "vite-tsconfig-paths": "catalog:",
     "vitest": "catalog:"
   }
 }

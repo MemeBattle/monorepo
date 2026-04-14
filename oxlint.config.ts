@@ -8,7 +8,7 @@ export default defineConfig({
   ignorePatterns: ['**/.adonisjs/**'],
   settings: {
     react: {
-      version: '18.2.0',
+      version: '19.2.4',
     },
     next: {
       rootDir: ['apps/blog', 'apps/gamehub-client'],

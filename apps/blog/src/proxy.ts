@@ -15,7 +15,7 @@ const cookieName = 'i18next'
  *
  * @param req
  */
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   /**
    * cookies[cookieName] is first source of true
    */

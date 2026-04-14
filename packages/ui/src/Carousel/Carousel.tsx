@@ -16,7 +16,7 @@ const StyledCarouselSlide = styled('div')(() => ({
 }))
 
 interface CarouselSlideProps {
-  children: ReactElement
+  children: ReactNode
   index: number
 }
 
@@ -101,7 +101,7 @@ export const CarouselSlides = ({ children }: CarouselSlidesProps) => {
     <StyledCarouselSlides ref={slidesRef} onScroll={throttledHandleScroll}>
       {React.Children.toArray(children).map((slideContent, index) => (
         <CarouselSlide key={index} index={index}>
-          {slideContent as ReactElement}
+          {slideContent}
         </CarouselSlide>
       ))}
     </StyledCarouselSlides>
@@ -114,7 +114,7 @@ const StyledCarouselControl = styled('div')(() => ({
 }))
 
 export interface CarouselControlProps {
-  children: ReactElement
+  children: ReactElement<{ isActive?: boolean; offset?: number }>
   index?: number
 }
 
@@ -143,11 +143,13 @@ const StyledCarouselControls = styled('div')(({ theme }) => ({
 }))
 
 export interface CarouselControlsProps {
-  children: ReactElement[]
+  children: ReactElement<{ index?: number }>[]
 }
 export const CarouselControls = ({ children }: CarouselControlsProps) => (
   <StyledCarouselControls>
-    {React.Children.toArray(children).map((originalChildren, index) => React.cloneElement(originalChildren as ReactElement, { index }))}
+    {React.Children.toArray(children).map((originalChildren, index) =>
+      React.cloneElement(originalChildren as ReactElement<{ index?: number }>, { index }),
+    )}
   </StyledCarouselControls>
 )
 

@@ -26,17 +26,17 @@ export const RoomsManager = () => {
 
   return (
     <StyledRoomManager>
-      <Grid container rowSpacing={1} columnSpacing={4} direction={{ xs: 'column-reverse', sm: 'row' }}>
-        <Grid size={{ xs: 12, sm: 6 }} marginBottom={{ xs: '1rem', sm: 0 }}>
-          <Box textAlign="center" marginBottom={{ xs: '1.5rem', sm: '2.5rem' }}>
+      <Grid container rowSpacing={1} columnSpacing={4} sx={{ flexDirection: { xs: 'column-reverse', sm: 'row' } }}>
+        <Grid size={{ xs: 12, sm: 6 }} sx={{ marginBottom: { xs: '1rem', sm: 0 } }}>
+          <Box textAlign="center" sx={{ marginBottom: { xs: '1.5rem', sm: '2.5rem' } }}>
             <Typography component="h2" variant="h4" fontWeight="500">
               Enter to room
             </Typography>
           </Box>
           <SearchRoomsContainer />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6 }} marginBottom="2rem">
-          <Box textAlign="center" marginBottom={{ xs: '1.5rem', sm: '2.5rem' }}>
+        <Grid size={{ xs: 12, sm: 6 }} sx={{ marginBottom: '2rem' }}>
+          <Box textAlign="center" sx={{ marginBottom: { xs: '1.5rem', sm: '2.5rem' } }}>
             <Typography component="h2" variant="h4">
               Create new room
             </Typography>

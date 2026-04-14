@@ -1,6 +1,6 @@
 import React from 'react'
 import History from '@mui/icons-material/History'
-import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline'
+import CheckCircleOutlineOutlined from '@mui/icons-material/CheckCircleOutlineOutlined'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { styled } from '@mui/material/styles'
 
@@ -97,7 +97,7 @@ export interface PlayerProps {
 }
 
 const IconByStatus = {
-  [PlayerStatus.ReadyToPlay]: CheckCircleOutline,
+  [PlayerStatus.ReadyToPlay]: CheckCircleOutlineOutlined,
   [PlayerStatus.DontReadyToPlay]: History,
   [PlayerStatus.InGame]: null,
 }

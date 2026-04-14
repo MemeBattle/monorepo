@@ -27,7 +27,7 @@ type Story = StoryObj<typeof Card>
 
 export const Default: Story = {
   render: args => (
-    <Box m={2}>
+    <Box sx={{ m: 2 }}>
       <Card {...args} />
     </Box>
   ),

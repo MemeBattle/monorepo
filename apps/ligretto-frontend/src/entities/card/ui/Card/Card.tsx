@@ -92,7 +92,7 @@ const StyledCardNotForwardedPropsSet = new Set<PropertyKey>(['isDarkened', 'isDi
 
 const StyledCard = styled(ButtonBase, { shouldForwardProp: prop => !StyledCardNotForwardedPropsSet.has(prop) })<{
   color: CardColors
-  ref: React.RefObject<HTMLButtonElement>
+  ref: React.Ref<HTMLButtonElement>
   isDisabled?: boolean
   isSelected?: boolean
   isDarkened?: boolean

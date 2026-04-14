@@ -6,7 +6,7 @@ export const CardsRow = ({ children }: { children: ReactNode }) => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   return (
-    <Stack direction="row" alignItems="flex-start" spacing={isMobile ? '2px' : 0.75}>
+    <Stack direction="row" sx={{ alignItems: 'flex-start' }} spacing={isMobile ? '2px' : 0.75}>
       {children}
     </Stack>
   )
