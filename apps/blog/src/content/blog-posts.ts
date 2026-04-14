@@ -20,7 +20,6 @@ function stripMdxExports(content: string): string {
 }
 
 export async function getAllBlogPosts(): Promise<BlogPost[]> {
-  'use cache'
   const filenames = readdirSync(POSTS_DIR).filter(f => f.endsWith('.mdx'))
 
   return Promise.all(

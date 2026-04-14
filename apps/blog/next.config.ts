@@ -20,7 +20,7 @@ const withMDX = createMDX({
 })
 
 const nextConfig = {
-  cacheComponents: true,
+  cacheComponents: false,
   reactStrictMode: true,
   output: 'standalone',
   pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'md', 'mdx'],
