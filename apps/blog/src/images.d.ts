@@ -4,6 +4,6 @@ declare module '*.png' {
 }
 
 declare module '*.svg' {
-  const content: any
+  const content: import('next/dist/shared/lib/image-external').StaticImageData
   export default content
 }
