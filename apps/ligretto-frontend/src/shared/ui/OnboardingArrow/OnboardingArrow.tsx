@@ -46,8 +46,8 @@ export function OnboardingArrow({
   toAnchor,
   curvature = 0.4,
   twist = 1,
-  roughness = 1.8,
-  bowing = 0.02,
+  roughness = 1,
+  bowing = 1,
   seed,
   strokeWidth = 2.5,
   color = 'white',
@@ -59,9 +59,9 @@ export function OnboardingArrow({
   const points = useElementAnchorPoints(from, to, containerRef, fromAnchor, toAnchor)
 
   const stableSeed = useMemo(() => {
-    if (seed !== undefined) return seed
+    if (seed !== undefined) {return seed}
     let h = 0
-    for (let i = 0; i < uid.length; i++) h = (h * 31 + uid.charCodeAt(i)) | 0
+    for (let i = 0; i < uid.length; i++) {h = (h * 31 + uid.charCodeAt(i)) | 0}
     return Math.abs(h) % 1000
   }, [seed, uid])
 
@@ -87,20 +87,12 @@ export function OnboardingArrow({
             >
               <defs>
                 <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%">
-                  <feTurbulence type="fractalNoise" baseFrequency={bowing} numOctaves={2} seed={stableSeed} result="noise" />
-                  <feDisplacementMap in="SourceGraphic" in2="noise" scale={roughness * 4} />
+                  <feTurbulence type="fractalNoise" baseFrequency={bowing * 0.02} numOctaves={2} seed={stableSeed} result="noise" />
+                  <feDisplacementMap in="SourceGraphic" in2="noise" scale={roughness * 6} />
                 </filter>
-                <marker
-                  id={markerId}
-                  markerWidth="10"
-                  markerHeight="10"
-                  refX="8"
-                  refY="5"
-                  orient="auto"
-                  markerUnits="strokeWidth"
-                >
+                <marker id={markerId} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
                   <polyline
-                    points="0,0 8,5 0,10"
+                    points="0,0 5,3 0,6"
                     stroke={color}
                     strokeWidth={1.5}
                     fill="none"
