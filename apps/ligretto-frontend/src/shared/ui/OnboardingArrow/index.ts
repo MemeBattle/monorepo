@@ -1,4 +1,6 @@
 export { OnboardingArrow } from './OnboardingArrow'
-export type { OnboardingArrowProps, OnboardingArrowVariant } from './OnboardingArrow'
+export type { OnboardingArrowProps } from './OnboardingArrow'
 export { useElementAnchorPoints } from './useElementAnchorPoints'
 export type { AnchorPoint, Point, AnchorPoints } from './useElementAnchorPoints'
+export { arcPath, sCurvePath, lassoPath, spiralPath, wavePath, presets, resolveBuilder, computeGeometry } from './buildPath'
+export type { OnboardingArrowShape, OnboardingArrowPathBuilder, PathBuilderArgs } from './buildPath'
