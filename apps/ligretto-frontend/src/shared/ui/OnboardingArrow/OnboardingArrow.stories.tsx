@@ -3,7 +3,8 @@ import type { CSSProperties } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { OnboardingArrow } from './OnboardingArrow'
 import type { OnboardingArrowProps } from './OnboardingArrow'
-import type { OnboardingArrowPathBuilder, OnboardingArrowShape } from './buildPath'
+import { arcPath, sCurvePath, lassoPath, spiralPath, wavePath } from './buildPath'
+import type { OnboardingArrowPathBuilder } from './buildPath'
 import type { AnchorPoint } from './useElementAnchorPoints'
 
 const GAME_BG = '#3d9970'
@@ -30,8 +31,28 @@ const box = (top: number, left?: number, right?: number): CSSProperties => ({
   whiteSpace: 'nowrap',
 })
 
+type PresetName = 'arc' | 'sCurve' | 'lasso' | 'spiral' | 'wave' | 'custom'
+const presetLookup: Record<Exclude<PresetName, 'custom'>, OnboardingArrowPathBuilder> = {
+  arc: arcPath,
+  sCurve: sCurvePath,
+  lasso: lassoPath,
+  spiral: spiralPath,
+  wave: wavePath,
+}
+
+const heartBuilder: OnboardingArrowPathBuilder = ({ from, to, chord, normal, tangent }) => {
+  const r = chord * 0.4
+  const midX = (from.x + to.x) / 2
+  const midY = (from.y + to.y) / 2
+  const leftX = midX - tangent.x * r + normal.x * r
+  const leftY = midY - tangent.y * r + normal.y * r
+  const rightX = midX + tangent.x * r + normal.x * r
+  const rightY = midY + tangent.y * r + normal.y * r
+  return `M ${from.x} ${from.y} C ${leftX} ${leftY} ${leftX} ${leftY} ${midX + normal.x * r * 0.3} ${midY + normal.y * r * 0.3} C ${rightX} ${rightY} ${rightX} ${rightY} ${to.x} ${to.y}`
+}
+
 interface DemoArgs {
-  shape: OnboardingArrowProps['shape']
+  preset: PresetName
   fromAnchor?: AnchorPoint
   toAnchor?: AnchorPoint
   curvature?: number
@@ -49,9 +70,9 @@ interface DemoArgs {
 }
 
 function Demo({
-  shape,
-  fromAnchor = 'center',
-  toAnchor = 'center',
+  preset,
+  fromAnchor,
+  toAnchor,
   curvature,
   twist,
   roughness,
@@ -67,6 +88,7 @@ function Demo({
 }: DemoArgs) {
   const fromRef = useRef<HTMLDivElement>(null)
   const toRef = useRef<HTMLDivElement>(null)
+  const builder = preset === 'custom' ? heartBuilder : presetLookup[preset]
   return (
     <div style={{ ...wrapStyle, height }}>
       <div ref={fromRef} style={fromStyle}>
@@ -78,7 +100,7 @@ function Demo({
       <OnboardingArrow
         from={fromRef}
         to={toRef}
-        shape={shape}
+        path={builder}
         fromAnchor={fromAnchor}
         toAnchor={toAnchor}
         curvature={curvature}
@@ -100,49 +122,57 @@ const meta: Meta<typeof OnboardingArrow> = {
 export default meta
 type Story = StoryObj<DemoArgs>
 
-const presetOptions: OnboardingArrowShape[] = ['arc', 'sCurve', 'lasso', 'spiral', 'wave']
+const presetOptions: PresetName[] = ['arc', 'sCurve', 'lasso', 'spiral', 'wave', 'custom']
 const anchorOptions: AnchorPoint[] = ['top', 'bottom', 'left', 'right', 'center']
 
 export const Arc: Story = {
   render: args => <Demo {...args} fromLabel="Deck" toLabel="Playground" />,
-  args: { shape: 'arc' },
+  args: { preset: 'arc' },
 }
 
 export const SCurve: Story = {
   render: args => <Demo {...args} fromLabel="Deck" toLabel="Playground" />,
-  args: { shape: 'sCurve', curvature: 0.5, twist: 1 },
+  args: { preset: 'sCurve', curvature: 0.5, twist: 1 },
 }
 
 export const Lasso: Story = {
   render: args => <Demo {...args} fromLabel="Hand" toLabel="Stack" />,
-  args: { shape: 'lasso', curvature: 0.4, twist: 1 },
+  args: { preset: 'lasso', curvature: 0.4, twist: 1 },
 }
 
 export const Spiral: Story = {
   render: args => <Demo {...args} fromLabel="Pointer" toLabel="Card" />,
-  args: { shape: 'spiral', curvature: 0.6, twist: 1 },
+  args: { preset: 'spiral', curvature: 0.6, twist: 1 },
 }
 
 export const Wave: Story = {
   render: args => <Demo {...args} fromLabel="Start" toLabel="End" />,
-  args: { shape: 'wave', curvature: 0.5, twist: 2 },
-}
-
-const heartBuilder: OnboardingArrowPathBuilder = ({ from, to, chord, normal, tangent }) => {
-  const r = chord * 0.4
-  const midX = (from.x + to.x) / 2
-  const midY = (from.y + to.y) / 2
-  const leftX = midX - tangent.x * r + normal.x * r
-  const leftY = midY - tangent.y * r + normal.y * r
-  const rightX = midX + tangent.x * r + normal.x * r
-  const rightY = midY + tangent.y * r + normal.y * r
-  return `M ${from.x} ${from.y} C ${leftX} ${leftY} ${leftX} ${leftY} ${midX + normal.x * r * 0.3} ${midY + normal.y * r * 0.3} C ${rightX} ${rightY} ${rightX} ${rightY} ${to.x} ${to.y}`
+  args: { preset: 'wave', curvature: 0.5, twist: 2 },
 }
 
 export const CustomBuilder: Story = {
-  name: 'Custom builder (function as shape)',
+  name: 'Custom builder (function as path)',
   render: args => <Demo {...args} fromLabel="A" toLabel="B" />,
-  args: { shape: heartBuilder },
+  args: { preset: 'custom' },
+}
+
+export const AutoAnchors: Story = {
+  name: 'Auto anchors (shortest distance)',
+  render: () => {
+    const aRef = useRef<HTMLDivElement>(null)
+    const bRef = useRef<HTMLDivElement>(null)
+    return (
+      <div style={{ ...wrapStyle, height: 400 }}>
+        <div ref={aRef} style={box(60, 60)}>
+          A
+        </div>
+        <div ref={bRef} style={box(280, undefined, 60)}>
+          B
+        </div>
+        <OnboardingArrow from={aRef} to={bRef} path={sCurvePath} curvature={0.5} />
+      </div>
+    )
+  },
 }
 
 export const MultipleArrows: Story = {
@@ -161,8 +191,8 @@ export const MultipleArrows: Story = {
         <div ref={handRef} style={box(360, 200)}>
           Hand
         </div>
-        <OnboardingArrow from={deckRef} to={playgroundRef} shape="sCurve" fromAnchor="top" toAnchor="top" curvature={0.6} />
-        <OnboardingArrow from={deckRef} to={handRef} shape="lasso" fromAnchor="bottom" toAnchor="top" curvature={0.5} twist={-1} />
+        <OnboardingArrow from={deckRef} to={playgroundRef} path={sCurvePath} fromAnchor="top" toAnchor="top" curvature={0.6} />
+        <OnboardingArrow from={deckRef} to={handRef} path={lassoPath} fromAnchor="bottom" toAnchor="top" curvature={0.5} twist={-1} />
       </div>
     )
   },
@@ -171,9 +201,7 @@ export const MultipleArrows: Story = {
 export const Playground: Story = {
   render: args => <Demo {...args} fromLabel="From" toLabel="To" />,
   args: {
-    shape: 'arc',
-    fromAnchor: 'center',
-    toAnchor: 'center',
+    preset: 'arc',
     curvature: 0.4,
     twist: 1,
     roughness: 1.8,
@@ -182,9 +210,9 @@ export const Playground: Story = {
     color: 'white',
   },
   argTypes: {
-    shape: { control: 'select', options: presetOptions },
-    fromAnchor: { control: 'select', options: anchorOptions },
-    toAnchor: { control: 'select', options: anchorOptions },
+    preset: { control: 'select', options: presetOptions },
+    fromAnchor: { control: 'select', options: [undefined, ...anchorOptions] },
+    toAnchor: { control: 'select', options: [undefined, ...anchorOptions] },
     curvature: { control: { type: 'range', min: 0, max: 1.5, step: 0.05 } },
     twist: { control: { type: 'range', min: -3, max: 3, step: 0.5 } },
     roughness: { control: { type: 'range', min: 0, max: 6, step: 0.1 } },

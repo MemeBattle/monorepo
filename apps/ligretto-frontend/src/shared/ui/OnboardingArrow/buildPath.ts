@@ -12,8 +12,6 @@ export interface PathBuilderArgs {
 
 export type OnboardingArrowPathBuilder = (args: PathBuilderArgs) => string
 
-export type OnboardingArrowShape = 'arc' | 'sCurve' | 'lasso' | 'spiral' | 'wave'
-
 export const arcPath: OnboardingArrowPathBuilder = ({ from, to, chord, normal, curvature, twist }) => {
   const k = chord * curvature * twist
   const cx = (from.x + to.x) / 2 + normal.x * k
@@ -88,18 +86,6 @@ export const wavePath: OnboardingArrowPathBuilder = ({ from, to, chord, normal, 
   }
   d += ` L ${to.x} ${to.y}`
   return d
-}
-
-export const presets: Record<OnboardingArrowShape, OnboardingArrowPathBuilder> = {
-  arc: arcPath,
-  sCurve: sCurvePath,
-  lasso: lassoPath,
-  spiral: spiralPath,
-  wave: wavePath,
-}
-
-export function resolveBuilder(shape: OnboardingArrowShape | OnboardingArrowPathBuilder): OnboardingArrowPathBuilder {
-  return typeof shape === 'function' ? shape : presets[shape]
 }
 
 export function computeGeometry(from: Point, to: Point): { chord: number; normal: Point; tangent: Point } {
