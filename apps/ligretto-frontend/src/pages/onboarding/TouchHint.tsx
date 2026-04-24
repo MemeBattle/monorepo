@@ -23,7 +23,7 @@ const AnimatedTouchAppIcon = styled(TouchAppIcon)({
 })
 
 export function TouchHint({ children }: PropsWithChildren) {
-  const anchorRef = useRef()
+  const anchorRef = useRef<HTMLDivElement | null>(null)
 
   const [isVisible, setIsVisible] = useState(false)
 

@@ -53,6 +53,9 @@ const OnboardingCardPanel = () => {
         <CardsStack
           onStackDeckCardClick={() => dispatch(nextStackCardAction())}
           onStackOpenDeckCardClick={() => dispatch(putStackCardAction())}
+          onStackDeckCardOutsideClick={() => undefined}
+          isStackOpenDeckSelected={false}
+          isStackOpenDeckDarkened={false}
           stackOpenDeckCard={current?.stackOpenDeck.cards[0]}
           stackDeckCards={current?.stackDeck.cards ?? []}
         />
@@ -122,7 +125,7 @@ export function OnboardingPage() {
       <Description />
 
       {isNextButtonVisible(step) ? (
-        <Box position="absolute" right="2rem" top="2rem">
+        <Box sx={{ position: 'absolute', right: '2rem', top: '2rem' }}>
           <TouchHint key={step}>
             <IconButton onClick={handleNextButtonClick}>
               <NextButton />

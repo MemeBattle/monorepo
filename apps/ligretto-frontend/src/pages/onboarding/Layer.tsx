@@ -49,9 +49,5 @@ function isLayerAbove(layerId: LayerId, currentStep: OnboardingStep): boolean {
 export function Layer({ id, children }: PropsWithChildren<{ id: LayerId }>) {
   const currentStep = useSelector(onboardingStepSelector)
 
-  return (
-    <Box position="relative" zIndex={isLayerAbove(id, currentStep) ? 1 : undefined}>
-      {children}
-    </Box>
-  )
+  return <Box sx={{ position: 'relative', zIndex: isLayerAbove(id, currentStep) ? 1 : undefined }}>{children}</Box>
 }
