@@ -2,7 +2,6 @@ import { useRef } from 'react'
 import type { CSSProperties } from 'react'
 import type { Meta, StoryObj } from '@storybook/react'
 import { OnboardingArrow } from './OnboardingArrow'
-import type { OnboardingArrowProps } from './OnboardingArrow'
 import { arcPath, sCurvePath, lassoPath, spiralPath, wavePath } from './buildPath'
 import type { OnboardingArrowPathBuilder } from './buildPath'
 import type { AnchorPoint } from './useElementAnchorPoints'
@@ -156,46 +155,50 @@ export const CustomBuilder: Story = {
   args: { preset: 'custom' },
 }
 
+function AutoAnchorsDemo() {
+  const aRef = useRef<HTMLDivElement>(null)
+  const bRef = useRef<HTMLDivElement>(null)
+  return (
+    <div style={{ ...wrapStyle, height: 400 }}>
+      <div ref={aRef} style={box(60, 60)}>
+        A
+      </div>
+      <div ref={bRef} style={box(280, undefined, 60)}>
+        B
+      </div>
+      <OnboardingArrow from={aRef} to={bRef} path={sCurvePath} curvature={0.5} />
+    </div>
+  )
+}
+
 export const AutoAnchors: Story = {
   name: 'Auto anchors (shortest distance)',
-  render: () => {
-    const aRef = useRef<HTMLDivElement>(null)
-    const bRef = useRef<HTMLDivElement>(null)
-    return (
-      <div style={{ ...wrapStyle, height: 400 }}>
-        <div ref={aRef} style={box(60, 60)}>
-          A
-        </div>
-        <div ref={bRef} style={box(280, undefined, 60)}>
-          B
-        </div>
-        <OnboardingArrow from={aRef} to={bRef} path={sCurvePath} curvature={0.5} />
+  render: () => <AutoAnchorsDemo />,
+}
+
+function MultipleArrowsDemo() {
+  const deckRef = useRef<HTMLDivElement>(null)
+  const playgroundRef = useRef<HTMLDivElement>(null)
+  const handRef = useRef<HTMLDivElement>(null)
+  return (
+    <div style={{ ...wrapStyle, height: 480 }}>
+      <div ref={deckRef} style={box(40, 40)}>
+        Deck
       </div>
-    )
-  },
+      <div ref={playgroundRef} style={box(40, undefined, 40)}>
+        Playground
+      </div>
+      <div ref={handRef} style={box(360, 200)}>
+        Hand
+      </div>
+      <OnboardingArrow from={deckRef} to={playgroundRef} path={sCurvePath} fromAnchor="top" toAnchor="top" curvature={0.6} />
+      <OnboardingArrow from={deckRef} to={handRef} path={lassoPath} fromAnchor="bottom" toAnchor="top" curvature={0.5} twist={-1} />
+    </div>
+  )
 }
 
 export const MultipleArrows: Story = {
-  render: () => {
-    const deckRef = useRef<HTMLDivElement>(null)
-    const playgroundRef = useRef<HTMLDivElement>(null)
-    const handRef = useRef<HTMLDivElement>(null)
-    return (
-      <div style={{ ...wrapStyle, height: 480 }}>
-        <div ref={deckRef} style={box(40, 40)}>
-          Deck
-        </div>
-        <div ref={playgroundRef} style={box(40, undefined, 40)}>
-          Playground
-        </div>
-        <div ref={handRef} style={box(360, 200)}>
-          Hand
-        </div>
-        <OnboardingArrow from={deckRef} to={playgroundRef} path={sCurvePath} fromAnchor="top" toAnchor="top" curvature={0.6} />
-        <OnboardingArrow from={deckRef} to={handRef} path={lassoPath} fromAnchor="bottom" toAnchor="top" curvature={0.5} twist={-1} />
-      </div>
-    )
-  },
+  render: () => <MultipleArrowsDemo />,
 }
 
 export const Playground: Story = {

@@ -64,6 +64,7 @@ export function OnboardingArrow({
     }
     let h = 0
     for (let i = 0; i < uid.length; i++) {
+      // eslint-disable-next-line no-bitwise
       h = (h * 31 + uid.charCodeAt(i)) | 0
     }
     return Math.abs(h) % 1000
