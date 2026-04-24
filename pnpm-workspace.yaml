@@ -4,7 +4,7 @@ packages:
 
 catalog:
   '@adonisjs/assembler': 8.2.0
-  '@adonisjs/core': 7.1.1
+  '@adonisjs/core': 7.3.1
   '@adonisjs/cors': 3.0.0
   '@adonisjs/lucid': 22.2.0
   '@adonisjs/tsconfig': 2.0.0
