@@ -12,7 +12,7 @@ export interface CardsStackProps {
   onStackOpenDeckCardClick: () => void
   onStackDeckCardClick: () => void
   onStackDeckCardOutsideClick: () => void
-  isDndEnabled: boolean
+  isDndEnabled?: boolean
   isStackOpenDeckSelected: boolean
   isStackOpenDeckDarkened: boolean
 }
