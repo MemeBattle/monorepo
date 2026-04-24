@@ -23,6 +23,10 @@ import { PlayerRowCards } from './PlayerRowCards'
 import { Layer } from './Layer'
 import { TouchHint } from './TouchHint'
 import { Description } from './Description'
+import { OnboardingTarget } from './OnboardingTarget'
+import { OnboardingTargetsProvider } from './targets'
+import { StepArrow } from './StepArrow'
+import { ResultScreen } from './ResultScreen'
 
 const isLigrettoPackHighlighted = (step: OnboardingStep): boolean =>
   step === OnboardingStep.LigrettoAvailableCard || step === OnboardingStep.LigrettoCard
@@ -50,25 +54,31 @@ const OnboardingCardPanel = () => {
   return (
     <Layer id="playerCards">
       <CardsPanel player={{ status: PlayerStatus.InGame, username: 'you' }}>
-        <CardsStack
-          onStackDeckCardClick={() => dispatch(nextStackCardAction())}
-          onStackOpenDeckCardClick={() => dispatch(putStackCardAction())}
-          onStackDeckCardOutsideClick={() => undefined}
-          isStackOpenDeckSelected={false}
-          isStackOpenDeckDarkened={false}
-          stackOpenDeckCard={current?.stackOpenDeck.cards[0]}
-          stackDeckCards={current?.stackDeck.cards ?? []}
-        />
-        <PlayerRowCards />
+        <OnboardingTarget id="stack">
+          <CardsStack
+            onStackDeckCardClick={() => dispatch(nextStackCardAction())}
+            onStackOpenDeckCardClick={() => dispatch(putStackCardAction())}
+            onStackDeckCardOutsideClick={() => undefined}
+            isStackOpenDeckSelected={false}
+            isStackOpenDeckDarkened={false}
+            stackOpenDeckCard={current?.stackOpenDeck.cards[0]}
+            stackDeckCards={current?.stackDeck.cards ?? []}
+          />
+        </OnboardingTarget>
+        <OnboardingTarget id="playerRow">
+          <PlayerRowCards />
+        </OnboardingTarget>
 
-        <LigrettoPack
-          isDisabled={DISABLED_LIGRETTO_STEPS.has(step)}
-          count={current?.ligrettoDeck.cards.length ?? 0}
-          isDndEnabled={false}
-          ligrettoDeckCards={current?.ligrettoDeck.cards ?? []}
-          onLigrettoDeckCardClick={handleLigrettoDeckCardClick}
-          isHighlighted={isLigrettoPackHighlighted(step)}
-        />
+        <OnboardingTarget id="ligretto">
+          <LigrettoPack
+            isDisabled={DISABLED_LIGRETTO_STEPS.has(step)}
+            count={current?.ligrettoDeck.cards.length ?? 0}
+            isDndEnabled={false}
+            ligrettoDeckCards={current?.ligrettoDeck.cards ?? []}
+            onLigrettoDeckCardClick={handleLigrettoDeckCardClick}
+            isHighlighted={isLigrettoPackHighlighted(step)}
+          />
+        </OnboardingTarget>
       </CardsPanel>
     </Layer>
   )
@@ -106,33 +116,50 @@ export function OnboardingPage() {
   }, [dispatch])
 
   return (
-    <GameLayout>
-      <GameGrid
-        centerElement={
-          <Layer id="playgroundCards">
-            <Playground cardsDecks={game.playground.decks} onDeckClick={() => null} />
-          </Layer>
-        }
-        bottomElement={<OnboardingCardPanel />}
-      >
-        {opponents.map(props => (
-          <Layer id="opponent" key={props.id}>
-            <Opponent {...props} />
-          </Layer>
-        ))}
-      </GameGrid>
-      <Overlay />
-      <Description />
+    <OnboardingTargetsProvider>
+      <GameLayout>
+        <Box sx={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <GameGrid
+            centerElement={
+              <Layer id="playgroundCards">
+                <OnboardingTarget id="playground">
+                  <Playground cardsDecks={game.playground.decks} onDeckClick={() => null} />
+                </OnboardingTarget>
+              </Layer>
+            }
+            bottomElement={<OnboardingCardPanel />}
+          >
+            {opponents.map((props, index) => {
+              const opponent = (
+                <Layer id="opponent" key={props.id}>
+                  <Opponent {...props} />
+                </Layer>
+              )
+              return index === 0 ? (
+                <OnboardingTarget key={props.id} id="opponents">
+                  {opponent}
+                </OnboardingTarget>
+              ) : (
+                opponent
+              )
+            })}
+          </GameGrid>
+          <Overlay />
+          <Description />
+          <StepArrow />
+          <ResultScreen />
 
-      {isNextButtonVisible(step) ? (
-        <Box sx={{ position: 'absolute', right: '2rem', top: '2rem' }}>
-          <TouchHint key={step}>
-            <IconButton onClick={handleNextButtonClick}>
-              <NextButton />
-            </IconButton>
-          </TouchHint>
+          {isNextButtonVisible(step) ? (
+            <Box sx={{ position: 'absolute', right: '2rem', top: '2rem', zIndex: 3 }}>
+              <TouchHint key={step}>
+                <IconButton onClick={handleNextButtonClick}>
+                  <NextButton />
+                </IconButton>
+              </TouchHint>
+            </Box>
+          ) : null}
         </Box>
-      ) : null}
-    </GameLayout>
+      </GameLayout>
+    </OnboardingTargetsProvider>
   )
 }

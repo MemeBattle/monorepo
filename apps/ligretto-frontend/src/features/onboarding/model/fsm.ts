@@ -226,16 +226,45 @@ export class OnboardingStateMachine extends StateMachine<OnboardingStep, Onboard
         }),
 
         t(OnboardingStep.GameStarted, OnboardingEvent.NextStackCard, OnboardingStep.GameStartedCycledInfo, cycledInfoHooks),
-        t(OnboardingStep.GameStarted, OnboardingEvent.NextStackCard, OnboardingStep.GameStarted),
-        t(OnboardingStep.GameStarted, OnboardingEvent.PutSecondCard, OnboardingStep.OpponentTurn),
+        t(OnboardingStep.GameStarted, OnboardingEvent.NextStackCard, OnboardingStep.GameStarted, {
+          onEnter(ctx) {
+            ctx.data.game.players.id0.stackOpenDeck.cards.splice(0, 1)
+          },
+        }),
+        t(OnboardingStep.GameStarted, OnboardingEvent.PutSecondCard, OnboardingStep.OpponentTurn, {
+          onEnter(ctx) {
+            const playerCard = ctx.data.game.players.id0.cards[1]
+            if (playerCard) {
+              ctx.data.game.playground.decks[0]?.cards.push(playerCard)
+              ctx.data.game.players.id0.cards[1] = null
+            }
+            const opponentCard = { value: 4, color: CardColors.blue }
+            if (!ctx.data.game.playground.decks[1]) {
+              ctx.data.game.playground.decks[1] = { cards: [], isHidden: false }
+            }
+            ctx.data.game.playground.decks[1].cards.push(opponentCard)
+          },
+        }),
         t(OnboardingStep.GameStartedCycledInfo, OnboardingEvent.NextStackCard, OnboardingStep.GameStarted),
         t(OnboardingStep.GameStartedCycledInfo, OnboardingEvent.PutSecondCard, OnboardingStep.OpponentTurn),
 
         t(OnboardingStep.OpponentTurn, OnboardingEvent.NextStackCard, OnboardingStep.OpponentTurnCycledInfo, cycledInfoHooks),
-        t(OnboardingStep.OpponentTurn, OnboardingEvent.NextStackCard, OnboardingStep.OpponentTurn),
-        t(OnboardingStep.OpponentTurn, OnboardingEvent.PutSecondCard, OnboardingStep.Result),
+        t(OnboardingStep.OpponentTurn, OnboardingEvent.NextStackCard, OnboardingStep.OpponentTurn, {
+          onEnter(ctx) {
+            ctx.data.game.players.id0.stackOpenDeck.cards.splice(0, 1)
+          },
+        }),
+        t(OnboardingStep.OpponentTurn, OnboardingEvent.PutThirdCard, OnboardingStep.Result, {
+          onEnter(ctx) {
+            const playerCard = ctx.data.game.players.id0.cards[2]
+            if (playerCard) {
+              ctx.data.game.playground.decks[0]?.cards.push(playerCard)
+              ctx.data.game.players.id0.cards[2] = null
+            }
+          },
+        }),
         t(OnboardingStep.OpponentTurnCycledInfo, OnboardingEvent.NextStackCard, OnboardingStep.OpponentTurn),
-        t(OnboardingStep.OpponentTurnCycledInfo, OnboardingEvent.PutSecondCard, OnboardingStep.Result),
+        t(OnboardingStep.OpponentTurnCycledInfo, OnboardingEvent.PutThirdCard, OnboardingStep.Result),
       ],
     })
   }

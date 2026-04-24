@@ -18,7 +18,6 @@ import { LOCATION_CHANGE } from 'redux-first-history'
 import { matchPath } from 'react-router'
 import { routes } from '#shared/constants/router-constants.js'
 import cloneDeep from 'lodash/cloneDeep'
-import { render } from '@fsmoothy/graphviz'
 
 const isLocationChangeAction = (action: UnknownAction): action is Extract<RouterActions, { type: typeof LOCATION_CHANGE }> =>
   action.type === LOCATION_CHANGE
@@ -44,7 +43,6 @@ export function addListeners(startListener: TypedStartListening<unknown>) {
     },
     effect: async (_action, listenerApi) => {
       const fsm = new OnboardingStateMachine()
-      console.log(render(fsm.inspect()))
 
       listenerApi.dispatch(setOnboardingState({ step: fsm.current, game: cloneDeep(fsm.context.data.game) }))
 
