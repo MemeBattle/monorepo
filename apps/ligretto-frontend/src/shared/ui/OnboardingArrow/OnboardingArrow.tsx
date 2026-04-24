@@ -59,9 +59,13 @@ export function OnboardingArrow({
   const points = useElementAnchorPoints(from, to, containerRef, fromAnchor, toAnchor)
 
   const stableSeed = useMemo(() => {
-    if (seed !== undefined) {return seed}
+    if (seed !== undefined) {
+      return seed
+    }
     let h = 0
-    for (let i = 0; i < uid.length; i++) {h = (h * 31 + uid.charCodeAt(i)) | 0}
+    for (let i = 0; i < uid.length; i++) {
+      h = (h * 31 + uid.charCodeAt(i)) | 0
+    }
     return Math.abs(h) % 1000
   }, [seed, uid])
 
@@ -91,14 +95,7 @@ export function OnboardingArrow({
                   <feDisplacementMap in="SourceGraphic" in2="noise" scale={roughness * 6} />
                 </filter>
                 <marker id={markerId} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
-                  <polyline
-                    points="0,0 5,3 0,6"
-                    stroke={color}
-                    strokeWidth={1.5}
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+                  <polyline points="0,0 5,3 0,6" stroke={color} strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
                 </marker>
               </defs>
               <g filter={`url(#${filterId})`}>

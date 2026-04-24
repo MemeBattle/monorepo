@@ -92,9 +92,15 @@ export function useElementAnchorPoints(
     update()
 
     const observer = new ResizeObserver(update)
-    if (from.current) {observer.observe(from.current)}
-    if (to.current) {observer.observe(to.current)}
-    if (container.current) {observer.observe(container.current)}
+    if (from.current) {
+      observer.observe(from.current)
+    }
+    if (to.current) {
+      observer.observe(to.current)
+    }
+    if (container.current) {
+      observer.observe(container.current)
+    }
     window.addEventListener('resize', update)
 
     return () => {
