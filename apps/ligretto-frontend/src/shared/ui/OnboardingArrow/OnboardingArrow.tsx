@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, type RefObject } from 'react'
+import { useId, useRef, type RefObject } from 'react'
 import { useElementAnchorPoints } from './useElementAnchorPoints'
 import type { AnchorPoint, Point } from './useElementAnchorPoints'
 import { arcPath, computeGeometry } from './buildPath'
@@ -14,11 +14,10 @@ export interface OnboardingArrowProps {
   toAnchor?: AnchorPoint
   curvature?: number
   twist?: number
-  roughness?: number
-  bowing?: number
-  seed?: number
   strokeWidth?: number
   color?: string
+  fromGap?: number
+  toGap?: number
 }
 
 /**
@@ -33,9 +32,6 @@ export interface OnboardingArrowProps {
  * function. Built-in presets (`arcPath`, `sCurvePath`, `lassoPath`,
  * `spiralPath`, `wavePath`) are exported alongside the component.
  *
- * Hand-drawn look comes from an SVG `feTurbulence` + `feDisplacementMap`
- * filter applied to the path.
- *
  * Figma: https://www.figma.com/design/zLXO12ISnORKAut0uduasj/Ligretto?node-id=1036-348
  */
 export function OnboardingArrow({
@@ -46,29 +42,15 @@ export function OnboardingArrow({
   toAnchor,
   curvature = 0.4,
   twist = 1,
-  roughness = 1,
-  bowing = 1,
-  seed,
   strokeWidth = 2.5,
   color = 'white',
+  fromGap = 0,
+  toGap = 8,
 }: OnboardingArrowProps) {
   const uid = useId()
-  const filterId = `onboarding-arrow-sketch-${uid}`
   const markerId = `onboarding-arrow-marker-${uid}`
   const containerRef = useRef<HTMLDivElement>(null)
   const points = useElementAnchorPoints(from, to, containerRef, fromAnchor, toAnchor)
-
-  const stableSeed = useMemo(() => {
-    if (seed !== undefined) {
-      return seed
-    }
-    let h = 0
-    for (let i = 0; i < uid.length; i++) {
-      // eslint-disable-next-line no-bitwise
-      h = (h * 31 + uid.charCodeAt(i)) | 0
-    }
-    return Math.abs(h) % 1000
-  }, [seed, uid])
 
   return (
     <div ref={containerRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
@@ -81,8 +63,19 @@ export function OnboardingArrow({
           const height = Math.abs(p2.y - p1.y) + PADDING * 2
           const lp1: Point = { x: p1.x - minX, y: p1.y - minY }
           const lp2: Point = { x: p2.x - minX, y: p2.y - minY }
-          const geom = computeGeometry(lp1, lp2)
-          const pathD = path({ from: lp1, to: lp2, ...geom, curvature, twist })
+          const dx = lp2.x - lp1.x
+          const dy = lp2.y - lp1.y
+          const len = Math.hypot(dx, dy)
+          let pFrom: Point = lp1
+          let pTo: Point = lp2
+          if (len > fromGap + toGap + 1) {
+            const tx = dx / len
+            const ty = dy / len
+            pFrom = { x: lp1.x + tx * fromGap, y: lp1.y + ty * fromGap }
+            pTo = { x: lp2.x - tx * toGap, y: lp2.y - ty * toGap }
+          }
+          const geom = computeGeometry(pFrom, pTo)
+          const pathD = path({ from: pFrom, to: pTo, ...geom, curvature, twist })
           return (
             <svg
               style={{ position: 'absolute', top: minY, left: minX, width, height, overflow: 'visible' }}
@@ -91,17 +84,11 @@ export function OnboardingArrow({
               xmlns="http://www.w3.org/2000/svg"
             >
               <defs>
-                <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%">
-                  <feTurbulence type="fractalNoise" baseFrequency={bowing * 0.02} numOctaves={2} seed={stableSeed} result="noise" />
-                  <feDisplacementMap in="SourceGraphic" in2="noise" scale={roughness * 6} />
-                </filter>
                 <marker id={markerId} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
                   <polyline points="0,0 5,3 0,6" stroke={color} strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
                 </marker>
               </defs>
-              <g filter={`url(#${filterId})`}>
-                <path d={pathD} stroke={color} strokeWidth={strokeWidth} fill="none" strokeLinecap="round" markerEnd={`url(#${markerId})`} />
-              </g>
+              <path d={pathD} stroke={color} strokeWidth={strokeWidth} fill="none" strokeLinecap="round" markerEnd={`url(#${markerId})`} />
             </svg>
           )
         })()}
