@@ -1,4 +1,4 @@
-import React, { Children } from 'react'
+import { Children, type PropsWithChildren, type Ref } from 'react'
 import { Box } from '@memebattle/ui'
 
 import { styled } from '@mui/material/styles'
@@ -19,8 +19,8 @@ const StyledGrid = styled('div')(({ theme }) => ({
   },
 }))
 
-export const TableCards: React.FC<React.PropsWithChildren> = ({ children }) => (
-  <Box display="flex" justifyContent="center" alignItems="center" flex={1}>
+export const TableCards = ({ children, ref }: PropsWithChildren<{ ref?: Ref<HTMLDivElement> }>) => (
+  <Box ref={ref} display="flex" justifyContent="center" alignItems="center" flex={1}>
     <StyledGrid>
       {Children.map(children, (child, index) => (
         <Box key={index}>{child}</Box>
@@ -28,5 +28,3 @@ export const TableCards: React.FC<React.PropsWithChildren> = ({ children }) => (
     </StyledGrid>
   </Box>
 )
-
-TableCards.displayName = 'TableCards'

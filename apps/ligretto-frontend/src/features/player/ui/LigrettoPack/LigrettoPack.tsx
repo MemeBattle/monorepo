@@ -1,4 +1,4 @@
-import React from 'react'
+import { type Ref } from 'react'
 import { Typography } from '@memebattle/ui'
 import type { Card as PlayerCards } from '@memebattle/ligretto-shared'
 
@@ -7,19 +7,30 @@ import { CardPlace, Card, CardHotkeyBadge } from '#entities/card'
 
 import styles from './LigrettoPack.module.scss'
 
-interface LigrettoPack {
+interface LigrettoPackProps {
   count: number
   isDndEnabled: boolean
   ligrettoDeckCards: PlayerCards[]
   onLigrettoDeckCardClick: () => void
+  isHighlighted?: boolean
+  isDisabled?: boolean
+  ref?: Ref<HTMLDivElement>
 }
 
-export const LigrettoPack: React.FC<LigrettoPack> = ({ count, isDndEnabled, ligrettoDeckCards, onLigrettoDeckCardClick }) => (
-  <div className={styles.ligrettoPack}>
+export const LigrettoPack = ({
+  count,
+  isDndEnabled,
+  ligrettoDeckCards,
+  onLigrettoDeckCardClick,
+  isHighlighted,
+  isDisabled,
+  ref,
+}: LigrettoPackProps) => (
+  <div ref={ref} className={styles.ligrettoPack}>
     <div className={styles.cardWrapper}>
       <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.l : undefined}>
         <CardPlace>
-          <Card color={ligrettoDeckCards[0]?.color} onClick={onLigrettoDeckCardClick} />
+          <Card color={ligrettoDeckCards[0]?.color} onClick={onLigrettoDeckCardClick} isHighlighted={isHighlighted} isDisabled={isDisabled} />
         </CardPlace>
       </CardHotkeyBadge>
     </div>
