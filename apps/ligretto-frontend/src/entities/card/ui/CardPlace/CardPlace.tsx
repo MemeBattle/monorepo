@@ -1,4 +1,4 @@
-import React from 'react'
+import { type PropsWithChildren, type Ref } from 'react'
 import { styled } from '@mui/material/styles'
 
 import { widthByCardSize, heightByCardSize, mobileHeightBySize, mobileWidthBySize, tabletWidthBySize, tabletHeightBySize } from '../Card'
@@ -7,6 +7,7 @@ export type CardPlaceSize = 'small' | 'medium' | 'large'
 
 export interface CardPlaceProps {
   size?: CardPlaceSize
+  ref?: Ref<HTMLDivElement>
 }
 
 export const borderBySize: Record<CardPlaceSize, string> = {
@@ -49,10 +50,8 @@ const StyledCard = styled('div')<{ size: CardPlaceSize }>(({ size, theme }) => (
   },
 }))
 
-export const CardPlace: React.FC<React.PropsWithChildren<CardPlaceProps>> = ({ children, size = 'medium' }) => (
-  <StyledCardPlace size={size}>
+export const CardPlace = ({ children, size = 'medium', ref }: PropsWithChildren<CardPlaceProps>) => (
+  <StyledCardPlace ref={ref} size={size}>
     <StyledCard size={size}>{children}</StyledCard>
   </StyledCardPlace>
 )
-
-CardPlace.displayName = 'CardPlace'
