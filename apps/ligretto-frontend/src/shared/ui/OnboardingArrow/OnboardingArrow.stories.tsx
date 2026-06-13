@@ -56,11 +56,8 @@ interface DemoArgs {
   toAnchor?: AnchorPoint
   curvature?: number
   twist?: number
-  roughness?: number
-  bowing?: number
   color?: string
   strokeWidth?: number
-  seed?: number
   fromLabel?: string
   toLabel?: string
   fromStyle?: CSSProperties
@@ -74,11 +71,8 @@ function Demo({
   toAnchor,
   curvature,
   twist,
-  roughness,
-  bowing,
   color,
   strokeWidth,
-  seed,
   fromLabel = 'From',
   toLabel = 'To',
   fromStyle = box(60, 60),
@@ -104,11 +98,8 @@ function Demo({
         toAnchor={toAnchor}
         curvature={curvature}
         twist={twist}
-        roughness={roughness}
-        bowing={bowing}
         color={color}
         strokeWidth={strokeWidth}
-        seed={seed}
       />
     </div>
   )
@@ -207,8 +198,6 @@ export const Playground: Story = {
     preset: 'arc',
     curvature: 0.4,
     twist: 1,
-    roughness: 1,
-    bowing: 1,
     strokeWidth: 2.5,
     color: 'white',
   },
@@ -218,10 +207,7 @@ export const Playground: Story = {
     toAnchor: { control: 'select', options: [undefined, ...anchorOptions] },
     curvature: { control: { type: 'range', min: 0, max: 1.5, step: 0.05 } },
     twist: { control: { type: 'range', min: -3, max: 3, step: 0.5 } },
-    roughness: { control: { type: 'range', min: 0, max: 4, step: 0.1 } },
-    bowing: { control: { type: 'range', min: 0, max: 4, step: 0.1 } },
     strokeWidth: { control: { type: 'range', min: 1, max: 8, step: 0.5 } },
     color: { control: 'color' },
-    seed: { control: { type: 'number' } },
   },
 }
