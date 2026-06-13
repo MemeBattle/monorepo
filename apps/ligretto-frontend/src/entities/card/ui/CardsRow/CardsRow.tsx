@@ -1,15 +1,13 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { Stack, useMediaQuery, useTheme } from '@memebattle/ui'
 
-export const CardsRow = ({ children }: { children: ReactNode }) => {
+export const CardsRow = ({ children, ref }: { children: ReactNode; ref?: Ref<HTMLDivElement> }) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   return (
-    <Stack direction="row" sx={{ alignItems: 'flex-start' }} spacing={isMobile ? '2px' : 0.75}>
+    <Stack ref={ref} direction="row" sx={{ alignItems: 'flex-start' }} spacing={isMobile ? '2px' : 0.75}>
       {children}
     </Stack>
   )
 }
-
-CardsRow.displayName = 'CardsRow'

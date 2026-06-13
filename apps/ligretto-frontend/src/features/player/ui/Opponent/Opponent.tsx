@@ -1,4 +1,4 @@
-import { forwardRef, useMemo } from 'react'
+import { useMemo, type Ref } from 'react'
 import { Box, Stack } from '@memebattle/ui'
 import type { Card as OpponentCard, UUID } from '@memebattle/ligretto-shared'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
@@ -16,9 +16,10 @@ export interface OpponentCardsProps {
   avatar?: string
   status: PlayerStatus
   id: UUID
+  ref?: Ref<HTMLDivElement>
 }
 
-export const Opponent = forwardRef<unknown, OpponentCardsProps>(({ stackOpenDeckCards, cards, avatar, username, status, id }, ref) => {
+export const Opponent = ({ stackOpenDeckCards, cards, avatar, username, status, id, ref }: OpponentCardsProps) => {
   const stackOpenDeckCard = useMemo(() => (stackOpenDeckCards.length ? stackOpenDeckCards.slice(-1)[0] : {}), [stackOpenDeckCards])
   const avatarImg = useMemo(() => (avatar ? buildCasStaticUrl(avatar) : getRandomAvatar(id)), [avatar, id])
 
@@ -39,6 +40,4 @@ export const Opponent = forwardRef<unknown, OpponentCardsProps>(({ stackOpenDeck
       ) : null}
     </Box>
   )
-})
-
-Opponent.displayName = 'Opponent'
+}

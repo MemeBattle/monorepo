@@ -12,6 +12,8 @@ export interface PathBuilderArgs {
 
 export type OnboardingArrowPathBuilder = (args: PathBuilderArgs) => string
 
+export const linePath: OnboardingArrowPathBuilder = ({ from, to }) => `M ${from.x} ${from.y} L ${to.x} ${to.y}`
+
 export const arcPath: OnboardingArrowPathBuilder = ({ from, to, chord, normal, curvature, twist }) => {
   const k = chord * curvature * twist
   const cx = (from.x + to.x) / 2 + normal.x * k
