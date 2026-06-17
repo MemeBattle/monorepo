@@ -97,7 +97,7 @@ catalog:
   react-hotkeys-hook: ^5.2.4
   react-i18next: ^17.0.2
   react-redux: 9.2.0
-  react-router: ^7.14.0
+  react-router: ^7.15.1
   react-router-dom: ^7.14.0
   redux: 5.0.1
   redux-first-history: ^5.2.0

@@ -284,8 +284,8 @@ catalogs:
       specifier: 9.2.0
       version: 9.2.0
     react-router:
-      specifier: ^7.14.0
-      version: 7.14.0
+      specifier: ^7.15.1
+      version: 7.18.0
     react-router-dom:
       specifier: ^7.14.0
       version: 7.14.0
@@ -463,7 +463,7 @@ importers:
         version: 7.0.0(final-form@4.20.10)(react@19.2.5)
       react-router:
         specifier: 'catalog:'
-        version: 7.14.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+        version: 7.18.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       react-router-dom:
         specifier: 'catalog:'
         version: 7.14.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -806,7 +806,7 @@ importers:
         version: 9.2.0(@types/react@19.2.14)(react@19.2.5)(redux@5.0.1)
       react-router:
         specifier: 'catalog:'
-        version: 7.14.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+        version: 7.18.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       react-router-dom:
         specifier: 'catalog:'
         version: 7.14.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -7385,6 +7385,16 @@ packages:
       react-dom:
         optional: true
 
+  react-router@7.18.0:
+    resolution: {integrity: sha512-pTTGt8J+ji1NOmYnjzT+bAJy/1zD+Jp4ziO6cL7T3ZLvXKtusO7BpFqlRXitqpcPVqllsIXFHRMt+2/k3Xn6HQ==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      react: '>=18'
+      react-dom: '>=18'
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
+
   react-style-singleton@2.2.3:
     resolution: {integrity: sha512-b6jSvxvVnyptAiLjbkWLE/lOnR4lfTtDAl+eUC7RZy+QQWc6wRzIV2CE6xBuMmDxc2qIihtDCZD5NPOFl7fRBQ==}
     engines: {node: '>=10'}
@@ -9696,7 +9706,7 @@ snapshots:
       react-dom: 19.2.5(react@19.2.5)
       react-dropzone: 15.0.0(react@19.2.5)
       react-final-form: 7.0.0(final-form@4.20.10)(react@19.2.5)
-      react-router: 7.14.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      react-router: 7.18.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       react-router-dom: 7.14.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
     transitivePeerDependencies:
       - '@emotion/react'
@@ -15320,6 +15330,14 @@ snapshots:
       react-router: 7.14.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
 
   react-router@7.14.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5):
+    dependencies:
+      cookie: 1.1.1
+      react: 19.2.5
+      set-cookie-parser: 2.7.2
+    optionalDependencies:
+      react-dom: 19.2.5(react@19.2.5)
+
+  react-router@7.18.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5):
     dependencies:
       cookie: 1.1.1
       react: 19.2.5
