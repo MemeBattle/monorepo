@@ -42,14 +42,10 @@ export function addListeners(startListener: TypedStartListening<unknown>) {
     effect: async (_action, listenerApi) => {
       const fsm = new OnboardingStateMachine()
 
-      listenerApi.dispatch(
-        setOnboardingState({ step: fsm.current, game: cloneDeep(fsm.context.data.game), results: fsm.context.data.results }),
-      )
+      listenerApi.dispatch(setOnboardingState({ step: fsm.current, game: cloneDeep(fsm.context.data.game), results: fsm.context.data.results }))
 
       fsm.on(All, function (this: OnboardingStateMachine, ctx) {
-        listenerApi.dispatch(
-          setOnboardingState({ step: this.current, game: cloneDeep(ctx.data.game), results: ctx.data.results }),
-        )
+        listenerApi.dispatch(setOnboardingState({ step: this.current, game: cloneDeep(ctx.data.game), results: ctx.data.results }))
       })
 
       while (true) {

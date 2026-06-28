@@ -107,9 +107,7 @@ const OnboardingCardPanel = ({ stackRef, playerRowRef, ligrettoRef, cardRefs }: 
           onStackDeckCardOutsideClick={() => undefined}
           isStackOpenDeckSelected={step === OnboardingStep.StackAvailableCard}
           isStackOpenDeckDarkened={false}
-          isStackDeckHighlighted={
-            step === OnboardingStep.Stack || step === OnboardingStep.StackCard || step === OnboardingStep.StackUnavailableCard
-          }
+          isStackDeckHighlighted={step === OnboardingStep.Stack || step === OnboardingStep.StackCard || step === OnboardingStep.StackUnavailableCard}
           stackOpenDeckCard={current?.stackOpenDeck.cards[0]}
           stackDeckCards={current?.stackDeck.cards ?? []}
         />

@@ -38,10 +38,20 @@ export const PlayerRowCards = ({ cardRefs, ref }: PlayerRowCardsProps) => {
   return (
     <CardsRow ref={ref}>
       <CardPlace ref={cardRefs[0]}>
-        <Card isDisabled={!isFirstCardActive} isHighlighted={step === OnboardingStep.FirstCard} {...current.cards[0]} onClick={handleFirstCardClick} />
+        <Card
+          isDisabled={!isFirstCardActive}
+          isHighlighted={step === OnboardingStep.FirstCard}
+          {...current.cards[0]}
+          onClick={handleFirstCardClick}
+        />
       </CardPlace>
       <CardPlace ref={cardRefs[1]}>
-        <Card isDisabled={!isSecondCardActive} isHighlighted={SECOND_CARD_HIGHLIGHT_STEPS.has(step)} {...current.cards[1]} onClick={handleSecondCardClick} />
+        <Card
+          isDisabled={!isSecondCardActive}
+          isHighlighted={SECOND_CARD_HIGHLIGHT_STEPS.has(step)}
+          {...current.cards[1]}
+          onClick={handleSecondCardClick}
+        />
       </CardPlace>
       <CardPlace ref={cardRefs[2]}>
         <Card isDisabled {...current.cards[2]} />
