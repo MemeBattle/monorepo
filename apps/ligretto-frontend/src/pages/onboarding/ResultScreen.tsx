@@ -30,7 +30,9 @@ export function ResultScreen() {
   }, [navigate])
 
   const players = useMemo(() => {
-    if (!results) {return []}
+    if (!results) {
+      return []
+    }
     return Object.values(game.players).map(player => {
       const totalPoints = results[player.id]?.gameScore ?? 0
       const roundPoints = [results[player.id]?.roundScore ?? 0]
