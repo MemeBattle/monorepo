@@ -41,7 +41,7 @@ export function PlayerRowDescription({ targetRef }: PlayerRowDescriptionProps) {
           {TEXT_BY_STEP[step]}
         </Typography>
       </Box>
-      {position ? <OnboardingArrow from={bubbleRef} to={targetRef} /> : null}
+      {position ? <OnboardingArrow from={bubbleRef} to={targetRef} twist={0.1} /> : null}
     </>
   )
 }

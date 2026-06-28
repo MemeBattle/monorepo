@@ -210,11 +210,11 @@ function OnboardingPageBody() {
           <OpponentsDescription opponent0Ref={opponent0Ref} opponent1Ref={opponent1Ref} opponent2Ref={opponent2Ref} />
         ) : null}
         {step === OnboardingStep.Cards ? <AllCardsDescription playerRowRef={playerRowRef} /> : null}
-        {STACK_DESCRIPTION_STEPS.has(step) ? <StackDescription targetRef={stackRef} /> : null}
+        {STACK_DESCRIPTION_STEPS.has(step) ? <StackDescription targetRef={stackRef} playgroundRef={playgroundRef} /> : null}
         {PLAYER_ROW_DESCRIPTION_STEPS.has(step) ? <PlayerRowDescription targetRef={playerRowRef} /> : null}
-        {LIGRETTO_DESCRIPTION_STEPS.has(step) ? <LigrettoDescription targetRef={ligrettoRef} /> : null}
-        {step === OnboardingStep.FirstCard ? <CardDescription index={0} targetRef={card0Ref} /> : null}
-        {step === OnboardingStep.RowAvailableCard ? <CardDescription index={1} targetRef={card1Ref} /> : null}
+        {LIGRETTO_DESCRIPTION_STEPS.has(step) ? <LigrettoDescription targetRef={ligrettoRef} playgroundRef={playgroundRef} /> : null}
+        {step === OnboardingStep.FirstCard ? <CardDescription index={0} targetRef={card0Ref} playgroundRef={playgroundRef} /> : null}
+        {step === OnboardingStep.RowAvailableCard ? <CardDescription index={1} targetRef={card1Ref} playgroundRef={playgroundRef} /> : null}
         {step === OnboardingStep.OpponentTurn ? <OpponentMoveDescription targetRef={opponentDeckRef} /> : null}
         {CENTERED_DESCRIPTION_STEPS.has(step) ? <CenteredDescription /> : null}
 

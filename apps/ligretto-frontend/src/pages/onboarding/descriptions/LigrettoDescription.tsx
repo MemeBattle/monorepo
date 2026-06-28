@@ -21,6 +21,10 @@ interface LigrettoDescriptionProps {
   targetRef: RefObject<HTMLElement | null>
 }
 
+interface LigrettoDescriptionTopAnchoredProps extends LigrettoDescriptionProps {
+  playgroundRef: RefObject<HTMLElement | null>
+}
+
 function LigrettoDescriptionRelative({ targetRef }: LigrettoDescriptionProps) {
   const step = useSelector(onboardingStepSelector)
   const containerRef = useOnboardingContainerRef()
@@ -46,14 +50,19 @@ function LigrettoDescriptionRelative({ targetRef }: LigrettoDescriptionProps) {
           {TEXT_BY_STEP[step]}
         </Typography>
       </Box>
-      {position ? <OnboardingArrow from={bubbleRef} to={targetRef} /> : null}
+      {position ? <OnboardingArrow from={bubbleRef} twist={-0.7} to={targetRef} /> : null}
     </>
   )
 }
 
-function LigrettoDescriptionTopAnchored({ targetRef }: LigrettoDescriptionProps) {
+function LigrettoDescriptionTopAnchored({ targetRef, playgroundRef }: LigrettoDescriptionTopAnchoredProps) {
   const step = useSelector(onboardingStepSelector)
+  const containerRef = useOnboardingContainerRef()
   const bubbleRef = useRef<HTMLDivElement | null>(null)
+  // Horizontal anchor — right side of the playground; vertical anchor — top of the ligretto deck.
+  const playgroundPosition = useTargetRelativePosition(playgroundRef, containerRef, 'right', 48)
+  const ligrettoPosition = useTargetRelativePosition(targetRef, containerRef, 'top', 84)
+  const position = playgroundPosition && ligrettoPosition ? { left: playgroundPosition.left, top: ligrettoPosition.top } : null
 
   return (
     <>
@@ -65,20 +74,29 @@ function LigrettoDescriptionTopAnchored({ targetRef }: LigrettoDescriptionProps)
           px: 2,
           zIndex: 2,
           pointerEvents: 'none',
-          top: '2rem',
-          left: '2rem',
+          ...(position
+            ? { left: `${position.left}px`, top: `${position.top}px`, transform: 'translate(0, -50%)', visibility: 'visible' }
+            : { left: 0, top: 0, visibility: 'hidden' }),
         }}
       >
         <Typography fontSize="1.2rem" textAlign="center" variant="body1" fontWeight="bold">
           {TEXT_BY_STEP[step]}
         </Typography>
       </Box>
-      <OnboardingArrow from={bubbleRef} to={targetRef} />
+      {position ? <OnboardingArrow twist={1} from={bubbleRef} toAnchor="top" toGap={8} to={targetRef} /> : null}
     </>
   )
 }
 
-export function LigrettoDescription({ targetRef }: LigrettoDescriptionProps) {
+interface LigrettoDescriptionRootProps extends LigrettoDescriptionProps {
+  playgroundRef: RefObject<HTMLElement | null>
+}
+
+export function LigrettoDescription({ targetRef, playgroundRef }: LigrettoDescriptionRootProps) {
   const step = useSelector(onboardingStepSelector)
-  return TOP_ANCHORED_STEPS.has(step) ? <LigrettoDescriptionTopAnchored targetRef={targetRef} /> : <LigrettoDescriptionRelative targetRef={targetRef} />
+  return TOP_ANCHORED_STEPS.has(step) ? (
+    <LigrettoDescriptionTopAnchored targetRef={targetRef} playgroundRef={playgroundRef} />
+  ) : (
+    <LigrettoDescriptionRelative targetRef={targetRef} />
+  )
 }

@@ -16,11 +16,17 @@ const TEXT_BY_STEP: Partial<Record<OnboardingStep, string>> = {
   [OnboardingStep.StackAvailableCard]: 'Скорее выкладывай карту на стол!',
 }
 
+const PLAYGROUND_ANCHORED_STEPS = new Set<OnboardingStep>([OnboardingStep.StackCard])
+
 interface StackDescriptionProps {
   targetRef: RefObject<HTMLElement | null>
 }
 
-export function StackDescription({ targetRef }: StackDescriptionProps) {
+interface StackDescriptionPlaygroundAnchoredProps extends StackDescriptionProps {
+  playgroundRef: RefObject<HTMLElement | null>
+}
+
+function StackDescriptionRelative({ targetRef }: StackDescriptionProps) {
   const step = useSelector(onboardingStepSelector)
   const containerRef = useOnboardingContainerRef()
   const bubbleRef = useRef<HTMLDivElement | null>(null)
@@ -47,5 +53,51 @@ export function StackDescription({ targetRef }: StackDescriptionProps) {
       </Box>
       {position ? <OnboardingArrow from={bubbleRef} to={targetRef} /> : null}
     </>
+  )
+}
+
+function StackDescriptionPlaygroundAnchored({ targetRef, playgroundRef }: StackDescriptionPlaygroundAnchoredProps) {
+  const step = useSelector(onboardingStepSelector)
+  const containerRef = useOnboardingContainerRef()
+  const bubbleRef = useRef<HTMLDivElement | null>(null)
+  // Horizontal anchor — left side of the playground; vertical anchor — top of the stack deck.
+  const playgroundPosition = useTargetRelativePosition(playgroundRef, containerRef, 'left', 48)
+  const stackPosition = useTargetRelativePosition(targetRef, containerRef, 'top', 84)
+  const position = playgroundPosition && stackPosition ? { left: playgroundPosition.left, top: stackPosition.top } : null
+
+  return (
+    <>
+      <Box
+        ref={bubbleRef}
+        sx={{
+          position: 'absolute',
+          maxWidth: 'min(28rem, calc(100vw - 32px))',
+          px: 0,
+          zIndex: 2,
+          pointerEvents: 'none',
+          ...(position
+            ? { left: `${position.left}px`, top: `${position.top}px`, transform: 'translate(-100%, -50%)', visibility: 'visible' }
+            : { left: 0, top: 0, visibility: 'hidden' }),
+        }}
+      >
+        <Typography fontSize="1.2rem" textAlign="center" variant="body1" fontWeight="bold">
+          {TEXT_BY_STEP[step]}
+        </Typography>
+      </Box>
+      {position ? <OnboardingArrow twist={-1} from={bubbleRef} toAnchor="top" fromGap={0} toGap={8} to={targetRef} /> : null}
+    </>
+  )
+}
+
+interface StackDescriptionRootProps extends StackDescriptionProps {
+  playgroundRef: RefObject<HTMLElement | null>
+}
+
+export function StackDescription({ targetRef, playgroundRef }: StackDescriptionRootProps) {
+  const step = useSelector(onboardingStepSelector)
+  return PLAYGROUND_ANCHORED_STEPS.has(step) ? (
+    <StackDescriptionPlaygroundAnchored targetRef={targetRef} playgroundRef={playgroundRef} />
+  ) : (
+    <StackDescriptionRelative targetRef={targetRef} />
   )
 }
