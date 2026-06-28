@@ -26,13 +26,15 @@ export const PlayerRowCards = ({ cardRefs, ref }: PlayerRowCardsProps) => {
   const isSecondCardActive = SECOND_CARD_ACTIVE_STEPS.has(step)
 
   const handleFirstCardClick = useCallback(() => {
-    if (!isFirstCardActive) return
-    dispatch(putFirstCardAction())
+    if (isFirstCardActive) {
+      dispatch(putFirstCardAction())
+    }
   }, [dispatch, isFirstCardActive])
 
   const handleSecondCardClick = useCallback(() => {
-    if (!isSecondCardActive) return
-    dispatch(putSecondCardAction())
+    if (isSecondCardActive) {
+      dispatch(putSecondCardAction())
+    }
   }, [dispatch, isSecondCardActive])
 
   return (
