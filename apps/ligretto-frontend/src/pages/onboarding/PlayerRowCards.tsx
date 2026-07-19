@@ -3,11 +3,9 @@ import { useDispatch, useSelector } from 'react-redux'
 import { CardsRow } from '#entities/card/ui/CardsRow'
 
 import { Card, CardPlace } from '#entities/card'
-import { OnboardingStep, onboardingGameSelector, onboardingStepSelector, putFirstCardAction, putSecondCardAction } from '#features/onboarding'
+import { onboardingGameSelector, onboardingStepSelector, putFirstCardAction, putSecondCardAction, putThirdCardAction } from '#features/onboarding'
 
-const FIRST_CARD_ACTIVE_STEPS = new Set<OnboardingStep>([OnboardingStep.FirstCard])
-const SECOND_CARD_ACTIVE_STEPS = new Set<OnboardingStep>([OnboardingStep.RowAvailableCard, OnboardingStep.GameStarted])
-const SECOND_CARD_HIGHLIGHT_STEPS = new Set<OnboardingStep>([OnboardingStep.RowAvailableCard, OnboardingStep.GameStarted])
+import { STEP_CONFIGS } from './stepConfig'
 
 interface PlayerRowCardsProps {
   cardRefs: [RefObject<HTMLDivElement | null>, RefObject<HTMLDivElement | null>, RefObject<HTMLDivElement | null>]
@@ -19,44 +17,40 @@ export const PlayerRowCards = ({ cardRefs, ref }: PlayerRowCardsProps) => {
 
   const game = useSelector(onboardingGameSelector)
   const step = useSelector(onboardingStepSelector)
+  const config = STEP_CONFIGS[step]
 
   const current = game.players.id0
 
-  const isFirstCardActive = FIRST_CARD_ACTIVE_STEPS.has(step)
-  const isSecondCardActive = SECOND_CARD_ACTIVE_STEPS.has(step)
+  const { isFirstRowCardActive, isSecondRowCardActive, isThirdRowCardActive } = config
 
   const handleFirstCardClick = useCallback(() => {
-    if (isFirstCardActive) {
+    if (isFirstRowCardActive) {
       dispatch(putFirstCardAction())
     }
-  }, [dispatch, isFirstCardActive])
+  }, [dispatch, isFirstRowCardActive])
 
   const handleSecondCardClick = useCallback(() => {
-    if (isSecondCardActive) {
+    if (isSecondRowCardActive) {
       dispatch(putSecondCardAction())
     }
-  }, [dispatch, isSecondCardActive])
+  }, [dispatch, isSecondRowCardActive])
+
+  const handleThirdCardClick = useCallback(() => {
+    if (isThirdRowCardActive) {
+      dispatch(putThirdCardAction())
+    }
+  }, [dispatch, isThirdRowCardActive])
 
   return (
     <CardsRow ref={ref}>
-      <CardPlace ref={cardRefs[0]}>
-        <Card
-          isDisabled={!isFirstCardActive}
-          isHighlighted={step === OnboardingStep.FirstCard}
-          {...current.cards[0]}
-          onClick={handleFirstCardClick}
-        />
+      <CardPlace ref={cardRefs[0]} dataTestId="OnboardingPage-RowCard-0">
+        <Card isDisabled={!isFirstRowCardActive} isHighlighted={isFirstRowCardActive} {...current.cards[0]} onClick={handleFirstCardClick} />
       </CardPlace>
-      <CardPlace ref={cardRefs[1]}>
-        <Card
-          isDisabled={!isSecondCardActive}
-          isHighlighted={SECOND_CARD_HIGHLIGHT_STEPS.has(step)}
-          {...current.cards[1]}
-          onClick={handleSecondCardClick}
-        />
+      <CardPlace ref={cardRefs[1]} dataTestId="OnboardingPage-RowCard-1">
+        <Card isDisabled={!isSecondRowCardActive} isHighlighted={isSecondRowCardActive} {...current.cards[1]} onClick={handleSecondCardClick} />
       </CardPlace>
-      <CardPlace ref={cardRefs[2]}>
-        <Card isDisabled {...current.cards[2]} />
+      <CardPlace ref={cardRefs[2]} dataTestId="OnboardingPage-RowCard-2">
+        <Card isDisabled={!isThirdRowCardActive} isHighlighted={isThirdRowCardActive} {...current.cards[2]} onClick={handleThirdCardClick} />
       </CardPlace>
     </CardsRow>
   )

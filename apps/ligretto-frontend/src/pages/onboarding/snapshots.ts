@@ -19,7 +19,10 @@ const SCRIPT: ReadonlyArray<OnboardingEvent> = [
   OnboardingEvent.PutSecondCard, // RowAvailableCard → LigrettoAvailableCard
   OnboardingEvent.PutLigretto, // LigrettoAvailableCard → GameStarted
   OnboardingEvent.PutSecondCard, // GameStarted → OpponentTurn
-  OnboardingEvent.PutLigretto, // OpponentTurn → Result
+  OnboardingEvent.NextStackCard, // OpponentTurn → OpponentTurnSecondCard
+  OnboardingEvent.PutThirdCard, // OpponentTurnSecondCard → FinalLigrettoCard
+  OnboardingEvent.PutLigretto, // FinalLigrettoCard → FinalLigrettoCard (one ligretto card is still left)
+  OnboardingEvent.PutLigretto, // FinalLigrettoCard → Result (the deck is emptied)
 ]
 
 const toOnboardingState = (fsm: OnboardingStateMachine): OnboardingState => {
@@ -43,7 +46,7 @@ snapshots[OnboardingStep.GameStartedCycledInfo] = {
   step: OnboardingStep.GameStartedCycledInfo,
 }
 snapshots[OnboardingStep.OpponentTurnCycledInfo] = {
-  ...(snapshots[OnboardingStep.OpponentTurn] as OnboardingState),
+  ...(snapshots[OnboardingStep.OpponentTurnSecondCard] as OnboardingState),
   step: OnboardingStep.OpponentTurnCycledInfo,
 }
 

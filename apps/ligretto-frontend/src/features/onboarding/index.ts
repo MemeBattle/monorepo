@@ -4,6 +4,7 @@ export {
   putFirstCardAction,
   putLigrettoCardAction,
   putSecondCardAction,
+  putThirdCardAction,
   putStackCardAction,
   onboardingGameSelector,
   nextStepOnboardingAction,

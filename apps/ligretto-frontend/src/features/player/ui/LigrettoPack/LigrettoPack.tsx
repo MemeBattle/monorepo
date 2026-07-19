@@ -15,6 +15,7 @@ interface LigrettoPackProps {
   isHighlighted?: boolean
   isDisabled?: boolean
   ref?: Ref<HTMLDivElement>
+  dataTestId?: string
 }
 
 export const LigrettoPack = ({
@@ -25,8 +26,9 @@ export const LigrettoPack = ({
   isHighlighted,
   isDisabled,
   ref,
+  dataTestId,
 }: LigrettoPackProps) => (
-  <div ref={ref} className={styles.ligrettoPack}>
+  <div ref={ref} data-test-id={dataTestId} className={styles.ligrettoPack}>
     <div className={styles.cardWrapper}>
       <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.l : undefined}>
         <CardPlace>

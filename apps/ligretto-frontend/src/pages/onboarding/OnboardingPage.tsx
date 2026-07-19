@@ -13,7 +13,6 @@ import {
   putLigrettoCardAction,
   nextStepOnboardingAction,
   nextStackCardAction,
-  OnboardingStep,
   onboardingStepSelector,
   putStackCardAction,
 } from '#features/onboarding'
@@ -21,6 +20,7 @@ import { Overlay } from '#shared/ui/Overlay'
 import { NextButton } from '#shared/ui/NextButton/NextButton.js'
 import { CardsStack } from '#entities/card'
 
+import { STEP_CONFIGS } from './stepConfig'
 import { PlayerRowCards } from './PlayerRowCards'
 import { Layer } from './Layer'
 import { TouchHint } from './TouchHint'
@@ -32,53 +32,8 @@ import { StackDescription } from './descriptions/StackDescription'
 import { PlayerRowDescription } from './descriptions/PlayerRowDescription'
 import { LigrettoDescription } from './descriptions/LigrettoDescription'
 import { CardDescription } from './descriptions/CardDescription'
-import { CenteredDescription } from './descriptions/CenteredDescription'
 import { AllCardsDescription } from './descriptions/AllCardsDescription'
 import { OpponentMoveDescription } from './descriptions/OpponentMoveDescription'
-
-const isLigrettoPackHighlighted = (step: OnboardingStep): boolean =>
-  step === OnboardingStep.LigrettoAvailableCard || step === OnboardingStep.LigrettoCard || step === OnboardingStep.OpponentTurn
-
-const DISABLED_LIGRETTO_STEPS = new Set<OnboardingStep>([
-  OnboardingStep.Opponents,
-  OnboardingStep.Playground,
-  OnboardingStep.Cards,
-  OnboardingStep.Stack,
-  OnboardingStep.Row,
-  OnboardingStep.Ligretto,
-  OnboardingStep.FirstCard,
-  OnboardingStep.StackCard,
-  OnboardingStep.StackUnavailableCard,
-  OnboardingStep.StackAvailableCard,
-  OnboardingStep.RowAvailableCard,
-  OnboardingStep.GameStarted,
-  OnboardingStep.GameStartedCycledInfo,
-])
-
-const STACK_DESCRIPTION_STEPS = new Set<OnboardingStep>([
-  OnboardingStep.Stack,
-  OnboardingStep.StackCard,
-  OnboardingStep.StackUnavailableCard,
-  OnboardingStep.StackAvailableCard,
-])
-
-const PLAYER_ROW_DESCRIPTION_STEPS = new Set<OnboardingStep>([OnboardingStep.Row])
-
-const LIGRETTO_DESCRIPTION_STEPS = new Set<OnboardingStep>([
-  OnboardingStep.Ligretto,
-  OnboardingStep.LigrettoCard,
-  OnboardingStep.LigrettoAvailableCard,
-])
-
-const CENTERED_DESCRIPTION_STEPS = new Set<OnboardingStep>([OnboardingStep.GameStartedCycledInfo, OnboardingStep.OpponentTurnCycledInfo])
-
-const OVERLAY_HIDDEN_STEPS = new Set<OnboardingStep>([
-  OnboardingStep.GameStarted,
-  OnboardingStep.GameStartedCycledInfo,
-  OnboardingStep.OpponentTurn,
-  OnboardingStep.OpponentTurnCycledInfo,
-  OnboardingStep.Result,
-])
 
 interface OnboardingCardPanelProps {
   stackRef: RefObject<HTMLDivElement | null>
@@ -90,6 +45,7 @@ interface OnboardingCardPanelProps {
 const OnboardingCardPanel = ({ stackRef, playerRowRef, ligrettoRef, cardRefs }: OnboardingCardPanelProps) => {
   const game = useSelector(onboardingGameSelector)
   const step = useSelector(onboardingStepSelector)
+  const config = STEP_CONFIGS[step]
 
   const dispatch = useDispatch()
   const current = game.players.id0
@@ -102,40 +58,31 @@ const OnboardingCardPanel = ({ stackRef, playerRowRef, ligrettoRef, cardRefs }: 
       <CardsPanel player={{ status: PlayerStatus.InGame, username: 'you' }}>
         <CardsStack
           ref={stackRef}
+          dataTestId="OnboardingPage-Stack"
           onStackDeckCardClick={() => dispatch(nextStackCardAction())}
           onStackOpenDeckCardClick={() => dispatch(putStackCardAction())}
           onStackDeckCardOutsideClick={() => undefined}
-          isStackOpenDeckSelected={step === OnboardingStep.StackAvailableCard}
+          isStackOpenDeckSelected={config.isStackOpenDeckSelected}
           isStackOpenDeckDarkened={false}
-          isStackDeckHighlighted={step === OnboardingStep.Stack || step === OnboardingStep.StackCard || step === OnboardingStep.StackUnavailableCard}
+          isStackDeckHighlighted={config.isStackDeckHighlighted}
           stackOpenDeckCard={current?.stackOpenDeck.cards[0]}
           stackDeckCards={current?.stackDeck.cards ?? []}
         />
         <PlayerRowCards ref={playerRowRef} cardRefs={cardRefs} />
         <LigrettoPack
           ref={ligrettoRef}
-          isDisabled={DISABLED_LIGRETTO_STEPS.has(step)}
+          dataTestId="OnboardingPage-Ligretto"
+          isDisabled={config.isLigrettoDisabled}
           count={current?.ligrettoDeck.cards.length ?? 0}
           isDndEnabled={false}
           ligrettoDeckCards={current?.ligrettoDeck.cards ?? []}
           onLigrettoDeckCardClick={handleLigrettoDeckCardClick}
-          isHighlighted={isLigrettoPackHighlighted(step)}
+          isHighlighted={config.isLigrettoHighlighted}
         />
       </CardsPanel>
     </Layer>
   )
 }
-
-const ONBOARDING_STEPS_VISIBLE_NEXT_BUTTON = new Set<OnboardingStep>([
-  OnboardingStep.Opponents,
-  OnboardingStep.Playground,
-  OnboardingStep.Cards,
-  OnboardingStep.Stack,
-  OnboardingStep.Row,
-  OnboardingStep.Ligretto,
-])
-
-const isNextButtonVisible = (currentStep: OnboardingStep): boolean => ONBOARDING_STEPS_VISIBLE_NEXT_BUTTON.has(currentStep)
 
 const OPPONENT_COUNT = 3
 
@@ -143,6 +90,7 @@ function OnboardingPageBody() {
   const dispatch = useDispatch()
   const game = useSelector(onboardingGameSelector)
   const step = useSelector(onboardingStepSelector)
+  const config = STEP_CONFIGS[step]
   const containerRef = useOnboardingContainerRef()
 
   const playgroundRef = useRef<HTMLDivElement | null>(null)
@@ -184,9 +132,16 @@ function OnboardingPageBody() {
     dispatch(nextStepOnboardingAction())
   }, [dispatch])
 
+  const description = config.description
+
   return (
     <GameLayout>
-      <Box ref={containerRef as RefObject<HTMLDivElement>} sx={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <Box
+        ref={containerRef as RefObject<HTMLDivElement>}
+        data-test-id="OnboardingPage"
+        data-onboarding-step={step}
+        sx={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}
+      >
         <GameGrid
           centerElement={
             <Layer id="playgroundCards">
@@ -201,27 +156,41 @@ function OnboardingPageBody() {
             </Layer>
           ))}
         </GameGrid>
-        {OVERLAY_HIDDEN_STEPS.has(step) ? null : <Overlay />}
+        {config.isOverlayHidden ? null : <Overlay />}
 
-        {step === OnboardingStep.Playground ? <PlaygroundDescription targetRef={playgroundRef} /> : null}
-        {step === OnboardingStep.Opponents ? (
-          <OpponentsDescription opponent0Ref={opponent0Ref} opponent1Ref={opponent1Ref} opponent2Ref={opponent2Ref} />
+        {description?.kind === 'playground' ? <PlaygroundDescription text={description.text} targetRef={playgroundRef} /> : null}
+        {description?.kind === 'opponents' ? (
+          <OpponentsDescription text={description.text} opponent0Ref={opponent0Ref} opponent1Ref={opponent1Ref} opponent2Ref={opponent2Ref} />
         ) : null}
-        {step === OnboardingStep.Cards ? <AllCardsDescription playerRowRef={playerRowRef} /> : null}
-        {STACK_DESCRIPTION_STEPS.has(step) ? <StackDescription targetRef={stackRef} playgroundRef={playgroundRef} /> : null}
-        {PLAYER_ROW_DESCRIPTION_STEPS.has(step) ? <PlayerRowDescription targetRef={playerRowRef} /> : null}
-        {LIGRETTO_DESCRIPTION_STEPS.has(step) ? <LigrettoDescription targetRef={ligrettoRef} playgroundRef={playgroundRef} /> : null}
-        {step === OnboardingStep.FirstCard ? <CardDescription index={0} targetRef={card0Ref} playgroundRef={playgroundRef} /> : null}
-        {step === OnboardingStep.RowAvailableCard ? <CardDescription index={1} targetRef={card1Ref} playgroundRef={playgroundRef} /> : null}
-        {step === OnboardingStep.OpponentTurn ? <OpponentMoveDescription targetRef={opponentDeckRef} /> : null}
-        {CENTERED_DESCRIPTION_STEPS.has(step) ? <CenteredDescription /> : null}
+        {description?.kind === 'allCards' ? <AllCardsDescription text={description.text} playerRowRef={playerRowRef} /> : null}
+        {description?.kind === 'stack' ? (
+          <StackDescription
+            text={description.text}
+            targetRef={stackRef}
+            playgroundRef={playgroundRef}
+            isPlaygroundAnchored={description.isPlaygroundAnchored}
+          />
+        ) : null}
+        {description?.kind === 'row' ? <PlayerRowDescription text={description.text} targetRef={playerRowRef} /> : null}
+        {description?.kind === 'ligretto' ? (
+          <LigrettoDescription
+            text={description.text}
+            targetRef={ligrettoRef}
+            playgroundRef={playgroundRef}
+            isPlaygroundAnchored={description.isPlaygroundAnchored}
+          />
+        ) : null}
+        {description?.kind === 'card' ? (
+          <CardDescription text={description.text} targetRef={cardRefs[description.cardIndex]} playgroundRef={playgroundRef} />
+        ) : null}
+        {description?.kind === 'opponentMove' ? <OpponentMoveDescription text={description.text} targetRef={opponentDeckRef} /> : null}
 
         <ResultScreen />
 
-        {isNextButtonVisible(step) ? (
+        {config.isNextButtonVisible ? (
           <Box sx={{ position: 'absolute', right: '2rem', top: '2rem', zIndex: 3 }}>
             <TouchHint key={step}>
-              <IconButton onClick={handleNextButtonClick}>
+              <IconButton data-test-id="OnboardingPage-NextButton" onClick={handleNextButtonClick}>
                 <NextButton />
               </IconButton>
             </TouchHint>

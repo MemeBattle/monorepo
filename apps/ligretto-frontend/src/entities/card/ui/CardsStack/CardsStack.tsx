@@ -17,6 +17,7 @@ export interface CardsStackProps {
   isStackOpenDeckDarkened: boolean
   isStackDeckHighlighted?: boolean
   ref?: Ref<HTMLDivElement>
+  dataTestId?: string
 }
 
 export const CardsStack = ({
@@ -30,10 +31,11 @@ export const CardsStack = ({
   isStackOpenDeckDarkened,
   isStackDeckHighlighted,
   ref,
+  dataTestId,
 }: CardsStackProps) => (
-  <CardsRow ref={ref}>
+  <CardsRow ref={ref} dataTestId={dataTestId}>
     <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.x : undefined}>
-      <CardPlace>
+      <CardPlace dataTestId={dataTestId ? `${dataTestId}-OpenDeck` : undefined}>
         {stackOpenDeckCard && (
           <Card
             {...stackOpenDeckCard}
@@ -47,7 +49,7 @@ export const CardsStack = ({
     </CardHotkeyBadge>
 
     <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.space : undefined}>
-      <CardPlace>
+      <CardPlace dataTestId={dataTestId ? `${dataTestId}-Deck` : undefined}>
         <Card color={stackDeckCards[0]?.color} onClick={onStackDeckCardClick} isHighlighted={isStackDeckHighlighted} />
       </CardPlace>
     </CardHotkeyBadge>

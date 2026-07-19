@@ -1,62 +1,20 @@
-import { OnboardingStep } from '#features/onboarding'
-import { onboardingStepSelector } from '#features/onboarding'
-import { Box } from '@memebattle/ui'
 import type { PropsWithChildren } from 'react'
 import { useSelector } from 'react-redux'
+import { Box } from '@memebattle/ui'
 
-type LayerId = 'playerCards' | 'playgroundCards' | 'opponent'
+import { onboardingStepSelector } from '#features/onboarding'
+
+import type { LayerId } from './stepConfig'
+import { STEP_CONFIGS } from './stepConfig'
 
 /**
- * TopLayer is a record of layer ids and the onboarding steps that should be above them
+ * Raises a game zone above the dimming Overlay (z-index: 1) so that the zone
+ * stays bright and clickable on the current step.
+ * Which zones are raised on which step is defined by the step config's `raisedLayers`.
  */
-const TopLayer: Record<LayerId, Set<OnboardingStep>> = {
-  playerCards: new Set([
-    OnboardingStep.Cards,
-    OnboardingStep.Stack,
-    OnboardingStep.Row,
-    OnboardingStep.Ligretto,
-    OnboardingStep.FirstCard,
-    OnboardingStep.LigrettoCard,
-    OnboardingStep.StackAvailableCard,
-    OnboardingStep.StackCard,
-    OnboardingStep.StackUnavailableCard,
-    OnboardingStep.StackAvailableCard,
-    OnboardingStep.RowAvailableCard,
-    OnboardingStep.LigrettoAvailableCard,
-    OnboardingStep.GameStarted,
-    OnboardingStep.GameStartedCycledInfo,
-    OnboardingStep.OpponentTurn,
-    OnboardingStep.OpponentTurnCycledInfo,
-  ]),
-  playgroundCards: new Set([
-    OnboardingStep.Playground,
-    OnboardingStep.FirstCard,
-    OnboardingStep.LigrettoCard,
-    OnboardingStep.StackAvailableCard,
-    OnboardingStep.StackCard,
-    OnboardingStep.StackUnavailableCard,
-    OnboardingStep.StackAvailableCard,
-    OnboardingStep.RowAvailableCard,
-    OnboardingStep.LigrettoAvailableCard,
-    OnboardingStep.GameStarted,
-    OnboardingStep.GameStartedCycledInfo,
-  ]),
-  opponent: new Set([
-    OnboardingStep.Opponents,
-    OnboardingStep.GameStarted,
-    OnboardingStep.GameStartedCycledInfo,
-    OnboardingStep.OpponentTurn,
-    OnboardingStep.OpponentTurnCycledInfo,
-    OnboardingStep.Result,
-  ]),
-}
-
-function isLayerAbove(layerId: LayerId, currentStep: OnboardingStep): boolean {
-  return TopLayer[layerId].has(currentStep)
-}
-
 export function Layer({ id, children }: PropsWithChildren<{ id: LayerId }>) {
   const currentStep = useSelector(onboardingStepSelector)
+  const isRaised = STEP_CONFIGS[currentStep].raisedLayers.includes(id)
 
-  return <Box sx={{ position: 'relative', zIndex: isLayerAbove(id, currentStep) ? 1 : undefined }}>{children}</Box>
+  return <Box sx={{ position: 'relative', zIndex: isRaised ? 1 : undefined }}>{children}</Box>
 }

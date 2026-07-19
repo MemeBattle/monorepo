@@ -8,6 +8,7 @@ import {
   setOnboardingState,
   putFirstCardAction,
   putSecondCardAction,
+  putThirdCardAction,
   putStackCardAction,
   nextStackCardAction,
 } from './slice'
@@ -26,6 +27,7 @@ const mapActionTypeToEvent: Record<string, OnboardingEvent> = {
   [putLigrettoCardAction.type]: OnboardingEvent.PutLigretto,
   [putFirstCardAction.type]: OnboardingEvent.PutFirstCard,
   [putSecondCardAction.type]: OnboardingEvent.PutSecondCard,
+  [putThirdCardAction.type]: OnboardingEvent.PutThirdCard,
   [putStackCardAction.type]: OnboardingEvent.PutStackCard,
   [nextStackCardAction.type]: OnboardingEvent.NextStackCard,
 }
@@ -40,6 +42,9 @@ export function addListeners(startListener: TypedStartListening<unknown>) {
       return false
     },
     effect: async (_action, listenerApi) => {
+      // Re-entering /onboarding restarts the onboarding: cancel the previous loop.
+      listenerApi.cancelActiveListeners()
+
       const fsm = new OnboardingStateMachine()
 
       listenerApi.dispatch(setOnboardingState({ step: fsm.current, game: cloneDeep(fsm.context.data.game), results: fsm.context.data.results }))
@@ -49,7 +54,14 @@ export function addListeners(startListener: TypedStartListening<unknown>) {
       })
 
       while (true) {
-        const [action] = await listenerApi.take(action => !!mapActionTypeToEvent[action.type])
+        const [action] = await listenerApi.take(action => !!mapActionTypeToEvent[action.type] || isLocationChangeAction(action))
+
+        if (isLocationChangeAction(action)) {
+          if (!matchPath(routes.ONBOARDING, action.payload.location.pathname)) {
+            break
+          }
+          continue
+        }
 
         const event = mapActionTypeToEvent[action.type]
         await fsm.tryTransition(event)

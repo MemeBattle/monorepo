@@ -42,6 +42,14 @@ const config = defineConfig({
     testIdAttribute: 'data-test-id',
   },
 
+  /* Start the vite dev server automatically when it is not already running. */
+  webServer: {
+    command: 'pnpm start:dev',
+    url: process.env.LIGRETTO_APP_URL || 'http://localhost:5173',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+  },
+
   /* Configure projects for major browsers */
   projects: [
     {
