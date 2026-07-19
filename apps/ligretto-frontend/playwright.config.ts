@@ -42,11 +42,16 @@ const config = defineConfig({
     testIdAttribute: 'data-test-id',
   },
 
-  /* Start the vite dev server automatically when it is not already running. */
+  /*
+   * Start the vite dev server automatically when it is not already running.
+   * `reuseExistingServer: true` makes Playwright probe the url first and reuse
+   * the app already listening on the port (e.g. the one started by CI),
+   * falling back to `command` only when nothing responds.
+   */
   webServer: {
     command: 'pnpm start:dev',
     url: process.env.LIGRETTO_APP_URL || 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     timeout: 120 * 1000,
   },
 
