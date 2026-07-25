@@ -1,10 +1,11 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback } from 'react'
 import { useNavigate } from 'react-router'
 import { useSelector } from 'react-redux'
+import { createSelector } from '@reduxjs/toolkit'
 import { Box, Button, Modal, Paper, Slide, Typography } from '@memebattle/ui'
 import { styled } from '@mui/material/styles'
 
-import { OnboardingStep, onboardingGameSelector, onboardingResultsSelector, onboardingStepSelector } from '#features/onboarding'
+import { onboardingGameSelector, onboardingResultsSelector } from '#features/onboarding'
 import { routes } from '#shared/constants/router-constants'
 import { PlayersScoresTable } from '#features/player-scores-table/ui/PlayersScoresTable'
 
@@ -15,36 +16,27 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
 }))
 
+const resultPlayersSelector = createSelector([onboardingGameSelector, onboardingResultsSelector], (game, results) => {
+  if (!results) {
+    return []
+  }
+
+  return Object.values(game.players).map(player => ({
+    id: player.id,
+    username: player.id === 'id0' ? 'you' : player.id,
+    roundPoints: [results[player.id]?.roundScore ?? 0],
+    totalPoints: results[player.id]?.gameScore ?? 0,
+    isPlayer: player.id === 'id0',
+  }))
+})
+
 export function ResultScreen() {
-  const step = useSelector(onboardingStepSelector)
-  const game = useSelector(onboardingGameSelector)
-  const results = useSelector(onboardingResultsSelector)
+  const players = useSelector(resultPlayersSelector)
   const navigate = useNavigate()
 
   const handleFinish = useCallback(() => {
     navigate(routes.HOME)
   }, [navigate])
-
-  const players = useMemo(() => {
-    if (!results) {
-      return []
-    }
-    return Object.values(game.players).map(player => {
-      const totalPoints = results[player.id]?.gameScore ?? 0
-      const roundPoints = [results[player.id]?.roundScore ?? 0]
-      return {
-        id: player.id,
-        username: player.id === 'id0' ? 'you' : player.id,
-        roundPoints,
-        totalPoints,
-        isPlayer: player.id === 'id0',
-      }
-    })
-  }, [game.players, results])
-
-  if (step !== OnboardingStep.Result) {
-    return null
-  }
 
   return (
     <Modal open>

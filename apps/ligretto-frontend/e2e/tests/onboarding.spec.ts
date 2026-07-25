@@ -1,29 +1,12 @@
 import { test, expect, type Page } from '@playwright/test'
 import { OnboardingPage } from '#pages/onboarding/OnboardingPage.page-object.ts'
 
-/**
- * The onboarding flow itself needs no backend, but the whole app is gated by
- * authorization. Stub the auth endpoint so the test runs without a backend.
- */
-const stubAuth = async (page: Page) => {
-  await page.route('**/auth/me', route =>
-    route.fulfill({
-      json: {
-        user: { casId: 'e2e-user', isTemporary: true },
-        token: 'e2e-token',
-      },
-    }),
-  )
-}
-
 const expectStep = async (page: Page, step: string) => {
   await expect(page.getByTestId('OnboardingPage')).toHaveAttribute('data-onboarding-step', step)
 }
 
 test.describe('Onboarding', () => {
   test('User completes the whole onboarding flow', async ({ page }) => {
-    await stubAuth(page)
-
     const onboarding = new OnboardingPage(page)
     await onboarding.visit()
 

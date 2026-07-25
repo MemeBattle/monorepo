@@ -185,7 +185,7 @@ function OnboardingPageBody() {
         ) : null}
         {description?.kind === 'opponentMove' ? <OpponentMoveDescription text={description.text} targetRef={opponentDeckRef} /> : null}
 
-        <ResultScreen />
+        {config.isResultVisible ? <ResultScreen /> : null}
 
         {config.isNextButtonVisible ? (
           <Box sx={{ position: 'absolute', right: '2rem', top: '2rem', zIndex: 3 }}>

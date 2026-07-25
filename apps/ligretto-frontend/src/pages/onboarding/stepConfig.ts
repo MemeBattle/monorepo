@@ -30,6 +30,7 @@ export interface StepConfig {
   isFirstRowCardActive: boolean
   isSecondRowCardActive: boolean
   isThirdRowCardActive: boolean
+  isResultVisible: boolean
   description: StepDescription | null
 }
 
@@ -44,6 +45,7 @@ const baseStepConfig: StepConfig = {
   isFirstRowCardActive: false,
   isSecondRowCardActive: false,
   isThirdRowCardActive: false,
+  isResultVisible: false,
   description: null,
 }
 
@@ -191,5 +193,6 @@ export const STEP_CONFIGS: Record<OnboardingStep, StepConfig> = {
     raisedLayers: ['opponent'],
     isOverlayHidden: true,
     isLigrettoDisabled: false,
+    isResultVisible: true,
   },
 }
