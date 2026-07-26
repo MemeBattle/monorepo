@@ -15,12 +15,6 @@ on:
         required: false
         default: false
         type: boolean
-      auto_merge:
-        description: 'Merge the pull request automatically once all required checks are green'
-        required: false
-        default: true
-        type: boolean
-
 permissions:
   contents: write
   pull-requests: write
@@ -34,13 +28,14 @@ jobs:
         uses: actions/checkout@main
 
       # A PR opened with the default GITHUB_TOKEN does not emit `pull_request` events,
-      # so none of the *-pr workflows would run and auto-merge would wait forever.
+      # so the *-pr workflows stay idle until someone closes and reopens the PR.
+      # Setting AUTOMATION_TOKEN is optional and makes the checks start on their own.
       - name: Check automation token
         env:
           AUTOMATION_TOKEN: ${{ secrets.AUTOMATION_TOKEN }}
         run: |
           if [ -z "$AUTOMATION_TOKEN" ]; then
-            echo "::warning::AUTOMATION_TOKEN is not set. The pull request will be opened with GITHUB_TOKEN, which does not trigger the PR checks, and auto-merge will never complete. See docs/guides/updating-nodejs.md."
+            echo "::warning::AUTOMATION_TOKEN is not set. The pull request will be opened with GITHUB_TOKEN, which does not trigger the PR checks — close and reopen the PR to start them. See docs/guides/updating-nodejs.md."
           fi
 
       - name: Update pinned Node.js version
@@ -89,13 +84,7 @@ jobs:
             Touches `.npmrc`, `package.json` (`engines.node`), the `catalog:` in `pnpm-workspace.yaml`,
             `pnpm-lock.yaml` and the images in `.docker/`.
 
-            See `docs/guides/updating-nodejs.md` for the manual checklist.
+            Review and merge by hand — see `docs/guides/updating-nodejs.md` for the checklist.
+            If no checks started, close and reopen this PR.
           labels: 'dependencies'
           delete-branch: true
-
-      - name: Enable auto-merge
-        # On a schedule run `inputs` is empty, so auto-merge is on by default there.
-        if: ${{ steps.pr.outputs.pull-request-number && (github.event_name != 'workflow_dispatch' || inputs.auto_merge) }}
-        env:
-          GH_TOKEN: ${{ secrets.AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
-        run: gh pr merge ${{ steps.pr.outputs.pull-request-number }} --squash --auto --delete-branch
