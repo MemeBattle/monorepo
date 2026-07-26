@@ -34,7 +34,7 @@
   ],
   "languages": {
     "TypeScript": {
-      "language_servers": ["tsgo", "oxlint", "oxfmt"],
+      "language_servers": ["typescript-ls", "!vtsls", "!typescript-language-server", "oxlint", "oxfmt"],
       "prettier": {
         "allowed": false
       }
@@ -43,7 +43,7 @@
       "inlay_hints": {
         "enabled": true
       },
-      "language_servers": ["tsgo", "oxlint", "oxfmt"],
+      "language_servers": ["typescript-ls", "!vtsls", "!typescript-language-server", "oxlint", "oxfmt"],
       "prettier": {
         "allowed": false
       }
