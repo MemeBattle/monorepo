@@ -9,7 +9,7 @@ export function Breadcrumbs({ locale, translates }: { locale: Language; translat
 
   return (
     <nav className="container px-1 my-10" aria-label="Breadcrumb">
-      <ul className="inline-flex space-x-5 list-disc text-sm [&>*]:opacity-40 [&>*:last-child]:opacity-80">
+      <ul className="inline-flex space-x-5 list-disc text-sm *:opacity-40 [&>*:last-child]:opacity-80">
         <li className="list-none">
           <Link href={`/${locale}`}>{translates.mainPage}</Link>
         </li>
