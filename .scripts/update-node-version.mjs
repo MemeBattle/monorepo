@@ -3,7 +3,7 @@
  * Updates the pinned Node.js version across the monorepo.
  *
  * Sources of truth that are kept in sync:
- *   - .npmrc                 use-node-version=<major>.<minor>.<patch>
+ *   - package.json           devEngines.runtime.version <major>.<minor>.<patch>
  *   - package.json           engines.node ">=<major>.<minor>"
  *   - .docker/*_Dockerfile   FROM node:<major>.<minor>-trixie-slim
  *   - pnpm-workspace.yaml    catalog['@types/node'], kept on the same major
@@ -31,12 +31,13 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const NODE_DIST_INDEX = 'https://nodejs.org/dist/index.json'
 const TYPES_NODE_REGISTRY = 'https://registry.npmjs.org/@types/node'
 
-const NPMRC = join(ROOT, '.npmrc')
 const PACKAGE_JSON = join(ROOT, 'package.json')
 const PNPM_WORKSPACE = join(ROOT, 'pnpm-workspace.yaml')
 const DOCKER_DIR = join(ROOT, '.docker')
 
-const NPMRC_RE = /^(use-node-version\s*=\s*)(\d+\.\d+\.\d+)$/m
+// devEngines.runtime is what pnpm downloads and runs; `[^}]*?` keeps the match
+// inside the runtime object, so engines.node below is never touched by mistake.
+const DEV_ENGINES_RE = /("runtime"\s*:\s*\{[^}]*?"version"\s*:\s*")(\d+\.\d+\.\d+)(")/
 const ENGINES_RE = /("node"\s*:\s*">=)(\d+\.\d+(?:\.\d+)?)(")/
 const DOCKER_FROM_RE = /^(FROM node:)(\d+\.\d+(?:\.\d+)?)(-)/gm
 const TYPES_NODE_RE = /^(\s*'@types\/node':\s*)(\d+\.\d+\.\d+)$/m
@@ -149,8 +150,8 @@ async function applyUpdate({ nodeVersion, typesVersion }) {
   const changed = []
 
   const updates = [
-    [NPMRC, content => content.replace(NPMRC_RE, `$1${nodeVersion}`)],
-    [PACKAGE_JSON, content => content.replace(ENGINES_RE, `$1${major}.${minor}$3`)],
+    // Both pins live in package.json, so they are rewritten in a single pass.
+    [PACKAGE_JSON, content => content.replace(DEV_ENGINES_RE, `$1${nodeVersion}$3`).replace(ENGINES_RE, `$1${major}.${minor}$3`)],
     [PNPM_WORKSPACE, content => content.replace(TYPES_NODE_RE, `$1${typesVersion}`)],
     ...(await listDockerfiles()).map(path => [path, content => content.replace(DOCKER_FROM_RE, `$1${major}.${minor}$3`)]),
   ]
@@ -177,7 +178,7 @@ async function writeGithubOutput(values) {
 async function main() {
   const args = readArgs()
 
-  const currentNode = await readPinnedVersion(NPMRC, NPMRC_RE, 'use-node-version')
+  const currentNode = await readPinnedVersion(PACKAGE_JSON, DEV_ENGINES_RE, 'devEngines.runtime.version')
   const currentTypes = await readPinnedVersion(PNPM_WORKSPACE, TYPES_NODE_RE, "catalog['@types/node']")
 
   const nodeVersion = args.version ?? (await resolveNodeVersion({ major: currentNode.split('.')[0], latestLts: args.latestLts }))

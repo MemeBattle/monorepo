@@ -1,7 +1,6 @@
 *
 !apps/blog
 
-!.npmrc
 !pnpm-lock.yaml
 !pnpm-workspace.yaml
 !package.json

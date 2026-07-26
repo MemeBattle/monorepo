@@ -1,11 +1,11 @@
 FROM node:24.18-trixie-slim AS dependencies
 ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
+ENV PATH="$PNPM_HOME/bin:$PATH"
 RUN corepack enable
 
 WORKDIR /memebattle
 
-COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml /memebattle/
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /memebattle/
 COPY apps/blog/package.json /memebattle/apps/blog/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile

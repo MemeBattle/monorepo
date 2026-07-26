@@ -2,12 +2,12 @@
 
 The monorepo pins one Node.js version. It is declared in four places that must always agree:
 
-| File                   | What it pins                  | Who reads it                                               |
-| ---------------------- | ----------------------------- | ---------------------------------------------------------- |
-| `.npmrc`               | `use-node-version=<x.y.z>`    | pnpm — downloads and uses this exact version locally       |
-| `package.json`         | `engines.node` (`>=<x.y>`)    | pnpm (`engine-strict=true`) and `actions/setup-node` in CI |
-| `.docker/*_Dockerfile` | `FROM node:<x.y>-trixie-slim` | production images                                          |
-| `pnpm-workspace.yaml`  | `catalog['@types/node']`      | every workspace package, through `catalog:`                |
+| File                   | What it pins                     | Who reads it                                         |
+| ---------------------- | -------------------------------- | ---------------------------------------------------- |
+| `package.json`         | `devEngines.runtime` (`<x.y.z>`) | pnpm — downloads and uses this exact version locally |
+| `package.json`         | `engines.node` (`>=<x.y>`)       | pnpm (`engineStrict`) and `actions/setup-node` in CI |
+| `.docker/*_Dockerfile` | `FROM node:<x.y>-trixie-slim`    | production images                                    |
+| `pnpm-workspace.yaml`  | `catalog['@types/node']`         | every workspace package, through `catalog:`          |
 
 CI does not pin a version of its own: `.github/actions/prepare-nodejs` uses
 `node-version-file: 'package.json'`, so bumping `engines.node` moves every workflow.
@@ -65,7 +65,7 @@ check that never runs would block the merge forever.
 
 If you would rather do it by hand, change the same four places:
 
-1. `.npmrc` — `use-node-version=24.18.0` (full `x.y.z`)
+1. `package.json` — `devEngines.runtime.version` `"24.18.0"` (full `x.y.z`)
 2. `package.json` — `"node": ">=24.18"` (`x.y`, no patch)
 3. every `.docker/*_Dockerfile` — `FROM node:24.18-trixie-slim`, in **both** the
    `dependencies` and the `runtime` stage
@@ -80,8 +80,8 @@ docker manifest inspect node:24.18-trixie-slim > /dev/null && echo ok
 
 ## Checklist after the bump
 
-- [ ] `pnpm install` succeeds — with `engine-strict=true` a mismatch fails loudly here
-- [ ] `pnpm exec node --version` matches `.npmrc` (pnpm downloads it on first run; users who run
+- [ ] `pnpm install` succeeds — with `engineStrict` a mismatch fails loudly here
+- [ ] `pnpm exec node --version` matches `devEngines.runtime` (pnpm downloads it on first run; users who run
       `node` directly through `nvm`/`fnm` have to switch by hand, the repo has no `.nvmrc`)
 - [ ] `pnpm ts-check` and `pnpm test:ci` pass
 - [ ] `pnpm-lock.yaml` is committed together with the catalog change

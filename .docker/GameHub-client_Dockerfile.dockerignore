@@ -2,7 +2,6 @@
 !apps/gamehub-client
 !packages/ui
 
-!.npmrc
 !pnpm-lock.yaml
 !pnpm-workspace.yaml
 !package.json

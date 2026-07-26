@@ -11,7 +11,7 @@ on:
       - '.github/workflows/storybook-main.yml'
       - 'pnpm-lock.yaml'
       - package.json
-      - .npmrc
+      - pnpm-workspace.yaml
 
 env:
   NODE_OPTIONS: --max-old-space-size=4096
