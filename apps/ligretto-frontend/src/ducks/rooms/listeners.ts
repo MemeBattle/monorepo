@@ -1,6 +1,6 @@
 import { type TypedStartListening } from '@reduxjs/toolkit'
 import { replace, push } from 'redux-first-history'
-import { generatePath } from 'react-router-dom'
+import { generatePath } from 'react-router'
 
 import {
   getRoomsEmitAction,

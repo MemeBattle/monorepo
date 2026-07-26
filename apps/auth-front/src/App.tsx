@@ -1,5 +1,5 @@
 import React, { memo } from 'react'
-import { Route, Routes, Navigate } from 'react-router-dom'
+import { Route, Routes, Navigate } from 'react-router'
 import { ROUTES } from './constants/routes'
 import { LoginPage } from './pages/login/LoginPage'
 import { RegisterPage } from './pages/register/RegisterPage'

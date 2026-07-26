@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import { writeFileSync } from "fs";
-import { createInterface } from "readline";
 import chalk from "chalk";
-import { rainbow } from "chalk-animation";
+import * as __rspack_external_fs from "fs";
+import * as __rspack_external_readline from "readline";
+import * as __rspack_external_chalk_animation_43585f75 from "chalk-animation";
 const CAS_BASE_URI = 'https://cas.mems.fun';
 const DEFAULT_KEY_PATH = './key.pem';
 const createCasRoutes = (casURI = CAS_BASE_URI)=>({
@@ -10,7 +10,7 @@ const createCasRoutes = (casURI = CAS_BASE_URI)=>({
         loginRequest: `${casURI}/auth/login`,
         getPartnerKey: (partnerId)=>`${casURI}/partners/${partnerId}/key`
     });
-const rl = createInterface({
+const rl = __rspack_external_readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
@@ -34,7 +34,7 @@ const checkNotEmptyString = (inputString, errorMessage = '')=>{
     return inputString.length > 0;
 };
 const showLoader = (asyncFunc)=>async (...args)=>{
-        const loader = rainbow('Wait CAS answer...');
+        const loader = __rspack_external_chalk_animation_43585f75.rainbow('Wait CAS answer...');
         const answer = await asyncFunc(...args);
         loader.stop();
         return answer;
@@ -107,7 +107,7 @@ const initPartner = async ()=>{
         const key = await getKey(newPartnerId, token);
         console.log('key: ', key);
         const keyPath = await createQuestion(`Path to save a key (${styles.defaultString(DEFAULT_KEY_PATH)}): `, DEFAULT_KEY_PATH);
-        writeFileSync(keyPath, key, {
+        __rspack_external_fs.writeFileSync(keyPath, key, {
             flag: 'w+'
         });
     } catch (e) {

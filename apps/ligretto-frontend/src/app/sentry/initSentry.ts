@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/browser'
-import { captureConsoleIntegration } from '@sentry/integrations'
 
 import { SENTRY_DSN, SENTRY_ENV, APP_VERSION } from '#shared/constants/config'
 
@@ -9,5 +8,5 @@ Sentry.init({
   debug: false,
   environment: SENTRY_ENV,
   release: APP_VERSION,
-  integrations: [captureConsoleIntegration({ levels: ['error', 'warn'] })],
+  integrations: [Sentry.captureConsoleIntegration({ levels: ['error', 'warn'] })],
 })

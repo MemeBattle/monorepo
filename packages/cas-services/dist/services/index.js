@@ -1,8 +1,7 @@
-import { createLoginService } from "./login.js";
-import { createSignUpService } from "./signup.js";
-import { createHealthService } from "./health.js";
-import { createUpdateUserProfileService } from "./updateUserProfile.js";
-import { createGetMeService } from "./getMe.js";
-import { createGetUsersService } from "./getUsers.js";
-import { createCreateTemporaryTokenService } from "./createTemporaryToken.js";
-export { createCreateTemporaryTokenService, createGetMeService, createGetUsersService, createHealthService, createLoginService, createSignUpService, createUpdateUserProfileService };
+export { createLoginService } from "./login.js";
+export { createSignUpService } from "./signup.js";
+export { createHealthService } from "./health.js";
+export { createUpdateUserProfileService } from "./updateUserProfile.js";
+export { createGetMeService } from "./getMe.js";
+export { createGetUsersService } from "./getUsers.js";
+export { createCreateTemporaryTokenService } from "./createTemporaryToken.js";

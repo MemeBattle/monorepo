@@ -31,7 +31,7 @@ import {
 } from './slice'
 import { gameIdSelector, isDndEnabledSelector, playerStatusSelector, selectedCardIndexSelector, selectPlayerCardByIndex } from './selectors'
 import { STACK_OPEN_DECK_INDEX } from './utils'
-import { matchPath } from 'react-router-dom'
+import { matchPath } from 'react-router'
 import { routes } from '#shared/constants'
 import { LOCATION_CHANGE, push } from 'redux-first-history'
 import { socketConnectedAction } from '#entities/socket'
