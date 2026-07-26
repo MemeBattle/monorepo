@@ -3,7 +3,6 @@
 !packages/ligretto-shared
 !packages/cas-services
 
-!.npmrc
 !pnpm-lock.yaml
 !pnpm-workspace.yaml
 !package.json

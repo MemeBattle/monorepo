@@ -9,7 +9,7 @@ on:
       - '.github/workflows/gamehub**'
       - 'pnpm-lock.yaml'
       - package.json
-      - .npmrc
+      - pnpm-workspace.yaml
 
 env:
   NODE_OPTIONS: --max-old-space-size=4096

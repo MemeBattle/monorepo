@@ -5,7 +5,6 @@
 
 !pnpm-lock.yaml
 !pnpm-workspace.yaml
-!.npmrc
 !package.json
 !tsconfig.json
 !typings

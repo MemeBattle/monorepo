@@ -1,11 +1,11 @@
 FROM node:24.18-trixie-slim AS dependencies
 ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
+ENV PATH="$PNPM_HOME/bin:$PATH"
 RUN corepack enable
 
 WORKDIR /memebattle
 
-COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml /memebattle/
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /memebattle/
 COPY packages/ui/package.json /memebattle/packages/ui/
 COPY apps/gamehub-client/package.json /memebattle/apps/gamehub-client/
 

@@ -69,8 +69,8 @@ jobs:
             | Node.js | `${{ steps.update.outputs.current }}` | `${{ steps.update.outputs.target }}` |
             | `@types/node` | `${{ steps.update.outputs.types_current }}` | `${{ steps.update.outputs.types_target }}` |
 
-            Touches `.npmrc`, `package.json` (`engines.node`), the `catalog:` in `pnpm-workspace.yaml`,
-            `pnpm-lock.yaml` and the images in `.docker/`.
+            Touches `package.json` (`devEngines.runtime` and `engines.node`), the `catalog:` in
+            `pnpm-workspace.yaml`, `pnpm-lock.yaml` and the images in `.docker/`.
 
             Review and merge by hand — see `docs/guides/updating-nodejs.md` for the checklist.
             If no checks started, close and reopen this PR.
