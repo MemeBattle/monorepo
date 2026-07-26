@@ -25,6 +25,7 @@
 import { readdir, readFile, writeFile, appendFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
+import { parseArgs } from 'node:util'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const NODE_DIST_INDEX = 'https://nodejs.org/dist/index.json'
@@ -40,32 +41,28 @@ const ENGINES_RE = /("node"\s*:\s*">=)(\d+\.\d+(?:\.\d+)?)(")/
 const DOCKER_FROM_RE = /^(FROM node:)(\d+\.\d+(?:\.\d+)?)(-)/gm
 const TYPES_NODE_RE = /^(\s*'@types\/node':\s*)(\d+\.\d+\.\d+)$/m
 
-function parseArgs(argv) {
-  const args = { check: false, latestLts: false, types: true, version: null }
+const CLI_OPTIONS = {
+  check: { type: 'boolean', default: false },
+  'latest-lts': { type: 'boolean', default: false },
+  // parseArgs has no `--no-*` negation, so the opt-out is a flag of its own.
+  'no-types': { type: 'boolean', default: false },
+  version: { type: 'string' },
+}
 
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i]
+function readArgs() {
+  // strict mode rejects unknown flags and missing `--version` values for us.
+  const { values } = parseArgs({ options: CLI_OPTIONS })
 
-    if (arg === '--check') {
-      args.check = true
-    } else if (arg === '--latest-lts') {
-      args.latestLts = true
-    } else if (arg === '--no-types') {
-      args.types = false
-    } else if (arg === '--version') {
-      args.version = argv[++i]
-    } else if (arg.startsWith('--version=')) {
-      args.version = arg.slice('--version='.length)
-    } else {
-      throw new Error(`Unknown argument: ${arg}`)
-    }
+  if (values.version && !/^v?\d+\.\d+\.\d+$/.test(values.version)) {
+    throw new Error(`--version expects a full x.y.z version, got: ${values.version}`)
   }
 
-  if (args.version && !/^v?\d+\.\d+\.\d+$/.test(args.version)) {
-    throw new Error(`--version expects a full x.y.z version, got: ${args.version}`)
+  return {
+    check: values.check,
+    latestLts: values['latest-lts'],
+    types: !values['no-types'],
+    version: values.version?.replace(/^v/, '') ?? null,
   }
-
-  return { ...args, version: args.version?.replace(/^v/, '') ?? null }
 }
 
 /** Reads `pattern` out of `path` and returns the captured version. */
@@ -178,7 +175,7 @@ async function writeGithubOutput(values) {
 }
 
 async function main() {
-  const args = parseArgs(process.argv.slice(2))
+  const args = readArgs()
 
   const currentNode = await readPinnedVersion(NPMRC, NPMRC_RE, 'use-node-version')
   const currentTypes = await readPinnedVersion(PNPM_WORKSPACE, TYPES_NODE_RE, "catalog['@types/node']")
