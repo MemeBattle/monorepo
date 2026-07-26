@@ -71,7 +71,7 @@ export default async function BlogPage(props: {
 
   return (
     <div className="container flex flex-col md:flex-row-reverse justify-center px-1">
-      <nav className="min-w-md w-full md:w-96 md:ml-8 mb-10">
+      <nav className="w-full md:w-96 md:ml-8 mb-10">
         <Suspense fallback={<SearchLoader />}>
           <SearchInput placeholder={t('searchPlaceholder')} />
         </Suspense>

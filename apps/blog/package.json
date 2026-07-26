@@ -34,6 +34,7 @@
   },
   "devDependencies": {
     "@mdx-js/rollup": "catalog:",
+    "@tailwindcss/postcss": "catalog:",
     "@tailwindcss/typography": "catalog:",
     "@types/hast": "catalog:",
     "@types/mdx": "catalog:",
@@ -43,7 +44,6 @@
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "@vitest/coverage-v8": "catalog:",
-    "autoprefixer": "catalog:",
     "jsdom": "catalog:",
     "postcss": "catalog:",
     "rehype-autolink-headings": "catalog:",

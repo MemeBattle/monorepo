@@ -13,8 +13,8 @@ type PostsListItemProps = {
 
 export function PostsListItem({ title, imageSrc, imageDescription, tags, publishedAt, summary }: PostsListItemProps) {
   return (
-    <article className="h-[28rem] sm:h-60 sm:p-6 flex flex-col sm:flex-row rounded-lg shadow overflow-hidden hover:shadow-lg group-focus:shadow-lg transition-shadow">
-      <div className="h-48 min-h-[12rem] sm:max-h-0 sm:w-60 overflow-hidden relative">
+    <article className="h-112 sm:h-60 sm:p-6 flex flex-col sm:flex-row rounded-lg shadow overflow-hidden hover:shadow-lg group-focus:shadow-lg transition-shadow">
+      <div className="h-48 min-h-48 sm:max-h-0 sm:w-60 overflow-hidden relative">
         <Image fill className="object-cover rounded-lg" src={imageSrc} alt={imageDescription || title} />
       </div>
       <div className="w-full overflow-hidden p-6 sm:p-0 sm:pl-6 flex flex-col">
