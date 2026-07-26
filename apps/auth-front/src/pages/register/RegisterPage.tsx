@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { FORM_ERROR } from 'final-form'
 import { Form, Field } from 'react-final-form'
 import { Paper } from '../../components/Paper'
