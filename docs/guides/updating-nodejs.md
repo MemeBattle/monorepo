@@ -38,11 +38,12 @@ pnpm install --no-frozen-lockfile
 ## The scheduled workflow
 
 [`Node.js update`](../../.github/workflows/nodejs-update.yml) runs the same script every Monday,
-refreshes the lockfile, opens a PR and turns on auto-merge. It can also be triggered by hand from
-the Actions tab with an explicit `version` or with `latest_lts`.
+refreshes the lockfile and opens a PR. It can also be triggered by hand from the Actions tab with
+an explicit `version` or with `latest_lts`. No secrets to set up — it runs on the default
+`GITHUB_TOKEN`.
 
-The PR is **not** merged automatically: `master` requires an approving review, so a human looks
-at it either way. Review it, make sure the checks are green, merge.
+The PR is not merged automatically: `master` requires an approving review, so a human looks at it
+either way. Review it, make sure the checks are green, merge.
 
 ### Starting the checks on a bot PR
 
@@ -55,16 +56,6 @@ GitHub deliberately does not emit events for actions performed with the default 
 A PR opened by this workflow therefore produces **no `pull_request` event**, and `ligretto-pr`,
 `blog-pr`, `gamehub-pr`, `storybook-pr` and `fmt-lint-check-pr` stay idle. **Close and reopen the
 PR** — the reopen comes from your account and starts every check.
-
-To skip that step, open the PR as a real identity instead: create a fine-grained PAT (or a GitHub
-App token) with **Contents: read & write** and **Pull requests: read & write**, save it as the
-`AUTOMATION_TOKEN` secret, and the workflow picks it up on its own:
-
-```yaml
-token: ${{ secrets.AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
-```
-
-The secret is optional — without it the workflow still opens the PR and just logs a warning.
 
 `cas-pr` does not run on a Node bump and that is correct: it is Rust-only and its path filters do
 not match. Keep that in mind if required status checks are ever added to `master` — a required

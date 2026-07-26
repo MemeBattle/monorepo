@@ -27,17 +27,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@main
 
-      # A PR opened with the default GITHUB_TOKEN does not emit `pull_request` events,
-      # so the *-pr workflows stay idle until someone closes and reopens the PR.
-      # Setting AUTOMATION_TOKEN is optional and makes the checks start on their own.
-      - name: Check automation token
-        env:
-          AUTOMATION_TOKEN: ${{ secrets.AUTOMATION_TOKEN }}
-        run: |
-          if [ -z "$AUTOMATION_TOKEN" ]; then
-            echo "::warning::AUTOMATION_TOKEN is not set. The pull request will be opened with GITHUB_TOKEN, which does not trigger the PR checks — close and reopen the PR to start them. See docs/guides/updating-nodejs.md."
-          fi
-
       - name: Update pinned Node.js version
         id: update
         run: |
@@ -69,7 +58,6 @@ jobs:
         if: steps.update.outputs.updated == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
           branch: 'chore/nodejs-${{ steps.update.outputs.target }}'
           commit-message: 'chore: update Node.js to ${{ steps.update.outputs.target }}'
           title: 'chore: update Node.js to ${{ steps.update.outputs.target }}'
