@@ -1,7 +1,8 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "baseUrl": "./src"
+    // TS 7 removed baseUrl; rootDir keeps the flat build/ layout the Dockerfile entrypoint expects
+    "rootDir": "./src"
   },
   "exclude": ["__tests__/*"],
   "include": ["./src/*"]

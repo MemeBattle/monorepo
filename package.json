@@ -35,7 +35,6 @@
     "@storybook/addon-a11y": "catalog:",
     "@storybook/react-vite": "catalog:",
     "@types/node": "catalog:",
-    "@typescript/native-preview": "catalog:",
     "chromatic": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
@@ -44,6 +43,7 @@
     "react-dom": "catalog:",
     "sass": "catalog:",
     "storybook": "catalog:",
+    "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-svgr": "catalog:",
     "wait-on": "catalog:"

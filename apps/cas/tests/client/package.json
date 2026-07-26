@@ -12,7 +12,7 @@
     "@simplewebauthn/browser": "catalog:"
   },
   "devDependencies": {
-    "@typescript/native-preview": "catalog:",
+    "typescript": "catalog:",
     "vite": "catalog:"
   }
 }

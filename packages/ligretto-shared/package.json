@@ -19,13 +19,13 @@
     }
   },
   "scripts": {
-    "ts-check": "tsgo --noEmit",
-    "build": "tsgo"
+    "ts-check": "tsc --noEmit",
+    "build": "tsc"
   },
   "dependencies": {
     "@reduxjs/toolkit": "catalog:"
   },
   "devDependencies": {
-    "@typescript/native-preview": "catalog:"
+    "typescript": "catalog:"
   }
 }

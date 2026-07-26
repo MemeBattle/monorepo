@@ -20,7 +20,7 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "ts-check": "tsgo --noEmit"
+    "ts-check": "tsc --noEmit"
   },
   "dependencies": {
     "@mui/icons-material": "catalog:",
@@ -31,8 +31,8 @@
     "@storybook/react": "catalog:",
     "@types/lodash": "catalog:",
     "@types/react": "catalog:",
-    "@typescript/native-preview": "catalog:",
-    "csstype": "catalog:"
+    "csstype": "catalog:",
+    "typescript": "catalog:"
   },
   "peerDependencies": {
     "lodash": "catalog:",

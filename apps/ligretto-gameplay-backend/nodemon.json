@@ -2,6 +2,6 @@
   "ignore": ["src/**/*.spec.ts"],
   "watch": ["src"],
   "ext": "ts",
-  "exec": "cross-env NODE_OPTIONS='--conditions=development' ts-node --transpile-only src/index.ts",
+  "exec": "cross-env NODE_OPTIONS='--conditions=development' tsx src/index.ts",
   "ignoreRoot": [".git"]
 }

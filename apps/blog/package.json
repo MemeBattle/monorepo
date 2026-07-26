@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "node .next/standalone/apps/blog/server.js",
-    "ts-check": "tsgo --noEmit",
+    "ts-check": "tsc --noEmit",
     "test": "vitest",
     "test:ci": "pnpm build && vitest run"
   },
@@ -41,7 +41,6 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "@typescript/native-preview": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "autoprefixer": "catalog:",
@@ -51,6 +50,7 @@
     "rehype-slug": "catalog:",
     "schema-dts": "catalog:",
     "tailwindcss": "catalog:",
+    "typescript": "catalog:",
     "unist-util-visit": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"

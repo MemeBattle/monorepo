@@ -30,7 +30,7 @@
     "start:dev": "NODE_ENV=development node ace serve --watch",
     "migrate": "node ace migration:run --force",
     "production-migrate": "node ace migration:run --force",
-    "ts-check": "tsgo --noEmit",
+    "ts-check": "tsc --noEmit",
     "test": "node ace test",
     "test:ci": "node ace test"
   },
@@ -58,10 +58,10 @@
     "@poppinss/ts-exec": "catalog:",
     "@types/lodash": "catalog:",
     "@types/luxon": "catalog:",
-    "@typescript/native-preview": "catalog:",
     "better-sqlite3": "catalog:",
     "cpx": "catalog:",
     "pino-pretty": "catalog:",
+    "typescript": "catalog:",
     "youch": "catalog:",
     "youch-terminal": "catalog:"
   }

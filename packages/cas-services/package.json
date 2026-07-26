@@ -23,7 +23,7 @@
     "build": "rslib build",
     "dev": "rslib build --watch",
     "test": "vitest run",
-    "ts-check": "tsgo --noEmit"
+    "ts-check": "tsc --noEmit"
   },
   "dependencies": {
     "jsonwebtoken": "catalog:",
@@ -34,10 +34,9 @@
     "@types/jsonwebtoken": "catalog:",
     "@types/node": "24.9.2",
     "@types/qs": "catalog:",
-    "@typescript/native-preview": "catalog:",
     "chalk": "catalog:",
     "chalk-animation": "catalog:",
     "dotenv-extended": "catalog:",
-    "ts-node": "catalog:"
+    "typescript": "catalog:"
   }
 }
