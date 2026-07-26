@@ -19,6 +19,11 @@ export class OnboardingPage {
     return this.page.getByTestId('OnboardingPage-NextButton')
   }
 
+  /** Hand-drawn loop circling the zone the current step talks about */
+  getOutline() {
+    return this.page.getByTestId('OnboardingPage-Outline')
+  }
+
   getRowCard(index: 0 | 1 | 2) {
     return this.page.getByTestId(`OnboardingPage-RowCard-${index}`).getByRole('button')
   }

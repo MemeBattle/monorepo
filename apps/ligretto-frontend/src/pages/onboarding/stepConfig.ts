@@ -5,6 +5,9 @@ import { OnboardingStep } from '#features/onboarding'
  */
 export type LayerId = 'playerCards' | 'playgroundCards' | 'opponent'
 
+/** Player card zones the hand-drawn OnboardingOutline can be wrapped around. */
+export type OutlineTargetId = 'stack' | 'row' | 'ligretto'
+
 export type StepDescription =
   | { kind: 'opponents'; text: string }
   | { kind: 'playground'; text: string }
@@ -31,6 +34,8 @@ export interface StepConfig {
   isSecondRowCardActive: boolean
   isThirdRowCardActive: boolean
   isResultVisible: boolean
+  /** Zone circled by the hand-drawn outline on this step */
+  outlineTarget: OutlineTargetId | null
   description: StepDescription | null
 }
 
@@ -46,6 +51,7 @@ const baseStepConfig: StepConfig = {
   isSecondRowCardActive: false,
   isThirdRowCardActive: false,
   isResultVisible: false,
+  outlineTarget: null,
   description: null,
 }
 
@@ -75,18 +81,21 @@ export const STEP_CONFIGS: Record<OnboardingStep, StepConfig> = {
     raisedLayers: ['playerCards'],
     isNextButtonVisible: true,
     isStackDeckHighlighted: true,
+    outlineTarget: 'stack',
     description: { kind: 'stack', text: 'Это твои карты в руке' },
   },
   [OnboardingStep.Row]: {
     ...baseStepConfig,
     raisedLayers: ['playerCards'],
     isNextButtonVisible: true,
+    outlineTarget: 'row',
     description: { kind: 'row', text: 'Это твои карты в ряду' },
   },
   [OnboardingStep.Ligretto]: {
     ...baseStepConfig,
     raisedLayers: ['playerCards'],
     isNextButtonVisible: true,
+    outlineTarget: 'ligretto',
     description: { kind: 'ligretto', text: 'Это твоя колода ligretto' },
   },
   [OnboardingStep.FirstCard]: {

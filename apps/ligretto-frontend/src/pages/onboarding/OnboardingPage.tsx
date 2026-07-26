@@ -20,9 +20,11 @@ import { Overlay } from '#shared/ui/Overlay'
 import { NextButton } from '#shared/ui/NextButton/NextButton.js'
 import { CardsStack } from '#entities/card'
 
+import type { OutlineTargetId } from './stepConfig'
 import { STEP_CONFIGS } from './stepConfig'
 import { PlayerRowCards } from './PlayerRowCards'
 import { Layer } from './Layer'
+import { TargetOutline } from './TargetOutline'
 import { TouchHint } from './TouchHint'
 import { OnboardingTargetsProvider, useOnboardingContainerRef } from './targets'
 import { ResultScreen } from './ResultScreen'
@@ -116,6 +118,11 @@ function OnboardingPageBody() {
 
   const opponentsRefs = [opponent0Ref, opponent1Ref, opponent2Ref] as const
 
+  const outlineRefs = useMemo<Record<OutlineTargetId, RefObject<HTMLDivElement | null>>>(
+    () => ({ stack: stackRef, row: playerRowRef, ligretto: ligrettoRef }),
+    [],
+  )
+
   const opponents = Object.values(game.players).flatMap(player =>
     player && !player.isHost
       ? [
@@ -157,6 +164,8 @@ function OnboardingPageBody() {
           ))}
         </GameGrid>
         {config.isOverlayHidden ? null : <Overlay />}
+
+        {config.outlineTarget ? <TargetOutline targetRef={outlineRefs[config.outlineTarget]} /> : null}
 
         {description?.kind === 'playground' ? <PlaygroundDescription text={description.text} targetRef={playgroundRef} /> : null}
         {description?.kind === 'opponents' ? (

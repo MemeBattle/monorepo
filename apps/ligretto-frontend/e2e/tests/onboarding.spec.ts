@@ -25,18 +25,23 @@ test.describe('Onboarding', () => {
 
     await expectStep(page, 'stack')
     await expect(page.getByText('Это твои карты в руке')).toBeVisible()
+    await expect(onboarding.getOutline()).toBeVisible()
     await onboarding.getNextButton().click()
 
     await expectStep(page, 'row')
     await expect(page.getByText('Это твои карты в ряду')).toBeVisible()
+    await expect(onboarding.getOutline()).toBeVisible()
     await onboarding.getNextButton().click()
 
     await expectStep(page, 'ligretto')
     await expect(page.getByText('Это твоя колода ligretto')).toBeVisible()
+    await expect(onboarding.getOutline()).toBeVisible()
     await onboarding.getNextButton().click()
 
     // Interactive part: put cards on the playground
     await expectStep(page, 'firstCard')
+    // The outline only introduces the zones, it is gone once the player acts
+    await expect(onboarding.getOutline()).toBeHidden()
     await onboarding.getRowCard(0).click()
 
     await expectStep(page, 'ligrettoCard')
