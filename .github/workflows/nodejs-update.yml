@@ -1,0 +1,78 @@
+name: 'Node.js update'
+
+on:
+  schedule:
+    # Every Monday at 06:00 UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Exact Node.js version to pin (x.y.z). Leave empty to take the latest LTS of the current major.'
+        required: false
+        type: string
+      latest_lts:
+        description: 'Allow jumping to a newer major line if it is already LTS'
+        required: false
+        default: false
+        type: boolean
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Update pinned Node.js version
+        id: update
+        run: |
+          node .scripts/update-node-version.mjs \
+            ${{ inputs.version && format('--version {0}', inputs.version) || '' }} \
+            ${{ inputs.latest_lts && '--latest-lts' || '' }}
+
+      - name: Install pnpm
+        if: steps.update.outputs.updated == 'true'
+        uses: pnpm/action-setup@v5
+
+      # Reads the freshly bumped engines.node, so the lockfile is refreshed
+      # with the very version this PR pins.
+      - name: Install node
+        if: steps.update.outputs.updated == 'true'
+        uses: actions/setup-node@main
+        with:
+          node-version-file: 'package.json'
+          cache: 'pnpm'
+
+      # Not `prepare-nodejs`: pnpm implies --frozen-lockfile on CI, and the
+      # @types/node bump in the catalog is exactly what has to land in the lockfile.
+      - name: Refresh lockfile
+        if: steps.update.outputs.updated == 'true'
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Create pull request
+        id: pr
+        if: steps.update.outputs.updated == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: 'chore/nodejs-${{ steps.update.outputs.target }}'
+          commit-message: 'chore: update Node.js to ${{ steps.update.outputs.target }}'
+          title: 'chore: update Node.js to ${{ steps.update.outputs.target }}'
+          body: |
+            Automated Node.js update.
+
+            | | From | To |
+            | --- | --- | --- |
+            | Node.js | `${{ steps.update.outputs.current }}` | `${{ steps.update.outputs.target }}` |
+            | `@types/node` | `${{ steps.update.outputs.types_current }}` | `${{ steps.update.outputs.types_target }}` |
+
+            Touches `.npmrc`, `package.json` (`engines.node`), the `catalog:` in `pnpm-workspace.yaml`,
+            `pnpm-lock.yaml` and the images in `.docker/`.
+
+            Review and merge by hand — see `docs/guides/updating-nodejs.md` for the checklist.
+            If no checks started, close and reopen this PR.
+          labels: 'dependencies'
+          delete-branch: true
