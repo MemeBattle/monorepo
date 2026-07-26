@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "ts-check": "tsgo --noEmit"
+    "ts-check": "tsc --noEmit"
   },
   "dependencies": {
     "@emotion/cache": "catalog:",
@@ -24,6 +24,6 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "@typescript/native-preview": "catalog:"
+    "typescript": "catalog:"
   }
 }

@@ -13,10 +13,10 @@
     "test:update-snapshot": "NODE_ENV=test vitest run -u",
     "test:watch": "NODE_ENV=test vitest",
     "start:dev": "pnpm prestart && nodemon",
-    "start": "pnpm prestart && ts-node src/index.ts",
-    "prestart": "ts-node src/cli/check-env.ts",
-    "build": "tsgo --project tsconfig.build.json",
-    "ts-check": "tsgo --noEmit"
+    "start": "pnpm prestart && tsx src/index.ts",
+    "prestart": "tsx src/cli/check-env.ts",
+    "build": "tsc --project tsconfig.build.json",
+    "ts-check": "tsc --noEmit"
   },
   "dependencies": {
     "@codexsoft/dotenv-flow": "catalog:",
@@ -35,7 +35,7 @@
     "cross-env": "catalog:",
     "mock-socket": "catalog:",
     "nodemon": "catalog:",
-    "ts-node": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
