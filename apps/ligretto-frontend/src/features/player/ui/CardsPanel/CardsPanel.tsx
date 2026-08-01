@@ -1,11 +1,8 @@
-import type { FC, PropsWithChildren } from 'react'
+import type { FC, ReactNode } from 'react'
 import type { PlayerStatus } from '@memebattle/ligretto-shared'
 
-import { PlayerCardsStack } from '#features/player/ui/PlayerCardsStack'
-import { LigrettoDeckContainer } from '../LigrettoDeckContainer'
 import { Stack, useMediaQuery, useTheme, Box } from '@memebattle/ui'
 
-import { PlayerRowCardsContainer } from '../PlayerRowCardsContainer'
 import { Player } from '../Player'
 
 export interface CardsPanelProps {
@@ -14,36 +11,27 @@ export interface CardsPanelProps {
     status: PlayerStatus
     username: string
   }
+  /** Hand decks — the closed stack together with its open card. */
+  stack?: ReactNode
+  /** The player's face-up row. */
+  rowCards?: ReactNode
+  /** The ligretto deck. */
+  ligretto?: ReactNode
 }
 
-const CardsPanelMobile = () => (
-  <Stack sx={{ mb: 2 }} spacing={1}>
-    <Box display="flex" justifyContent="center">
-      <PlayerRowCardsContainer />
-    </Box>
-
-    <Box display="flex" justifyContent="center">
-      <Stack spacing={1} direction="row">
-        <PlayerCardsStack />
-        <LigrettoDeckContainer />
-      </Stack>
-    </Box>
-  </Stack>
-)
-
-export const CardsPanel: FC<PropsWithChildren<CardsPanelProps>> = ({ player, children }) => {
+export const CardsPanel: FC<CardsPanelProps> = ({ player, stack, rowCards, ligretto }) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
-  if (isMobile) {
-    return <CardsPanelMobile />
-  }
-
   return (
     <Box sx={{ mb: 1.5 }} display="flex" justifyContent="center">
-      <Stack spacing={2} direction="row">
-        {children}
-        {player ? <Player status={player.status} username={player.username} avatar={player?.avatar} isActivePlayer /> : null}
+      {/* Same single row everywhere — only the player card is dropped on mobile, where it would
+          not fit next to the decks. */}
+      <Stack spacing={isMobile ? 1 : 2} direction="row">
+        {stack}
+        {rowCards}
+        {ligretto}
+        {isMobile || !player ? null : <Player status={player.status} username={player.username} avatar={player?.avatar} isActivePlayer />}
       </Stack>
     </Box>
   )

@@ -66,8 +66,10 @@ export const MobileGameGrid: React.FC<React.PropsWithChildren<RoomGridProps>> = 
         {child}
       </MobileOpponentCardsWrapper>
     ))}
-    {centerElement}
-    {bottomElement}
+    <Box marginTop="1.5rem">{centerElement}</Box>
+    {/* The player's own cards stay pinned to the bottom of the screen; the slack between them and
+        the playground is where the onboarding puts its hints. */}
+    <Box marginTop="auto">{bottomElement}</Box>
   </Room>
 )
 

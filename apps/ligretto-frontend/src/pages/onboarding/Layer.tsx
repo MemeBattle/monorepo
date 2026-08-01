@@ -1,4 +1,4 @@
-import type { PropsWithChildren } from 'react'
+import type { PropsWithChildren, Ref } from 'react'
 import { useSelector } from 'react-redux'
 import { Box } from '@memebattle/ui'
 
@@ -12,9 +12,13 @@ import { STEP_CONFIGS } from './stepConfig'
  * stays bright and clickable on the current step.
  * Which zones are raised on which step is defined by the step config's `raisedLayers`.
  */
-export function Layer({ id, children }: PropsWithChildren<{ id: LayerId }>) {
+export function Layer({ id, children, ref }: PropsWithChildren<{ id: LayerId; ref?: Ref<HTMLElement> }>) {
   const currentStep = useSelector(onboardingStepSelector)
   const isRaised = STEP_CONFIGS[currentStep].raisedLayers.includes(id)
 
-  return <Box sx={{ position: 'relative', zIndex: isRaised ? 1 : undefined }}>{children}</Box>
+  return (
+    <Box ref={ref} sx={{ position: 'relative', zIndex: isRaised ? 1 : undefined }}>
+      {children}
+    </Box>
+  )
 }

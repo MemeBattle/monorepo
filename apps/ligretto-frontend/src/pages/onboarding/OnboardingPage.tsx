@@ -26,7 +26,7 @@ import { PlayerRowCards } from './PlayerRowCards'
 import { Layer } from './Layer'
 import { TargetOutline } from './TargetOutline'
 import { TouchHint } from './TouchHint'
-import { OnboardingTargetsProvider, useOnboardingContainerRef } from './targets'
+import { OnboardingTargetsProvider, useOnboardingCardsPanelRef, useOnboardingContainerRef } from './targets'
 import { ResultScreen } from './ResultScreen'
 import { PlaygroundDescription } from './descriptions/PlaygroundDescription'
 import { OpponentsDescription } from './descriptions/OpponentsDescription'
@@ -48,6 +48,7 @@ const OnboardingCardPanel = ({ stackRef, playerRowRef, ligrettoRef, cardRefs }: 
   const game = useSelector(onboardingGameSelector)
   const step = useSelector(onboardingStepSelector)
   const config = STEP_CONFIGS[step]
+  const cardsPanelRef = useOnboardingCardsPanelRef()
 
   const dispatch = useDispatch()
   const current = game.players.id0
@@ -56,32 +57,37 @@ const OnboardingCardPanel = ({ stackRef, playerRowRef, ligrettoRef, cardRefs }: 
   }, [dispatch])
 
   return (
-    <Layer id="playerCards">
-      <CardsPanel player={{ status: PlayerStatus.InGame, username: 'you' }}>
-        <CardsStack
-          ref={stackRef}
-          dataTestId="OnboardingPage-Stack"
-          onStackDeckCardClick={() => dispatch(nextStackCardAction())}
-          onStackOpenDeckCardClick={() => dispatch(putStackCardAction())}
-          onStackDeckCardOutsideClick={() => undefined}
-          isStackOpenDeckSelected={config.isStackOpenDeckSelected}
-          isStackOpenDeckDarkened={false}
-          isStackDeckHighlighted={config.isStackDeckHighlighted}
-          stackOpenDeckCard={current?.stackOpenDeck.cards[0]}
-          stackDeckCards={current?.stackDeck.cards ?? []}
-        />
-        <PlayerRowCards ref={playerRowRef} cardRefs={cardRefs} />
-        <LigrettoPack
-          ref={ligrettoRef}
-          dataTestId="OnboardingPage-Ligretto"
-          isDisabled={config.isLigrettoDisabled}
-          count={current?.ligrettoDeck.cards.length ?? 0}
-          isDndEnabled={false}
-          ligrettoDeckCards={current?.ligrettoDeck.cards ?? []}
-          onLigrettoDeckCardClick={handleLigrettoDeckCardClick}
-          isHighlighted={config.isLigrettoHighlighted}
-        />
-      </CardsPanel>
+    <Layer id="playerCards" ref={cardsPanelRef}>
+      <CardsPanel
+        player={{ status: PlayerStatus.InGame, username: 'you' }}
+        stack={
+          <CardsStack
+            ref={stackRef}
+            dataTestId="OnboardingPage-Stack"
+            onStackDeckCardClick={() => dispatch(nextStackCardAction())}
+            onStackOpenDeckCardClick={() => dispatch(putStackCardAction())}
+            onStackDeckCardOutsideClick={() => undefined}
+            isStackOpenDeckSelected={config.isStackOpenDeckSelected}
+            isStackOpenDeckDarkened={false}
+            isStackDeckHighlighted={config.isStackDeckHighlighted}
+            stackOpenDeckCard={current?.stackOpenDeck.cards[0]}
+            stackDeckCards={current?.stackDeck.cards ?? []}
+          />
+        }
+        rowCards={<PlayerRowCards ref={playerRowRef} cardRefs={cardRefs} />}
+        ligretto={
+          <LigrettoPack
+            ref={ligrettoRef}
+            dataTestId="OnboardingPage-Ligretto"
+            isDisabled={config.isLigrettoDisabled}
+            count={current?.ligrettoDeck.cards.length ?? 0}
+            isDndEnabled={false}
+            ligrettoDeckCards={current?.ligrettoDeck.cards ?? []}
+            onLigrettoDeckCardClick={handleLigrettoDeckCardClick}
+            isHighlighted={config.isLigrettoHighlighted}
+          />
+        }
+      />
     </Layer>
   )
 }

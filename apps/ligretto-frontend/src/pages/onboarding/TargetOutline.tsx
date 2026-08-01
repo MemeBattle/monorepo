@@ -5,9 +5,12 @@ import { OnboardingOutline } from '#shared/ui/OnboardingOutline'
 import { useTargetRelativeRect } from '#shared/lib/hooks/useTargetRelativeRect'
 
 import { useOnboardingContainerRef } from './targets'
+import { useIsNarrowLayout } from './useIsNarrowLayout'
 
 /** Gap between the wrapped element and the loop drawn around it. */
 const DEFAULT_PADDING = 28
+/** On a narrow screen the cards are half the size and sit against the screen edges. */
+const NARROW_PADDING = 12
 
 interface TargetOutlineProps {
   targetRef: RefObject<HTMLElement | null>
@@ -20,11 +23,12 @@ interface TargetOutlineProps {
  * Positioned absolutely inside the page container (the same positioning context
  * the description bubbles use), above the dimming Overlay and the raised Layers.
  */
-export function TargetOutline({ targetRef, padding = DEFAULT_PADDING }: TargetOutlineProps) {
+export function TargetOutline({ targetRef, padding }: TargetOutlineProps) {
   const containerRef = useOnboardingContainerRef()
+  const isNarrow = useIsNarrowLayout()
   // Clamped: the player's cards sit right at the bottom of the page, so the padded
   // rect would otherwise put the bottom of the loop out of sight.
-  const rect = useTargetRelativeRect(targetRef, containerRef, padding, true)
+  const rect = useTargetRelativeRect(targetRef, containerRef, padding ?? (isNarrow ? NARROW_PADDING : DEFAULT_PADDING), true)
 
   if (!rect) {
     return null

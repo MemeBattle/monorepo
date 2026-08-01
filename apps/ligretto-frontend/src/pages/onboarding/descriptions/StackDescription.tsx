@@ -3,8 +3,11 @@ import { useRef, type RefObject } from 'react'
 import { OnboardingArrow } from '#shared/ui/OnboardingArrow'
 
 import { useOnboardingContainerRef } from '../targets'
+import { useIsNarrowLayout } from '../useIsNarrowLayout'
 import { useTargetRelativePosition } from '#shared/lib/hooks/useTargetRelativePosition'
+import { BottomAnchoredDescription } from './BottomAnchoredDescription'
 import { DescriptionBubble } from './DescriptionBubble'
+import { useHasRoomBesidePlayground } from './useHasRoomBesidePlayground'
 
 interface StackDescriptionVariantProps {
   text: string
@@ -19,7 +22,7 @@ function StackDescriptionRelative({ text, targetRef }: StackDescriptionVariantPr
   return (
     <>
       <DescriptionBubble ref={bubbleRef} text={text} position={position} />
-      {position ? <OnboardingArrow from={bubbleRef} to={targetRef} /> : null}
+      {position ? <OnboardingArrow fromAnchor="bottom" toAnchor="top" from={bubbleRef} to={targetRef} /> : null}
     </>
   )
 }
@@ -35,7 +38,9 @@ function StackDescriptionPlaygroundAnchored({ text, targetRef, playgroundRef }: 
   const playgroundPosition = useTargetRelativePosition(playgroundRef, containerRef, 'left', 48)
   const stackPosition = useTargetRelativePosition(targetRef, containerRef, 'top', 84)
   const position =
-    playgroundPosition && stackPosition ? { left: playgroundPosition.left, top: stackPosition.top, transform: 'translate(-100%, -50%)' } : null
+    playgroundPosition && stackPosition
+      ? { left: playgroundPosition.left, top: stackPosition.top, transform: 'translate(-100%, -50%)', align: 'end' as const }
+      : null
 
   return (
     <>
@@ -51,9 +56,16 @@ interface StackDescriptionProps extends StackDescriptionVariantProps {
 }
 
 export function StackDescription({ text, targetRef, playgroundRef, isPlaygroundAnchored }: StackDescriptionProps) {
-  return isPlaygroundAnchored ? (
-    <StackDescriptionPlaygroundAnchored text={text} targetRef={targetRef} playgroundRef={playgroundRef} />
-  ) : (
-    <StackDescriptionRelative text={text} targetRef={targetRef} />
-  )
+  const isNarrow = useIsNarrowLayout()
+  const hasRoomBeside = useHasRoomBesidePlayground(playgroundRef)
+
+  if (isPlaygroundAnchored) {
+    return hasRoomBeside ? (
+      <StackDescriptionPlaygroundAnchored text={text} targetRef={targetRef} playgroundRef={playgroundRef} />
+    ) : (
+      <BottomAnchoredDescription text={text} targetRef={targetRef} />
+    )
+  }
+
+  return isNarrow ? <BottomAnchoredDescription text={text} targetRef={targetRef} /> : <StackDescriptionRelative text={text} targetRef={targetRef} />
 }
