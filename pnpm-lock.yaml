@@ -732,6 +732,9 @@ importers:
 
   apps/ligretto-frontend:
     dependencies:
+      '@fsmoothy/core':
+        specifier: ^1.3.0
+        version: 1.4.0
       '@memebattle/analytics':
         specifier: workspace:^
         version: link:../../packages/analytics
@@ -1919,6 +1922,9 @@ packages:
 
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
+
+  '@fsmoothy/core@1.4.0':
+    resolution: {integrity: sha512-1/REWs6Ckz+FIKO02HDaTH+lI/82DzEmY2eYxRaNsuJjhpkTlCMeNaSVCNsGWNhSTGmZ1ak+CoGiRi/HJfEWdg==}
 
   '@hapi/address@5.1.1':
     resolution: {integrity: sha512-A+po2d/dVoY7cYajycYI43ZbYMXukuopIsqCjh5QzsBCipDtdofHntljDlpccMjIfTy6UOkg+5KPriwYch2bXA==}
@@ -10147,6 +10153,8 @@ snapshots:
       react-dom: 19.2.8(react@19.2.8)
 
   '@floating-ui/utils@0.2.10': {}
+
+  '@fsmoothy/core@1.4.0': {}
 
   '@hapi/address@5.1.1':
     dependencies:
