@@ -32,14 +32,8 @@ import { TargetOutline } from './TargetOutline'
 import { TouchHint } from './TouchHint'
 import { OnboardingTargetsProvider, useOnboardingCardsPanelRef, useOnboardingContainerRef } from './targets'
 import { ResultScreen } from './ResultScreen'
-import { PlaygroundDescription } from './descriptions/PlaygroundDescription'
 import { OpponentsDescription } from './descriptions/OpponentsDescription'
-import { StackDescription } from './descriptions/StackDescription'
-import { PlayerRowDescription } from './descriptions/PlayerRowDescription'
-import { LigrettoDescription } from './descriptions/LigrettoDescription'
-import { CardDescription } from './descriptions/CardDescription'
-import { AllCardsDescription } from './descriptions/AllCardsDescription'
-import { OpponentMoveDescription } from './descriptions/OpponentMoveDescription'
+import { AnchoredDescription, type DescriptionTargets } from './descriptions/AnchoredDescription'
 
 interface OnboardingCardPanelProps {
   stackRef: RefObject<HTMLDivElement | null>
@@ -135,6 +129,20 @@ function OnboardingPageBody() {
     [],
   )
 
+  const descriptionTargets = useMemo<DescriptionTargets>(
+    () => ({
+      stack: stackRef,
+      row: playerRowRef,
+      ligretto: ligrettoRef,
+      playground: playgroundRef,
+      opponentDeck: opponentDeckRef,
+      card0: card0Ref,
+      card1: card1Ref,
+      card2: card2Ref,
+    }),
+    [],
+  )
+
   const opponents = Object.values(game.players).flatMap(player =>
     player && !player.isHost
       ? [
@@ -188,32 +196,10 @@ function OnboardingPageBody() {
 
         {config.outlineTarget ? <TargetOutline targetRef={outlineRefs[config.outlineTarget]} /> : null}
 
-        {description?.kind === 'playground' ? <PlaygroundDescription text={description.text} targetRef={playgroundRef} /> : null}
         {description?.kind === 'opponents' ? (
           <OpponentsDescription text={description.text} opponent0Ref={opponent0Ref} opponent1Ref={opponent1Ref} opponent2Ref={opponent2Ref} />
         ) : null}
-        {description?.kind === 'allCards' ? <AllCardsDescription text={description.text} playerRowRef={playerRowRef} /> : null}
-        {description?.kind === 'stack' ? (
-          <StackDescription
-            text={description.text}
-            targetRef={stackRef}
-            playgroundRef={playgroundRef}
-            isPlaygroundAnchored={description.isPlaygroundAnchored}
-          />
-        ) : null}
-        {description?.kind === 'row' ? <PlayerRowDescription text={description.text} targetRef={playerRowRef} /> : null}
-        {description?.kind === 'ligretto' ? (
-          <LigrettoDescription
-            text={description.text}
-            targetRef={ligrettoRef}
-            playgroundRef={playgroundRef}
-            isPlaygroundAnchored={description.isPlaygroundAnchored}
-          />
-        ) : null}
-        {description?.kind === 'card' ? (
-          <CardDescription text={description.text} targetRef={cardRefs[description.cardIndex]} playgroundRef={playgroundRef} />
-        ) : null}
-        {description?.kind === 'opponentMove' ? <OpponentMoveDescription text={description.text} targetRef={opponentDeckRef} /> : null}
+        {description?.kind === 'anchored' ? <AnchoredDescription key={step} description={description} targets={descriptionTargets} /> : null}
 
         {config.isResultVisible ? <ResultScreen /> : null}
 

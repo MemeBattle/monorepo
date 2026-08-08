@@ -1,37 +1,20 @@
-import type { Ref } from 'react'
+import type { CSSProperties, Ref } from 'react'
 import { Box, Typography } from '@memebattle/ui'
 
-/** Which way the box grows from `left`: away to the left, away to the right, or both. */
-export type BubbleAlign = 'start' | 'center' | 'end'
-
-/** `left` omitted — the bubble is centred horizontally in the container instead of anchored to a point. */
-export type BubblePosition = { left?: number; top: number; transform?: string; align?: BubbleAlign }
+/** `top`-only position: the bubble is centred horizontally in the container. */
+export type BubblePosition = { top: number; transform?: string }
 
 interface DescriptionBubbleProps {
   text: string
-  /** null — position is not computed yet, the bubble is hidden; 'centered' — centered on the screen */
-  position: BubblePosition | 'centered' | null
+  /**
+   * null — position is not computed yet, the bubble is hidden;
+   * 'centered' — centered on the screen;
+   * `{ floatingStyles }` — positioned by floating-ui (see `AnchoredDescription`);
+   * `BubblePosition` — centred horizontally, anchored vertically.
+   */
+  position: BubblePosition | 'centered' | { floatingStyles: CSSProperties } | null
   maxWidth?: string
   ref?: Ref<HTMLDivElement>
-}
-
-/**
- * How wide the box may grow before it runs past an edge of the container.
- *
- * Percentages resolve against the container, which is the bubble's containing block, so the cap
- * keeps working as the window is resized — the text wraps instead of the bubble hanging off-screen.
- */
-const horizontalCap = ({ left, align = 'center' }: BubblePosition): string | null => {
-  if (left === undefined) {
-    return null
-  }
-  if (align === 'end') {
-    return `${left}px`
-  }
-  if (align === 'start') {
-    return `calc(100% - ${left}px)`
-  }
-  return `calc(min(${left}px, 100% - ${left}px) * 2)`
 }
 
 const positionSx = (position: DescriptionBubbleProps['position']) => {
@@ -43,21 +26,20 @@ const positionSx = (position: DescriptionBubbleProps['position']) => {
   if (!position) {
     return { left: 0, top: 0, visibility: 'hidden' as const }
   }
-  if (position.left === undefined) {
-    return { left: 0, right: 0, mx: 'auto', top: `${position.top}px`, transform: position.transform, visibility: 'visible' as const }
+  if ('floatingStyles' in position) {
+    return { ...(position.floatingStyles as Record<string, unknown>), visibility: 'visible' as const }
   }
-  return { left: `${position.left}px`, top: `${position.top}px`, transform: position.transform, visibility: 'visible' as const }
+  return { left: 0, right: 0, mx: 'auto', top: `${position.top}px`, transform: position.transform, visibility: 'visible' as const }
 }
 
 export function DescriptionBubble({ text, position, maxWidth = '32rem', ref }: DescriptionBubbleProps) {
-  const cap = position && position !== 'centered' ? horizontalCap(position) : null
-
   return (
     <Box
       ref={ref}
       sx={{
         position: 'absolute',
-        maxWidth: `min(${maxWidth}, calc(100vw - 32px)${cap ? `, ${cap}` : ''})`,
+        width: 'max-content',
+        maxWidth: `min(${maxWidth}, calc(100vw - 32px))`,
         px: 2,
         py: 1,
         // Bubbles overlap the board on narrow screens — blurring what is behind keeps the text legible.

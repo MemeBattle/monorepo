@@ -14,7 +14,6 @@ const NARROW_PADDING = 12
 
 interface TargetOutlineProps {
   targetRef: RefObject<HTMLElement | null>
-  padding?: number
 }
 
 /**
@@ -23,12 +22,12 @@ interface TargetOutlineProps {
  * Positioned absolutely inside the page container (the same positioning context
  * the description bubbles use), above the dimming Overlay and the raised Layers.
  */
-export function TargetOutline({ targetRef, padding }: TargetOutlineProps) {
+export function TargetOutline({ targetRef }: TargetOutlineProps) {
   const containerRef = useOnboardingContainerRef()
   const isNarrow = useIsNarrowLayout()
   // Clamped: the player's cards sit right at the bottom of the page, so the padded
   // rect would otherwise put the bottom of the loop out of sight.
-  const rect = useTargetRelativeRect(targetRef, containerRef, padding ?? (isNarrow ? NARROW_PADDING : DEFAULT_PADDING), true)
+  const rect = useTargetRelativeRect(targetRef, containerRef, isNarrow ? NARROW_PADDING : DEFAULT_PADDING, true)
 
   if (!rect) {
     return null
