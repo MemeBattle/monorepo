@@ -7,7 +7,7 @@ import { playerCardsStackSelector } from './PlayerCardsStack.selector'
 
 export const PlayerCardsStack = () => {
   const dispatch = useDispatch()
-  const { stackDeckCards, stackOpenDeckCard, isDndEnabled, selectedCardIndex } = useSelector(playerCardsStackSelector)
+  const { stackDeckCards, isStackDeckHidden, stackOpenDeckCard, isDndEnabled, selectedCardIndex } = useSelector(playerCardsStackSelector)
 
   const handleStackOpenDeckCardClick = useCallback(() => {
     dispatch(tapStackOpenDeckCardAction())
@@ -29,6 +29,7 @@ export const PlayerCardsStack = () => {
     <CardsStack
       stackOpenDeckCard={stackOpenDeckCard}
       stackDeckCards={stackDeckCards}
+      isStackDeckHidden={isStackDeckHidden}
       onStackOpenDeckCardClick={handleStackOpenDeckCardClick}
       onStackDeckCardOutsideClick={handleStackOpenDeckCardOutsideClick}
       onStackDeckCardClick={handleStackDeckCardClick}
