@@ -9,6 +9,10 @@ import { LigrettoPack, Opponent } from '#features/player'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { CardsPanel } from '#features/player/ui/CardsPanel/CardsPanel'
 import {
+  OnboardingEvent,
+  OPPONENT_DECK_INDEX,
+  ONBOARDING_PLAYER_NAMES,
+  onboardingAllowedEventsSelector,
   onboardingGameSelector,
   putLigrettoCardAction,
   nextStepOnboardingAction,
@@ -47,6 +51,7 @@ interface OnboardingCardPanelProps {
 const OnboardingCardPanel = ({ stackRef, playerRowRef, ligrettoRef, cardRefs }: OnboardingCardPanelProps) => {
   const game = useSelector(onboardingGameSelector)
   const step = useSelector(onboardingStepSelector)
+  const allowedEvents = useSelector(onboardingAllowedEventsSelector)
   const config = STEP_CONFIGS[step]
   const cardsPanelRef = useOnboardingCardsPanelRef()
 
@@ -59,7 +64,7 @@ const OnboardingCardPanel = ({ stackRef, playerRowRef, ligrettoRef, cardRefs }: 
   return (
     <Layer id="playerCards" ref={cardsPanelRef}>
       <CardsPanel
-        player={{ status: PlayerStatus.InGame, username: 'you' }}
+        player={{ status: PlayerStatus.InGame, username: ONBOARDING_PLAYER_NAMES.id0 }}
         stack={
           <CardsStack
             ref={stackRef}
@@ -79,7 +84,7 @@ const OnboardingCardPanel = ({ stackRef, playerRowRef, ligrettoRef, cardRefs }: 
           <LigrettoPack
             ref={ligrettoRef}
             dataTestId="OnboardingPage-Ligretto"
-            isDisabled={config.isLigrettoDisabled}
+            isDisabled={!allowedEvents.includes(OnboardingEvent.PutLigretto)}
             count={current?.ligrettoDeck.cards.length ?? 0}
             isDndEnabled={false}
             ligrettoDeckCards={current?.ligrettoDeck.cards ?? []}
@@ -116,9 +121,10 @@ function OnboardingPageBody() {
   const opponent1Ref = useRef<HTMLDivElement | null>(null)
   const opponent2Ref = useRef<HTMLDivElement | null>(null)
   const opponentDeckRef = useRef<HTMLDivElement | null>(null)
+  // The only playground deck a hint ever points at is the opponent's green one.
   const playgroundDeckRefs = useMemo<Array<RefObject<HTMLDivElement | null> | undefined>>(() => {
-    const refs = new Array<RefObject<HTMLDivElement | null> | undefined>(12)
-    refs[2] = opponentDeckRef
+    const refs: Array<RefObject<HTMLDivElement | null> | undefined> = []
+    refs[OPPONENT_DECK_INDEX] = opponentDeckRef
     return refs
   }, [])
 
@@ -135,7 +141,7 @@ function OnboardingPageBody() {
           {
             ...player,
             stackOpenDeckCards: [],
-            username: player.id,
+            username: ONBOARDING_PLAYER_NAMES[player.id as keyof typeof ONBOARDING_PLAYER_NAMES] ?? player.id,
           },
         ]
       : [],

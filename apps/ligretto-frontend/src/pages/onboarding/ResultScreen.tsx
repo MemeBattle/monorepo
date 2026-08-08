@@ -5,8 +5,9 @@ import { createSelector } from '@reduxjs/toolkit'
 import { Box, Button, Modal, Paper, Slide, Typography } from '@memebattle/ui'
 import { styled } from '@mui/material/styles'
 
-import { onboardingGameSelector, onboardingResultsSelector } from '#features/onboarding'
+import { ONBOARDING_PLAYER_NAMES, onboardingGameSelector, onboardingResultsSelector } from '#features/onboarding'
 import { routes } from '#shared/constants/router-constants'
+import { getRandomAvatar } from '#shared/ui/Avatar/getRandomAvatar'
 import { PlayersScoresTable } from '#features/player-scores-table/ui/PlayersScoresTable'
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -23,7 +24,8 @@ const resultPlayersSelector = createSelector([onboardingGameSelector, onboarding
 
   return Object.values(game.players).map(player => ({
     id: player.id,
-    username: player.id === 'id0' ? 'you' : player.id,
+    username: ONBOARDING_PLAYER_NAMES[player.id as keyof typeof ONBOARDING_PLAYER_NAMES] ?? player.id,
+    avatar: getRandomAvatar(player.id),
     roundPoints: [results[player.id]?.roundScore ?? 0],
     totalPoints: results[player.id]?.gameScore ?? 0,
     isPlayer: player.id === 'id0',
@@ -51,7 +53,7 @@ export function ResultScreen() {
               </Box>
               <Typography variant="body1" fontSize="1.1rem" textAlign="center" sx={{ my: 3 }}>
                 Поздравляем! Ты победил! За каждую выложенную карту на общий стол игрок получает +1 очко. В конце раунда из суммы заработанных очков
-                вычитается количество карт, оставшихся в колоде ligretto, умноженное на 2.
+                вычитается количество карт, оставшихся в колоде Лигретто, умноженное на 2.
               </Typography>
               <PlayersScoresTable players={players} />
               <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>

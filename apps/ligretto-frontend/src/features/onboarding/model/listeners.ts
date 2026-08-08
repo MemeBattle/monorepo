@@ -1,6 +1,6 @@
 import type { UnknownAction } from '@reduxjs/toolkit'
 import { type TypedStartListening } from '@reduxjs/toolkit'
-import { OnboardingEvent } from './fsm'
+import { OnboardingEvent, getAllowedEvents } from './fsm'
 import { OnboardingStateMachine, OnboardingStep } from './fsm'
 import {
   nextStepOnboardingAction,
@@ -17,7 +17,14 @@ import type { RouterActions } from 'redux-first-history'
 import { LOCATION_CHANGE } from 'redux-first-history'
 import { matchPath } from 'react-router'
 import { routes } from '#shared/constants/router-constants.js'
-import cloneDeep from 'lodash/cloneDeep'
+
+// The FSM mutates its game object in place, so the store needs a deep copy to notice changes.
+const toOnboardingState = async (fsm: OnboardingStateMachine) => ({
+  step: fsm.current,
+  game: structuredClone(fsm.context.data.game),
+  results: fsm.context.data.results,
+  allowedEvents: await getAllowedEvents(fsm),
+})
 
 const isLocationChangeAction = (action: UnknownAction): action is Extract<RouterActions, { type: typeof LOCATION_CHANGE }> =>
   action.type === LOCATION_CHANGE
@@ -47,10 +54,10 @@ export function addListeners(startListener: TypedStartListening<unknown>) {
 
       const fsm = new OnboardingStateMachine()
 
-      listenerApi.dispatch(setOnboardingState({ step: fsm.current, game: cloneDeep(fsm.context.data.game), results: fsm.context.data.results }))
+      listenerApi.dispatch(setOnboardingState(await toOnboardingState(fsm)))
 
-      fsm.on(All, function (this: OnboardingStateMachine, ctx) {
-        listenerApi.dispatch(setOnboardingState({ step: this.current, game: cloneDeep(ctx.data.game), results: ctx.data.results }))
+      fsm.on(All, async function (this: OnboardingStateMachine) {
+        listenerApi.dispatch(setOnboardingState(await toOnboardingState(this)))
       })
 
       while (true) {
