@@ -3,38 +3,9 @@ import { t, StateMachine } from '@fsmoothy/core'
 import type { GameResults, Player, Card } from '@memebattle/ligretto-shared'
 import { CardColors, PlayerStatus, type Game } from '@memebattle/ligretto-shared'
 
-export enum OnboardingStep {
-  Opponents = 'opponents',
-  Playground = 'playground',
-  Cards = 'cards',
-  Stack = 'stack',
-  Row = 'row',
-  Ligretto = 'ligretto',
-  FirstCard = 'firstCard',
-  LigrettoCard = 'ligrettoCard',
-  StackCard = 'stackCard',
-  StackUnavailableCard = 'stackUnavailableCard',
-  StackAvailableCard = 'stackAvailableCard',
-  RowAvailableCard = 'rowAvailableCard',
-  LigrettoAvailableCard = 'ligrettoAvailableCard',
-  GameStarted = 'gameStarted',
-  GameStartedCycledInfo = 'gameStartedCycledInfo',
-  OpponentTurn = 'opponentTurn',
-  OpponentTurnSecondCard = 'opponentTurnSecondCard',
-  OpponentTurnCycledInfo = 'opponentTurnCycledInfo',
-  FinalLigrettoCard = 'finalLigrettoCard',
-  Result = 'result',
-}
+import { OnboardingStep, OnboardingEvent } from './steps'
 
-export enum OnboardingEvent {
-  NextStep = 'nextStep',
-  NextStackCard = 'nextStackCard',
-  PutStackCard = 'putStackCard',
-  PutFirstCard = 'putFirstCard',
-  PutSecondCard = 'putSecondCard',
-  PutThirdCard = 'putThirdCard',
-  PutLigretto = 'putLigretto',
-}
+export { OnboardingStep, OnboardingEvent } from './steps'
 
 export const ONBOARDING_HARDCODED_RESULTS: GameResults = {
   id0: { roundScore: 4, gameScore: 4 },

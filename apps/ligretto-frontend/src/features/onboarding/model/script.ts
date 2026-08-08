@@ -1,4 +1,4 @@
-import { OnboardingEvent, OnboardingStep } from './fsm'
+import { OnboardingEvent, OnboardingStep } from './steps'
 
 export interface OnboardingScriptEntry {
   event: OnboardingEvent

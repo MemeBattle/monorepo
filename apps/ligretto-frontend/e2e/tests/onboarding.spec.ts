@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { OnboardingPage } from '#pages/onboarding/OnboardingPage.page-object.ts'
-import { OnboardingEvent, OnboardingStep } from '#features/onboarding/model/fsm.ts'
+import { OnboardingEvent, OnboardingStep } from '#features/onboarding/model/steps.ts'
 import { ONBOARDING_SCRIPT } from '#features/onboarding/model/script.ts'
 
 const expectStep = async (page: Page, step: OnboardingStep) => {
