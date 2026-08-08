@@ -1,6 +1,4 @@
-import type { RefObject } from 'react'
-
-import { useTargetRelativeRect } from '#shared/lib/hooks/useTargetRelativeRect'
+import { useEffect, useState, type RefObject } from 'react'
 
 import { useOnboardingContainerRef } from '../targets'
 
@@ -23,15 +21,39 @@ const MIN_SIDE_BUBBLE_WIDTH = 400
  */
 export function useHasRoomBesidePlayground(playgroundRef: RefObject<Element | null>): boolean {
   const containerRef = useOnboardingContainerRef()
-  const playgroundRect = useTargetRelativeRect(playgroundRef, containerRef)
-  const containerRect = useTargetRelativeRect(containerRef, containerRef)
+  const [hasRoom, setHasRoom] = useState(false)
 
-  if (!playgroundRect || !containerRect) {
-    return false
-  }
+  useEffect(() => {
+    function update() {
+      const playgroundEl = playgroundRef.current
+      const containerEl = containerRef.current
+      if (!playgroundEl || !containerEl) {
+        setHasRoom(false)
+        return
+      }
+      const playgroundRect = playgroundEl.getBoundingClientRect()
+      const containerRect = containerEl.getBoundingClientRect()
+      const roomLeft = playgroundRect.left - containerRect.left
+      const roomRight = containerRect.right - playgroundRect.right
+      setHasRoom(Math.min(roomLeft, roomRight) - SIDE_OFFSET >= MIN_SIDE_BUBBLE_WIDTH)
+    }
 
-  const roomLeft = playgroundRect.left
-  const roomRight = containerRect.width - (playgroundRect.left + playgroundRect.width)
+    update()
 
-  return Math.min(roomLeft, roomRight) - SIDE_OFFSET >= MIN_SIDE_BUBBLE_WIDTH
+    const observer = new ResizeObserver(update)
+    if (playgroundRef.current) {
+      observer.observe(playgroundRef.current)
+    }
+    if (containerRef.current) {
+      observer.observe(containerRef.current)
+    }
+    window.addEventListener('resize', update)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', update)
+    }
+  }, [playgroundRef, containerRef])
+
+  return hasRoom
 }

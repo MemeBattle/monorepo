@@ -34,7 +34,7 @@ test.describe('Onboarding', () => {
     await onboarding.getNextButton().click()
 
     await expectStep(page, 'ligretto')
-    await expect(page.getByText('Это твоя колода ligretto')).toBeVisible()
+    await expect(page.getByText('Это твоя колода Лигретто')).toBeVisible()
     await expect(onboarding.getOutline()).toBeVisible()
     await onboarding.getNextButton().click()
 
