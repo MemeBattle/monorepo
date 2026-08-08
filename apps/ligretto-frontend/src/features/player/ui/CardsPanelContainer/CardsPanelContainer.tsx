@@ -35,11 +35,14 @@ export const CardsPanelContainer = () => {
     }
   }, [player])
 
+  const isInGame = player?.status === PlayerStatus.InGame
+
   return (
-    <CardsPanel player={playerWithStaticAvatar}>
-      {player?.status === PlayerStatus.InGame
-        ? [<PlayerCardsStack key="stack" />, <PlayerRowCardsContainer key="row" />, <LigrettoDeckContainer key="deck" />]
-        : null}
-    </CardsPanel>
+    <CardsPanel
+      player={playerWithStaticAvatar}
+      stack={isInGame ? <PlayerCardsStack /> : null}
+      rowCards={isInGame ? <PlayerRowCardsContainer /> : null}
+      ligretto={isInGame ? <LigrettoDeckContainer /> : null}
+    />
   )
 }
