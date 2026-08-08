@@ -38,7 +38,9 @@ export const playerSelector = (state: All) => playersSelector(state)[currentUser
 export const playerCardsSelector = (state: All) => playerSelector(state)?.cards
 export const playerStackOpenDeckCardsSelector = (state: All) => playerSelector(state)?.stackOpenDeck.cards
 export const playerStackDeckCardsSelector = (state: All) => playerSelector(state)?.stackDeck.cards
+export const playerStackDeckHiddenSelector = (state: All) => playerSelector(state)?.stackDeck.isHidden
 export const playerLigrettoDeckCardsSelector = (state: All) => playerSelector(state)?.ligrettoDeck.cards
+export const playerLigrettoDeckHiddenSelector = (state: All) => playerSelector(state)?.ligrettoDeck.isHidden
 export const playerStatusSelector = (state: All) => playerSelector(state)?.status
 
 /** Local Player State */

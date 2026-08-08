@@ -11,6 +11,8 @@ interface LigrettoPackProps {
   count: number
   isDndEnabled: boolean
   ligrettoDeckCards: PlayerCards[]
+  /** The deck's `isHidden` flag from the game data: the ligretto deck lies face down. */
+  isDeckHidden: boolean
   onLigrettoDeckCardClick: () => void
   isHighlighted?: boolean
   isDisabled?: boolean
@@ -22,6 +24,7 @@ export const LigrettoPack = ({
   count,
   isDndEnabled,
   ligrettoDeckCards,
+  isDeckHidden,
   onLigrettoDeckCardClick,
   isHighlighted,
   isDisabled,
@@ -32,7 +35,13 @@ export const LigrettoPack = ({
     <div className={styles.cardWrapper}>
       <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.l : undefined}>
         <CardPlace>
-          <Card color={ligrettoDeckCards[0]?.color} onClick={onLigrettoDeckCardClick} isHighlighted={isHighlighted} isDisabled={isDisabled} />
+          <Card
+            {...ligrettoDeckCards[0]}
+            isHidden={isDeckHidden && ligrettoDeckCards.length > 0}
+            onClick={onLigrettoDeckCardClick}
+            isHighlighted={isHighlighted}
+            isDisabled={isDisabled}
+          />
         </CardPlace>
       </CardHotkeyBadge>
     </div>

@@ -4,6 +4,7 @@ import { ButtonBase } from '@mui/material'
 import { Typography, useOnClickOutside } from '@memebattle/ui'
 import { styled } from '@mui/material/styles'
 import type { CardPlaceSize } from '../CardPlace'
+import { CardBackFace } from './CardBackFace'
 
 type CardSize = 'small' | 'medium' | 'large'
 
@@ -20,6 +21,8 @@ interface CardProps {
   isDarkened?: boolean
   /** Highlighted state of card **/
   isHighlighted?: boolean
+  /** The card lies face down — the uniform back is drawn instead of the face **/
+  isHidden?: boolean
   /** Callback on click outside **/
   onClick?: () => void
   /** Callback on click **/
@@ -90,7 +93,7 @@ const colorByCardColors: Record<CardColors, string> = {
   [CardColors.empty]: 'transparent',
 }
 
-const StyledCardNotForwardedPropsSet = new Set<PropertyKey>(['isDarkened', 'isDisabled', 'isHighlighted', 'isSelected', 'size'])
+const StyledCardNotForwardedPropsSet = new Set<PropertyKey>(['isDarkened', 'isDisabled', 'isHidden', 'isHighlighted', 'isSelected', 'size'])
 
 const StyledCard = styled(ButtonBase, { shouldForwardProp: prop => !StyledCardNotForwardedPropsSet.has(prop) })<{
   color: CardColors
@@ -98,17 +101,20 @@ const StyledCard = styled(ButtonBase, { shouldForwardProp: prop => !StyledCardNo
   isDisabled?: boolean
   isSelected?: boolean
   isDarkened?: boolean
+  isHidden?: boolean
   isHighlighted?: boolean
   size: CardSize
-}>(({ color, isDisabled, isSelected, isDarkened, isHighlighted, size, theme }) => ({
+}>(({ color, isDisabled, isSelected, isDarkened, isHidden, isHighlighted, size, theme }) => ({
   height: heightByCardSize[size],
   width: widthByCardSize[size],
-  opacity: color === CardColors.empty ? 0 : 1,
+  // A face-down card is visible regardless of its (unknown to the viewer) color.
+  opacity: color === CardColors.empty && !isHidden ? 0 : 1,
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
   userSelect: 'none',
-  background: color ? colorByCardColors[color] : colorByCardColors.empty,
+  // No face color behind the back artwork: its transparent rounded corners would let the color shine through.
+  background: isHidden ? 'none' : color ? colorByCardColors[color] : colorByCardColors.empty,
   color: '#fff',
   fontSize: fontSizeByCardSize[size],
   filter: isDarkened ? 'grayscale(50%) brightness(0.95)' : 'none',
@@ -136,6 +142,7 @@ export const Card: React.FC<CardProps> = ({
   isDisabled = false,
   isSelected,
   isDarkened,
+  isHidden,
   isHighlighted,
   onClick,
   onClickOutside,
@@ -155,12 +162,17 @@ export const Card: React.FC<CardProps> = ({
       onMouseDown={onClick}
       isDisabled={isDisabled}
       isSelected={isSelected}
+      isHidden={isHidden}
       color={color}
       ref={ref}
     >
-      <Typography fontSize="inherit" component="span">
-        {value}
-      </Typography>
+      {isHidden ? (
+        <CardBackFace />
+      ) : (
+        <Typography fontSize="inherit" component="span">
+          {value}
+        </Typography>
+      )}
     </StyledCard>
   )
 }
