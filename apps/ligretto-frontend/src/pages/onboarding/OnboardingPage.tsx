@@ -157,11 +157,20 @@ function OnboardingPageBody() {
       >
         <GameGrid
           centerElement={
-            <Layer id="playgroundCards">
-              <Playground ref={playgroundRef} cardsDecks={game.playground.decks} onDeckClick={() => null} deckRefs={playgroundDeckRefs} />
-            </Layer>
+            // Below the `md` breakpoint MobileGameGrid stacks zones in a column; the extra top
+            // margin and the auto margin pin the player's cards to the bottom of the screen, and
+            // the slack between them and the playground is where the hints go.
+            <Box sx={{ marginTop: { xs: '1.5rem', md: 0 } }}>
+              <Layer id="playgroundCards">
+                <Playground ref={playgroundRef} cardsDecks={game.playground.decks} onDeckClick={() => null} deckRefs={playgroundDeckRefs} />
+              </Layer>
+            </Box>
           }
-          bottomElement={<OnboardingCardPanel stackRef={stackRef} playerRowRef={playerRowRef} ligrettoRef={ligrettoRef} cardRefs={cardRefs} />}
+          bottomElement={
+            <Box sx={{ marginTop: { xs: 'auto', md: 0 } }}>
+              <OnboardingCardPanel stackRef={stackRef} playerRowRef={playerRowRef} ligrettoRef={ligrettoRef} cardRefs={cardRefs} />
+            </Box>
+          }
         >
           {opponents.slice(0, OPPONENT_COUNT).map((props, index) => (
             <Layer key={props.id} id="opponent">
