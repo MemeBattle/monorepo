@@ -26,7 +26,7 @@ const config = defineConfig({
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
-  retries: 2,
+  retries: process.env.CI ? 2 : 0,
   /* Opt out of parallel tests on CI. */
   workers: undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
@@ -42,12 +42,37 @@ const config = defineConfig({
     testIdAttribute: 'data-test-id',
   },
 
+  /*
+   * Start the vite dev server automatically when it is not already running.
+   * `reuseExistingServer: true` makes Playwright probe the url first and reuse
+   * the app already listening on the port (e.g. the one started by CI),
+   * falling back to `command` only when nothing responds.
+   */
+  webServer: {
+    command: 'pnpm start:dev',
+    url: process.env.LIGRETTO_APP_URL || 'http://localhost:5173',
+    reuseExistingServer: true,
+    timeout: 120 * 1000,
+  },
+
   /* Configure projects for major browsers */
   projects: [
     {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+      },
+    },
+    /*
+     * The onboarding has a separate narrow-screen layout (bottom-anchored description
+     * bubbles, reflowed cards panel), so it is walked through on a phone viewport too.
+     * `game.spec.ts` stays desktop-only — it needs the gameplay backend.
+     */
+    {
+      name: 'mobile-chrome',
+      testMatch: /onboarding\.spec\.ts/,
+      use: {
+        ...devices['Pixel 5'],
       },
     },
   ],

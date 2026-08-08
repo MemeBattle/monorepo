@@ -27,6 +27,8 @@
     "e2e:start": "playwright test"
   },
   "dependencies": {
+    "@floating-ui/react-dom": "^2.1.6",
+    "@fsmoothy/core": "^1.3.0",
     "@memebattle/analytics": "workspace:^",
     "@memebattle/auth-front": "workspace:^",
     "@memebattle/cas-services": "workspace:^",
