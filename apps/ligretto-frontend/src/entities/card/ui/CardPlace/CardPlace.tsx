@@ -8,6 +8,7 @@ export type CardPlaceSize = 'small' | 'medium' | 'large'
 export interface CardPlaceProps {
   size?: CardPlaceSize
   ref?: Ref<HTMLDivElement>
+  dataTestId?: string
 }
 
 export const borderBySize: Record<CardPlaceSize, string> = {
@@ -50,8 +51,8 @@ const StyledCard = styled('div')<{ size: CardPlaceSize }>(({ size, theme }) => (
   },
 }))
 
-export const CardPlace = ({ children, size = 'medium', ref }: PropsWithChildren<CardPlaceProps>) => (
-  <StyledCardPlace ref={ref} size={size}>
+export const CardPlace = ({ children, size = 'medium', ref, dataTestId }: PropsWithChildren<CardPlaceProps>) => (
+  <StyledCardPlace ref={ref} size={size} data-test-id={dataTestId}>
     <StyledCard size={size}>{children}</StyledCard>
   </StyledCardPlace>
 )

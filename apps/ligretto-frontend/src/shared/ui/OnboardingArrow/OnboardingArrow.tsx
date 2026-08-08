@@ -53,7 +53,10 @@ export function OnboardingArrow({
   const points = useElementAnchorPoints(from, to, containerRef, fromAnchor, toAnchor)
 
   return (
-    <div ref={containerRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+    // zIndex matches the description bubble: an arrow is part of the same decoration and has to
+    // stay above the raised game layers it points at. The svg is inflated by PADDING on every
+    // side, so it is clipped to the container to keep it from growing the page.
+    <div ref={containerRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 2, overflow: 'hidden' }}>
       {points &&
         (() => {
           const { p1, p2 } = points
