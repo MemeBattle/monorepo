@@ -29,13 +29,13 @@ export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players }) => 
         <Grid container spacing={4}>
           {!isMobile && <PlayersScoresTableCell size={columnsProps.avatar}></PlayersScoresTableCell>}
           <PlayersScoresTableCell size={columnsProps.name}>
-            <Typography variant="body2">Name</Typography>
+            <Typography variant="body2">Имя</Typography>
           </PlayersScoresTableCell>
           <PlayersScoresTableCell size={columnsProps.round} sx={{ justifyContent: 'flex-end' }}>
-            <Typography variant="body2">Round</Typography>
+            <Typography variant="body2">Раунд</Typography>
           </PlayersScoresTableCell>
           <PlayersScoresTableCell size={columnsProps.total} sx={{ justifyContent: 'flex-end' }}>
-            <Typography variant="body2">Total</Typography>
+            <Typography variant="body2">Всего</Typography>
           </PlayersScoresTableCell>
         </Grid>
       </PlayersScoresTableHead>

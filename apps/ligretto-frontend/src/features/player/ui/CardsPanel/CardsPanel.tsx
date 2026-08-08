@@ -23,15 +23,32 @@ export const CardsPanel: FC<CardsPanelProps> = ({ player, stack, rowCards, ligre
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
+  if (isMobile) {
+    // Two stacked rows: the face-up row on top, the hand decks below it.
+    // The player badge does not fit here and is dropped, as it always was on mobile.
+    return (
+      <Stack sx={{ mb: 2 }} spacing={1}>
+        <Box display="flex" justifyContent="center">
+          {rowCards}
+        </Box>
+
+        <Box display="flex" justifyContent="center">
+          <Stack spacing={1} direction="row">
+            {stack}
+            {ligretto}
+          </Stack>
+        </Box>
+      </Stack>
+    )
+  }
+
   return (
     <Box sx={{ mb: 1.5 }} display="flex" justifyContent="center">
-      {/* Same single row everywhere — only the player card is dropped on mobile, where it would
-          not fit next to the decks. */}
-      <Stack spacing={isMobile ? 1 : 2} direction="row">
+      <Stack spacing={2} direction="row">
         {stack}
         {rowCards}
         {ligretto}
-        {isMobile || !player ? null : <Player status={player.status} username={player.username} avatar={player?.avatar} isActivePlayer />}
+        {player ? <Player status={player.status} username={player.username} avatar={player?.avatar} isActivePlayer /> : null}
       </Stack>
     </Box>
   )

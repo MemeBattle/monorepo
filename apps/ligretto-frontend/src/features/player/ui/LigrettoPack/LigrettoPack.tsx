@@ -36,6 +36,6 @@ export const LigrettoPack = ({
         </CardPlace>
       </CardHotkeyBadge>
     </div>
-    <Typography sx={{ fontSize: { xs: '0.375rem', sm: '1rem' } }}>В колоде: {count}</Typography>
+    <Typography sx={{ fontSize: { xs: '0.625rem', sm: '1rem' } }}>В колоде: {count}</Typography>
   </div>
 )
