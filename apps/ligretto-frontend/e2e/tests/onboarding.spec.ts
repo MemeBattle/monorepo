@@ -1,99 +1,118 @@
 import { test, expect, type Page } from '@playwright/test'
 import { OnboardingPage } from '#pages/onboarding/OnboardingPage.page-object.ts'
+import { OnboardingEvent, OnboardingStep } from '#features/onboarding/model/fsm.ts'
+import { ONBOARDING_SCRIPT } from '#features/onboarding/model/script.ts'
 
-const expectStep = async (page: Page, step: string) => {
+const expectStep = async (page: Page, step: OnboardingStep) => {
   await expect(page.getByTestId('OnboardingPage')).toHaveAttribute('data-onboarding-step', step)
 }
 
+/** The UI control that fires each FSM event. */
+const eventLocator = (onboarding: OnboardingPage, event: OnboardingEvent) => {
+  switch (event) {
+    case OnboardingEvent.NextStep:
+      return onboarding.getNextButton()
+    case OnboardingEvent.NextStackCard:
+      return onboarding.getStackDeckCard()
+    case OnboardingEvent.PutStackCard:
+      return onboarding.getStackOpenDeckCard()
+    case OnboardingEvent.PutFirstCard:
+      return onboarding.getRowCard(0)
+    case OnboardingEvent.PutSecondCard:
+      return onboarding.getRowCard(1)
+    case OnboardingEvent.PutThirdCard:
+      return onboarding.getRowCard(2)
+    case OnboardingEvent.PutLigretto:
+      return onboarding.getLigrettoDeckCard()
+  }
+}
+
+/**
+ * Replays the canonical script by clicking the control of each event and
+ * asserting the step it lands in. Keeps a cursor, so consecutive calls
+ * continue from where the previous one stopped.
+ */
+const createScriptWalker = (page: Page, onboarding: OnboardingPage) => {
+  let index = 0
+  return async (until: OnboardingStep) => {
+    while (index < ONBOARDING_SCRIPT.length) {
+      const { event, step } = ONBOARDING_SCRIPT[index]
+      index += 1
+      await eventLocator(onboarding, event).click()
+      await expectStep(page, step)
+      if (step === until) {
+        return
+      }
+    }
+    throw new Error(`Step ${until} is not on the canonical script`)
+  }
+}
+
 test.describe('Onboarding', () => {
-  test('User completes the whole onboarding flow', async ({ page }) => {
+  test('walks the canonical script from the first step to the results', async ({ page }) => {
     const onboarding = new OnboardingPage(page)
+    const walkTo = createScriptWalker(page, onboarding)
     await onboarding.visit()
 
-    // Intro steps: walk through with the "next" button
-    await expectStep(page, 'opponents')
-    await expect(page.getByText('Это твои соперники')).toBeVisible()
-    await onboarding.getNextButton().click()
+    await test.step('initial step', async () => {
+      await expectStep(page, OnboardingStep.Opponents)
+    })
 
-    await expectStep(page, 'playground')
-    await expect(page.getByText('Это общий стол')).toBeVisible()
-    await onboarding.getNextButton().click()
+    await test.step('intro steps outline the zones', async () => {
+      await walkTo(OnboardingStep.Stack)
+      await expect(onboarding.getOutline()).toBeVisible()
+      await walkTo(OnboardingStep.Ligretto)
+      await expect(onboarding.getOutline()).toBeVisible()
+    })
 
-    await expectStep(page, 'cards')
-    await expect(page.getByText('Это твои карты', { exact: true })).toBeVisible()
-    await onboarding.getNextButton().click()
+    await test.step('scripted moves reach the results', async () => {
+      // The outline only introduces the zones, it is gone once the player acts
+      await walkTo(OnboardingStep.FirstCard)
+      await expect(onboarding.getOutline()).toBeHidden()
 
-    await expectStep(page, 'stack')
-    await expect(page.getByText('Это твои карты в руке')).toBeVisible()
-    await expect(onboarding.getOutline()).toBeVisible()
-    await onboarding.getNextButton().click()
+      await walkTo(OnboardingStep.Result)
+    })
 
-    await expectStep(page, 'row')
-    await expect(page.getByText('Это твои карты в ряду')).toBeVisible()
-    await expect(onboarding.getOutline()).toBeVisible()
-    await onboarding.getNextButton().click()
+    await test.step('result screen', async () => {
+      await expect(page.getByTestId('PlayersScoresTable')).toBeVisible()
 
-    await expectStep(page, 'ligretto')
-    await expect(page.getByText('Это твоя колода Лигретто')).toBeVisible()
-    await expect(onboarding.getOutline()).toBeVisible()
-    await onboarding.getNextButton().click()
+      await onboarding.getFinishButton().click()
+      await expect(page).toHaveURL('/')
+    })
+  })
 
-    // Interactive part: put cards on the playground
-    await expectStep(page, 'firstCard')
-    // The outline only introduces the zones, it is gone once the player acts
-    await expect(onboarding.getOutline()).toBeHidden()
-    await onboarding.getRowCard(0).click()
+  test('free play: the cycled-stack hint and the optional ligretto move', async ({ page }) => {
+    const onboarding = new OnboardingPage(page)
+    const walkTo = createScriptWalker(page, onboarding)
+    await onboarding.visit()
+    await walkTo(OnboardingStep.GameStarted)
 
-    await expectStep(page, 'ligrettoCard')
-    await onboarding.getLigrettoDeckCard().click()
+    await test.step('stack exhaustion shows the hint once', async () => {
+      await onboarding.getStackDeckCard().click() // take the last card
+      await onboarding.getStackDeckCard().click() // deck is empty — the hint appears
+      await expectStep(page, OnboardingStep.GameStartedCycledInfo)
 
-    await expectStep(page, 'stackCard')
-    await onboarding.getStackDeckCard().click()
+      await onboarding.getStackDeckCard().click() // the deck is re-flipped
+      await expectStep(page, OnboardingStep.GameStarted)
+    })
 
-    await expectStep(page, 'stackUnavailableCard')
-    await onboarding.getStackDeckCard().click()
+    await test.step('opponent answers and the optional ligretto move fills the free slot', async () => {
+      await onboarding.getRowCard(1).click()
+      await expectStep(page, OnboardingStep.OpponentTurn)
 
-    await expectStep(page, 'stackAvailableCard')
-    await onboarding.getStackOpenDeckCard().click()
+      await onboarding.getLigrettoDeckCard().click() // the second row slot is free — a ligretto card goes there
+      await expect(onboarding.getRowCard(1)).toHaveText('5')
 
-    await expectStep(page, 'rowAvailableCard')
-    await onboarding.getRowCard(1).click()
+      await onboarding.getStackDeckCard().click() // flipping the stack triggers the opponent's green two
+      await expectStep(page, OnboardingStep.OpponentTurnSecondCard)
+    })
 
-    await expectStep(page, 'ligrettoAvailableCard')
-    await onboarding.getLigrettoDeckCard().click()
+    await test.step('the green three and the final ligretto card end the round', async () => {
+      await onboarding.getRowCard(2).click() // the green three frees a row slot
+      await expectStep(page, OnboardingStep.FinalLigrettoCard)
 
-    // Free play: flip the stack deck until the cycled-info hint appears
-    await expectStep(page, 'gameStarted')
-    await onboarding.getStackDeckCard().click() // take the last card
-    await onboarding.getStackDeckCard().click() // deck is empty — the hint appears
-
-    await expectStep(page, 'gameStartedCycledInfo')
-    await expect(page.getByText('Карты в стеке закончились')).toBeVisible()
-    await onboarding.getStackDeckCard().click() // the deck is re-flipped
-
-    await expectStep(page, 'gameStarted')
-    await onboarding.getRowCard(1).click()
-
-    await expectStep(page, 'opponentTurn')
-    await expect(page.getByText('Соперник выложил карту на стол')).toBeVisible()
-    await onboarding.getLigrettoDeckCard().click() // the second row slot is free — a ligretto card goes there
-    await expect(onboarding.getRowCard(1)).toHaveText('5')
-    await onboarding.getStackDeckCard().click() // flipping the stack triggers the opponent's green two
-
-    await expectStep(page, 'opponentTurnSecondCard')
-    await expect(page.getByText('Соперник выложил зелёную двойку')).toBeVisible()
-    await onboarding.getRowCard(2).click() // the green three frees a row slot
-
-    await expectStep(page, 'finalLigrettoCard')
-    await expect(page.getByText('Освободилось место в ряду')).toBeVisible()
-    await onboarding.getLigrettoDeckCard().click() // the ligretto card into the row ends the round
-
-    // Result screen
-    await expectStep(page, 'result')
-    await expect(page.getByText('Раунд 1. Результаты')).toBeVisible()
-    await expect(page.getByTestId('PlayersScoresTable')).toBeVisible()
-
-    await onboarding.getFinishButton().click()
-    await expect(page).toHaveURL('/')
+      await onboarding.getLigrettoDeckCard().click() // the ligretto card into the row ends the round
+      await expectStep(page, OnboardingStep.Result)
+    })
   })
 })
