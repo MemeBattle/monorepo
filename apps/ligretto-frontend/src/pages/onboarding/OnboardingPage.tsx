@@ -71,6 +71,7 @@ const OnboardingCardPanel = ({ stackRef, playerRowRef, ligrettoRef, cardRefs }: 
             isStackDeckHighlighted={config.isStackDeckHighlighted}
             stackOpenDeckCard={current?.stackOpenDeck.cards[0]}
             stackDeckCards={current?.stackDeck.cards ?? []}
+            isStackDeckHidden={current?.stackDeck.isHidden ?? true}
           />
         }
         rowCards={<PlayerRowCards ref={playerRowRef} cardRefs={cardRefs} />}
@@ -82,6 +83,7 @@ const OnboardingCardPanel = ({ stackRef, playerRowRef, ligrettoRef, cardRefs }: 
             count={current?.ligrettoDeck.cards.length ?? 0}
             isDndEnabled={false}
             ligrettoDeckCards={current?.ligrettoDeck.cards ?? []}
+            isDeckHidden={current?.ligrettoDeck.isHidden ?? true}
             onLigrettoDeckCardClick={handleLigrettoDeckCardClick}
             isHighlighted={config.isLigrettoHighlighted}
           />
