@@ -1,5 +1,6 @@
 export { addListeners } from './model/listeners'
-export { OnboardingStep } from './model/fsm'
+export { OnboardingStep, OnboardingEvent, OPPONENT_DECK_INDEX, ONBOARDING_PLAYER_NAMES } from './model/fsm'
+export { ONBOARDING_SCRIPT } from './model/script'
 export {
   putFirstCardAction,
   putLigrettoCardAction,
@@ -11,4 +12,5 @@ export {
   nextStackCardAction,
   onboardingStepSelector,
   onboardingResultsSelector,
+  onboardingAllowedEventsSelector,
 } from './model/slice'

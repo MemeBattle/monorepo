@@ -2,17 +2,20 @@ import type { GameResults } from '@memebattle/ligretto-shared'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createAction, createSlice } from '@reduxjs/toolkit'
 import type { OnboardingGame } from './fsm'
-import { OnboardingStep, createOnboardingGame } from './fsm'
+import { OnboardingEvent, OnboardingStep, createOnboardingGame } from './fsm'
 
 export type OnboardingState = {
   step: OnboardingStep
   game: OnboardingGame
+  /** Events the FSM accepts on this step — drives which cards/decks are clickable. */
+  allowedEvents: Array<OnboardingEvent>
   results?: GameResults
 }
 
 export const initialState: OnboardingState = {
   step: OnboardingStep.Opponents,
   game: createOnboardingGame(),
+  allowedEvents: [OnboardingEvent.NextStep],
   results: undefined,
 }
 
@@ -42,6 +45,9 @@ const onboardingSlice = createSlice({
     results(state) {
       return state.results
     },
+    allowedEvents(state) {
+      return state.allowedEvents
+    },
   },
 })
 
@@ -50,5 +56,6 @@ export const {
   game: onboardingGameSelector,
   step: onboardingStepSelector,
   results: onboardingResultsSelector,
+  allowedEvents: onboardingAllowedEventsSelector,
 } = onboardingSlice.getSelectors((root: { onboarding: OnboardingState }) => root.onboarding)
 export const onboardingReducer = onboardingSlice.reducer
