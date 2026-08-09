@@ -7,6 +7,7 @@ on:
       - 'apps/ligretto-**'
       - 'packages/ligretto-shared/**'
       - 'packages/auth-front/**'
+      - 'packages/cas-services/**'
       - 'packages/ui/**'
       - '.docker/Ligretto-**'
       - .github/workflows/ligretto-pr.yml
@@ -47,6 +48,54 @@ jobs:
 
       - name: TS check
         run: pnpm ligretto:ts-check:ci
+
+  # Same Dockerfiles the release workflow pushes, built without pushing: the image build runs
+  # `pnpm install` and the production app build, neither of which the other PR jobs cover.
+  core-backend-image:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+        with:
+          driver-opts: env.BUILDKIT_STEP_LOG_MAX_SIZE=10485760
+
+      - name: Build
+        uses: docker/build-push-action@v7
+        with:
+          push: false
+          context: '.'
+          file: '.docker/Ligretto-core-backend_Dockerfile'
+          cache-from: |
+            type=gha,scope=ligretto-core-backend-pr
+            type=gha,scope=${{ github.base_ref }}-ligretto-core-backend
+          cache-to: type=gha,mode=max,scope=ligretto-core-backend-pr
+
+  gameplay-backend-image:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+        with:
+          driver-opts: env.BUILDKIT_STEP_LOG_MAX_SIZE=10485760
+
+      - name: Build
+        uses: docker/build-push-action@v7
+        with:
+          push: false
+          context: '.'
+          file: '.docker/Ligretto-gameplay-backend_Dockerfile'
+          cache-from: |
+            type=gha,scope=ligretto-gameplay-backend-pr
+            type=gha,scope=${{ github.base_ref }}-ligretto-gameplay-backend
+          cache-to: type=gha,mode=max,scope=ligretto-gameplay-backend-pr
 
   e2e:
     env:

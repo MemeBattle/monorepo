@@ -26,10 +26,13 @@ overrides:
 # binaries or optional native addons and the repo has never needed their scripts.
 allowBuilds:
   '@swc/core': true
-  better-sqlite3: true
   contentlayer: true
   esbuild: true
   protobufjs: true
+  # better-sqlite3 has no install script but ships binding.gyp, so pnpm implicitly
+  # runs `node-gyp rebuild` when builds are allowed — that needs Python, which the
+  # slim node image lacks. It ships prebuilds/ for every platform we use, so skip it.
+  better-sqlite3: false
   '@parcel/watcher': false
   '@sentry/cli': false
   core-js: false
@@ -156,6 +159,14 @@ catalog:
   wait-on: ^9.1.0
   youch: 4.1.1
   youch-terminal: 2.2.3
+
+# @adonisjs/assembler (peer `typescript: ^5.0.0 || ^6.0.0`) drives `node ace build` through
+# the TypeScript JS API, which TS 7 dropped — `ts.getParsedCommandLineOfConfigFile` is gone.
+# ligretto-core-backend stays on TS 5 until Adonis supports the native compiler.
+catalogs:
+  adonis:
+    typescript: ^5.9.3
+
 catalogMode: strict
 
 cleanupUnusedCatalogs: true
@@ -165,157 +176,3 @@ cleanupUnusedCatalogs: true
 # of quietly putting it in the lockfile for every later install to trip over.
 # Pin an exception in minimumReleaseAgeExclude when a fresh release is actually needed.
 minimumReleaseAge: 10080
-
-# Grandfathered: these exact versions were resolved under pnpm 10, before any release-age
-# policy existed, and the week-long window would otherwise reject the lockfile we already
-# ship. Every entry here is older than a day and the newest (chalk@6.0.0) clears the window
-# on 2026-08-02 — drop this whole block once it does. New exceptions go here one at a time,
-# pinned to an exact version, never to a bare package name.
-minimumReleaseAgeExclude:
-  - '@amplitude/analytics-browser@2.45.4'
-  - '@amplitude/analytics-core@2.54.0'
-  - '@amplitude/plugin-autocapture-browser@1.28.9'
-  - '@amplitude/plugin-custom-enrichment-browser@0.1.19'
-  - '@amplitude/plugin-event-property-attribution-browser@0.2.11'
-  - '@amplitude/plugin-network-capture-browser@1.10.11'
-  - '@amplitude/plugin-page-url-enrichment-browser@0.7.21'
-  - '@amplitude/plugin-page-view-tracking-browser@2.11.11'
-  - '@amplitude/plugin-web-vitals-browser@1.1.43'
-  - '@csstools/css-calc@3.3.0'
-  - '@csstools/css-color-parser@4.1.10'
-  - '@csstools/css-syntax-patches-for-csstree@1.1.7'
-  - '@inversifyjs/container@3.1.3'
-  - '@inversifyjs/core@15.0.1'
-  - '@next/env@16.2.12'
-  - '@next/mdx@16.2.12'
-  - '@next/swc-darwin-arm64@16.2.12'
-  - '@next/swc-darwin-x64@16.2.12'
-  - '@next/swc-linux-arm64-gnu@16.2.12'
-  - '@next/swc-linux-arm64-musl@16.2.12'
-  - '@next/swc-linux-x64-gnu@16.2.12'
-  - '@next/swc-linux-x64-musl@16.2.12'
-  - '@next/swc-win32-arm64-msvc@16.2.12'
-  - '@next/swc-win32-x64-msvc@16.2.12'
-  - '@oxfmt/binding-android-arm-eabi@0.60.0'
-  - '@oxfmt/binding-android-arm64@0.60.0'
-  - '@oxfmt/binding-darwin-arm64@0.60.0'
-  - '@oxfmt/binding-darwin-x64@0.60.0'
-  - '@oxfmt/binding-freebsd-x64@0.60.0'
-  - '@oxfmt/binding-linux-arm-gnueabihf@0.60.0'
-  - '@oxfmt/binding-linux-arm-musleabihf@0.60.0'
-  - '@oxfmt/binding-linux-arm64-gnu@0.60.0'
-  - '@oxfmt/binding-linux-arm64-musl@0.60.0'
-  - '@oxfmt/binding-linux-ppc64-gnu@0.60.0'
-  - '@oxfmt/binding-linux-riscv64-gnu@0.60.0'
-  - '@oxfmt/binding-linux-riscv64-musl@0.60.0'
-  - '@oxfmt/binding-linux-s390x-gnu@0.60.0'
-  - '@oxfmt/binding-linux-x64-gnu@0.60.0'
-  - '@oxfmt/binding-linux-x64-musl@0.60.0'
-  - '@oxfmt/binding-openharmony-arm64@0.60.0'
-  - '@oxfmt/binding-win32-arm64-msvc@0.60.0'
-  - '@oxfmt/binding-win32-ia32-msvc@0.60.0'
-  - '@oxfmt/binding-win32-x64-msvc@0.60.0'
-  - '@oxlint-tsgolint/darwin-arm64@7.0.2001'
-  - '@oxlint-tsgolint/darwin-x64@7.0.2001'
-  - '@oxlint-tsgolint/linux-arm64@7.0.2001'
-  - '@oxlint-tsgolint/linux-x64@7.0.2001'
-  - '@oxlint-tsgolint/win32-arm64@7.0.2001'
-  - '@oxlint-tsgolint/win32-x64@7.0.2001'
-  - '@oxlint/binding-android-arm-eabi@1.75.0'
-  - '@oxlint/binding-android-arm64@1.75.0'
-  - '@oxlint/binding-darwin-arm64@1.75.0'
-  - '@oxlint/binding-darwin-x64@1.75.0'
-  - '@oxlint/binding-freebsd-x64@1.75.0'
-  - '@oxlint/binding-linux-arm-gnueabihf@1.75.0'
-  - '@oxlint/binding-linux-arm-musleabihf@1.75.0'
-  - '@oxlint/binding-linux-arm64-gnu@1.75.0'
-  - '@oxlint/binding-linux-arm64-musl@1.75.0'
-  - '@oxlint/binding-linux-ppc64-gnu@1.75.0'
-  - '@oxlint/binding-linux-riscv64-gnu@1.75.0'
-  - '@oxlint/binding-linux-riscv64-musl@1.75.0'
-  - '@oxlint/binding-linux-s390x-gnu@1.75.0'
-  - '@oxlint/binding-linux-x64-gnu@1.75.0'
-  - '@oxlint/binding-linux-x64-musl@1.75.0'
-  - '@oxlint/binding-openharmony-arm64@1.75.0'
-  - '@oxlint/binding-win32-arm64-msvc@1.75.0'
-  - '@oxlint/binding-win32-ia32-msvc@1.75.0'
-  - '@oxlint/binding-win32-x64-msvc@1.75.0'
-  - '@playwright/test@1.62.0'
-  - '@radix-ui/primitive@1.1.7'
-  - '@radix-ui/react-arrow@1.1.15'
-  - '@radix-ui/react-collection@1.1.15'
-  - '@radix-ui/react-compose-refs@1.1.5'
-  - '@radix-ui/react-context@1.2.2'
-  - '@radix-ui/react-direction@1.1.4'
-  - '@radix-ui/react-dismissable-layer@1.1.19'
-  - '@radix-ui/react-dropdown-menu@2.1.24'
-  - '@radix-ui/react-focus-guards@1.1.6'
-  - '@radix-ui/react-focus-scope@1.1.16'
-  - '@radix-ui/react-id@1.1.4'
-  - '@radix-ui/react-menu@2.1.24'
-  - '@radix-ui/react-popover@1.1.23'
-  - '@radix-ui/react-popper@1.3.7'
-  - '@radix-ui/react-portal@1.1.17'
-  - '@radix-ui/react-presence@1.1.10'
-  - '@radix-ui/react-primitive@2.1.10'
-  - '@radix-ui/react-roving-focus@1.1.19'
-  - '@radix-ui/react-slot@1.3.3'
-  - '@radix-ui/react-use-callback-ref@1.1.4'
-  - '@radix-ui/react-use-controllable-state@1.2.6'
-  - '@radix-ui/react-use-effect-event@0.0.5'
-  - '@radix-ui/react-use-is-hydrated@0.1.3'
-  - '@radix-ui/react-use-layout-effect@1.1.4'
-  - '@radix-ui/react-use-rect@1.1.4'
-  - '@radix-ui/react-use-size@1.1.4'
-  - '@radix-ui/rect@1.1.3'
-  - '@rsbuild/core@2.1.8'
-  - '@rspack/binding-darwin-arm64@2.1.5'
-  - '@rspack/binding-darwin-x64@2.1.5'
-  - '@rspack/binding-linux-arm64-gnu@2.1.5'
-  - '@rspack/binding-linux-arm64-musl@2.1.5'
-  - '@rspack/binding-linux-riscv64-gnu@2.1.5'
-  - '@rspack/binding-linux-riscv64-musl@2.1.5'
-  - '@rspack/binding-linux-x64-gnu@2.1.5'
-  - '@rspack/binding-linux-x64-musl@2.1.5'
-  - '@rspack/binding-wasm32-wasi@2.1.5'
-  - '@rspack/binding-win32-arm64-msvc@2.1.5'
-  - '@rspack/binding-win32-ia32-msvc@2.1.5'
-  - '@rspack/binding-win32-x64-msvc@2.1.5'
-  - '@rspack/binding@2.1.5'
-  - '@rspack/core@2.1.5'
-  - '@sentry/browser-utils@10.68.0'
-  - '@sentry/browser@10.68.0'
-  - '@sentry/bundler-plugins@10.68.0'
-  - '@sentry/core@10.68.0'
-  - '@sentry/feedback@10.68.0'
-  - '@sentry/replay-canvas@10.68.0'
-  - '@sentry/replay@10.68.0'
-  - '@storybook/addon-a11y@10.5.4'
-  - '@storybook/builder-vite@10.5.4'
-  - '@storybook/csf-plugin@10.5.4'
-  - '@storybook/react-dom-shim@10.5.4'
-  - '@storybook/react-vite@10.5.4'
-  - '@storybook/react@10.5.4'
-  - '@vitejs/plugin-react@6.0.4'
-  - 'better-sqlite3@13.0.1'
-  - 'chalk@6.0.0'
-  - 'chromatic@18.1.0'
-  - 'enhanced-resolve@5.24.3'
-  - 'html-parse-stringify@4.0.1'
-  - 'inversify@8.2.3'
-  - 'next@16.2.12'
-  - 'oxfmt@0.60.0'
-  - 'oxlint-tsgolint@7.0.2001'
-  - 'oxlint@1.75.0'
-  - 'playwright-core@1.62.0'
-  - 'playwright@1.62.0'
-  - 'postcss@8.5.23'
-  - 'react-dom@19.2.8'
-  - 'react-i18next@17.0.11'
-  - 'react-is@19.2.8'
-  - 'react-router@8.3.0'
-  - 'react@19.2.8'
-  - 'sass@1.102.0'
-  - 'storybook@10.5.4'
-  - 'undici@7.29.0'
-  - 'wait-on@9.1.0'
