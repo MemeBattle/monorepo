@@ -6,6 +6,10 @@ settings:
   injectWorkspacePackages: true
 
 catalogs:
+  adonis:
+    typescript:
+      specifier: ^5.9.3
+      version: 5.9.3
   default:
     '@adonisjs/assembler':
       specifier: 8.4.0
@@ -649,13 +653,13 @@ importers:
     dependencies:
       '@adonisjs/core':
         specifier: 'catalog:'
-        version: 7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1)
+        version: 7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1)
       '@adonisjs/cors':
         specifier: 'catalog:'
-        version: 3.0.0(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1))
+        version: 3.0.0(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1))
       '@adonisjs/lucid':
         specifier: 'catalog:'
-        version: 22.4.2(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1))(@vinejs/vine@4.4.0)(better-sqlite3@13.0.1)(luxon@3.7.2)(pg@8.22.0)(supports-color@10.2.2)
+        version: 22.4.2(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1))(@vinejs/vine@4.4.0)(better-sqlite3@13.0.1)(luxon@3.7.2)(pg@8.22.0)(supports-color@10.2.2)
       '@codexsoft/dotenv-flow':
         specifier: 'catalog:'
         version: 3.3.5
@@ -686,7 +690,7 @@ importers:
     devDependencies:
       '@adonisjs/assembler':
         specifier: 'catalog:'
-        version: 8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2)
+        version: 8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3)
       '@adonisjs/tsconfig':
         specifier: 'catalog:'
         version: 2.0.0
@@ -698,7 +702,7 @@ importers:
         version: 4.2.0(@japa/runner@5.3.0)
       '@japa/plugin-adonisjs':
         specifier: 'catalog:'
-        version: 5.2.0(@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1))(@japa/api-client@3.2.1(@japa/assert@4.2.0(@japa/runner@5.3.0))(@japa/runner@5.3.0)(supports-color@5.5.0))(@japa/runner@5.3.0)(playwright@1.62.0)
+        version: 5.2.0(@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1))(@japa/api-client@3.2.1(@japa/assert@4.2.0(@japa/runner@5.3.0))(@japa/runner@5.3.0)(supports-color@5.5.0))(@japa/runner@5.3.0)(playwright@1.62.0)
       '@japa/runner':
         specifier: 'catalog:'
         version: 5.3.0
@@ -721,8 +725,8 @@ importers:
         specifier: 'catalog:'
         version: 13.1.3
       typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
+        specifier: catalog:adonis
+        version: 5.9.3
       youch:
         specifier: 'catalog:'
         version: 4.1.1
@@ -8703,6 +8707,11 @@ packages:
   typedarray@0.0.6:
     resolution: {integrity: sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==}
 
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
   typescript@7.0.2:
     resolution: {integrity: sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==}
     engines: {node: '>=16.20.0'}
@@ -9140,7 +9149,7 @@ snapshots:
       yargs-parser: 22.0.0
       youch: 4.1.1
 
-  '@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0)':
+  '@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0)':
     dependencies:
       '@adonisjs/config': 6.1.0
       '@adonisjs/fold': 11.0.0
@@ -9150,9 +9159,9 @@ snapshots:
       glob-parent: 6.0.2
       tempura: 0.4.1
     optionalDependencies:
-      '@adonisjs/assembler': 8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2)
+      '@adonisjs/assembler': 8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3)
 
-  '@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2)':
+  '@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3)':
     dependencies:
       '@adonisjs/env': 7.0.0
       '@antfu/install-pkg': 1.1.0
@@ -9175,13 +9184,13 @@ snapshots:
       pretty-hrtime: 1.0.3
       tmp-cache: 1.1.0
       ts-morph: 27.0.2
-      typescript: 7.0.2
+      typescript: 5.9.3
     transitivePeerDependencies:
       - babel-plugin-macros
 
-  '@adonisjs/bodyparser@11.0.4(@adonisjs/http-server@9.1.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/events@10.2.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0)(@adonisjs/logger@7.1.1(pino-pretty@13.1.3))(@boringnode/encryption@1.0.0)(youch@4.1.1))(supports-color@5.5.0)':
+  '@adonisjs/bodyparser@11.0.4(@adonisjs/http-server@9.1.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/events@10.2.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0)(@adonisjs/logger@7.1.1(pino-pretty@13.1.3))(@boringnode/encryption@1.0.0)(youch@4.1.1))(supports-color@5.5.0)':
     dependencies:
-      '@adonisjs/http-server': 9.1.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/events@10.2.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0)(@adonisjs/logger@7.1.1(pino-pretty@13.1.3))(@boringnode/encryption@1.0.0)(youch@4.1.1)
+      '@adonisjs/http-server': 9.1.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/events@10.2.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0)(@adonisjs/logger@7.1.1(pino-pretty@13.1.3))(@boringnode/encryption@1.0.0)(youch@4.1.1)
       '@poppinss/macroable': 1.1.2
       '@poppinss/middleware': 3.2.7
       '@poppinss/multiparty': 3.0.0
@@ -9198,18 +9207,18 @@ snapshots:
     dependencies:
       '@poppinss/utils': 7.0.1
 
-  '@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1)':
+  '@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1)':
     dependencies:
       '@adonisjs/ace': 14.1.0(youch@4.1.1)
-      '@adonisjs/application': 9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0)
-      '@adonisjs/bodyparser': 11.0.4(@adonisjs/http-server@9.1.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/events@10.2.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0)(@adonisjs/logger@7.1.1(pino-pretty@13.1.3))(@boringnode/encryption@1.0.0)(youch@4.1.1))(supports-color@5.5.0)
+      '@adonisjs/application': 9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0)
+      '@adonisjs/bodyparser': 11.0.4(@adonisjs/http-server@9.1.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/events@10.2.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0)(@adonisjs/logger@7.1.1(pino-pretty@13.1.3))(@boringnode/encryption@1.0.0)(youch@4.1.1))(supports-color@5.5.0)
       '@adonisjs/config': 6.1.0
       '@adonisjs/env': 7.0.0
-      '@adonisjs/events': 10.2.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0)
+      '@adonisjs/events': 10.2.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0)
       '@adonisjs/fold': 11.0.0
       '@adonisjs/hash': 10.1.0
       '@adonisjs/health': 3.1.0
-      '@adonisjs/http-server': 9.1.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/events@10.2.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0)(@adonisjs/logger@7.1.1(pino-pretty@13.1.3))(@boringnode/encryption@1.0.0)(youch@4.1.1)
+      '@adonisjs/http-server': 9.1.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/events@10.2.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0)(@adonisjs/logger@7.1.1(pino-pretty@13.1.3))(@boringnode/encryption@1.0.0)(youch@4.1.1)
       '@adonisjs/http-transformers': 2.3.1(@adonisjs/fold@11.0.0)
       '@adonisjs/logger': 7.1.1(pino-pretty@13.1.3)
       '@adonisjs/repl': 5.0.0
@@ -9225,18 +9234,18 @@ snapshots:
       pretty-hrtime: 1.0.3
       string-width: 8.2.2
     optionalDependencies:
-      '@adonisjs/assembler': 8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2)
+      '@adonisjs/assembler': 8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3)
       '@vinejs/vine': 4.4.0
       pino-pretty: 13.1.3
       youch: 4.1.1
     transitivePeerDependencies:
       - supports-color
 
-  '@adonisjs/cors@3.0.0(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1))':
+  '@adonisjs/cors@3.0.0(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1))':
     dependencies:
-      '@adonisjs/core': 7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1)
+      '@adonisjs/core': 7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1)
     optionalDependencies:
-      '@adonisjs/assembler': 8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2)
+      '@adonisjs/assembler': 8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3)
 
   '@adonisjs/env@7.0.0':
     dependencies:
@@ -9244,9 +9253,9 @@ snapshots:
       '@poppinss/validator-lite': 2.1.2
       split-lines: 3.0.0
 
-  '@adonisjs/events@10.2.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0)':
+  '@adonisjs/events@10.2.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0)':
     dependencies:
-      '@adonisjs/application': 9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0)
+      '@adonisjs/application': 9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0)
       '@adonisjs/fold': 11.0.0
       '@poppinss/utils': 7.0.1
       '@sindresorhus/is': 7.2.0
@@ -9267,10 +9276,10 @@ snapshots:
       '@poppinss/utils': 7.0.1
       check-disk-space: 3.4.0
 
-  '@adonisjs/http-server@9.1.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/events@10.2.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0)(@adonisjs/logger@7.1.1(pino-pretty@13.1.3))(@boringnode/encryption@1.0.0)(youch@4.1.1)':
+  '@adonisjs/http-server@9.1.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/events@10.2.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0)(@adonisjs/logger@7.1.1(pino-pretty@13.1.3))(@boringnode/encryption@1.0.0)(youch@4.1.1)':
     dependencies:
-      '@adonisjs/application': 9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0)
-      '@adonisjs/events': 10.2.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0)
+      '@adonisjs/application': 9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0)
+      '@adonisjs/events': 10.2.0(@adonisjs/application@9.0.1(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/config@6.1.0)(@adonisjs/fold@11.0.0))(@adonisjs/fold@11.0.0)
       '@adonisjs/fold': 11.0.0
       '@adonisjs/logger': 7.1.1(pino-pretty@13.1.3)
       '@boringnode/encryption': 1.0.0
@@ -9309,10 +9318,10 @@ snapshots:
     optionalDependencies:
       pino-pretty: 13.1.3
 
-  '@adonisjs/lucid@22.4.2(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1))(@vinejs/vine@4.4.0)(better-sqlite3@13.0.1)(luxon@3.7.2)(pg@8.22.0)(supports-color@10.2.2)':
+  '@adonisjs/lucid@22.4.2(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1))(@vinejs/vine@4.4.0)(better-sqlite3@13.0.1)(luxon@3.7.2)(pg@8.22.0)(supports-color@10.2.2)':
     dependencies:
-      '@adonisjs/core': 7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1)
-      '@adonisjs/presets': 3.0.0(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1))
+      '@adonisjs/core': 7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1)
+      '@adonisjs/presets': 3.0.0(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1))
       '@faker-js/faker': 10.4.0
       '@poppinss/hooks': 7.3.0
       '@poppinss/macroable': 1.1.2
@@ -9328,7 +9337,7 @@ snapshots:
       slash: 5.1.0
       tarn: 3.0.2
     optionalDependencies:
-      '@adonisjs/assembler': 8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2)
+      '@adonisjs/assembler': 8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3)
       '@vinejs/vine': 4.4.0
       luxon: 3.7.2
     transitivePeerDependencies:
@@ -9343,11 +9352,11 @@ snapshots:
       - supports-color
       - tedious
 
-  '@adonisjs/presets@3.0.0(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1))':
+  '@adonisjs/presets@3.0.0(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1))':
     dependencies:
-      '@adonisjs/core': 7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1)
+      '@adonisjs/core': 7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1)
     optionalDependencies:
-      '@adonisjs/assembler': 8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2)
+      '@adonisjs/assembler': 8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3)
 
   '@adonisjs/repl@5.0.0':
     dependencies:
@@ -10206,9 +10215,9 @@ snapshots:
       supports-color: 10.2.2
       youch: 4.1.1
 
-  '@japa/plugin-adonisjs@5.2.0(@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1))(@japa/api-client@3.2.1(@japa/assert@4.2.0(@japa/runner@5.3.0))(@japa/runner@5.3.0)(supports-color@5.5.0))(@japa/runner@5.3.0)(playwright@1.62.0)':
+  '@japa/plugin-adonisjs@5.2.0(@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1))(@japa/api-client@3.2.1(@japa/assert@4.2.0(@japa/runner@5.3.0))(@japa/runner@5.3.0)(supports-color@5.5.0))(@japa/runner@5.3.0)(playwright@1.62.0)':
     dependencies:
-      '@adonisjs/core': 7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@7.0.2))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1)
+      '@adonisjs/core': 7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@5.5.0)(youch@4.1.1)
       '@japa/runner': 5.3.0
     optionalDependencies:
       '@japa/api-client': 3.2.1(@japa/assert@4.2.0(@japa/runner@5.3.0))(@japa/runner@5.3.0)(supports-color@5.5.0)
@@ -16940,6 +16949,8 @@ snapshots:
 
   typedarray@0.0.6:
     optional: true
+
+  typescript@5.9.3: {}
 
   typescript@7.0.2:
     optionalDependencies:

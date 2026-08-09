@@ -22,8 +22,8 @@ spec:
         - name: {{ .Chart.Name }}-migration
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          workingDir: /memebattle/apps/ligretto-core-backend
-          command: ["node", "ace", "migration:run", "--force"]
+          workingDir: /ligretto-core-backend
+          command: ["node", "build/ace.js", "migration:run", "--force"]
           env:
             - name: LIGRETTO_CORE_APP_KEY
               valueFrom:

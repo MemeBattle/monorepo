@@ -8,6 +8,10 @@ WORKDIR /memebattle
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /memebattle/
 COPY packages/ligretto-shared/package.json /memebattle/packages/ligretto-shared/
 COPY packages/cas-services/package.json /memebattle/packages/cas-services/
+# Its committed dist/ too: injectWorkspacePackages copies the publishable files of a workspace
+# dep into the virtual store at install time and never refreshes them, so a manifest-only copy
+# leaves the injected @memebattle/cas-services empty and the app build cannot resolve it.
+COPY packages/cas-services/dist/ /memebattle/packages/cas-services/dist/
 COPY apps/ligretto-core-backend/package.json /memebattle/apps/ligretto-core-backend/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
@@ -30,4 +34,4 @@ USER node
 COPY --chown=node:node --from=build /prod /ligretto-core-backend
 WORKDIR /ligretto-core-backend
 
-ENTRYPOINT [ "node", "build/server.js" ]
+ENTRYPOINT [ "node", "build/bin/server.js" ]

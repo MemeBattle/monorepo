@@ -25,7 +25,7 @@
     "#transformers/*": "./app/transformers/*.js"
   },
   "scripts": {
-    "build": "node ace build --production",
+    "build": "node ace build",
     "start": "node server.js",
     "start:dev": "NODE_ENV=development node ace serve --watch",
     "migrate": "node ace migration:run --force",
@@ -61,7 +61,7 @@
     "better-sqlite3": "catalog:",
     "cpx": "catalog:",
     "pino-pretty": "catalog:",
-    "typescript": "catalog:",
+    "typescript": "catalog:adonis",
     "youch": "catalog:",
     "youch-terminal": "catalog:"
   }
