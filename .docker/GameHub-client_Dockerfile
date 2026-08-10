@@ -1,4 +1,4 @@
-FROM node:24.18-trixie-slim AS dependencies
+FROM node:24.19-trixie-slim AS dependencies
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME/bin:$PATH"
 RUN corepack enable
@@ -20,7 +20,7 @@ WORKDIR /memebattle/apps/gamehub-client
 
 RUN pnpm next build
 
-FROM node:24.18-trixie-slim AS runtime
+FROM node:24.19-trixie-slim AS runtime
 ENV NODE_ENV=production
 
 RUN mkdir -p /memebattle
