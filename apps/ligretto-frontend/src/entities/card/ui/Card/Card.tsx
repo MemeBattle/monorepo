@@ -29,6 +29,8 @@ interface CardProps {
   onClickOutside?: () => void
   /** Size of card **/
   size?: CardSize
+  /** Marks the card root for provider-level focus handling. **/
+  dataCardFocusElement?: boolean
 }
 
 export const widthByCardSize: Record<CardSize, string> = {
@@ -148,6 +150,7 @@ export const Card: React.FC<CardProps> = ({
   onClickOutside,
   color = CardColors.empty,
   size = 'medium',
+  dataCardFocusElement,
 }) => {
   const ref = useRef<HTMLButtonElement>(null)
 
@@ -165,6 +168,7 @@ export const Card: React.FC<CardProps> = ({
       isHidden={isHidden}
       color={color}
       ref={ref}
+      data-card-focus-element={dataCardFocusElement ?? true}
     >
       {isHidden ? (
         <CardBackFace />

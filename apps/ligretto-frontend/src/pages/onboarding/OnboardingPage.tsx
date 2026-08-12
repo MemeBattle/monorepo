@@ -65,7 +65,7 @@ const OnboardingCardPanel = ({ stackRef, playerRowRef, ligrettoRef, cardRefs }: 
             dataTestId="OnboardingPage-Stack"
             onStackDeckCardClick={() => dispatch(nextStackCardAction())}
             onStackOpenDeckCardClick={() => dispatch(putStackCardAction())}
-            onStackDeckCardOutsideClick={() => undefined}
+
             isStackOpenDeckSelected={config.isStackOpenDeckSelected}
             isStackOpenDeckDarkened={false}
             isStackDeckHighlighted={config.isStackDeckHighlighted}

@@ -51,8 +51,8 @@ const StyledCard = styled('div')<{ size: CardPlaceSize }>(({ size, theme }) => (
   },
 }))
 
-export const CardPlace = ({ children, size = 'medium', ref, dataTestId }: PropsWithChildren<CardPlaceProps>) => (
-  <StyledCardPlace ref={ref} size={size} data-test-id={dataTestId}>
+export const CardPlace = ({ children, size = 'medium', ref, dataTestId, onClick }: PropsWithChildren<CardPlaceProps & { onClick?: () => void }>) => (
+  <StyledCardPlace ref={ref} size={size} data-test-id={dataTestId} onClick={onClick}>
     <StyledCard size={size}>{children}</StyledCard>
   </StyledCardPlace>
 )

@@ -3,17 +3,10 @@ import { GameStatus } from '@memebattle/ligretto-shared'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createAction, createSlice } from '@reduxjs/toolkit'
 
-import type { STACK_OPEN_DECK_INDEX } from './utils'
-
-export type SelectedCardIndex = number | typeof STACK_OPEN_DECK_INDEX
-
 export type GameState = {
   game: Game
   results?: GameResults
   isGameLoaded: boolean
-  localPlayerState: {
-    selectedCardIndex?: SelectedCardIndex
-  }
 }
 
 export const initialState: GameState = {
@@ -36,7 +29,6 @@ export const initialState: GameState = {
   },
   results: undefined,
   isGameLoaded: false,
-  localPlayerState: {},
 }
 
 export const togglePlayerStatusAction = createAction('@@game/TOGGLE_PLAYER_STATUS')
@@ -45,7 +37,6 @@ export const tapCardAction = createAction<{ cardIndex: number }>('@@game/TapCard
 export const tapStackOpenDeckCardAction = createAction('@@game/TapStackOpenDeckCardAction')
 export const tapStackDeckCardAction = createAction('@@game/TapStackDeckCardAction')
 export const tapLigrettoDeckCardAction = createAction('@@game/TapLigrettoDeckCardAction')
-export const tapPlaygroundCardAction = createAction<{ deckPosition: number }>('@@game/TapPlaygroundCardAction')
 
 const gameSlice = createSlice({
   name: 'game',
@@ -60,12 +51,10 @@ const gameSlice = createSlice({
     setGameResultAction: (state, action: PayloadAction<GameResults>) => {
       state.results = action.payload
     },
-    setSelectedCardIndexAction: (state, action: PayloadAction<SelectedCardIndex | undefined>) => {
-      state.localPlayerState.selectedCardIndex = action.payload
-    },
+
     resetGameStateAction: () => initialState,
   },
 })
 
-export const { updateGameAction, setGameLoadedAction, setGameResultAction, setSelectedCardIndexAction, resetGameStateAction } = gameSlice.actions
+export const { updateGameAction, setGameLoadedAction, setGameResultAction, resetGameStateAction } = gameSlice.actions
 export const gameReducer = gameSlice.reducer

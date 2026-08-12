@@ -2,24 +2,31 @@ import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { CardsStack } from '#entities/card'
-import { setSelectedCardIndexAction, STACK_OPEN_DECK_INDEX, tapStackDeckCardAction, tapStackOpenDeckCardAction } from '#ducks/game'
+import { tapStackDeckCardAction, tapStackOpenDeckCardAction } from '#ducks/game'
+import { useCardFocus } from '#features/cardFocus'
 import { playerCardsStackSelector } from './PlayerCardsStack.selector'
 
 export const PlayerCardsStack = () => {
   const dispatch = useDispatch()
-  const { stackDeckCards, isStackDeckHidden, stackOpenDeckCard, isDndEnabled, selectedCardIndex } = useSelector(playerCardsStackSelector)
+  const { stackDeckCards, isStackDeckHidden, stackOpenDeckCard, isDndEnabled } = useSelector(playerCardsStackSelector)
+  const { isFocused, isDimmed, toggleFocus, clearFocus } = useCardFocus({
+    target: { type: 'stack-open' },
+    identity: { color: stackOpenDeckCard?.color, value: stackOpenDeckCard?.value },
+  })
 
   const handleStackOpenDeckCardClick = useCallback(() => {
-    dispatch(tapStackOpenDeckCardAction())
-  }, [dispatch])
-
-  const handleStackOpenDeckCardOutsideClick = useCallback(() => {
-    dispatch(setSelectedCardIndexAction(undefined))
-  }, [dispatch])
+    if (isDndEnabled && stackOpenDeckCard?.value !== 1) {
+      toggleFocus()
+    } else {
+      clearFocus()
+      dispatch(tapStackOpenDeckCardAction())
+    }
+  }, [clearFocus, dispatch, isDndEnabled, stackOpenDeckCard?.value, toggleFocus])
 
   const handleStackDeckCardClick = useCallback(() => {
+    clearFocus()
     dispatch(tapStackDeckCardAction())
-  }, [dispatch])
+  }, [clearFocus, dispatch])
 
   if (!stackDeckCards) {
     return null
@@ -31,11 +38,11 @@ export const PlayerCardsStack = () => {
       stackDeckCards={stackDeckCards}
       isStackDeckHidden={isStackDeckHidden}
       onStackOpenDeckCardClick={handleStackOpenDeckCardClick}
-      onStackDeckCardOutsideClick={handleStackOpenDeckCardOutsideClick}
       onStackDeckCardClick={handleStackDeckCardClick}
       isDndEnabled={isDndEnabled}
-      isStackOpenDeckSelected={selectedCardIndex === STACK_OPEN_DECK_INDEX}
-      isStackOpenDeckDarkened={typeof selectedCardIndex !== 'undefined' && selectedCardIndex !== STACK_OPEN_DECK_INDEX}
+      isStackOpenDeckSelected={isFocused}
+      isStackOpenDeckDarkened={isDimmed}
+      markCardsForFocus
     />
   )
 }

@@ -24,6 +24,7 @@ export const LigrettoDeckContainer = () => {
       ligrettoDeckCards={ligrettoDeckCards}
       isDeckHidden={isDeckHidden ?? true}
       onLigrettoDeckCardClick={onLigrettoDeckCardClick}
+      markCardForFocus
     />
   )
 }

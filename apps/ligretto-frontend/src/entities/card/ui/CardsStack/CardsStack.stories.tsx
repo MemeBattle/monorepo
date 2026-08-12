@@ -18,7 +18,6 @@ const meta: Meta<typeof CardsStack> = {
     isStackOpenDeckDarkened: false,
     onStackDeckCardClick: () => {},
     onStackOpenDeckCardClick: () => {},
-    onStackDeckCardOutsideClick: () => {},
   },
   decorators: [
     Story => (

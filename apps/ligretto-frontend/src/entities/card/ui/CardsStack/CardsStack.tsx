@@ -34,11 +34,11 @@ export interface CardsStackProps {
   isStackDeckHidden: boolean
   onStackOpenDeckCardClick: () => void
   onStackDeckCardClick: () => void
-  onStackDeckCardOutsideClick: () => void
   isDndEnabled?: boolean
   isStackOpenDeckSelected: boolean
   isStackOpenDeckDarkened: boolean
   isStackDeckHighlighted?: boolean
+  markCardsForFocus?: boolean
   ref?: Ref<HTMLDivElement>
   dataTestId?: string
 }
@@ -49,11 +49,12 @@ export const CardsStack = ({
   isStackDeckHidden,
   onStackOpenDeckCardClick,
   onStackDeckCardClick,
-  onStackDeckCardOutsideClick,
+
   isDndEnabled,
   isStackOpenDeckSelected,
   isStackOpenDeckDarkened,
   isStackDeckHighlighted,
+  markCardsForFocus,
   ref,
   dataTestId,
 }: CardsStackProps) => (
@@ -66,7 +67,7 @@ export const CardsStack = ({
             isSelected={isStackOpenDeckSelected}
             isDarkened={isStackOpenDeckDarkened}
             onClick={onStackOpenDeckCardClick}
-            onClickOutside={isStackOpenDeckSelected ? onStackDeckCardOutsideClick : undefined}
+            dataCardFocusElement={markCardsForFocus}
           />
         )}
       </CardPlace>
@@ -79,6 +80,7 @@ export const CardsStack = ({
           isHidden={isStackDeckHidden && stackDeckCards.length > 0}
           onClick={onStackDeckCardClick}
           isHighlighted={isStackDeckHighlighted}
+          dataCardFocusElement={markCardsForFocus}
         />
         {stackDeckCards.length === 0 && stackOpenDeckCard ? (
           <ReshuffleHint>

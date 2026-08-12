@@ -19,6 +19,7 @@ const StyledCardHotkeyBadge = styled(Badge)(({ theme }) => ({
 
 export const CardHotkeyBadge: React.FC<React.PropsWithChildren<CardHotkeyBadgeProps>> = ({ hotkey, children }) => (
   <StyledCardHotkeyBadge
+    data-card-focus-element
     anchorOrigin={{
       vertical: 'bottom',
       horizontal: 'right',

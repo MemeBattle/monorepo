@@ -13,8 +13,6 @@ export const mergePlayerAndUser = (player: SharedPlayer, user: User) =>
     stackOpenDeck: player.stackOpenDeck,
   }) as const
 
-export const STACK_OPEN_DECK_INDEX = 'STACK_OPEN_DECK_INDEX' as const
-
 export enum Hotkey {
   space = 'space',
   x = 'x',

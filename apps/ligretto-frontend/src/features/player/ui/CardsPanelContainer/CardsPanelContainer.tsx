@@ -2,31 +2,21 @@ import React, { useMemo } from 'react'
 import { useSelector } from 'react-redux'
 import { createSelector } from '@reduxjs/toolkit'
 
-import { playerLigrettoDeckCardsSelector, activePlayerSelector, isDndEnabledSelector } from '#ducks/game'
+import { activePlayerSelector } from '#ducks/game'
 import { buildCasStaticUrl } from '#shared/api/buildCasStaticUrl'
 import { getRandomAvatar } from '#shared/ui/Avatar/getRandomAvatar'
 
 import { CardsPanel } from '../CardsPanel'
 
-import { usePanelHotkeys } from './usePanelHotkeys'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { LigrettoDeckContainer } from '../LigrettoDeckContainer'
 import { PlayerCardsStack } from '../PlayerCardsStack'
 import { PlayerRowCardsContainer } from '../PlayerRowCardsContainer'
 
-const cardsPanelContainerSelector = createSelector(
-  [activePlayerSelector, playerLigrettoDeckCardsSelector, isDndEnabledSelector],
-  (activePlayer, playerLigrettoDeckCards, isDndEnabled) => ({
-    player: activePlayer,
-    playerLigrettoDeckCards,
-    isDndEnabled,
-  }),
-)
+const cardsPanelContainerSelector = createSelector([activePlayerSelector], activePlayer => ({ player: activePlayer }))
 
 export const CardsPanelContainer = () => {
-  const { player, isDndEnabled } = useSelector(cardsPanelContainerSelector)
-
-  usePanelHotkeys({ enabled: isDndEnabled })
+  const { player } = useSelector(cardsPanelContainerSelector)
 
   const playerWithStaticAvatar = useMemo(() => {
     if (player) {
