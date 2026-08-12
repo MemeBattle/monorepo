@@ -9,12 +9,11 @@ export interface PlaygroundProps {
   onDeckClick: (playgroundDeckIndex: number) => void
   ref?: Ref<HTMLDivElement>
   deckRefs?: Array<RefObject<HTMLDivElement | null> | undefined>
-  allowEmptyDeckClick?: boolean
 }
 
 const getLastCard = (deck: CardsDeck | null): Card | undefined => last(deck?.cards)
 
-export const Playground = ({ cardsDecks, onDeckClick, ref, deckRefs, allowEmptyDeckClick }: PlaygroundProps) => {
+export const Playground = ({ cardsDecks, onDeckClick, ref, deckRefs }: PlaygroundProps) => {
   const cards: (Card | undefined)[] = useMemo(() => {
     const newPlayerCardsArr = []
     for (let i = 0; i < 12; i++) {
@@ -26,7 +25,7 @@ export const Playground = ({ cardsDecks, onDeckClick, ref, deckRefs, allowEmptyD
   return (
     <TableCards ref={ref}>
       {cards.map((card, index) => (
-        <CardPlace key={index} size="large" ref={deckRefs?.[index]} onClick={!card && allowEmptyDeckClick ? () => onDeckClick(index) : undefined}>
+        <CardPlace key={index} size="large" ref={deckRefs?.[index]}>
           {card && <CardComponent size="large" {...card} onClick={() => onDeckClick(index)} />}
         </CardPlace>
       ))}

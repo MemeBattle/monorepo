@@ -42,7 +42,7 @@ export const PlaygroundContainer = () => {
     [focusedCard, handlePlaygroundDeckClick],
   )
 
-  return <Playground cardsDecks={playgroundDecks} onDeckClick={handlePlaygroundClick} allowEmptyDeckClick={!!focusedCard} />
+  return <Playground cardsDecks={playgroundDecks} onDeckClick={handlePlaygroundClick} />
 }
 
 PlaygroundContainer.displayName = 'PlaygroundContainer'
