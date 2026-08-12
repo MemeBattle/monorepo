@@ -18,7 +18,6 @@ interface LigrettoPackProps {
   isDisabled?: boolean
   ref?: Ref<HTMLDivElement>
   dataTestId?: string
-  markCardForFocus?: boolean
 }
 
 export const LigrettoPack = ({
@@ -31,7 +30,6 @@ export const LigrettoPack = ({
   isDisabled,
   ref,
   dataTestId,
-  markCardForFocus,
 }: LigrettoPackProps) => (
   <div ref={ref} data-test-id={dataTestId} className={styles.ligrettoPack}>
     <div className={styles.cardWrapper}>
@@ -43,7 +41,6 @@ export const LigrettoPack = ({
             onClick={onLigrettoDeckCardClick}
             isHighlighted={isHighlighted}
             isDisabled={isDisabled}
-            dataCardFocusElement={markCardForFocus}
           />
         </CardPlace>
       </CardHotkeyBadge>

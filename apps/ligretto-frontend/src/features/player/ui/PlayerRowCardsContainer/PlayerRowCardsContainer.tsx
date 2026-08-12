@@ -1,11 +1,11 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from '@reduxjs/toolkit'
 import { CardsRow } from '#entities/card/ui/CardsRow'
 
 import { tapCardAction, playerCardsSelector, isDndEnabledSelector, Hotkey } from '#ducks/game'
 import { Card, CardPlace, CardHotkeyBadge } from '#entities/card'
-import { useCardFocus } from '#features/cardFocus'
+import { FocusableCard } from '#features/cardFocus'
 import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
 
 const PlayerRowCardsContainerSelector = createSelector([playerCardsSelector, isDndEnabledSelector], (playerCards, isDndEnabled) => ({
@@ -22,24 +22,25 @@ interface PlayerRowCardProps {
 
 const PlayerRowCard = ({ card, index, isDndEnabled, hotkey }: PlayerRowCardProps) => {
   const dispatch = useDispatch()
-  const { isFocused, isDimmed, toggleFocus, clearFocus, cardFocusProps } = useCardFocus({
-    target: { type: 'row', index },
-    identity: { color: card.color, value: card.value },
-  })
-
-  const onCardClick = useCallback(() => {
-    if (isDndEnabled && card.value !== 1) {
-      toggleFocus()
-    } else {
-      clearFocus()
-      dispatch(tapCardAction({ cardIndex: index }))
-    }
-  }, [card.value, clearFocus, dispatch, index, isDndEnabled, toggleFocus])
-
   return (
-    <CardHotkeyBadge hotkey={isDndEnabled ? hotkey : undefined}>
-      <Card {...card} {...cardFocusProps} isDarkened={isDimmed} isSelected={isFocused} onClick={onCardClick} />
-    </CardHotkeyBadge>
+    <FocusableCard target={{ type: 'row', index }} deps={[card.color, card.value]}>
+      {({ isFocused, isDimmed, toggleFocus, clearFocus }) => {
+        const onCardClick = () => {
+          if (isDndEnabled && card.value !== 1) {
+            toggleFocus()
+          } else {
+            clearFocus()
+            dispatch(tapCardAction({ cardIndex: index }))
+          }
+        }
+
+        return (
+          <CardHotkeyBadge hotkey={isDndEnabled ? hotkey : undefined}>
+            <Card {...card} isDarkened={isDimmed} isSelected={isFocused} onClick={onCardClick} />
+          </CardHotkeyBadge>
+        )
+      }}
+    </FocusableCard>
   )
 }
 

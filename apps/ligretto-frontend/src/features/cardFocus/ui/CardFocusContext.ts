@@ -1,12 +1,6 @@
 import { createContext, type Dispatch, type SetStateAction } from 'react'
-import type { CardColors } from '@memebattle/ligretto-shared'
 
 export type CardFocusTarget = { type: 'row'; index: number } | { type: 'stack-open' }
-
-export type CardIdentity = {
-  color?: CardColors
-  value?: number
-}
 
 export interface CardFocusContextValue {
   focusedCard?: CardFocusTarget

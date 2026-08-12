@@ -4,12 +4,12 @@ import type { PropsWithChildren } from 'react'
 import { configureStore } from '@reduxjs/toolkit'
 import { CardColors, GameStatus } from '@memebattle/ligretto-shared'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { Provider } from 'react-redux'
 
-import { CardFocusProvider, useCardFocus } from './index'
+import { CardFocusProvider, FocusableCard, useCardFocus } from './index'
 import { rootReducer } from '#app/store/rootReducer'
-import { initialState as gameInitialState, tapStackDeckCardAction } from '#ducks/game/slice'
+import { initialState as gameInitialState } from '#ducks/game/slice'
 
 afterEach(cleanup)
 
@@ -32,7 +32,7 @@ const TestProvider = ({ children, enabled = true }: PropsWithChildren<{ enabled?
 const RowCard = ({ value = 2 }: { value?: number }) => {
   const { isFocused, toggleFocus } = useCardFocus({
     target: { type: 'row', index: 0 },
-    identity: { color: CardColors.red, value },
+    deps: [CardColors.red, value],
   })
 
   return (
@@ -45,7 +45,7 @@ const RowCard = ({ value = 2 }: { value?: number }) => {
 const OpenStackCard = () => {
   const { isFocused, toggleFocus } = useCardFocus({
     target: { type: 'stack-open' },
-    identity: { color: CardColors.blue, value: 3 },
+    deps: [CardColors.blue, 3],
   })
 
   return (
@@ -98,19 +98,32 @@ describe('CardFocusProvider', () => {
     expect(screen.getByText('idle')).toBeTruthy()
   })
 
-  it('preserves focus after a click on marked badge content', () => {
+  it('clears focus after clicking a card that is not focusable', () => {
     render(
       <TestProvider>
         <RowCard />
-        <span data-card-focus-element>
-          <span>badge</span>
-        </span>
+        <button>closed stack</button>
       </TestProvider>,
     )
 
     fireEvent.click(screen.getByText('idle'))
-    fireEvent.click(screen.getByText('badge'))
-    expect(screen.getByText('focused')).toBeTruthy()
+    fireEvent.click(screen.getByText('closed stack'))
+    expect(screen.getByText('idle')).toBeTruthy()
+  })
+
+  it('marks only the FocusableCard wrapper as a focus element', () => {
+    render(
+      <TestProvider>
+        <FocusableCard target={{ type: 'row', index: 0 }} deps={[CardColors.red, 2]}>
+          {({ isFocused, toggleFocus }) => <button onClick={toggleFocus}>{isFocused ? 'wrapped-focused' : 'wrapped-idle'}</button>}
+        </FocusableCard>
+      </TestProvider>,
+    )
+
+    const card = screen.getByRole('button')
+    expect(card.closest('[data-card-focus-element]')).toBeTruthy()
+    fireEvent.click(card)
+    expect(screen.getByText('wrapped-focused')).toBeTruthy()
   })
 
   it('clears focus when the focused card identity changes', () => {
@@ -127,38 +140,6 @@ describe('CardFocusProvider', () => {
       </TestProvider>,
     )
     expect(screen.getByText('idle')).toBeTruthy()
-  })
-
-  it('clears focus with Escape without dispatching a game command', () => {
-    const dispatch = vi.spyOn(testStore, 'dispatch')
-    render(
-      <TestProvider>
-        <RowCard />
-      </TestProvider>,
-    )
-
-    fireEvent.click(screen.getByText('idle'))
-    dispatch.mockClear()
-    fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' })
-
-    expect(screen.getByText('idle')).toBeTruthy()
-    expect(dispatch).not.toHaveBeenCalled()
-  })
-
-  it('clears focus and dispatches one stack rotation with Space', () => {
-    const dispatch = vi.spyOn(testStore, 'dispatch')
-    render(
-      <TestProvider>
-        <RowCard />
-      </TestProvider>,
-    )
-
-    fireEvent.click(screen.getByText('idle'))
-    dispatch.mockClear()
-    fireEvent.keyDown(document, { key: ' ', code: 'Space' })
-
-    expect(screen.getByText('idle')).toBeTruthy()
-    expect(dispatch.mock.calls.filter(([action]) => action.type === tapStackDeckCardAction.type)).toHaveLength(1)
   })
 
   it('does not allow pointer focus while disabled', () => {

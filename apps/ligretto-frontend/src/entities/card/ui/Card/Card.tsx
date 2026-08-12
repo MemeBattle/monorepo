@@ -1,7 +1,7 @@
-import React, { useRef } from 'react'
+import React from 'react'
 import { CardColors } from '@memebattle/ligretto-shared'
 import { ButtonBase } from '@mui/material'
-import { Typography, useOnClickOutside } from '@memebattle/ui'
+import { Typography } from '@memebattle/ui'
 import { styled } from '@mui/material/styles'
 import type { CardPlaceSize } from '../CardPlace'
 import { CardBackFace } from './CardBackFace'
@@ -23,14 +23,9 @@ interface CardProps {
   isHighlighted?: boolean
   /** The card lies face down — the uniform back is drawn instead of the face **/
   isHidden?: boolean
-  /** Callback on click outside **/
   onClick?: () => void
-  /** Callback on click **/
-  onClickOutside?: () => void
   /** Size of card **/
   size?: CardSize
-  /** Marks the card root for provider-level focus handling. **/
-  dataCardFocusElement?: boolean
 }
 
 export const widthByCardSize: Record<CardSize, string> = {
@@ -99,7 +94,6 @@ const StyledCardNotForwardedPropsSet = new Set<PropertyKey>(['isDarkened', 'isDi
 
 const StyledCard = styled(ButtonBase, { shouldForwardProp: prop => !StyledCardNotForwardedPropsSet.has(prop) })<{
   color: CardColors
-  ref: React.Ref<HTMLButtonElement>
   isDisabled?: boolean
   isSelected?: boolean
   isDarkened?: boolean
@@ -147,38 +141,29 @@ export const Card: React.FC<CardProps> = ({
   isHidden,
   isHighlighted,
   onClick,
-  onClickOutside,
+
   color = CardColors.empty,
   size = 'medium',
-  dataCardFocusElement,
-}) => {
-  const ref = useRef<HTMLButtonElement>(null)
-
-  useOnClickOutside(ref, onClickOutside)
-
-  return (
-    <StyledCard
-      isDarkened={isDarkened}
-      isHighlighted={isHighlighted}
-      disableRipple={isDisabled}
-      size={size}
-      onMouseDown={onClick}
-      isDisabled={isDisabled}
-      isSelected={isSelected}
-      isHidden={isHidden}
-      color={color}
-      ref={ref}
-      data-card-focus-element={dataCardFocusElement ?? true}
-    >
-      {isHidden ? (
-        <CardBackFace />
-      ) : (
-        <Typography fontSize="inherit" component="span">
-          {value}
-        </Typography>
-      )}
-    </StyledCard>
-  )
-}
+}) => (
+  <StyledCard
+    isDarkened={isDarkened}
+    isHighlighted={isHighlighted}
+    disableRipple={isDisabled}
+    size={size}
+    onMouseDown={onClick}
+    isDisabled={isDisabled}
+    isSelected={isSelected}
+    isHidden={isHidden}
+    color={color}
+  >
+    {isHidden ? (
+      <CardBackFace />
+    ) : (
+      <Typography fontSize="inherit" component="span">
+        {value}
+      </Typography>
+    )}
+  </StyledCard>
+)
 
 Card.displayName = 'Card'

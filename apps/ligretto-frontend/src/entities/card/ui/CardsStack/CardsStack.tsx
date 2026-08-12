@@ -1,4 +1,4 @@
-import { type Ref } from 'react'
+import { type ReactNode, type Ref } from 'react'
 import CachedIcon from '@mui/icons-material/Cached'
 import { styled } from '@mui/material/styles'
 import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
@@ -38,7 +38,7 @@ export interface CardsStackProps {
   isStackOpenDeckSelected: boolean
   isStackOpenDeckDarkened: boolean
   isStackDeckHighlighted?: boolean
-  markCardsForFocus?: boolean
+  openCard?: ReactNode
   ref?: Ref<HTMLDivElement>
   dataTestId?: string
 }
@@ -54,22 +54,22 @@ export const CardsStack = ({
   isStackOpenDeckSelected,
   isStackOpenDeckDarkened,
   isStackDeckHighlighted,
-  markCardsForFocus,
+  openCard,
   ref,
   dataTestId,
 }: CardsStackProps) => (
   <CardsRow ref={ref} dataTestId={dataTestId}>
     <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.x : undefined}>
       <CardPlace dataTestId={dataTestId ? `${dataTestId}-OpenDeck` : undefined}>
-        {stackOpenDeckCard && (
-          <Card
-            {...stackOpenDeckCard}
-            isSelected={isStackOpenDeckSelected}
-            isDarkened={isStackOpenDeckDarkened}
-            onClick={onStackOpenDeckCardClick}
-            dataCardFocusElement={markCardsForFocus}
-          />
-        )}
+        {openCard ??
+          (stackOpenDeckCard && (
+            <Card
+              {...stackOpenDeckCard}
+              isSelected={isStackOpenDeckSelected}
+              isDarkened={isStackOpenDeckDarkened}
+              onClick={onStackOpenDeckCardClick}
+            />
+          ))}
       </CardPlace>
     </CardHotkeyBadge>
 
@@ -80,7 +80,6 @@ export const CardsStack = ({
           isHidden={isStackDeckHidden && stackDeckCards.length > 0}
           onClick={onStackDeckCardClick}
           isHighlighted={isStackDeckHighlighted}
-          dataCardFocusElement={markCardsForFocus}
         />
         {stackDeckCards.length === 0 && stackOpenDeckCard ? (
           <ReshuffleHint>
