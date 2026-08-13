@@ -1,71 +1,65 @@
 import { useCallback, useContext, useEffect } from 'react'
-import type { Card } from '@memebattle/ligretto-shared'
 
-import { CardFocusContext, type CardFocusKey } from './CardFocusContext'
+import { CardFocusContext, type CardFocusOptions } from './CardFocusContext'
 
-type FocusCard = Pick<Card, 'color' | 'value'>
+const getCardFocusKey = (target: CardFocusOptions): string =>
+  target.type === 'row'
+    ? `${target.type}.${target.index}.${target.card.color}.${target.card.value}`
+    : `${target.type}.${target.card.color}.${target.card.value}`
 
-type CardFocusOptions =
-  | {
-      type: 'open-stack'
-      card: FocusCard
-    }
-  | {
-      type: 'row'
-      index: number
-      card: FocusCard
-    }
-
-const getCardFocusKey = (options: CardFocusOptions): CardFocusKey =>
-  options.type === 'row'
-    ? `${options.type}.${options.index}.${options.card.color}.${options.card.value}`
-    : `${options.type}.${options.card.color}.${options.card.value}`
+const isSameCardFocusTarget = (left: CardFocusOptions | undefined, right: CardFocusOptions | undefined) =>
+  left === right ||
+  (!!left &&
+    !!right &&
+    left.type === right.type &&
+    left.card.color === right.card.color &&
+    left.card.value === right.card.value &&
+    (left.type === 'open-stack' || (right.type === 'row' && left.index === right.index)))
 
 export function useCardFocus(): {
-  focusedCard: CardFocusKey | undefined
+  focusedCard: CardFocusOptions | undefined
   clearFocus: () => void
-  toggleFocus: (options: CardFocusOptions) => void
+  toggleFocus: (target: CardFocusOptions) => void
 }
-export function useCardFocus(options: CardFocusOptions): {
+export function useCardFocus(target: CardFocusOptions): {
   isFocused: boolean
   isDimmed: boolean
   toggleFocus: () => void
   clearFocus: () => void
 }
-export function useCardFocus(options?: CardFocusOptions) {
+export function useCardFocus(target?: CardFocusOptions) {
   const context = useContext(CardFocusContext)
   if (!context) {
     throw new Error('useCardFocus must be used within CardFocusProvider')
   }
 
   const { focusedCard, setFocusedCard } = context
-  const focusKey = options && getCardFocusKey(options)
-  const isFocused = !!focusKey && focusedCard === focusKey
+  const focusKey = target && getCardFocusKey(target)
+  const isFocused = !!target && isSameCardFocusTarget(focusedCard, target)
 
   useEffect(
     () => () => {
       if (focusKey) {
-        setFocusedCard(current => (current === focusKey ? undefined : current))
+        setFocusedCard(current => (current && getCardFocusKey(current) === focusKey ? undefined : current))
       }
     },
     [focusKey, setFocusedCard],
   )
 
   const toggleFocus = useCallback(() => {
-    if (focusKey) {
-      setFocusedCard(current => (current === focusKey ? undefined : focusKey))
+    if (target) {
+      setFocusedCard(current => (isSameCardFocusTarget(current, target) ? undefined : target))
     }
-  }, [focusKey, setFocusedCard])
+  }, [setFocusedCard, target])
   const toggleTargetFocus = useCallback(
-    (nextOptions: CardFocusOptions) => {
-      const nextFocusKey = getCardFocusKey(nextOptions)
-      setFocusedCard(current => (current === nextFocusKey ? undefined : nextFocusKey))
+    (nextTarget: CardFocusOptions) => {
+      setFocusedCard(current => (isSameCardFocusTarget(current, nextTarget) ? undefined : nextTarget))
     },
     [setFocusedCard],
   )
   const clearFocus = useCallback(() => setFocusedCard(undefined), [setFocusedCard])
 
-  return options
+  return target
     ? {
         isFocused,
         isDimmed: !!focusedCard && !isFocused,

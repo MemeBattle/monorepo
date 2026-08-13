@@ -50,7 +50,7 @@ type CardFocusOptions =
   { type: 'open-stack'; card: Pick<Card, 'color' | 'value'> } | { type: 'row'; index: number; card: Pick<Card, 'color' | 'value'> }
 ```
 
-The hook derives its internal string key from `type`, optional row `index`, `card.color`, and `card.value`. Consumers do not construct or pass focus keys.
+The hook and context expose the same discriminated target type. The hook derives a private string key from `type`, optional row `index`, `card.color`, and `card.value` only for effect dependencies and equality checks; consumers never construct or receive focus keys.
 
 Only row cards and the open stack card are focus targets. The closed stack, Ligretto deck, and playground are game interaction targets but are not focusable.
 
@@ -60,7 +60,7 @@ Only row cards and the open stack card are focus targets. The closed stack, Ligr
 
 The provider:
 
-1. stores the current `CardFocusKey` in React state;
+1. stores the current `CardFocusOptions` target in React state;
 2. enables focus only in manual placement mode while the player is in game;
 3. installs one document-level listener that clears focus after a click outside a marked focusable card;
 4. clears focus when disabled or unmounted.
