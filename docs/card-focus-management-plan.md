@@ -60,9 +60,10 @@ Only row cards and the open stack card are focus targets. The closed stack, Ligr
 The provider:
 
 1. stores the current `CardFocusOptions` target in React state;
-2. enables focus only in manual placement mode while the player is in game;
-3. installs one document-level listener that clears focus after a click outside a marked focusable card;
-4. clears focus when disabled or unmounted.
+2. owns an internal registry of currently rendered focusable-card targets and their activation behavior;
+3. enables focus only in manual placement mode while the player is in game;
+4. installs one document-level listener that clears focus after a click outside a marked focusable card;
+5. clears focus when disabled, when the focused target unregisters, or when the provider unmounts.
 
 The provider does not replace Redux game actions or shared payloads. It coordinates UI focus before dispatching the existing actions.
 
@@ -70,10 +71,10 @@ The provider does not replace Redux game actions or shared payloads. It coordina
 
 `useCardFocus` is the only public consumer hook.
 
-For a focusable card, it receives the target and current identity:
+For a focusable card, it receives the target, current identity, and card-owned activation behavior:
 
 ```ts
-const { isFocused, isDimmed, toggleFocus, clearFocus } = useCardFocus({ type: 'row', index }, [card.color, card.value])
+const { isFocused, isDimmed, toggleFocus, clearFocus } = useCardFocus({ type: 'row', index }, [card.color, card.value], { canFocus, onActivate })
 ```
 
 It returns:
@@ -91,6 +92,8 @@ const { focusedCard, clearFocus } = useCardFocus()
 ```
 
 This supports playground placement without exporting the context or a second hook. The hook throws a clear error outside `CardFocusProvider`.
+
+Each targeted hook call registers its rendered card in the provider and unregisters it during cleanup. Generic `toggleFocus(target)` resolves the target through this registry: a missing registration clears focus, a non-focusable registration runs its card-owned activation callback, and a focusable registration toggles focus.
 
 ## Focus lifecycle
 
@@ -113,7 +116,7 @@ The hook also clears focus when the focused card component unmounts. This covers
 
 ### Hotkey handling
 
-`CardsPanelContainer/usePanelHotkeys.ts` remains the keyboard integration boundary and calls focus operations from `useCardFocus`.
+`CardsPanelContainer/usePanelHotkeys.ts` remains the keyboard integration boundary and calls focus operations from `useCardFocus`. It does not select card state from Redux; registered card components are the source of truth for presence, identity, and immediate-play behavior.
 
 - `Q/W/E/R/T`: resolve row indices `0..4`; focus/toggle in manual placement mode or dispatch the existing row-card action when immediate play applies.
 - `X`: focus/toggle the open stack card or dispatch its existing immediate-play action.

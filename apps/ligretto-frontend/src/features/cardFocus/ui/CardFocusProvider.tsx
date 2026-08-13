@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState, type Dispatch, type PropsWithChildren, type SetStateAction } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react'
 
-import { CardFocusContext, type CardFocusOptions } from './CardFocusContext'
+import { CardFocusContext, getCardFocusKey, isSameCardFocusTarget, type CardFocusOptions, type CardFocusRegistration } from './CardFocusContext'
 
 interface CardFocusProviderProps extends PropsWithChildren {
   enabled: boolean
@@ -8,24 +8,49 @@ interface CardFocusProviderProps extends PropsWithChildren {
 
 export const CardFocusProvider = ({ children, enabled }: CardFocusProviderProps) => {
   const [focusedCard, setFocusedCard] = useState<CardFocusOptions>()
+  const registrations = useRef(new Map<string, CardFocusRegistration>())
 
-  const setEnabledFocusedCard = useCallback<Dispatch<SetStateAction<CardFocusOptions | undefined>>>(
-    update => {
-      setFocusedCard(current => {
-        if (!enabled) {
-          return undefined
-        }
-        return typeof update === 'function' ? update(current) : update
-      })
+  const clearFocus = useCallback(() => setFocusedCard(undefined), [])
+
+  const registerCard = useCallback((target: CardFocusOptions, registration: CardFocusRegistration) => {
+    const key = getCardFocusKey(target)
+    registrations.current.set(key, registration)
+
+    return () => {
+      if (registrations.current.get(key) !== registration) {
+        return
+      }
+      registrations.current.delete(key)
+      setFocusedCard(current => (current && getCardFocusKey(current) === key ? undefined : current))
+    }
+  }, [])
+
+  const toggleFocus = useCallback(
+    (target: CardFocusOptions) => {
+      const registration = registrations.current.get(getCardFocusKey(target))
+      if (!registration) {
+        clearFocus()
+        return
+      }
+      if (!registration.canFocus) {
+        clearFocus()
+        registration.onActivate?.()
+        return
+      }
+      if (!enabled) {
+        clearFocus()
+        return
+      }
+      setFocusedCard(current => (isSameCardFocusTarget(current, target) ? undefined : target))
     },
-    [enabled],
+    [clearFocus, enabled],
   )
 
   useEffect(() => {
     if (!enabled) {
-      setFocusedCard(undefined)
+      clearFocus()
     }
-  }, [enabled])
+  }, [clearFocus, enabled])
 
   useEffect(() => {
     if (!focusedCard) {
@@ -37,14 +62,14 @@ export const CardFocusProvider = ({ children, enabled }: CardFocusProviderProps)
       if (target instanceof Element && target.closest('[data-card-focus-element]')) {
         return
       }
-      setFocusedCard(undefined)
+      clearFocus()
     }
 
     document.addEventListener('click', handleDocumentClick)
     return () => document.removeEventListener('click', handleDocumentClick)
-  }, [focusedCard])
+  }, [clearFocus, focusedCard])
 
-  const value = useMemo(() => ({ focusedCard, setFocusedCard: setEnabledFocusedCard }), [focusedCard, setEnabledFocusedCard])
+  const value = useMemo(() => ({ focusedCard, clearFocus, registerCard, toggleFocus }), [clearFocus, focusedCard, registerCard, toggleFocus])
 
   return <CardFocusContext value={value}>{children}</CardFocusContext>
 }

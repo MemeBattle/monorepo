@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
 import { useDispatch } from 'react-redux'
 
@@ -12,20 +13,15 @@ interface PlayerStackOpenCardProps {
 
 export const PlayerStackOpenCard = ({ card, isDndEnabled }: PlayerStackOpenCardProps) => {
   const dispatch = useDispatch()
+  const canFocus = isDndEnabled && card.value !== 1
+  const activateCard = useCallback(() => dispatch(tapStackOpenDeckCardAction()), [dispatch])
   const { isFocused, isDimmed, toggleFocus } = useCardFocus(
     {
       type: 'open-stack',
     },
     [card.color, card.value],
+    { canFocus, onActivate: activateCard },
   )
 
-  const handleClick = () => {
-    toggleFocus()
-    if (isDndEnabled && card.value !== 1) {
-      return
-    }
-    dispatch(tapStackOpenDeckCardAction())
-  }
-
-  return <Card {...card} data-card-focus-element isSelected={isFocused} isDarkened={isDimmed} onClick={handleClick} />
+  return <Card {...card} data-card-focus-element isSelected={isFocused} isDarkened={isDimmed} onClick={toggleFocus} />
 }

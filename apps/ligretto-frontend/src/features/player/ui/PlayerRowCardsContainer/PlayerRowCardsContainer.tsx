@@ -22,13 +22,14 @@ interface PlayerRowCardProps {
 
 const PlayerRowCard = ({ card, index, isDndEnabled, hotkey }: PlayerRowCardProps) => {
   const dispatch = useDispatch()
-  const { isFocused, isDimmed, toggleFocus } = useCardFocus({ type: 'row', index }, [card.color, card.value])
+  const canFocus = isDndEnabled && card.value !== 1
+  const activateCard = React.useCallback(() => dispatch(tapCardAction({ cardIndex: index })), [dispatch, index])
+  const { isFocused, isDimmed, toggleFocus } = useCardFocus({ type: 'row', index }, [card.color, card.value], { canFocus, onActivate: activateCard })
   const onCardClick = () => {
     toggleFocus()
-    if (isDndEnabled && card.value !== 1) {
+    if (canFocus) {
       return
     }
-    dispatch(tapCardAction({ cardIndex: index }))
   }
 
   return (

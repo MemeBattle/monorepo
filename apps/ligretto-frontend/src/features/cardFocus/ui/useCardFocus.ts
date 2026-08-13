@@ -1,11 +1,6 @@
 import { useCallback, useContext, useEffect, type DependencyList } from 'react'
 
-import { CardFocusContext, type CardFocusOptions } from './CardFocusContext'
-
-const getCardFocusKey = (target: CardFocusOptions): string => (target.type === 'row' ? `${target.type}.${target.index}` : target.type)
-
-const isSameCardFocusTarget = (left: CardFocusOptions | undefined, right: CardFocusOptions | undefined) =>
-  left === right || (!!left && !!right && getCardFocusKey(left) === getCardFocusKey(right))
+import { CardFocusContext, isSameCardFocusTarget, type CardFocusOptions, type CardFocusRegistration } from './CardFocusContext'
 
 export function useCardFocus(): {
   focusedCard: CardFocusOptions | undefined
@@ -15,52 +10,45 @@ export function useCardFocus(): {
 export function useCardFocus(
   target: CardFocusOptions,
   deps: DependencyList,
+  registration?: Partial<CardFocusRegistration>,
 ): {
   isFocused: boolean
   isDimmed: boolean
   toggleFocus: () => void
   clearFocus: () => void
 }
-export function useCardFocus(target?: CardFocusOptions, deps: DependencyList = []) {
+export function useCardFocus(target?: CardFocusOptions, deps: DependencyList = [], registration: Partial<CardFocusRegistration> = {}) {
   const context = useContext(CardFocusContext)
   if (!context) {
     throw new Error('useCardFocus must be used within CardFocusProvider')
   }
 
-  const { focusedCard, setFocusedCard } = context
-  const focusKey = target && getCardFocusKey(target)
+  const { focusedCard, clearFocus, registerCard, toggleFocus } = context
   const isFocused = !!target && isSameCardFocusTarget(focusedCard, target)
+  const canFocus = registration.canFocus ?? true
+  const onActivate = registration.onActivate
 
-  useEffect(
-    () => () => {
-      if (focusKey) {
-        setFocusedCard(current => (current && getCardFocusKey(current) === focusKey ? undefined : current))
-      }
-    },
+  useEffect(() => {
+    if (!target) {
+      return
+    }
+    return registerCard(target, { canFocus, onActivate })
     // The caller-provided dependencies define when the rendered card identity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [focusKey, setFocusedCard, ...deps],
-  )
+  }, [canFocus, onActivate, registerCard, target?.type, target?.type === 'row' ? target.index : undefined, ...deps])
 
-  const toggleFocus = useCallback(() => {
+  const toggleOwnFocus = useCallback(() => {
     if (target) {
-      setFocusedCard(current => (isSameCardFocusTarget(current, target) ? undefined : target))
+      toggleFocus(target)
     }
-  }, [setFocusedCard, target])
-  const toggleTargetFocus = useCallback(
-    (nextTarget: CardFocusOptions) => {
-      setFocusedCard(current => (isSameCardFocusTarget(current, nextTarget) ? undefined : nextTarget))
-    },
-    [setFocusedCard],
-  )
-  const clearFocus = useCallback(() => setFocusedCard(undefined), [setFocusedCard])
+  }, [target, toggleFocus])
 
   return target
     ? {
         isFocused,
         isDimmed: !!focusedCard && !isFocused,
-        toggleFocus,
+        toggleFocus: toggleOwnFocus,
         clearFocus,
       }
-    : { focusedCard, clearFocus, toggleFocus: toggleTargetFocus }
+    : { focusedCard, clearFocus, toggleFocus }
 }

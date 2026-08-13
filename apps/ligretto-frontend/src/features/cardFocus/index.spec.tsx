@@ -4,7 +4,7 @@ import type { PropsWithChildren } from 'react'
 import { configureStore } from '@reduxjs/toolkit'
 import { CardColors, GameStatus } from '@memebattle/ligretto-shared'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Provider } from 'react-redux'
 
 import { CardFocusProvider, useCardFocus } from './index'
@@ -29,19 +29,36 @@ const TestProvider = ({ children, enabled = true }: PropsWithChildren<{ enabled?
   </Provider>
 )
 
-const RowCard = ({ value = 2 }: { value?: number }) => {
+const RowCard = ({ value = 2, onActivate }: { value?: number; onActivate?: () => void }) => {
   const { isFocused, toggleFocus } = useCardFocus(
     {
       type: 'row',
       index: 0,
     },
     [CardColors.red, value],
+    { canFocus: value !== 1, onActivate },
   )
 
   return (
     <button data-card-focus-element onClick={toggleFocus}>
       {isFocused ? 'focused' : 'idle'}
     </button>
+  )
+}
+
+const FocusController = () => {
+  const { focusedCard, toggleFocus } = useCardFocus()
+
+  return (
+    <>
+      <button data-card-focus-element onClick={() => toggleFocus({ type: 'row', index: 0 })}>
+        toggle row 0
+      </button>
+      <button data-card-focus-element onClick={() => toggleFocus({ type: 'row', index: 1 })}>
+        toggle missing row
+      </button>
+      <output>{focusedCard?.type === 'row' ? `row.${focusedCard.index}` : (focusedCard?.type ?? 'none')}</output>
+    </>
   )
 }
 
@@ -154,5 +171,51 @@ describe('CardFocusProvider', () => {
 
     fireEvent.click(screen.getByText('idle'))
     expect(screen.getByText('idle')).toBeTruthy()
+  })
+
+  it('clears focus when toggling an unregistered target', () => {
+    render(
+      <TestProvider>
+        <RowCard />
+        <FocusController />
+      </TestProvider>,
+    )
+
+    fireEvent.click(screen.getByText('toggle row 0'))
+    expect(screen.getByText('row.0')).toBeTruthy()
+    fireEvent.click(screen.getByText('toggle missing row'))
+    expect(screen.getByText('none')).toBeTruthy()
+  })
+
+  it('routes a non-focusable registered card through its activation callback', () => {
+    const onActivate = vi.fn()
+    render(
+      <TestProvider>
+        <RowCard value={1} onActivate={onActivate} />
+        <FocusController />
+      </TestProvider>,
+    )
+
+    fireEvent.click(screen.getByText('toggle row 0'))
+    expect(onActivate).toHaveBeenCalledOnce()
+    expect(screen.getByText('none')).toBeTruthy()
+  })
+
+  it('clears focus when the registered card unmounts', () => {
+    const view = render(
+      <TestProvider>
+        <RowCard />
+        <FocusController />
+      </TestProvider>,
+    )
+
+    fireEvent.click(screen.getByText('toggle row 0'))
+    expect(screen.getByText('row.0')).toBeTruthy()
+    view.rerender(
+      <TestProvider>
+        <FocusController />
+      </TestProvider>,
+    )
+    expect(screen.getByText('none')).toBeTruthy()
   })
 })
