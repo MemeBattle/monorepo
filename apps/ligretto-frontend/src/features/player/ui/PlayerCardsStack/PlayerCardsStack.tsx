@@ -1,41 +1,52 @@
-import React, { useCallback } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import CachedIcon from '@mui/icons-material/Cached'
+import { styled } from '@mui/material/styles'
+import React from 'react'
+import { useSelector } from 'react-redux'
 
-import { CardsStack } from '#entities/card'
-import { setSelectedCardIndexAction, STACK_OPEN_DECK_INDEX, tapStackDeckCardAction, tapStackOpenDeckCardAction } from '#ducks/game'
+import { Hotkey } from '#ducks/game'
+import { CardHotkeyBadge, CardPlace } from '#entities/card'
+import { CardsRow } from '#entities/card/ui/CardsRow'
 import { playerCardsStackSelector } from './PlayerCardsStack.selector'
+import { PlayerStackDeck } from './PlayerStackDeck'
+import { PlayerStackOpenCard } from './PlayerStackOpenCard'
+
+const ReshuffleHint = styled('div')(({ theme }) => ({
+  position: 'absolute',
+  inset: 0,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: 'white',
+  pointerEvents: 'none',
+  fontSize: '3rem',
+  [theme.breakpoints.down('sm')]: {
+    fontSize: '2rem',
+  },
+}))
 
 export const PlayerCardsStack = () => {
-  const dispatch = useDispatch()
-  const { stackDeckCards, isStackDeckHidden, stackOpenDeckCard, isDndEnabled, selectedCardIndex } = useSelector(playerCardsStackSelector)
-
-  const handleStackOpenDeckCardClick = useCallback(() => {
-    dispatch(tapStackOpenDeckCardAction())
-  }, [dispatch])
-
-  const handleStackOpenDeckCardOutsideClick = useCallback(() => {
-    dispatch(setSelectedCardIndexAction(undefined))
-  }, [dispatch])
-
-  const handleStackDeckCardClick = useCallback(() => {
-    dispatch(tapStackDeckCardAction())
-  }, [dispatch])
+  const { stackDeckCards, isStackDeckHidden, stackOpenDeckCard, isDndEnabled } = useSelector(playerCardsStackSelector)
 
   if (!stackDeckCards) {
     return null
   }
 
   return (
-    <CardsStack
-      stackOpenDeckCard={stackOpenDeckCard}
-      stackDeckCards={stackDeckCards}
-      isStackDeckHidden={isStackDeckHidden}
-      onStackOpenDeckCardClick={handleStackOpenDeckCardClick}
-      onStackDeckCardOutsideClick={handleStackOpenDeckCardOutsideClick}
-      onStackDeckCardClick={handleStackDeckCardClick}
-      isDndEnabled={isDndEnabled}
-      isStackOpenDeckSelected={selectedCardIndex === STACK_OPEN_DECK_INDEX}
-      isStackOpenDeckDarkened={typeof selectedCardIndex !== 'undefined' && selectedCardIndex !== STACK_OPEN_DECK_INDEX}
-    />
+    <CardsRow>
+      <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.x : undefined}>
+        <CardPlace>{stackOpenDeckCard && <PlayerStackOpenCard card={stackOpenDeckCard} isDndEnabled={isDndEnabled} />}</CardPlace>
+      </CardHotkeyBadge>
+
+      <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.space : undefined}>
+        <CardPlace>
+          <PlayerStackDeck card={stackDeckCards[0]} isHidden={isStackDeckHidden && stackDeckCards.length > 0} />
+          {stackDeckCards.length === 0 && stackOpenDeckCard ? (
+            <ReshuffleHint>
+              <CachedIcon fontSize="inherit" />
+            </ReshuffleHint>
+          ) : null}
+        </CardPlace>
+      </CardHotkeyBadge>
+    </CardsRow>
   )
 }

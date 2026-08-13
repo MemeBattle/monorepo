@@ -1,58 +1,52 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from '@reduxjs/toolkit'
 import { CardsRow } from '#entities/card/ui/CardsRow'
 
-import { tapCardAction, playerCardsSelector, isDndEnabledSelector, setSelectedCardIndexAction, selectedCardIndexSelector, Hotkey } from '#ducks/game'
+import { tapCardAction, playerCardsSelector, isDndEnabledSelector, Hotkey } from '#ducks/game'
 import { Card, CardPlace, CardHotkeyBadge } from '#entities/card'
+import { useCardFocus } from '#features/cardFocus'
+import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
 
-const PlayerRowCardsContainerSelector = createSelector(
-  [playerCardsSelector, isDndEnabledSelector, selectedCardIndexSelector],
-  (playerCards, isDndEnabled, selectedCardIndex) => ({
-    playerCards,
-    isDndEnabled,
-    selectedCardIndex,
-  }),
-)
+const PlayerRowCardsContainerSelector = createSelector([playerCardsSelector, isDndEnabledSelector], (playerCards, isDndEnabled) => ({
+  playerCards,
+  isDndEnabled,
+}))
+
+interface PlayerRowCardProps {
+  card: PlayerCard
+  index: number
+  isDndEnabled: boolean
+  hotkey?: Hotkey
+}
+
+const PlayerRowCard = ({ card, index, isDndEnabled, hotkey }: PlayerRowCardProps) => {
+  const dispatch = useDispatch()
+  const { isFocused, isDimmed, toggleFocus, clearFocus } = useCardFocus({ type: 'row', index }, [card.color, card.value])
+  const onCardClick = () => {
+    if (isDndEnabled && card.value !== 1) {
+      toggleFocus()
+      return
+    }
+    clearFocus()
+    dispatch(tapCardAction({ cardIndex: index }))
+  }
+
+  return (
+    <CardHotkeyBadge hotkey={isDndEnabled ? hotkey : undefined}>
+      <Card {...card} data-card-focus-element isDarkened={isDimmed} isSelected={isFocused} onClick={onCardClick} />
+    </CardHotkeyBadge>
+  )
+}
 
 export const PlayerRowCardsContainer = () => {
-  const dispatch = useDispatch()
-  const { playerCards, isDndEnabled, selectedCardIndex } = useSelector(PlayerRowCardsContainerSelector)
-
+  const { playerCards, isDndEnabled } = useSelector(PlayerRowCardsContainerSelector)
   const hotkeys = useMemo(() => [Hotkey.q, Hotkey.w, Hotkey.e, Hotkey.r, Hotkey.t], [])
-
-  const onCardClick = useCallback(
-    (index: number) => {
-      dispatch(tapCardAction({ cardIndex: index }))
-    },
-    [dispatch],
-  )
-
-  const onCardClickOutside = useCallback(
-    (index: number) => {
-      if (selectedCardIndex === index) {
-        dispatch(setSelectedCardIndexAction(undefined))
-      }
-    },
-    [dispatch, selectedCardIndex],
-  )
 
   return (
     <CardsRow>
       {playerCards?.map((card, index) => (
-        <CardPlace key={index}>
-          {card && (
-            <CardHotkeyBadge hotkey={isDndEnabled ? hotkeys[index] : undefined}>
-              <Card
-                {...card}
-                isDarkened={typeof selectedCardIndex !== 'undefined' && selectedCardIndex !== index}
-                isSelected={selectedCardIndex === index}
-                onClick={() => onCardClick(index)}
-                onClickOutside={() => onCardClickOutside(index)}
-              />
-            </CardHotkeyBadge>
-          )}
-        </CardPlace>
+        <CardPlace key={index}>{card && <PlayerRowCard card={card} index={index} isDndEnabled={isDndEnabled} hotkey={hotkeys[index]} />}</CardPlace>
       ))}
     </CardsRow>
   )

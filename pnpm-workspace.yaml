@@ -75,6 +75,7 @@ catalog:
   '@storybook/react-vite': ^10.5.4
   '@tailwindcss/postcss': ^4.3.3
   '@tailwindcss/typography': ^0.5.20
+  '@testing-library/react': ^16.3.2
   '@types/amplitude-js': 8.16.5
   '@types/hast': ^3.0.5
   '@types/jsonwebtoken': ^9.0.1

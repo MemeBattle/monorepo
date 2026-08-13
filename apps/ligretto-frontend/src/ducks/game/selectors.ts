@@ -1,12 +1,10 @@
 import { createSelector } from '@reduxjs/toolkit'
-import last from 'lodash/last'
 
 import type { All } from '#types/store'
 import { currentUserIdSelector } from '#ducks/auth'
 
 import { usersMapSelector } from '../users'
-import { mergePlayerAndUser, STACK_OPEN_DECK_INDEX } from './utils'
-import type { SelectedCardIndex } from './slice'
+import { mergePlayerAndUser } from './utils'
 
 export const gameSelector = (state: All) => state.game.game
 
@@ -42,19 +40,6 @@ export const playerStackDeckHiddenSelector = (state: All) => playerSelector(stat
 export const playerLigrettoDeckCardsSelector = (state: All) => playerSelector(state)?.ligrettoDeck.cards
 export const playerLigrettoDeckHiddenSelector = (state: All) => playerSelector(state)?.ligrettoDeck.isHidden
 export const playerStatusSelector = (state: All) => playerSelector(state)?.status
-
-/** Local Player State */
-export const localPlayerStateSelector = (state: All) => state.game.localPlayerState
-export const selectedCardIndexSelector = (state: All) => localPlayerStateSelector(state).selectedCardIndex
-export const selectPlayerCardByIndex = (state: All, index: SelectedCardIndex | undefined) => {
-  if (index === STACK_OPEN_DECK_INDEX) {
-    return last(playerStackOpenDeckCardsSelector(state))
-  } else if (typeof index === 'number') {
-    return playerCardsSelector(state)?.[index]
-  } else {
-    return undefined
-  }
-}
 
 export const isPlayerSpectatorSelector = (state: All) => {
   const currentPlayerId = currentUserIdSelector(state)

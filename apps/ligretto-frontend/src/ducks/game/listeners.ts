@@ -1,4 +1,4 @@
-import type { TypedStartListening, Dispatch } from '@reduxjs/toolkit'
+import type { TypedStartListening } from '@reduxjs/toolkit'
 import { TaskAbortError } from '@reduxjs/toolkit'
 import {
   PlayerStatus,
@@ -14,7 +14,6 @@ import {
   updateGameAction,
 } from '@memebattle/ligretto-shared'
 
-import type { SelectedCardIndex } from './slice'
 import {
   setGameLoadedAction,
   setGameResultAction,
@@ -25,12 +24,9 @@ import {
   tapStackOpenDeckCardAction,
   tapStackDeckCardAction,
   tapLigrettoDeckCardAction,
-  setSelectedCardIndexAction,
-  tapPlaygroundCardAction,
   resetGameStateAction,
 } from './slice'
-import { gameIdSelector, isDndEnabledSelector, playerStatusSelector, selectedCardIndexSelector, selectPlayerCardByIndex } from './selectors'
-import { STACK_OPEN_DECK_INDEX } from './utils'
+import { gameIdSelector, playerStatusSelector } from './selectors'
 import { matchPath } from 'react-router'
 import { routes } from '#shared/constants'
 import { LOCATION_CHANGE, push } from 'redux-first-history'
@@ -38,17 +34,6 @@ import { socketConnectedAction } from '#entities/socket'
 import { locationSelector } from '#ducks/router'
 import { connectToRoomAction } from '#ducks/rooms'
 import type { All } from '#types/store.js'
-
-function setSelectedCardIndex(cardIndex: SelectedCardIndex, state: All, dispatch: Dispatch) {
-  const selectedCardIndex = selectedCardIndexSelector(state)
-  const cardToSelect = selectPlayerCardByIndex(state, cardIndex)
-
-  if (cardIndex === selectedCardIndex || !cardToSelect) {
-    dispatch(setSelectedCardIndexAction(undefined))
-  } else {
-    dispatch(setSelectedCardIndexAction(cardIndex))
-  }
-}
 
 export function addListeners(startListener: TypedStartListening<All>) {
   startListener({
@@ -152,59 +137,16 @@ export function addListeners(startListener: TypedStartListening<All>) {
   startListener({
     actionCreator: tapCardAction,
     effect: ({ payload }, listenerApi) => {
-      const state = listenerApi.getState()
-
-      const gameId = gameIdSelector(state)
-
-      const isDndEnabled = isDndEnabledSelector(state)
-      const tappedCard = selectPlayerCardByIndex(state, payload.cardIndex)
-
-      if (!isDndEnabled || tappedCard?.value === 1) {
-        listenerApi.dispatch(putCardAction({ cardIndex: payload.cardIndex, gameId }))
-      } else {
-        setSelectedCardIndex(payload.cardIndex, state, listenerApi.dispatch)
-      }
+      const gameId = gameIdSelector(listenerApi.getState())
+      listenerApi.dispatch(putCardAction({ cardIndex: payload.cardIndex, gameId }))
     },
   })
 
   startListener({
     actionCreator: tapStackOpenDeckCardAction,
     effect: (_action, listenerApi) => {
-      const state = listenerApi.getState()
-
-      const gameId = gameIdSelector(state)
-
-      const isDndEnabled = isDndEnabledSelector(state)
-      const tappedCard = selectPlayerCardByIndex(state, STACK_OPEN_DECK_INDEX)
-
-      if (!isDndEnabled || tappedCard?.value === 1) {
-        listenerApi.dispatch(putCardFromStackOpenDeck({ gameId }))
-      } else {
-        setSelectedCardIndex(STACK_OPEN_DECK_INDEX, state, listenerApi.dispatch)
-      }
-    },
-  })
-
-  startListener({
-    actionCreator: tapPlaygroundCardAction,
-    effect: ({ payload }, listenerApi) => {
-      const state = listenerApi.getState()
-
-      const gameId = gameIdSelector(state)
-
-      const isDndEnabled = isDndEnabledSelector(state)
-      const selectedCardIndex = selectedCardIndexSelector(state)
-
-      if (!isDndEnabled) {
-        return
-      }
-
-      if (selectedCardIndex === STACK_OPEN_DECK_INDEX) {
-        listenerApi.dispatch(putCardFromStackOpenDeck({ gameId, playgroundDeckIndex: payload.deckPosition }))
-      } else if (typeof selectedCardIndex === 'number') {
-        listenerApi.dispatch(putCardAction({ cardIndex: selectedCardIndex, gameId, playgroundDeckIndex: payload.deckPosition }))
-        listenerApi.dispatch(setSelectedCardIndexAction(undefined))
-      }
+      const gameId = gameIdSelector(listenerApi.getState())
+      listenerApi.dispatch(putCardFromStackOpenDeck({ gameId }))
     },
   })
 }
