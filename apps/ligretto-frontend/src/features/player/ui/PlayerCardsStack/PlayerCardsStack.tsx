@@ -1,13 +1,30 @@
+import CachedIcon from '@mui/icons-material/Cached'
+import { styled } from '@mui/material/styles'
 import React from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 
-import { Card, CardsStack } from '#entities/card'
-import { tapStackDeckCardAction, tapStackOpenDeckCardAction } from '#ducks/game'
-import { FocusableCard } from '#features/cardFocus'
+import { Hotkey } from '#ducks/game'
+import { CardHotkeyBadge, CardPlace } from '#entities/card'
+import { CardsRow } from '#entities/card/ui/CardsRow'
 import { playerCardsStackSelector } from './PlayerCardsStack.selector'
+import { PlayerStackDeck } from './PlayerStackDeck'
+import { PlayerStackOpenCard } from './PlayerStackOpenCard'
+
+const ReshuffleHint = styled('div')(({ theme }) => ({
+  position: 'absolute',
+  inset: 0,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: 'white',
+  pointerEvents: 'none',
+  fontSize: '3rem',
+  [theme.breakpoints.down('sm')]: {
+    fontSize: '2rem',
+  },
+}))
 
 export const PlayerCardsStack = () => {
-  const dispatch = useDispatch()
   const { stackDeckCards, isStackDeckHidden, stackOpenDeckCard, isDndEnabled } = useSelector(playerCardsStackSelector)
 
   if (!stackDeckCards) {
@@ -15,36 +32,21 @@ export const PlayerCardsStack = () => {
   }
 
   return (
-    <CardsStack
-      stackOpenDeckCard={stackOpenDeckCard}
-      stackDeckCards={stackDeckCards}
-      isStackDeckHidden={isStackDeckHidden}
-      onStackOpenDeckCardClick={() => dispatch(tapStackOpenDeckCardAction())}
-      onStackDeckCardClick={() => dispatch(tapStackDeckCardAction())}
-      isDndEnabled={isDndEnabled}
-      isStackOpenDeckSelected={false}
-      isStackOpenDeckDarkened={false}
-      openCard={
-        stackOpenDeckCard && (
-          <FocusableCard target={{ type: 'stack-open' }} deps={[stackOpenDeckCard.color, stackOpenDeckCard.value]}>
-            {({ isFocused, isDimmed, toggleFocus, clearFocus }) => (
-              <Card
-                {...stackOpenDeckCard}
-                isSelected={isFocused}
-                isDarkened={isDimmed}
-                onClick={() => {
-                  if (isDndEnabled && stackOpenDeckCard.value !== 1) {
-                    toggleFocus()
-                  } else {
-                    clearFocus()
-                    dispatch(tapStackOpenDeckCardAction())
-                  }
-                }}
-              />
-            )}
-          </FocusableCard>
-        )
-      }
-    />
+    <CardsRow>
+      <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.x : undefined}>
+        <CardPlace>{stackOpenDeckCard && <PlayerStackOpenCard card={stackOpenDeckCard} isDndEnabled={isDndEnabled} />}</CardPlace>
+      </CardHotkeyBadge>
+
+      <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.space : undefined}>
+        <CardPlace>
+          <PlayerStackDeck card={stackDeckCards[0]} isHidden={isStackDeckHidden && stackDeckCards.length > 0} />
+          {stackDeckCards.length === 0 && stackOpenDeckCard ? (
+            <ReshuffleHint>
+              <CachedIcon fontSize="inherit" />
+            </ReshuffleHint>
+          ) : null}
+        </CardPlace>
+      </CardHotkeyBadge>
+    </CardsRow>
   )
 }

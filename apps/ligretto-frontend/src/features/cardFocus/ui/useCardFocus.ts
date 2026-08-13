@@ -1,19 +1,18 @@
-import { useCallback, useContext, useEffect, useMemo, type DependencyList } from 'react'
+import { useCallback, useContext, useEffect, type DependencyList } from 'react'
 
-import { CardFocusContext, isSameCardFocusTarget, type CardFocusTarget } from './CardFocusContext'
+import { CardFocusContext, type CardFocusKey } from './CardFocusContext'
 
 interface UseCardFocusOptions {
-  target: CardFocusTarget
+  focusKey: CardFocusKey
   deps: DependencyList
 }
 
 export function useCardFocus(): {
-  focusedCard: CardFocusTarget | undefined
+  focusedCard: CardFocusKey | undefined
   clearFocus: () => void
-  toggleFocus: (target: CardFocusTarget) => void
+  toggleFocus: (focusKey: CardFocusKey) => void
 }
 export function useCardFocus(options: UseCardFocusOptions): {
-  focusedCard: CardFocusTarget | undefined
   isFocused: boolean
   isDimmed: boolean
   toggleFocus: () => void
@@ -26,34 +25,29 @@ export function useCardFocus(options?: UseCardFocusOptions) {
   }
 
   const { focusedCard, setFocusedCard } = context
-  const targetType = options?.target.type
-  const targetIndex = options?.target.type === 'row' ? options.target.index : undefined
-  const target = useMemo<CardFocusTarget | undefined>(
-    () => (targetType === 'row' ? { type: 'row', index: targetIndex! } : targetType === 'stack-open' ? { type: 'stack-open' } : undefined),
-    [targetIndex, targetType],
-  )
+  const focusKey = options?.focusKey
   const deps = options?.deps ?? []
-  const isFocused = !!options && isSameCardFocusTarget(focusedCard, options.target)
+  const isFocused = !!focusKey && focusedCard === focusKey
 
   useEffect(
     () => () => {
-      if (target) {
-        setFocusedCard(current => (isSameCardFocusTarget(current, target) ? undefined : current))
+      if (focusKey) {
+        setFocusedCard(current => (current === focusKey ? undefined : current))
       }
     },
     // The caller-provided dependencies define the rendered card identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [setFocusedCard, target, ...deps],
+    [setFocusedCard, focusKey, ...deps],
   )
 
   const toggleFocus = useCallback(() => {
-    if (target) {
-      setFocusedCard(current => (isSameCardFocusTarget(current, target) ? undefined : target))
+    if (focusKey) {
+      setFocusedCard(current => (current === focusKey ? undefined : focusKey))
     }
-  }, [setFocusedCard, target])
+  }, [focusKey, setFocusedCard])
   const toggleTargetFocus = useCallback(
-    (nextTarget: CardFocusTarget) => {
-      setFocusedCard(current => (isSameCardFocusTarget(current, nextTarget) ? undefined : nextTarget))
+    (nextFocusKey: CardFocusKey) => {
+      setFocusedCard(current => (current === nextFocusKey ? undefined : nextFocusKey))
     },
     [setFocusedCard],
   )
@@ -61,7 +55,6 @@ export function useCardFocus(options?: UseCardFocusOptions) {
 
   return options
     ? {
-        focusedCard,
         isFocused,
         isDimmed: !!focusedCard && !isFocused,
         toggleFocus,

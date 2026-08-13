@@ -43,34 +43,27 @@ features/cardFocus/
     └── useCardFocus.ts
 ```
 
-The internal focus target is semantic rather than a raw sentinel:
+The internal focus target is a string key owned by each focusable player-card component:
 
 ```ts
-type CardFocusTarget = { type: 'row'; index: number } | { type: 'stack-open' }
+type CardFocusKey = string
 
-type CardIdentity = {
-  color: CardColors
-  value?: number
-}
+const rowFocusKey = `row.${index}`
+const openStackFocusKey = 'stack-open'
 ```
 
 Only row cards and the open stack card are focus targets. The closed stack, Ligretto deck, and playground are game interaction targets but are not focusable.
 
 ## Provider responsibilities
 
-`CardFocusProvider` is the only owner of focused-card state. It also owns card hotkeys and outside-card dismissal.
+`CardFocusProvider` is the only owner of focused-card state and outside-card dismissal. Card hotkeys remain in `usePanelHotkeys` inside `CardsPanelContainer`.
 
 The provider:
 
-1. stores the current `CardFocusTarget` in React state;
+1. stores the current `CardFocusKey` in React state;
 2. enables focus only in manual placement mode while the player is in game;
-3. reads the current player cards required to resolve hotkeys;
-4. handles `Q/W/E/R/T`, `X`, Space, `L`, and Escape;
-5. dispatches the existing Redux game actions when a hotkey represents a game command;
-6. focuses/toggles row or open-stack cards when manual placement rules require focus;
-7. clears focus before Space rotates the closed stack;
-8. installs one document-level listener that clears focus after a click outside every card;
-9. clears focus when disabled or unmounted.
+3. installs one document-level listener that clears focus after a click outside a marked focusable card;
+4. clears focus when disabled or unmounted.
 
 The provider does not replace Redux game actions or shared payloads. It coordinates UI focus before dispatching the existing actions.
 
@@ -81,9 +74,9 @@ The provider does not replace Redux game actions or shared payloads. It coordina
 For a focusable card, it receives the target and current identity:
 
 ```ts
-const { isFocused, isDimmed, toggleFocus, clearFocus, cardFocusProps } = useCardFocus({
-  target: { type: 'row', index },
-  identity: { color: card.color, value: card.value },
+const { isFocused, isDimmed, toggleFocus, clearFocus } = useCardFocus({
+  focusKey: `row.${index}`,
+  deps: [card.color, card.value],
 })
 ```
 
@@ -93,7 +86,7 @@ It returns:
 - `isDimmed` when another card is focused;
 - `toggleFocus()` for pointer interaction;
 - `clearFocus()` for the few integration paths that complete a placement;
-- `cardFocusProps`, containing the private marker/ref/event props required by provider-level outside-click handling.
+- the player-card wrapper passes the private `data-card-focus-element` marker directly to `Card`.
 
 For non-card integration code, the same hook may be called without a target:
 
@@ -118,7 +111,7 @@ This supports playground placement without exporting the context or a second hoo
 
 A focused card is cleared when its rendered card changes.
 
-`useCardFocus({ target, identity })` stores the previous `CardIdentity`. When the component re-renders and `color` or `value` differs, it clears focus if that target is focused. A normal re-render with unchanged identity preserves focus.
+`useCardFocus({ focusKey, deps })` clears the matching focus from its effect cleanup when the key, color, or value changes. A normal re-render with unchanged dependencies preserves focus.
 
 The hook also clears focus when the focused card component unmounts. This covers row-card replacement, open-stack rotation/update, and removal of the selected card.
 
@@ -218,7 +211,7 @@ Closed-stack pointer rotation can use the card hook's `clearFocus()` before disp
 1. Mount one provider for the active game UI.
 2. Pass/derive the enabled state for manual placement and in-game status.
 3. Ensure player cards and playground placement are descendants of the same provider.
-4. Remove `CardsPanelContainer/usePanelHotkeys.ts` after migration.
+4. Keep `CardsPanelContainer/usePanelHotkeys.ts` and route focus operations through `useCardFocus`.
 5. Do not register a Redux reducer or listener middleware for focus.
 
 ### Phase 4: Migrate card components
@@ -227,13 +220,14 @@ Closed-stack pointer rotation can use the card hook's `clearFocus()` before disp
 
 - `PlayerRowCardsContainer.tsx`
 - `PlayerCardsStack.tsx`
-- shared card/stack roots as required to spread `cardFocusProps`
+- `PlayerStackOpenCard.tsx` and `PlayerStackDeck.tsx`
+- shared `Card` to pass through data attributes
 
 1. Use the hook for each row card and the open stack card.
 2. Replace Redux focus selectors with `isFocused`/`isDimmed`.
 3. Route manual pointer focus through `toggleFocus()`.
 4. Keep existing Redux actions for immediate-play game commands.
-5. Mark every card root, including closed-stack and Ligretto cards, for provider outside-click detection.
+5. Mark only focusable row and open-stack `Card` roots; closed-stack and Ligretto cards remain outside-click targets.
 6. Remove all per-card outside-click focus handlers.
 7. Preserve presentational `isSelected` and `isDarkened` props.
 

@@ -7,7 +7,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Provider } from 'react-redux'
 
-import { CardFocusProvider, FocusableCard, useCardFocus } from './index'
+import { CardFocusProvider, useCardFocus } from './index'
 import { rootReducer } from '#app/store/rootReducer'
 import { initialState as gameInitialState } from '#ducks/game/slice'
 
@@ -31,7 +31,7 @@ const TestProvider = ({ children, enabled = true }: PropsWithChildren<{ enabled?
 
 const RowCard = ({ value = 2 }: { value?: number }) => {
   const { isFocused, toggleFocus } = useCardFocus({
-    target: { type: 'row', index: 0 },
+    focusKey: 'row.0',
     deps: [CardColors.red, value],
   })
 
@@ -44,7 +44,7 @@ const RowCard = ({ value = 2 }: { value?: number }) => {
 
 const OpenStackCard = () => {
   const { isFocused, toggleFocus } = useCardFocus({
-    target: { type: 'stack-open' },
+    focusKey: 'stack-open',
     deps: [CardColors.blue, 3],
   })
 
@@ -111,19 +111,17 @@ describe('CardFocusProvider', () => {
     expect(screen.getByText('idle')).toBeTruthy()
   })
 
-  it('marks only the FocusableCard wrapper as a focus element', () => {
+  it('keeps focus when the marked card element is clicked', () => {
     render(
       <TestProvider>
-        <FocusableCard target={{ type: 'row', index: 0 }} deps={[CardColors.red, 2]}>
-          {({ isFocused, toggleFocus }) => <button onClick={toggleFocus}>{isFocused ? 'wrapped-focused' : 'wrapped-idle'}</button>}
-        </FocusableCard>
+        <RowCard />
       </TestProvider>,
     )
 
     const card = screen.getByRole('button')
-    expect(card.closest('[data-card-focus-element]')).toBeTruthy()
+    expect(card.matches('[data-card-focus-element]')).toBe(true)
     fireEvent.click(card)
-    expect(screen.getByText('wrapped-focused')).toBeTruthy()
+    expect(screen.getByText('focused')).toBeTruthy()
   })
 
   it('clears focus when the focused card identity changes', () => {

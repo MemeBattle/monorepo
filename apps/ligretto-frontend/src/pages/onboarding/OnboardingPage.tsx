@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, type RefObject } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Box, IconButton } from '@memebattle/ui'
+import CachedIcon from '@mui/icons-material/Cached'
 
 import { GameLayout } from '#shared/ui/layouts/game/GameLayout'
 import { GameGrid } from '#widgets/game/ui/GameGrid/GameGrid'
@@ -22,7 +23,8 @@ import {
 } from '#features/onboarding'
 import { Overlay } from '#shared/ui/Overlay'
 import { NextButton } from '#shared/ui/NextButton/NextButton.js'
-import { CardsStack } from '#entities/card'
+import { Card, CardHotkeyBadge, CardPlace } from '#entities/card'
+import { CardsRow } from '#entities/card/ui/CardsRow'
 
 import type { OutlineTargetId } from './stepConfig'
 import { STEP_CONFIGS } from './stepConfig'
@@ -60,19 +62,44 @@ const OnboardingCardPanel = ({ stackRef, playerRowRef, ligrettoRef, cardRefs }: 
       <CardsPanel
         player={{ status: PlayerStatus.InGame, username: ONBOARDING_PLAYER_NAMES.id0 }}
         stack={
-          <CardsStack
-            ref={stackRef}
-            dataTestId="OnboardingPage-Stack"
-            onStackDeckCardClick={() => dispatch(nextStackCardAction())}
-            onStackOpenDeckCardClick={() => dispatch(putStackCardAction())}
-
-            isStackOpenDeckSelected={config.isStackOpenDeckSelected}
-            isStackOpenDeckDarkened={false}
-            isStackDeckHighlighted={config.isStackDeckHighlighted}
-            stackOpenDeckCard={current?.stackOpenDeck.cards[0]}
-            stackDeckCards={current?.stackDeck.cards ?? []}
-            isStackDeckHidden={current?.stackDeck.isHidden ?? true}
-          />
+          <CardsRow ref={stackRef} dataTestId="OnboardingPage-Stack">
+            <CardHotkeyBadge>
+              <CardPlace dataTestId="OnboardingPage-Stack-OpenDeck">
+                {current?.stackOpenDeck.cards[0] && (
+                  <Card
+                    {...current.stackOpenDeck.cards[0]}
+                    isSelected={config.isStackOpenDeckSelected}
+                    onClick={() => dispatch(putStackCardAction())}
+                  />
+                )}
+              </CardPlace>
+            </CardHotkeyBadge>
+            <CardHotkeyBadge>
+              <CardPlace dataTestId="OnboardingPage-Stack-Deck">
+                <Card
+                  {...current?.stackDeck.cards[0]}
+                  isHidden={(current?.stackDeck.isHidden ?? true) && (current?.stackDeck.cards.length ?? 0) > 0}
+                  isHighlighted={config.isStackDeckHighlighted}
+                  onClick={() => dispatch(nextStackCardAction())}
+                />
+                {current?.stackDeck.cards.length === 0 && current.stackOpenDeck.cards[0] ? (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    <CachedIcon fontSize="large" />
+                  </Box>
+                ) : null}
+              </CardPlace>
+            </CardHotkeyBadge>
+          </CardsRow>
         }
         rowCards={<PlayerRowCards ref={playerRowRef} cardRefs={cardRefs} />}
         ligretto={

@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useState, type Dispatch, type PropsWithChildren, type SetStateAction } from 'react'
 
-import { CardFocusContext, type CardFocusTarget } from './CardFocusContext'
+import { CardFocusContext, type CardFocusKey } from './CardFocusContext'
 
 interface CardFocusProviderProps extends PropsWithChildren {
   enabled: boolean
 }
 
 export const CardFocusProvider = ({ children, enabled }: CardFocusProviderProps) => {
-  const [focusedCard, setFocusedCard] = useState<CardFocusTarget>()
+  const [focusedCard, setFocusedCard] = useState<CardFocusKey>()
 
-  const setEnabledFocusedCard = useCallback<Dispatch<SetStateAction<CardFocusTarget | undefined>>>(
+  const setEnabledFocusedCard = useCallback<Dispatch<SetStateAction<CardFocusKey | undefined>>>(
     update => {
       setFocusedCard(current => {
         if (!enabled) {

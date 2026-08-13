@@ -9,6 +9,7 @@ import { CardBackFace } from './CardBackFace'
 type CardSize = 'small' | 'medium' | 'large'
 
 interface CardProps {
+  [dataAttribute: `data-${string}`]: string | boolean | undefined
   /** Color of card **/
   color?: CardColors
   /** Value of card **/
@@ -144,8 +145,10 @@ export const Card: React.FC<CardProps> = ({
 
   color = CardColors.empty,
   size = 'medium',
+  ...rest
 }) => (
   <StyledCard
+    {...rest}
     isDarkened={isDarkened}
     isHighlighted={isHighlighted}
     disableRipple={isDisabled}
