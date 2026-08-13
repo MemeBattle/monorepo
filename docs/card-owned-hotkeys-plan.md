@@ -4,7 +4,7 @@
 
 **Goal:** Move every hotkey to the narrowest component that owns its behavior, remove provider-side card registration, and keep card focus cleanup lifecycle-driven.
 
-**Architecture:** Add an internal `useCardHotkey` adapter for rendered player controls. Row cards own `Q/W/E/R/T`, the open-stack card owns `X`, the stack deck owns Space, and the Ligretto deck owns `L`; each uses the same callback as its pointer interaction. `CardFocusProvider` owns Escape and outside-click dismissal, while targeted `useCardFocus` consumers expose only focus state and `toggleFocus`.
+**Architecture:** Add an internal `useCardHotkey` adapter for rendered player controls. Row cards own `Q/W/E/R/T`, the open-stack card owns `X`, the stack deck owns Space, and the Ligretto deck owns `L`; each uses the same callback as its pointer interaction. `CardFocusProvider` owns Escape and outside-click dismissal. Targeted `useCardFocus` consumers expose only focus state and `toggleFocus`; parameterless consumers receive only `focusedCard` and `clearFocus`.
 
 **Tech Stack:** React, TypeScript, `react-hotkeys-hook`, Redux Toolkit, Vitest, React Testing Library.
 
@@ -38,7 +38,7 @@ LigrettoDeckContainer     -> useCardHotkey(L, onActivate, enabled)
 CardFocusProvider         -> useHotkeys(Escape, clearFocus, enabled)
 ```
 
-Each rendered owner routes its key through the same callback as its click. If the owner is absent, its hook is unmounted and the key has no handler. `usePanelHotkeys` is removed.
+Each rendered owner routes its key through the same callback as its click. If the owner is absent or has no available action, its hook remains unconditionally mounted but disabled and the badge is hidden. In particular, Space remains available for an empty closed stack when an open card can be reshuffled, while `L` is unavailable for an empty Ligretto deck. Disabled controls expose neither handler nor badge. `usePanelHotkeys` is removed.
 
 ---
 
@@ -120,14 +120,19 @@ The component only mounts when an open card exists. It never clears focus manual
 **Modify:** `apps/ligretto-frontend/src/features/player/ui/PlayerCardsStack/PlayerStackDeck.tsx`
 
 ```ts
-const onStackDeckActivate = () => dispatch(tapStackDeckCardAction())
+const { clearFocus } = useCardFocus()
+const onStackDeckActivate = () => {
+  clearFocus()
+  dispatch(tapStackDeckCardAction())
+}
 
-useCardHotkey(Hotkey.space, onStackDeckActivate, enabled)
+const stackActionAvailable = stackDeckCards.length > 0 || !!stackOpenDeckCard
+useCardHotkey(Hotkey.space, onStackDeckActivate, isDndEnabled && stackActionAvailable)
 
 return <Card onClick={onStackDeckActivate} /* existing props */ />
 ```
 
-Pass the active-game/manual-controls enablement needed by the component from `PlayerCardsStack`. Space is removed from panel-level handling.
+Pass the active-game/manual-controls and action-availability enablement needed by the component from `PlayerCardsStack`. An empty closed stack remains actionable when an open card exists because Space triggers reshuffle; when both are empty, the hook is disabled and the badge is hidden. Space is removed from panel-level handling. The shared pointer/keyboard callback explicitly clears stale card focus before dispatching the stack action exactly once.
 
 ### Ligretto-deck usage
 
@@ -138,12 +143,12 @@ const onLigrettoDeckActivate = useCallback(() => {
   dispatch(tapLigrettoDeckCardAction())
 }, [dispatch])
 
-useCardHotkey(Hotkey.l, onLigrettoDeckActivate, isDndEnabled)
+useCardHotkey(Hotkey.l, onLigrettoDeckActivate, isDndEnabled && ligrettoDeckCards.length > 0)
 
 return <LigrettoPack onLigrettoDeckCardClick={onLigrettoDeckActivate} /* existing props */ />
 ```
 
-`L` is registered only while the Ligretto deck owner is mounted and enabled.
+`L` is registered only while the Ligretto deck owner is mounted, controls are enabled, and the deck is non-empty.
 
 ### Provider-owned Escape
 
@@ -278,10 +283,11 @@ Remove the `usePanelHotkeys` import and invocation. `CardsPanelContainer` contin
 
 **Steps:**
 
-1. Route Space through the stack deck's existing click command.
-2. Route `L` through the Ligretto deck's existing click command.
+1. Route Space through the stack deck's existing click command only when the closed stack has cards or an open card can be reshuffled.
+2. Route `L` through the Ligretto deck's existing click command only when the deck is non-empty.
 3. Verify absent/unmounted controls do not respond.
 4. Verify each key dispatches its Redux command exactly once.
+5. Verify both Space and pointer stack activation clear focus before dispatching.
 
 ### Task 5: Delete panel hotkeys and update documentation
 
@@ -301,11 +307,11 @@ Document component-owned keys, provider-owned Escape, registry removal, and life
 | ---------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------ |
 | `PlayerRowCard`              | Own `Q/W/E/R/T`; no manual focus clear      | `useCardFocus(target, deps)` + `useCardHotkey(hotkey, onCardActivate, enabled)`      |
 | `PlayerStackOpenCard`        | Own `X`; no manual focus clear              | `useCardFocus(openStack, deps)` + `useCardHotkey(Hotkey.x, onCardActivate, enabled)` |
-| `PlayerStackDeck`            | Own Space and share command with click      | `useCardHotkey(Hotkey.space, onStackDeckActivate, enabled)`                          |
+| `PlayerStackDeck`            | Own Space; shared click/key clear + command | `useCardFocus()` + `useCardHotkey(Hotkey.space, onStackDeckActivate, enabled)`       |
 | `LigrettoDeckContainer`      | Own `L` and share command with click        | `useCardHotkey(Hotkey.l, onLigrettoDeckActivate, enabled)`                           |
 | `CardFocusProvider`          | Own Escape; remove registry                 | `useHotkeys(Hotkey.escape, clearFocus, { enabled })`                                 |
 | targeted `useCardFocus`      | Lifecycle cleanup; no returned `clearFocus` | `{ isFocused, isDimmed, toggleFocus }`                                               |
-| parameterless `useCardFocus` | Keep integration dismissal API              | `{ focusedCard, clearFocus, toggleFocus }`                                           |
+| parameterless `useCardFocus` | Keep integration dismissal API              | `{ focusedCard, clearFocus }`                                                        |
 | `CardsPanelContainer`        | Stop owning hotkeys                         | No `usePanelHotkeys` call                                                            |
 | `usePanelHotkeys`            | Remove                                      | Deleted                                                                              |
 | `PlaygroundContainer`        | No behavioral change                        | Existing parameterless `useCardFocus()` usage remains                                |
@@ -333,7 +339,7 @@ node_modules/.bin/vite build
 - No new focus targets.
 - No generic activation callback registry in focus context.
 - No playground placement changes.
-- No runtime implementation in this plan-only PR.
+- No hotkey or badge for an unavailable owner action (empty stack plus empty open deck, empty Ligretto deck, or disabled controls).
 
 ## Risks and mitigations
 

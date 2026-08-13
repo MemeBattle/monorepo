@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react'
+import { useCallback, useEffect, useMemo, useState, type PropsWithChildren } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
 
-import { CardFocusContext, getCardFocusKey, isSameCardFocusTarget, type CardFocusOptions } from './CardFocusContext'
+import { Hotkey } from '#ducks/game'
+import { CardFocusContext, isSameCardFocusTarget, type CardFocusOptions } from './CardFocusContext'
 
 interface CardFocusProviderProps extends PropsWithChildren {
   enabled: boolean
@@ -8,26 +10,13 @@ interface CardFocusProviderProps extends PropsWithChildren {
 
 export const CardFocusProvider = ({ children, enabled }: CardFocusProviderProps) => {
   const [focusedCard, setFocusedCard] = useState<CardFocusOptions>()
-  const registrations = useRef(new Set<string>())
 
-  const clearFocus = useCallback(() => setFocusedCard(undefined), [])
-
-  const registerCard = useCallback((target: CardFocusOptions) => {
-    const key = getCardFocusKey(target)
-    registrations.current.add(key)
-
-    return () => {
-      registrations.current.delete(key)
-      setFocusedCard(current => (current && getCardFocusKey(current) === key ? undefined : current))
-    }
+  const clearFocus = useCallback((target?: CardFocusOptions) => {
+    setFocusedCard(current => (!target || isSameCardFocusTarget(current, target) ? undefined : current))
   }, [])
 
   const toggleFocus = useCallback(
     (target: CardFocusOptions) => {
-      if (!registrations.current.has(getCardFocusKey(target))) {
-        clearFocus()
-        return
-      }
       if (!enabled) {
         clearFocus()
         return
@@ -42,6 +31,15 @@ export const CardFocusProvider = ({ children, enabled }: CardFocusProviderProps)
       clearFocus()
     }
   }, [clearFocus, enabled])
+
+  useHotkeys(
+    Hotkey.escape,
+    event => {
+      event.preventDefault()
+      clearFocus()
+    },
+    { enabled },
+  )
 
   useEffect(() => {
     if (!focusedCard) {
@@ -60,7 +58,7 @@ export const CardFocusProvider = ({ children, enabled }: CardFocusProviderProps)
     return () => document.removeEventListener('click', handleDocumentClick)
   }, [clearFocus, focusedCard])
 
-  const value = useMemo(() => ({ focusedCard, clearFocus, registerCard, toggleFocus }), [clearFocus, focusedCard, registerCard, toggleFocus])
+  const value = useMemo(() => ({ focusedCard, clearFocus, toggleFocus }), [clearFocus, focusedCard, toggleFocus])
 
   return <CardFocusContext value={value}>{children}</CardFocusContext>
 }

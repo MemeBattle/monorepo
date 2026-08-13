@@ -4,7 +4,7 @@
 
 Replace `game.localPlayerState.selectedCardIndex` with a React Context feature that owns focused-card state and exposes focus operations to card and hotkey integrations.
 
-`CardFocusProvider` owns focus state and clicks outside focusable cards. Card components and `usePanelHotkeys` use one public hook to render and change focus. Existing Redux actions remain the boundary for game commands and backend communication.
+`CardFocusProvider` owns focus state, Escape, and clicks outside focusable cards. Rendered player controls own their activation hotkeys and use the same callbacks for keyboard and pointer interaction. Existing Redux actions remain the boundary for game commands and backend communication.
 
 ## Current state
 
@@ -14,7 +14,7 @@ Focus is currently represented by `game.localPlayerState.selectedCardIndex` and 
 - `apps/ligretto-frontend/src/ducks/game/listeners.ts` focuses/unfocuses row and open-stack cards and reads the selected index during playground placement.
 - `apps/ligretto-frontend/src/features/player/ui/PlayerRowCardsContainer/PlayerRowCardsContainer.tsx` renders row-card focus and clears it on outside clicks.
 - `apps/ligretto-frontend/src/features/player/ui/PlayerCardsStack/PlayerCardsStack.tsx` renders open-stack focus and clears it on outside clicks.
-- `apps/ligretto-frontend/src/features/player/ui/CardsPanelContainer/usePanelHotkeys.ts` maps card hotkeys and clears focus on Escape.
+- `apps/ligretto-frontend/src/features/player/lib/useCardHotkey.ts` adapts owner callbacks to `react-hotkeys-hook`.
 
 Focus is UI-local state, but its ownership is mixed with persisted game state, per-card outside-click listeners, and a separate hotkey hook.
 
@@ -55,15 +55,15 @@ Only row cards and the open stack card are focus targets. The closed stack, Ligr
 
 ## Provider responsibilities
 
-`CardFocusProvider` is the only owner of focused-card state and outside-card dismissal. Card hotkeys remain in `usePanelHotkeys` inside `CardsPanelContainer`.
+`CardFocusProvider` is the only owner of focused-card state, Escape, and outside-card dismissal. Activation hotkeys belong to their rendered controls.
 
 The provider:
 
 1. stores the current `CardFocusOptions` target in React state;
-2. owns an internal registry of currently rendered focusable-card targets;
+2. owns Escape dismissal while focus management is enabled;
 3. enables focus only in manual placement mode while the player is in game;
 4. installs one document-level listener that clears focus after a click outside a marked focusable card;
-5. clears focus when disabled, when the focused target unregisters, or when the provider unmounts.
+5. clears focus when disabled; targeted hook lifecycle cleanup clears a focused card after identity change or unmount.
 
 The provider does not replace Redux game actions or shared payloads. It coordinates UI focus before dispatching the existing actions.
 
@@ -74,7 +74,7 @@ The provider does not replace Redux game actions or shared payloads. It coordina
 For a focusable card, it receives the target and current identity:
 
 ```ts
-const { isFocused, isDimmed, toggleFocus, clearFocus } = useCardFocus({ type: 'row', index }, [card.color, card.value])
+const { isFocused, isDimmed, toggleFocus } = useCardFocus({ type: 'row', index }, [card.color, card.value])
 ```
 
 It returns:
@@ -82,7 +82,6 @@ It returns:
 - `isFocused` for the card's selected style;
 - `isDimmed` when another card is focused;
 - `toggleFocus()` for pointer interaction;
-- `clearFocus()` for the few integration paths that complete a placement;
 - the player-card wrapper passes the private `data-card-focus-element` marker directly to `Card`.
 
 For non-card integration code, the same hook may be called without a target:
@@ -93,7 +92,7 @@ const { focusedCard, clearFocus } = useCardFocus()
 
 This supports playground placement without exporting the context or a second hook. The hook throws a clear error outside `CardFocusProvider`.
 
-Each targeted hook call registers its rendered card in the provider and unregisters it during cleanup. Generic `toggleFocus(target)` resolves the target through this registry: a missing registration clears focus and a registered target toggles focus. Game actions remain in the card click handlers and other existing command handlers.
+Each targeted hook call installs target-aware cleanup for its rendered card. Cleanup clears focus only when that exact target remains focused, so stale cleanup cannot clear focus transferred to another card. Game actions remain in the card click handlers and other existing command handlers.
 
 ## Focus lifecycle
 
@@ -116,21 +115,21 @@ The hook also clears focus when the focused card component unmounts. This covers
 
 ### Hotkey handling
 
-`CardsPanelContainer/usePanelHotkeys.ts` remains the keyboard integration boundary and calls focus operations from `useCardFocus`. It does not select card state from Redux; registered card components are the source of truth for whether a focus target currently exists.
+Rendered controls are the keyboard integration boundary. The internal `useCardHotkey` hook prevents the browser default and invokes the same callback as the control's pointer interaction. An absent control has no mounted handler.
 
 - `Q/W/E/R/T`: resolve row indices `0..4`; focus/toggle in manual placement mode or dispatch the existing row-card action when immediate play applies.
 - `X`: focus/toggle the open stack card or dispatch its existing immediate-play action.
-- Space: clear focus, then dispatch `tapStackDeckCardAction()` exactly once.
+- Space: the rendered stack deck clears focus, then dispatches `tapStackDeckCardAction()` exactly once through its shared activation callback.
 - `L`: dispatch `tapLigrettoDeckCardAction()` without introducing a Ligretto focus target.
-- Escape: clear focus without dispatching a game command.
+- Escape: provider-owned focus dismissal without dispatching a game command.
 
-`usePanelHotkeys` uses the existing hotkey library and `preventDefault` behavior. Hotkeys are disabled when focus management is disabled. Pointer and keyboard paths call the same focus operations so their focus rules cannot drift.
+Row cards own `Q/W/E/R/T`, the open-stack card owns `X`, the stack deck owns Space, and the Ligretto deck owns `L`. Owner hotkeys are disabled with manual controls. Pointer and keyboard paths call the same activation callbacks so their command and value-1 behavior cannot drift.
 
 ### Clicking outside cards
 
 Outside-click handling belongs entirely to `CardFocusProvider`; card components do not register individual `onClickOutside` handlers.
 
-Each focusable row or open-stack card root receives the private `data-card-focus-element` marker directly through `Card`'s pass-through data attributes. Closed-stack and Ligretto cards are not marked, so their existing actions run and the completed click also dismisses any stale focus.
+Each focusable row or open-stack card root receives the private `data-card-focus-element` marker directly through `Card`'s pass-through data attributes. Closed-stack and Ligretto cards are not marked. The closed-stack shared pointer/keyboard callback explicitly clears focus before dispatch, while other unmarked completed clicks are handled by outside-click dismissal.
 
 While a card is focused, the provider registers one bubbling `click` listener on `document`:
 
@@ -154,17 +153,17 @@ Expected behavior:
 
 ### Explicit clearing outside the provider
 
-Only successful playground placement needs external access to `clearFocus()` and `focusedCard`. It reads both through `useCardFocus()`, dispatches the existing placement action, then clears focus.
+Successful playground placement and closed-stack activation use the parameterless integration API. Parameterless `useCardFocus()` returns only `focusedCard` and `clearFocus`; targeted card calls return only `isFocused`, `isDimmed`, and `toggleFocus`.
 
-All other generic clearing is provider-owned:
+Other generic clearing is provider-owned or lifecycle-owned:
 
 - Escape;
-- closed-stack rotation by Space;
+- closed-stack rotation through its shared pointer/Space callback;
 - outside-card clicks;
 - disabling/unmounting the provider;
 - card identity change/unmount through the card hook.
 
-Closed-stack pointer rotation can use the card hook's `clearFocus()` before dispatching the existing action. No separate context hook is introduced.
+The closed-stack owner uses parameterless `useCardFocus()` in its shared pointer/Space activation callback to clear focus before dispatching the existing action exactly once. The targeted card-hook overload does not expose `clearFocus`, and no separate context hook is introduced.
 
 ## Migration plan
 
@@ -207,7 +206,7 @@ Closed-stack pointer rotation can use the card hook's `clearFocus()` before disp
 1. Mount one provider for the active game UI.
 2. Pass/derive the enabled state for manual placement and in-game status.
 3. Ensure player cards and playground placement are descendants of the same provider.
-4. Keep `CardsPanelContainer/usePanelHotkeys.ts` and route focus operations through `useCardFocus`.
+4. Mount card hotkeys with their rendered owners; `CardsPanelContainer` has no hotkey hook.
 5. Do not register a Redux reducer or listener middleware for focus.
 
 ### Phase 4: Migrate card components
@@ -299,7 +298,7 @@ Manual acceptance checks:
 ## Risks and decisions
 
 - Focus is React Context state, not Redux state.
-- Hotkeys remain panel-owned; outside-card dismissal is provider-owned.
+- Activation hotkeys are card/control-owned; Escape and outside-card dismissal are provider-owned.
 - Only the provider and one hook are public.
 - A normal re-render preserves focus; changed card identity or unmount clears it.
 - Outside detection is document-wide and based on marked focusable card roots, not the panel boundary.
