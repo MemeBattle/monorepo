@@ -33,7 +33,7 @@ export const usePanelHotkeys = ({ enabled }: { enabled: boolean }) => {
             clearFocus()
             dispatch(tapCardAction({ cardIndex: 0 }))
           } else {
-            toggleFocus({ type: 'row', index: 0, card })
+            toggleFocus({ type: 'row', index: 0 })
           }
           break
         }
@@ -45,7 +45,7 @@ export const usePanelHotkeys = ({ enabled }: { enabled: boolean }) => {
             clearFocus()
             dispatch(tapCardAction({ cardIndex: 1 }))
           } else {
-            toggleFocus({ type: 'row', index: 1, card })
+            toggleFocus({ type: 'row', index: 1 })
           }
           break
         }
@@ -57,7 +57,7 @@ export const usePanelHotkeys = ({ enabled }: { enabled: boolean }) => {
             clearFocus()
             dispatch(tapCardAction({ cardIndex: 2 }))
           } else {
-            toggleFocus({ type: 'row', index: 2, card })
+            toggleFocus({ type: 'row', index: 2 })
           }
           break
         }
@@ -69,7 +69,7 @@ export const usePanelHotkeys = ({ enabled }: { enabled: boolean }) => {
             clearFocus()
             dispatch(tapCardAction({ cardIndex: 3 }))
           } else {
-            toggleFocus({ type: 'row', index: 3, card })
+            toggleFocus({ type: 'row', index: 3 })
           }
           break
         }
@@ -81,7 +81,7 @@ export const usePanelHotkeys = ({ enabled }: { enabled: boolean }) => {
             clearFocus()
             dispatch(tapCardAction({ cardIndex: 4 }))
           } else {
-            toggleFocus({ type: 'row', index: 4, card })
+            toggleFocus({ type: 'row', index: 4 })
           }
           break
         }
@@ -92,7 +92,7 @@ export const usePanelHotkeys = ({ enabled }: { enabled: boolean }) => {
             clearFocus()
             dispatch(tapStackOpenDeckCardAction())
           } else {
-            toggleFocus({ type: 'open-stack', card: stackOpenDeckCard })
+            toggleFocus({ type: 'open-stack' })
           }
           break
         case Hotkey.space:

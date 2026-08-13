@@ -12,10 +12,12 @@ interface PlayerStackOpenCardProps {
 
 export const PlayerStackOpenCard = ({ card, isDndEnabled }: PlayerStackOpenCardProps) => {
   const dispatch = useDispatch()
-  const { isFocused, isDimmed, toggleFocus, clearFocus } = useCardFocus({
-    type: 'open-stack',
-    card,
-  })
+  const { isFocused, isDimmed, toggleFocus, clearFocus } = useCardFocus(
+    {
+      type: 'open-stack',
+    },
+    [card.color, card.value],
+  )
 
   const handleClick = () => {
     if (isDndEnabled && card.value !== 1) {

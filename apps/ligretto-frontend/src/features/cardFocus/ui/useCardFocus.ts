@@ -1,11 +1,8 @@
-import { useCallback, useContext, useEffect } from 'react'
+import { useCallback, useContext, useEffect, type DependencyList } from 'react'
 
 import { CardFocusContext, type CardFocusOptions } from './CardFocusContext'
 
-const getCardFocusKey = (target: CardFocusOptions): string =>
-  target.type === 'row'
-    ? `${target.type}.${target.index}.${target.card.color}.${target.card.value}`
-    : `${target.type}.${target.card.color}.${target.card.value}`
+const getCardFocusKey = (target: CardFocusOptions): string => (target.type === 'row' ? `${target.type}.${target.index}` : target.type)
 
 const isSameCardFocusTarget = (left: CardFocusOptions | undefined, right: CardFocusOptions | undefined) =>
   left === right || (!!left && !!right && getCardFocusKey(left) === getCardFocusKey(right))
@@ -15,13 +12,16 @@ export function useCardFocus(): {
   clearFocus: () => void
   toggleFocus: (target: CardFocusOptions) => void
 }
-export function useCardFocus(target: CardFocusOptions): {
+export function useCardFocus(
+  target: CardFocusOptions,
+  deps: DependencyList,
+): {
   isFocused: boolean
   isDimmed: boolean
   toggleFocus: () => void
   clearFocus: () => void
 }
-export function useCardFocus(target?: CardFocusOptions) {
+export function useCardFocus(target?: CardFocusOptions, deps: DependencyList = []) {
   const context = useContext(CardFocusContext)
   if (!context) {
     throw new Error('useCardFocus must be used within CardFocusProvider')
@@ -37,7 +37,9 @@ export function useCardFocus(target?: CardFocusOptions) {
         setFocusedCard(current => (current && getCardFocusKey(current) === focusKey ? undefined : current))
       }
     },
-    [focusKey, setFocusedCard],
+    // The caller-provided dependencies define when the rendered card identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [focusKey, setFocusedCard, ...deps],
   )
 
   const toggleFocus = useCallback(() => {

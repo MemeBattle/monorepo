@@ -43,14 +43,13 @@ features/cardFocus/
     └── useCardFocus.ts
 ```
 
-The hook accepts the focused card location and identity as one discriminated union:
+The hook accepts the focused card location as a discriminated union:
 
 ```ts
-type CardFocusOptions =
-  { type: 'open-stack'; card: Pick<Card, 'color' | 'value'> } | { type: 'row'; index: number; card: Pick<Card, 'color' | 'value'> }
+type CardFocusOptions = { type: 'open-stack' } | { type: 'row'; index: number }
 ```
 
-The hook and context expose the same discriminated target type. The hook derives a private string key from `type`, optional row `index`, `card.color`, and `card.value` only for effect dependencies and equality checks; consumers never construct or receive focus keys.
+The hook and context expose the same discriminated target type. The hook derives a private string key from `type` and optional row `index` for equality and cleanup comparisons. Card identity is supplied separately as the hook dependency list.
 
 Only row cards and the open stack card are focus targets. The closed stack, Ligretto deck, and playground are game interaction targets but are not focusable.
 
@@ -74,11 +73,7 @@ The provider does not replace Redux game actions or shared payloads. It coordina
 For a focusable card, it receives the target and current identity:
 
 ```ts
-const { isFocused, isDimmed, toggleFocus, clearFocus } = useCardFocus({
-  type: 'row',
-  index,
-  card,
-})
+const { isFocused, isDimmed, toggleFocus, clearFocus } = useCardFocus({ type: 'row', index }, [card.color, card.value])
 ```
 
 It returns:
@@ -112,7 +107,7 @@ This supports playground placement without exporting the context or a second hoo
 
 A focused card is cleared when its rendered card changes.
 
-`useCardFocus({ type, index?, card })` derives a key containing the location, color, and value. Its effect cleanup clears the previous matching key when any of those fields changes. A normal re-render with the same derived key preserves focus.
+`useCardFocus({ type, index? }, deps)` derives a key for the card location. Its effect cleanup clears the previous matching key when the key or any caller-provided dependency changes. Consumers pass card color and value as dependencies so a normal re-render with unchanged identity preserves focus.
 
 The hook also clears focus when the focused card component unmounts. This covers row-card replacement, open-stack rotation/update, and removal of the selected card.
 
