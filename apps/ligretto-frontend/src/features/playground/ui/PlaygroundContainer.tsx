@@ -15,7 +15,7 @@ const PlaygroundContainerSelector = createSelector(
 export const PlaygroundContainer = () => {
   const dispatch = useDispatch()
   const { playgroundDecks, gameId, isDndEnabled } = useSelector(PlaygroundContainerSelector)
-  const { focusedCard, clearFocus } = useCardFocus()
+  const { focusedCard } = useCardFocus()
 
   const handlePlaygroundDeckClick = useCallback(
     (playgroundDeckIndex: number) => {
@@ -27,24 +27,12 @@ export const PlaygroundContainer = () => {
         dispatch(putCardFromStackOpenDeck({ gameId, playgroundDeckIndex }))
       } else if (focusedCard.type === 'row') {
         dispatch(putCardAction({ cardIndex: focusedCard.index, gameId, playgroundDeckIndex }))
-      } else {
-        return
-      }
-      clearFocus()
-    },
-    [clearFocus, dispatch, focusedCard, gameId, isDndEnabled],
-  )
-
-  const handlePlaygroundClick = useCallback(
-    (playgroundDeckIndex: number) => {
-      if (focusedCard) {
-        handlePlaygroundDeckClick(playgroundDeckIndex)
       }
     },
-    [focusedCard, handlePlaygroundDeckClick],
+    [dispatch, focusedCard, gameId, isDndEnabled],
   )
 
-  return <Playground cardsDecks={playgroundDecks} onDeckClick={handlePlaygroundClick} />
+  return <Playground cardsDecks={playgroundDecks} onDeckClick={handlePlaygroundDeckClick} />
 }
 
 PlaygroundContainer.displayName = 'PlaygroundContainer'

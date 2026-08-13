@@ -22,14 +22,13 @@ interface PlayerRowCardProps {
 
 const PlayerRowCard = ({ card, index, isDndEnabled, hotkey }: PlayerRowCardProps) => {
   const dispatch = useDispatch()
-  const { isFocused, isDimmed, toggleFocus, clearFocus } = useCardFocus({ type: 'row', index }, [card.color, card.value])
+  const { isFocused, isDimmed, toggleFocus } = useCardFocus({ type: 'row', index }, [card.color, card.value])
   const onCardClick = () => {
+    toggleFocus()
     if (isDndEnabled && card.value !== 1) {
-      toggleFocus()
-    } else {
-      clearFocus()
-      dispatch(tapCardAction({ cardIndex: index }))
+      return
     }
+    dispatch(tapCardAction({ cardIndex: index }))
   }
 
   return (
