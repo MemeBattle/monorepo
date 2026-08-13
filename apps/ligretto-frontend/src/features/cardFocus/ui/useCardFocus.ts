@@ -8,13 +8,7 @@ const getCardFocusKey = (target: CardFocusOptions): string =>
     : `${target.type}.${target.card.color}.${target.card.value}`
 
 const isSameCardFocusTarget = (left: CardFocusOptions | undefined, right: CardFocusOptions | undefined) =>
-  left === right ||
-  (!!left &&
-    !!right &&
-    left.type === right.type &&
-    left.card.color === right.card.color &&
-    left.card.value === right.card.value &&
-    (left.type === 'open-stack' || (right.type === 'row' && left.index === right.index)))
+  left === right || (!!left && !!right && getCardFocusKey(left) === getCardFocusKey(right))
 
 export function useCardFocus(): {
   focusedCard: CardFocusOptions | undefined

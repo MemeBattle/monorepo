@@ -12,14 +12,6 @@ import {
 } from '#ducks/game'
 import { useCardFocus } from '#features/cardFocus'
 
-const rowHotkeyIndices = new Map<string, number>([
-  [Hotkey.q, 0],
-  [Hotkey.w, 1],
-  [Hotkey.e, 2],
-  [Hotkey.r, 3],
-  [Hotkey.t, 4],
-])
-
 export const usePanelHotkeys = ({ enabled }: { enabled: boolean }) => {
   const dispatch = useDispatch()
   const playerCards = useSelector(playerCardsSelector)
@@ -32,21 +24,67 @@ export const usePanelHotkeys = ({ enabled }: { enabled: boolean }) => {
     (event, handler) => {
       event.preventDefault()
 
-      const rowCardIndex = rowHotkeyIndices.get(handler.hotkey)
-      if (typeof rowCardIndex === 'number') {
-        const card = playerCards?.[rowCardIndex]
-        if (!card) {
-          clearFocus()
-        } else if (card.value === 1 || !enabled) {
-          clearFocus()
-          dispatch(tapCardAction({ cardIndex: rowCardIndex }))
-        } else {
-          toggleFocus({ type: 'row', index: rowCardIndex, card })
-        }
-        return
-      }
-
       switch (handler.hotkey) {
+        case Hotkey.q: {
+          const card = playerCards?.[0]
+          if (!card) {
+            clearFocus()
+          } else if (card.value === 1 || !enabled) {
+            clearFocus()
+            dispatch(tapCardAction({ cardIndex: 0 }))
+          } else {
+            toggleFocus({ type: 'row', index: 0, card })
+          }
+          break
+        }
+        case Hotkey.w: {
+          const card = playerCards?.[1]
+          if (!card) {
+            clearFocus()
+          } else if (card.value === 1 || !enabled) {
+            clearFocus()
+            dispatch(tapCardAction({ cardIndex: 1 }))
+          } else {
+            toggleFocus({ type: 'row', index: 1, card })
+          }
+          break
+        }
+        case Hotkey.e: {
+          const card = playerCards?.[2]
+          if (!card) {
+            clearFocus()
+          } else if (card.value === 1 || !enabled) {
+            clearFocus()
+            dispatch(tapCardAction({ cardIndex: 2 }))
+          } else {
+            toggleFocus({ type: 'row', index: 2, card })
+          }
+          break
+        }
+        case Hotkey.r: {
+          const card = playerCards?.[3]
+          if (!card) {
+            clearFocus()
+          } else if (card.value === 1 || !enabled) {
+            clearFocus()
+            dispatch(tapCardAction({ cardIndex: 3 }))
+          } else {
+            toggleFocus({ type: 'row', index: 3, card })
+          }
+          break
+        }
+        case Hotkey.t: {
+          const card = playerCards?.[4]
+          if (!card) {
+            clearFocus()
+          } else if (card.value === 1 || !enabled) {
+            clearFocus()
+            dispatch(tapCardAction({ cardIndex: 4 }))
+          } else {
+            toggleFocus({ type: 'row', index: 4, card })
+          }
+          break
+        }
         case Hotkey.x:
           if (!stackOpenDeckCard) {
             clearFocus()
