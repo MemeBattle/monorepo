@@ -2,9 +2,9 @@
 
 ## Goal
 
-Replace `game.localPlayerState.selectedCardIndex` with a React Context feature that owns focused-card state and all focus input handling.
+Replace `game.localPlayerState.selectedCardIndex` with a React Context feature that owns focused-card state and exposes focus operations to card and hotkey integrations.
 
-`CardFocusProvider` handles card hotkeys and clicks outside cards. Card components use one public hook to render and change focus. Existing Redux actions remain the boundary for game commands and backend communication.
+`CardFocusProvider` owns focus state and clicks outside focusable cards. Card components and `usePanelHotkeys` use one public hook to render and change focus. Existing Redux actions remain the boundary for game commands and backend communication.
 
 ## Current state
 
@@ -117,7 +117,7 @@ The hook also clears focus when the focused card component unmounts. This covers
 
 ### Hotkey handling
 
-The provider replaces `CardsPanelContainer/usePanelHotkeys.ts`.
+`CardsPanelContainer/usePanelHotkeys.ts` remains the keyboard integration boundary and calls focus operations from `useCardFocus`.
 
 - `Q/W/E/R/T`: resolve row indices `0..4`; focus/toggle in manual placement mode or dispatch the existing row-card action when immediate play applies.
 - `X`: focus/toggle the open stack card or dispatch its existing immediate-play action.
@@ -125,13 +125,13 @@ The provider replaces `CardsPanelContainer/usePanelHotkeys.ts`.
 - `L`: dispatch `tapLigrettoDeckCardAction()` without introducing a Ligretto focus target.
 - Escape: clear focus without dispatching a game command.
 
-The provider uses the existing hotkey library and `preventDefault` behavior. Hotkeys are disabled when focus management is disabled. Pointer and keyboard paths share the same internal provider operations so their focus rules cannot drift.
+`usePanelHotkeys` uses the existing hotkey library and `preventDefault` behavior. Hotkeys are disabled when focus management is disabled. Pointer and keyboard paths call the same focus operations so their focus rules cannot drift.
 
 ### Clicking outside cards
 
 Outside-click handling belongs entirely to `CardFocusProvider`; card components do not register individual `onClickOutside` handlers.
 
-Each focusable and non-focusable card root receives an internal marker through `cardFocusProps`, for example `data-card-focus-element`. Marking all card roots matters: clicking a closed-stack or Ligretto card is still a click on a card and must not be treated as an outside click.
+Each focusable row or open-stack card root receives the private `data-card-focus-element` marker directly through `Card`'s pass-through data attributes. Closed-stack and Ligretto cards are not marked, so their existing actions run and the completed click also dismisses any stale focus.
 
 While a card is focused, the provider registers one bubbling `click` listener on `document`:
 
@@ -174,17 +174,15 @@ Closed-stack pointer rotation can use the card hook's `clearFocus()` before disp
 **Create:** `apps/ligretto-frontend/src/features/cardFocus/ui/CardFocusProvider.spec.tsx`
 
 1. Verify row and open-stack focus, toggle, and transfer behavior.
-2. Verify pointer and matching hotkey paths produce the same focus state.
-3. Verify a re-render with unchanged identity preserves focus.
-4. Verify changed `value` or `color` clears focus.
-5. Verify unmounting the focused card clears focus.
-6. Verify Escape clears focus without a game action.
-7. Verify Space clears focus and dispatches one stack-rotation action.
-8. Verify clicks on marked card roots and nested card content are not outside clicks.
-9. Verify clicks on empty panel space, playground background, and unrelated UI clear focus.
-10. Verify clicking another card transfers focus without an intermediate outside clear.
-11. Verify non-`Element` event targets are handled safely.
-12. Verify the document listener is registered only while focused and removed on clear/unmount.
+2. Verify a re-render with unchanged identity preserves focus.
+3. Verify changed `value` or `color` clears focus.
+4. Verify unmounting the focused card clears focus.
+5. Verify disabled focus management clears and rejects focus updates.
+6. Verify clicks on marked card roots and nested card content are not outside clicks.
+7. Verify clicks outside focusable cards clear focus.
+8. Verify clicking another focusable card transfers focus without an intermediate outside clear.
+9. Verify non-`Element` event targets are handled safely.
+10. Verify the document listener is active only while focused and removed on clear/unmount.
 
 ### Phase 2: Implement the private context, provider, and hook
 
@@ -195,14 +193,13 @@ Closed-stack pointer rotation can use the card hook's `clearFocus()` before disp
 - `apps/ligretto-frontend/src/features/cardFocus/ui/useCardFocus.ts`
 - `apps/ligretto-frontend/src/features/cardFocus/index.ts`
 
-1. Implement provider-local focus state and target equality.
-2. Move the complete card-hotkey map into the provider.
-3. Implement shared internal operations used by hotkeys and card pointer callbacks.
-4. Implement the bubbling document click listener and cleanup.
-5. Implement identity-change and unmount clearing in `useCardFocus`.
-6. Return rendering state, focus operations, and private card-root props from the hook.
-7. Export only `CardFocusProvider` and `useCardFocus` from `index.ts`.
-8. Make all provider tests pass.
+1. Implement provider-local string-key focus state.
+2. Implement shared operations used by hotkeys and card pointer callbacks.
+3. Implement the bubbling document click listener and cleanup.
+4. Implement identity-change and unmount clearing in `useCardFocus`.
+5. Return rendering state and focus operations from the hook.
+6. Export only `CardFocusProvider` and `useCardFocus` from `index.ts`.
+7. Make all provider tests pass.
 
 ### Phase 3: Mount the provider
 
@@ -243,7 +240,8 @@ Closed-stack pointer rotation can use the card hook's `clearFocus()` before disp
 3. Dispatch the existing row/open-stack placement action.
 4. Clear focus after successful action dispatch.
 5. Keep backend payloads unchanged.
-6. Add integration tests for pointer/hotkey stack rotation and both placement sources.
+6. Add hotkey integration tests for Escape dismissal and one-action Space rotation.
+7. Add integration tests for pointer-driven stack rotation and both placement sources.
 
 ### Phase 6: Remove Redux focus state
 
@@ -302,11 +300,11 @@ Manual acceptance checks:
 ## Risks and decisions
 
 - Focus is React Context state, not Redux state.
-- Hotkeys and outside-card dismissal are provider responsibilities.
+- Hotkeys remain panel-owned; outside-card dismissal is provider-owned.
 - Only the provider and one hook are public.
 - A normal re-render preserves focus; changed card identity or unmount clears it.
-- Outside detection is document-wide and based on all card roots, not the panel boundary.
+- Outside detection is document-wide and based on marked focusable card roots, not the panel boundary.
 - A bubbling `click` listener avoids capture-phase races with card handlers.
-- Identity compares `color` and `value`, not object reference.
+- Card identity cleanup depends on the focus key, `color`, and `value`, not object reference.
 - Native DOM keyboard focus is separate; this feature does not call `HTMLElement.focus()`.
 - Existing Redux game actions and shared payloads remain unchanged.
