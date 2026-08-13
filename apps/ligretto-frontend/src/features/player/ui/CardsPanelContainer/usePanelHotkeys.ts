@@ -41,7 +41,7 @@ export const usePanelHotkeys = ({ enabled }: { enabled: boolean }) => {
           clearFocus()
           dispatch(tapCardAction({ cardIndex: rowCardIndex }))
         } else {
-          toggleFocus(`row.${rowCardIndex}`)
+          toggleFocus({ type: 'row', index: rowCardIndex, card })
         }
         return
       }
@@ -54,7 +54,7 @@ export const usePanelHotkeys = ({ enabled }: { enabled: boolean }) => {
             clearFocus()
             dispatch(tapStackOpenDeckCardAction())
           } else {
-            toggleFocus('stack-open')
+            toggleFocus({ type: 'open-stack', card: stackOpenDeckCard })
           }
           break
         case Hotkey.space:

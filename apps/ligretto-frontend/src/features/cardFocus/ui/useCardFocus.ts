@@ -1,32 +1,45 @@
-import { useCallback, useContext, useEffect, type DependencyList } from 'react'
+import { useCallback, useContext, useEffect } from 'react'
+import type { Card } from '@memebattle/ligretto-shared'
 
 import { CardFocusContext, type CardFocusKey } from './CardFocusContext'
 
-interface UseCardFocusOptions {
-  focusKey: CardFocusKey
-  deps: DependencyList
-}
+type FocusCard = Pick<Card, 'color' | 'value'>
+
+type CardFocusOptions =
+  | {
+      type: 'open-stack'
+      card: FocusCard
+    }
+  | {
+      type: 'row'
+      index: number
+      card: FocusCard
+    }
+
+const getCardFocusKey = (options: CardFocusOptions): CardFocusKey =>
+  options.type === 'row'
+    ? `${options.type}.${options.index}.${options.card.color}.${options.card.value}`
+    : `${options.type}.${options.card.color}.${options.card.value}`
 
 export function useCardFocus(): {
   focusedCard: CardFocusKey | undefined
   clearFocus: () => void
-  toggleFocus: (focusKey: CardFocusKey) => void
+  toggleFocus: (options: CardFocusOptions) => void
 }
-export function useCardFocus(options: UseCardFocusOptions): {
+export function useCardFocus(options: CardFocusOptions): {
   isFocused: boolean
   isDimmed: boolean
   toggleFocus: () => void
   clearFocus: () => void
 }
-export function useCardFocus(options?: UseCardFocusOptions) {
+export function useCardFocus(options?: CardFocusOptions) {
   const context = useContext(CardFocusContext)
   if (!context) {
     throw new Error('useCardFocus must be used within CardFocusProvider')
   }
 
   const { focusedCard, setFocusedCard } = context
-  const focusKey = options?.focusKey
-  const deps = options?.deps ?? []
+  const focusKey = options && getCardFocusKey(options)
   const isFocused = !!focusKey && focusedCard === focusKey
 
   useEffect(
@@ -35,9 +48,7 @@ export function useCardFocus(options?: UseCardFocusOptions) {
         setFocusedCard(current => (current === focusKey ? undefined : current))
       }
     },
-    // The caller-provided dependencies define the rendered card identity.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [setFocusedCard, focusKey, ...deps],
+    [focusKey, setFocusedCard],
   )
 
   const toggleFocus = useCallback(() => {
@@ -46,7 +57,8 @@ export function useCardFocus(options?: UseCardFocusOptions) {
     }
   }, [focusKey, setFocusedCard])
   const toggleTargetFocus = useCallback(
-    (nextFocusKey: CardFocusKey) => {
+    (nextOptions: CardFocusOptions) => {
+      const nextFocusKey = getCardFocusKey(nextOptions)
       setFocusedCard(current => (current === nextFocusKey ? undefined : nextFocusKey))
     },
     [setFocusedCard],

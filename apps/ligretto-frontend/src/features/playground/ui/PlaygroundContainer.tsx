@@ -23,10 +23,10 @@ export const PlaygroundContainer = () => {
         return
       }
 
-      if (focusedCard === 'stack-open') {
+      if (focusedCard.startsWith('open-stack.')) {
         dispatch(putCardFromStackOpenDeck({ gameId, playgroundDeckIndex }))
       } else if (focusedCard.startsWith('row.')) {
-        const cardIndex = Number(focusedCard.slice('row.'.length))
+        const cardIndex = Number(focusedCard.split('.')[1])
         if (!Number.isInteger(cardIndex)) {
           return
         }

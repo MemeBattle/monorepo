@@ -43,14 +43,14 @@ features/cardFocus/
     └── useCardFocus.ts
 ```
 
-The internal focus target is a string key owned by each focusable player-card component:
+The hook accepts the focused card location and identity as one discriminated union:
 
 ```ts
-type CardFocusKey = string
-
-const rowFocusKey = `row.${index}`
-const openStackFocusKey = 'stack-open'
+type CardFocusOptions =
+  { type: 'open-stack'; card: Pick<Card, 'color' | 'value'> } | { type: 'row'; index: number; card: Pick<Card, 'color' | 'value'> }
 ```
+
+The hook derives its internal string key from `type`, optional row `index`, `card.color`, and `card.value`. Consumers do not construct or pass focus keys.
 
 Only row cards and the open stack card are focus targets. The closed stack, Ligretto deck, and playground are game interaction targets but are not focusable.
 
@@ -75,8 +75,9 @@ For a focusable card, it receives the target and current identity:
 
 ```ts
 const { isFocused, isDimmed, toggleFocus, clearFocus } = useCardFocus({
-  focusKey: `row.${index}`,
-  deps: [card.color, card.value],
+  type: 'row',
+  index,
+  card,
 })
 ```
 
@@ -111,7 +112,7 @@ This supports playground placement without exporting the context or a second hoo
 
 A focused card is cleared when its rendered card changes.
 
-`useCardFocus({ focusKey, deps })` clears the matching focus from its effect cleanup when the key, color, or value changes. A normal re-render with unchanged dependencies preserves focus.
+`useCardFocus({ type, index?, card })` derives a key containing the location, color, and value. Its effect cleanup clears the previous matching key when any of those fields changes. A normal re-render with the same derived key preserves focus.
 
 The hook also clears focus when the focused card component unmounts. This covers row-card replacement, open-stack rotation/update, and removal of the selected card.
 

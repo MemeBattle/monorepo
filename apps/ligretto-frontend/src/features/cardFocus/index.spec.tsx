@@ -31,8 +31,9 @@ const TestProvider = ({ children, enabled = true }: PropsWithChildren<{ enabled?
 
 const RowCard = ({ value = 2 }: { value?: number }) => {
   const { isFocused, toggleFocus } = useCardFocus({
-    focusKey: 'row.0',
-    deps: [CardColors.red, value],
+    type: 'row',
+    index: 0,
+    card: { color: CardColors.red, value },
   })
 
   return (
@@ -44,8 +45,8 @@ const RowCard = ({ value = 2 }: { value?: number }) => {
 
 const OpenStackCard = () => {
   const { isFocused, toggleFocus } = useCardFocus({
-    focusKey: 'stack-open',
-    deps: [CardColors.blue, 3],
+    type: 'open-stack',
+    card: { color: CardColors.blue, value: 3 },
   })
 
   return (
