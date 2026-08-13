@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react'
 
-import { CardFocusContext, getCardFocusKey, isSameCardFocusTarget, type CardFocusOptions, type CardFocusRegistration } from './CardFocusContext'
+import { CardFocusContext, getCardFocusKey, isSameCardFocusTarget, type CardFocusOptions } from './CardFocusContext'
 
 interface CardFocusProviderProps extends PropsWithChildren {
   enabled: boolean
@@ -8,18 +8,15 @@ interface CardFocusProviderProps extends PropsWithChildren {
 
 export const CardFocusProvider = ({ children, enabled }: CardFocusProviderProps) => {
   const [focusedCard, setFocusedCard] = useState<CardFocusOptions>()
-  const registrations = useRef(new Map<string, CardFocusRegistration>())
+  const registrations = useRef(new Set<string>())
 
   const clearFocus = useCallback(() => setFocusedCard(undefined), [])
 
-  const registerCard = useCallback((target: CardFocusOptions, registration: CardFocusRegistration) => {
+  const registerCard = useCallback((target: CardFocusOptions) => {
     const key = getCardFocusKey(target)
-    registrations.current.set(key, registration)
+    registrations.current.add(key)
 
     return () => {
-      if (registrations.current.get(key) !== registration) {
-        return
-      }
       registrations.current.delete(key)
       setFocusedCard(current => (current && getCardFocusKey(current) === key ? undefined : current))
     }
@@ -27,14 +24,8 @@ export const CardFocusProvider = ({ children, enabled }: CardFocusProviderProps)
 
   const toggleFocus = useCallback(
     (target: CardFocusOptions) => {
-      const registration = registrations.current.get(getCardFocusKey(target))
-      if (!registration) {
+      if (!registrations.current.has(getCardFocusKey(target))) {
         clearFocus()
-        return
-      }
-      if (!registration.canFocus) {
-        clearFocus()
-        registration.onActivate?.()
         return
       }
       if (!enabled) {

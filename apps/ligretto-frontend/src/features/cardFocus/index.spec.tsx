@@ -4,7 +4,7 @@ import type { PropsWithChildren } from 'react'
 import { configureStore } from '@reduxjs/toolkit'
 import { CardColors, GameStatus } from '@memebattle/ligretto-shared'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { Provider } from 'react-redux'
 
 import { CardFocusProvider, useCardFocus } from './index'
@@ -29,14 +29,13 @@ const TestProvider = ({ children, enabled = true }: PropsWithChildren<{ enabled?
   </Provider>
 )
 
-const RowCard = ({ value = 2, onActivate }: { value?: number; onActivate?: () => void }) => {
+const RowCard = ({ value = 2 }: { value?: number }) => {
   const { isFocused, toggleFocus } = useCardFocus(
     {
       type: 'row',
       index: 0,
     },
     [CardColors.red, value],
-    { canFocus: value !== 1, onActivate },
   )
 
   return (
@@ -184,20 +183,6 @@ describe('CardFocusProvider', () => {
     fireEvent.click(screen.getByText('toggle row 0'))
     expect(screen.getByText('row.0')).toBeTruthy()
     fireEvent.click(screen.getByText('toggle missing row'))
-    expect(screen.getByText('none')).toBeTruthy()
-  })
-
-  it('routes a non-focusable registered card through its activation callback', () => {
-    const onActivate = vi.fn()
-    render(
-      <TestProvider>
-        <RowCard value={1} onActivate={onActivate} />
-        <FocusController />
-      </TestProvider>,
-    )
-
-    fireEvent.click(screen.getByText('toggle row 0'))
-    expect(onActivate).toHaveBeenCalledOnce()
     expect(screen.getByText('none')).toBeTruthy()
   })
 

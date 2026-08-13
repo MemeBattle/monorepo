@@ -2,11 +2,6 @@ import { createContext } from 'react'
 
 export type CardFocusOptions = { type: 'open-stack' } | { type: 'row'; index: number }
 
-export interface CardFocusRegistration {
-  canFocus: boolean
-  onActivate?: () => void
-}
-
 export const getCardFocusKey = (target: CardFocusOptions): string => (target.type === 'row' ? `${target.type}.${target.index}` : target.type)
 
 export const isSameCardFocusTarget = (left: CardFocusOptions | undefined, right: CardFocusOptions | undefined) =>
@@ -15,7 +10,7 @@ export const isSameCardFocusTarget = (left: CardFocusOptions | undefined, right:
 export interface CardFocusContextValue {
   focusedCard?: CardFocusOptions
   clearFocus: () => void
-  registerCard: (target: CardFocusOptions, registration: CardFocusRegistration) => () => void
+  registerCard: (target: CardFocusOptions) => () => void
   toggleFocus: (target: CardFocusOptions) => void
 }
 
