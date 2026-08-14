@@ -25,7 +25,7 @@ const PlayerRowCard = ({ card, index, hotkey }: PlayerRowCardProps) => {
     dispatch(tapCardAction({ cardIndex: index }))
   }
 
-  useCardHotkey(hotkey, onCardActivate, true)
+  useCardHotkey(hotkey, onCardActivate)
 
   return (
     <CardHotkeyBadge hotkey={hotkey}>

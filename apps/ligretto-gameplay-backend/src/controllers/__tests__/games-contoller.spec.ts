@@ -459,7 +459,7 @@ describe('Games Controller', () => {
           },
           spectators: {},
           playground: { decks: [], droppedDecks: [] },
-          config: { playersMaxCount: 4, startingDelayInSec: 0, dndEnabled: false, maxCardsOnTable: 12 },
+          config: { playersMaxCount: 4, startingDelayInSec: 0, maxCardsOnTable: 12 },
         }
         storage.users[userId] = { id: userId, socketIds: [socket.id], currentGameId: roomUuid }
       })

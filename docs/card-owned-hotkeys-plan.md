@@ -74,7 +74,7 @@ const { isFocused, isDimmed, toggleFocus } = useCardFocus(
 )
 
 const onCardActivate = () => {
-  if (card.value !== 1) {
+  if (isDndEnabled && card.value !== 1) {
     toggleFocus()
     return
   }
@@ -82,7 +82,7 @@ const onCardActivate = () => {
   dispatch(tapCardAction({ cardIndex: index }))
 }
 
-useCardHotkey(hotkey, onCardActivate, true)
+useCardHotkey(hotkey, onCardActivate, isDndEnabled)
 
 return <Card onClick={onCardActivate} /* existing props */ />
 ```
@@ -100,7 +100,7 @@ const { isFocused, isDimmed, toggleFocus } = useCardFocus(
 )
 
 const onCardActivate = () => {
-  if (card.value !== 1) {
+  if (isDndEnabled && card.value !== 1) {
     toggleFocus()
     return
   }
@@ -108,7 +108,7 @@ const onCardActivate = () => {
   dispatch(tapStackOpenDeckCardAction())
 }
 
-useCardHotkey(Hotkey.x, onCardActivate, true)
+useCardHotkey(Hotkey.x, onCardActivate, isDndEnabled)
 
 return <Card onClick={onCardActivate} /* existing props */ />
 ```
@@ -127,12 +127,12 @@ const onStackDeckActivate = () => {
 }
 
 const stackActionAvailable = stackDeckCards.length > 0 || !!stackOpenDeckCard
-useCardHotkey(Hotkey.space, onStackDeckActivate, stackActionAvailable)
+useCardHotkey(Hotkey.space, onStackDeckActivate, isDndEnabled && stackActionAvailable)
 
 return <Card onClick={onStackDeckActivate} /* existing props */ />
 ```
 
-Pass the action-availability enablement needed by the component from `PlayerCardsStack`. An empty closed stack remains actionable when an open card exists because Space triggers reshuffle; when both are empty, the hook is disabled and the badge is hidden. Space is removed from panel-level handling. The shared pointer/keyboard callback explicitly clears stale card focus before dispatching the stack action exactly once.
+Pass the active-game/manual-controls and action-availability enablement needed by the component from `PlayerCardsStack`. An empty closed stack remains actionable when an open card exists because Space triggers reshuffle; when both are empty, the hook is disabled and the badge is hidden. Space is removed from panel-level handling. The shared pointer/keyboard callback explicitly clears stale card focus before dispatching the stack action exactly once.
 
 ### Ligretto-deck usage
 
@@ -143,7 +143,7 @@ const onLigrettoDeckActivate = useCallback(() => {
   dispatch(tapLigrettoDeckCardAction())
 }, [dispatch])
 
-useCardHotkey(Hotkey.l, onLigrettoDeckActivate, ligrettoDeckCards.length > 0)
+useCardHotkey(Hotkey.l, onLigrettoDeckActivate, isDndEnabled && ligrettoDeckCards.length > 0)
 
 return <LigrettoPack onLigrettoDeckCardClick={onLigrettoDeckActivate} /* existing props */ />
 ```

@@ -130,7 +130,7 @@ export const STEP_CONFIGS: Record<OnboardingStep, StepConfig> = {
       kind: 'anchored',
       target: 'card0',
       placement: { mode: 'besidePlayground', side: 'left' },
-      text: 'Единица любого цвета выкладывается на свободное место одним нажатием. Давай выложим первую карту!',
+      text: 'На свободное место на столе можно выкладывать единицу любого цвета. Давай выложим первую карту!',
     },
   },
   [OnboardingStep.LigrettoCard]: {
@@ -173,7 +173,7 @@ export const STEP_CONFIGS: Record<OnboardingStep, StepConfig> = {
       kind: 'anchored',
       target: 'stack',
       placement: { mode: 'aboveTarget', offset: 128 },
-      text: 'Выбери карту, затем нажми на подходящую синюю стопку на столе',
+      text: 'Скорее выкладывай карту на стол!',
     },
   },
   [OnboardingStep.RowAvailableCard]: {
@@ -183,7 +183,7 @@ export const STEP_CONFIGS: Record<OnboardingStep, StepConfig> = {
       kind: 'anchored',
       target: 'card1',
       placement: { mode: 'besidePlayground', side: 'left' },
-      text: 'Выбери подходящую карту в ряду, затем нажми на синюю стопку на столе',
+      text: 'У тебя есть подходящая карта в ряду',
     },
   },
   [OnboardingStep.LigrettoAvailableCard]: {
@@ -229,7 +229,7 @@ export const STEP_CONFIGS: Record<OnboardingStep, StepConfig> = {
       kind: 'anchored',
       target: 'card2',
       placement: { mode: 'besidePlayground', side: 'left' },
-      text: 'Выбери зелёную тройку, затем нажми на зелёную стопку соперника',
+      text: 'Соперник выложил зелёную двойку. Выкладывай свою тройку из ряда!',
     },
   },
   [OnboardingStep.OpponentTurnCycledInfo]: {

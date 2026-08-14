@@ -63,7 +63,6 @@ const pausedGame: Game = {
   config: {
     startingDelayInSec: 4,
     playersMaxCount: 4,
-    dndEnabled: false,
     maxCardsOnTable: 12,
   },
 }

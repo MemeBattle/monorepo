@@ -34,7 +34,7 @@ const game: Game = {
   },
   spectators: {},
   playground: { decks: [], droppedDecks: [] },
-  config: { playersMaxCount: 4, startingDelayInSec: 0, dndEnabled: false, maxCardsOnTable: 12 },
+  config: { playersMaxCount: 4, startingDelayInSec: 0, maxCardsOnTable: 12 },
 }
 
 describe('GameConnectionService', () => {
