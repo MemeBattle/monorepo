@@ -1,13 +1,12 @@
 import { createSelector } from '@reduxjs/toolkit'
 
-import { isDndEnabledSelector, playerStackDeckCardsSelector, playerStackDeckHiddenSelector, playerStackOpenDeckCardsSelector } from '#ducks/game'
+import { playerStackDeckCardsSelector, playerStackDeckHiddenSelector, playerStackOpenDeckCardsSelector } from '#ducks/game'
 
 export const playerCardsStackSelector = createSelector(
-  [playerStackOpenDeckCardsSelector, playerStackDeckCardsSelector, playerStackDeckHiddenSelector, isDndEnabledSelector],
-  (stackOpenDeckCards, stackDeckCards, isStackDeckHidden, isDndEnabled) => ({
+  [playerStackOpenDeckCardsSelector, playerStackDeckCardsSelector, playerStackDeckHiddenSelector],
+  (stackOpenDeckCards, stackDeckCards, isStackDeckHidden) => ({
     stackOpenDeckCard: stackOpenDeckCards?.[stackOpenDeckCards.length - 1],
     stackDeckCards,
     isStackDeckHidden: isStackDeckHidden ?? true,
-    isDndEnabled,
   }),
 )

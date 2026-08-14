@@ -28,6 +28,10 @@ export class OnboardingPage {
     return this.page.getByTestId(`OnboardingPage-RowCard-${index}`).getByRole('button')
   }
 
+  getPlaygroundDeck(index: number) {
+    return this.page.getByTestId(`Playground-Deck-${index}`).getByRole('button')
+  }
+
   getLigrettoDeckCard() {
     return this.page.getByTestId('OnboardingPage-Ligretto').getByRole('button')
   }
@@ -37,7 +41,7 @@ export class OnboardingPage {
     return this.page.getByTestId('OnboardingPage-Stack-Deck').getByRole('button')
   }
 
-  /** Open card of the deck in hand: clicking puts it on the playground */
+  /** Open card of the deck in hand: clicking selects it for placement */
   getStackOpenDeckCard() {
     return this.page.getByTestId('OnboardingPage-Stack-OpenDeck').getByRole('button')
   }

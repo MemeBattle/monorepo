@@ -22,7 +22,7 @@ export class Gameplay {
   playerPutCard(gameId: UUID, playerId: UUID, cardPosition: number, deckPosition?: number) {
     try {
       const card = this.playerService.getCard(gameId, playerId, cardPosition)
-      if (!card) {
+      if (!card || (deckPosition === undefined && card.value !== 1)) {
         return
       }
 
@@ -31,8 +31,10 @@ export class Gameplay {
         return
       }
 
-      this.playgroundService.putCard(gameId, card, finalDeckPosition)
-      this.playerService.removeCard(gameId, playerId, cardPosition)
+      const isPlaced = this.playgroundService.putCard(gameId, card, finalDeckPosition)
+      if (isPlaced) {
+        this.playerService.removeCard(gameId, playerId, cardPosition)
+      }
     } catch (e) {
       console.log(e)
     }
@@ -41,7 +43,7 @@ export class Gameplay {
   playerPutFromStackOpenDeck(gameId: UUID, playerId: UUID, deckPosition?: number) {
     try {
       const card = this.playerService.getCardFromStackOpenDeck(gameId, playerId)
-      if (!card) {
+      if (!card || (deckPosition === undefined && card.value !== 1)) {
         return
       }
       const finalDeckPosition = this.playgroundService.getAvailableDeckPosition(gameId, card, deckPosition)
@@ -50,8 +52,10 @@ export class Gameplay {
         return
       }
 
-      this.playgroundService.putCard(gameId, card, finalDeckPosition)
-      this.playerService.removeCardFromStackOpenDeck(gameId, playerId)
+      const isPlaced = this.playgroundService.putCard(gameId, card, finalDeckPosition)
+      if (isPlaced) {
+        this.playerService.removeCardFromStackOpenDeck(gameId, playerId)
+      }
     } catch (e) {
       console.log(e)
     }

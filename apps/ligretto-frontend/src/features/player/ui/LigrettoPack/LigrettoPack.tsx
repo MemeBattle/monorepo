@@ -2,14 +2,12 @@ import { type Ref } from 'react'
 import { Typography } from '@memebattle/ui'
 import type { Card as PlayerCards } from '@memebattle/ligretto-shared'
 
-import { Hotkey } from '#ducks/game'
-import { CardPlace, Card, CardHotkeyBadge } from '#entities/card'
+import { CardPlace, Card } from '#entities/card'
 
 import styles from './LigrettoPack.module.scss'
 
 interface LigrettoPackProps {
   count: number
-  isDndEnabled: boolean
   ligrettoDeckCards: PlayerCards[]
   /** The deck's `isHidden` flag from the game data: the ligretto deck lies face down. */
   isDeckHidden: boolean
@@ -22,7 +20,6 @@ interface LigrettoPackProps {
 
 export const LigrettoPack = ({
   count,
-  isDndEnabled,
   ligrettoDeckCards,
   isDeckHidden,
   onLigrettoDeckCardClick,
@@ -33,17 +30,15 @@ export const LigrettoPack = ({
 }: LigrettoPackProps) => (
   <div ref={ref} data-test-id={dataTestId} className={styles.ligrettoPack}>
     <div className={styles.cardWrapper}>
-      <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.l : undefined}>
-        <CardPlace>
-          <Card
-            {...ligrettoDeckCards[0]}
-            isHidden={isDeckHidden && ligrettoDeckCards.length > 0}
-            onClick={onLigrettoDeckCardClick}
-            isHighlighted={isHighlighted}
-            isDisabled={isDisabled}
-          />
-        </CardPlace>
-      </CardHotkeyBadge>
+      <CardPlace>
+        <Card
+          {...ligrettoDeckCards[0]}
+          isHidden={isDeckHidden && ligrettoDeckCards.length > 0}
+          onClick={onLigrettoDeckCardClick}
+          isHighlighted={isHighlighted}
+          isDisabled={isDisabled}
+        />
+      </CardPlace>
     </div>
     <Typography sx={{ fontSize: { xs: '0.625rem', sm: '1rem' } }}>В колоде: {count}</Typography>
   </div>

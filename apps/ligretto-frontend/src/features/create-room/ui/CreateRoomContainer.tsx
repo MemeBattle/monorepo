@@ -26,7 +26,7 @@ export const CreateRoomContainer = () => {
 
   const handleCreateRoom = useCallback(() => {
     if (name.trim() !== '' && !validationErrors) {
-      dispatch(createRoomAction({ name, config: { dndEnabled: true } }))
+      dispatch(createRoomAction({ name }))
     }
   }, [name, validationErrors, dispatch])
 
