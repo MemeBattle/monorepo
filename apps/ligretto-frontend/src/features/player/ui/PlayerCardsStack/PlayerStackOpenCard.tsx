@@ -8,10 +8,9 @@ import { useCardHotkey } from '../../lib/useCardHotkey'
 
 interface PlayerStackOpenCardProps {
   card: PlayerCard
-  isDndEnabled: boolean
 }
 
-export const PlayerStackOpenCard = ({ card, isDndEnabled }: PlayerStackOpenCardProps) => {
+export const PlayerStackOpenCard = ({ card }: PlayerStackOpenCardProps) => {
   const dispatch = useDispatch()
   const { isFocused, isDimmed, toggleFocus } = useCardFocus(
     {
@@ -21,14 +20,14 @@ export const PlayerStackOpenCard = ({ card, isDndEnabled }: PlayerStackOpenCardP
   )
 
   const onCardActivate = () => {
-    if (isDndEnabled && card.value !== 1) {
+    if (card.value !== 1) {
       toggleFocus()
       return
     }
     dispatch(tapStackOpenDeckCardAction())
   }
 
-  useCardHotkey(Hotkey.x, onCardActivate, isDndEnabled)
+  useCardHotkey(Hotkey.x, onCardActivate, true)
 
   return <Card {...card} data-card-focus-element isSelected={isFocused} isDarkened={isDimmed} onClick={onCardActivate} />
 }

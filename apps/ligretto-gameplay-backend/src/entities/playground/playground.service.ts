@@ -29,7 +29,7 @@ export class PlaygroundService {
     const deck = await this.playgroundRepository.getDeck(gameId, deckIndex)
 
     if (!isDeckAvailable(deck, card)) {
-      return
+      return false
     }
 
     await this.playgroundRepository.updateDeck(gameId, deckIndex, deck =>
@@ -48,14 +48,19 @@ export class PlaygroundService {
         await this.playgroundRepository.removeDeck(gameId, deckIndex)
       }
     }
+    return true
   }
 
   async checkIsDeckAvailable(gameId: UUID, card: Card, position: number) {
     const deck = await this.playgroundRepository.getDeck(gameId, position)
     const topCard: Card | undefined = last(deck?.cards)
 
-    if (!deck) {
-      return true
+    if (deck === undefined) {
+      return false
+    }
+
+    if (deck === null) {
+      return card.value === 1
     }
 
     if (topCard === undefined) {

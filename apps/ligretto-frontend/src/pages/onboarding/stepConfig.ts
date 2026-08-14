@@ -52,7 +52,6 @@ export interface StepConfig {
   isNextButtonVisible: boolean
   isLigrettoHighlighted: boolean
   isStackDeckHighlighted: boolean
-  isStackOpenDeckSelected: boolean
   isResultVisible: boolean
   /** Zone circled by the hand-drawn outline on this step */
   outlineTarget: OutlineTargetId | null
@@ -65,7 +64,6 @@ const baseStepConfig: StepConfig = {
   isNextButtonVisible: false,
   isLigrettoHighlighted: false,
   isStackDeckHighlighted: false,
-  isStackOpenDeckSelected: false,
   isResultVisible: false,
   outlineTarget: null,
   description: null,
@@ -132,7 +130,7 @@ export const STEP_CONFIGS: Record<OnboardingStep, StepConfig> = {
       kind: 'anchored',
       target: 'card0',
       placement: { mode: 'besidePlayground', side: 'left' },
-      text: 'На свободное место на столе можно выкладывать единицу любого цвета. Давай выложим первую карту!',
+      text: 'Единица любого цвета выкладывается на свободное место одним нажатием. Давай выложим первую карту!',
     },
   },
   [OnboardingStep.LigrettoCard]: {
@@ -171,8 +169,12 @@ export const STEP_CONFIGS: Record<OnboardingStep, StepConfig> = {
   [OnboardingStep.StackAvailableCard]: {
     ...baseStepConfig,
     raisedLayers: ['playerCards', 'playgroundCards'],
-    isStackOpenDeckSelected: true,
-    description: { kind: 'anchored', target: 'stack', placement: { mode: 'aboveTarget', offset: 128 }, text: 'Скорее выкладывай карту на стол!' },
+    description: {
+      kind: 'anchored',
+      target: 'stack',
+      placement: { mode: 'aboveTarget', offset: 128 },
+      text: 'Выбери карту, затем нажми на подходящую синюю стопку на столе',
+    },
   },
   [OnboardingStep.RowAvailableCard]: {
     ...baseStepConfig,
@@ -181,7 +183,7 @@ export const STEP_CONFIGS: Record<OnboardingStep, StepConfig> = {
       kind: 'anchored',
       target: 'card1',
       placement: { mode: 'besidePlayground', side: 'left' },
-      text: 'У тебя есть подходящая карта в ряду',
+      text: 'Выбери подходящую карту в ряду, затем нажми на синюю стопку на столе',
     },
   },
   [OnboardingStep.LigrettoAvailableCard]: {
@@ -227,7 +229,7 @@ export const STEP_CONFIGS: Record<OnboardingStep, StepConfig> = {
       kind: 'anchored',
       target: 'card2',
       placement: { mode: 'besidePlayground', side: 'left' },
-      text: 'Соперник выложил зелёную двойку. Выкладывай свою тройку из ряда!',
+      text: 'Выбери зелёную тройку, затем нажми на зелёную стопку соперника',
     },
   },
   [OnboardingStep.OpponentTurnCycledInfo]: {

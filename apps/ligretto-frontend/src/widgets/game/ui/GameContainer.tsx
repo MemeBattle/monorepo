@@ -3,16 +3,15 @@ import { Opponent, CardsPanelContainer } from '#features/player'
 import { PlaygroundContainer } from '#features/playground'
 import { createSelector } from '@reduxjs/toolkit'
 import { useSelector } from 'react-redux'
-import { gameStatusSelector, isDndEnabledSelector, isPlayerSpectatorSelector, opponentsSelector, startingDelayInSecSelector } from '#ducks/game'
+import { gameStatusSelector, isPlayerSpectatorSelector, opponentsSelector, startingDelayInSecSelector } from '#ducks/game'
 import { GameStatus } from '@memebattle/ligretto-shared'
 import { ScreenCountdown } from './ScreenCountdown'
 import { CardFocusProvider } from '#features/cardFocus'
 
 const gamePageContainerSelector = createSelector(
-  [gameStatusSelector, isDndEnabledSelector, isPlayerSpectatorSelector, startingDelayInSecSelector, opponentsSelector],
-  (gameStatus, isDndEnabled, isPlayerSpectator, startingDelayInSec, opponents) => ({
+  [gameStatusSelector, isPlayerSpectatorSelector, startingDelayInSecSelector, opponentsSelector],
+  (gameStatus, isPlayerSpectator, startingDelayInSec, opponents) => ({
     gameStatus,
-    isDndEnabled,
     isPlayerSpectator,
     startingDelayInSec,
     opponents,
@@ -20,10 +19,10 @@ const gamePageContainerSelector = createSelector(
 )
 
 export const GameContainer = () => {
-  const { isDndEnabled, isPlayerSpectator, opponents, startingDelayInSec, gameStatus } = useSelector(gamePageContainerSelector)
+  const { isPlayerSpectator, opponents, startingDelayInSec, gameStatus } = useSelector(gamePageContainerSelector)
 
   return (
-    <CardFocusProvider enabled={isDndEnabled && !isPlayerSpectator && gameStatus === GameStatus.InGame}>
+    <CardFocusProvider enabled={!isPlayerSpectator && gameStatus === GameStatus.InGame}>
       {gameStatus === GameStatus.Starting && <ScreenCountdown timeToGo={startingDelayInSec} />}
       <GameGrid centerElement={<PlaygroundContainer />} bottomElement={isPlayerSpectator ? null : <CardsPanelContainer />}>
         {opponents.map(opponent => (

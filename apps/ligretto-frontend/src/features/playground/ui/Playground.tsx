@@ -25,7 +25,7 @@ export const Playground = ({ cardsDecks, onDeckClick, ref, deckRefs }: Playgroun
   return (
     <TableCards ref={ref}>
       {cards.map((card, index) => (
-        <CardPlace key={index} size="large" ref={deckRefs?.[index]}>
+        <CardPlace key={index} size="large" ref={deckRefs?.[index]} dataTestId={`Playground-Deck-${index}`}>
           {card && <CardComponent size="large" {...card} onClick={() => onDeckClick(index)} />}
         </CardPlace>
       ))}

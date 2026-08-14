@@ -20,7 +20,6 @@ export const initialState: GameState = {
       droppedDecks: [],
     },
     config: {
-      dndEnabled: false,
       startingDelayInSec: 4,
       playersMaxCount: 4,
       maxCardsOnTable: 12,
