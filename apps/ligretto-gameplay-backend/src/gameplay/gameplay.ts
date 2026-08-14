@@ -10,19 +10,6 @@ export class Gameplay {
   @inject(IOC_TYPES.GameService) private gameService: GameService
   @inject(IOC_TYPES.PlayerService) private playerService: PlayerService
   @inject(IOC_TYPES.PlaygroundService) private playgroundService: PlaygroundService
-  private placementQueues = new Map<UUID, Promise<void>>()
-
-  private runPlacement(gameId: UUID, operation: () => Promise<void>) {
-    const previous = this.placementQueues.get(gameId) ?? Promise.resolve()
-    const current = previous.catch(() => undefined).then(operation)
-    this.placementQueues.set(gameId, current)
-
-    return current.finally(() => {
-      if (this.placementQueues.get(gameId) === current) {
-        this.placementQueues.delete(gameId)
-      }
-    })
-  }
 
   async startGame(gameId: UUID) {
     try {
@@ -33,49 +20,41 @@ export class Gameplay {
   }
 
   async playerPutCard(gameId: UUID, playerId: UUID, cardPosition: number, deckPosition?: number) {
-    return this.runPlacement(gameId, async () => {
-      try {
-        const card = await this.playerService.getCard(gameId, playerId, cardPosition)
-        if (!card || (deckPosition === undefined && card.value !== 1)) {
-          return
-        }
-
-        const finalDeckPosition = await this.playgroundService.getAvailableDeckPosition(gameId, card, deckPosition)
-        if (finalDeckPosition === undefined || finalDeckPosition === -1) {
-          return
-        }
-
-        const isPlaced = await this.playgroundService.putCard(gameId, card, finalDeckPosition)
-        if (isPlaced) {
-          await this.playerService.removeCard(gameId, playerId, cardPosition)
-        }
-      } catch (e) {
-        console.log(e)
+    try {
+      const card = await this.playerService.getCard(gameId, playerId, cardPosition)
+      if (!card) {
+        return
       }
-    })
+
+      const finalDeckPosition = await this.playgroundService.getAvailableDeckPosition(gameId, card, deckPosition)
+      if (finalDeckPosition === undefined || finalDeckPosition === -1) {
+        return
+      }
+
+      await this.playgroundService.putCard(gameId, card, finalDeckPosition)
+      await this.playerService.removeCard(gameId, playerId, cardPosition)
+    } catch (e) {
+      console.log(e)
+    }
   }
 
   async playerPutFromStackOpenDeck(gameId: UUID, playerId: UUID, deckPosition?: number) {
-    return this.runPlacement(gameId, async () => {
-      try {
-        const card = await this.playerService.getCardFromStackOpenDeck(gameId, playerId)
-        if (!card || (deckPosition === undefined && card.value !== 1)) {
-          return
-        }
-        const finalDeckPosition = await this.playgroundService.getAvailableDeckPosition(gameId, card, deckPosition)
-
-        if (finalDeckPosition === -1 || finalDeckPosition === undefined) {
-          return
-        }
-
-        const isPlaced = await this.playgroundService.putCard(gameId, card, finalDeckPosition)
-        if (isPlaced) {
-          await this.playerService.removeCardFromStackOpenDeck(gameId, playerId)
-        }
-      } catch (e) {
-        console.log(e)
+    try {
+      const card = await this.playerService.getCardFromStackOpenDeck(gameId, playerId)
+      if (!card) {
+        return
       }
-    })
+      const finalDeckPosition = await this.playgroundService.getAvailableDeckPosition(gameId, card, deckPosition)
+
+      if (finalDeckPosition === -1 || finalDeckPosition === undefined) {
+        return
+      }
+
+      await this.playgroundService.putCard(gameId, card, finalDeckPosition)
+      await this.playerService.removeCardFromStackOpenDeck(gameId, playerId)
+    } catch (e) {
+      console.log(e)
+    }
   }
 
   async playerTakeFromLigrettoDeck(gameId: UUID, playerId: UUID): Promise<{ game?: Game; gameResults?: GameResults }> {
@@ -95,13 +74,11 @@ export class Gameplay {
   }
 
   async playerTakeFromStackDeck(gameId: UUID, playerId: UUID) {
-    return this.runPlacement(gameId, async () => {
-      try {
-        await this.playerService.takeFromStackDeck(gameId, playerId)
-      } catch (e) {
-        console.log(e)
-      }
-    })
+    try {
+      await this.playerService.takeFromStackDeck(gameId, playerId)
+    } catch (e) {
+      console.log(e)
+    }
   }
 
   async endGame(gameId: UUID) {

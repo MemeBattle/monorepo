@@ -19,7 +19,6 @@ import {
   nextStepOnboardingAction,
   nextStackCardAction,
   onboardingStepSelector,
-  putStackCardAction,
 } from '#features/onboarding'
 import { Overlay } from '#shared/ui/Overlay'
 import { NextButton } from '#shared/ui/NextButton/NextButton.js'
@@ -38,6 +37,7 @@ import { OpponentsDescription } from './descriptions/OpponentsDescription'
 import { AnchoredDescription, type DescriptionTargets } from './descriptions/AnchoredDescription'
 import { CardFocusProvider, useCardFocus } from '#features/cardFocus'
 import { getOnboardingPlacementAction } from './onboardingPlacement'
+import { OnboardingOpenStackCard } from './OnboardingOpenStackCard'
 
 interface OnboardingCardPanelProps {
   stackRef: RefObject<HTMLDivElement | null>
@@ -55,21 +55,9 @@ const OnboardingCardPanel = ({ stackRef, playerRowRef, ligrettoRef, cardRefs }: 
 
   const dispatch = useDispatch()
   const current = game.players.id0
-  const openStackCard = current?.stackOpenDeck.cards[0]
-  const { isFocused, isDimmed, toggleFocus } = useCardFocus({ type: 'open-stack' }, [openStackCard?.color, openStackCard?.value])
   const handleLigrettoDeckCardClick = useCallback(() => {
     dispatch(putLigrettoCardAction())
   }, [dispatch])
-  const handleOpenStackCardClick = useCallback(() => {
-    if (!openStackCard || !allowedEvents.includes(OnboardingEvent.PutStackCard)) {
-      return
-    }
-    if (openStackCard.value === 1) {
-      dispatch(putStackCardAction())
-      return
-    }
-    toggleFocus()
-  }, [allowedEvents, dispatch, openStackCard, toggleFocus])
 
   return (
     <Layer id="playerCards" ref={cardsPanelRef}>
@@ -77,21 +65,7 @@ const OnboardingCardPanel = ({ stackRef, playerRowRef, ligrettoRef, cardRefs }: 
         player={{ status: PlayerStatus.InGame, username: ONBOARDING_PLAYER_NAMES.id0 }}
         stack={
           <CardsRow ref={stackRef} dataTestId="OnboardingPage-Stack">
-            <CardHotkeyBadge>
-              <CardPlace dataTestId="OnboardingPage-Stack-OpenDeck">
-                {openStackCard && (
-                  <Card
-                    {...openStackCard}
-                    data-card-focus-element
-                    data-card-focused={isFocused}
-                    isDarkened={isDimmed}
-                    isDisabled={!allowedEvents.includes(OnboardingEvent.PutStackCard)}
-                    isSelected={isFocused}
-                    onClick={handleOpenStackCardClick}
-                  />
-                )}
-              </CardPlace>
-            </CardHotkeyBadge>
+            <OnboardingOpenStackCard card={current?.stackOpenDeck.cards[0]} isActive={allowedEvents.includes(OnboardingEvent.PutStackCard)} />
             <CardHotkeyBadge>
               <CardPlace dataTestId="OnboardingPage-Stack-Deck">
                 <Card
@@ -126,7 +100,6 @@ const OnboardingCardPanel = ({ stackRef, playerRowRef, ligrettoRef, cardRefs }: 
             dataTestId="OnboardingPage-Ligretto"
             isDisabled={!allowedEvents.includes(OnboardingEvent.PutLigretto)}
             count={current?.ligrettoDeck.cards.length ?? 0}
-
             ligrettoDeckCards={current?.ligrettoDeck.cards ?? []}
             isDeckHidden={current?.ligrettoDeck.isHidden ?? true}
             onLigrettoDeckCardClick={handleLigrettoDeckCardClick}

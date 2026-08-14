@@ -27,7 +27,7 @@ export const PlayerStackOpenCard = ({ card }: PlayerStackOpenCardProps) => {
     dispatch(tapStackOpenDeckCardAction())
   }
 
-  useCardHotkey(Hotkey.x, onCardActivate, true)
+  useCardHotkey(Hotkey.x, onCardActivate)
 
   return <Card {...card} data-card-focus-element isSelected={isFocused} isDarkened={isDimmed} onClick={onCardActivate} />
 }
