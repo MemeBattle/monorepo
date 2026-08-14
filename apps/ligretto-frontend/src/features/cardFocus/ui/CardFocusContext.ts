@@ -9,8 +9,7 @@ export const isSameCardFocusTarget = (left: CardFocusOptions | undefined, right:
 
 export interface CardFocusContextValue {
   focusedCard?: CardFocusOptions
-  clearFocus: () => void
-  registerCard: (target: CardFocusOptions) => () => void
+  clearFocus: (target?: CardFocusOptions) => void
   toggleFocus: (target: CardFocusOptions) => void
 }
 

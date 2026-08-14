@@ -6,6 +6,7 @@ import { CardsRow } from '#entities/card/ui/CardsRow'
 import { tapCardAction, playerCardsSelector, isDndEnabledSelector, Hotkey } from '#ducks/game'
 import { Card, CardPlace, CardHotkeyBadge } from '#entities/card'
 import { useCardFocus } from '#features/cardFocus'
+import { useCardHotkey } from '../../lib/useCardHotkey'
 import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
 
 const PlayerRowCardsContainerSelector = createSelector([playerCardsSelector, isDndEnabledSelector], (playerCards, isDndEnabled) => ({
@@ -22,19 +23,20 @@ interface PlayerRowCardProps {
 
 const PlayerRowCard = ({ card, index, isDndEnabled, hotkey }: PlayerRowCardProps) => {
   const dispatch = useDispatch()
-  const { isFocused, isDimmed, toggleFocus, clearFocus } = useCardFocus({ type: 'row', index }, [card.color, card.value])
-  const onCardClick = () => {
+  const { isFocused, isDimmed, toggleFocus } = useCardFocus({ type: 'row', index }, [card.color, card.value])
+  const onCardActivate = () => {
     if (isDndEnabled && card.value !== 1) {
       toggleFocus()
       return
     }
-    clearFocus()
     dispatch(tapCardAction({ cardIndex: index }))
   }
 
+  useCardHotkey(hotkey, onCardActivate, isDndEnabled)
+
   return (
     <CardHotkeyBadge hotkey={isDndEnabled ? hotkey : undefined}>
-      <Card {...card} data-card-focus-element isDarkened={isDimmed} isSelected={isFocused} onClick={onCardClick} />
+      <Card {...card} data-card-focus-element isDarkened={isDimmed} isSelected={isFocused} onClick={onCardActivate} />
     </CardHotkeyBadge>
   )
 }

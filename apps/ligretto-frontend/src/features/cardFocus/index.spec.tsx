@@ -46,19 +46,26 @@ const RowCard = ({ value = 2 }: { value?: number }) => {
 }
 
 const FocusController = () => {
-  const { focusedCard, toggleFocus } = useCardFocus()
+  const focus = useCardFocus()
 
   return (
     <>
-      <button data-card-focus-element onClick={() => toggleFocus({ type: 'row', index: 0 })}>
-        toggle row 0
-      </button>
-      <button data-card-focus-element onClick={() => toggleFocus({ type: 'row', index: 1 })}>
-        toggle missing row
-      </button>
-      <output>{focusedCard?.type === 'row' ? `row.${focusedCard.index}` : (focusedCard?.type ?? 'none')}</output>
+      <output>{focus.focusedCard?.type === 'row' ? `row.${focus.focusedCard.index}` : (focus.focusedCard?.type ?? 'none')}</output>
+      <output data-testid="integration-api">{Object.keys(focus).sort().join(',')}</output>
     </>
   )
+}
+
+const TransferOnCleanup = ({ showFirst }: { showFirst: boolean }) => (
+  <>
+    {showFirst ? <RowCard /> : null}
+    <OpenStackCard />
+  </>
+)
+
+const TargetedApi = () => {
+  const focus = useCardFocus({ type: 'row', index: 1 }, [CardColors.green, 4])
+  return <output data-testid="targeted-api">{Object.keys(focus).sort().join(',')}</output>
 }
 
 const OpenStackCard = () => {
@@ -77,6 +84,18 @@ const OpenStackCard = () => {
 }
 
 describe('CardFocusProvider', () => {
+  it('exposes only the operations owned by each public hook overload', () => {
+    render(
+      <TestProvider>
+        <FocusController />
+        <TargetedApi />
+      </TestProvider>,
+    )
+
+    expect(screen.getByTestId('integration-api').textContent).toBe('clearFocus,focusedCard')
+    expect(screen.getByTestId('targeted-api').textContent).toBe('isDimmed,isFocused,toggleFocus')
+  })
+
   it('toggles a card focus through the public hook', () => {
     render(
       <TestProvider>
@@ -90,6 +109,20 @@ describe('CardFocusProvider', () => {
     expect(card.textContent).toBe('focused')
     fireEvent.click(card)
     expect(card.textContent).toBe('idle')
+  })
+
+  it('clears focus with Escape and prevents the browser default', () => {
+    render(
+      <TestProvider>
+        <RowCard />
+      </TestProvider>,
+    )
+    fireEvent.click(screen.getByText('idle'))
+
+    const wasNotPrevented = fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' })
+
+    expect(screen.getByText('idle')).toBeTruthy()
+    expect(wasNotPrevented).toBe(false)
   })
 
   it('transfers focus without treating another card as an outside click', () => {
@@ -172,21 +205,25 @@ describe('CardFocusProvider', () => {
     expect(screen.getByText('idle')).toBeTruthy()
   })
 
-  it('clears focus when toggling an unregistered target', () => {
-    render(
+  it('does not let stale unmount cleanup clear focus transferred to another target', () => {
+    const view = render(
       <TestProvider>
-        <RowCard />
-        <FocusController />
+        <TransferOnCleanup showFirst />
+      </TestProvider>,
+    )
+    fireEvent.click(screen.getByText('idle'))
+    fireEvent.click(screen.getByText('open-idle'))
+
+    view.rerender(
+      <TestProvider>
+        <TransferOnCleanup showFirst={false} />
       </TestProvider>,
     )
 
-    fireEvent.click(screen.getByText('toggle row 0'))
-    expect(screen.getByText('row.0')).toBeTruthy()
-    fireEvent.click(screen.getByText('toggle missing row'))
-    expect(screen.getByText('none')).toBeTruthy()
+    expect(screen.getByText('open-focused')).toBeTruthy()
   })
 
-  it('clears focus when the registered card unmounts', () => {
+  it('clears focus when the focused card unmounts', () => {
     const view = render(
       <TestProvider>
         <RowCard />
@@ -194,7 +231,7 @@ describe('CardFocusProvider', () => {
       </TestProvider>,
     )
 
-    fireEvent.click(screen.getByText('toggle row 0'))
+    fireEvent.click(screen.getByText('idle'))
     expect(screen.getByText('row.0')).toBeTruthy()
     view.rerender(
       <TestProvider>

@@ -31,15 +31,21 @@ export const PlayerCardsStack = () => {
     return null
   }
 
+  const isStackDeckEnabled = isDndEnabled && (stackDeckCards.length > 0 || !!stackOpenDeckCard)
+
   return (
     <CardsRow>
-      <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.x : undefined}>
-        <CardPlace>{stackOpenDeckCard && <PlayerStackOpenCard card={stackOpenDeckCard} isDndEnabled={isDndEnabled} />}</CardPlace>
-      </CardHotkeyBadge>
+      <CardPlace>
+        {stackOpenDeckCard && (
+          <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.x : undefined}>
+            <PlayerStackOpenCard card={stackOpenDeckCard} isDndEnabled={isDndEnabled} />
+          </CardHotkeyBadge>
+        )}
+      </CardPlace>
 
-      <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.space : undefined}>
+      <CardHotkeyBadge hotkey={isStackDeckEnabled ? Hotkey.space : undefined}>
         <CardPlace>
-          <PlayerStackDeck card={stackDeckCards[0]} isHidden={isStackDeckHidden && stackDeckCards.length > 0} />
+          <PlayerStackDeck card={stackDeckCards[0]} enabled={isStackDeckEnabled} isHidden={isStackDeckHidden && stackDeckCards.length > 0} />
           {stackDeckCards.length === 0 && stackOpenDeckCard ? (
             <ReshuffleHint>
               <CachedIcon fontSize="inherit" />
