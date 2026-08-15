@@ -26,10 +26,9 @@ export const GameContainer = () => {
     <CardFocusProvider enabled={isDndEnabled && !isPlayerSpectator && gameStatus === GameStatus.InGame}>
       {gameStatus === GameStatus.Starting && <ScreenCountdown timeToGo={startingDelayInSec} />}
       <GameGrid centerElement={<PlaygroundContainer />} bottomElement={isPlayerSpectator ? null : <CardsPanelContainer />}>
-        {opponents.map((opponent, index) => (
+        {opponents.map(opponent => (
           <Opponent
             id={opponent.id}
-            index={index}
             avatar={opponent.avatar}
             status={opponent.status}
             username={opponent.username}

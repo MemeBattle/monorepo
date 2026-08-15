@@ -60,13 +60,17 @@ describe('Opponent connection state', () => {
 })
 
 describe('Opponent mobile order', () => {
-  it('keeps the avatar on the left for even indexes and on the right for odd ones', () => {
-    const view = render(<Opponent {...opponentProps} status={PlayerStatus.InGame} index={0} />)
+  it('keeps the avatar on the left for odd opponents and on the right for even ones', () => {
+    render(
+      <div>
+        <Opponent {...opponentProps} id="opponent-1" username="First" status={PlayerStatus.InGame} />
+        <Opponent {...opponentProps} id="opponent-2" username="Second" status={PlayerStatus.InGame} />
+        <Opponent {...opponentProps} id="opponent-3" username="Third" status={PlayerStatus.InGame} />
+      </div>,
+    )
 
-    // xs values of responsive sx styles apply without a media query, so jsdom resolves them
-    expect(getComputedStyle(view.getByRole('group', { name: 'Opponent player' })).flexDirection).toBe('row')
-
-    view.rerender(<Opponent {...opponentProps} status={PlayerStatus.InGame} index={1} />)
-    expect(getComputedStyle(view.getByRole('group', { name: 'Opponent player' })).flexDirection).toBe('row-reverse')
+    expect(getComputedStyle(screen.getByRole('group', { name: 'First player' })).flexDirection).toBe('row')
+    expect(getComputedStyle(screen.getByRole('group', { name: 'Second player' })).flexDirection).toBe('row-reverse')
+    expect(getComputedStyle(screen.getByRole('group', { name: 'Third player' })).flexDirection).toBe('row')
   })
 })

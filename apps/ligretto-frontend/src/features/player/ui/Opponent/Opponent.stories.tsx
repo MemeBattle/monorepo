@@ -43,17 +43,10 @@ export const MobileOpponents: Story = {
     },
   },
   render: () => (
-    <Stack spacing={1} sx={{ width: '100%' }}>
-      <Opponent index={0} id="opponent-1" username="First" status={PlayerStatus.InGame} cards={cards} stackOpenDeckCards={stackOpenDeckCards} />
-      <Opponent index={1} id="opponent-2" username="Second" status={PlayerStatus.InGame} cards={cards} stackOpenDeckCards={stackOpenDeckCards} />
-      <Opponent
-        index={2}
-        id="opponent-3"
-        username="Disconnected"
-        status={PlayerStatus.Disconnected}
-        cards={cards}
-        stackOpenDeckCards={stackOpenDeckCards}
-      />
+    <Stack sx={{ width: '100%' }}>
+      <Opponent id="opponent-1" username="First" status={PlayerStatus.InGame} cards={cards} stackOpenDeckCards={stackOpenDeckCards} />
+      <Opponent id="opponent-2" username="Second" status={PlayerStatus.InGame} cards={cards} stackOpenDeckCards={stackOpenDeckCards} />
+      <Opponent id="opponent-3" username="Disconnected" status={PlayerStatus.Disconnected} cards={cards} stackOpenDeckCards={stackOpenDeckCards} />
     </Stack>
   ),
 }

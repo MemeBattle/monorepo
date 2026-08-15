@@ -32,13 +32,18 @@ const StyledPlayer = styled('div')<StyledPlayerProps>(({ status, isActivePlayer,
   opacity: status === PlayerStatus.DontReadyToPlay ? 0.5 : 1,
   transition: 'opacity 100ms',
   justifyContent: 'end',
+  // On mobile and tablet the avatar+nickname block matches the small card height
   [theme.breakpoints.down('md')]: {
     flexDirection: 'column',
     width: '3.5rem',
     maxWidth: '3.5rem',
-    height: 'auto',
-    maxHeight: 'none',
-    justifyContent: 'start',
+    height: tabletHeightBySize.small,
+    maxHeight: tabletHeightBySize.small,
+    justifyContent: 'center',
+  },
+  [theme.breakpoints.down('sm')]: {
+    height: mobileHeightBySize.small,
+    maxHeight: mobileHeightBySize.small,
   },
 }))
 

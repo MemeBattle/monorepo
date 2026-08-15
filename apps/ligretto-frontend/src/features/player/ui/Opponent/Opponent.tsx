@@ -10,17 +10,24 @@ import { Card, CardPlace } from '#entities/card'
 import { buildCasStaticUrl } from '#shared/api/buildCasStaticUrl'
 import { getRandomAvatar } from '#shared/ui/Avatar/getRandomAvatar'
 
-// Mobile-first: avatar and cards share one row, even opponents keep the avatar
-// on the left and odd ones on the right; desktop stacks them back into a block
-const OpponentBox = styled('div', { shouldForwardProp: prop => prop !== 'index' })<{ index: number }>(({ index, theme }) => ({
+// Mobile-first: avatar and cards share one row; odd opponents (1st, 3rd, ...)
+// keep the avatar on the left, even ones on the right; desktop stacks them back
+// into a block. The order relies on opponents being same-tag siblings.
+const OpponentBox = styled('div')(({ theme }) => ({
   display: 'flex',
-  flexDirection: index % 2 === 0 ? 'row' : 'row-reverse',
+  flexDirection: 'row',
   alignItems: 'center',
   justifyContent: 'flex-start',
+  gap: '0.5rem',
   width: '100%',
+  marginTop: '10px',
+  '&:nth-of-type(even)': {
+    flexDirection: 'row-reverse',
+  },
   [theme.breakpoints.up('md')]: {
     display: 'block',
     width: 'auto',
+    marginTop: 0,
   },
 }))
 
@@ -31,24 +38,16 @@ export interface OpponentCardsProps {
   avatar?: string
   status: PlayerStatus
   id: UUID
-  /** Zero-based position among opponents: on mobile even ones keep the avatar on the left, odd ones on the right */
-  index?: number
   ref?: Ref<HTMLDivElement>
 }
 
-export const Opponent = ({ stackOpenDeckCards, cards, avatar, username, status, id, index = 0, ref }: OpponentCardsProps) => {
+export const Opponent = ({ stackOpenDeckCards, cards, avatar, username, status, id, ref }: OpponentCardsProps) => {
   const stackOpenDeckCard = useMemo(() => (stackOpenDeckCards.length ? stackOpenDeckCards.slice(-1)[0] : {}), [stackOpenDeckCards])
   const avatarImg = useMemo(() => (avatar ? buildCasStaticUrl(avatar) : getRandomAvatar(id)), [avatar, id])
   const isDisconnected = status === PlayerStatus.Disconnected
 
   return (
-    <OpponentBox
-      ref={ref}
-      role="group"
-      aria-label={`${username} player`}
-      data-connection-state={isDisconnected ? 'disconnected' : 'online'}
-      index={index}
-    >
+    <OpponentBox ref={ref} role="group" aria-label={`${username} player`} data-connection-state={isDisconnected ? 'disconnected' : 'online'}>
       <Player status={status} avatar={avatarImg} username={username} />
       {status === PlayerStatus.InGame || isDisconnected ? (
         <Stack
