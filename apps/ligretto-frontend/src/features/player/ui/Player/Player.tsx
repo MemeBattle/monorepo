@@ -34,11 +34,11 @@ const StyledPlayer = styled('div')<StyledPlayerProps>(({ status, isActivePlayer,
   transition: 'opacity 100ms',
   justifyContent: 'end',
   [theme.breakpoints.down('sm')]: {
-    flexDirection: 'row',
-    width: 'auto',
-    maxWidth: '8rem',
-    height: '1.5rem',
-    maxHeight: '1.5rem',
+    flexDirection: 'column',
+    width: '3.5rem',
+    maxWidth: '3.5rem',
+    height: 'auto',
+    maxHeight: 'none',
     justifyContent: 'start',
   },
 }))
@@ -62,19 +62,25 @@ const StyledIconWrapper = styled('div')<StyledIconWrapperProps>(({ status, theme
   },
 }))
 
-interface DisconnectedAvatarProps {
+interface AvatarFrameProps {
   isActivePlayer?: boolean
+  isDisconnected?: boolean
 }
 
-const DisconnectedAvatar = styled('div')<DisconnectedAvatarProps>(({ isActivePlayer }) => ({
+const AvatarFrame = styled('div')<AvatarFrameProps>(({ isActivePlayer, isDisconnected, theme }) => ({
   display: 'flex',
+  justifyContent: 'center',
   height: '100%',
   maxWidth: '100%',
   aspectRatio: '1',
   flexShrink: isActivePlayer ? 1 : 0,
-  filter: 'grayscale(1)',
-  opacity: 0.5,
+  filter: isDisconnected ? 'grayscale(1)' : 'none',
+  opacity: isDisconnected ? 0.5 : 1,
   transition: 'filter 150ms, opacity 150ms',
+  [theme.breakpoints.down('sm')]: {
+    width: '2.5rem',
+    height: '2.5rem',
+  },
 }))
 
 interface UsernameProps {
@@ -115,11 +121,13 @@ const Bottom = styled('div')<BottomProps>(({ theme, status, isActivePlayer }) =>
   marginLeft: usesCompactLayout(status) && !isActivePlayer ? '0.75rem' : 0,
   [theme.breakpoints.down('sm')]: {
     display: 'flex',
-    width: 'auto',
-    maxWidth: '5rem',
+    justifyContent: 'center',
+    width: '100%',
+    maxWidth: '100%',
     minWidth: 0,
-    height: '100%',
-    marginLeft: '0.25rem',
+    height: 'auto',
+    marginLeft: 0,
+    marginTop: '0.125rem',
     padding: '0.125rem 0.25rem',
   },
 }))
@@ -160,13 +168,9 @@ export const Player: React.FC<PlayerProps> = props => {
 
   return (
     <StyledPlayer status={status} isActivePlayer={isActivePlayer}>
-      {isDisconnected ? (
-        <DisconnectedAvatar isActivePlayer={isActivePlayer}>
-          <Avatar src={avatar} alt={username} size="auto" />
-        </DisconnectedAvatar>
-      ) : (
+      <AvatarFrame isActivePlayer={isActivePlayer} isDisconnected={isDisconnected}>
         <Avatar src={avatar} alt={username} size="auto" />
-      )}
+      </AvatarFrame>
       <Bottom isActivePlayer={isActivePlayer} status={status} title={`${username} (${TitlePostfixByStatus[status]})`}>
         <Username isActivePlayer={isActivePlayer} status={status}>
           {username}

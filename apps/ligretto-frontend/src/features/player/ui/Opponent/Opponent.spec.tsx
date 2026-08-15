@@ -47,7 +47,10 @@ describe('Opponent connection state', () => {
 
     const connectedOpponent = screen.getByRole('group', { name: 'Opponent player' })
     const connectedAvatar = screen.getByRole('img', { name: 'Opponent' })
-    expect(connectedAvatar.parentElement?.parentElement?.parentElement).toBe(connectedOpponent)
+    const connectedFrame = connectedAvatar.parentElement?.parentElement
+    expect(connectedFrame?.parentElement?.parentElement).toBe(connectedOpponent)
+    expect(getComputedStyle(connectedFrame!).aspectRatio).toBe('1 / 1')
+    expect(getComputedStyle(connectedFrame!).filter).not.toContain('grayscale')
     expect(connectedOpponent.dataset.connectionState).toBe('online')
     expect(getComputedStyle(screen.getByTestId('opponent-cards')).filter).not.toContain('grayscale')
     expect(screen.queryByRole('img', { name: 'Connection lost' })).toBeNull()

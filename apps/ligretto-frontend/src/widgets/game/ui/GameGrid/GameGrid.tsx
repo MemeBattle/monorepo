@@ -56,6 +56,7 @@ const MobileOpponentCardsWrapper = styled('div')<{ index: number }>(({ index }) 
   flexDirection: index % 2 === 0 ? 'row' : 'row-reverse',
   alignItems: 'center',
   justifyContent: 'flex-start',
+  width: '100%',
   marginTop: '10px',
 }))
 

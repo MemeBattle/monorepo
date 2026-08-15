@@ -25,7 +25,13 @@ export const Opponent = ({ stackOpenDeckCards, cards, avatar, username, status, 
   const isDisconnected = status === PlayerStatus.Disconnected
 
   return (
-    <Box ref={ref} role="group" aria-label={`${username} player`} data-connection-state={isDisconnected ? 'disconnected' : 'online'}>
+    <Box
+      ref={ref}
+      role="group"
+      aria-label={`${username} player`}
+      data-connection-state={isDisconnected ? 'disconnected' : 'online'}
+      sx={{ display: { xs: 'contents', md: 'block' } }}
+    >
       <Player status={status} avatar={avatarImg} username={username} />
       {status === PlayerStatus.InGame || isDisconnected ? (
         <Stack
