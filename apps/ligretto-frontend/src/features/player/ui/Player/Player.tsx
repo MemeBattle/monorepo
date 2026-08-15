@@ -6,8 +6,7 @@ import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { styled } from '@mui/material/styles'
 
 import { Avatar } from '#shared/ui/Avatar'
-
-import { useMediaQuery, useTheme } from '@memebattle/ui'
+import { tabletHeightBySize, mobileHeightBySize } from '#entities/card'
 
 const usesCompactLayout = (status: PlayerStatus): boolean => status === PlayerStatus.InGame || status === PlayerStatus.Disconnected
 
@@ -33,7 +32,7 @@ const StyledPlayer = styled('div')<StyledPlayerProps>(({ status, isActivePlayer,
   opacity: status === PlayerStatus.DontReadyToPlay ? 0.5 : 1,
   transition: 'opacity 100ms',
   justifyContent: 'end',
-  [theme.breakpoints.down('sm')]: {
+  [theme.breakpoints.down('md')]: {
     flexDirection: 'column',
     width: '3.5rem',
     maxWidth: '3.5rem',
@@ -54,7 +53,7 @@ const StyledIconWrapper = styled('div')<StyledIconWrapperProps>(({ status, theme
   height: usesCompactLayout(status) ? '1rem' : '2rem',
   lineHeight: '1',
   color: status === PlayerStatus.Disconnected ? theme.palette.error.main : 'inherit',
-  [theme.breakpoints.down('sm')]: {
+  [theme.breakpoints.down('md')]: {
     marginLeft: '0.125rem',
     fontSize: '0.75rem',
     width: '0.75rem',
@@ -77,9 +76,14 @@ const AvatarFrame = styled('div')<AvatarFrameProps>(({ isActivePlayer, isDisconn
   filter: isDisconnected ? 'grayscale(1)' : 'none',
   opacity: isDisconnected ? 0.5 : 1,
   transition: 'filter 150ms, opacity 150ms',
+  // Mobile avatar is half of the small card height, so it follows the card breakpoints
+  [theme.breakpoints.down('md')]: {
+    width: `calc(${tabletHeightBySize.small} / 2)`,
+    height: `calc(${tabletHeightBySize.small} / 2)`,
+  },
   [theme.breakpoints.down('sm')]: {
-    width: '2.5rem',
-    height: '2.5rem',
+    width: `calc(${mobileHeightBySize.small} / 2)`,
+    height: `calc(${mobileHeightBySize.small} / 2)`,
   },
 }))
 
@@ -99,7 +103,7 @@ const Username = styled('span')<UsernameProps>(({ status, isActivePlayer, theme 
   filter: status === PlayerStatus.Disconnected ? 'grayscale(1)' : 'none',
   opacity: status === PlayerStatus.Disconnected ? 0.5 : 1,
   transition: 'filter 150ms, opacity 150ms',
-  [theme.breakpoints.down('sm')]: {
+  [theme.breakpoints.down('md')]: {
     fontSize: '0.625rem',
   },
 }))
@@ -119,7 +123,7 @@ const Bottom = styled('div')<BottomProps>(({ theme, status, isActivePlayer }) =>
   maxWidth: '100%',
   width: '100%',
   marginLeft: usesCompactLayout(status) && !isActivePlayer ? '0.75rem' : 0,
-  [theme.breakpoints.down('sm')]: {
+  [theme.breakpoints.down('md')]: {
     display: 'flex',
     justifyContent: 'center',
     width: '100%',
@@ -156,13 +160,6 @@ const TitlePostfixByStatus = {
 export const Player: React.FC<PlayerProps> = props => {
   const { avatar, username, status, isActivePlayer } = props
   const isDisconnected = status === PlayerStatus.Disconnected
-
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
-
-  if (isMobile && isActivePlayer) {
-    return null
-  }
 
   const Icon = IconByStatus[status]
 

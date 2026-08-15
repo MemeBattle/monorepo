@@ -51,11 +51,8 @@ export const DesktopGameGrid: React.FC<React.PropsWithChildren<RoomGridProps>> =
   )
 }
 
-const MobileOpponentCardsWrapper = styled('div')<{ index: number }>(({ index }) => ({
-  display: 'flex',
-  flexDirection: index % 2 === 0 ? 'row' : 'row-reverse',
-  alignItems: 'center',
-  justifyContent: 'flex-start',
+// Avatar/cards order and side are handled by Opponent itself (based on its index)
+const MobileOpponentCardsWrapper = styled('div')(() => ({
   width: '100%',
   marginTop: '10px',
 }))
@@ -63,9 +60,7 @@ const MobileOpponentCardsWrapper = styled('div')<{ index: number }>(({ index }) 
 export const MobileGameGrid: React.FC<React.PropsWithChildren<RoomGridProps>> = ({ children, centerElement, bottomElement }) => (
   <Room>
     {React.Children.map(children, (child, index) => (
-      <MobileOpponentCardsWrapper index={index} key={index}>
-        {child}
-      </MobileOpponentCardsWrapper>
+      <MobileOpponentCardsWrapper key={index}>{child}</MobileOpponentCardsWrapper>
     ))}
     {centerElement}
     {bottomElement}

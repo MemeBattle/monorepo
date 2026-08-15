@@ -1,5 +1,6 @@
 import { useMemo, type Ref } from 'react'
-import { Box, Stack } from '@memebattle/ui'
+import { styled } from '@mui/material/styles'
+import { Stack } from '@memebattle/ui'
 import type { Card as OpponentCard, UUID } from '@memebattle/ligretto-shared'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 
@@ -9,6 +10,20 @@ import { Card, CardPlace } from '#entities/card'
 import { buildCasStaticUrl } from '#shared/api/buildCasStaticUrl'
 import { getRandomAvatar } from '#shared/ui/Avatar/getRandomAvatar'
 
+// Mobile-first: avatar and cards share one row, even opponents keep the avatar
+// on the left and odd ones on the right; desktop stacks them back into a block
+const OpponentBox = styled('div', { shouldForwardProp: prop => prop !== 'index' })<{ index: number }>(({ index, theme }) => ({
+  display: 'flex',
+  flexDirection: index % 2 === 0 ? 'row' : 'row-reverse',
+  alignItems: 'center',
+  justifyContent: 'flex-start',
+  width: '100%',
+  [theme.breakpoints.up('md')]: {
+    display: 'block',
+    width: 'auto',
+  },
+}))
+
 export interface OpponentCardsProps {
   stackOpenDeckCards: OpponentCard[]
   cards: (OpponentCard | null)[]
@@ -16,21 +31,23 @@ export interface OpponentCardsProps {
   avatar?: string
   status: PlayerStatus
   id: UUID
+  /** Zero-based position among opponents: on mobile even ones keep the avatar on the left, odd ones on the right */
+  index?: number
   ref?: Ref<HTMLDivElement>
 }
 
-export const Opponent = ({ stackOpenDeckCards, cards, avatar, username, status, id, ref }: OpponentCardsProps) => {
+export const Opponent = ({ stackOpenDeckCards, cards, avatar, username, status, id, index = 0, ref }: OpponentCardsProps) => {
   const stackOpenDeckCard = useMemo(() => (stackOpenDeckCards.length ? stackOpenDeckCards.slice(-1)[0] : {}), [stackOpenDeckCards])
   const avatarImg = useMemo(() => (avatar ? buildCasStaticUrl(avatar) : getRandomAvatar(id)), [avatar, id])
   const isDisconnected = status === PlayerStatus.Disconnected
 
   return (
-    <Box
+    <OpponentBox
       ref={ref}
       role="group"
       aria-label={`${username} player`}
       data-connection-state={isDisconnected ? 'disconnected' : 'online'}
-      sx={{ display: { xs: 'contents', md: 'block' } }}
+      index={index}
     >
       <Player status={status} avatar={avatarImg} username={username} />
       {status === PlayerStatus.InGame || isDisconnected ? (
@@ -54,6 +71,6 @@ export const Opponent = ({ stackOpenDeckCards, cards, avatar, username, status, 
           ))}
         </Stack>
       ) : null}
-    </Box>
+    </OpponentBox>
   )
 }

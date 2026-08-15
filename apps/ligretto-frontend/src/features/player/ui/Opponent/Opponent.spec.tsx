@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import { CardColors, PlayerStatus } from '@memebattle/ligretto-shared'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { Opponent } from './Opponent'
+
+afterEach(cleanup)
 
 const opponentProps = {
   id: 'opponent-id',
@@ -54,5 +56,17 @@ describe('Opponent connection state', () => {
     expect(connectedOpponent.dataset.connectionState).toBe('online')
     expect(getComputedStyle(screen.getByTestId('opponent-cards')).filter).not.toContain('grayscale')
     expect(screen.queryByRole('img', { name: 'Connection lost' })).toBeNull()
+  })
+})
+
+describe('Opponent mobile order', () => {
+  it('keeps the avatar on the left for even indexes and on the right for odd ones', () => {
+    const view = render(<Opponent {...opponentProps} status={PlayerStatus.InGame} index={0} />)
+
+    // xs values of responsive sx styles apply without a media query, so jsdom resolves them
+    expect(getComputedStyle(view.getByRole('group', { name: 'Opponent player' })).flexDirection).toBe('row')
+
+    view.rerender(<Opponent {...opponentProps} status={PlayerStatus.InGame} index={1} />)
+    expect(getComputedStyle(view.getByRole('group', { name: 'Opponent player' })).flexDirection).toBe('row-reverse')
   })
 })
