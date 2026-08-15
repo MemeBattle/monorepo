@@ -1,11 +1,13 @@
-import { stringify } from "qs";
+const buildSearchParams = (params)=>{
+    const searchParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(params))if (null != value) if (Array.isArray(value)) for (const item of value)searchParams.append(key, String(item));
+    else searchParams.append(key, String(value));
+    return searchParams;
+};
 const createBaseRequest = ({ casURI, errorLogger, successLogger })=>{
     const doRequest = async (method, path, body, config)=>{
         let url = `${casURI}${path}`;
-        if (config?.params) url += `?${stringify(config.params, {
-            arrayFormat: 'repeat',
-            indices: false
-        })}`;
+        if (config?.params) url += `?${buildSearchParams(config.params)}`;
         const headers = {
             ...config?.headers
         };

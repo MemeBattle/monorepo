@@ -51,21 +51,11 @@ export const DesktopGameGrid: React.FC<React.PropsWithChildren<RoomGridProps>> =
   )
 }
 
-const MobileOpponentCardsWrapper = styled('div')<{ index: number }>(({ index }) => ({
-  display: 'flex',
-  flexDirection: index % 2 === 0 ? 'row' : 'row-reverse',
-  alignItems: 'center',
-  justifyContent: 'flex-start',
-  marginTop: '10px',
-}))
-
+// Opponents lay themselves out (avatar/cards order alternates via :nth-of-type),
+// so they must stay direct same-tag siblings inside Room
 export const MobileGameGrid: React.FC<React.PropsWithChildren<RoomGridProps>> = ({ children, centerElement, bottomElement }) => (
   <Room>
-    {React.Children.map(children, (child, index) => (
-      <MobileOpponentCardsWrapper index={index} key={index}>
-        {child}
-      </MobileOpponentCardsWrapper>
-    ))}
+    {children}
     {centerElement}
     {bottomElement}
   </Room>

@@ -27,17 +27,16 @@ var __webpack_require__ = {};
 })();
 var __webpack_exports__ = {};
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-    createBaseRequest: ()=>createBaseRequest
-});
-const external_qs_namespaceObject = require("qs");
+const buildSearchParams = (params)=>{
+    const searchParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(params))if (null != value) if (Array.isArray(value)) for (const item of value)searchParams.append(key, String(item));
+    else searchParams.append(key, String(value));
+    return searchParams;
+};
 const createBaseRequest = ({ casURI, errorLogger, successLogger })=>{
     const doRequest = async (method, path, body, config)=>{
         let url = `${casURI}${path}`;
-        if (config?.params) url += `?${(0, external_qs_namespaceObject.stringify)(config.params, {
-            arrayFormat: 'repeat',
-            indices: false
-        })}`;
+        if (config?.params) url += `?${buildSearchParams(config.params)}`;
         const headers = {
             ...config?.headers
         };
@@ -75,6 +74,9 @@ const createBaseRequest = ({ casURI, errorLogger, successLogger })=>{
         patch: (url, data, config)=>doRequest('PATCH', url, data, config)
     };
 };
+__webpack_require__.d(__webpack_exports__, {}, {
+    createBaseRequest: createBaseRequest
+});
 exports.createBaseRequest = __webpack_exports__.createBaseRequest;
 for(var __rspack_i in __webpack_exports__)if (-1 === [
     "createBaseRequest"

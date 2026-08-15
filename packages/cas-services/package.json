@@ -26,14 +26,12 @@
     "ts-check": "tsc --noEmit"
   },
   "dependencies": {
-    "jsonwebtoken": "catalog:",
-    "qs": "catalog:"
+    "jsonwebtoken": "catalog:"
   },
   "devDependencies": {
     "@rslib/core": "catalog:",
     "@types/jsonwebtoken": "catalog:",
     "@types/node": "24.9.2",
-    "@types/qs": "catalog:",
     "chalk": "catalog:",
     "chalk-animation": "catalog:",
     "dotenv-extended": "catalog:",
