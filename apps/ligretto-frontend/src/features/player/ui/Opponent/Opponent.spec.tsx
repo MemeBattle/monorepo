@@ -30,14 +30,18 @@ describe('Opponent connection state', () => {
     expect(Number(getComputedStyle(cards).opacity)).toBeLessThan(1)
 
     const connectionIcon = screen.getByRole('img', { name: 'Connection lost' })
-    expect(getComputedStyle(connectionIcon).fontSize).toBe('0.75rem')
+    const username = screen.getByText('Opponent')
+    const statusRow = username.parentElement
+    expect(connectionIcon.parentElement?.parentElement).toBe(statusRow)
+    expect(getComputedStyle(statusRow!).minWidth).toBe('0px')
+    expect(getComputedStyle(username).fontSize).toBe('0.75rem')
+    expect(getComputedStyle(connectionIcon).fontSize).toBe('1rem')
     expect(getComputedStyle(connectionIcon).filter).not.toContain('grayscale')
     expect(getComputedStyle(connectionIcon).color).toBe('rgb(211, 47, 47)')
 
-    const avatarWrapper = filteredAvatar?.parentElement
-    expect(getComputedStyle(avatarWrapper!).height).toBe('100%')
-    expect(getComputedStyle(avatarWrapper!).aspectRatio).toBe('1 / 1')
-    expect(getComputedStyle(avatarWrapper!).flexShrink).toBe('1')
+    expect(getComputedStyle(filteredAvatar!).height).toBe('100%')
+    expect(getComputedStyle(filteredAvatar!).aspectRatio).toBe('1 / 1')
+    expect(getComputedStyle(filteredAvatar!).flexShrink).toBe('0')
 
     view.rerender(<Opponent {...opponentProps} status={PlayerStatus.InGame} />)
 

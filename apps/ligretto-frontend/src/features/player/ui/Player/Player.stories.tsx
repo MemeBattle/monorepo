@@ -37,6 +37,21 @@ export const Opponent: Story = {
       <Player isActivePlayer={false} username="DontReadyToPlay long name" status={PlayerStatus.DontReadyToPlay} />
       <Player isActivePlayer={false} username="ReadyToPlay long name" status={PlayerStatus.ReadyToPlay} />
       <Player isActivePlayer={false} username="InGame long name" status={PlayerStatus.InGame} />
+      <Player isActivePlayer={false} username="Disconnected long name" status={PlayerStatus.Disconnected} />
+    </Stack>
+  ),
+}
+
+export const MobileOpponent: Story = {
+  parameters: {
+    viewport: {
+      defaultViewport: 'mobile1',
+    },
+  },
+  render: () => (
+    <Stack spacing={1}>
+      <Player isActivePlayer={false} username="InGame long name" status={PlayerStatus.InGame} />
+      <Player isActivePlayer={false} username="Disconnected long name" status={PlayerStatus.Disconnected} />
     </Stack>
   ),
 }
