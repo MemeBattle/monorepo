@@ -1,6 +1,7 @@
 import React from 'react'
 import History from '@mui/icons-material/History'
 import CheckCircleOutlineOutlined from '@mui/icons-material/CheckCircleOutlineOutlined'
+import WifiOff from '@mui/icons-material/WifiOff'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { styled } from '@mui/material/styles'
 
@@ -55,6 +56,26 @@ const StyledIconWrapper = styled('div')(() => ({
   lineHeight: '1',
 }))
 
+const AvatarWrapper = styled('div')(() => ({
+  position: 'relative',
+  display: 'flex',
+  height: '100%',
+  maxWidth: '100%',
+  aspectRatio: '1',
+}))
+
+const ConnectionIconWrapper = styled('div')(({ theme }) => ({
+  position: 'absolute',
+  top: 0,
+  right: 0,
+  display: 'flex',
+  fontSize: '0.75rem',
+  padding: '0.125rem',
+  borderRadius: '50%',
+  color: theme.palette.error.main,
+  background: theme.palette.background.paper,
+}))
+
 interface UsernameProps {
   status: PlayerStatus
   isActivePlayer?: boolean
@@ -94,6 +115,7 @@ export interface PlayerProps {
   avatar?: string
   status: PlayerStatus
   isActivePlayer?: boolean
+  isDisconnected?: boolean
 }
 
 const IconByStatus = {
@@ -109,7 +131,7 @@ const TitlePostfixByStatus = {
 }
 
 export const Player: React.FC<PlayerProps> = props => {
-  const { avatar, username, status, isActivePlayer } = props
+  const { avatar, username, status, isActivePlayer, isDisconnected = false } = props
 
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
@@ -122,7 +144,14 @@ export const Player: React.FC<PlayerProps> = props => {
 
   return (
     <StyledPlayer status={status} isActivePlayer={isActivePlayer}>
-      <Avatar src={avatar} alt={username} size="auto" />
+      <AvatarWrapper>
+        <Avatar src={avatar} alt={username} size="auto" />
+        {isDisconnected ? (
+          <ConnectionIconWrapper>
+            <WifiOff fontSize="inherit" titleAccess="Connection lost" />
+          </ConnectionIconWrapper>
+        ) : null}
+      </AvatarWrapper>
       <Bottom isActivePlayer={isActivePlayer} status={status} title={`${username} (${TitlePostfixByStatus[status]})`}>
         <Username isActivePlayer={isActivePlayer} status={status}>
           {username}
