@@ -27,6 +27,6 @@ export const Connected: Story = {}
 
 export const Disconnected: Story = {
   args: {
-    isDisconnected: true,
+    status: PlayerStatus.Disconnected,
   },
 }

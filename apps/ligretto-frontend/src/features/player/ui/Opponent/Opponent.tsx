@@ -16,29 +16,28 @@ export interface OpponentCardsProps {
   avatar?: string
   status: PlayerStatus
   id: UUID
-  isDisconnected?: boolean
   ref?: Ref<HTMLDivElement>
 }
 
-export const Opponent = ({ stackOpenDeckCards, cards, avatar, username, status, id, isDisconnected = false, ref }: OpponentCardsProps) => {
+export const Opponent = ({ stackOpenDeckCards, cards, avatar, username, status, id, ref }: OpponentCardsProps) => {
   const stackOpenDeckCard = useMemo(() => (stackOpenDeckCards.length ? stackOpenDeckCards.slice(-1)[0] : {}), [stackOpenDeckCards])
   const avatarImg = useMemo(() => (avatar ? buildCasStaticUrl(avatar) : getRandomAvatar(id)), [avatar, id])
+  const isDisconnected = status === PlayerStatus.Disconnected
 
   return (
-    <Box
-      ref={ref}
-      role="group"
-      aria-label={`${username} player`}
-      data-connection-state={isDisconnected ? 'disconnected' : 'online'}
-      sx={{
-        filter: isDisconnected ? 'grayscale(1)' : 'none',
-        opacity: isDisconnected ? 0.5 : 1,
-        transition: 'filter 150ms, opacity 150ms',
-      }}
-    >
-      <Player status={status} avatar={avatarImg} username={username} isDisconnected={isDisconnected} />
-      {status === PlayerStatus.InGame ? (
-        <Stack direction="row" spacing={0.5}>
+    <Box ref={ref} role="group" aria-label={`${username} player`} data-connection-state={isDisconnected ? 'disconnected' : 'online'}>
+      <Player status={status} avatar={avatarImg} username={username} />
+      {status === PlayerStatus.InGame || isDisconnected ? (
+        <Stack
+          direction="row"
+          spacing={0.5}
+          data-testid="opponent-cards"
+          sx={{
+            filter: isDisconnected ? 'grayscale(1)' : 'none',
+            opacity: isDisconnected ? 0.5 : 1,
+            transition: 'filter 150ms, opacity 150ms',
+          }}
+        >
           <CardPlace size="small">
             <Card size="small" isDisabled {...stackOpenDeckCard} />
           </CardPlace>

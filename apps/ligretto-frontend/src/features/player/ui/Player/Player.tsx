@@ -64,6 +64,15 @@ const AvatarWrapper = styled('div')(() => ({
   aspectRatio: '1',
 }))
 
+const DisconnectedAvatar = styled('div')(() => ({
+  display: 'flex',
+  width: '100%',
+  height: '100%',
+  filter: 'grayscale(1)',
+  opacity: 0.5,
+  transition: 'filter 150ms, opacity 150ms',
+}))
+
 const ConnectionIconWrapper = styled('div')(({ theme }) => ({
   position: 'absolute',
   top: 0,
@@ -94,9 +103,10 @@ const Username = styled('span')<UsernameProps>(({ status, isActivePlayer }) => (
 interface BottomProps {
   status: PlayerStatus
   isActivePlayer?: boolean
+  isDisconnected?: boolean
 }
 
-const Bottom = styled('div')<BottomProps>(({ theme, status, isActivePlayer }) => ({
+const Bottom = styled('div')<BottomProps>(({ theme, status, isActivePlayer, isDisconnected }) => ({
   borderRadius: 4,
   background: theme.palette.background.paper,
   alignItems: 'center',
@@ -105,6 +115,9 @@ const Bottom = styled('div')<BottomProps>(({ theme, status, isActivePlayer }) =>
   maxWidth: '100%',
   width: '100%',
   marginLeft: status === PlayerStatus.InGame && !isActivePlayer ? '0.75rem' : 0,
+  filter: isDisconnected ? 'grayscale(1)' : 'none',
+  opacity: isDisconnected ? 0.5 : 1,
+  transition: 'filter 150ms, opacity 150ms',
   [theme.breakpoints.down('sm')]: {
     display: 'none',
   },
@@ -115,23 +128,26 @@ export interface PlayerProps {
   avatar?: string
   status: PlayerStatus
   isActivePlayer?: boolean
-  isDisconnected?: boolean
 }
 
 const IconByStatus = {
   [PlayerStatus.ReadyToPlay]: CheckCircleOutlineOutlined,
   [PlayerStatus.DontReadyToPlay]: History,
   [PlayerStatus.InGame]: null,
+  [PlayerStatus.Disconnected]: null,
 }
 
 const TitlePostfixByStatus = {
   [PlayerStatus.ReadyToPlay]: 'ready',
   [PlayerStatus.DontReadyToPlay]: 'not ready',
   [PlayerStatus.InGame]: 'playing',
+  [PlayerStatus.Disconnected]: 'disconnected',
 }
 
 export const Player: React.FC<PlayerProps> = props => {
-  const { avatar, username, status, isActivePlayer, isDisconnected = false } = props
+  const { avatar, username, status, isActivePlayer } = props
+  const isDisconnected = status === PlayerStatus.Disconnected
+  const layoutStatus = isDisconnected ? PlayerStatus.InGame : status
 
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
@@ -143,10 +159,12 @@ export const Player: React.FC<PlayerProps> = props => {
   const Icon = IconByStatus[status]
 
   return (
-    <StyledPlayer status={status} isActivePlayer={isActivePlayer}>
+    <StyledPlayer status={layoutStatus} isActivePlayer={isActivePlayer}>
       {isDisconnected ? (
         <AvatarWrapper>
-          <Avatar src={avatar} alt={username} size="auto" />
+          <DisconnectedAvatar>
+            <Avatar src={avatar} alt={username} size="auto" />
+          </DisconnectedAvatar>
           <ConnectionIconWrapper>
             <WifiOff fontSize="inherit" titleAccess="Connection lost" />
           </ConnectionIconWrapper>
@@ -154,8 +172,13 @@ export const Player: React.FC<PlayerProps> = props => {
       ) : (
         <Avatar src={avatar} alt={username} size="auto" />
       )}
-      <Bottom isActivePlayer={isActivePlayer} status={status} title={`${username} (${TitlePostfixByStatus[status]})`}>
-        <Username isActivePlayer={isActivePlayer} status={status}>
+      <Bottom
+        isActivePlayer={isActivePlayer}
+        status={layoutStatus}
+        isDisconnected={isDisconnected}
+        title={`${username} (${TitlePostfixByStatus[status]})`}
+      >
+        <Username isActivePlayer={isActivePlayer} status={layoutStatus}>
           {username}
         </Username>
         {Icon ? (

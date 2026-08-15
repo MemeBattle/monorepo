@@ -62,6 +62,7 @@ export enum PlayerStatus {
   DontReadyToPlay = 'DontReadyToPlay',
   ReadyToPlay = 'ReadyToPlay',
   InGame = 'InGame',
+  Disconnected = 'Disconnected',
 }
 
 export interface Game {
