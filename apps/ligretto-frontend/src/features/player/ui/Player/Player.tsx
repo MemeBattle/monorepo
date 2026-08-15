@@ -45,7 +45,6 @@ const StyledPlayer = styled('div')<StyledPlayerProps>(({ status, isActivePlayer,
         maxWidth: '3.5rem',
         height: tabletHeightBySize.small,
         maxHeight: tabletHeightBySize.small,
-        justifyContent: 'space-between',
       },
   [theme.breakpoints.down('sm')]: isActivePlayer
     ? {
@@ -83,35 +82,29 @@ const StyledIconWrapper = styled('div')<StyledIconWrapperProps>(({ status, isAct
 }))
 
 interface AvatarFrameProps {
-  isActivePlayer?: boolean
+  isRowLayout?: boolean
   isDisconnected?: boolean
 }
 
-const AvatarFrame = styled('div')<AvatarFrameProps>(({ isActivePlayer, isDisconnected, theme }) => ({
+// In column layouts the avatar flexes into the space left by the nickname
+// plate; fixed content-based sizes would overflow the fixed-height block
+const avatarColumnStyles = {
+  flex: '1 1 auto',
+  minHeight: 0,
+  height: 'auto',
+}
+
+const AvatarFrame = styled('div')<AvatarFrameProps>(({ isRowLayout, isDisconnected, theme }) => ({
   display: 'flex',
   justifyContent: 'center',
-  // The active player's avatar takes the space left by the nickname plate;
-  // fixed content-based sizes would overflow the fixed-height block
-  ...(isActivePlayer ? { flex: '1 1 auto', minHeight: 0, height: 'auto' } : { height: '100%', flexShrink: 0 }),
   maxWidth: '100%',
   aspectRatio: '1',
   filter: isDisconnected ? 'grayscale(1)' : 'none',
   opacity: isDisconnected ? 0.5 : 1,
   transition: 'filter 150ms, opacity 150ms',
-  // Opponent mobile avatar is the card height minus the nickname plate; the
-  // active player keeps the desktop behavior (avatar fills the block)
-  ...(isActivePlayer
-    ? null
-    : {
-        [theme.breakpoints.down('md')]: {
-          width: `calc(${tabletHeightBySize.small} - 21px)`,
-          height: `calc(${tabletHeightBySize.small} - 21px)`,
-        },
-        [theme.breakpoints.down('sm')]: {
-          width: `calc(${mobileHeightBySize.small} - 21px)`,
-          height: `calc(${mobileHeightBySize.small} - 21px)`,
-        },
-      }),
+  // The compact opponent row keeps the avatar at full row height until the
+  // mobile column layout kicks in
+  ...(isRowLayout ? { height: '100%', flexShrink: 0, [theme.breakpoints.down('md')]: avatarColumnStyles } : avatarColumnStyles),
 }))
 
 interface UsernameProps {
@@ -200,7 +193,7 @@ export const Player: React.FC<PlayerProps> = props => {
 
   return (
     <StyledPlayer status={status} isActivePlayer={isActivePlayer}>
-      <AvatarFrame isActivePlayer={isActivePlayer} isDisconnected={isDisconnected}>
+      <AvatarFrame isRowLayout={usesCompactLayout(status) && !isActivePlayer} isDisconnected={isDisconnected}>
         <Avatar src={avatar} alt={username} size="auto" />
       </AvatarFrame>
       <Bottom isActivePlayer={isActivePlayer} status={status} title={`${username} (${TitlePostfixByStatus[status]})`}>
