@@ -36,6 +36,10 @@ export interface StartGame {
   gameId: Game['id']
 }
 
+export interface ResumeGame {
+  gameId: Game['id']
+}
+
 export interface PlayerStatusInGame {
   gameId: Game['id']
   status: PlayerStatus

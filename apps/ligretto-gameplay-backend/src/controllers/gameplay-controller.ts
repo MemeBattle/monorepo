@@ -7,6 +7,7 @@ import {
   endRoundAction,
   putCardAction,
   putCardFromStackOpenDeck,
+  resumeGameEmitAction,
   startGameEmitAction,
   takeFromLigrettoDeckAction,
   takeFromStackDeckAction,
@@ -23,6 +24,7 @@ export class GameplayController extends Controller {
 
   protected handlers: Controller['handlers'] = {
     [startGameEmitAction.type]: (socket, action: ReturnType<typeof startGameEmitAction>) => this.startGame(socket, action),
+    [resumeGameEmitAction.type]: (socket, action: ReturnType<typeof resumeGameEmitAction>) => this.resumeGame(socket, action),
     [putCardAction.type]: (socket: Socket, action) => this.putCard(socket, action),
     [takeFromLigrettoDeckAction.type]: (socket: Socket, action) => this.takeCardFromLigrettoDeck(socket, action),
     [putCardFromStackOpenDeck.type]: (socket: Socket, action) => this.putCardFromStackOpenDeck(socket, action),
@@ -37,6 +39,22 @@ export class GameplayController extends Controller {
 
     await Promise.all([this.gameplay.startGame(gameId), wait(game.config.startingDelayInSec * 1000)])
     await this.updateGame(socket, gameId)
+  }
+
+  private async resumeGame(socket: Socket, action: ReturnType<typeof resumeGameEmitAction>) {
+    const gameId = action.payload.gameId
+    const game = await this.gameService.getGame(gameId)
+
+    if (!game) {
+      return
+    }
+
+    if (!game.players[socket.data.user.id]?.isHost) {
+      return
+    }
+
+    const resumedGame = await this.gameService.resumeGame(gameId)
+    await this.updateGame(socket, gameId, resumedGame)
   }
 
   private async updateGame(socket: Socket, gameId: string, gameState?: Game) {

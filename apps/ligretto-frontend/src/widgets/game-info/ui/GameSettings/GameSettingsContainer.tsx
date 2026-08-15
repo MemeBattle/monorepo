@@ -8,11 +8,12 @@ import {
   gameStatusSelector,
   isGameReadyToStartSelector,
   playerSelector,
+  resumeGameAction,
   startGameAction,
   togglePlayerStatusAction,
 } from '#ducks/game'
 import { GameSettings } from '#widgets/game-info'
-import { PlayerStatus } from '@memebattle/ligretto-shared'
+import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 
 export const GameSettingsContainer = () => {
   const dispatch = useDispatch()
@@ -28,8 +29,8 @@ export const GameSettingsContainer = () => {
   }, [dispatch])
 
   const handleStartClick = useCallback(() => {
-    dispatch(startGameAction())
-  }, [dispatch])
+    dispatch(gameStatus === GameStatus.Pause ? resumeGameAction() : startGameAction())
+  }, [dispatch, gameStatus])
 
   const handleExitClick = useCallback(() => {
     navigate(routes.HOME)
