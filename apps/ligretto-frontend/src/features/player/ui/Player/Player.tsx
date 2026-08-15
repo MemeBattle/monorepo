@@ -144,14 +144,16 @@ export const Player: React.FC<PlayerProps> = props => {
 
   return (
     <StyledPlayer status={status} isActivePlayer={isActivePlayer}>
-      <AvatarWrapper>
-        <Avatar src={avatar} alt={username} size="auto" />
-        {isDisconnected ? (
+      {isDisconnected ? (
+        <AvatarWrapper>
+          <Avatar src={avatar} alt={username} size="auto" />
           <ConnectionIconWrapper>
             <WifiOff fontSize="inherit" titleAccess="Connection lost" />
           </ConnectionIconWrapper>
-        ) : null}
-      </AvatarWrapper>
+        </AvatarWrapper>
+      ) : (
+        <Avatar src={avatar} alt={username} size="auto" />
+      )}
       <Bottom isActivePlayer={isActivePlayer} status={status} title={`${username} (${TitlePostfixByStatus[status]})`}>
         <Username isActivePlayer={isActivePlayer} status={status}>
           {username}

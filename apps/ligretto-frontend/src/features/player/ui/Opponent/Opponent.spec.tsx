@@ -35,6 +35,8 @@ describe('Opponent connection state', () => {
     view.rerender(<Opponent {...opponentProps} />)
 
     const connectedOpponent = screen.getByRole('group', { name: 'Opponent player' })
+    const connectedAvatar = screen.getByRole('img', { name: 'Opponent' })
+    expect(connectedAvatar.parentElement?.parentElement?.parentElement).toBe(connectedOpponent)
     expect(connectedOpponent.dataset.connectionState).toBe('online')
     expect(getComputedStyle(connectedOpponent).filter).not.toContain('grayscale')
     expect(screen.queryByRole('img', { name: 'Connection lost' })).toBeNull()
