@@ -60,21 +60,26 @@ const StyledPlayer = styled('div')<StyledPlayerProps>(({ status, isActivePlayer,
 
 interface StyledIconWrapperProps {
   status: PlayerStatus
+  isActivePlayer?: boolean
 }
 
-const StyledIconWrapper = styled('div')<StyledIconWrapperProps>(({ status, theme }) => ({
+const StyledIconWrapper = styled('div')<StyledIconWrapperProps>(({ status, isActivePlayer, theme }) => ({
   marginLeft: usesCompactLayout(status) ? '0.25rem' : '0.5rem',
   fontSize: usesCompactLayout(status) ? '1rem' : '2rem',
   width: usesCompactLayout(status) ? '1rem' : '2rem',
   height: usesCompactLayout(status) ? '1rem' : '2rem',
   lineHeight: '1',
   color: status === PlayerStatus.Disconnected ? theme.palette.error.main : 'inherit',
-  [theme.breakpoints.down('md')]: {
-    marginLeft: '0.125rem',
-    fontSize: '0.75rem',
-    width: '0.75rem',
-    height: '0.75rem',
-  },
+  ...(isActivePlayer
+    ? null
+    : {
+        [theme.breakpoints.down('md')]: {
+          marginLeft: '0.125rem',
+          fontSize: '0.75rem',
+          width: '0.75rem',
+          height: '0.75rem',
+        },
+      }),
 }))
 
 interface AvatarFrameProps {
@@ -85,10 +90,11 @@ interface AvatarFrameProps {
 const AvatarFrame = styled('div')<AvatarFrameProps>(({ isActivePlayer, isDisconnected, theme }) => ({
   display: 'flex',
   justifyContent: 'center',
-  height: '100%',
+  // The active player's avatar takes the space left by the nickname plate;
+  // fixed content-based sizes would overflow the fixed-height block
+  ...(isActivePlayer ? { flex: '1 1 auto', minHeight: 0, height: 'auto' } : { height: '100%', flexShrink: 0 }),
   maxWidth: '100%',
   aspectRatio: '1',
-  flexShrink: isActivePlayer ? 1 : 0,
   filter: isDisconnected ? 'grayscale(1)' : 'none',
   opacity: isDisconnected ? 0.5 : 1,
   transition: 'filter 150ms, opacity 150ms',
@@ -202,7 +208,7 @@ export const Player: React.FC<PlayerProps> = props => {
           {username}
         </Username>
         {Icon ? (
-          <StyledIconWrapper status={status}>
+          <StyledIconWrapper status={status} isActivePlayer={isActivePlayer}>
             <Icon fontSize="inherit" titleAccess={isDisconnected ? 'Connection lost' : undefined} />
           </StyledIconWrapper>
         ) : null}
