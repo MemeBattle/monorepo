@@ -39,7 +39,7 @@ const StyledPlayer = styled('div')<StyledPlayerProps>(({ status, isActivePlayer,
     maxWidth: '3.5rem',
     height: tabletHeightBySize.small,
     maxHeight: tabletHeightBySize.small,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
   },
   [theme.breakpoints.down('sm')]: {
     height: mobileHeightBySize.small,
@@ -83,12 +83,12 @@ const AvatarFrame = styled('div')<AvatarFrameProps>(({ isActivePlayer, isDisconn
   transition: 'filter 150ms, opacity 150ms',
   // Mobile avatar is half of the small card height, so it follows the card breakpoints
   [theme.breakpoints.down('md')]: {
-    width: `calc(${tabletHeightBySize.small} / 2)`,
-    height: `calc(${tabletHeightBySize.small} / 2)`,
+    width: `calc(${tabletHeightBySize.small} - 21px)`,
+    height: `calc(${tabletHeightBySize.small} - 21px)`,
   },
   [theme.breakpoints.down('sm')]: {
-    width: `calc(${mobileHeightBySize.small} / 2)`,
-    height: `calc(${mobileHeightBySize.small} / 2)`,
+    width: `calc(${mobileHeightBySize.small} - 21px)`,
+    height: `calc(${mobileHeightBySize.small} - 21px)`,
   },
 }))
 
