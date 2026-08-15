@@ -14,13 +14,15 @@ interface CalcPlayerHeightParams {
   isActivePlayer?: boolean
 }
 
+const hasInGameLayout = (status: PlayerStatus): boolean => status === PlayerStatus.InGame || status === PlayerStatus.Disconnected
+
 const calcPlayerHeight = ({ status, isActivePlayer }: CalcPlayerHeightParams): string => {
   switch (true) {
-    case isActivePlayer && status === PlayerStatus.InGame:
+    case isActivePlayer && hasInGameLayout(status):
       return '9rem'
     case isActivePlayer:
       return '12rem'
-    case !isActivePlayer && status === PlayerStatus.InGame:
+    case !isActivePlayer && hasInGameLayout(status):
       return '3rem'
     case !isActivePlayer:
       return '10rem'
@@ -35,7 +37,7 @@ interface StyledPlayerProps {
 
 const StyledPlayer = styled('div')<StyledPlayerProps>(({ status, isActivePlayer, theme }) => ({
   display: 'flex',
-  flexDirection: status === PlayerStatus.InGame && !isActivePlayer ? 'row' : 'column',
+  flexDirection: hasInGameLayout(status) && !isActivePlayer ? 'row' : 'column',
   height: calcPlayerHeight({ isActivePlayer, status }),
   [theme.breakpoints.down('sm')]: {
     maxWidth: '1.5rem',
@@ -92,7 +94,7 @@ interface UsernameProps {
 
 const Username = styled('span')<UsernameProps>(({ status, isActivePlayer }) => ({
   color: '#fff',
-  fontSize: status === PlayerStatus.InGame && !isActivePlayer ? '1rem' : '1.5rem',
+  fontSize: hasInGameLayout(status) && !isActivePlayer ? '1rem' : '1.5rem',
   textAlign: 'center',
   textOverflow: 'ellipsis',
   overflow: 'hidden',
@@ -114,7 +116,7 @@ const Bottom = styled('div')<BottomProps>(({ theme, status, isActivePlayer, isDi
   padding: '0.5rem',
   maxWidth: '100%',
   width: '100%',
-  marginLeft: status === PlayerStatus.InGame && !isActivePlayer ? '0.75rem' : 0,
+  marginLeft: hasInGameLayout(status) && !isActivePlayer ? '0.75rem' : 0,
   filter: isDisconnected ? 'grayscale(1)' : 'none',
   opacity: isDisconnected ? 0.5 : 1,
   transition: 'filter 150ms, opacity 150ms',
@@ -147,7 +149,6 @@ const TitlePostfixByStatus = {
 export const Player: React.FC<PlayerProps> = props => {
   const { avatar, username, status, isActivePlayer } = props
   const isDisconnected = status === PlayerStatus.Disconnected
-  const layoutStatus = isDisconnected ? PlayerStatus.InGame : status
 
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
@@ -159,7 +160,7 @@ export const Player: React.FC<PlayerProps> = props => {
   const Icon = IconByStatus[status]
 
   return (
-    <StyledPlayer status={layoutStatus} isActivePlayer={isActivePlayer}>
+    <StyledPlayer status={status} isActivePlayer={isActivePlayer}>
       {isDisconnected ? (
         <AvatarWrapper>
           <DisconnectedAvatar>
@@ -172,13 +173,8 @@ export const Player: React.FC<PlayerProps> = props => {
       ) : (
         <Avatar src={avatar} alt={username} size="auto" />
       )}
-      <Bottom
-        isActivePlayer={isActivePlayer}
-        status={layoutStatus}
-        isDisconnected={isDisconnected}
-        title={`${username} (${TitlePostfixByStatus[status]})`}
-      >
-        <Username isActivePlayer={isActivePlayer} status={layoutStatus}>
+      <Bottom isActivePlayer={isActivePlayer} status={status} isDisconnected={isDisconnected} title={`${username} (${TitlePostfixByStatus[status]})`}>
+        <Username isActivePlayer={isActivePlayer} status={status}>
           {username}
         </Username>
         {Icon ? (
