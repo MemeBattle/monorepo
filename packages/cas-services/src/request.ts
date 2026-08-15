@@ -1,5 +1,22 @@
-import { stringify } from 'qs'
 import type { ErrorLoggerFunction, SuccessLoggerFunction } from './types'
+
+// Flat params only (strings, numbers, arrays); arrays are repeated: ids=a&ids=b
+const buildSearchParams = (params: Record<string, unknown>): URLSearchParams => {
+  const searchParams = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null) {
+      continue
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        searchParams.append(key, String(item))
+      }
+    } else {
+      searchParams.append(key, String(value))
+    }
+  }
+  return searchParams
+}
 
 type RequestConfig = {
   headers?: Record<string, string>
@@ -24,7 +41,7 @@ export const createBaseRequest = ({
   const doRequest = async <T>(method: string, path: string, body?: unknown, config?: RequestConfig): Promise<T> => {
     let url = `${casURI}${path}`
     if (config?.params) {
-      url += `?${stringify(config.params, { arrayFormat: 'repeat', indices: false })}`
+      url += `?${buildSearchParams(config.params)}`
     }
 
     const headers: Record<string, string> = { ...config?.headers }
