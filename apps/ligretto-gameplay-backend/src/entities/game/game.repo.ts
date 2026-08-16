@@ -16,10 +16,22 @@ export class GameRepository {
     return this.database.get(storage => storage.games[gameId])
   }
 
-  async updateGame(gameId: UUID, updater: (game: Game) => Game): Promise<Game> {
-    const game = await this.getGame(gameId)
+  updateGame(gameId: UUID, updater: (game: Game) => Game): Promise<Game>
+  updateGame(gameId: UUID, updater: (game: Game) => Game | undefined): Promise<Game | undefined>
+  async updateGame(gameId: UUID, updater: (game: Game) => Game | undefined): Promise<Game | undefined> {
+    return this.database.set(storage => {
+      const game = storage.games[gameId]
+      if (!game) {
+        return undefined
+      }
 
-    return this.database.set(storage => (storage.games[gameId] = updater(game)))
+      const updatedGame = updater(game)
+      if (!updatedGame) {
+        return undefined
+      }
+
+      return (storage.games[gameId] = updatedGame)
+    })
   }
 
   async getGameByName(gameName: string) {

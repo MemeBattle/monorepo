@@ -4,6 +4,7 @@ import {
   PlayerStatus,
   putCardAction,
   putCardFromStackOpenDeck,
+  resumeGameEmitAction,
   setPlayerStatusEmitAction,
   startGameEmitAction,
   takeFromLigrettoDeckAction,
@@ -25,6 +26,7 @@ import {
   tapStackDeckCardAction,
   tapLigrettoDeckCardAction,
   resetGameStateAction,
+  resumeGameAction,
 } from './slice'
 import { gameIdSelector, playerStatusSelector } from './selectors'
 import { matchPath } from 'react-router'
@@ -131,6 +133,15 @@ export function addListeners(startListener: TypedStartListening<All>) {
       const gameId = gameIdSelector(state)
 
       listenerApi.dispatch(startGameEmitAction({ gameId }))
+    },
+  })
+
+  startListener({
+    actionCreator: resumeGameAction,
+    effect: (_action, listenerApi) => {
+      const gameId = gameIdSelector(listenerApi.getState())
+
+      listenerApi.dispatch(resumeGameEmitAction({ gameId }))
     },
   })
 

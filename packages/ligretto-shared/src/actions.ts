@@ -31,6 +31,8 @@ export const setPlayerStatusEmitAction = createAction<dto.PlayerStatusInGame>('@
 
 export const startGameEmitAction = createAction<dto.StartGame>('@@gameplay/WEBSOCKET/START_GAME')
 
+export const resumeGameEmitAction = createAction<dto.ResumeGame>('@@gameplay/WEBSOCKET/RESUME_GAME')
+
 export const takeFromLigrettoDeckAction = createAction<dto.TakeCardFromLigrettoDeck>('@@gameplay/WEBSOCKET/TAKE_FROM_LIGRETTO_DECK')
 
 export const takeFromStackDeckAction = createAction<dto.TakeCardFromStackDeck>('@@gameplay/WEBSOCKET/TAKE_FROM_STACK_DECK')

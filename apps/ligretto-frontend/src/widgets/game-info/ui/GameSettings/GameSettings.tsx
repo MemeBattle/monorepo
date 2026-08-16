@@ -51,13 +51,13 @@ export const GameSettings = ({
 
   const buttonText: string = useMemo(() => {
     if (canStartGame) {
-      return 'Start'
+      return gameStatus === GameStatus.Pause ? 'Resume' : 'Start'
     }
     if (isPlayerReadyToPlay) {
       return 'Not ready'
     }
     return 'Ready'
-  }, [canStartGame, isPlayerReadyToPlay])
+  }, [canStartGame, gameStatus, isPlayerReadyToPlay])
 
   return (
     <StyledPaper data-test-id="GameSettings">

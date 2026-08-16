@@ -89,6 +89,16 @@ export class GameService {
     return this.gameRepository.updateGame(gameId, game => ({ ...game, status: GameStatus.Pause }))
   }
 
+  resumeGame(gameId: UUID, userId: Player['id']) {
+    return this.gameRepository.updateGame(gameId, game => {
+      if (game.status !== GameStatus.Pause || !game.players[userId]?.isHost) {
+        return undefined
+      }
+
+      return { ...game, status: GameStatus.InGame }
+    })
+  }
+
   async addPlayer(gameId: UUID, playerData: Partial<Player> & { id: Player['id'] }) {
     const player = await this.gameRepository.createPlayer({ ...playerData })
     return {
