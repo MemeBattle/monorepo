@@ -44,6 +44,7 @@ export interface PlayerStatusInGame {
 export interface PutCard {
   gameId: Game['id']
   cardIndex: number
+  /** May be omitted only when the authoritative card value is 1. */
   playgroundDeckIndex?: number
 }
 
@@ -53,6 +54,7 @@ export interface TakeCardFromLigrettoDeck {
 
 export interface PutCardFromStackOpenDeck {
   gameId: Game['id']
+  /** May be omitted only when the authoritative card value is 1. */
   playgroundDeckIndex?: number
 }
 

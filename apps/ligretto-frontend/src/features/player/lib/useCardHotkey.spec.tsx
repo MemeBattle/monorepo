@@ -9,8 +9,8 @@ import { useCardHotkey } from './useCardHotkey'
 
 afterEach(cleanup)
 
-const HotkeyOwner = ({ enabled = true, hotkey = Hotkey.q, onActivate }: { enabled?: boolean; hotkey?: Hotkey; onActivate: () => void }) => {
-  useCardHotkey(hotkey, onActivate, enabled)
+const HotkeyOwner = ({ hotkey = Hotkey.q, onActivate }: { hotkey?: Hotkey; onActivate: () => void }) => {
+  useCardHotkey(hotkey, onActivate)
   return null
 }
 
@@ -24,15 +24,6 @@ describe('useCardHotkey', () => {
 
     expect(onActivate).toHaveBeenCalledOnce()
     expect(event.defaultPrevented).toBe(true)
-  })
-
-  it('does not activate a disabled owner', () => {
-    const onActivate = vi.fn()
-    render(<HotkeyOwner enabled={false} onActivate={onActivate} />)
-
-    fireEvent.keyDown(document, { key: 'q' })
-
-    expect(onActivate).not.toHaveBeenCalled()
   })
 
   it('does not activate an owner without a key', () => {

@@ -1,27 +1,22 @@
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import {
-  Hotkey,
-  isDndEnabledSelector,
-  tapLigrettoDeckCardAction,
-  playerLigrettoDeckCardsSelector,
-  playerLigrettoDeckHiddenSelector,
-} from '#ducks/game'
+import { Hotkey, tapLigrettoDeckCardAction, playerLigrettoDeckCardsSelector, playerLigrettoDeckHiddenSelector } from '#ducks/game'
 import { LigrettoPack } from './LigrettoPack'
 import { useCardHotkey } from '../lib/useCardHotkey'
 
 export const LigrettoDeckContainer = () => {
   const dispatch = useDispatch()
-  const isDndEnabled = useSelector(isDndEnabledSelector)
   const ligrettoDeckCards = useSelector(playerLigrettoDeckCardsSelector)
   const isDeckHidden = useSelector(playerLigrettoDeckHiddenSelector)
-  const isLigrettoDeckEnabled = isDndEnabled && !!ligrettoDeckCards?.length
+  const isLigrettoDeckEnabled = !!ligrettoDeckCards?.length
 
   const onLigrettoDeckCardClick = useCallback(() => {
-    dispatch(tapLigrettoDeckCardAction())
-  }, [dispatch])
+    if (isLigrettoDeckEnabled) {
+      dispatch(tapLigrettoDeckCardAction())
+    }
+  }, [dispatch, isLigrettoDeckEnabled])
 
-  useCardHotkey(Hotkey.l, onLigrettoDeckCardClick, isLigrettoDeckEnabled)
+  useCardHotkey(isLigrettoDeckEnabled ? Hotkey.l : undefined, onLigrettoDeckCardClick)
 
   if (!ligrettoDeckCards) {
     return null
@@ -30,7 +25,7 @@ export const LigrettoDeckContainer = () => {
   return (
     <LigrettoPack
       count={ligrettoDeckCards.length}
-      isDndEnabled={isLigrettoDeckEnabled}
+      hotkey={isLigrettoDeckEnabled ? Hotkey.l : undefined}
       ligrettoDeckCards={ligrettoDeckCards}
       isDeckHidden={isDeckHidden ?? true}
       onLigrettoDeckCardClick={onLigrettoDeckCardClick}

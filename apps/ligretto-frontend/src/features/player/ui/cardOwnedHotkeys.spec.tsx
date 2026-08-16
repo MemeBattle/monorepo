@@ -12,7 +12,6 @@ import { LigrettoDeckContainer } from './LigrettoDeckContainer'
 
 const mocks = vi.hoisted(() => ({
   dispatch: vi.fn(),
-  isDndEnabled: true,
   rowCards: [] as ({ color: CardColors; value: number } | undefined)[] | undefined,
   stackCards: [] as { color: CardColors; value: number }[] | undefined,
   openCards: [] as { color: CardColors; value: number }[] | undefined,
@@ -27,7 +26,6 @@ vi.mock('react-redux', async importActual => ({
 
 vi.mock('#ducks/game', async importActual => ({
   ...(await importActual<typeof import('#ducks/game')>()),
-  isDndEnabledSelector: () => mocks.isDndEnabled,
   playerCardsSelector: () => mocks.rowCards,
   playerStackDeckCardsSelector: () => mocks.stackCards,
   playerStackDeckHiddenSelector: () => false,
@@ -50,7 +48,6 @@ const FocusState = () => {
 
 beforeEach(() => {
   mocks.dispatch.mockClear()
-  mocks.isDndEnabled = true
   mocks.rowCards = []
   mocks.stackCards = []
   mocks.openCards = []
@@ -93,21 +90,14 @@ describe('card-owned hotkeys', () => {
     expect(mocks.dispatch).toHaveBeenCalledWith(tapCardAction({ cardIndex: 0 }))
   })
 
-  it('does not handle a missing or disabled row card key', () => {
+  it('does not show or handle a missing row card key', () => {
     mocks.rowCards = [undefined]
-    const view = render(
+    render(
       <CardFocusProvider enabled>
         <PlayerRowCardsContainer />
       </CardFocusProvider>,
     )
-    press('q', 'KeyQ')
-    mocks.isDndEnabled = false
-    mocks.rowCards = [card(2)]
-    view.rerender(
-      <CardFocusProvider enabled={false}>
-        <PlayerRowCardsContainer />
-      </CardFocusProvider>,
-    )
+    expect(screen.queryByText('Q')).toBeNull()
     press('q', 'KeyQ')
 
     expect(mocks.dispatch).not.toHaveBeenCalled()
@@ -147,23 +137,14 @@ describe('card-owned hotkeys', () => {
     expect(mocks.dispatch).toHaveBeenCalledWith(tapStackOpenDeckCardAction())
   })
 
-  it('does not show or handle X when the open card is missing or controls are disabled', () => {
+  it('does not show or handle X when the open card is missing', () => {
     mocks.stackCards = []
-    const view = render(
+    render(
       <CardFocusProvider enabled>
         <PlayerCardsStack />
       </CardFocusProvider>,
     )
     expect(screen.queryByText('X')).toBeNull()
-    press('x', 'KeyX')
-
-    mocks.openCards = [card(2)]
-    mocks.isDndEnabled = false
-    view.rerender(
-      <CardFocusProvider enabled={false}>
-        <PlayerCardsStack />
-      </CardFocusProvider>,
-    )
     press('x', 'KeyX')
     expect(mocks.dispatch).not.toHaveBeenCalled()
   })
@@ -171,7 +152,7 @@ describe('card-owned hotkeys', () => {
   it('clears focused cards and dispatches the stack command once for keyboard and pointer activation', () => {
     mocks.stackCards = [card(3)]
     mocks.openCards = [card(2)]
-    const view = render(
+    render(
       <CardFocusProvider enabled>
         <PlayerCardsStack />
         <FocusState />
@@ -192,17 +173,6 @@ describe('card-owned hotkeys', () => {
     expect(screen.getByTestId('focus-state').textContent).toBe('none')
     expect(mocks.dispatch).toHaveBeenCalledOnce()
     expect(mocks.dispatch).toHaveBeenCalledWith(tapStackDeckCardAction())
-
-    mocks.dispatch.mockClear()
-    mocks.isDndEnabled = false
-    view.rerender(
-      <CardFocusProvider enabled={false}>
-        <PlayerCardsStack />
-        <FocusState />
-      </CardFocusProvider>,
-    )
-    press(' ', 'Space')
-    expect(mocks.dispatch).not.toHaveBeenCalled()
   })
 
   it('does not handle Space when the stack and open decks are empty', () => {
@@ -216,6 +186,7 @@ describe('card-owned hotkeys', () => {
 
     expect(screen.queryByText('SPACE')).toBeNull()
     press(' ', 'Space')
+    activatePointer(screen.getByRole('button'))
 
     expect(mocks.dispatch).not.toHaveBeenCalled()
   })
@@ -241,17 +212,7 @@ describe('card-owned hotkeys', () => {
 
     expect(screen.queryByText('L')).toBeNull()
     press('l', 'KeyL')
-
-    expect(mocks.dispatch).not.toHaveBeenCalled()
-  })
-
-  it('does not handle L when controls are disabled', () => {
-    mocks.isDndEnabled = false
-    mocks.ligrettoCards = [card(4)]
-    render(<LigrettoDeckContainer />)
-
-    expect(screen.queryByText('L')).toBeNull()
-    press('l', 'KeyL')
+    activatePointer(screen.getByRole('button'))
 
     expect(mocks.dispatch).not.toHaveBeenCalled()
   })
