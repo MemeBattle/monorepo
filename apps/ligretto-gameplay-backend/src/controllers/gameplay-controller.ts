@@ -45,16 +45,16 @@ export class GameplayController extends Controller {
     const gameId = action.payload.gameId
     const game = await this.gameService.getGame(gameId)
 
-    if (!game) {
+    if (!game || !game.players[socket.data.user.id]?.isHost) {
       return
     }
 
-    if (!game.players[socket.data.user.id]?.isHost) {
+    const resumedGame = await this.gameService.resumeGame(gameId, socket.data.user.id)
+    if (!resumedGame) {
       return
     }
 
-    const resumedGame = await this.gameService.resumeGame(gameId)
-    await this.updateGame(socket, gameId, resumedGame)
+    await this.updateGame(socket, gameId)
   }
 
   private async updateGame(socket: Socket, gameId: string, gameState?: Game) {
