@@ -15,6 +15,8 @@ import { UserService, UserRepository } from './entities/user'
 import { BotController } from './controllers/bot-controller'
 import { AuthService } from './services/auth'
 import { LigrettoCoreService } from './services/ligretto-core'
+import { GameConnectionService } from './services/game-connection/game-connection.service'
+import { GameOperationSerializer } from './services/game-operation-serializer'
 
 export const createIOC = () => {
   const IOC = new Container()
@@ -35,6 +37,8 @@ export const createIOC = () => {
   IOC.bind<Database>(IOC_TYPES.Database).to(Database).inSingletonScope()
   IOC.bind<AuthService>(IOC_TYPES.AuthService).to(AuthService).inSingletonScope()
   IOC.bind<LigrettoCoreService>(IOC_TYPES.LigrettoCoreService).to(LigrettoCoreService).inSingletonScope()
+  IOC.bind<GameConnectionService>(IOC_TYPES.GameConnectionService).to(GameConnectionService).inSingletonScope()
+  IOC.bind<GameOperationSerializer>(IOC_TYPES.GameOperationSerializer).to(GameOperationSerializer).inSingletonScope()
 
   return IOC
 }

@@ -37,16 +37,22 @@ export class WebSocketHandler {
       socket.emit(data.type, data.payload)
     })
 
-    socket.on('disconnecting', async () => {
-      await this.gamesController.disconnectionHandler(socket)
-      await this.userService.disconnectionHandler({ socketId: socket.id, userId: socket.data.user.id })
+    socket.on('disconnecting', async reason => {
+      const disconnectUser = () => this.userService.disconnectionHandler({ socketId: socket.id, userId: socket.data.userId })
+      if (reason === 'client namespace disconnect') {
+        await this.gamesController.disconnectionHandler(socket, reason)
+        await disconnectUser()
+        return
+      }
+      await disconnectUser()
+      await this.gamesController.disconnectionHandler(socket, reason)
     })
 
     socket.on('disconnect', () => {
       socketIOConnectionsCountMetric.dec()
     })
 
-    await this.userService.connectUser({ socketId: socket.id, userId: socket.data.user.id })
+    await this.userService.connectUser({ socketId: socket.id, userId: socket.data.userId })
   }
 
   private messageHandler(socket: Socket, data: AnyAction) {

@@ -8,7 +8,11 @@ import {
   updateRoomsAction,
   connectToRoomEmitAction,
   connectToRoomErrorAction,
+  connectToRoomSuccessAction,
   updateGameAction,
+  PlayerStatus,
+  GameStatus,
+  setPlayerStatusEmitAction,
 } from '@memebattle/ligretto-shared'
 
 import type { GamesController } from '../games-controller'
@@ -18,8 +22,11 @@ import { IOC_TYPES } from '../../IOC_TYPES'
 import type { Database } from '../../database'
 import { createSocketMockImpl } from '../../../test/utils'
 import type { AnyAction } from '../../types/any-action'
-import { SOCKET_ROOM_LOBBY } from '../../config'
+import { DISCONNECT_GRACE_PERIOD_MS, SOCKET_ROOM_LOBBY } from '../../config'
+import type { UserService } from '../../entities/user'
 import { gameToRoom } from '../../utils/mappers'
+import type { GameService } from '../../entities/game/game.service'
+import type { GameOperationSerializer } from '../../services/game-operation-serializer'
 
 describe('Games Controller', () => {
   let container = createIOC()
@@ -84,7 +91,7 @@ describe('Games Controller', () => {
     const userId = 'userId'
 
     beforeEach(async () => {
-      socketMockImpl.data = { user: { id: userId } }
+      socketMockImpl.data = { userId }
       gamesController = container.get(IOC_TYPES.GamesController)
       const database: Database = container.get(IOC_TYPES.Database)
 
@@ -125,7 +132,7 @@ describe('Games Controller', () => {
     it('Should create relevant state on join room second player', async () => {
       const database: Database = container.get(IOC_TYPES.Database)
       const secondUserSocket = createSocketMockImpl({ id: 'secondUserSocketId' })
-      secondUserSocket.data = { user: { id: 'secondUserId' } }
+      secondUserSocket.data = { userId: 'secondUserId' }
       const secondUserId = 'secondUserId'
       await database.set(storage => {
         storage.users = {
@@ -148,7 +155,7 @@ describe('Games Controller', () => {
       const database: Database = container.get(IOC_TYPES.Database)
       await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
       const secondUserSocket = createSocketMockImpl()
-      secondUserSocket.data = { user: { id: userId } }
+      secondUserSocket.data = { userId }
       await database.set(storage => {
         storage.users = {
           ...storage.users,
@@ -164,20 +171,85 @@ describe('Games Controller', () => {
       const state = await database.get(db => db)
       expect(state).toMatchSnapshot()
     })
+
+    it('does not join or retain a stale association when serialized deletion wins', async () => {
+      const database: Database = container.get(IOC_TYPES.Database)
+      const operations = container.get<GameOperationSerializer>(IOC_TYPES.GameOperationSerializer)
+      let release!: () => void
+      let entered!: () => void
+      const gate = new Promise<void>(resolve => (release = resolve))
+      const started = new Promise<void>(resolve => (entered = resolve))
+      const deletion = operations.run(roomUuid, async () => {
+        entered()
+        await gate
+        await database.set(storage => delete storage.games[roomUuid])
+      })
+      await started
+
+      const joining = gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+      release()
+      await deletion
+      await joining
+
+      expect(await database.get(storage => storage.users[userId]?.currentGameId)).not.toBe(roomUuid)
+      expect(socketMockImpl.emit).toHaveBeenCalledWith('event', connectToRoomErrorAction())
+      expect(socketMockImpl.emit).not.toHaveBeenCalledWith('event', expect.objectContaining({ type: connectToRoomSuccessAction.type }))
+    })
+
+    it('does not reconnect to a game deleted ahead of the serialized reconnect', async () => {
+      const database: Database = container.get(IOC_TYPES.Database)
+      const operations = container.get<GameOperationSerializer>(IOC_TYPES.GameOperationSerializer)
+      await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+      vi.mocked(socketMockImpl.emit).mockClear()
+      const deletion = operations.run(roomUuid, async () => {
+        await database.set(storage => delete storage.games[roomUuid])
+      })
+
+      const reconnecting = gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+      await deletion
+      await reconnecting
+
+      expect(socketMockImpl.emit).toHaveBeenCalledWith('event', connectToRoomErrorAction())
+      expect(socketMockImpl.emit).not.toHaveBeenCalledWith('event', expect.objectContaining({ type: connectToRoomSuccessAction.type }))
+    })
+
+    it('does not reconnect after an explicit leave wins the serialized race', async () => {
+      const database: Database = container.get(IOC_TYPES.Database)
+      const operations = container.get<GameOperationSerializer>(IOC_TYPES.GameOperationSerializer)
+      const users = container.get<UserService>(IOC_TYPES.UserService)
+      const games = container.get<GameService>(IOC_TYPES.GameService)
+      await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+      await database.set(storage => {
+        storage.games[roomUuid].players.peer = { ...structuredClone(storage.games[roomUuid].players[userId]!), id: 'peer', isHost: false }
+      })
+      vi.mocked(socketMockImpl.emit).mockClear()
+      const leaving = operations.run(roomUuid, async () => {
+        await users.leaveGame(userId)
+        await games.leaveGame(roomUuid, userId)
+      })
+
+      const reconnecting = gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+      await leaving
+      await reconnecting
+
+      expect(socketMockImpl.emit).toHaveBeenCalledWith('event', connectToRoomErrorAction())
+      expect(socketMockImpl.emit).not.toHaveBeenCalledWith('event', expect.objectContaining({ type: connectToRoomSuccessAction.type }))
+      expect((await database.get(storage => storage.games[roomUuid])).players[userId]).toBeUndefined()
+    })
   })
 
   describe('leaveFromRoomHandler', () => {
     const roomUuid = '1'
     const userOneId = 'userOneId'
     const userTwoId = 'userTwoId'
-    let socketOne = createSocketMockImpl({ id: 'socket1', data: { user: { id: userOneId } } })
-    let socketTwo = createSocketMockImpl({ id: 'socket2', data: { user: { id: userTwoId } } })
+    let socketOne = createSocketMockImpl({ id: 'socket1', data: { userId: userOneId } })
+    let socketTwo = createSocketMockImpl({ id: 'socket2', data: { userId: userTwoId } })
 
     beforeEach(async () => {
       gamesController = container.get(IOC_TYPES.GamesController)
       const database: Database = container.get(IOC_TYPES.Database)
-      socketOne = createSocketMockImpl({ id: 'socket1', data: { user: { id: userOneId } } })
-      socketTwo = createSocketMockImpl({ id: 'socket2', data: { user: { id: userTwoId } } })
+      socketOne = createSocketMockImpl({ id: 'socket1', data: { userId: userOneId } })
+      socketTwo = createSocketMockImpl({ id: 'socket2', data: { userId: userTwoId } })
 
       await database.set(storage => {
         storage.users = {
@@ -218,7 +290,7 @@ describe('Games Controller', () => {
 
       const state = await database.get(storage => storage)
       expect(state).toMatchSnapshot()
-      expect(socketOne.to).toHaveBeenCalledTimes(4)
+      expect(socketOne.to).toHaveBeenCalledTimes(5)
       expect(socketOne.emit).toHaveBeenCalledWith('event', updateRoomsAction({ rooms: [gameToRoom(state.games[roomUuid])] }))
       expect(socketOne.emit).toHaveBeenCalledWith('event', updateGameAction(state.games[roomUuid]))
     })
@@ -261,6 +333,128 @@ describe('Games Controller', () => {
 
       const state = await database.get(storage => storage)
       expect(state).toMatchSnapshot()
+      expect(state.users[userOneId]?.currentGameId).toBeUndefined()
+    })
+
+    it('retains a player seat after a recoverable transport disconnect', async () => {
+      vi.useFakeTimers()
+      const database: Database = container.get(IOC_TYPES.Database)
+      const users: UserService = container.get(IOC_TYPES.UserService)
+      await database.set(storage => {
+        storage.users[userOneId] = { id: userOneId, socketIds: [socketOne.id], currentGameId: roomUuid }
+      })
+      await gamesController.handleMessage(socketOne, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+
+      await users.disconnectionHandler({ userId: userOneId, socketId: socketOne.id })
+      await gamesController.disconnectionHandler(socketOne, 'transport close')
+      await vi.advanceTimersByTimeAsync(DISCONNECT_GRACE_PERIOD_MS)
+
+      const retained = await database.get(storage => storage.games[roomUuid])
+      expect(retained.players[userOneId]?.status).toBe(PlayerStatus.Disconnected)
+      expect(retained.players[userOneId]).toBeDefined()
+    })
+  })
+
+  describe('setPlayerStatus', () => {
+    const roomUuid = 'status-game'
+    const userId = 'status-player'
+    let database: Database
+    let socket = createSocketMockImpl({ id: 'status-socket', data: { userId } })
+
+    beforeEach(async () => {
+      database = container.get(IOC_TYPES.Database)
+      socket = createSocketMockImpl({ id: 'status-socket', data: { userId } })
+      await database.set(storage => {
+        storage.games[roomUuid] = {
+          id: roomUuid,
+          name: roomUuid,
+          status: GameStatus.New,
+          players: {
+            [userId]: {
+              id: userId,
+              isHost: true,
+              status: PlayerStatus.DontReadyToPlay,
+              cards: [],
+              ligrettoDeck: { cards: [], isHidden: true },
+              stackDeck: { cards: [], isHidden: true },
+              stackOpenDeck: { cards: [], isHidden: false },
+            },
+          },
+          spectators: {},
+          playground: { decks: [], droppedDecks: [] },
+          config: { playersMaxCount: 4, startingDelayInSec: 0, dndEnabled: false, maxCardsOnTable: 12 },
+        }
+        storage.users[userId] = { id: userId, socketIds: [socket.id], currentGameId: roomUuid }
+      })
+    })
+
+    it.each([PlayerStatus.ReadyToPlay, PlayerStatus.DontReadyToPlay])('allows the lobby transition to %s', async status => {
+      await gamesController.handleMessage(socket, setPlayerStatusEmitAction({ gameId: roomUuid, status }) as AnyAction)
+
+      expect((await database.get(storage => storage.games[roomUuid])).players[userId]?.status).toBe(status)
+      expect(socket.emit).toHaveBeenCalled()
+    })
+
+    it('revalidates all status eligibility in the same operation that mutates', async () => {
+      const gameService = Reflect.get(gamesController, 'gameService') as GameService
+      let release!: () => void
+      let entered!: () => void
+      const gate = new Promise<void>(resolve => (release = resolve))
+      const started = new Promise<void>(resolve => (entered = resolve))
+      const original = gameService.setPlayerStatusIfEligible.bind(gameService)
+      vi.spyOn(gameService, 'setPlayerStatusIfEligible').mockImplementation(async (...args) => {
+        entered()
+        await gate
+        return original(...args)
+      })
+
+      const handling = gamesController.handleMessage(
+        socket,
+        setPlayerStatusEmitAction({ gameId: roomUuid, status: PlayerStatus.ReadyToPlay }) as AnyAction,
+      )
+      await started
+      await database.set(storage => {
+        storage.games[roomUuid].status = GameStatus.InGame
+        storage.users[userId]!.currentGameId = 'other-game'
+        storage.users[userId]!.socketIds = ['replacement-socket']
+        storage.games[roomUuid].players[userId]!.status = PlayerStatus.Disconnected
+      })
+      release()
+      await handling
+
+      expect((await database.get(storage => storage.games[roomUuid])).players[userId]?.status).toBe(PlayerStatus.Disconnected)
+      expect(socket.emit).not.toHaveBeenCalled()
+    })
+
+    it.each([PlayerStatus.InGame, PlayerStatus.Disconnected])('rejects the client-controlled status %s', async status => {
+      await gamesController.handleMessage(socket, setPlayerStatusEmitAction({ gameId: roomUuid, status }) as AnyAction)
+
+      expect((await database.get(storage => storage.games[roomUuid])).players[userId]?.status).toBe(PlayerStatus.DontReadyToPlay)
+      expect(socket.emit).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      ['wrong game association', 'other-game', false, PlayerStatus.DontReadyToPlay, GameStatus.New],
+      ['spectator', roomUuid, true, undefined, GameStatus.New],
+      ['disconnected player', roomUuid, false, PlayerStatus.Disconnected, GameStatus.New],
+      ['active game', roomUuid, false, PlayerStatus.InGame, GameStatus.InGame],
+    ])('rejects a %s sender', async (_label, currentGameId, spectator, playerStatus, gameStatus) => {
+      await database.set(storage => {
+        storage.users[userId]!.currentGameId = currentGameId
+        storage.games[roomUuid].status = gameStatus
+        if (spectator) {
+          delete storage.games[roomUuid].players[userId]
+          storage.games[roomUuid].spectators[userId] = { id: userId }
+        } else {
+          storage.games[roomUuid].players[userId]!.status = playerStatus!
+        }
+      })
+      const before = await database.get(storage => structuredClone(storage.games[roomUuid]))
+
+      await gamesController.handleMessage(socket, setPlayerStatusEmitAction({ gameId: roomUuid, status: PlayerStatus.ReadyToPlay }) as AnyAction)
+
+      expect(await database.get(storage => storage.games[roomUuid])).toEqual(before)
+      expect(socket.emit).not.toHaveBeenCalled()
     })
   })
 })

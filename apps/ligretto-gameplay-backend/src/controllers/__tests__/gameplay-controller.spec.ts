@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   CardColors,
   GameStatus,
   PlayerStatus,
+  putCardAction,
   resumeGameEmitAction,
   startGameEmitAction,
   updateGameAction,
@@ -15,6 +16,10 @@ import { IOC_TYPES } from '../../IOC_TYPES'
 import type { Database } from '../../database'
 import { createSocketMockImpl } from '../../../test/utils'
 import type { AnyAction } from '../../types/any-action'
+import type { GameOperationSerializer } from '../../services/game-operation-serializer'
+import type { UserService } from '../../entities/user'
+import { DISCONNECT_GRACE_PERIOD_MS } from '../../config'
+import type { GameConnectionService } from '../../services/game-connection/game-connection.service'
 
 const pausedGame: Game = {
   id: 'paused-game',
@@ -39,6 +44,15 @@ const pausedGame: Game = {
         cards: [{ color: CardColors.yellow, value: 9, playerId: 'player' }],
       },
     },
+    peer: {
+      id: 'peer',
+      isHost: false,
+      status: PlayerStatus.InGame,
+      cards: [],
+      ligrettoDeck: { isHidden: true, cards: [] },
+      stackOpenDeck: { isHidden: false, cards: [] },
+      stackDeck: { isHidden: true, cards: [] },
+    },
   },
   spectators: { spectator: { id: 'spectator' } },
   playground: {
@@ -54,18 +68,20 @@ const pausedGame: Game = {
 }
 
 describe('Gameplay Controller', () => {
+  let container: ReturnType<typeof createIOC>
   let gameplayController: GameplayController
   let database: Database
   let socket = createSocketMockImpl()
 
   beforeEach(async () => {
-    const container = createIOC()
+    container = createIOC()
     gameplayController = container.get(IOC_TYPES.GameplayController)
     database = container.get(IOC_TYPES.Database)
-    socket = createSocketMockImpl({ data: { user: { id: 'player' } } })
+    socket = createSocketMockImpl({ data: { userId: 'player' } })
 
     await database.set(storage => {
       storage.games[pausedGame.id] = structuredClone(pausedGame)
+      storage.users.player = { id: 'player', socketIds: [socket.id], currentGameId: pausedGame.id }
     })
   })
 
@@ -90,11 +106,11 @@ describe('Gameplay Controller', () => {
     })
     await handling
 
-    expect(socket.emit).toHaveBeenCalledWith('event', updateGameAction(freshestGame))
+    expect(socket.emit).toHaveBeenCalledWith('event', updateGameAction({ ...freshestGame, status: GameStatus.InGame }))
   })
 
   it('does not allow a non-host socket to resume a paused game', async () => {
-    const nonHostSocket = createSocketMockImpl({ data: { user: { id: 'spectator' } } })
+    const nonHostSocket = createSocketMockImpl({ data: { userId: 'spectator' } })
 
     await gameplayController.handleMessage(nonHostSocket, resumeGameEmitAction({ gameId: pausedGame.id }) as AnyAction)
 
@@ -102,6 +118,21 @@ describe('Gameplay Controller', () => {
     expect(game).toEqual(pausedGame)
     expect(nonHostSocket.to).not.toHaveBeenCalled()
     expect(nonHostSocket.emit).not.toHaveBeenCalled()
+  })
+
+  it('does not resume until at least two retained players are online', async () => {
+    await database.set(storage => {
+      const game = storage.games[pausedGame.id]
+      storage.games[pausedGame.id] = {
+        ...game,
+        players: { ...game.players, peer: { ...game.players.peer!, status: PlayerStatus.Disconnected } },
+      }
+    })
+
+    await gameplayController.handleMessage(socket, resumeGameEmitAction({ gameId: pausedGame.id }) as AnyAction)
+
+    expect((await database.get(storage => storage.games[pausedGame.id])).status).toBe(GameStatus.Pause)
+    expect(socket.emit).not.toHaveBeenCalled()
   })
 
   it('does not allow a stale former host to resume or broadcast', async () => {
@@ -148,6 +179,67 @@ describe('Gameplay Controller', () => {
     expect(game).toEqual(activeGame)
   })
 
+  it('rejects gameplay mutations while paused', async () => {
+    await gameplayController.handleMessage(socket, putCardAction({ gameId: pausedGame.id, cardIndex: 0, playgroundDeckIndex: 0 }) as AnyAction)
+
+    expect(await database.get(storage => storage.games[pausedGame.id])).toEqual(pausedGame)
+    expect(socket.emit).not.toHaveBeenCalled()
+  })
+
+  it('does not mutate when lifecycle pause wins after gameplay was scheduled', async () => {
+    await database.set(storage => {
+      storage.games[pausedGame.id].status = GameStatus.InGame
+    })
+    const gameOperations = Reflect.get(gameplayController, 'gameOperations') as GameOperationSerializer
+    let release!: () => void
+    let entered!: () => void
+    const gate = new Promise<void>(resolve => (release = resolve))
+    const started = new Promise<void>(resolve => (entered = resolve))
+    const blocker = gameOperations.run(pausedGame.id, async () => {
+      entered()
+      await gate
+    })
+    await started
+
+    const handling = gameplayController.handleMessage(
+      socket,
+      putCardAction({ gameId: pausedGame.id, cardIndex: 0, playgroundDeckIndex: 0 }) as AnyAction,
+    )
+    await database.set(storage => {
+      storage.games[pausedGame.id].status = GameStatus.Pause
+    })
+    const pausedSnapshot = await database.get(storage => structuredClone(storage.games[pausedGame.id]))
+    release()
+    await blocker
+    await handling
+
+    expect(await database.get(storage => storage.games[pausedGame.id])).toEqual(pausedSnapshot)
+    expect(socket.emit).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['disconnected player', 'player', PlayerStatus.Disconnected, pausedGame.id],
+    ['spectator', 'spectator', undefined, pausedGame.id],
+    ['player associated with another game', 'player', PlayerStatus.InGame, 'other-game'],
+  ])('rejects gameplay mutations from a %s', async (_label, userId, status, currentGameId) => {
+    const sender = createSocketMockImpl({ data: { userId } })
+    await database.set(storage => {
+      const game = storage.games[pausedGame.id]
+      storage.games[pausedGame.id] = {
+        ...game,
+        status: GameStatus.InGame,
+        players: userId === 'player' && status ? { ...game.players, player: { ...game.players.player!, status } } : game.players,
+      }
+      storage.users[userId] = { id: userId, socketIds: [sender.id], currentGameId }
+    })
+    const before = await database.get(storage => structuredClone(storage.games[pausedGame.id]))
+
+    await gameplayController.handleMessage(sender, putCardAction({ gameId: pausedGame.id, cardIndex: 0, playgroundDeckIndex: 0 }) as AnyAction)
+
+    expect(await database.get(storage => storage.games[pausedGame.id])).toEqual(before)
+    expect(sender.emit).not.toHaveBeenCalled()
+  })
+
   it('keeps the start action on the fresh-round initialization path', async () => {
     const newGame = {
       ...pausedGame,
@@ -164,5 +256,70 @@ describe('Gameplay Controller', () => {
     expect(game.status).toBe(GameStatus.InGame)
     expect(game.players.player?.cards).not.toEqual(pausedGame.players.player?.cards)
     expect(game.playground).toEqual({ decks: new Array(pausedGame.config.maxCardsOnTable).fill(null), droppedDecks: [] })
+  })
+
+  it.each([
+    ['unknown game', 'unknown-game', 'player', pausedGame.id, socket.id],
+    ['wrong game association', pausedGame.id, 'player', 'other-game', socket.id],
+    ['non-host', pausedGame.id, 'peer', pausedGame.id, 'peer-socket'],
+    ['stale socket', pausedGame.id, 'player', pausedGame.id, 'replacement-socket'],
+  ])('rejects start from an %s sender', async (_label, gameId, userId, currentGameId, liveSocketId) => {
+    const sender = createSocketMockImpl({ id: userId === 'player' ? socket.id : 'peer-socket', data: { userId } })
+    await database.set(storage => {
+      storage.games[pausedGame.id] = { ...structuredClone(pausedGame), status: GameStatus.New }
+      storage.users[userId] = { id: userId, socketIds: [liveSocketId], currentGameId }
+    })
+    const before = await database.get(storage => structuredClone(storage.games[pausedGame.id]))
+
+    await gameplayController.handleMessage(sender, startGameEmitAction({ gameId }) as AnyAction)
+
+    expect(await database.get(storage => storage.games[pausedGame.id])).toEqual(before)
+    expect(sender.emit).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['non-New phase', GameStatus.Pause, PlayerStatus.InGame],
+    ['fewer than two online players', GameStatus.New, PlayerStatus.Disconnected],
+  ])('rejects start with %s', async (_label, status, peerStatus) => {
+    await database.set(storage => {
+      storage.games[pausedGame.id] = {
+        ...structuredClone(pausedGame),
+        status,
+        players: { ...pausedGame.players, peer: { ...pausedGame.players.peer!, status: peerStatus } },
+      }
+    })
+    const before = await database.get(storage => structuredClone(storage.games[pausedGame.id]))
+
+    await gameplayController.handleMessage(socket, startGameEmitAction({ gameId: pausedGame.id }) as AnyAction)
+
+    expect(await database.get(storage => storage.games[pausedGame.id])).toEqual(before)
+    expect(socket.emit).not.toHaveBeenCalled()
+  })
+
+  it('applies a disconnect queued during start immediately afterward and pauses when needed', async () => {
+    vi.useFakeTimers()
+    const connectionService = container.get<GameConnectionService>(IOC_TYPES.GameConnectionService)
+    const users = container.get<UserService>(IOC_TYPES.UserService)
+    await database.set(storage => {
+      storage.games[pausedGame.id] = {
+        ...structuredClone(pausedGame),
+        status: GameStatus.New,
+        config: { ...pausedGame.config, startingDelayInSec: 1 },
+      }
+      storage.users.peer = { id: 'peer', socketIds: ['peer-socket'], currentGameId: pausedGame.id }
+    })
+
+    const starting = gameplayController.handleMessage(socket, startGameEmitAction({ gameId: pausedGame.id }) as AnyAction)
+    await vi.advanceTimersByTimeAsync(1)
+    await users.disconnectionHandler({ userId: 'peer', socketId: 'peer-socket' })
+    connectionService.transportDisconnected(pausedGame.id, 'peer', { onUpdate: vi.fn(), onDelete: vi.fn() })
+    const disconnecting = vi.advanceTimersByTimeAsync(DISCONNECT_GRACE_PERIOD_MS)
+    await vi.advanceTimersByTimeAsync(1_000)
+    await starting
+    await disconnecting
+
+    const game = await database.get(storage => storage.games[pausedGame.id])
+    expect(game.players.peer?.status).toBe(PlayerStatus.Disconnected)
+    expect(game.status).toBe(GameStatus.Pause)
   })
 })

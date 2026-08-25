@@ -249,7 +249,7 @@ exports[`Games Controller > leaveFromRoomHandler > Should create a relevant game
   },
   "users": {
     "userOneId": {
-      "currentGameId": "1",
+      "currentGameId": undefined,
       "id": "userOneId",
       "socketIds": [
         "socketId",
@@ -271,7 +271,7 @@ exports[`Games Controller > leaveFromRoomHandler > Should create a relevant stat
   "games": {},
   "users": {
     "userOneId": {
-      "currentGameId": "1",
+      "currentGameId": undefined,
       "id": "userOneId",
       "socketIds": [
         "socketId",

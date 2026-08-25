@@ -16,6 +16,10 @@ export class UserService {
     return this.userRepository.updateUser({ id: userId, currentGameId: gameId })
   }
 
+  leaveGame(userId: UUID) {
+    return this.userRepository.updateUser({ id: userId, currentGameId: undefined })
+  }
+
   async disconnectionHandler({ socketId, userId }: { socketId: string; userId: User['id'] }) {
     const user = await this.getUser(userId)
 
@@ -23,14 +27,18 @@ export class UserService {
       return
     }
 
-    if (user.socketIds.length > 1) {
-      return this.userRepository.updateUser({ id: userId, socketIds: user.socketIds.filter(currentSocketId => currentSocketId !== socketId) })
-    }
-
-    return this.userRepository.removeUser(userId)
+    return this.userRepository.updateUser({ id: userId, socketIds: user.socketIds.filter(currentSocketId => currentSocketId !== socketId) })
   }
 
   getUser(userId: User['id']) {
     return this.userRepository.getUser(userId)
+  }
+
+  async hasLiveSockets(userId: User['id']) {
+    return ((await this.getUser(userId))?.socketIds.length ?? 0) > 0
+  }
+
+  removeUser(userId: User['id']) {
+    return this.userRepository.removeUser(userId)
   }
 }

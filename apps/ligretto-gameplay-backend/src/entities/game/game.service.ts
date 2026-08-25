@@ -91,12 +91,66 @@ export class GameService {
 
   resumeGame(gameId: UUID, userId: Player['id']) {
     return this.gameRepository.updateGame(gameId, game => {
-      if (game.status !== GameStatus.Pause || !game.players[userId]?.isHost) {
+      const onlinePlayers = Object.values(game.players).filter(player => player?.status !== PlayerStatus.Disconnected)
+      if (game.status !== GameStatus.Pause || !game.players[userId]?.isHost || onlinePlayers.length < 2) {
         return undefined
       }
 
       return { ...game, status: GameStatus.InGame }
     })
+  }
+
+  markPlayerDisconnected(gameId: UUID, userId: Player['id']) {
+    return this.gameRepository.updateGame(gameId, game => {
+      const player = game.players[userId]
+      if (!player || player.status === PlayerStatus.Disconnected) {
+        return undefined
+      }
+      const players = { ...game.players, [userId]: { ...player, status: PlayerStatus.Disconnected } }
+      const onlineCount = Object.values(players).filter(current => current?.status !== PlayerStatus.Disconnected).length
+      return { ...game, players, status: game.status === GameStatus.InGame && onlineCount < 2 ? GameStatus.Pause : game.status }
+    })
+  }
+
+  markPlayerDisconnectedIfOffline(gameId: UUID, userId: Player['id']) {
+    return this.gameRepository.markPlayerDisconnectedIfOffline(gameId, userId)
+  }
+
+  setPlayerStatusIfEligible(gameId: UUID, userId: Player['id'], socketId: string, status: PlayerStatus) {
+    return this.gameRepository.setPlayerStatusIfEligible(gameId, userId, socketId, status)
+  }
+
+  markPlayerConnected(gameId: UUID, userId: Player['id'], status: Exclude<PlayerStatus, PlayerStatus.Disconnected>) {
+    return this.gameRepository.updateGame(gameId, game => {
+      const player = game.players[userId]
+      if (!player || player.status !== PlayerStatus.Disconnected) {
+        return game
+      }
+      return { ...game, players: { ...game.players, [userId]: { ...player, status } } }
+    })
+  }
+
+  transferDisconnectedHost(gameId: UUID) {
+    return this.gameRepository.updateGame(gameId, game => {
+      const currentHost = Object.values(game.players).find(player => player?.isHost)
+      if (!currentHost || currentHost.status !== PlayerStatus.Disconnected) {
+        return undefined
+      }
+      const replacement = Object.values(game.players)
+        .filter((player): player is Player => !!player && player.status !== PlayerStatus.Disconnected)
+        .sort((left, right) => left.id.localeCompare(right.id))[0]
+      if (!replacement) {
+        return undefined
+      }
+      return {
+        ...game,
+        players: Object.fromEntries(Object.entries(game.players).map(([id, player]) => [id, player && { ...player, isHost: id === replacement.id }])),
+      }
+    })
+  }
+
+  deleteIfAllOffline(gameId: UUID) {
+    return this.gameRepository.deleteIfAllParticipantsOffline(gameId)
   }
 
   async addPlayer(gameId: UUID, playerData: Partial<Player> & { id: Player['id'] }) {

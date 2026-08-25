@@ -13,9 +13,11 @@ export class UserRepository {
   createOrUpdate({ userId, socketId }: { userId: UUID; socketId: string }) {
     return this.database.set(storage => {
       const user = storage.users[userId] || { id: userId, socketIds: [] }
-      user.socketIds.push(socketId)
+      if (!user.socketIds.includes(socketId)) {
+        user.socketIds.push(socketId)
+      }
       storage.users[userId] = user
-      return storage
+      return user
     })
   }
 
@@ -23,7 +25,7 @@ export class UserRepository {
     return this.database.set(storage => {
       const user = storage.users[updatePayload.id]
       assert(user, 'User not found')
-      storage.users[user.id] = { ...user, ...updatePayload }
+      return (storage.users[user.id] = { ...user, ...updatePayload })
     })
   }
 

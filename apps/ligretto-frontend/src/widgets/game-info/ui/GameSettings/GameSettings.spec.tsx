@@ -89,8 +89,81 @@ describe('GameSettings', () => {
       </Provider>,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Resume' }))
+    const resumeButton = screen.getByRole('button', { name: 'Resume' }) as HTMLButtonElement
+    expect(resumeButton.disabled).toBe(false)
+    fireEvent.click(resumeButton)
 
     expect(dispatch).toHaveBeenCalledWith(resumeGameAction())
+  })
+
+  it('disables host resume until two players are online', () => {
+    const host = {
+      id: 'host',
+      isHost: true,
+      status: PlayerStatus.InGame,
+      cards: [],
+      ligrettoDeck: { isHidden: true, cards: [] },
+      stackOpenDeck: { isHidden: false, cards: [] },
+      stackDeck: { isHidden: true, cards: [] },
+    }
+    const store = createMockStore({
+      preloadedState: {
+        auth: { userId: host.id, token: '', isLoading: false },
+        game: {
+          ...initialState,
+          game: {
+            ...initialState.game,
+            status: GameStatus.Pause,
+            players: { host, peer: { ...host, id: 'peer', isHost: false, status: PlayerStatus.Disconnected } },
+          },
+        },
+      },
+    })
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <GameSettingsContainer />
+        </MemoryRouter>
+      </Provider>,
+    )
+
+    expect((screen.getByRole('button', { name: 'Resume' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('does not render Resume for a non-host player while paused', () => {
+    const player = {
+      id: 'peer',
+      isHost: false,
+      status: PlayerStatus.InGame,
+      cards: [],
+      ligrettoDeck: { isHidden: true, cards: [] },
+      stackOpenDeck: { isHidden: false, cards: [] },
+      stackDeck: { isHidden: true, cards: [] },
+    }
+    const store = createMockStore({
+      preloadedState: {
+        auth: { userId: player.id, token: '', isLoading: false },
+        game: {
+          ...initialState,
+          game: {
+            ...initialState.game,
+            status: GameStatus.Pause,
+            players: { host: { ...player, id: 'host', isHost: true }, peer: player },
+          },
+        },
+      },
+    })
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <GameSettingsContainer />
+        </MemoryRouter>
+      </Provider>,
+    )
+
+    expect(screen.queryByRole('button', { name: 'Resume' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Ready' })).toBeTruthy()
   })
 })

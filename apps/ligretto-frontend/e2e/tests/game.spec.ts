@@ -1,11 +1,11 @@
-import { test, expect, chromium } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 import { GamePage } from '#pages/game/GamePage.page-object.ts'
 import { HomePage } from '#pages/home/HomePage.page-object.ts'
 
 test.describe('Create and enter room', () => {
-  test('Two users enter one room', async ({}, testInfo) => {
+  test('retains a player seat across an offline reconnect', async ({ browser }, testInfo) => {
+    test.setTimeout(45_000)
     const roomName = `Test-room-${testInfo.retry}`
-    const browser = await chromium.launch()
     const contextUser1 = await browser.newContext()
     const contextUser2 = await browser.newContext()
     const pageUser1 = await contextUser1.newPage()
@@ -35,5 +35,14 @@ test.describe('Create and enter room', () => {
     const gamePageUser2 = new GamePage(pageUser2)
 
     await expect(await gamePageUser2.getPlayersList()).toHaveCount(2)
+
+    await contextUser2.setOffline(true)
+    await expect(pageUser1.getByTitle(/\(disconnected\)$/)).toHaveCount(1, { timeout: 10_000 })
+
+    await contextUser2.setOffline(false)
+    await expect(pageUser1.getByTitle(/\(disconnected\)$/)).toHaveCount(0, { timeout: 10_000 })
+    await expect(await gamePageUser1.getPlayersList()).toHaveCount(2)
+
+    await Promise.all([contextUser1.close(), contextUser2.close()])
   })
 })
