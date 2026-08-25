@@ -4,7 +4,7 @@ import { HomePage } from '#pages/home/HomePage.page-object.ts'
 
 test.describe('Create and enter room', () => {
   test('retains a player seat across an offline reconnect', async ({ browser }, testInfo) => {
-    test.setTimeout(45_000)
+    test.setTimeout(75_000)
     const roomName = `Test-room-${testInfo.retry}`
     const contextUser1 = await browser.newContext()
     const contextUser2 = await browser.newContext()
@@ -37,7 +37,8 @@ test.describe('Create and enter room', () => {
     await expect(await gamePageUser2.getPlayersList()).toHaveCount(2)
 
     await contextUser2.setOffline(true)
-    await expect(pageUser1.getByTitle(/\(disconnected\)$/)).toHaveCount(1, { timeout: 10_000 })
+    // Engine.IO may need a 25s ping interval plus a 20s ping timeout before the 5s application grace starts.
+    await expect(pageUser1.getByTitle(/\(disconnected\)$/)).toHaveCount(1, { timeout: 55_000 })
 
     await contextUser2.setOffline(false)
     await expect(pageUser1.getByTitle(/\(disconnected\)$/)).toHaveCount(0, { timeout: 10_000 })
