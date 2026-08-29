@@ -63,7 +63,7 @@ export class GameRepository {
       const player = game?.players[userId]
       if (
         !game ||
-        game.status !== GameStatus.New ||
+        (game.status !== GameStatus.New && game.status !== GameStatus.RoundFinished) ||
         !user ||
         user.currentGameId !== gameId ||
         !user.socketIds.includes(socketId) ||

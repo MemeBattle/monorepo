@@ -43,7 +43,7 @@ export class GameplayController extends Controller {
     const onlinePlayers = Object.values(game?.players ?? {}).filter(current => current?.status !== PlayerStatus.Disconnected)
     if (
       !game ||
-      game.status !== GameStatus.New ||
+      (game.status !== GameStatus.New && game.status !== GameStatus.RoundFinished) ||
       !player?.isHost ||
       player.status === PlayerStatus.Disconnected ||
       user?.currentGameId !== gameId ||

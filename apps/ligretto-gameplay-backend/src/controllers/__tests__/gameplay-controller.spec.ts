@@ -211,8 +211,31 @@ describe('Gameplay Controller', () => {
     expect(sender.emit).not.toHaveBeenCalled()
   })
 
+  it('starts the next round from a finished round', async () => {
+    await database.set(storage => {
+      const game = storage.games[pausedGame.id]
+      storage.games[pausedGame.id] = {
+        ...game,
+        status: GameStatus.RoundFinished,
+        config: { ...game.config, startingDelayInSec: 0 },
+        players: {
+          player: { ...game.players.player!, status: PlayerStatus.DontReadyToPlay },
+          peer: { ...game.players.peer!, status: PlayerStatus.DontReadyToPlay },
+        },
+      }
+    })
+
+    await gameplayController.handleMessage(socket, startGameEmitAction({ gameId: pausedGame.id }) as AnyAction)
+
+    const game = await database.get(storage => storage.games[pausedGame.id])
+    expect(game.status).toBe(GameStatus.InGame)
+    expect(game.players.player?.status).toBe(PlayerStatus.InGame)
+    expect(game.players.player?.ligrettoDeck.cards).toHaveLength(10)
+    expect(game.playground).toEqual({ decks: new Array(pausedGame.config.maxCardsOnTable).fill(null), droppedDecks: [] })
+  })
+
   it.each([
-    ['non-New phase', GameStatus.Pause, PlayerStatus.InGame],
+    ['a paused game', GameStatus.Pause, PlayerStatus.InGame],
     ['fewer than two online players', GameStatus.New, PlayerStatus.Disconnected],
   ])('rejects start with %s', async (_label, status, peerStatus) => {
     await database.set(storage => {

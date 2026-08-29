@@ -351,6 +351,17 @@ describe('Games Controller', () => {
       expect(socket.emit).toHaveBeenCalled()
     })
 
+    it('allows readiness toggles after a finished round', async () => {
+      await database.set(storage => {
+        storage.games[roomUuid].status = GameStatus.RoundFinished
+      })
+
+      await gamesController.handleMessage(socket, setPlayerStatusEmitAction({ gameId: roomUuid, status: PlayerStatus.ReadyToPlay }) as AnyAction)
+
+      expect((await database.get(storage => storage.games[roomUuid])).players[userId]?.status).toBe(PlayerStatus.ReadyToPlay)
+      expect(socket.emit).toHaveBeenCalled()
+    })
+
     it.each([PlayerStatus.InGame, PlayerStatus.Disconnected])('rejects the client-controlled status %s', async status => {
       await gamesController.handleMessage(socket, setPlayerStatusEmitAction({ gameId: roomUuid, status }) as AnyAction)
 
