@@ -20,13 +20,16 @@ export class UserService {
     return this.userRepository.updateUser({ id: userId, currentGameId: undefined })
   }
 
-  async disconnectionHandler({ socketId, userId }: { socketId: string; userId: User['id'] }) {
-    const user = await this.getUser(userId)
+  disconnectionHandler({ socketId, userId }: { socketId: string; userId: User['id'] }) {
+    const user = this.getUser(userId)
 
     if (!user) {
       return
     }
 
+    // Keep the user record even with no sockets left: a transport disconnect
+    // may be temporary, and the connection lifecycle needs the stable identity
+    // to restore the player on reconnect.
     return this.userRepository.updateUser({ id: userId, socketIds: user.socketIds.filter(currentSocketId => currentSocketId !== socketId) })
   }
 
@@ -34,8 +37,8 @@ export class UserService {
     return this.userRepository.getUser(userId)
   }
 
-  async hasLiveSockets(userId: User['id']) {
-    return ((await this.getUser(userId))?.socketIds.length ?? 0) > 0
+  hasLiveSockets(userId: User['id']) {
+    return (this.getUser(userId)?.socketIds.length ?? 0) > 0
   }
 
   removeUser(userId: User['id']) {

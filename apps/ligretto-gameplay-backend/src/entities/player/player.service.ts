@@ -8,73 +8,73 @@ import { IOC_TYPES } from '../../IOC_TYPES'
 export class PlayerService {
   @inject(IOC_TYPES.PlayerRepository) private playerRepository: PlayerRepository
 
-  async getPlayer(gameId: UUID, playerId: UUID) {
-    return await this.playerRepository.getPlayer(gameId, playerId)
+  getPlayer(gameId: UUID, playerId: UUID) {
+    return this.playerRepository.getPlayer(gameId, playerId)
   }
 
-  async getCard(gameId: UUID, playerId: UUID, position: number) {
-    return await this.playerRepository.getCard(gameId, playerId, position)
+  getCard(gameId: UUID, playerId: UUID, position: number) {
+    return this.playerRepository.getCard(gameId, playerId, position)
   }
 
-  async addCard(gameId: UUID, playerId: UUID, card: Card) {
-    const cards = await this.playerRepository.getCards(gameId, playerId)
+  addCard(gameId: UUID, playerId: UUID, card: Card) {
+    const cards = this.playerRepository.getCards(gameId, playerId)
 
     const emptyCardIndex = cards?.findIndex(card => card === null)
 
     if (emptyCardIndex !== undefined && emptyCardIndex !== -1) {
-      await this.playerRepository.addCard(gameId, playerId, card, emptyCardIndex)
+      this.playerRepository.addCard(gameId, playerId, card, emptyCardIndex)
     }
   }
 
-  async removeCard(gameId: UUID, playerId: UUID, position: number) {
-    await this.playerRepository.removeCard(gameId, playerId, position)
+  removeCard(gameId: UUID, playerId: UUID, position: number) {
+    this.playerRepository.removeCard(gameId, playerId, position)
 
     return undefined
   }
 
-  async removeCardFromLigrettoDeck(gameId: UUID, playerId: UUID) {
+  removeCardFromLigrettoDeck(gameId: UUID, playerId: UUID) {
     return this.playerRepository.removeCardFromLigrettoDeck(gameId, playerId)
   }
 
-  async removeCardFromStackOpenDeck(gameId: UUID, playerId: UUID) {
-    await this.playerRepository.removeCardFromStackOpenDeck(gameId, playerId)
-    return await this.getCardFromStackOpenDeck(gameId, playerId)
+  removeCardFromStackOpenDeck(gameId: UUID, playerId: UUID) {
+    this.playerRepository.removeCardFromStackOpenDeck(gameId, playerId)
+    return this.getCardFromStackOpenDeck(gameId, playerId)
   }
 
-  async getCardFromStackOpenDeck(gameId: UUID, playerId: UUID) {
-    const deck = await this.playerRepository.getStackOpenDeck(gameId, playerId)
+  getCardFromStackOpenDeck(gameId: UUID, playerId: UUID) {
+    const deck = this.playerRepository.getStackOpenDeck(gameId, playerId)
 
     return last(deck?.cards)
   }
 
-  async shuffleStackDeck(gameId: UUID, playerId: UUID) {
-    const stackOpenDeck = await this.playerRepository.getStackOpenDeck(gameId, playerId)
-    const stackDeck = await this.playerRepository.getStackDeck(gameId, playerId)
+  shuffleStackDeck(gameId: UUID, playerId: UUID) {
+    const stackOpenDeck = this.playerRepository.getStackOpenDeck(gameId, playerId)
+    const stackDeck = this.playerRepository.getStackDeck(gameId, playerId)
 
     if (stackDeck?.cards.length !== 0) {
       return
     }
 
-    await this.playerRepository.updateStackDeck(gameId, playerId, stackDeck => ({
+    this.playerRepository.updateStackDeck(gameId, playerId, stackDeck => ({
       ...stackDeck,
       cards: shuffle(stackOpenDeck?.cards),
     }))
 
-    await this.playerRepository.updateStackOpenDeck(gameId, playerId, stackOpenDeck => ({
+    this.playerRepository.updateStackOpenDeck(gameId, playerId, stackOpenDeck => ({
       ...stackOpenDeck,
       cards: [],
     }))
   }
 
-  async takeFromStackDeck(gameId: UUID, playerId: UUID) {
-    const stackDeck = await this.playerRepository.getStackDeck(gameId, playerId)
+  takeFromStackDeck(gameId: UUID, playerId: UUID) {
+    const stackDeck = this.playerRepository.getStackDeck(gameId, playerId)
     if (stackDeck?.cards.length === 0) {
-      await this.shuffleStackDeck(gameId, playerId)
+      this.shuffleStackDeck(gameId, playerId)
     }
 
     let cards: Card[] = []
 
-    await this.playerRepository.updateStackDeck(gameId, playerId, stackDeck => {
+    this.playerRepository.updateStackDeck(gameId, playerId, stackDeck => {
       cards = stackDeck.cards.slice(-3)
 
       return {
@@ -83,7 +83,7 @@ export class PlayerService {
       }
     })
 
-    await this.playerRepository.updateStackOpenDeck(gameId, playerId, stackOpenDeck => ({
+    this.playerRepository.updateStackOpenDeck(gameId, playerId, stackOpenDeck => ({
       ...stackOpenDeck,
       cards: stackOpenDeck.cards.concat(cards),
     }))
@@ -97,9 +97,9 @@ export class PlayerService {
    * @param gameId
    * @param playerId
    */
-  async takeFromLigrettoDeck(gameId: UUID, playerId: string) {
-    const cards = await this.playerRepository.getCards(gameId, playerId)
-    const ligrettoDeck = await this.playerRepository.getLigrettoDeck(gameId, playerId)
+  takeFromLigrettoDeck(gameId: UUID, playerId: string) {
+    const cards = this.playerRepository.getCards(gameId, playerId)
+    const ligrettoDeck = this.playerRepository.getLigrettoDeck(gameId, playerId)
 
     const emptyCardIndex = cards?.findIndex(card => card === null)
     if (emptyCardIndex === -1) {
@@ -112,7 +112,7 @@ export class PlayerService {
       return
     }
 
-    await this.addCard(gameId, playerId, card)
-    return await this.removeCardFromLigrettoDeck(gameId, playerId)
+    this.addCard(gameId, playerId, card)
+    return this.removeCardFromLigrettoDeck(gameId, playerId)
   }
 }

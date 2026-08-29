@@ -27,13 +27,17 @@ export class GameService {
   @inject(IOC_TYPES.LigrettoCoreService) private ligrettoCoreService: LigrettoCoreService
 
   async createGame(name: string, config: Partial<Game['config']> = {}): Promise<Game | null> {
-    const isGameExists = !!(await this.gameRepository.getGameByName(name))
-
-    if (isGameExists) {
+    if (this.gameRepository.getGameByName(name)) {
       return null
     }
 
     const game = await this.ligrettoCoreService.createGameService()
+
+    // Re-check after the HTTP call: a concurrent createGame with the same name
+    // may have finished while we were waiting for the core backend.
+    if (this.gameRepository.getGameByName(name)) {
+      return null
+    }
 
     return this.gameRepository.addGame(game.id, merge({}, emptyGame, { ...game, name, config: { ...emptyGame.config, ...config } }))
   }
@@ -153,10 +157,10 @@ export class GameService {
     return this.gameRepository.deleteIfAllParticipantsOffline(gameId)
   }
 
-  async addPlayer(gameId: UUID, playerData: Partial<Player> & { id: Player['id'] }) {
-    const player = await this.gameRepository.createPlayer({ ...playerData })
+  addPlayer(gameId: UUID, playerData: Partial<Player> & { id: Player['id'] }) {
+    const player = this.gameRepository.createPlayer({ ...playerData })
     return {
-      game: await this.gameRepository.updateGame(gameId, game => ({
+      game: this.gameRepository.updateGame(gameId, game => ({
         ...game,
         players: {
           ...game.players,
@@ -167,10 +171,10 @@ export class GameService {
     }
   }
 
-  async addSpectator(gameId: UUID, spectatorData: Partial<Spectator> & { id: Spectator['id'] }) {
-    const spectator = await this.gameRepository.createSpectator(spectatorData)
+  addSpectator(gameId: UUID, spectatorData: Partial<Spectator> & { id: Spectator['id'] }) {
+    const spectator = this.gameRepository.createSpectator(spectatorData)
     return {
-      game: await this.gameRepository.updateGame(gameId, game => ({
+      game: this.gameRepository.updateGame(gameId, game => ({
         ...game,
         spectators: {
           ...game.spectators,
@@ -181,8 +185,8 @@ export class GameService {
     }
   }
 
-  async updateGamePlayer(gameId: Game['id'], playerId: Player['id'], playerData: Partial<Player>) {
-    const game = await this.gameRepository.getGame(gameId)
+  updateGamePlayer(gameId: Game['id'], playerId: Player['id'], playerData: Partial<Player>) {
+    const game = this.gameRepository.getGame(gameId)
     if (!game) {
       throw Error('Game not found')
     }
@@ -208,8 +212,8 @@ export class GameService {
     return this.gameRepository.getGame(gameId)
   }
 
-  async getRoundResult(gameId: UUID) {
-    const game = await this.getGame(gameId)
+  getRoundResult(gameId: UUID) {
+    const game = this.getGame(gameId)
 
     const initialScoresByPlayer = Object.keys(game.players).reduce<Record<string, 0>>((scores, playerId) => ({ ...scores, [playerId]: 0 }), {})
 
@@ -236,22 +240,36 @@ export class GameService {
 
   async endGame(gameId: UUID) {
     const { game, gameResults } = await this.finishRound(gameId)
-    await this.gameRepository.removeGame(gameId)
+    this.gameRepository.removeGame(gameId)
 
     return [game, gameResults]
   }
 
   async finishRound(gameId: UUID): Promise<{ game?: Game; gameResults?: GameResults }> {
-    const results = await this.getRoundResult(gameId)
+    // Atomically claim the round finish: the status transition and the results
+    // snapshot happen synchronously, so concurrent callers bail out here and
+    // the round cannot be saved twice.
+    let previousStatus: GameStatus | undefined
+    const claimed = this.gameRepository.updateGame(gameId, game => {
+      if (game.status === GameStatus.RoundFinished) {
+        return undefined
+      }
+      previousStatus = game.status
+      return { ...game, status: GameStatus.RoundFinished }
+    })
+    if (!claimed) {
+      return {}
+    }
+
+    const results = this.getRoundResult(gameId)
 
     try {
       const { gameResults } = await this.ligrettoCoreService.saveGameRoundService(gameId, {
         results,
       })
 
-      const game = await this.gameRepository.updateGame(gameId, game => ({
+      const game = this.gameRepository.updateGame(gameId, game => ({
         ...game,
-        status: GameStatus.RoundFinished,
         players: Object.values(game.players).reduce(
           (players, player) => (player ? { ...players, [player.id]: { ...player, status: PlayerStatus.DontReadyToPlay } } : players),
           {},
@@ -261,6 +279,8 @@ export class GameService {
       return { game, gameResults }
     } catch (e) {
       console.error(e)
+      // Release the claim so the round can be finished again after a failed save.
+      this.gameRepository.updateGame(gameId, game => ({ ...game, status: previousStatus ?? game.status }))
       throw e
     }
   }
@@ -269,8 +289,8 @@ export class GameService {
     return this.gameRepository.getGames()
   }
 
-  async leaveGame(gameId: UUID, userId: Player['id'] | Spectator['id']): Promise<Game | undefined> {
-    let game = await this.gameRepository.updateGame(gameId, game => {
+  leaveGame(gameId: UUID, userId: Player['id'] | Spectator['id']): Game | undefined {
+    let game = this.gameRepository.updateGame(gameId, game => {
       const isHostLeaving = game.players[userId]?.isHost
 
       const players = omit(game.players, userId)
@@ -297,12 +317,12 @@ export class GameService {
 
     const playersCount = Object.keys(game.players).length
     if (playersCount === 0) {
-      await this.gameRepository.removeGame(gameId)
+      this.gameRepository.removeGame(gameId)
       return
     }
 
     if (playersCount === 1) {
-      game = await this.pauseGame(gameId)
+      game = this.pauseGame(gameId)
     }
 
     return game

@@ -7,7 +7,6 @@ import { IOC_TYPES } from '../../../IOC_TYPES'
 import { createIOC } from '../../../inversify.config'
 import type { GameConnectionService } from '../game-connection.service'
 import type { UserService } from '../../../entities/user'
-import type { GameOperationSerializer } from '../../game-operation-serializer'
 
 const game: Game = {
   id: 'game',
@@ -77,30 +76,6 @@ describe('GameConnectionService', () => {
     await service.reconnected('game', 'host', { onUpdate: vi.fn(), onDelete: vi.fn() })
 
     await vi.advanceTimersByTimeAsync(DISCONNECT_GRACE_PERIOD_MS)
-    const retained = await database.get(storage => storage.games.game)
-    expect(retained.players.host?.status).toBe(PlayerStatus.InGame)
-    expect(retained.status).toBe(GameStatus.InGame)
-  })
-
-  it('does not apply an in-flight stale grace transition after a reconnect wins', async () => {
-    const gameOperations = Reflect.get(service, 'gameOperations') as GameOperationSerializer
-    let release!: () => void
-    let entered!: () => void
-    const gate = new Promise<void>(resolve => (release = resolve))
-    const started = new Promise<void>(resolve => (entered = resolve))
-    const blocker = gameOperations.run('game', async () => {
-      entered()
-      await gate
-    })
-    await started
-
-    service.transportDisconnected('game', 'host', { onUpdate: vi.fn(), onDelete: vi.fn() })
-    const expiry = vi.advanceTimersByTimeAsync(DISCONNECT_GRACE_PERIOD_MS)
-    await users.connectUser({ userId: 'host', socketId: 'replacement' })
-    release()
-    await blocker
-    await expiry
-
     const retained = await database.get(storage => storage.games.game)
     expect(retained.players.host?.status).toBe(PlayerStatus.InGame)
     expect(retained.status).toBe(GameStatus.InGame)

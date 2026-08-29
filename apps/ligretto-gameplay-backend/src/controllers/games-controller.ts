@@ -26,14 +26,12 @@ import {
 import { SOCKET_ROOM_LOBBY } from '../config'
 import { gameToRoom } from '../utils/mappers'
 import type { GameConnectionService } from '../services/game-connection/game-connection.service'
-import type { GameOperationSerializer } from '../services/game-operation-serializer'
 
 @injectable()
 export class GamesController extends Controller {
   @inject(IOC_TYPES.GameService) private gameService: GameService
   @inject(IOC_TYPES.UserService) private userService: UserService
   @inject(IOC_TYPES.GameConnectionService) private gameConnectionService: GameConnectionService
-  @inject(IOC_TYPES.GameOperationSerializer) private gameOperations: GameOperationSerializer
 
   protected handlers: Controller['handlers'] = {
     [createRoomEmitAction.type]: (socket, action) => this.createGame(socket, action),
@@ -54,9 +52,9 @@ export class GamesController extends Controller {
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRoomsAction({ rooms: [gameToRoom(newGame)] }))
   }
 
-  private async getRooms(socket: Socket) {
+  private getRooms(socket: Socket) {
     socket.join(SOCKET_ROOM_LOBBY)
-    const games = await this.gameService.getGames()
+    const games = this.gameService.getGames()
     socket.emit('event', updateRoomsAction({ rooms: games.map(gameToRoom) }))
   }
 
@@ -68,37 +66,26 @@ export class GamesController extends Controller {
    *
    * read more: https://miro.com/app/board/o9J_l6Vx4-Q=/?moveToWidget=3458764530187757883&cot=14
    */
-  private async joinGame(socket: Socket, action: ReturnType<typeof connectToRoomEmitAction>) {
+  private joinGame(socket: Socket, action: ReturnType<typeof connectToRoomEmitAction>) {
     const roomUuid = action.payload.roomUuid
-    const initialGame: Game | undefined = await this.gameService.getGame(roomUuid)
+    const userId = socket.data.userId
+    const game: Game | undefined = this.gameService.getGame(roomUuid)
 
-    if (!initialGame) {
-      await this.clearStaleAssociation(socket.data.userId, roomUuid)
+    if (!game) {
+      this.clearStaleAssociation(userId, roomUuid)
       socket.emit('event', connectToRoomErrorAction())
       return
     }
 
-    const userId = socket.data.userId
-    const isUserAlreadyPlayer = !!initialGame.players[userId]
-    const isUserAlreadySpectator = !!initialGame.spectators[userId]
+    const isUserAlreadyPlayer = !!game.players[userId]
+    const isUserAlreadySpectator = !!game.spectators[userId]
     const isUserAlreadyInGame = isUserAlreadyPlayer || isUserAlreadySpectator
 
     if (isUserAlreadyInGame) {
-      await this.gameConnectionService.reconnected(roomUuid, userId, this.lifecycleEvents(socket))
-      const synchronizedGame = await this.gameOperations.run(roomUuid, async () => {
-        const [game, user] = await Promise.all([this.gameService.getGame(roomUuid), this.userService.getUser(userId)])
-        if (!game || (!game.players[userId] && !game.spectators[userId]) || user?.currentGameId !== roomUuid || !user.socketIds.includes(socket.id)) {
-          return undefined
-        }
-        return game
-      })
-      if (!synchronizedGame) {
-        if (!(await this.gameService.getGame(roomUuid))) {
-          await this.clearStaleAssociation(userId, roomUuid)
-        }
-        socket.emit('event', connectToRoomErrorAction())
-        return
-      }
+      this.gameConnectionService.reconnected(roomUuid, userId, this.lifecycleEvents(socket))
+      // Reconnection may have restored the player's status or transferred the
+      // host, so broadcast the canonical state, not the pre-reconnect snapshot.
+      const synchronizedGame = this.gameService.getGame(roomUuid)
       socket.join(roomUuid)
       socket.leave(SOCKET_ROOM_LOBBY)
       socket.emit('event', connectToRoomSuccessAction({ game: synchronizedGame }))
@@ -107,35 +94,14 @@ export class GamesController extends Controller {
       return
     }
 
-    const updatedGame = await this.gameOperations.run(roomUuid, async () => {
-      const [game, user] = await Promise.all([this.gameService.getGame(roomUuid), this.userService.getUser(userId)])
-      if (!game || !user) {
-        if (user?.currentGameId === roomUuid) {
-          await this.userService.leaveGame(userId)
-        }
-        return undefined
-      }
-      if (game.players[userId] || game.spectators[userId]) {
-        return game
-      }
+    this.userService.joinGame({ userId, gameId: roomUuid })
 
-      await this.userService.joinGame({ userId, gameId: roomUuid })
-      const isGameFull = Object.keys(game.players).length >= game.config.playersMaxCount
-      const result =
-        isGameFull || game.status === GameStatus.InGame
-          ? await this.gameService.addSpectator(roomUuid, { id: userId })
-          : await this.gameService.addPlayer(roomUuid, { id: userId })
-      if (!result.game) {
-        await this.userService.leaveGame(userId)
-        return undefined
-      }
-      return result.game
-    })
+    const isGameFull = Object.keys(game.players).length >= game.config.playersMaxCount
 
-    if (!updatedGame) {
-      socket.emit('event', connectToRoomErrorAction())
-      return
-    }
+    const { game: updatedGame } =
+      isGameFull || game.status === GameStatus.InGame
+        ? this.gameService.addSpectator(roomUuid, { id: userId })
+        : this.gameService.addPlayer(roomUuid, { id: userId })
 
     socket.join(roomUuid)
     socket.leave(SOCKET_ROOM_LOBBY)
@@ -147,21 +113,21 @@ export class GamesController extends Controller {
     socket.emit('event', updateGameAction(updatedGame))
   }
 
-  private async clearStaleAssociation(userId: string, gameId: string) {
-    const user = await this.userService.getUser(userId)
+  private clearStaleAssociation(userId: string, gameId: string) {
+    const user = this.userService.getUser(userId)
     if (user?.currentGameId === gameId) {
-      await this.userService.leaveGame(userId)
+      this.userService.leaveGame(userId)
     }
   }
 
-  private async setPlayerStatus(socket: Socket, { payload }: ReturnType<typeof setPlayerStatusEmitAction>) {
+  private setPlayerStatus(socket: Socket, { payload }: ReturnType<typeof setPlayerStatusEmitAction>) {
     const { gameId, status } = payload
 
     if (status !== PlayerStatus.ReadyToPlay && status !== PlayerStatus.DontReadyToPlay) {
       return
     }
 
-    const game = await this.gameService.setPlayerStatusIfEligible(gameId, socket.data.userId, socket.id, status)
+    const game = this.gameService.setPlayerStatusIfEligible(gameId, socket.data.userId, socket.id, status)
     if (!game) {
       return
     }
@@ -175,8 +141,8 @@ export class GamesController extends Controller {
    *
    * read more: https://miro.com/app/board/o9J_l6Vx4-Q=/?moveToWidget=3458764530187757883&cot=14
    */
-  private async leaveFromRoomHandler(socket: Socket) {
-    const user = await this.userService.getUser(socket.data.userId)
+  private leaveFromRoomHandler(socket: Socket) {
+    const user = this.userService.getUser(socket.data.userId)
 
     if (!user || !user.currentGameId) {
       return
@@ -189,19 +155,18 @@ export class GamesController extends Controller {
       return
     }
 
-    const game = await this.gameOperations.run(user.currentGameId, async () => {
-      await this.userService.leaveGame(user.id)
-      if (!(await this.gameService.getGame(user.currentGameId!))) {
-        return undefined
-      }
-      return this.gameService.leaveGame(user.currentGameId!, user.id)
-    })
+    const currentGameId = user.currentGameId
+    this.userService.leaveGame(user.id)
+    if (!this.gameService.getGame(currentGameId)) {
+      return
+    }
+    const game = this.gameService.leaveGame(currentGameId, user.id)
 
     if (game) {
       socket.to(game.id).emit('event', updateGameAction(game))
       socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRoomsAction({ rooms: [gameToRoom(game)] }))
     } else {
-      socket.to(SOCKET_ROOM_LOBBY).emit('event', removeRoomAction({ uuid: user.currentGameId }))
+      socket.to(SOCKET_ROOM_LOBBY).emit('event', removeRoomAction({ uuid: currentGameId }))
     }
   }
 
@@ -215,12 +180,12 @@ export class GamesController extends Controller {
     }
   }
 
-  public async disconnectionHandler(socket: Socket, reason = 'client namespace disconnect') {
+  public disconnectionHandler(socket: Socket, reason = 'client namespace disconnect') {
     if (reason === 'client namespace disconnect') {
       return this.leaveFromRoomHandler(socket)
     }
-    const user = await this.userService.getUser(socket.data.userId)
-    if (!user?.currentGameId || (await this.userService.hasLiveSockets(user.id))) {
+    const user = this.userService.getUser(socket.data.userId)
+    if (!user?.currentGameId || this.userService.hasLiveSockets(user.id)) {
       return
     }
     this.gameConnectionService.transportDisconnected(user.currentGameId, user.id, this.lifecycleEvents(socket))

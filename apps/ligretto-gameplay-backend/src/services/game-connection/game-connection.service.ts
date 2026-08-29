@@ -6,7 +6,6 @@ import { ALL_OFFLINE_ROOM_DELETION_TIMEOUT_MS, DISCONNECT_GRACE_PERIOD_MS, HOST_
 import type { GameService } from '../../entities/game/game.service'
 import type { UserService } from '../../entities/user'
 import { IOC_TYPES } from '../../IOC_TYPES'
-import type { GameOperationSerializer } from '../game-operation-serializer'
 
 type LifecycleEvents = { onUpdate: (game: Game) => void; onDelete: (gameId: UUID) => void }
 
@@ -14,7 +13,6 @@ type LifecycleEvents = { onUpdate: (game: Game) => void; onDelete: (gameId: UUID
 export class GameConnectionService {
   @inject(IOC_TYPES.GameService) private gameService: GameService
   @inject(IOC_TYPES.UserService) private userService: UserService
-  @inject(IOC_TYPES.GameOperationSerializer) private gameOperations: GameOperationSerializer
 
   private graceTimers = new Map<string, ReturnType<typeof setTimeout>>()
   private hostTimers = new Map<UUID, ReturnType<typeof setTimeout>>()
@@ -29,40 +27,41 @@ export class GameConnectionService {
   transportDisconnected(gameId: UUID, userId: UUID, events: LifecycleEvents) {
     const key = this.key(gameId, userId)
     clearTimeout(this.graceTimers.get(key))
-    const timer = setTimeout(() => void this.expireGrace(gameId, userId, events, timer), DISCONNECT_GRACE_PERIOD_MS)
+    const timer = setTimeout(() => this.expireGrace(gameId, userId, events, timer), DISCONNECT_GRACE_PERIOD_MS)
     this.graceTimers.set(key, timer)
   }
 
-  private async expireGrace(gameId: UUID, userId: UUID, events: LifecycleEvents, timer: ReturnType<typeof setTimeout>) {
+  private expireGrace(gameId: UUID, userId: UUID, events: LifecycleEvents, timer: ReturnType<typeof setTimeout>) {
     const key = this.key(gameId, userId)
+    // A reconnect may have cancelled this timer after it was already queued
+    // for execution, when clearTimeout can no longer stop it.
     if (this.graceTimers.get(key) !== timer) {
       return
     }
     this.graceTimers.delete(key)
-    await this.gameOperations.run(gameId, async () => {
-      const transition = await this.gameService.markPlayerDisconnectedIfOffline(gameId, userId)
-      if (!transition) {
-        const currentGame = await this.gameService.getGame(gameId)
-        if (
-          currentGame?.spectators[userId] &&
-          !(await this.userService.hasLiveSockets(userId)) &&
-          Object.values(currentGame.players).every(player => player?.status === PlayerStatus.Disconnected)
-        ) {
-          this.scheduleDeletion(gameId, events)
-        }
-        return
-      }
-      const { game, previousStatus } = transition
-      this.disconnectedStatuses.set(this.key(gameId, userId), previousStatus)
-      events.onUpdate(game)
 
-      if (game.players[userId]?.isHost) {
-        this.scheduleHostHandover(gameId, events)
-      }
-      if (Object.values(game.players).every(player => player?.status === PlayerStatus.Disconnected)) {
+    const transition = this.gameService.markPlayerDisconnectedIfOffline(gameId, userId)
+    if (!transition) {
+      const currentGame = this.gameService.getGame(gameId)
+      if (
+        currentGame?.spectators[userId] &&
+        !this.userService.hasLiveSockets(userId) &&
+        Object.values(currentGame.players).every(player => player?.status === PlayerStatus.Disconnected)
+      ) {
         this.scheduleDeletion(gameId, events)
       }
-    })
+      return
+    }
+    const { game, previousStatus } = transition
+    this.disconnectedStatuses.set(key, previousStatus)
+    events.onUpdate(game)
+
+    if (game.players[userId]?.isHost) {
+      this.scheduleHostHandover(gameId, events)
+    }
+    if (Object.values(game.players).every(player => player?.status === PlayerStatus.Disconnected)) {
+      this.scheduleDeletion(gameId, events)
+    }
   }
 
   private scheduleHostHandover(gameId: UUID, events: LifecycleEvents) {
@@ -70,9 +69,9 @@ export class GameConnectionService {
     this.hostDeadlines.set(gameId, Date.now() + HOST_HANDOVER_TIMEOUT_MS)
     this.hostTimers.set(
       gameId,
-      setTimeout(async () => {
+      setTimeout(() => {
         this.hostTimers.delete(gameId)
-        const game = await this.gameOperations.run(gameId, () => this.gameService.transferDisconnectedHost(gameId))
+        const game = this.gameService.transferDisconnectedHost(gameId)
         if (game) {
           this.hostDeadlines.delete(gameId)
           events.onUpdate(game)
@@ -85,9 +84,9 @@ export class GameConnectionService {
     clearTimeout(this.deletionTimers.get(gameId))
     this.deletionTimers.set(
       gameId,
-      setTimeout(async () => {
+      setTimeout(() => {
         this.deletionTimers.delete(gameId)
-        const game = await this.gameOperations.run(gameId, () => this.gameService.deleteIfAllOffline(gameId))
+        const game = this.gameService.deleteIfAllOffline(gameId)
         if (!game) {
           return
         }
@@ -102,44 +101,45 @@ export class GameConnectionService {
     )
   }
 
-  async reconnected(gameId: UUID, userId: UUID, events: LifecycleEvents) {
-    clearTimeout(this.graceTimers.get(this.key(gameId, userId)))
-    this.graceTimers.delete(this.key(gameId, userId))
+  reconnected(gameId: UUID, userId: UUID, events: LifecycleEvents) {
+    const key = this.key(gameId, userId)
+    clearTimeout(this.graceTimers.get(key))
+    this.graceTimers.delete(key)
     clearTimeout(this.deletionTimers.get(gameId))
     this.deletionTimers.delete(gameId)
-    const result = await this.gameOperations.run(gameId, async () => {
-      const status = this.disconnectedStatuses.get(this.key(gameId, userId)) ?? PlayerStatus.InGame
-      const connected = await this.gameService.markPlayerConnected(gameId, userId, status)
-      if (!connected) {
-        return undefined
-      }
-      if (!connected.players[userId]?.isHost && (this.hostDeadlines.get(gameId) ?? Number.POSITIVE_INFINITY) <= Date.now()) {
-        const transferred = await this.gameService.transferDisconnectedHost(gameId)
-        return { game: transferred ?? connected, transferred: !!transferred }
-      }
-      return { game: connected, transferred: false }
-    })
-    if (!result) {
+
+    const status = this.disconnectedStatuses.get(key) ?? PlayerStatus.InGame
+    const connected = this.gameService.markPlayerConnected(gameId, userId, status)
+    if (!connected) {
       return undefined
     }
-    const { game, transferred } = result
-    this.disconnectedStatuses.delete(this.key(gameId, userId))
+    this.disconnectedStatuses.delete(key)
 
-    if (game.players[userId]?.isHost) {
+    if (connected.players[userId]?.isHost) {
       clearTimeout(this.hostTimers.get(gameId))
       this.hostTimers.delete(gameId)
       this.hostDeadlines.delete(gameId)
-    } else if (transferred) {
-      this.hostDeadlines.delete(gameId)
-      events.onUpdate(game)
-      return game
+      return connected
     }
-    return game
+
+    // The handover deadline may have passed while its timer callback is still
+    // queued behind this handler: resolve the handover deterministically here
+    // instead of racing the timer.
+    if ((this.hostDeadlines.get(gameId) ?? Number.POSITIVE_INFINITY) <= Date.now()) {
+      const transferred = this.gameService.transferDisconnectedHost(gameId)
+      if (transferred) {
+        this.hostDeadlines.delete(gameId)
+        events.onUpdate(transferred)
+        return transferred
+      }
+    }
+    return connected
   }
 
   explicitLeave(gameId: UUID, userId: UUID) {
-    clearTimeout(this.graceTimers.get(this.key(gameId, userId)))
-    this.graceTimers.delete(this.key(gameId, userId))
-    this.disconnectedStatuses.delete(this.key(gameId, userId))
+    const key = this.key(gameId, userId)
+    clearTimeout(this.graceTimers.get(key))
+    this.graceTimers.delete(key)
+    this.disconnectedStatuses.delete(key)
   }
 }

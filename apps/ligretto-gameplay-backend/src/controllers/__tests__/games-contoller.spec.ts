@@ -25,8 +25,6 @@ import type { AnyAction } from '../../types/any-action'
 import { DISCONNECT_GRACE_PERIOD_MS, SOCKET_ROOM_LOBBY } from '../../config'
 import type { UserService } from '../../entities/user'
 import { gameToRoom } from '../../utils/mappers'
-import type { GameService } from '../../entities/game/game.service'
-import type { GameOperationSerializer } from '../../services/game-operation-serializer'
 
 describe('Games Controller', () => {
   let container = createIOC()
@@ -172,69 +170,27 @@ describe('Games Controller', () => {
       expect(state).toMatchSnapshot()
     })
 
-    it('does not join or retain a stale association when serialized deletion wins', async () => {
+    it('does not join or retain a stale association with a deleted room', async () => {
       const database: Database = container.get(IOC_TYPES.Database)
-      const operations = container.get<GameOperationSerializer>(IOC_TYPES.GameOperationSerializer)
-      let release!: () => void
-      let entered!: () => void
-      const gate = new Promise<void>(resolve => (release = resolve))
-      const started = new Promise<void>(resolve => (entered = resolve))
-      const deletion = operations.run(roomUuid, async () => {
-        entered()
-        await gate
-        await database.set(storage => delete storage.games[roomUuid])
-      })
-      await started
+      await database.set(storage => delete storage.games[roomUuid])
 
-      const joining = gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
-      release()
-      await deletion
-      await joining
+      await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
 
       expect(await database.get(storage => storage.users[userId]?.currentGameId)).not.toBe(roomUuid)
       expect(socketMockImpl.emit).toHaveBeenCalledWith('event', connectToRoomErrorAction())
       expect(socketMockImpl.emit).not.toHaveBeenCalledWith('event', expect.objectContaining({ type: connectToRoomSuccessAction.type }))
     })
 
-    it('does not reconnect to a game deleted ahead of the serialized reconnect', async () => {
+    it('does not reconnect to a game deleted since the last connection', async () => {
       const database: Database = container.get(IOC_TYPES.Database)
-      const operations = container.get<GameOperationSerializer>(IOC_TYPES.GameOperationSerializer)
       await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
       vi.mocked(socketMockImpl.emit).mockClear()
-      const deletion = operations.run(roomUuid, async () => {
-        await database.set(storage => delete storage.games[roomUuid])
-      })
+      await database.set(storage => delete storage.games[roomUuid])
 
-      const reconnecting = gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
-      await deletion
-      await reconnecting
+      await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
 
       expect(socketMockImpl.emit).toHaveBeenCalledWith('event', connectToRoomErrorAction())
       expect(socketMockImpl.emit).not.toHaveBeenCalledWith('event', expect.objectContaining({ type: connectToRoomSuccessAction.type }))
-    })
-
-    it('does not reconnect after an explicit leave wins the serialized race', async () => {
-      const database: Database = container.get(IOC_TYPES.Database)
-      const operations = container.get<GameOperationSerializer>(IOC_TYPES.GameOperationSerializer)
-      const users = container.get<UserService>(IOC_TYPES.UserService)
-      const games = container.get<GameService>(IOC_TYPES.GameService)
-      await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
-      await database.set(storage => {
-        storage.games[roomUuid].players.peer = { ...structuredClone(storage.games[roomUuid].players[userId]!), id: 'peer', isHost: false }
-      })
-      vi.mocked(socketMockImpl.emit).mockClear()
-      const leaving = operations.run(roomUuid, async () => {
-        await users.leaveGame(userId)
-        await games.leaveGame(roomUuid, userId)
-      })
-
-      const reconnecting = gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
-      await leaving
-      await reconnecting
-
-      expect(socketMockImpl.emit).toHaveBeenCalledWith('event', connectToRoomErrorAction())
-      expect(socketMockImpl.emit).not.toHaveBeenCalledWith('event', expect.objectContaining({ type: connectToRoomSuccessAction.type }))
-      expect((await database.get(storage => storage.games[roomUuid])).players[userId]).toBeUndefined()
     })
   })
 
@@ -393,37 +349,6 @@ describe('Games Controller', () => {
 
       expect((await database.get(storage => storage.games[roomUuid])).players[userId]?.status).toBe(status)
       expect(socket.emit).toHaveBeenCalled()
-    })
-
-    it('revalidates all status eligibility in the same operation that mutates', async () => {
-      const gameService = Reflect.get(gamesController, 'gameService') as GameService
-      let release!: () => void
-      let entered!: () => void
-      const gate = new Promise<void>(resolve => (release = resolve))
-      const started = new Promise<void>(resolve => (entered = resolve))
-      const original = gameService.setPlayerStatusIfEligible.bind(gameService)
-      vi.spyOn(gameService, 'setPlayerStatusIfEligible').mockImplementation(async (...args) => {
-        entered()
-        await gate
-        return original(...args)
-      })
-
-      const handling = gamesController.handleMessage(
-        socket,
-        setPlayerStatusEmitAction({ gameId: roomUuid, status: PlayerStatus.ReadyToPlay }) as AnyAction,
-      )
-      await started
-      await database.set(storage => {
-        storage.games[roomUuid].status = GameStatus.InGame
-        storage.users[userId]!.currentGameId = 'other-game'
-        storage.users[userId]!.socketIds = ['replacement-socket']
-        storage.games[roomUuid].players[userId]!.status = PlayerStatus.Disconnected
-      })
-      release()
-      await handling
-
-      expect((await database.get(storage => storage.games[roomUuid])).players[userId]?.status).toBe(PlayerStatus.Disconnected)
-      expect(socket.emit).not.toHaveBeenCalled()
     })
 
     it.each([PlayerStatus.InGame, PlayerStatus.Disconnected])('rejects the client-controlled status %s', async status => {

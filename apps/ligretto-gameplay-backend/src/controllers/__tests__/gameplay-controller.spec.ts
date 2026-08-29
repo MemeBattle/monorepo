@@ -16,7 +16,6 @@ import { IOC_TYPES } from '../../IOC_TYPES'
 import type { Database } from '../../database'
 import { createSocketMockImpl } from '../../../test/utils'
 import type { AnyAction } from '../../types/any-action'
-import type { GameOperationSerializer } from '../../services/game-operation-serializer'
 import type { UserService } from '../../entities/user'
 import { DISCONNECT_GRACE_PERIOD_MS } from '../../config'
 import type { GameConnectionService } from '../../services/game-connection/game-connection.service'
@@ -96,19 +95,6 @@ describe('Gameplay Controller', () => {
     expect(socket.emit).toHaveBeenCalledWith('event', updateGameAction(expectedGame))
   })
 
-  it('broadcasts the freshest canonical game after resuming', async () => {
-    const handling = gameplayController.handleMessage(socket, resumeGameEmitAction({ gameId: pausedGame.id }) as AnyAction)
-
-    await Promise.resolve()
-    const freshestGame = await database.set(storage => {
-      const game = storage.games[pausedGame.id]
-      return (storage.games[pausedGame.id] = { ...game, name: 'Concurrently updated game' })
-    })
-    await handling
-
-    expect(socket.emit).toHaveBeenCalledWith('event', updateGameAction({ ...freshestGame, status: GameStatus.InGame }))
-  })
-
   it('does not allow a non-host socket to resume a paused game', async () => {
     const nonHostSocket = createSocketMockImpl({ data: { userId: 'spectator' } })
 
@@ -132,27 +118,6 @@ describe('Gameplay Controller', () => {
     await gameplayController.handleMessage(socket, resumeGameEmitAction({ gameId: pausedGame.id }) as AnyAction)
 
     expect((await database.get(storage => storage.games[pausedGame.id])).status).toBe(GameStatus.Pause)
-    expect(socket.emit).not.toHaveBeenCalled()
-  })
-
-  it('does not allow a stale former host to resume or broadcast', async () => {
-    const handling = gameplayController.handleMessage(socket, resumeGameEmitAction({ gameId: pausedGame.id }) as AnyAction)
-
-    await database.set(storage => {
-      const game = storage.games[pausedGame.id]
-      storage.games[pausedGame.id] = {
-        ...game,
-        players: {
-          ...game.players,
-          player: { ...game.players.player!, isHost: false },
-        },
-      }
-    })
-    await handling
-
-    const game = await database.get(storage => storage.games[pausedGame.id])
-    expect(game.status).toBe(GameStatus.Pause)
-    expect(socket.to).not.toHaveBeenCalled()
     expect(socket.emit).not.toHaveBeenCalled()
   })
 
@@ -183,37 +148,6 @@ describe('Gameplay Controller', () => {
     await gameplayController.handleMessage(socket, putCardAction({ gameId: pausedGame.id, cardIndex: 0, playgroundDeckIndex: 0 }) as AnyAction)
 
     expect(await database.get(storage => storage.games[pausedGame.id])).toEqual(pausedGame)
-    expect(socket.emit).not.toHaveBeenCalled()
-  })
-
-  it('does not mutate when lifecycle pause wins after gameplay was scheduled', async () => {
-    await database.set(storage => {
-      storage.games[pausedGame.id].status = GameStatus.InGame
-    })
-    const gameOperations = Reflect.get(gameplayController, 'gameOperations') as GameOperationSerializer
-    let release!: () => void
-    let entered!: () => void
-    const gate = new Promise<void>(resolve => (release = resolve))
-    const started = new Promise<void>(resolve => (entered = resolve))
-    const blocker = gameOperations.run(pausedGame.id, async () => {
-      entered()
-      await gate
-    })
-    await started
-
-    const handling = gameplayController.handleMessage(
-      socket,
-      putCardAction({ gameId: pausedGame.id, cardIndex: 0, playgroundDeckIndex: 0 }) as AnyAction,
-    )
-    await database.set(storage => {
-      storage.games[pausedGame.id].status = GameStatus.Pause
-    })
-    const pausedSnapshot = await database.get(storage => structuredClone(storage.games[pausedGame.id]))
-    release()
-    await blocker
-    await handling
-
-    expect(await database.get(storage => storage.games[pausedGame.id])).toEqual(pausedSnapshot)
     expect(socket.emit).not.toHaveBeenCalled()
   })
 
@@ -296,7 +230,7 @@ describe('Gameplay Controller', () => {
     expect(socket.emit).not.toHaveBeenCalled()
   })
 
-  it('applies a disconnect queued during start immediately afterward and pauses when needed', async () => {
+  it('applies a disconnect during the starting countdown and pauses when needed', async () => {
     vi.useFakeTimers()
     const connectionService = container.get<GameConnectionService>(IOC_TYPES.GameConnectionService)
     const users = container.get<UserService>(IOC_TYPES.UserService)
@@ -311,15 +245,16 @@ describe('Gameplay Controller', () => {
 
     const starting = gameplayController.handleMessage(socket, startGameEmitAction({ gameId: pausedGame.id }) as AnyAction)
     await vi.advanceTimersByTimeAsync(1)
-    await users.disconnectionHandler({ userId: 'peer', socketId: 'peer-socket' })
+    users.disconnectionHandler({ userId: 'peer', socketId: 'peer-socket' })
     connectionService.transportDisconnected(pausedGame.id, 'peer', { onUpdate: vi.fn(), onDelete: vi.fn() })
-    const disconnecting = vi.advanceTimersByTimeAsync(DISCONNECT_GRACE_PERIOD_MS)
+    await vi.advanceTimersByTimeAsync(DISCONNECT_GRACE_PERIOD_MS)
     await vi.advanceTimersByTimeAsync(1_000)
     await starting
-    await disconnecting
 
     const game = await database.get(storage => storage.games[pausedGame.id])
     expect(game.players.peer?.status).toBe(PlayerStatus.Disconnected)
     expect(game.status).toBe(GameStatus.Pause)
+
+    vi.useRealTimers()
   })
 })

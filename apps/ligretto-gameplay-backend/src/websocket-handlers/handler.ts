@@ -20,7 +20,7 @@ export class WebSocketHandler {
     socketServer.use(authMiddleware).on('connection', socket => this.connectionHandler(socket))
   }
 
-  public async connectionHandler(socket: Socket): Promise<void> {
+  public connectionHandler(socket: Socket): void {
     socketIOConnectionsCountMetric.inc()
     socketIOConnectionsCountTotalMetric.inc()
 
@@ -37,22 +37,24 @@ export class WebSocketHandler {
       socket.emit(data.type, data.payload)
     })
 
-    socket.on('disconnecting', async reason => {
+    socket.on('disconnecting', reason => {
       const disconnectUser = () => this.userService.disconnectionHandler({ socketId: socket.id, userId: socket.data.userId })
       if (reason === 'client namespace disconnect') {
-        await this.gamesController.disconnectionHandler(socket, reason)
-        await disconnectUser()
+        this.gamesController.disconnectionHandler(socket, reason)
+        disconnectUser()
         return
       }
-      await disconnectUser()
-      await this.gamesController.disconnectionHandler(socket, reason)
+      // For transport-level disconnects the socket must be removed from the
+      // user's live sockets first, so the lifecycle sees the user as offline.
+      disconnectUser()
+      this.gamesController.disconnectionHandler(socket, reason)
     })
 
     socket.on('disconnect', () => {
       socketIOConnectionsCountMetric.dec()
     })
 
-    await this.userService.connectUser({ socketId: socket.id, userId: socket.data.userId })
+    this.userService.connectUser({ socketId: socket.id, userId: socket.data.userId })
   }
 
   private messageHandler(socket: Socket, data: AnyAction) {

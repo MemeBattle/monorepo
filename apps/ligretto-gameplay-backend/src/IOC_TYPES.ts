@@ -19,5 +19,4 @@ export const IOC_TYPES = {
   AuthService: Symbol.for('AuthService'),
   LigrettoCoreService: Symbol.for('LigrettoCoreService'),
   GameConnectionService: Symbol.for('GameConnectionService'),
-  GameOperationSerializer: Symbol.for('GameOperationSerializer'),
 }
