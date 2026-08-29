@@ -12,9 +12,8 @@
     "test:ci": "NODE_ENV=test vitest run --reporter=json --outputFile=report.json",
     "test:update-snapshot": "NODE_ENV=test vitest run -u",
     "test:watch": "NODE_ENV=test vitest",
-    "start:dev": "pnpm prestart && nodemon",
-    "start": "pnpm prestart && tsx src/index.ts",
-    "prestart": "tsx src/cli/check-env.ts",
+    "start:dev": "tsx watch --conditions=development src/index.ts",
+    "start": "tsx src/index.ts",
     "build": "tsc --project tsconfig.build.json",
     "ts-check": "tsc --noEmit"
   },
@@ -32,9 +31,7 @@
   "devDependencies": {
     "@types/lodash": "catalog:",
     "@types/node": "24.9.2",
-    "cross-env": "catalog:",
     "mock-socket": "catalog:",
-    "nodemon": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

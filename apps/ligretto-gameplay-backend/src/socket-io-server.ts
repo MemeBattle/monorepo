@@ -42,16 +42,14 @@ httpServer.listen(LIGRETTO_GAMEPLAY_SOCKET_PORT, () => {
   console.log(`Ligretto gameplay started on ${LIGRETTO_GAMEPLAY_SOCKET_PORT}`)
 })
 
-process.on('SIGTERM', () => {
+const shutdown = (signal: NodeJS.Signals) => {
+  // Force exit if io.close() never completes (e.g. a stuck connection keeps the http server open)
+  setTimeout(() => process.exit(1), 3000).unref()
   void io.close(() => {
-    console.log('Server closed SIGTERM')
+    console.log(`Server closed ${signal}`)
     process.exit()
   })
-})
+}
 
-process.on('SIGINT', () => {
-  void io.close(() => {
-    console.log('Server closed SIGINT')
-    process.exit()
-  })
-})
+process.on('SIGTERM', shutdown)
+process.on('SIGINT', shutdown)
