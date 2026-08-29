@@ -1,4 +1,5 @@
 import { inject, injectable } from 'inversify'
+import { omit } from 'lodash'
 import type { Game, GameResults, Player, UUID, Spectator } from '@memebattle/ligretto-shared'
 import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 import type { Database } from '../../database'
@@ -74,6 +75,20 @@ export class GameRepository {
         return undefined
       }
       return (storage.games[gameId] = { ...game, players: { ...game.players, [userId]: { ...player, status } } })
+    })
+  }
+
+  removeSpectatorIfOffline(gameId: UUID, userId: UUID) {
+    return this.database.set(storage => {
+      const game = storage.games[gameId]
+      const user = storage.users[userId]
+      if (!game || !game.spectators[userId] || (user?.socketIds.length ?? 0) > 0) {
+        return undefined
+      }
+      if (user?.currentGameId === gameId) {
+        storage.users[userId] = { ...user, currentGameId: undefined }
+      }
+      return (storage.games[gameId] = { ...game, spectators: omit(game.spectators, userId) })
     })
   }
 

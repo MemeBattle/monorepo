@@ -64,8 +64,16 @@ export class GameplayController extends Controller {
   private resumeGame(socket: Socket, action: ReturnType<typeof resumeGameEmitAction>) {
     const gameId = action.payload.gameId
     const game = this.gameService.getGame(gameId)
+    const user = this.userService.getUser(socket.data.userId)
+    const player = game?.players[socket.data.userId]
 
-    if (!game || !game.players[socket.data.userId]?.isHost) {
+    if (
+      !game ||
+      !player?.isHost ||
+      player.status === PlayerStatus.Disconnected ||
+      user?.currentGameId !== gameId ||
+      !user.socketIds.includes(socket.id)
+    ) {
       return
     }
 
@@ -79,6 +87,11 @@ export class GameplayController extends Controller {
 
   private updateGame(socket: Socket, gameId: string, gameState?: Game) {
     const game = gameState || this.gameService.getGame(gameId)
+    // The room can vanish across the genuinely async gaps (the starting
+    // countdown, the round-save HTTP call); a broadcast of nothing helps nobody.
+    if (!game) {
+      return
+    }
 
     const action = updateGameAction(game)
 

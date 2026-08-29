@@ -146,6 +146,44 @@ describe('Gameplay Controller', () => {
     expect(game).toEqual(activeGame)
   })
 
+  it.each([
+    ['wrong game association', pausedGame.id, 'other-game', socket.id],
+    ['stale socket', pausedGame.id, pausedGame.id, 'replacement-socket'],
+  ])('rejects resume from a sender with a %s', async (_label, gameId, currentGameId, liveSocketId) => {
+    await database.set(storage => {
+      storage.users.player = { id: 'player', socketIds: [liveSocketId], currentGameId }
+    })
+
+    await gameplayController.handleMessage(socket, resumeGameEmitAction({ gameId }) as AnyAction)
+
+    expect((await database.get(storage => storage.games[pausedGame.id])).status).toBe(GameStatus.Pause)
+    expect(socket.emit).not.toHaveBeenCalled()
+  })
+
+  it('does not broadcast when the game disappears during the starting countdown', async () => {
+    vi.useFakeTimers()
+    await database.set(storage => {
+      storage.games[pausedGame.id] = {
+        ...structuredClone(pausedGame),
+        status: GameStatus.New,
+        config: { ...pausedGame.config, startingDelayInSec: 1 },
+      }
+    })
+
+    const starting = gameplayController.handleMessage(socket, startGameEmitAction({ gameId: pausedGame.id }) as AnyAction)
+    await vi.advanceTimersByTimeAsync(1)
+    await database.set(storage => {
+      delete storage.games[pausedGame.id]
+    })
+    await vi.advanceTimersByTimeAsync(1_000)
+    await starting
+
+    const broadcastPayloads = vi.mocked(socket.emit).mock.calls.map(([, action]) => (action as { payload?: unknown }).payload)
+    expect(broadcastPayloads).not.toContain(undefined)
+
+    vi.useRealTimers()
+  })
+
   it('rejects gameplay mutations while paused', async () => {
     await gameplayController.handleMessage(socket, putCardAction({ gameId: pausedGame.id, cardIndex: 0, playgroundDeckIndex: 0 }) as AnyAction)
 
@@ -242,6 +280,61 @@ describe('Gameplay Controller', () => {
     expect(game.players.player?.status).toBe(PlayerStatus.DontReadyToPlay)
     expect(saveGameRoundService).toHaveBeenCalledTimes(1)
     expect(socket.emit).toHaveBeenCalledWith('event', endRoundAction(gameResults))
+  })
+
+  it('preserves the Disconnected status across the round finish', async () => {
+    const saveGameRoundService = vi.fn().mockReturnValue({ gameResults: {} })
+    container.rebind(IOC_TYPES.LigrettoCoreService).toConstantValue({ createGameService: vi.fn(), saveGameRoundService })
+    gameplayController = container.get(IOC_TYPES.GameplayController)
+    await database.set(storage => {
+      const game = storage.games[pausedGame.id]
+      storage.games[pausedGame.id] = {
+        ...game,
+        status: GameStatus.InGame,
+        players: {
+          ...game.players,
+          player: {
+            ...game.players.player!,
+            cards: [null],
+            ligrettoDeck: { isHidden: true, cards: [{ color: CardColors.blue, value: 7, playerId: 'player' }] },
+          },
+          peer: { ...game.players.peer!, status: PlayerStatus.Disconnected },
+          third: { ...structuredClone(game.players.peer!), id: 'third', status: PlayerStatus.InGame },
+        },
+      }
+    })
+
+    await gameplayController.handleMessage(socket, takeFromLigrettoDeckAction({ gameId: pausedGame.id }) as AnyAction)
+
+    const game = await database.get(storage => storage.games[pausedGame.id])
+    expect(game.status).toBe(GameStatus.RoundFinished)
+    expect(game.players.peer?.status).toBe(PlayerStatus.Disconnected)
+    expect(game.players.player?.status).toBe(PlayerStatus.DontReadyToPlay)
+    expect(game.players.third?.status).toBe(PlayerStatus.DontReadyToPlay)
+  })
+
+  it('preserves the Disconnected status across the next round start', async () => {
+    await database.set(storage => {
+      const game = storage.games[pausedGame.id]
+      storage.games[pausedGame.id] = {
+        ...game,
+        status: GameStatus.RoundFinished,
+        config: { ...game.config, startingDelayInSec: 0 },
+        players: {
+          player: { ...game.players.player!, status: PlayerStatus.DontReadyToPlay },
+          peer: { ...game.players.peer!, status: PlayerStatus.DontReadyToPlay },
+          ghost: { ...structuredClone(game.players.peer!), id: 'ghost', status: PlayerStatus.Disconnected },
+        },
+      }
+    })
+
+    await gameplayController.handleMessage(socket, startGameEmitAction({ gameId: pausedGame.id }) as AnyAction)
+
+    const game = await database.get(storage => storage.games[pausedGame.id])
+    expect(game.status).toBe(GameStatus.InGame)
+    expect(game.players.ghost?.status).toBe(PlayerStatus.Disconnected)
+    expect(game.players.ghost?.ligrettoDeck.cards).toHaveLength(10)
+    expect(game.players.player?.status).toBe(PlayerStatus.InGame)
   })
 
   it('starts the next round from a finished round', async () => {

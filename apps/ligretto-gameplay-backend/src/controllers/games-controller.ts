@@ -83,6 +83,10 @@ export class GamesController extends Controller {
     const isUserAlreadyInGame = isUserAlreadyPlayer || isUserAlreadySpectator
 
     if (isUserAlreadyInGame) {
+      // The association is an authorization input for every mutating handler,
+      // so a rejoin must restore it (the user may have visited another room
+      // in between).
+      this.userService.joinGame({ userId, gameId: roomUuid })
       this.gameConnectionService.reconnected(roomUuid, userId, this.lifecycleEvents(socket))
       // Reconnection may have restored the player's status or transferred the
       // host, so broadcast the canonical state, not the pre-reconnect snapshot.
@@ -181,6 +185,9 @@ export class GamesController extends Controller {
     if (game) {
       socket.to(game.id).emit('event', updateGameAction(game))
       socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRoomsAction({ rooms: [gameToRoom(game)] }))
+      // The leaver may have been the last online player of a room whose
+      // remaining players are all Disconnected; nothing else arms deletion.
+      this.gameConnectionService.scheduleDeletionIfAbandoned(game.id, this.lifecycleEvents(socket))
     } else {
       socket.to(SOCKET_ROOM_LOBBY).emit('event', removeRoomAction({ uuid: currentGameId }))
     }

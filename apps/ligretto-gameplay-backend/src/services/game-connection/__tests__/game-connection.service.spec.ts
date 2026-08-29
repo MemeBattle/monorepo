@@ -256,6 +256,65 @@ describe('GameConnectionService', () => {
     expect(events.onDelete).not.toHaveBeenCalled()
   })
 
+  it('removes an offline spectator from the game after the grace period', async () => {
+    const events = { onUpdate: vi.fn(), onDelete: vi.fn() }
+    await database.set(storage => {
+      storage.games.game.spectators.watcher = { id: 'watcher' }
+      storage.users.watcher = { id: 'watcher', socketIds: [], currentGameId: 'game' }
+    })
+
+    service.transportDisconnected('game', 'watcher', events)
+    await vi.advanceTimersByTimeAsync(DISCONNECT_GRACE_PERIOD_MS)
+
+    expect(await database.get(storage => storage.games.game.spectators.watcher)).toBeUndefined()
+    expect(await database.get(storage => storage.users.watcher?.currentGameId)).toBeUndefined()
+    expect(events.onUpdate).toHaveBeenCalled()
+  })
+
+  it('retries deletion until the lingering participant fully disconnects', async () => {
+    const events = { onUpdate: vi.fn(), onDelete: vi.fn() }
+    await users.disconnectionHandler({ userId: 'peer', socketId: 'peer-socket' })
+    service.transportDisconnected('game', 'host', events)
+    service.transportDisconnected('game', 'peer', events)
+    await vi.advanceTimersByTimeAsync(DISCONNECT_GRACE_PERIOD_MS)
+    // The peer opens a socket elsewhere (e.g. the lobby) without rejoining the room.
+    await users.connectUser({ userId: 'peer', socketId: 'lobby-socket' })
+
+    await vi.advanceTimersByTimeAsync(ALL_OFFLINE_ROOM_DELETION_TIMEOUT_MS)
+    expect(await database.get(storage => storage.games.game)).toBeDefined()
+
+    await users.disconnectionHandler({ userId: 'peer', socketId: 'lobby-socket' })
+    await vi.advanceTimersByTimeAsync(ALL_OFFLINE_ROOM_DELETION_TIMEOUT_MS)
+
+    expect(await database.get(storage => storage.games.game)).toBeUndefined()
+    expect(events.onDelete).toHaveBeenCalledWith('game')
+  })
+
+  it('re-arms deletion when an already-disconnected player drops another socket', async () => {
+    const events = { onUpdate: vi.fn(), onDelete: vi.fn() }
+    await database.set(storage => {
+      const game = storage.games.game
+      storage.games.game = {
+        ...game,
+        players: {
+          host: { ...game.players.host!, status: PlayerStatus.Disconnected },
+          peer: { ...game.players.peer!, status: PlayerStatus.Disconnected },
+        },
+      }
+      storage.users.host = { id: 'host', socketIds: ['late-socket'], currentGameId: 'game' }
+      storage.users.peer = { id: 'peer', socketIds: [], currentGameId: 'game' }
+    })
+
+    // No deletion timer is pending; the host briefly reconnects to the lobby
+    // and drops again — the grace expiry must re-arm deletion for the room.
+    await users.disconnectionHandler({ userId: 'host', socketId: 'late-socket' })
+    service.transportDisconnected('game', 'host', events)
+    await vi.advanceTimersByTimeAsync(DISCONNECT_GRACE_PERIOD_MS + ALL_OFFLINE_ROOM_DELETION_TIMEOUT_MS)
+
+    expect(await database.get(storage => storage.games.game)).toBeUndefined()
+    expect(events.onDelete).toHaveBeenCalledWith('game')
+  })
+
   it('cancels a pending grace transition on explicit leave', async () => {
     service.transportDisconnected('game', 'host', { onUpdate: vi.fn(), onDelete: vi.fn() })
     service.explicitLeave('game', 'host')

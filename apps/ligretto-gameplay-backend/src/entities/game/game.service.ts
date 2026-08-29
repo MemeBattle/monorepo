@@ -74,7 +74,10 @@ export class GameService {
             cards: allCards,
             isHidden: true,
           },
-          status: PlayerStatus.InGame,
+          // A disconnected player keeps their status through the deal, so the
+          // lifecycle (handover, deletion, reconnect restore) still sees them
+          // as offline; they get a hand to play with if they return mid-round.
+          status: player.status === PlayerStatus.Disconnected ? PlayerStatus.Disconnected : PlayerStatus.InGame,
         }
       }
 
@@ -102,18 +105,6 @@ export class GameService {
       }
 
       return { ...game, status: GameStatus.InGame }
-    })
-  }
-
-  markPlayerDisconnected(gameId: UUID, userId: Player['id']) {
-    return this.gameRepository.updateGame(gameId, game => {
-      const player = game.players[userId]
-      if (!player || player.status === PlayerStatus.Disconnected) {
-        return undefined
-      }
-      const players = { ...game.players, [userId]: { ...player, status: PlayerStatus.Disconnected } }
-      const onlineCount = Object.values(players).filter(current => current?.status !== PlayerStatus.Disconnected).length
-      return { ...game, players, status: game.status === GameStatus.InGame && onlineCount < 2 ? GameStatus.Pause : game.status }
     })
   }
 
@@ -158,6 +149,10 @@ export class GameService {
     return this.gameRepository.deleteIfAllParticipantsOffline(gameId)
   }
 
+  removeSpectatorIfOffline(gameId: UUID, userId: Spectator['id']) {
+    return this.gameRepository.removeSpectatorIfOffline(gameId, userId)
+  }
+
   getLastRoundResults(gameId: UUID) {
     return this.gameRepository.getRoundResults(gameId)
   }
@@ -188,29 +183,6 @@ export class GameService {
       })),
       spectator,
     }
-  }
-
-  updateGamePlayer(gameId: Game['id'], playerId: Player['id'], playerData: Partial<Player>) {
-    const game = this.gameRepository.getGame(gameId)
-    if (!game) {
-      throw Error('Game not found')
-    }
-
-    const player = game.players[playerId]
-    if (!player) {
-      throw Error('Player not found in game')
-    }
-
-    return this.gameRepository.updateGame(gameId, game => ({
-      ...game,
-      players: {
-        ...game.players,
-        [player.id]: {
-          ...player,
-          ...playerData,
-        },
-      },
-    }))
   }
 
   getGame(gameId: UUID) {
@@ -276,7 +248,18 @@ export class GameService {
       const game = this.gameRepository.updateGame(gameId, game => ({
         ...game,
         players: Object.values(game.players).reduce(
-          (players, player) => (player ? { ...players, [player.id]: { ...player, status: PlayerStatus.DontReadyToPlay } } : players),
+          (players, player) =>
+            player
+              ? {
+                  ...players,
+                  [player.id]: {
+                    ...player,
+                    // The lifecycle owns the Disconnected flag: erasing it here
+                    // would resurrect an offline player as a permanent ghost.
+                    status: player.status === PlayerStatus.Disconnected ? PlayerStatus.Disconnected : PlayerStatus.DontReadyToPlay,
+                  },
+                }
+              : players,
           {},
         ),
         // The round is over, so its cards must not linger on the table
@@ -311,7 +294,10 @@ export class GameService {
       const spectators = omit(game.spectators, userId)
 
       if (isHostLeaving) {
-        const newHost = Object.values<Player>(players)[0]
+        // Prefer an online successor: a Disconnected host cannot start or
+        // resume anything, and no handover timer is armed for this promotion.
+        const remaining = Object.values<Player>(players)
+        const newHost = remaining.find(player => player.status !== PlayerStatus.Disconnected) ?? remaining[0]
 
         if (newHost) {
           newHost.isHost = true
@@ -335,13 +321,41 @@ export class GameService {
       return
     }
 
-    // Only a round in progress needs pausing: converting the New lobby or the
-    // RoundFinished intermission into Pause would leave the room resumable
-    // into a round that does not exist.
-    if (playersCount === 1 && game.status === GameStatus.InGame) {
-      game = this.pauseGame(gameId)
+    // An explicit leave that drops a running (or paused) round below two
+    // online players abandons the round: pausing instead would be terminal,
+    // because newcomers join a paused game as spectators, so the online count
+    // could never reach two again. RoundFinished lets the room refill and the
+    // host start a fresh round. The New lobby and the intermission stay as
+    // they are.
+    const onlineCount = Object.values(game.players).filter(player => player?.status !== PlayerStatus.Disconnected).length
+    if ((game.status === GameStatus.InGame || game.status === GameStatus.Pause) && onlineCount < 2) {
+      game = this.abandonRound(gameId)
     }
 
     return game
+  }
+
+  private abandonRound(gameId: UUID) {
+    return this.gameRepository.updateGame(gameId, game => ({
+      ...game,
+      status: GameStatus.RoundFinished,
+      players: Object.values(game.players).reduce(
+        (players, player) =>
+          player
+            ? {
+                ...players,
+                [player.id]: {
+                  ...player,
+                  status: player.status === PlayerStatus.Disconnected ? PlayerStatus.Disconnected : PlayerStatus.DontReadyToPlay,
+                },
+              }
+            : players,
+        {},
+      ),
+      playground: {
+        decks: new Array(game.config.maxCardsOnTable).fill(null),
+        droppedDecks: [],
+      },
+    }))
   }
 }

@@ -42,14 +42,13 @@ export class GameConnectionService {
 
     const transition = this.gameService.markPlayerDisconnectedIfOffline(gameId, userId)
     if (!transition) {
-      const currentGame = this.gameService.getGame(gameId)
-      if (
-        currentGame?.spectators[userId] &&
-        !this.userService.hasLiveSockets(userId) &&
-        Object.values(currentGame.players).every(player => player?.status === PlayerStatus.Disconnected)
-      ) {
-        this.scheduleDeletion(gameId, events)
+      // No player transition: the user may be a spectator, or a player who is
+      // already Disconnected. Either way the room may now be abandoned.
+      const withoutSpectator = this.gameService.removeSpectatorIfOffline(gameId, userId)
+      if (withoutSpectator) {
+        events.onUpdate(withoutSpectator)
       }
+      this.scheduleDeletionIfAbandoned(gameId, events)
       return
     }
     const { game, previousStatus } = transition
@@ -59,7 +58,18 @@ export class GameConnectionService {
     if (game.players[userId]?.isHost) {
       this.scheduleHostHandover(gameId, events)
     }
-    if (Object.values(game.players).every(player => player?.status === PlayerStatus.Disconnected)) {
+    this.scheduleDeletionIfAbandoned(gameId, events)
+  }
+
+  scheduleDeletionIfAbandoned(gameId: UUID, events: LifecycleEvents) {
+    const game = this.gameService.getGame(gameId)
+    if (!game) {
+      return
+    }
+    const players = Object.values(game.players)
+    // Liveness is re-validated atomically when the timer fires; here it is
+    // enough that no player is connected any more.
+    if (players.length > 0 && players.every(player => player?.status === PlayerStatus.Disconnected)) {
       this.scheduleDeletion(gameId, events)
     }
   }
@@ -88,6 +98,13 @@ export class GameConnectionService {
         this.deletionTimers.delete(gameId)
         const game = this.gameService.deleteIfAllOffline(gameId)
         if (!game) {
+          // A participant held a live socket somewhere (e.g. in the lobby) at
+          // expiry. Retry, or the room becomes a permanent zombie: nothing
+          // re-arms deletion once this one-shot timer has fired. Any actual
+          // rejoin of the room cancels the timer via reconnected().
+          if (this.gameService.getGame(gameId)) {
+            this.scheduleDeletion(gameId, events)
+          }
           return
         }
         for (const key of this.disconnectedStatuses.keys()) {

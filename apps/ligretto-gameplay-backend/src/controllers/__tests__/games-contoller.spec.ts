@@ -23,7 +23,7 @@ import { IOC_TYPES } from '../../IOC_TYPES'
 import type { Database } from '../../database'
 import { createSocketMockImpl } from '../../../test/utils'
 import type { AnyAction } from '../../types/any-action'
-import { DISCONNECT_GRACE_PERIOD_MS, SOCKET_ROOM_LOBBY } from '../../config'
+import { ALL_OFFLINE_ROOM_DELETION_TIMEOUT_MS, DISCONNECT_GRACE_PERIOD_MS, SOCKET_ROOM_LOBBY } from '../../config'
 import type { UserService } from '../../entities/user'
 import type { GameService } from '../../entities/game/game.service'
 import { gameToRoom } from '../../utils/mappers'
@@ -170,6 +170,18 @@ describe('Games Controller', () => {
 
       const state = await database.get(db => db)
       expect(state).toMatchSnapshot()
+    })
+
+    it('restores the user-game association on rejoin', async () => {
+      const database: Database = container.get(IOC_TYPES.Database)
+      await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+      await database.set(storage => {
+        storage.users[userId]!.currentGameId = 'other-game'
+      })
+
+      await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+
+      expect(await database.get(storage => storage.users[userId]?.currentGameId)).toBe(roomUuid)
     })
 
     it('joins a paused game as a spectator', async () => {
@@ -343,6 +355,62 @@ describe('Games Controller', () => {
       expect(game.status).toBe(GameStatus.RoundFinished)
       expect(game.players[userOneId]).toBeUndefined()
       expect(game.players[userTwoId]).toBeDefined()
+    })
+
+    it('abandons the round when an explicit leave drops the game below two online players', async () => {
+      const database: Database = container.get(IOC_TYPES.Database)
+      await database.set(storage => {
+        storage.users[userTwoId] = { id: userTwoId, socketIds: [socketTwo.id], currentGameId: roomUuid }
+      })
+      await gamesController.handleMessage(socketTwo, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+      await database.set(storage => {
+        storage.games[roomUuid].status = GameStatus.InGame
+      })
+
+      await gamesController.disconnectionHandler(socketOne)
+
+      const game = await database.get(storage => storage.games[roomUuid])
+      expect(game.status).toBe(GameStatus.RoundFinished)
+      expect(game.playground).toEqual({ decks: new Array(game.config.maxCardsOnTable).fill(null), droppedDecks: [] })
+      expect(game.players[userTwoId]?.status).toBe(PlayerStatus.DontReadyToPlay)
+    })
+
+    it('prefers an online successor when the leaving host hands the role over', async () => {
+      const database: Database = container.get(IOC_TYPES.Database)
+      await database.set(storage => {
+        const host = storage.games[roomUuid].players[userOneId]!
+        storage.games[roomUuid].players = {
+          [userOneId]: host,
+          offlinePeer: { ...structuredClone(host), id: 'offlinePeer', isHost: false, status: PlayerStatus.Disconnected },
+          [userTwoId]: { ...structuredClone(host), id: userTwoId, isHost: false, status: PlayerStatus.ReadyToPlay },
+        }
+      })
+
+      await gamesController.disconnectionHandler(socketOne)
+
+      const game = await database.get(storage => storage.games[roomUuid])
+      expect(game.players[userTwoId]?.isHost).toBe(true)
+      expect(game.players.offlinePeer?.isHost).toBe(false)
+    })
+
+    it('schedules deletion when the last online player leaves a room of disconnected players', async () => {
+      vi.useFakeTimers()
+      const database: Database = container.get(IOC_TYPES.Database)
+      await database.set(storage => {
+        const host = storage.games[roomUuid].players[userOneId]!
+        storage.games[roomUuid].status = GameStatus.InGame
+        storage.games[roomUuid].players = {
+          [userOneId]: host,
+          offlinePeer: { ...structuredClone(host), id: 'offlinePeer', isHost: false, status: PlayerStatus.Disconnected },
+        }
+        storage.users.offlinePeer = { id: 'offlinePeer', socketIds: [], currentGameId: roomUuid }
+      })
+
+      await gamesController.disconnectionHandler(socketOne)
+      await vi.advanceTimersByTimeAsync(ALL_OFFLINE_ROOM_DELETION_TIMEOUT_MS)
+
+      expect(await database.get(storage => storage.games[roomUuid])).toBeUndefined()
+      vi.useRealTimers()
     })
 
     it('retains a player seat after a recoverable transport disconnect', async () => {
