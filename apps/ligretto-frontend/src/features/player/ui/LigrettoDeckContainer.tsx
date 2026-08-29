@@ -29,6 +29,7 @@ export const LigrettoDeckContainer = () => {
 
   return (
     <LigrettoPack
+      dataTestId="LigrettoDeck"
       count={ligrettoDeckCards.length}
       isDndEnabled={isLigrettoDeckEnabled}
       ligrettoDeckCards={ligrettoDeckCards}

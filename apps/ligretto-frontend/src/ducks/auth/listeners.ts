@@ -29,6 +29,12 @@ export function addListeners(startListener: TypedStartListening<All>) {
   startListener({
     actionCreator: getMeRequest,
     effect: async ({ payload }, listenerApi) => {
+      // The reducer sets isLoading synchronously, so a value of `true` *before*
+      // this action means another identity request is already in flight — a
+      // duplicate would mint a second temporary user on the backend.
+      if (listenerApi.getOriginalState().auth.isLoading) {
+        return
+      }
       const user = await getUserByTokenEffect(payload.token)
 
       if (!user) {
@@ -71,16 +77,6 @@ export function addListeners(startListener: TypedStartListening<All>) {
     effect: async (_action, listenerApi) => {
       window.localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY)
       listenerApi.dispatch(getMeRequest({}))
-    },
-  })
-
-  // Initialize auth on app start
-  const unsubscribeInitAuth = startListener({
-    predicate: () => true,
-    effect: async (_action, listenerApi) => {
-      unsubscribeInitAuth()
-      const token = window.localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY) ?? undefined
-      listenerApi.dispatch(getMeRequest({ token }))
     },
   })
 }

@@ -19,10 +19,17 @@ usersAddListener(startAppListening)
 authAddListener(startAppListening)
 onboardingAddListener(startAppListening)
 
-const unsubscribeSocket = startAppListening({
+let socketStarted = false
+startAppListening({
   actionCreator: getMeSuccess,
-  effect: async (_action, listenerApi) => {
-    socketAddListener(startAppListening, listenerApi.dispatch)
-    unsubscribeSocket()
+  effect: (action, listenerApi) => {
+    // A plain flag instead of unsubscribe(): RTK snapshots the listener map
+    // per dispatch, so unsubscribe alone does not stop re-entrant dispatches
+    // that are already in flight.
+    if (socketStarted) {
+      return
+    }
+    socketStarted = true
+    socketAddListener(startAppListening, listenerApi.dispatch, action.payload.token)
   },
 })
