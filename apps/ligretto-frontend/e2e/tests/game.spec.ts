@@ -98,6 +98,9 @@ test.describe('Connection lifecycle', () => {
     await resumeButton.click()
 
     await expect(await gamePageUser1.getGameSettings()).toBeHidden({ timeout: 10_000 })
+    // The rejoined page rebuilt its state from the canonical snapshot: the
+    // opponent is rendered and online, and the game is back in progress.
+    await expect(pageUser2Again.locator('[data-connection-state="online"]')).toHaveCount(1)
     await expect(new GamePage(pageUser2Again).getDisconnectedBadges()).toHaveCount(0)
     await expect(await new GamePage(pageUser2Again).getGameSettings()).toBeHidden()
 
@@ -112,9 +115,14 @@ test.describe('Connection lifecycle', () => {
 
     await pageUser1.close()
 
-    // 5s grace + 30s deterministic handover promote the remaining online
-    // player, whose action button switches from Ready to the host's Start.
-    await expect(await gamePageUser2.getPlayerReadyButton()).toHaveText('Start', { timeout: 45_000 })
+    // The page-close transport loss starts the 5s grace immediately, and the
+    // dropped host is shown as disconnected to the player who joined a room
+    // that already had players (profiles are fetched in one multi-id request).
+    await expect(gamePageUser2.getDisconnectedBadges()).toHaveCount(1, { timeout: 15_000 })
+
+    // The 30s deterministic handover promotes the remaining online player,
+    // whose action button switches from Ready to the host's Start.
+    await expect(await gamePageUser2.getPlayerReadyButton()).toHaveText('Start', { timeout: 40_000 })
     await expect(await gamePageUser2.getPlayersList()).toHaveCount(2)
 
     await Promise.all([contextUser1.close(), contextUser2.close()])
