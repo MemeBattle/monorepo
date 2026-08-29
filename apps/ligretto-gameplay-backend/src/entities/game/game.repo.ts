@@ -8,7 +8,7 @@ import { IOC_TYPES } from '../../IOC_TYPES'
 export class GameRepository {
   @inject(IOC_TYPES.Database) private database: Database
 
-  async addGame(gameId: UUID, game: Game) {
+  addGame(gameId: UUID, game: Game) {
     return this.database.set<Game>(storage => (storage.games[gameId] = game))
   }
 
@@ -16,9 +16,9 @@ export class GameRepository {
     return this.database.get(storage => storage.games[gameId])
   }
 
-  updateGame(gameId: UUID, updater: (game: Game) => Game): Promise<Game>
-  updateGame(gameId: UUID, updater: (game: Game) => Game | undefined): Promise<Game | undefined>
-  async updateGame(gameId: UUID, updater: (game: Game) => Game | undefined): Promise<Game | undefined> {
+  updateGame(gameId: UUID, updater: (game: Game) => Game): Game
+  updateGame(gameId: UUID, updater: (game: Game) => Game | undefined): Game | undefined
+  updateGame(gameId: UUID, updater: (game: Game) => Game | undefined): Game | undefined {
     return this.database.set(storage => {
       const game = storage.games[gameId]
       if (!game) {
@@ -34,8 +34,8 @@ export class GameRepository {
     })
   }
 
-  async getGameByName(gameName: string) {
-    const games = await this.database.get(storage => storage.games)
+  getGameByName(gameName: string) {
+    const games = this.database.get(storage => storage.games)
     const gamesByNames = this.getGamesByNames(games)
     return gamesByNames[gameName]
   }
@@ -44,9 +44,8 @@ export class GameRepository {
     return this.database.set(storage => delete storage.games[gameId])
   }
 
-  async getGames(): Promise<Game[]> {
-    const games = (await this.database.get(storage => Object.values(storage.games))).filter(Boolean) as Game[]
-    return games
+  getGames(): Game[] {
+    return this.database.get(storage => Object.values(storage.games)).filter(Boolean) as Game[]
   }
 
   getGamesByNames(games: Record<UUID, Game>): Record<string, UUID | undefined> {

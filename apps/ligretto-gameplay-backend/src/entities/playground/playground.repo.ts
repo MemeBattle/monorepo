@@ -29,8 +29,8 @@ export class PlaygroundRepository {
     })
   }
 
-  async updateDeck(gameId: UUID, position: number, updater: (deck: CardsDeck | null) => CardsDeck) {
-    const deck = await this.getDeck(gameId, position)
+  updateDeck(gameId: UUID, position: number, updater: (deck: CardsDeck | null) => CardsDeck) {
+    const deck = this.getDeck(gameId, position)
 
     return this.database.set(storage => {
       const updated = updater(deck)

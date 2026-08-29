@@ -16,23 +16,23 @@ const isDeckAvailable = (deck: CardsDeck | null, card: Card) => {
 export class PlaygroundService {
   @inject(IOC_TYPES.PlaygroundRepository) private playgroundRepository: PlaygroundRepository
 
-  async getDecks(gameId: UUID) {
-    return await this.playgroundRepository.getDecks(gameId)
+  getDecks(gameId: UUID) {
+    return this.playgroundRepository.getDecks(gameId)
   }
 
-  async findAvailableDeckIndex(gameId: UUID, card: Card) {
-    const decks = await this.getDecks(gameId)
+  findAvailableDeckIndex(gameId: UUID, card: Card) {
+    const decks = this.getDecks(gameId)
     return decks.findIndex(deck => isDeckAvailable(deck, card))
   }
 
-  async putCard(gameId: UUID, card: Card, deckIndex: number) {
-    const deck = await this.playgroundRepository.getDeck(gameId, deckIndex)
+  putCard(gameId: UUID, card: Card, deckIndex: number) {
+    const deck = this.playgroundRepository.getDeck(gameId, deckIndex)
 
     if (!isDeckAvailable(deck, card)) {
       return
     }
 
-    await this.playgroundRepository.updateDeck(gameId, deckIndex, deck =>
+    this.playgroundRepository.updateDeck(gameId, deckIndex, deck =>
       deck
         ? {
             ...deck,
@@ -41,17 +41,17 @@ export class PlaygroundService {
         : { cards: [card], isHidden: false },
     )
     if (card.value === 10) {
-      const updatedDeck = await this.playgroundRepository.getDeck(gameId, deckIndex)
+      const updatedDeck = this.playgroundRepository.getDeck(gameId, deckIndex)
 
       if (updatedDeck) {
-        await this.playgroundRepository.addDroppedDeck(gameId, updatedDeck)
-        await this.playgroundRepository.removeDeck(gameId, deckIndex)
+        this.playgroundRepository.addDroppedDeck(gameId, updatedDeck)
+        this.playgroundRepository.removeDeck(gameId, deckIndex)
       }
     }
   }
 
-  async checkIsDeckAvailable(gameId: UUID, card: Card, position: number) {
-    const deck = await this.playgroundRepository.getDeck(gameId, position)
+  checkIsDeckAvailable(gameId: UUID, card: Card, position: number) {
+    const deck = this.playgroundRepository.getDeck(gameId, position)
     const topCard: Card | undefined = last(deck?.cards)
 
     if (!deck) {
@@ -69,12 +69,12 @@ export class PlaygroundService {
    * if deckPosition passed, check this deck
    * else find available deck position
    */
-  async getAvailableDeckPosition(gameId: Game['id'], card: Card, deckPosition?: number): Promise<number | undefined> {
+  getAvailableDeckPosition(gameId: Game['id'], card: Card, deckPosition?: number): number | undefined {
     let finalDeckPosition: number | undefined
     if (deckPosition !== undefined) {
-      finalDeckPosition = (await this.checkIsDeckAvailable(gameId, card, deckPosition)) ? deckPosition : undefined
+      finalDeckPosition = this.checkIsDeckAvailable(gameId, card, deckPosition) ? deckPosition : undefined
     } else {
-      finalDeckPosition = await this.findAvailableDeckIndex(gameId, card)
+      finalDeckPosition = this.findAvailableDeckIndex(gameId, card)
     }
 
     return finalDeckPosition

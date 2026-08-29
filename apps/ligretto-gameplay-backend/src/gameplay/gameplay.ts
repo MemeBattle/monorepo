@@ -11,47 +11,47 @@ export class Gameplay {
   @inject(IOC_TYPES.PlayerService) private playerService: PlayerService
   @inject(IOC_TYPES.PlaygroundService) private playgroundService: PlaygroundService
 
-  async startGame(gameId: UUID) {
+  startGame(gameId: UUID) {
     try {
-      await this.gameService.startGame(gameId)
+      this.gameService.startGame(gameId)
     } catch (e) {
       console.log(e)
     }
   }
 
-  async playerPutCard(gameId: UUID, playerId: UUID, cardPosition: number, deckPosition?: number) {
+  playerPutCard(gameId: UUID, playerId: UUID, cardPosition: number, deckPosition?: number) {
     try {
-      const card = await this.playerService.getCard(gameId, playerId, cardPosition)
+      const card = this.playerService.getCard(gameId, playerId, cardPosition)
       if (!card) {
         return
       }
 
-      const finalDeckPosition = await this.playgroundService.getAvailableDeckPosition(gameId, card, deckPosition)
+      const finalDeckPosition = this.playgroundService.getAvailableDeckPosition(gameId, card, deckPosition)
       if (finalDeckPosition === undefined || finalDeckPosition === -1) {
         return
       }
 
-      await this.playgroundService.putCard(gameId, card, finalDeckPosition)
-      await this.playerService.removeCard(gameId, playerId, cardPosition)
+      this.playgroundService.putCard(gameId, card, finalDeckPosition)
+      this.playerService.removeCard(gameId, playerId, cardPosition)
     } catch (e) {
       console.log(e)
     }
   }
 
-  async playerPutFromStackOpenDeck(gameId: UUID, playerId: UUID, deckPosition?: number) {
+  playerPutFromStackOpenDeck(gameId: UUID, playerId: UUID, deckPosition?: number) {
     try {
-      const card = await this.playerService.getCardFromStackOpenDeck(gameId, playerId)
+      const card = this.playerService.getCardFromStackOpenDeck(gameId, playerId)
       if (!card) {
         return
       }
-      const finalDeckPosition = await this.playgroundService.getAvailableDeckPosition(gameId, card, deckPosition)
+      const finalDeckPosition = this.playgroundService.getAvailableDeckPosition(gameId, card, deckPosition)
 
       if (finalDeckPosition === -1 || finalDeckPosition === undefined) {
         return
       }
 
-      await this.playgroundService.putCard(gameId, card, finalDeckPosition)
-      await this.playerService.removeCardFromStackOpenDeck(gameId, playerId)
+      this.playgroundService.putCard(gameId, card, finalDeckPosition)
+      this.playerService.removeCardFromStackOpenDeck(gameId, playerId)
     } catch (e) {
       console.log(e)
     }
@@ -59,13 +59,13 @@ export class Gameplay {
 
   async playerTakeFromLigrettoDeck(gameId: UUID, playerId: UUID): Promise<{ game?: Game; gameResults?: GameResults }> {
     try {
-      const remaining = await this.playerService.takeFromLigrettoDeck(gameId, playerId)
+      const remaining = this.playerService.takeFromLigrettoDeck(gameId, playerId)
 
       if (remaining === 0) {
-        return this.gameService.finishRound(gameId)
+        return await this.gameService.finishRound(gameId)
       }
 
-      const game = await this.gameService.getGame(gameId)
+      const game = this.gameService.getGame(gameId)
       return { game }
     } catch (e) {
       console.log(e)
@@ -73,9 +73,9 @@ export class Gameplay {
     }
   }
 
-  async playerTakeFromStackDeck(gameId: UUID, playerId: UUID) {
+  playerTakeFromStackDeck(gameId: UUID, playerId: UUID) {
     try {
-      await this.playerService.takeFromStackDeck(gameId, playerId)
+      this.playerService.takeFromStackDeck(gameId, playerId)
     } catch (e) {
       console.log(e)
     }
@@ -83,7 +83,7 @@ export class Gameplay {
 
   async endGame(gameId: UUID) {
     try {
-      const roundResult = await this.gameService.getRoundResult(gameId)
+      const roundResult = this.gameService.getRoundResult(gameId)
       await this.gameService.endGame(gameId)
 
       return { roundResult }

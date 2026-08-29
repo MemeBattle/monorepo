@@ -16,8 +16,8 @@ export class UserService {
     return this.userRepository.updateUser({ id: userId, currentGameId: gameId })
   }
 
-  async disconnectionHandler({ socketId, userId }: { socketId: string; userId: User['id'] }) {
-    const user = await this.getUser(userId)
+  disconnectionHandler({ socketId, userId }: { socketId: string; userId: User['id'] }) {
+    const user = this.getUser(userId)
 
     if (!user) {
       return
