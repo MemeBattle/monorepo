@@ -50,6 +50,7 @@ export class GameService {
   }
 
   startGame(gameId: UUID) {
+    this.gameRepository.clearRoundResults(gameId)
     return this.gameRepository.updateGame(gameId, game => {
       const players: Game['players'] = {}
       const playersCount = Object.values(game.players).length
@@ -155,6 +156,10 @@ export class GameService {
 
   deleteIfAllOffline(gameId: UUID) {
     return this.gameRepository.deleteIfAllParticipantsOffline(gameId)
+  }
+
+  getLastRoundResults(gameId: UUID) {
+    return this.gameRepository.getRoundResults(gameId)
   }
 
   addPlayer(gameId: UUID, playerData: Partial<Player> & { id: Player['id'] }) {
@@ -274,8 +279,17 @@ export class GameService {
           (players, player) => (player ? { ...players, [player.id]: { ...player, status: PlayerStatus.DontReadyToPlay } } : players),
           {},
         ),
+        // The round is over, so its cards must not linger on the table
+        // through the intermission and the next round's starting countdown.
+        playground: {
+          decks: new Array(game.config.maxCardsOnTable).fill(null),
+          droppedDecks: [],
+        },
       }))
 
+      if (gameResults) {
+        this.gameRepository.setRoundResults(gameId, gameResults)
+      }
       return { game, gameResults }
     } catch (e) {
       console.error(e)
@@ -321,7 +335,10 @@ export class GameService {
       return
     }
 
-    if (playersCount === 1) {
+    // Only a round in progress needs pausing: converting the New lobby or the
+    // RoundFinished intermission into Pause would leave the room resumable
+    // into a round that does not exist.
+    if (playersCount === 1 && game.status === GameStatus.InGame) {
       game = this.pauseGame(gameId)
     }
 

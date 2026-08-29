@@ -13,6 +13,7 @@ import {
   createRoomErrorAction,
   CreateRoomErrorCode,
   createRoomSuccessAction,
+  endRoundAction,
   GameStatus,
   PlayerStatus,
   leaveFromRoomEmitAction,
@@ -90,6 +91,7 @@ export class GamesController extends Controller {
       socket.leave(SOCKET_ROOM_LOBBY)
       socket.emit('event', connectToRoomSuccessAction({ game: synchronizedGame }))
       socket.emit('event', updateGameAction(synchronizedGame))
+      this.emitLastRoundResults(socket, roomUuid)
       socket.to(roomUuid).emit('event', updateGameAction(synchronizedGame))
       return
     }
@@ -97,11 +99,13 @@ export class GamesController extends Controller {
     this.userService.joinGame({ userId, gameId: roomUuid })
 
     const isGameFull = Object.keys(game.players).length >= game.config.playersMaxCount
+    // A paused game is a round in progress: a newcomer has no cards in it, so
+    // they join as a spectator, exactly as they would while the round runs.
+    const joinsAsSpectator = isGameFull || game.status === GameStatus.InGame || game.status === GameStatus.Pause
 
-    const { game: updatedGame } =
-      isGameFull || game.status === GameStatus.InGame
-        ? this.gameService.addSpectator(roomUuid, { id: userId })
-        : this.gameService.addPlayer(roomUuid, { id: userId })
+    const { game: updatedGame } = joinsAsSpectator
+      ? this.gameService.addSpectator(roomUuid, { id: userId })
+      : this.gameService.addPlayer(roomUuid, { id: userId })
 
     socket.join(roomUuid)
     socket.leave(SOCKET_ROOM_LOBBY)
@@ -111,6 +115,18 @@ export class GamesController extends Controller {
     socket.to(roomUuid).emit('event', userJoinToRoomAction({ userId }))
     socket.emit('event', connectToRoomSuccessAction({ game: updatedGame }))
     socket.emit('event', updateGameAction(updatedGame))
+    this.emitLastRoundResults(socket, roomUuid)
+  }
+
+  /**
+   * The endRound broadcast is ephemeral, so a client joining or rejoining the
+   * room would otherwise render the scores table empty until the next round.
+   */
+  private emitLastRoundResults(socket: Socket, gameId: string) {
+    const results = this.gameService.getLastRoundResults(gameId)
+    if (results) {
+      socket.emit('event', endRoundAction(results))
+    }
   }
 
   private clearStaleAssociation(userId: string, gameId: string) {

@@ -1,5 +1,5 @@
 import { inject, injectable } from 'inversify'
-import type { Game, Player, UUID, Spectator } from '@memebattle/ligretto-shared'
+import type { Game, GameResults, Player, UUID, Spectator } from '@memebattle/ligretto-shared'
 import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 import type { Database } from '../../database'
 import { IOC_TYPES } from '../../IOC_TYPES'
@@ -84,7 +84,22 @@ export class GameRepository {
   }
 
   removeGame(gameId: UUID) {
-    return this.database.set(storage => delete storage.games[gameId])
+    return this.database.set(storage => {
+      delete storage.roundResults[gameId]
+      return delete storage.games[gameId]
+    })
+  }
+
+  setRoundResults(gameId: UUID, results: GameResults) {
+    return this.database.set(storage => (storage.roundResults[gameId] = results))
+  }
+
+  getRoundResults(gameId: UUID) {
+    return this.database.get(storage => storage.roundResults[gameId])
+  }
+
+  clearRoundResults(gameId: UUID) {
+    return this.database.set(storage => delete storage.roundResults[gameId])
   }
 
   deleteIfAllParticipantsOffline(gameId: UUID) {
@@ -102,6 +117,7 @@ export class GameRepository {
       }
 
       delete storage.games[gameId]
+      delete storage.roundResults[gameId]
       for (const userId of participantIds) {
         const user = storage.users[userId]
         if (user?.currentGameId === gameId && user.socketIds.length === 0) {

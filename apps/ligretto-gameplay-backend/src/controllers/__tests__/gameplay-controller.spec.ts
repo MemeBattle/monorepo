@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   CardColors,
+  endRoundAction,
   GameStatus,
   PlayerStatus,
   putCardAction,
   resumeGameEmitAction,
   startGameEmitAction,
+  takeFromLigrettoDeckAction,
   updateGameAction,
   type Game,
 } from '@memebattle/ligretto-shared'
@@ -209,6 +211,37 @@ describe('Gameplay Controller', () => {
 
     expect(await database.get(storage => storage.games[pausedGame.id])).toEqual(before)
     expect(sender.emit).not.toHaveBeenCalled()
+  })
+
+  it('finishes the round with cleared table cards and broadcast results when the last ligretto card is played', async () => {
+    const gameResults = { player: { roundScore: 2, gameScore: 2 } }
+    const saveGameRoundService = vi.fn().mockReturnValue({ gameResults })
+    container.rebind(IOC_TYPES.LigrettoCoreService).toConstantValue({ createGameService: vi.fn(), saveGameRoundService })
+    gameplayController = container.get(IOC_TYPES.GameplayController)
+    await database.set(storage => {
+      const game = storage.games[pausedGame.id]
+      storage.games[pausedGame.id] = {
+        ...game,
+        status: GameStatus.InGame,
+        players: {
+          ...game.players,
+          player: {
+            ...game.players.player!,
+            cards: [null],
+            ligrettoDeck: { isHidden: true, cards: [{ color: CardColors.blue, value: 7, playerId: 'player' }] },
+          },
+        },
+      }
+    })
+
+    await gameplayController.handleMessage(socket, takeFromLigrettoDeckAction({ gameId: pausedGame.id }) as AnyAction)
+
+    const game = await database.get(storage => storage.games[pausedGame.id])
+    expect(game.status).toBe(GameStatus.RoundFinished)
+    expect(game.playground).toEqual({ decks: new Array(pausedGame.config.maxCardsOnTable).fill(null), droppedDecks: [] })
+    expect(game.players.player?.status).toBe(PlayerStatus.DontReadyToPlay)
+    expect(saveGameRoundService).toHaveBeenCalledTimes(1)
+    expect(socket.emit).toHaveBeenCalledWith('event', endRoundAction(gameResults))
   })
 
   it('starts the next round from a finished round', async () => {

@@ -14,6 +14,7 @@ export class Database implements Database {
   private storage: Storage = {
     games: {},
     users: {},
+    roundResults: {},
   }
 
   public get<T>(accessor: Accessor<T>): T {

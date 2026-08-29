@@ -5,6 +5,7 @@ import {
   createRoomErrorAction,
   CreateRoomErrorCode,
   createRoomSuccessAction,
+  endRoundAction,
   updateRoomsAction,
   connectToRoomEmitAction,
   connectToRoomErrorAction,
@@ -24,6 +25,7 @@ import { createSocketMockImpl } from '../../../test/utils'
 import type { AnyAction } from '../../types/any-action'
 import { DISCONNECT_GRACE_PERIOD_MS, SOCKET_ROOM_LOBBY } from '../../config'
 import type { UserService } from '../../entities/user'
+import type { GameService } from '../../entities/game/game.service'
 import { gameToRoom } from '../../utils/mappers'
 
 describe('Games Controller', () => {
@@ -170,6 +172,39 @@ describe('Games Controller', () => {
       expect(state).toMatchSnapshot()
     })
 
+    it('joins a paused game as a spectator', async () => {
+      const database: Database = container.get(IOC_TYPES.Database)
+      await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+      const spectatorSocket = createSocketMockImpl({ id: 'spectator-socket', data: { userId: 'spectatorUser' } })
+      await database.set(storage => {
+        storage.games[roomUuid].status = GameStatus.Pause
+        storage.users.spectatorUser = { id: 'spectatorUser', socketIds: [spectatorSocket.id] }
+      })
+
+      await gamesController.handleMessage(spectatorSocket, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+
+      const game = await database.get(storage => storage.games[roomUuid])
+      expect(game.spectators.spectatorUser).toBeDefined()
+      expect(game.players.spectatorUser).toBeUndefined()
+    })
+
+    it('sends the last round results to a client joining after a finished round', async () => {
+      const database: Database = container.get(IOC_TYPES.Database)
+      const gameService = container.get<GameService>(IOC_TYPES.GameService)
+      const gameResults = { [userId]: { roundScore: 3, gameScore: 3 } }
+      saveGameRoundService.mockReturnValue({ gameResults })
+      await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+      await gameService.finishRound(roomUuid)
+
+      const rejoinSocket = createSocketMockImpl({ id: 'rejoin-socket', data: { userId } })
+      await database.set(storage => {
+        storage.users[userId] = { id: userId, socketIds: [socketMockImpl.id, rejoinSocket.id], currentGameId: roomUuid }
+      })
+      await gamesController.handleMessage(rejoinSocket, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+
+      expect(rejoinSocket.emit).toHaveBeenCalledWith('event', endRoundAction(gameResults))
+    })
+
     it('does not join or retain a stale association with a deleted room', async () => {
       const database: Database = container.get(IOC_TYPES.Database)
       await database.set(storage => delete storage.games[roomUuid])
@@ -290,6 +325,24 @@ describe('Games Controller', () => {
       const state = await database.get(storage => storage)
       expect(state).toMatchSnapshot()
       expect(state.users[userOneId]?.currentGameId).toBeUndefined()
+    })
+
+    it('keeps the finished-round intermission when one of two players leaves', async () => {
+      const database: Database = container.get(IOC_TYPES.Database)
+      await database.set(storage => {
+        storage.users[userTwoId] = { id: userTwoId, socketIds: [socketTwo.id], currentGameId: roomUuid }
+      })
+      await gamesController.handleMessage(socketTwo, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+      await database.set(storage => {
+        storage.games[roomUuid].status = GameStatus.RoundFinished
+      })
+
+      await gamesController.disconnectionHandler(socketOne)
+
+      const game = await database.get(storage => storage.games[roomUuid])
+      expect(game.status).toBe(GameStatus.RoundFinished)
+      expect(game.players[userOneId]).toBeUndefined()
+      expect(game.players[userTwoId]).toBeDefined()
     })
 
     it('retains a player seat after a recoverable transport disconnect', async () => {
