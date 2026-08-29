@@ -26,4 +26,13 @@ export class GamePage {
   getDisconnectedBadges() {
     return this.page.getByTitle(/\(disconnected\)$/)
   }
+
+  /** Rendered only when the viewer is a seated player with dealt cards. */
+  getOwnLigrettoDeck() {
+    return this.page.getByTestId('LigrettoDeck')
+  }
+
+  getOpponents() {
+    return this.page.locator('[data-connection-state]')
+  }
 }

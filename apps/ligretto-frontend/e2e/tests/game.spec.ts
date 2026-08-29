@@ -128,3 +128,65 @@ test.describe('Connection lifecycle', () => {
     await Promise.all([contextUser1.close(), contextUser2.close()])
   })
 })
+
+test.describe('Direct game link', () => {
+  /**
+   * Regression for the identity race on a cold /game/:id load: the auth
+   * bootstrap used to run once per dispatch of the nested connect-to-room
+   * cascade, minting several temporary users at once. The socket then joined
+   * the room as one guest while redux rendered as another, so the joiner saw
+   * no own cards and every player as an opponent.
+   */
+  test('seats a fresh guest who opens the game link directly', async ({ browser }, testInfo) => {
+    test.setTimeout(60_000)
+    const contextUser1 = await browser.newContext()
+    const pageUser1 = await contextUser1.newPage()
+
+    const homePageUser1 = new HomePage(pageUser1)
+    await homePageUser1.visitHomeUrl()
+    await (await homePageUser1.getRoomNameInput()).click()
+    // Unique per run (room names max out at 20 chars): rooms linger on the
+    // backend until the all-offline deletion timeout, so a retry-based suffix
+    // alone can collide across invocations.
+    await (await homePageUser1.getRoomNameInput()).fill(`Direct-${testInfo.retry}-${Date.now().toString(36)}`)
+    await (await homePageUser1.getCreateGameButton()).click()
+
+    const gamePageUser1 = new GamePage(pageUser1)
+    await expect(await gamePageUser1.getPlayerReadyButton()).toBeVisible()
+
+    // A brand-new context holds no auth token, and the page lands straight on
+    // the game URL — the exact cold load the identity race was triggered by.
+    const contextUser2 = await browser.newContext()
+    const pageUser2 = await contextUser2.newPage()
+    await pageUser2.goto(pageUser1.url())
+
+    const gamePageUser2 = new GamePage(pageUser2)
+    await expect(await gamePageUser2.getPlayersList()).toHaveCount(2)
+
+    const readyButton = await gamePageUser2.getPlayerReadyButton()
+    await expect(readyButton).toHaveText('Ready')
+    await readyButton.click()
+
+    const startButton = await gamePageUser1.getPlayerReadyButton()
+    await expect(startButton).toHaveText('Start')
+    await expect(startButton).toBeEnabled()
+    await startButton.click()
+
+    // The joiner is a seated player, not an accidental spectator: their own
+    // deck is dealt and rendered, and the creator is their only opponent.
+    await expect(gamePageUser2.getOwnLigrettoDeck()).toBeVisible({ timeout: 15_000 })
+    await expect(gamePageUser2.getOpponents()).toHaveCount(1)
+    await expect(gamePageUser1.getOwnLigrettoDeck()).toBeVisible()
+    await expect(gamePageUser1.getOpponents()).toHaveCount(1)
+
+    // No phantom guests joined along the way: once the disconnect grace would
+    // have expired, nobody is offline and the round is not paused.
+    await pageUser2.waitForTimeout(6_000)
+    await expect(pageUser1.getByText('Round is paused')).toBeHidden()
+    await expect(pageUser2.getByText('Round is paused')).toBeHidden()
+    await expect(gamePageUser1.getDisconnectedBadges()).toHaveCount(0)
+    await expect(gamePageUser2.getDisconnectedBadges()).toHaveCount(0)
+
+    await Promise.all([contextUser1.close(), contextUser2.close()])
+  })
+})
