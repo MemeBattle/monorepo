@@ -34,31 +34,32 @@ export class GameplayController extends Controller {
   private async startGame(socket: Socket, action: ReturnType<typeof startGameEmitAction>) {
     const gameId = action.payload.gameId
 
-    const game = await this.gameService.initiateStartGame(gameId)
-    await this.updateGame(socket, gameId)
+    const game = this.gameService.initiateStartGame(gameId)
+    this.updateGame(socket, gameId)
 
-    await Promise.all([this.gameplay.startGame(gameId), wait(game.config.startingDelayInSec * 1000)])
-    await this.updateGame(socket, gameId)
+    this.gameplay.startGame(gameId)
+    await wait(game.config.startingDelayInSec * 1000)
+    this.updateGame(socket, gameId)
   }
 
-  private async resumeGame(socket: Socket, action: ReturnType<typeof resumeGameEmitAction>) {
+  private resumeGame(socket: Socket, action: ReturnType<typeof resumeGameEmitAction>) {
     const gameId = action.payload.gameId
-    const game = await this.gameService.getGame(gameId)
+    const game = this.gameService.getGame(gameId)
 
     if (!game || !game.players[socket.data.user.id]?.isHost) {
       return
     }
 
-    const resumedGame = await this.gameService.resumeGame(gameId, socket.data.user.id)
+    const resumedGame = this.gameService.resumeGame(gameId, socket.data.user.id)
     if (!resumedGame) {
       return
     }
 
-    await this.updateGame(socket, gameId)
+    this.updateGame(socket, gameId)
   }
 
-  private async updateGame(socket: Socket, gameId: string, gameState?: Game) {
-    const game = gameState || (await this.gameService.getGame(gameId))
+  private updateGame(socket: Socket, gameId: string, gameState?: Game) {
+    const game = gameState || this.gameService.getGame(gameId)
 
     const action = updateGameAction(game)
 
@@ -66,11 +67,11 @@ export class GameplayController extends Controller {
     socket.emit('event', action)
   }
 
-  private async putCard(socket: Socket, action: ReturnType<typeof putCardAction>) {
+  private putCard(socket: Socket, action: ReturnType<typeof putCardAction>) {
     const { gameId, cardIndex, playgroundDeckIndex } = action.payload
 
-    await this.gameplay.playerPutCard(gameId, socket.data.user.id, cardIndex, playgroundDeckIndex)
-    await this.updateGame(socket, gameId)
+    this.gameplay.playerPutCard(gameId, socket.data.user.id, cardIndex, playgroundDeckIndex)
+    this.updateGame(socket, gameId)
   }
 
   private async takeCardFromLigrettoDeck(socket: Socket, action: ReturnType<typeof takeFromLigrettoDeckAction>) {
@@ -78,7 +79,7 @@ export class GameplayController extends Controller {
 
     const { game, gameResults } = await this.gameplay.playerTakeFromLigrettoDeck(gameId, socket.data.user.id)
 
-    await this.updateGame(socket, gameId, game)
+    this.updateGame(socket, gameId, game)
 
     console.log('gameResults', gameResults)
     if (gameResults) {
@@ -88,18 +89,18 @@ export class GameplayController extends Controller {
     }
   }
 
-  private async takeCardFromStackDeck(socket: Socket, action: ReturnType<typeof takeFromStackDeckAction>) {
+  private takeCardFromStackDeck(socket: Socket, action: ReturnType<typeof takeFromStackDeckAction>) {
     const { gameId } = action.payload
 
     console.log('takeCardFromStackDeck', action)
-    await this.gameplay.playerTakeFromStackDeck(gameId, socket.data.user.id)
-    await this.updateGame(socket, gameId)
+    this.gameplay.playerTakeFromStackDeck(gameId, socket.data.user.id)
+    this.updateGame(socket, gameId)
   }
 
-  private async putCardFromStackOpenDeck(socket: Socket, action: ReturnType<typeof putCardFromStackOpenDeck>) {
+  private putCardFromStackOpenDeck(socket: Socket, action: ReturnType<typeof putCardFromStackOpenDeck>) {
     const { gameId, playgroundDeckIndex } = action.payload
     console.log('putCardFromStackOpenDeck', action)
-    await this.gameplay.playerPutFromStackOpenDeck(gameId, socket.data.user.id, playgroundDeckIndex)
-    await this.updateGame(socket, gameId)
+    this.gameplay.playerPutFromStackOpenDeck(gameId, socket.data.user.id, playgroundDeckIndex)
+    this.updateGame(socket, gameId)
   }
 }

@@ -49,9 +49,9 @@ export class GamesController extends Controller {
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRoomsAction({ rooms: [gameToRoom(newGame)] }))
   }
 
-  private async getRooms(socket: Socket) {
+  private getRooms(socket: Socket) {
     socket.join(SOCKET_ROOM_LOBBY)
-    const games = await this.gameService.getGames()
+    const games = this.gameService.getGames()
     socket.emit('event', updateRoomsAction({ rooms: games.map(gameToRoom) }))
   }
 
@@ -63,10 +63,10 @@ export class GamesController extends Controller {
    *
    * read more: https://miro.com/app/board/o9J_l6Vx4-Q=/?moveToWidget=3458764530187757883&cot=14
    */
-  private async joinGame(socket: Socket, action: ReturnType<typeof connectToRoomEmitAction>) {
+  private joinGame(socket: Socket, action: ReturnType<typeof connectToRoomEmitAction>) {
     const roomUuid = action.payload.roomUuid
 
-    const game: Game | undefined = await this.gameService.getGame(roomUuid)
+    const game: Game | undefined = this.gameService.getGame(roomUuid)
 
     if (!game) {
       socket.emit('event', connectToRoomErrorAction())
@@ -88,14 +88,14 @@ export class GamesController extends Controller {
       return
     }
 
-    await this.userService.joinGame({ userId, gameId: game.id })
+    this.userService.joinGame({ userId, gameId: game.id })
 
     const isGameFull = Object.keys(game.players).length >= game.config.playersMaxCount
 
     const { game: updatedGame } =
       isGameFull || game.status === GameStatus.InGame
-        ? await this.gameService.addSpectator(roomUuid, { id: userId })
-        : await this.gameService.addPlayer(roomUuid, { id: userId })
+        ? this.gameService.addSpectator(roomUuid, { id: userId })
+        : this.gameService.addPlayer(roomUuid, { id: userId })
 
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRoomsAction({ rooms: [gameToRoom(updatedGame)] }))
     socket.to(roomUuid).emit('event', updateGameAction(updatedGame))
@@ -104,10 +104,10 @@ export class GamesController extends Controller {
     socket.emit('event', updateGameAction(updatedGame))
   }
 
-  private async setPlayerStatus(socket: Socket, { payload }: ReturnType<typeof setPlayerStatusEmitAction>) {
+  private setPlayerStatus(socket: Socket, { payload }: ReturnType<typeof setPlayerStatusEmitAction>) {
     const { gameId, status } = payload
 
-    const game = await this.gameService.updateGamePlayer(gameId, socket.data.user.id, { status })
+    const game = this.gameService.updateGamePlayer(gameId, socket.data.user.id, { status })
 
     socket.to(gameId).emit('event', updateGameAction(game))
     socket.emit('event', updateGameAction(game))
@@ -118,8 +118,8 @@ export class GamesController extends Controller {
    *
    * read more: https://miro.com/app/board/o9J_l6Vx4-Q=/?moveToWidget=3458764530187757883&cot=14
    */
-  private async leaveFromRoomHandler(socket: Socket) {
-    const user = await this.userService.getUser(socket.data.user.id)
+  private leaveFromRoomHandler(socket: Socket) {
+    const user = this.userService.getUser(socket.data.user.id)
 
     if (!user || !user.currentGameId) {
       return
@@ -130,10 +130,10 @@ export class GamesController extends Controller {
       return
     }
 
-    if (!(await this.gameService.getGame(user.currentGameId))) {
+    if (!this.gameService.getGame(user.currentGameId)) {
       return
     }
-    const game = await this.gameService.leaveGame(user.currentGameId, user.id)
+    const game = this.gameService.leaveGame(user.currentGameId, user.id)
 
     if (game) {
       socket.to(game.id).emit('event', updateGameAction(game))

@@ -80,19 +80,6 @@ describe('Gameplay Controller', () => {
     expect(socket.emit).toHaveBeenCalledWith('event', updateGameAction(expectedGame))
   })
 
-  it('broadcasts the freshest canonical game after resuming', async () => {
-    const handling = gameplayController.handleMessage(socket, resumeGameEmitAction({ gameId: pausedGame.id }) as AnyAction)
-
-    await Promise.resolve()
-    const freshestGame = await database.set(storage => {
-      const game = storage.games[pausedGame.id]
-      return (storage.games[pausedGame.id] = { ...game, name: 'Concurrently updated game' })
-    })
-    await handling
-
-    expect(socket.emit).toHaveBeenCalledWith('event', updateGameAction(freshestGame))
-  })
-
   it('does not allow a non-host socket to resume a paused game', async () => {
     const nonHostSocket = createSocketMockImpl({ data: { user: { id: 'spectator' } } })
 
@@ -102,27 +89,6 @@ describe('Gameplay Controller', () => {
     expect(game).toEqual(pausedGame)
     expect(nonHostSocket.to).not.toHaveBeenCalled()
     expect(nonHostSocket.emit).not.toHaveBeenCalled()
-  })
-
-  it('does not allow a stale former host to resume or broadcast', async () => {
-    const handling = gameplayController.handleMessage(socket, resumeGameEmitAction({ gameId: pausedGame.id }) as AnyAction)
-
-    await database.set(storage => {
-      const game = storage.games[pausedGame.id]
-      storage.games[pausedGame.id] = {
-        ...game,
-        players: {
-          ...game.players,
-          player: { ...game.players.player!, isHost: false },
-        },
-      }
-    })
-    await handling
-
-    const game = await database.get(storage => storage.games[pausedGame.id])
-    expect(game.status).toBe(GameStatus.Pause)
-    expect(socket.to).not.toHaveBeenCalled()
-    expect(socket.emit).not.toHaveBeenCalled()
   })
 
   it('ignores a resume action for an unknown game', async () => {

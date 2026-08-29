@@ -20,7 +20,7 @@ export class WebSocketHandler {
     socketServer.use(authMiddleware).on('connection', socket => this.connectionHandler(socket))
   }
 
-  public async connectionHandler(socket: Socket): Promise<void> {
+  public connectionHandler(socket: Socket): void {
     socketIOConnectionsCountMetric.inc()
     socketIOConnectionsCountTotalMetric.inc()
 
@@ -37,16 +37,16 @@ export class WebSocketHandler {
       socket.emit(data.type, data.payload)
     })
 
-    socket.on('disconnecting', async () => {
-      await this.gamesController.disconnectionHandler(socket)
-      await this.userService.disconnectionHandler({ socketId: socket.id, userId: socket.data.user.id })
+    socket.on('disconnecting', () => {
+      this.gamesController.disconnectionHandler(socket)
+      this.userService.disconnectionHandler({ socketId: socket.id, userId: socket.data.user.id })
     })
 
     socket.on('disconnect', () => {
       socketIOConnectionsCountMetric.dec()
     })
 
-    await this.userService.connectUser({ socketId: socket.id, userId: socket.data.user.id })
+    this.userService.connectUser({ socketId: socket.id, userId: socket.data.user.id })
   }
 
   private messageHandler(socket: Socket, data: AnyAction) {
