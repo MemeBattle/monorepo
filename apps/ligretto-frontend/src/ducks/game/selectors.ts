@@ -1,4 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit'
+import { PlayerStatus } from '@memebattle/ligretto-shared'
 
 import type { All } from '#types/store'
 import { currentUserIdSelector } from '#ducks/auth'
@@ -14,7 +15,10 @@ export const gameNameSelector = (state: All) => gameSelector(state).name
 
 export const playersSelector = (state: All) => gameSelector(state).players
 
-export const isGameReadyToStartSelector = createSelector(playersSelector, players => Object.keys(players).length > 1)
+export const isGameReadyToStartSelector = createSelector(
+  playersSelector,
+  players => Object.values(players).filter(player => player?.status !== PlayerStatus.Disconnected).length > 1,
+)
 
 export const playersIdsSelector = createSelector(playersSelector, players => Object.keys(players))
 

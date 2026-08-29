@@ -11,7 +11,19 @@ export class GamePage {
     return this.page.getByTestId('GameSettings-ReadyButton')
   }
 
+  async getExitButton() {
+    return this.page.getByTestId('GameSettings-ExitButton')
+  }
+
+  async getGameSettings() {
+    return this.page.getByTestId('GameSettings')
+  }
+
   async getPlayersList() {
     return this.page.getByTestId('PlayersScoresTable-PlayersScoresTableRow')
+  }
+
+  getDisconnectedBadges() {
+    return this.page.getByTitle(/\(disconnected\)$/)
   }
 }

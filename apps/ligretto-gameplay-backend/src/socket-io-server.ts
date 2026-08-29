@@ -1,6 +1,6 @@
 import { Server } from 'socket.io'
 import { createServer } from 'node:http'
-import { LIGRETTO_GAMEPLAY_SOCKET_PORT } from './config'
+import { CONNECTION_STATE_RECOVERY_TIMEOUT_MS, LIGRETTO_GAMEPLAY_SOCKET_PORT } from './config'
 import type { WebSocketHandler } from './websocket-handlers'
 import { IOC } from './inversify.config'
 import { IOC_TYPES } from './IOC_TYPES'
@@ -24,6 +24,10 @@ const httpServer = createServer(async (req, res) => {
 
 export const io = new Server(httpServer, {
   serveClient: false,
+  connectionStateRecovery: {
+    maxDisconnectionDuration: CONNECTION_STATE_RECOVERY_TIMEOUT_MS,
+    skipMiddlewares: false,
+  },
   cors: {
     origin: '*',
     methods: ['GET', 'POST'],

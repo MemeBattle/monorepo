@@ -4,9 +4,9 @@ import { vi } from 'vitest'
 class _SocketMock {
   public id: string
 
-  public data?: { user?: { id: string } }
+  public data?: { userId?: string }
 
-  constructor({ id = 'socketId', data }: { id?: string; data?: { user?: { id: string } } } = {}) {
+  constructor({ id = 'socketId', data }: { id?: string; data?: { userId?: string } } = {}) {
     this.id = id
     this.data = data
   }
@@ -20,4 +20,4 @@ class _SocketMock {
   leave = vi.fn()
 }
 
-export const createSocketMockImpl = (fields?: { id?: string; data?: { user?: { id: string } } }) => new _SocketMock(fields) as unknown as Socket
+export const createSocketMockImpl = (fields?: { id?: string; data?: { userId?: string } }) => new _SocketMock(fields) as unknown as Socket

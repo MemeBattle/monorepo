@@ -37,16 +37,24 @@ export class WebSocketHandler {
       socket.emit(data.type, data.payload)
     })
 
-    socket.on('disconnecting', () => {
-      this.gamesController.disconnectionHandler(socket)
-      this.userService.disconnectionHandler({ socketId: socket.id, userId: socket.data.user.id })
+    socket.on('disconnecting', reason => {
+      const disconnectUser = () => this.userService.disconnectionHandler({ socketId: socket.id, userId: socket.data.userId })
+      if (reason === 'client namespace disconnect') {
+        this.gamesController.disconnectionHandler(socket, reason)
+        disconnectUser()
+        return
+      }
+      // For transport-level disconnects the socket must be removed from the
+      // user's live sockets first, so the lifecycle sees the user as offline.
+      disconnectUser()
+      this.gamesController.disconnectionHandler(socket, reason)
     })
 
     socket.on('disconnect', () => {
       socketIOConnectionsCountMetric.dec()
     })
 
-    this.userService.connectUser({ socketId: socket.id, userId: socket.data.user.id })
+    this.userService.connectUser({ socketId: socket.id, userId: socket.data.userId })
   }
 
   private messageHandler(socket: Socket, data: AnyAction) {

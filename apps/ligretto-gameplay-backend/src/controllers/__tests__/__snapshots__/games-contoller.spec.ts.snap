@@ -21,6 +21,7 @@ exports[`Games Controller > createGame > Should create relevant state on create 
       "status": "New",
     },
   },
+  "roundResults": {},
   "users": {},
 }
 `;
@@ -65,6 +66,7 @@ exports[`Games Controller > joinGame > Should create relevant state on join room
       "status": "New",
     },
   },
+  "roundResults": {},
   "users": {
     "userId": {
       "currentGameId": "1",
@@ -117,6 +119,7 @@ exports[`Games Controller > joinGame > Should create relevant state on join room
       "status": "New",
     },
   },
+  "roundResults": {},
   "users": {
     "userId": {
       "currentGameId": "1",
@@ -188,6 +191,7 @@ exports[`Games Controller > joinGame > Should create relevant state on join room
       "status": "New",
     },
   },
+  "roundResults": {},
   "users": {
     "secondUserId": {
       "currentGameId": "1",
@@ -244,12 +248,13 @@ exports[`Games Controller > leaveFromRoomHandler > Should create a relevant game
         "droppedDecks": [],
       },
       "spectators": {},
-      "status": "Pause",
+      "status": "New",
     },
   },
+  "roundResults": {},
   "users": {
     "userOneId": {
-      "currentGameId": "1",
+      "currentGameId": undefined,
       "id": "userOneId",
       "socketIds": [
         "socketId",
@@ -269,9 +274,10 @@ exports[`Games Controller > leaveFromRoomHandler > Should create a relevant game
 exports[`Games Controller > leaveFromRoomHandler > Should create a relevant state if last user disconnected 1`] = `
 {
   "games": {},
+  "roundResults": {},
   "users": {
     "userOneId": {
-      "currentGameId": "1",
+      "currentGameId": undefined,
       "id": "userOneId",
       "socketIds": [
         "socketId",
@@ -321,6 +327,7 @@ exports[`Games Controller > leaveFromRoomHandler > Should remove current socketI
       "status": "New",
     },
   },
+  "roundResults": {},
   "users": {
     "userOneId": {
       "currentGameId": "1",

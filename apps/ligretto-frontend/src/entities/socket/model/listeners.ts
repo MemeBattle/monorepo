@@ -20,20 +20,29 @@ export function addListeners(startListener: TypedStartListening<All>, dispatch: 
     return
   }
 
-  socket.on('event', (data: unknown) => {
+  const eventHandler = (data: unknown) => {
     if (isAction(data)) {
       dispatch(data)
     } else {
       console.error('Received invalid action from socket', data)
     }
-  })
+  }
+  const connectHandler = () => dispatch(socketConnectedAction())
 
-  startListener({
+  socket.on('event', eventHandler)
+  socket.on('connect', connectHandler)
+
+  const stopReduxListener = startListener({
     predicate: action => action.type.includes('WEBSOCKET'),
     effect: action => {
       socket.emit('message', action)
     },
   })
 
-  dispatch(socketConnectedAction())
+  return () => {
+    socket.off('event', eventHandler)
+    socket.off('connect', connectHandler)
+    stopReduxListener()
+    socket.disconnect()
+  }
 }

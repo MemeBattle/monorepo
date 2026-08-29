@@ -3,6 +3,8 @@ import type { Socket } from 'socket.io'
 import { Controller } from './controller'
 import type { Game } from '@memebattle/ligretto-shared'
 import {
+  GameStatus,
+  PlayerStatus,
   updateGameAction,
   endRoundAction,
   putCardAction,
@@ -15,12 +17,14 @@ import {
 import { IOC_TYPES } from '../IOC_TYPES'
 import type { Gameplay } from '../gameplay/gameplay'
 import type { GameService } from '../entities/game/game.service'
+import type { UserService } from '../entities/user'
 import { wait } from '../utils/wait'
 
 @injectable()
 export class GameplayController extends Controller {
   @inject(IOC_TYPES.Gameplay) private gameplay: Gameplay
   @inject(IOC_TYPES.GameService) private gameService: GameService
+  @inject(IOC_TYPES.UserService) private userService: UserService
 
   protected handlers: Controller['handlers'] = {
     [startGameEmitAction.type]: (socket, action: ReturnType<typeof startGameEmitAction>) => this.startGame(socket, action),
@@ -33,8 +37,23 @@ export class GameplayController extends Controller {
 
   private async startGame(socket: Socket, action: ReturnType<typeof startGameEmitAction>) {
     const gameId = action.payload.gameId
+    const game = this.gameService.getGame(gameId)
+    const user = this.userService.getUser(socket.data.userId)
+    const player = game?.players[socket.data.userId]
+    const onlinePlayers = Object.values(game?.players ?? {}).filter(current => current?.status !== PlayerStatus.Disconnected)
+    if (
+      !game ||
+      (game.status !== GameStatus.New && game.status !== GameStatus.RoundFinished) ||
+      !player?.isHost ||
+      player.status === PlayerStatus.Disconnected ||
+      user?.currentGameId !== gameId ||
+      !user.socketIds.includes(socket.id) ||
+      onlinePlayers.length < 2
+    ) {
+      return
+    }
 
-    const game = this.gameService.initiateStartGame(gameId)
+    this.gameService.initiateStartGame(gameId)
     this.updateGame(socket, gameId)
 
     this.gameplay.startGame(gameId)
@@ -45,12 +64,20 @@ export class GameplayController extends Controller {
   private resumeGame(socket: Socket, action: ReturnType<typeof resumeGameEmitAction>) {
     const gameId = action.payload.gameId
     const game = this.gameService.getGame(gameId)
+    const user = this.userService.getUser(socket.data.userId)
+    const player = game?.players[socket.data.userId]
 
-    if (!game || !game.players[socket.data.user.id]?.isHost) {
+    if (
+      !game ||
+      !player?.isHost ||
+      player.status === PlayerStatus.Disconnected ||
+      user?.currentGameId !== gameId ||
+      !user.socketIds.includes(socket.id)
+    ) {
       return
     }
 
-    const resumedGame = this.gameService.resumeGame(gameId, socket.data.user.id)
+    const resumedGame = this.gameService.resumeGame(gameId, socket.data.userId)
     if (!resumedGame) {
       return
     }
@@ -60,6 +87,11 @@ export class GameplayController extends Controller {
 
   private updateGame(socket: Socket, gameId: string, gameState?: Game) {
     const game = gameState || this.gameService.getGame(gameId)
+    // The room can vanish across the genuinely async gaps (the starting
+    // countdown, the round-save HTTP call); a broadcast of nothing helps nobody.
+    if (!game) {
+      return
+    }
 
     const action = updateGameAction(game)
 
@@ -70,14 +102,20 @@ export class GameplayController extends Controller {
   private putCard(socket: Socket, action: ReturnType<typeof putCardAction>) {
     const { gameId, cardIndex, playgroundDeckIndex } = action.payload
 
-    this.gameplay.playerPutCard(gameId, socket.data.user.id, cardIndex, playgroundDeckIndex)
+    if (!this.canMutateGameplay(socket, gameId)) {
+      return
+    }
+    this.gameplay.playerPutCard(gameId, socket.data.userId, cardIndex, playgroundDeckIndex)
     this.updateGame(socket, gameId)
   }
 
   private async takeCardFromLigrettoDeck(socket: Socket, action: ReturnType<typeof takeFromLigrettoDeckAction>) {
     const { gameId } = action.payload
 
-    const { game, gameResults } = await this.gameplay.playerTakeFromLigrettoDeck(gameId, socket.data.user.id)
+    if (!this.canMutateGameplay(socket, gameId)) {
+      return
+    }
+    const { game, gameResults } = await this.gameplay.playerTakeFromLigrettoDeck(gameId, socket.data.userId)
 
     this.updateGame(socket, gameId, game)
 
@@ -92,15 +130,35 @@ export class GameplayController extends Controller {
   private takeCardFromStackDeck(socket: Socket, action: ReturnType<typeof takeFromStackDeckAction>) {
     const { gameId } = action.payload
 
+    if (!this.canMutateGameplay(socket, gameId)) {
+      return
+    }
     console.log('takeCardFromStackDeck', action)
-    this.gameplay.playerTakeFromStackDeck(gameId, socket.data.user.id)
+    this.gameplay.playerTakeFromStackDeck(gameId, socket.data.userId)
     this.updateGame(socket, gameId)
   }
 
   private putCardFromStackOpenDeck(socket: Socket, action: ReturnType<typeof putCardFromStackOpenDeck>) {
     const { gameId, playgroundDeckIndex } = action.payload
+
+    if (!this.canMutateGameplay(socket, gameId)) {
+      return
+    }
     console.log('putCardFromStackOpenDeck', action)
-    this.gameplay.playerPutFromStackOpenDeck(gameId, socket.data.user.id, playgroundDeckIndex)
+    this.gameplay.playerPutFromStackOpenDeck(gameId, socket.data.userId, playgroundDeckIndex)
     this.updateGame(socket, gameId)
+  }
+
+  private canMutateGameplay(socket: Socket, gameId: string) {
+    const game = this.gameService.getGame(gameId)
+    const user = this.userService.getUser(socket.data.userId)
+    const player = game?.players[socket.data.userId]
+    return (
+      game?.status === GameStatus.InGame &&
+      player?.status !== PlayerStatus.Disconnected &&
+      !!player &&
+      user?.currentGameId === gameId &&
+      user.socketIds.includes(socket.id)
+    )
   }
 }

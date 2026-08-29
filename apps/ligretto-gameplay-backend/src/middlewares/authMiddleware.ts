@@ -4,7 +4,7 @@ import { IOC_TYPES } from '../IOC_TYPES'
 import type { AuthService } from '../services/auth'
 
 /**
- * Add userId to socket.data.user.id
+ * Add the stable authenticated user id to socket data.
  *
  * @param socket
  * @param next
@@ -21,6 +21,6 @@ export const authMiddleware = async (socket: Socket, next: (error?: Error) => vo
     const error = new Error('Not authorized')
     return next(error)
   }
-  socket.data.user = { id: parsedTokenData.userId }
+  socket.data.userId = parsedTokenData.userId
   next()
 }
