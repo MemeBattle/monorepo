@@ -1,4 +1,5 @@
 mod config;
+mod error;
 mod webauthn;
 
 use axum::{Router, routing::get};
