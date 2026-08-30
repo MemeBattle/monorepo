@@ -34,7 +34,7 @@ The connection pool is lazy: the server starts even when the DB is down. `GET /h
 
 ## Migrations
 
-Migrations are applied by the `cas-migrate` binary, never by the app:
+Migrations are applied by the `cas-migrate` binary:
 
 ```
 cargo run -p cas --bin cas-migrate

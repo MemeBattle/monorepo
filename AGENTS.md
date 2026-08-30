@@ -14,4 +14,3 @@ From the repo root:
 ## Conventions
 
 - Code comments and agent docs — English only.
-- cas database migration workflow — described in `apps/cas/docs/MIGRATIONS.md`.
