@@ -12,7 +12,7 @@ use tracing::Level;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use webauthn_rs::prelude::PasskeyRegistration;
 
-use crate::config::{Config, ConfigError};
+use crate::config::{Config, ConfigError, load_env_files};
 use crate::webauthn::{ApiState, UserId, router as webauthn_router};
 use std::net::Ipv4Addr;
 use std::{collections::HashMap, sync::Arc};
@@ -47,6 +47,8 @@ enum CasInitError {
 
 #[tokio::main]
 async fn main() -> miette::Result<()> {
+    load_env_files();
+
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer())
         .with(
