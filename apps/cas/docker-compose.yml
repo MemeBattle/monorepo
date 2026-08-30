@@ -1,6 +1,6 @@
 services:
   cas-pg:
-    image: postgres:18-alpine
+    image: postgres:18
     ports:
       # 5434 avoids clashes with a local Postgres (5432) and ligretto-core-pg (5433).
       - 5434:5432
@@ -9,7 +9,6 @@ services:
       POSTGRES_PASSWORD: cas
       POSTGRES_DB: cas
     volumes:
-      # Postgres 18 images keep data under /var/lib/postgresql (not .../data).
       - pg-cas:/var/lib/postgresql
 
 volumes:

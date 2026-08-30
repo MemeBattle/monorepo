@@ -1,16 +1,15 @@
 mod config;
 mod error;
 mod extract;
+mod health;
 mod webauthn;
 
 use axum::{
     Router,
-    extract::State,
-    http::{HeaderValue, StatusCode},
+    http::HeaderValue,
     response::{IntoResponse, Response},
-    routing::get,
 };
-use sqlx::postgres::{PgPool, PgPoolOptions};
+use sqlx::postgres::PgPoolOptions;
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 use tower_http::{
@@ -26,7 +25,6 @@ use crate::config::{Config, ConfigError, load_env_files};
 use crate::error::ApiError;
 use crate::webauthn::{ApiState, UserId, router as webauthn_router};
 use std::net::Ipv4Addr;
-use std::time::Duration;
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
 use tokio::sync::Mutex;
@@ -90,14 +88,11 @@ async fn main() -> miette::Result<()> {
     Ok(())
 }
 
-/// How long `/health` waits for the DB before reporting it unavailable.
-const HEALTH_DB_TIMEOUT: Duration = Duration::from_secs(2);
-
 fn app(config: Config) -> Result<Router, CasError> {
     // Lazy pool: connections open on first use, so startup succeeds even when
     // the DB is down and `/health` reports the actual connectivity.
     let pool = PgPoolOptions::new()
-        .acquire_timeout(HEALTH_DB_TIMEOUT)
+        .acquire_timeout(health::DB_TIMEOUT)
         .connect_lazy(&config.database_url)
         .map_err(CasError::DbPool)?;
 
@@ -113,8 +108,7 @@ fn app(config: Config) -> Result<Router, CasError> {
     };
 
     let router = Router::new()
-        .route("/health", get(health_check))
-        .with_state(pool)
+        .merge(health::router(pool))
         .nest("/api/webauthn", webauthn_router(api_state));
 
     Ok(with_middleware(router, config.cors_origins))
@@ -157,21 +151,13 @@ fn handle_panic(panic: Box<dyn std::any::Any + Send + 'static>) -> Response {
     ApiError::internal(format!("panic: {message}")).into_response()
 }
 
-/// 200 when the DB answers `SELECT 1` in time, 503 otherwise.
-async fn health_check(State(pool): State<PgPool>) -> (StatusCode, &'static str) {
-    let ping = sqlx::query("SELECT 1").execute(&pool);
-    match tokio::time::timeout(HEALTH_DB_TIMEOUT, ping).await {
-        Ok(Ok(_)) => (StatusCode::OK, "OK"),
-        Ok(Err(_)) | Err(_) => (StatusCode::SERVICE_UNAVAILABLE, "DB unavailable"),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use axum::{
         body::{Body, to_bytes},
         http::{Request, StatusCode, header},
+        routing::get,
     };
     use tower::ServiceExt;
 
