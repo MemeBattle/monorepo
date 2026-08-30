@@ -14,6 +14,8 @@ const DEFAULT_PORT: u16 = 3000;
 const DEFAULT_RP_ID: &str = "localhost";
 const DEFAULT_ORIGIN: &str = "http://localhost:5173";
 const DEFAULT_CORS_ORIGINS: &str = "http://localhost:5173";
+// Matches the dev credentials in apps/cas/docker-compose.yml.
+const DEFAULT_DATABASE_URL: &str = "postgres://cas:cas@localhost:5434/cas";
 
 #[derive(Debug, Error, miette::Diagnostic)]
 pub enum ConfigError {
@@ -32,6 +34,10 @@ pub enum ConfigError {
     #[error("CAS_CORS_ORIGINS: {0:?} is not a valid origin")]
     #[diagnostic(code(cas::config_error))]
     InvalidCorsOrigin(String),
+
+    #[error("DATABASE_URL: {0:?} is not a valid Postgres connection URL")]
+    #[diagnostic(code(cas::config_error))]
+    InvalidDatabaseUrl(String),
 }
 
 #[derive(Debug, Clone)]
@@ -40,6 +46,7 @@ pub struct Config {
     pub rp_id: String,
     pub origin: Url,
     pub cors_origins: Vec<HeaderValue>,
+    pub database_url: String,
 }
 
 impl Config {
@@ -49,6 +56,7 @@ impl Config {
             env_value("CAS_RP_ID")?,
             env_value("CAS_ORIGIN")?,
             env_value("CAS_CORS_ORIGINS")?,
+            env_value("DATABASE_URL")?,
         )
     }
 
@@ -57,6 +65,7 @@ impl Config {
         rp_id: Option<String>,
         origin: Option<String>,
         cors_origins: Option<String>,
+        database_url: Option<String>,
     ) -> Result<Self, ConfigError> {
         let port = match port {
             Some(value) => value.parse().map_err(|_| ConfigError::InvalidPort(value))?,
@@ -71,11 +80,18 @@ impl Config {
         let cors_origins = cors_origins.unwrap_or_else(|| DEFAULT_CORS_ORIGINS.to_string());
         let cors_origins = parse_cors_origins(&cors_origins)?;
 
+        let database_url = database_url.unwrap_or_else(|| DEFAULT_DATABASE_URL.to_string());
+        // Validate eagerly so a typo fails startup instead of the first query.
+        database_url
+            .parse::<sqlx::postgres::PgConnectOptions>()
+            .map_err(|_| ConfigError::InvalidDatabaseUrl(database_url.clone()))?;
+
         Ok(Self {
             port,
             rp_id,
             origin,
             cors_origins,
+            database_url,
         })
     }
 }
@@ -151,7 +167,7 @@ mod tests {
 
     #[test]
     fn defaults_when_no_values_are_set() {
-        let config = Config::from_values(None, None, None, None).unwrap();
+        let config = Config::from_values(None, None, None, None, None).unwrap();
 
         assert_eq!(config.port, 3000);
         assert_eq!(config.rp_id, "localhost");
@@ -160,6 +176,7 @@ mod tests {
             config.cors_origins,
             vec![HeaderValue::from_static("http://localhost:5173")]
         );
+        assert_eq!(config.database_url, "postgres://cas:cas@localhost:5434/cas");
     }
 
     #[test]
@@ -169,6 +186,7 @@ mod tests {
             Some("cas.example.com".to_string()),
             Some("https://cas.example.com".to_string()),
             Some("https://a.example.com, https://b.example.com".to_string()),
+            Some("postgres://user:pass@db.example.com:5432/cas".to_string()),
         )
         .unwrap();
 
@@ -182,12 +200,16 @@ mod tests {
                 HeaderValue::from_static("https://b.example.com"),
             ]
         );
+        assert_eq!(
+            config.database_url,
+            "postgres://user:pass@db.example.com:5432/cas"
+        );
     }
 
     #[test]
     fn rejects_invalid_port() {
-        let error =
-            Config::from_values(Some("not-a-port".to_string()), None, None, None).unwrap_err();
+        let error = Config::from_values(Some("not-a-port".to_string()), None, None, None, None)
+            .unwrap_err();
 
         assert!(matches!(error, ConfigError::InvalidPort(value) if value == "not-a-port"));
     }
@@ -195,7 +217,7 @@ mod tests {
     #[test]
     fn rejects_invalid_origin() {
         let error =
-            Config::from_values(None, None, Some("not-a-url".to_string()), None).unwrap_err();
+            Config::from_values(None, None, Some("not-a-url".to_string()), None, None).unwrap_err();
 
         assert!(matches!(error, ConfigError::InvalidOrigin(value) if value == "not-a-url"));
     }
@@ -207,11 +229,20 @@ mod tests {
             None,
             None,
             Some("https://ok.example.com,bad\u{7f}origin".to_string()),
+            None,
         )
         .unwrap_err();
 
         assert!(
             matches!(error, ConfigError::InvalidCorsOrigin(value) if value == "bad\u{7f}origin")
         );
+    }
+
+    #[test]
+    fn rejects_invalid_database_url() {
+        let error =
+            Config::from_values(None, None, None, None, Some("not-a-url".to_string())).unwrap_err();
+
+        assert!(matches!(error, ConfigError::InvalidDatabaseUrl(value) if value == "not-a-url"));
     }
 }

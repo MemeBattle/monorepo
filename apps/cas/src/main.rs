@@ -5,10 +5,12 @@ mod webauthn;
 
 use axum::{
     Router,
-    http::HeaderValue,
+    extract::State,
+    http::{HeaderValue, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
 };
+use sqlx::postgres::{PgPool, PgPoolOptions};
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 use tower_http::{
@@ -24,6 +26,7 @@ use crate::config::{Config, ConfigError, load_env_files};
 use crate::error::ApiError;
 use crate::webauthn::{ApiState, UserId, router as webauthn_router};
 use std::net::Ipv4Addr;
+use std::time::Duration;
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
 use tokio::sync::Mutex;
@@ -45,6 +48,10 @@ enum CasError {
     #[error("Failed to configure WebAuthn: {0}")]
     #[diagnostic(code(cas::webauthn_init_error))]
     WebauthnInit(webauthn_rs::prelude::WebauthnError),
+
+    #[error("Failed to create the database pool: {0}")]
+    #[diagnostic(code(cas::db_pool_error))]
+    DbPool(sqlx::Error),
 }
 
 #[derive(Debug, Error, miette::Diagnostic)]
@@ -83,7 +90,17 @@ async fn main() -> miette::Result<()> {
     Ok(())
 }
 
+/// How long `/health` waits for the DB before reporting it unavailable.
+const HEALTH_DB_TIMEOUT: Duration = Duration::from_secs(2);
+
 fn app(config: Config) -> Result<Router, CasError> {
+    // Lazy pool: connections open on first use, so startup succeeds even when
+    // the DB is down and `/health` reports the actual connectivity.
+    let pool = PgPoolOptions::new()
+        .acquire_timeout(HEALTH_DB_TIMEOUT)
+        .connect_lazy(&config.database_url)
+        .map_err(CasError::DbPool)?;
+
     let registration_state = Arc::new(Mutex::new(HashMap::<UserId, PasskeyRegistration>::new()));
     let webauthn = webauthn_rs::WebauthnBuilder::new(&config.rp_id, &config.origin)
         .map_err(CasError::WebauthnInit)?
@@ -97,6 +114,7 @@ fn app(config: Config) -> Result<Router, CasError> {
 
     let router = Router::new()
         .route("/health", get(health_check))
+        .with_state(pool)
         .nest("/api/webauthn", webauthn_router(api_state));
 
     Ok(with_middleware(router, config.cors_origins))
@@ -139,8 +157,13 @@ fn handle_panic(panic: Box<dyn std::any::Any + Send + 'static>) -> Response {
     ApiError::internal(format!("panic: {message}")).into_response()
 }
 
-async fn health_check() -> &'static str {
-    "OK"
+/// 200 when the DB answers `SELECT 1` in time, 503 otherwise.
+async fn health_check(State(pool): State<PgPool>) -> (StatusCode, &'static str) {
+    let ping = sqlx::query("SELECT 1").execute(&pool);
+    match tokio::time::timeout(HEALTH_DB_TIMEOUT, ping).await {
+        Ok(Ok(_)) => (StatusCode::OK, "OK"),
+        Ok(Err(_)) | Err(_) => (StatusCode::SERVICE_UNAVAILABLE, "DB unavailable"),
+    }
 }
 
 #[cfg(test)]
@@ -160,6 +183,7 @@ mod tests {
             rp_id: "localhost".to_string(),
             origin: ALLOWED_ORIGIN.parse().unwrap(),
             cors_origins: vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
+            database_url: "postgres://cas:cas@localhost:5434/cas".to_string(),
         }
     }
 
