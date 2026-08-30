@@ -2,13 +2,51 @@ use std::{collections::HashMap, sync::Arc};
 
 use axum::{Json, Router, extract::State, routing::post};
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 use webauthn_rs::prelude::{
     CreationChallengeResponse, Passkey, PasskeyRegistration, RegisterPublicKeyCredential,
+    WebauthnError,
 };
 
 use crate::error::ApiError;
+
+#[derive(Debug, Error, miette::Diagnostic)]
+pub enum RegistrationError {
+    #[diagnostic(code(cas::invalid_registration_id))]
+    #[error("Invalid registration id: {0}")]
+    InvalidRegistrationId(#[source] uuid::Error),
+
+    #[diagnostic(code(cas::registration_state_not_found))]
+    #[error("Registration state not found")]
+    StateNotFound,
+
+    #[diagnostic(code(cas::registration_verification_failed))]
+    #[error("Failed to verify registration: {0}")]
+    Verify(#[source] WebauthnError),
+
+    #[diagnostic(code(cas::registration_start_failed))]
+    #[error("Failed to start registration: {0}")]
+    Start(#[source] WebauthnError),
+}
+
+impl From<RegistrationError> for ApiError {
+    fn from(err: RegistrationError) -> Self {
+        match &err {
+            RegistrationError::InvalidRegistrationId(_) => {
+                ApiError::bad_request("invalid_registration_id", err.to_string())
+            }
+            RegistrationError::StateNotFound => {
+                ApiError::not_found("registration_state_not_found", err.to_string())
+            }
+            RegistrationError::Verify(_) => {
+                ApiError::bad_request("registration_verification_failed", err.to_string())
+            }
+            RegistrationError::Start(_) => ApiError::internal(err),
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UserId(pub Uuid);
@@ -51,7 +89,7 @@ async fn get_registration_options(
     let (ccr, skr) = state
         .webauthn
         .start_passkey_registration(user_id, "testuser", "testuser", None)
-        .map_err(ApiError::Internal)?;
+        .map_err(RegistrationError::Start)?;
     state
         .registration_state
         .lock()
@@ -69,18 +107,18 @@ async fn verify_registration(
     Json(data): Json<VerifyRegistrationData>,
 ) -> Result<Json<VerifyRegistrationResponse>, ApiError> {
     let user_id =
-        Uuid::parse_str(&data.registration_id).map_err(ApiError::InvalidRegistrationId)?;
+        Uuid::parse_str(&data.registration_id).map_err(RegistrationError::InvalidRegistrationId)?;
     let skr = state
         .registration_state
         .lock()
         .await
         .remove(&UserId(user_id))
-        .ok_or(ApiError::RegistrationStateNotFound)?;
+        .ok_or(RegistrationError::StateNotFound)?;
 
     let result = state
         .webauthn
         .finish_passkey_registration(&data.response, &skr)
-        .map_err(ApiError::VerifyRegistration)?;
+        .map_err(RegistrationError::Verify)?;
 
     Ok(Json(VerifyRegistrationResponse(result)))
 }
