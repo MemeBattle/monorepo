@@ -1,14 +1,15 @@
 mod config;
 mod error;
 mod extract;
+mod health;
 mod webauthn;
 
 use axum::{
     Router,
     http::HeaderValue,
     response::{IntoResponse, Response},
-    routing::get,
 };
+use sqlx::postgres::PgPoolOptions;
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 use tower_http::{
@@ -45,6 +46,10 @@ enum CasError {
     #[error("Failed to configure WebAuthn: {0}")]
     #[diagnostic(code(cas::webauthn_init_error))]
     WebauthnInit(webauthn_rs::prelude::WebauthnError),
+
+    #[error("Failed to create the database pool: {0}")]
+    #[diagnostic(code(cas::db_pool_error))]
+    DbPool(sqlx::Error),
 }
 
 #[derive(Debug, Error, miette::Diagnostic)]
@@ -84,6 +89,13 @@ async fn main() -> miette::Result<()> {
 }
 
 fn app(config: Config) -> Result<Router, CasError> {
+    // Lazy pool: connections open on first use, so startup succeeds even when
+    // the DB is down and `/health` reports the actual connectivity.
+    let pool = PgPoolOptions::new()
+        .acquire_timeout(health::DB_TIMEOUT)
+        .connect_lazy(&config.database_url)
+        .map_err(CasError::DbPool)?;
+
     let registration_state = Arc::new(Mutex::new(HashMap::<UserId, PasskeyRegistration>::new()));
     let webauthn = webauthn_rs::WebauthnBuilder::new(&config.rp_id, &config.origin)
         .map_err(CasError::WebauthnInit)?
@@ -96,7 +108,7 @@ fn app(config: Config) -> Result<Router, CasError> {
     };
 
     let router = Router::new()
-        .route("/health", get(health_check))
+        .merge(health::router(pool))
         .nest("/api/webauthn", webauthn_router(api_state));
 
     Ok(with_middleware(router, config.cors_origins))
@@ -139,16 +151,13 @@ fn handle_panic(panic: Box<dyn std::any::Any + Send + 'static>) -> Response {
     ApiError::internal(format!("panic: {message}")).into_response()
 }
 
-async fn health_check() -> &'static str {
-    "OK"
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use axum::{
         body::{Body, to_bytes},
         http::{Request, StatusCode, header},
+        routing::get,
     };
     use tower::ServiceExt;
 
@@ -160,6 +169,7 @@ mod tests {
             rp_id: "localhost".to_string(),
             origin: ALLOWED_ORIGIN.parse().unwrap(),
             cors_origins: vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
+            database_url: "postgres://cas:cas@localhost:5434/cas".to_string(),
         }
     }
 
