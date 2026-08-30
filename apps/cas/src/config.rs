@@ -8,7 +8,7 @@ use webauthn_rs::prelude::Url;
 // safe because deployments supply real environment variables and missing files
 // are skipped silently.
 const MONOREPO_ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
-const DEFAULT_NODE_ENV: &str = "development";
+const DEFAULT_APP_ENV: &str = "development";
 
 const DEFAULT_PORT: u16 = 3000;
 const DEFAULT_RP_ID: &str = "localhost";
@@ -80,30 +80,28 @@ impl Config {
     }
 }
 
-/// Loads the monorepo root .env files following the dotenv-flow convention.
+/// Loads the monorepo root .env files. `APP_ENV` selects the environment
+/// (default: development).
 ///
 /// Real environment variables always win: `dotenvy::from_filename` never
 /// overrides an already-set variable, so visiting the candidates in
 /// highest-priority-first order reproduces dotenv-flow precedence.
 pub fn load_env_files() {
-    let node_env = std::env::var("NODE_ENV").unwrap_or_else(|_| DEFAULT_NODE_ENV.to_string());
+    let app_env = std::env::var("APP_ENV").unwrap_or_else(|_| DEFAULT_APP_ENV.to_string());
     let root = Path::new(MONOREPO_ROOT);
 
-    for file_name in env_file_names(&node_env) {
+    for file_name in env_file_names(&app_env) {
         dotenvy::from_filename(root.join(file_name)).ok();
     }
 }
 
-fn env_file_names(node_env: &str) -> Vec<String> {
-    let mut names = vec![format!(".env.{node_env}.local"), format!(".env.{node_env}")];
-
-    // dotenv-flow quirk: .env.local is not loaded for the test environment.
-    if node_env != "test" {
-        names.push(".env.local".to_string());
-    }
-
-    names.push(".env".to_string());
-    names
+fn env_file_names(app_env: &str) -> Vec<String> {
+    vec![
+        format!(".env.{app_env}.local"),
+        format!(".env.{app_env}"),
+        ".env.local".to_string(),
+        ".env".to_string(),
+    ]
 }
 
 fn env_value(name: &'static str) -> Result<Option<String>, ConfigError> {
@@ -144,10 +142,10 @@ mod tests {
     }
 
     #[test]
-    fn skips_env_local_for_the_test_environment() {
+    fn loads_env_local_for_every_environment() {
         assert_eq!(
             env_file_names("test"),
-            [".env.test.local", ".env.test", ".env"]
+            [".env.test.local", ".env.test", ".env.local", ".env"]
         );
     }
 

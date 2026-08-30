@@ -13,12 +13,12 @@ Configuration is read from environment variables at startup. Every variable has 
 | `CAS_ORIGIN` | `http://localhost:5173` | WebAuthn relying party origin URL. |
 | `CAS_CORS_ORIGINS` | `http://localhost:5173` | Comma-separated list of allowed CORS origins. |
 
-At startup the service also loads the monorepo root `.env` files, following the same dotenv-flow convention as the Node apps. `NODE_ENV` selects the environment and defaults to `development`; missing files are skipped. Priority, highest first:
+At startup the service also loads the monorepo root `.env` files. `APP_ENV` selects the environment and defaults to `development`; missing files are skipped. Priority, highest first:
 
 1. the real process environment
-2. `.env.{NODE_ENV}.local`
-3. `.env.{NODE_ENV}`
-4. `.env.local` (not loaded when `NODE_ENV` is `test`)
+2. `.env.{APP_ENV}.local`
+3. `.env.{APP_ENV}`
+4. `.env.local`
 5. `.env`
 
 ## Prepare bacon (used for dev server reload)
