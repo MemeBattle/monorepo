@@ -32,6 +32,16 @@ docker compose -f apps/cas/docker-compose.yml up -d
 
 The connection pool is lazy: the server starts even when the DB is down. `GET /health` runs `SELECT 1` and returns `200` when the DB answers, `503` otherwise.
 
+## Migrations
+
+Migrations are applied by the `cas-migrate` binary, never by the app:
+
+```
+cargo run -p cas --bin cas-migrate
+```
+
+The workflow (creating migrations, immutability, expand/contract, CI ordering check) is described in [docs/MIGRATIONS.md](./docs/MIGRATIONS.md).
+
 ## Prepare bacon (used for dev server reload)
 
 ```
