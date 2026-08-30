@@ -11,6 +11,7 @@ use webauthn_rs::prelude::{
 };
 
 use crate::error::ApiError;
+use crate::extract::Json as AppJson;
 
 #[derive(Debug, Error, miette::Diagnostic)]
 pub enum RegistrationError {
@@ -104,7 +105,7 @@ async fn get_registration_options(
 
 async fn verify_registration(
     State(state): State<ApiState>,
-    Json(data): Json<VerifyRegistrationData>,
+    AppJson(data): AppJson<VerifyRegistrationData>,
 ) -> Result<Json<VerifyRegistrationResponse>, ApiError> {
     let user_id =
         Uuid::parse_str(&data.registration_id).map_err(RegistrationError::InvalidRegistrationId)?;
@@ -185,6 +186,40 @@ mod tests {
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
         let body = error_body(response).await;
         assert_eq!(body["error"]["code"], "invalid_registration_id");
+        assert!(body["error"]["message"].is_string());
+    }
+
+    #[tokio::test]
+    async fn verify_registration_with_malformed_json_body_returns_api_error() {
+        let request = Request::builder()
+            .method("POST")
+            .uri("/verify-registration")
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(Body::from("{not json"))
+            .unwrap();
+
+        let response = test_app().oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = error_body(response).await;
+        assert_eq!(body["error"]["code"], "invalid_body");
+        assert!(body["error"]["message"].is_string());
+    }
+
+    #[tokio::test]
+    async fn verify_registration_with_wrong_content_type_returns_api_error() {
+        let request = Request::builder()
+            .method("POST")
+            .uri("/verify-registration")
+            .header(header::CONTENT_TYPE, "text/plain")
+            .body(Body::from("{}"))
+            .unwrap();
+
+        let response = test_app().oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
+        let body = error_body(response).await;
+        assert_eq!(body["error"]["code"], "invalid_body");
         assert!(body["error"]["message"].is_string());
     }
 

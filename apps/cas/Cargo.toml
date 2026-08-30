@@ -7,7 +7,7 @@ edition = "2024"
 name = "cas"
 
 [dependencies]
-axum = "0.8.9"
+axum = { version = "0.8.9", features = ["macros"] }
 dotenvy = "0.15.7"
 miette = "7.6.0"
 serde = { version = "1.0.229", features = ["derive"] }

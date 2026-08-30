@@ -1,5 +1,6 @@
 mod config;
 mod error;
+mod extract;
 mod webauthn;
 
 use axum::{

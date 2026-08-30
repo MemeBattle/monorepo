@@ -1,5 +1,6 @@
 use axum::{
     Json,
+    extract::rejection::JsonRejection,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
@@ -45,6 +46,19 @@ impl ApiError {
             code: "internal_error",
             message: "Internal server error".to_owned(),
             source: Some(source.into()),
+        }
+    }
+}
+
+/// Renders `Json` extractor rejections (malformed body, wrong content-type)
+/// in the standard error shape, keeping the rejection's status and message.
+impl From<JsonRejection> for ApiError {
+    fn from(rejection: JsonRejection) -> Self {
+        Self {
+            status: rejection.status(),
+            code: "invalid_body",
+            message: rejection.body_text(),
+            source: None,
         }
     }
 }
