@@ -29,6 +29,23 @@ jobs:
   test:
     runs-on: ubuntu-24.04
 
+    # Repository tests use `#[sqlx::test]`, which creates a throwaway database
+    # per test from DATABASE_URL and applies the migrations into it.
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: cas
+          POSTGRES_PASSWORD: cas
+          POSTGRES_DB: cas
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -40,6 +57,7 @@ jobs:
         working-directory: apps/cas
         env:
           SQLX_OFFLINE: 'true'
+          DATABASE_URL: postgres://cas:cas@localhost:5434/cas
         run: cargo test
 
   sqlx-cache:
