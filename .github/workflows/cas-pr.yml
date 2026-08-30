@@ -40,6 +40,19 @@ jobs:
         working-directory: apps/cas
         run: cargo test
 
+  migration-order:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          # The check compares against origin/master, so it needs full history.
+          fetch-depth: 0
+
+      - name: Check migration timestamp order
+        run: apps/cas/scripts/check-migration-order.sh
+
   clippy:
     runs-on: ubuntu-24.04
 

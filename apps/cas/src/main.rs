@@ -1,4 +1,3 @@
-mod config;
 mod error;
 mod extract;
 mod health;
@@ -21,9 +20,9 @@ use tracing::Level;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use webauthn_rs::prelude::PasskeyRegistration;
 
-use crate::config::{Config, ConfigError, load_env_files};
 use crate::error::ApiError;
 use crate::webauthn::{ApiState, UserId, router as webauthn_router};
+use cas::config::{Config, ConfigError, load_env_files};
 use std::net::Ipv4Addr;
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
@@ -80,6 +79,13 @@ async fn main() -> miette::Result<()> {
 
     let addr = listener.local_addr().map_err(CasError::Io)?;
     tracing::info!("Server starting on http://{}", addr);
+
+    // Dev-only: warn in the background when the DB is missing migrations.
+    // Never blocks or fails startup; compiled out of release builds.
+    #[cfg(debug_assertions)]
+    tokio::spawn(cas::migrations::warn_on_pending_migrations(
+        config.database_url.clone(),
+    ));
 
     axum::serve(listener, app(config)?)
         .await

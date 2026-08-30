@@ -6,13 +6,17 @@ edition = "2024"
 [[bin]]
 name = "cas"
 
+[[bin]]
+name = "cas-migrate"
+path = "src/bin/migrate.rs"
+
 [dependencies]
 axum = { version = "0.8.9", features = ["macros"] }
 dotenvy = "0.15.7"
 miette = "7.6.0"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
-sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres"] }
+sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "migrate"] }
 thiserror = "2.0.20"
 tokio = { version = "1.53.1", features = ["full"] }
 tower = { version = "0.5.3", features = ["full"] }
