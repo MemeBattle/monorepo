@@ -90,9 +90,7 @@ export const roundConflictSchema = errorResponseSchema
   .extend({ error: z.literal('round_conflict') })
   .meta({ id: 'RoundConflict', description: 'The round id exists with another game or other results; nothing was saved' })
 
-export type GameIdParams = z.output<typeof gameIdParamsSchema>
 export type CreateGameResponse = z.infer<typeof createGameResponseSchema>
-export type SaveRoundRequest = z.output<typeof saveRoundRequestSchema>
 export type SaveRoundResponse = z.infer<typeof saveRoundResponseSchema>
 export type GameResultsResponse = z.infer<typeof gameResultsResponseSchema>
 export type GameNotFound = z.infer<typeof gameNotFoundSchema>

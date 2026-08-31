@@ -12,7 +12,7 @@ const SECURITY_SCHEME = 'accessToken'
 
 const json = <T>(schema: T) => ({ 'application/json': { schema } })
 
-export const listUsersRoute = createRoute({
+const listUsersRoute = createRoute({
   method: 'get',
   path: '/api/users',
   operationId: 'listUsers',

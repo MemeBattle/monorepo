@@ -1,7 +1,7 @@
 import type { Card, Game, Player, Playground, UUID } from '@memebattle/ligretto-shared'
 import { canPlaceCardOnDeck, CardColors, GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 
-export const shuffled = <T>(items: readonly T[]): T[] => {
+const shuffled = <T>(items: readonly T[]): T[] => {
   const result = [...items]
   for (let index = result.length - 1; index > 0; index--) {
     const other = Math.floor(Math.random() * (index + 1))

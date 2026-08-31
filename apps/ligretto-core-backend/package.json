@@ -30,7 +30,9 @@
     "test:store": "pnpm run test:store:setup && pnpm run test:store:run",
     "test": "pnpm run test:unit",
     "test:ci": "pnpm run test:unit",
-    "lint": "pnpm -w exec oxlint apps/ligretto-core-backend"
+    "lint": "pnpm -w exec oxlint apps/ligretto-core-backend",
+    "unused_code:check": "pnpm -w exec knip --no-config-hints --workspace apps/ligretto-core-backend",
+    "unused_code:remove": "pnpm unused_code:check --fix --allow-remove-files"
   },
   "dependencies": {
     "@codexsoft/dotenv-flow": "catalog:",

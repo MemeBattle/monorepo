@@ -12,7 +12,9 @@
     "test": "vitest run",
     "test:ci": "vitest run --reporter=json --outputFile=report.json",
     "test:watch": "vitest",
-    "test:worker": "vitest run --config vitest.worker.config.ts"
+    "test:worker": "vitest run --config vitest.worker.config.ts",
+    "unused_code:check": "pnpm -w exec knip --no-config-hints --workspace apps/ligretto-gameplay-backend",
+    "unused_code:remove": "pnpm unused_code:check --fix --allow-remove-files"
   },
   "dependencies": {
     "@memebattle/ligretto-auth": "workspace:^",

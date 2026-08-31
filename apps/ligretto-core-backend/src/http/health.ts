@@ -5,7 +5,7 @@ import { healthReportSchema, type HealthReport } from '../contract/health.ts'
 import type { BaseApp } from './app.ts'
 import type { AppDeps } from './types.ts'
 
-export const healthRoute = createRoute({
+const healthRoute = createRoute({
   method: 'get',
   path: '/health',
   operationId: 'getHealth',

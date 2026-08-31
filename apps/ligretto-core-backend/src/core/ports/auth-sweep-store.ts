@@ -1,5 +1,5 @@
 /** A session past its retention, as the sweep sees it: the id to take, and the account to name it by in a log. */
-export interface ExpiredSessionCandidate {
+interface ExpiredSessionCandidate {
   /** The session id, which is the credential (cookie value or bearer token): never logged. */
   id: string
   /** The account the session belongs to: what a log line names instead of the id. */

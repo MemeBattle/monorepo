@@ -46,7 +46,6 @@ catalog:
   '@electric-sql/pglite': 0.5.10
   '@emotion/cache': ^11.14.0
   '@emotion/react': ^11.14.0
-  '@emotion/server': ^11.11.0
   '@emotion/styled': ^11.14.1
   '@hono/node-server': 2.1.5
   '@hono/zod-openapi': 1.6.3
@@ -91,7 +90,6 @@ catalog:
   chromatic: ^18.1.0
   clsx: ^2.1.1
   csstype: ^3.2.3
-  date-fns: ^4.4.0
   feed: ^6.0.0
   history: ^5.3.0
   hono: 4.13.13
@@ -99,6 +97,7 @@ catalog:
   i18next-resources-to-backend: ^1.2.1
   jose: 6.2.12
   jsdom: ^29.1.1
+  knip: ^6.32.2
   kubb: 5.4.5
   kysely: 0.29.7
   kysely-codegen: 0.20.0
@@ -124,10 +123,8 @@ catalog:
   rehype-slug: ^6.0.0
   'remark-parse': ^11.0.0
   'remark-rehype': ^11.1.2
-  reselect: 5.2.0
   sass: ^1.102.0
   schema-dts: ^2.0.0
-  server-only: ^0.0.1
   sharp: ^0.35.3
   storybook: ^10.6.0
   tailwindcss: ^4.3.3
