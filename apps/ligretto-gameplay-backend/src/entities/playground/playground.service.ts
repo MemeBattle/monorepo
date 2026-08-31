@@ -29,7 +29,7 @@ export class PlaygroundService {
     const deck = this.playgroundRepository.getDeck(gameId, deckIndex)
 
     if (!isDeckAvailable(deck, card)) {
-      return
+      return false
     }
 
     this.playgroundRepository.updateDeck(gameId, deckIndex, deck =>
@@ -48,14 +48,19 @@ export class PlaygroundService {
         this.playgroundRepository.removeDeck(gameId, deckIndex)
       }
     }
+    return true
   }
 
   checkIsDeckAvailable(gameId: UUID, card: Card, position: number) {
     const deck = this.playgroundRepository.getDeck(gameId, position)
     const topCard: Card | undefined = last(deck?.cards)
 
-    if (!deck) {
-      return true
+    if (deck === undefined) {
+      return false
+    }
+
+    if (deck === null) {
+      return card.value === 1
     }
 
     if (topCard === undefined) {

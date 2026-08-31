@@ -7,23 +7,42 @@ const expectStep = async (page: Page, step: OnboardingStep) => {
   await expect(page.getByTestId('OnboardingPage')).toHaveAttribute('data-onboarding-step', step)
 }
 
-/** The UI control that fires each FSM event. */
-const eventLocator = (onboarding: OnboardingPage, event: OnboardingEvent) => {
+/** Performs the interaction that fires each FSM event. */
+const performEvent = async (onboarding: OnboardingPage, event: OnboardingEvent) => {
   switch (event) {
     case OnboardingEvent.NextStep:
-      return onboarding.getNextButton()
+      await onboarding.getNextButton().click()
+      return
     case OnboardingEvent.NextStackCard:
-      return onboarding.getStackDeckCard()
+      await onboarding.getStackDeckCard().click()
+      return
     case OnboardingEvent.PutStackCard:
-      return onboarding.getStackOpenDeckCard()
+      await onboarding.getStackOpenDeckCard().click()
+      await expect(onboarding.getStackOpenDeckCard()).toHaveAttribute('data-card-focused', 'true')
+      await onboarding.getPlaygroundDeck(0).click()
+      return
     case OnboardingEvent.PutFirstCard:
-      return onboarding.getRowCard(0)
-    case OnboardingEvent.PutSecondCard:
-      return onboarding.getRowCard(1)
+      await onboarding.getRowCard(0).click()
+      return
+    case OnboardingEvent.PutSecondCard: {
+      const card = onboarding.getRowCard(1)
+      if ((await card.textContent())?.trim() === '1') {
+        await card.click()
+        return
+      }
+      await card.click()
+      await expect(card).toHaveAttribute('data-card-focused', 'true')
+      await onboarding.getPlaygroundDeck(0).click()
+      return
+    }
     case OnboardingEvent.PutThirdCard:
-      return onboarding.getRowCard(2)
+      await onboarding.getRowCard(2).click()
+      await expect(onboarding.getRowCard(2)).toHaveAttribute('data-card-focused', 'true')
+      await onboarding.getPlaygroundDeck(2).click()
+      return
     case OnboardingEvent.PutLigretto:
-      return onboarding.getLigrettoDeckCard()
+      await onboarding.getLigrettoDeckCard().click()
+      return
   }
 }
 
@@ -38,7 +57,7 @@ const createScriptWalker = (page: Page, onboarding: OnboardingPage) => {
     while (index < ONBOARDING_SCRIPT.length) {
       const { event, step } = ONBOARDING_SCRIPT[index]
       index += 1
-      await eventLocator(onboarding, event).click()
+      await performEvent(onboarding, event)
       await expectStep(page, step)
       if (step === until) {
         return
@@ -108,7 +127,14 @@ test.describe('Onboarding', () => {
     })
 
     await test.step('the green three and the final ligretto card end the round', async () => {
-      await onboarding.getRowCard(2).click() // the green three frees a row slot
+      await onboarding.getRowCard(2).click()
+      await expect(onboarding.getRowCard(2)).toHaveAttribute('data-card-focused', 'true')
+      await expectStep(page, OnboardingStep.OpponentTurnSecondCard)
+
+      await onboarding.getPlaygroundDeck(0).click() // the wrong pile does not advance
+      await expectStep(page, OnboardingStep.OpponentTurnSecondCard)
+
+      await onboarding.getPlaygroundDeck(2).click() // the green three frees a row slot
       await expectStep(page, OnboardingStep.FinalLigrettoCard)
 
       await onboarding.getLigrettoDeckCard().click() // the ligretto card into the row ends the round

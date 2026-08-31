@@ -25,20 +25,20 @@ const ReshuffleHint = styled('div')(({ theme }) => ({
 }))
 
 export const PlayerCardsStack = () => {
-  const { stackDeckCards, isStackDeckHidden, stackOpenDeckCard, isDndEnabled } = useSelector(playerCardsStackSelector)
+  const { stackDeckCards, isStackDeckHidden, stackOpenDeckCard } = useSelector(playerCardsStackSelector)
 
   if (!stackDeckCards) {
     return null
   }
 
-  const isStackDeckEnabled = isDndEnabled && (stackDeckCards.length > 0 || !!stackOpenDeckCard)
+  const isStackDeckEnabled = stackDeckCards.length > 0 || !!stackOpenDeckCard
 
   return (
     <CardsRow>
       <CardPlace>
         {stackOpenDeckCard && (
-          <CardHotkeyBadge hotkey={isDndEnabled ? Hotkey.x : undefined}>
-            <PlayerStackOpenCard card={stackOpenDeckCard} isDndEnabled={isDndEnabled} />
+          <CardHotkeyBadge hotkey={Hotkey.x}>
+            <PlayerStackOpenCard card={stackOpenDeckCard} />
           </CardHotkeyBadge>
         )}
       </CardPlace>

@@ -20,7 +20,7 @@ export const PlayerStackDeck = ({ card, enabled, isHidden }: PlayerStackDeckProp
     dispatch(tapStackDeckCardAction())
   }
 
-  useCardHotkey(Hotkey.space, onStackDeckActivate, enabled)
+  useCardHotkey(enabled ? Hotkey.space : undefined, onStackDeckActivate)
 
-  return <Card {...card} isHidden={isHidden} onClick={onStackDeckActivate} />
+  return <Card {...card} isHidden={isHidden} onClick={enabled ? onStackDeckActivate : undefined} />
 }

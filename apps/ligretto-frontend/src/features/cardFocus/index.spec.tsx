@@ -10,6 +10,7 @@ import { Provider } from 'react-redux'
 import { CardFocusProvider, useCardFocus } from './index'
 import { rootReducer } from '#app/store/rootReducer'
 import { initialState as gameInitialState } from '#ducks/game/slice'
+import { Playground } from '#features/playground/ui/Playground'
 
 afterEach(cleanup)
 
@@ -18,7 +19,7 @@ const testStore = configureStore({
   preloadedState: {
     game: {
       ...gameInitialState,
-      game: { ...gameInitialState.game, status: GameStatus.InGame, config: { ...gameInitialState.game.config, dndEnabled: true } },
+      game: { ...gameInitialState.game, status: GameStatus.InGame },
     },
   },
 })
@@ -175,6 +176,21 @@ describe('CardFocusProvider', () => {
     const card = screen.getByRole('button')
     expect(card.matches('[data-card-focus-element]')).toBe(true)
     fireEvent.click(card)
+    expect(screen.getByText('focused')).toBeTruthy()
+  })
+
+  it('keeps focus when a playground deck is clicked', () => {
+    const view = render(
+      <TestProvider>
+        <RowCard />
+        <Playground cardsDecks={Array.from({ length: 12 }, () => null)} onDeckClick={() => undefined} />
+      </TestProvider>,
+    )
+
+    fireEvent.click(screen.getByText('idle'))
+    const playgroundDeck = view.container.querySelector('[data-test-id="Playground-Deck-0"]')
+    expect(playgroundDeck).toBeTruthy()
+    fireEvent.click(playgroundDeck!)
     expect(screen.getByText('focused')).toBeTruthy()
   })
 

@@ -19,7 +19,6 @@ import {
   nextStepOnboardingAction,
   nextStackCardAction,
   onboardingStepSelector,
-  putStackCardAction,
 } from '#features/onboarding'
 import { Overlay } from '#shared/ui/Overlay'
 import { NextButton } from '#shared/ui/NextButton/NextButton.js'
@@ -36,6 +35,9 @@ import { OnboardingTargetsProvider, useOnboardingCardsPanelRef, useOnboardingCon
 import { ResultScreen } from './ResultScreen'
 import { OpponentsDescription } from './descriptions/OpponentsDescription'
 import { AnchoredDescription, type DescriptionTargets } from './descriptions/AnchoredDescription'
+import { CardFocusProvider, useCardFocus } from '#features/cardFocus'
+import { getOnboardingPlacementAction } from './onboardingPlacement'
+import { OnboardingOpenStackCard } from './OnboardingOpenStackCard'
 
 interface OnboardingCardPanelProps {
   stackRef: RefObject<HTMLDivElement | null>
@@ -63,17 +65,7 @@ const OnboardingCardPanel = ({ stackRef, playerRowRef, ligrettoRef, cardRefs }: 
         player={{ status: PlayerStatus.InGame, username: ONBOARDING_PLAYER_NAMES.id0 }}
         stack={
           <CardsRow ref={stackRef} dataTestId="OnboardingPage-Stack">
-            <CardHotkeyBadge>
-              <CardPlace dataTestId="OnboardingPage-Stack-OpenDeck">
-                {current?.stackOpenDeck.cards[0] && (
-                  <Card
-                    {...current.stackOpenDeck.cards[0]}
-                    isSelected={config.isStackOpenDeckSelected}
-                    onClick={() => dispatch(putStackCardAction())}
-                  />
-                )}
-              </CardPlace>
-            </CardHotkeyBadge>
+            <OnboardingOpenStackCard card={current?.stackOpenDeck.cards[0]} isActive={allowedEvents.includes(OnboardingEvent.PutStackCard)} />
             <CardHotkeyBadge>
               <CardPlace dataTestId="OnboardingPage-Stack-Deck">
                 <Card
@@ -108,7 +100,6 @@ const OnboardingCardPanel = ({ stackRef, playerRowRef, ligrettoRef, cardRefs }: 
             dataTestId="OnboardingPage-Ligretto"
             isDisabled={!allowedEvents.includes(OnboardingEvent.PutLigretto)}
             count={current?.ligrettoDeck.cards.length ?? 0}
-            isDndEnabled={false}
             ligrettoDeckCards={current?.ligrettoDeck.cards ?? []}
             isDeckHidden={current?.ligrettoDeck.isHidden ?? true}
             onLigrettoDeckCardClick={handleLigrettoDeckCardClick}
@@ -126,6 +117,8 @@ function OnboardingPageBody() {
   const dispatch = useDispatch()
   const game = useSelector(onboardingGameSelector)
   const step = useSelector(onboardingStepSelector)
+  const allowedEvents = useSelector(onboardingAllowedEventsSelector)
+  const { focusedCard } = useCardFocus()
   const config = STEP_CONFIGS[step]
   const containerRef = useOnboardingContainerRef()
 
@@ -187,6 +180,15 @@ function OnboardingPageBody() {
   const handleNextButtonClick = useCallback(() => {
     dispatch(nextStepOnboardingAction())
   }, [dispatch])
+  const handlePlaygroundDeckClick = useCallback(
+    (playgroundDeckIndex: number) => {
+      const action = getOnboardingPlacementAction(focusedCard, allowedEvents, playgroundDeckIndex)
+      if (action) {
+        dispatch(action)
+      }
+    },
+    [allowedEvents, dispatch, focusedCard],
+  )
 
   const description = config.description
 
@@ -205,7 +207,12 @@ function OnboardingPageBody() {
             // the slack between them and the playground is where the hints go.
             <Box sx={{ marginTop: { xs: '1.5rem', md: 0 } }}>
               <Layer id="playgroundCards">
-                <Playground ref={playgroundRef} cardsDecks={game.playground.decks} onDeckClick={() => null} deckRefs={playgroundDeckRefs} />
+                <Playground
+                  ref={playgroundRef}
+                  cardsDecks={game.playground.decks}
+                  onDeckClick={handlePlaygroundDeckClick}
+                  deckRefs={playgroundDeckRefs}
+                />
               </Layer>
             </Box>
           }
@@ -249,7 +256,9 @@ function OnboardingPageBody() {
 export function OnboardingPage() {
   return (
     <OnboardingTargetsProvider>
-      <OnboardingPageBody />
+      <CardFocusProvider enabled>
+        <OnboardingPageBody />
+      </CardFocusProvider>
     </OnboardingTargetsProvider>
   )
 }

@@ -52,7 +52,6 @@ export interface StepConfig {
   isNextButtonVisible: boolean
   isLigrettoHighlighted: boolean
   isStackDeckHighlighted: boolean
-  isStackOpenDeckSelected: boolean
   isResultVisible: boolean
   /** Zone circled by the hand-drawn outline on this step */
   outlineTarget: OutlineTargetId | null
@@ -65,7 +64,6 @@ const baseStepConfig: StepConfig = {
   isNextButtonVisible: false,
   isLigrettoHighlighted: false,
   isStackDeckHighlighted: false,
-  isStackOpenDeckSelected: false,
   isResultVisible: false,
   outlineTarget: null,
   description: null,
@@ -171,8 +169,12 @@ export const STEP_CONFIGS: Record<OnboardingStep, StepConfig> = {
   [OnboardingStep.StackAvailableCard]: {
     ...baseStepConfig,
     raisedLayers: ['playerCards', 'playgroundCards'],
-    isStackOpenDeckSelected: true,
-    description: { kind: 'anchored', target: 'stack', placement: { mode: 'aboveTarget', offset: 128 }, text: 'Скорее выкладывай карту на стол!' },
+    description: {
+      kind: 'anchored',
+      target: 'stack',
+      placement: { mode: 'aboveTarget', offset: 128 },
+      text: 'Скорее выкладывай карту на стол!',
+    },
   },
   [OnboardingStep.RowAvailableCard]: {
     ...baseStepConfig,
