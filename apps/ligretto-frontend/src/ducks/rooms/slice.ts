@@ -23,7 +23,7 @@ const initialState: RoomsState = {
 export const connectToRoomAction = createAction<{ roomUuid: string }>('@@rooms/connectToRoom')
 export const createRoomAction = createAction<{ name: string; config?: Partial<Game['config']> }>('@@rooms/createRoom')
 
-export const roomsSlice = createSlice({
+const roomsSlice = createSlice({
   name: 'rooms',
   initialState,
   reducers: {

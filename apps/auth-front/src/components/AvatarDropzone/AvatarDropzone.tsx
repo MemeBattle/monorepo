@@ -15,7 +15,7 @@ interface DropZoneProps {
   avatarUrl?: string
 }
 
-export const MAX_FILE_SIZE = 2097152 // 2mb
+const MAX_FILE_SIZE = 2097152 // 2mb
 
 export const AvatarDropzone = memo(({ avatarUrl, onChange }: DropZoneProps) => {
   const [stateFile, setStateFile] = useState<{ file: File; previewUrl: string } | null>(() => {

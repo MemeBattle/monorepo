@@ -5,7 +5,8 @@ import dotenv from '@codexsoft/dotenv-flow'
 
 dotenv.config({ default_node_env: 'development', path: resolve(__dirname, '../../..'), silent: true })
 
-export const { LIGRETTO_GAMEPLAY_SOCKET_PORT, CAS_PARTNER_ID = '', CAS_URL = '', LIGRETTO_GAMEPLAY_CAS_KEY_PATH, LIGRETTO_CORE_URL } = process.env
+const { LIGRETTO_GAMEPLAY_CAS_KEY_PATH } = process.env
+export const { LIGRETTO_GAMEPLAY_SOCKET_PORT, CAS_PARTNER_ID = '', CAS_URL = '', LIGRETTO_CORE_URL } = process.env
 
 export const SOCKET_ROOM_LOBBY = 'SOCKET_ROOM_LOBBY'
 
