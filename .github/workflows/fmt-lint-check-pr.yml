@@ -10,7 +10,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@main
+        uses: actions/checkout@v7
 
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
