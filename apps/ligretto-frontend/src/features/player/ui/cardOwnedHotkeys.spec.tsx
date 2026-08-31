@@ -34,6 +34,10 @@ vi.mock('#ducks/game', async importActual => ({
   playerLigrettoDeckHiddenSelector: () => false,
 }))
 
+vi.mock('#features/cardPlacement', () => ({
+  DraggableCard: ({ children }: React.PropsWithChildren) => children,
+}))
+
 const card = (value: number) => ({ color: CardColors.red, value })
 const press = (key: string, code: string) => fireEvent.keyDown(document.body, { key, code })
 const activatePointer = (element: HTMLElement) => {

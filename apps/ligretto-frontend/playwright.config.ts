@@ -64,13 +64,12 @@ const config = defineConfig({
       },
     },
     /*
-     * The onboarding has a separate narrow-screen layout (bottom-anchored description
-     * bubbles, reflowed cards panel), so it is walked through on a phone viewport too.
-     * `game.spec.ts` stays desktop-only — it needs the gameplay backend.
+     * Onboarding and card drag placement have narrow-screen interactions, so both run on a phone viewport.
+     * Backend-dependent game.spec.ts stays desktop-only.
      */
     {
       name: 'mobile-chrome',
-      testMatch: /onboarding\.spec\.ts/,
+      testMatch: /(?:onboarding|card-placement)\.spec\.ts/,
       use: {
         ...devices['Pixel 5'],
       },

@@ -3,6 +3,7 @@ import type { CardsDeck, Card } from '@memebattle/ligretto-shared'
 import last from 'lodash/last'
 import { CardPlace, Card as CardComponent } from '#entities/card'
 import { TableCards } from './TableCards'
+import { PlaygroundDeckDropTarget } from '#features/cardPlacement'
 
 export interface PlaygroundProps {
   cardsDecks: Array<CardsDeck | null>
@@ -25,9 +26,11 @@ export const Playground = ({ cardsDecks, onDeckClick, ref, deckRefs }: Playgroun
   return (
     <TableCards ref={ref}>
       {cards.map((card, index) => (
-        <CardPlace key={index} size="large" ref={deckRefs?.[index]} dataTestId={`Playground-Deck-${index}`}>
-          {card && <CardComponent size="large" {...card} onClick={() => onDeckClick(index)} />}
-        </CardPlace>
+        <PlaygroundDeckDropTarget key={index} deckIndex={index} deck={cardsDecks[index]}>
+          <CardPlace size="large" ref={deckRefs?.[index]} dataTestId={`Playground-Deck-${index}`}>
+            {card && <CardComponent size="large" {...card} onClick={() => onDeckClick(index)} />}
+          </CardPlace>
+        </PlaygroundDeckDropTarget>
       ))}
     </TableCards>
   )

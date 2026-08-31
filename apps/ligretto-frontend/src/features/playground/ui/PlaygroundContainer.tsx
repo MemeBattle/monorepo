@@ -1,21 +1,15 @@
 import React, { useCallback } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { createSelector } from '@reduxjs/toolkit'
-import { putCardAction, putCardFromStackOpenDeck } from '@memebattle/ligretto-shared'
+import { useSelector } from 'react-redux'
 
 import { Playground } from './Playground'
-import { gameIdSelector, playgroundDecksSelector } from '#ducks/game'
+import { playgroundDecksSelector } from '#ducks/game'
 import { useCardFocus } from '#features/cardFocus'
-
-const PlaygroundContainerSelector = createSelector([playgroundDecksSelector, gameIdSelector], (playgroundDecks, gameId) => ({
-  playgroundDecks,
-  gameId,
-}))
+import { useCardPlacement } from '#features/cardPlacement'
 
 export const PlaygroundContainer = () => {
-  const dispatch = useDispatch()
-  const { playgroundDecks, gameId } = useSelector(PlaygroundContainerSelector)
+  const playgroundDecks = useSelector(playgroundDecksSelector)
   const { focusedCard } = useCardFocus()
+  const { placeCard } = useCardPlacement()
 
   const handlePlaygroundDeckClick = useCallback(
     (playgroundDeckIndex: number) => {
@@ -23,13 +17,9 @@ export const PlaygroundContainer = () => {
         return
       }
 
-      if (focusedCard.type === 'open-stack') {
-        dispatch(putCardFromStackOpenDeck({ gameId, playgroundDeckIndex }))
-      } else if (focusedCard.type === 'row') {
-        dispatch(putCardAction({ cardIndex: focusedCard.index, gameId, playgroundDeckIndex }))
-      }
+      placeCard(focusedCard, playgroundDeckIndex)
     },
-    [dispatch, focusedCard, gameId],
+    [focusedCard, placeCard],
   )
 
   return <Playground cardsDecks={playgroundDecks} onDeckClick={handlePlaygroundDeckClick} />

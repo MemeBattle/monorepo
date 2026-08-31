@@ -165,6 +165,12 @@ Other generic clearing is provider-owned or lifecycle-owned:
 
 The closed-stack owner uses parameterless `useCardFocus()` in its shared pointer/Space activation callback to clear focus before dispatching the existing action exactly once. The targeted card-hook overload does not expose `clearFocus`, and no separate context hook is introduced.
 
+### Drag-and-drop placement
+
+`CardPlacementProvider` is nested inside `CardFocusProvider` at the active-game boundary. It owns drag sensors, the active drag payload, destination validation feedback, and placement-command routing. Row and open-stack owners register draggable wrappers; every playground slot registers a drop target.
+
+Starting or cancelling a drag does not change focus. A valid drop dispatches the same explicit placement command as playground click placement and clears focus through the parameterless integration API. Invalid drops dispatch nothing and preserve the previous focus. The drag overlay is presentation-only and never registers focus or hotkey behavior.
+
 ## Migration plan
 
 ### Phase 1: Add provider and hook behavior tests

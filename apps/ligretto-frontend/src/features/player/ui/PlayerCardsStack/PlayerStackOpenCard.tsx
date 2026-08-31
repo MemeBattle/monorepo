@@ -5,6 +5,7 @@ import { Hotkey, tapStackOpenDeckCardAction } from '#ducks/game'
 import { Card } from '#entities/card'
 import { useCardFocus } from '#features/cardFocus'
 import { useCardHotkey } from '../../lib/useCardHotkey'
+import { DraggableCard } from '#features/cardPlacement'
 
 interface PlayerStackOpenCardProps {
   card: PlayerCard
@@ -29,5 +30,9 @@ export const PlayerStackOpenCard = ({ card }: PlayerStackOpenCardProps) => {
 
   useCardHotkey(Hotkey.x, onCardActivate)
 
-  return <Card {...card} data-card-focus-element isSelected={isFocused} isDarkened={isDimmed} onClick={onCardActivate} />
+  return (
+    <DraggableCard target={{ type: 'open-stack' }} card={card}>
+      <Card {...card} data-card-focus-element isSelected={isFocused} isDarkened={isDimmed} onClick={onCardActivate} />
+    </DraggableCard>
+  )
 }

@@ -1,16 +1,8 @@
 import { inject, injectable } from 'inversify'
-import { last } from 'lodash'
 import type { PlaygroundRepository } from './playground.repo'
-import type { Card, CardsDeck, Game, UUID } from '@memebattle/ligretto-shared'
+import type { Card, Game, UUID } from '@memebattle/ligretto-shared'
+import { canPlaceCardOnDeck } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../../IOC_TYPES'
-
-const isDeckAvailable = (deck: CardsDeck | null, card: Card) => {
-  const topCard: Card | undefined = last(deck?.cards)
-  if (!topCard) {
-    return card.value === 1
-  }
-  return topCard.color === card.color && topCard.value + 1 === card.value
-}
 
 @injectable()
 export class PlaygroundService {
@@ -22,13 +14,13 @@ export class PlaygroundService {
 
   findAvailableDeckIndex(gameId: UUID, card: Card) {
     const decks = this.getDecks(gameId)
-    return decks.findIndex(deck => isDeckAvailable(deck, card))
+    return decks.findIndex(deck => canPlaceCardOnDeck(card, deck))
   }
 
   putCard(gameId: UUID, card: Card, deckIndex: number) {
     const deck = this.playgroundRepository.getDeck(gameId, deckIndex)
 
-    if (!isDeckAvailable(deck, card)) {
+    if (!canPlaceCardOnDeck(card, deck)) {
       return false
     }
 
@@ -53,21 +45,7 @@ export class PlaygroundService {
 
   checkIsDeckAvailable(gameId: UUID, card: Card, position: number) {
     const deck = this.playgroundRepository.getDeck(gameId, position)
-    const topCard: Card | undefined = last(deck?.cards)
-
-    if (deck === undefined) {
-      return false
-    }
-
-    if (deck === null) {
-      return card.value === 1
-    }
-
-    if (topCard === undefined) {
-      return card.value === 1
-    }
-
-    return topCard.value + 1 === card.value && topCard.color === card.color
+    return canPlaceCardOnDeck(card, deck)
   }
 
   /**

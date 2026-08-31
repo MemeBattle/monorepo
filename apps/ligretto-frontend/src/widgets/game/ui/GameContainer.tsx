@@ -7,6 +7,7 @@ import { gameStatusSelector, isPlayerSpectatorSelector, opponentsSelector, start
 import { GameStatus } from '@memebattle/ligretto-shared'
 import { ScreenCountdown } from './ScreenCountdown'
 import { CardFocusProvider } from '#features/cardFocus'
+import { CardPlacementProvider } from '#features/cardPlacement'
 
 const gamePageContainerSelector = createSelector(
   [gameStatusSelector, isPlayerSpectatorSelector, startingDelayInSecSelector, opponentsSelector],
@@ -20,23 +21,26 @@ const gamePageContainerSelector = createSelector(
 
 export const GameContainer = () => {
   const { isPlayerSpectator, opponents, startingDelayInSec, gameStatus } = useSelector(gamePageContainerSelector)
+  const isInteractionEnabled = !isPlayerSpectator && gameStatus === GameStatus.InGame
 
   return (
-    <CardFocusProvider enabled={!isPlayerSpectator && gameStatus === GameStatus.InGame}>
-      {gameStatus === GameStatus.Starting && <ScreenCountdown timeToGo={startingDelayInSec} />}
-      <GameGrid centerElement={<PlaygroundContainer />} bottomElement={isPlayerSpectator ? null : <CardsPanelContainer />}>
-        {opponents.map(opponent => (
-          <Opponent
-            id={opponent.id}
-            avatar={opponent.avatar}
-            status={opponent.status}
-            username={opponent.username}
-            key={opponent.id}
-            cards={opponent.cards}
-            stackOpenDeckCards={opponent.stackOpenDeck.cards}
-          />
-        ))}
-      </GameGrid>
+    <CardFocusProvider enabled={isInteractionEnabled}>
+      <CardPlacementProvider enabled={isInteractionEnabled}>
+        {gameStatus === GameStatus.Starting && <ScreenCountdown timeToGo={startingDelayInSec} />}
+        <GameGrid centerElement={<PlaygroundContainer />} bottomElement={isPlayerSpectator ? null : <CardsPanelContainer />}>
+          {opponents.map(opponent => (
+            <Opponent
+              id={opponent.id}
+              avatar={opponent.avatar}
+              status={opponent.status}
+              username={opponent.username}
+              key={opponent.id}
+              cards={opponent.cards}
+              stackOpenDeckCards={opponent.stackOpenDeck.cards}
+            />
+          ))}
+        </GameGrid>
+      </CardPlacementProvider>
     </CardFocusProvider>
   )
 }

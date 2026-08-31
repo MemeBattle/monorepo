@@ -19,6 +19,7 @@
     }
   },
   "scripts": {
+    "test:ci": "vitest run",
     "ts-check": "tsc --noEmit",
     "build": "tsc"
   },
@@ -26,6 +27,7 @@
     "@reduxjs/toolkit": "catalog:"
   },
   "devDependencies": {
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

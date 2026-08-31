@@ -6,7 +6,7 @@
 
 **Architecture:** Introduce a `cardPlacement` feature that owns drag sensors, draggable source metadata, playground drop targets, drag preview/state, and the existing placement-command routing. Wrap the active game subtree once at `GameContainer`, then connect rendered card owners and every playground slot through narrow hooks/components. Share the card-on-deck validity rule between frontend feedback and backend validation, but continue treating the backend as authoritative.
 
-**Tech Stack:** React 19, TypeScript, Redux Toolkit, `@dnd-kit/core`, MUI, Vitest/React Testing Library, Playwright component tests.
+**Tech Stack:** React 19, TypeScript, Redux Toolkit, `@dnd-kit/core`, MUI, Vitest/React Testing Library, Playwright browser tests.
 
 **Issue:** [#685](https://github.com/MemeBattle/monorepo/issues/685)
 
@@ -433,14 +433,13 @@ Use real `DndContext` behavior where jsdom permits it; mock only geometry/sensor
 
 ### Task 5: Real-browser pointer coverage
 
-Add Playwright component testing because the existing end-to-end game setup uses randomly shuffled cards and cannot reliably produce a deterministic valid source/destination pair.
+Add a deterministic Vite-served browser harness because the existing end-to-end game setup uses randomly shuffled cards and cannot reliably produce a fixed valid source/destination pair.
 
 **Modify/create:**
 
-- Add `@playwright/experimental-ct-react` as a frontend dev dependency/catalog entry;
-- Create `apps/ligretto-frontend/playwright-ct.config.ts` and its standard Vite component-test entry;
-- Create `apps/ligretto-frontend/src/features/cardPlacement/cardPlacement.ct.spec.tsx`;
-- Add a `test:ct` script and execute it from the existing browser CI job.
+- Create `apps/ligretto-frontend/e2e/card-placement-harness.html` and its React entry;
+- Create `apps/ligretto-frontend/e2e/tests/card-placement.spec.ts`;
+- Include that spec in the existing desktop and mobile Chromium projects.
 
 Render a deterministic provider harness with fixed row/open-stack cards and playground decks. Cover:
 
@@ -451,7 +450,7 @@ Render a deterministic provider harness with fixed row/open-stack cards and play
 - value-1 drag to a chosen empty deck;
 - a short pointer movement remains a click and does not start drag.
 
-Do not add a production test route or backend-only seeding API solely for browser tests.
+The harness is a non-production Vite HTML entry used only by Playwright; do not add a production route or backend-only seeding API.
 
 ---
 
@@ -459,7 +458,7 @@ Do not add a production test route or backend-only seeding API solely for browse
 
 | Path                                                                           | Change                                                         |
 | ------------------------------------------------------------------------------ | -------------------------------------------------------------- |
-| `pnpm-workspace.yaml`, frontend `package.json`, `pnpm-lock.yaml`               | Add DnD and Playwright CT dependencies/scripts                 |
+| `pnpm-workspace.yaml`, frontend `package.json`, `pnpm-lock.yaml`               | Add the DnD dependency                                         |
 | `packages/ligretto-shared/src/cardPlacement.ts`                                | Shared pure placement rule                                     |
 | `packages/ligretto-shared/src/index.ts`                                        | Export rule                                                    |
 | `apps/ligretto-gameplay-backend/src/entities/playground/playground.service.ts` | Reuse shared rule                                              |
@@ -471,7 +470,7 @@ Do not add a production test route or backend-only seeding API solely for browse
 | `Playground.tsx`                                                               | Render all slots as drop targets                               |
 | `Card.tsx`                                                                     | Use actual click semantics instead of mousedown activation     |
 | Card/player/focus specs                                                        | Regression and integration coverage                            |
-| Playwright CT config/spec                                                      | Real mouse and touch coverage                                  |
+| Playwright browser harness/spec                                                | Real mouse and touch coverage                                  |
 | `docs/card-focus-management-plan.md`                                           | Document focus/drag interaction ownership                      |
 
 ## Non-goals
@@ -481,7 +480,6 @@ Do not add a production test route or backend-only seeding API solely for browse
 - No backend protocol/action changes.
 - No optimistic local game-state mutation.
 - No keyboard DnD sensor in the first version; keyboard placement remains available through existing controls.
-- No implementation code in this plan-only PR.
 
 ## Validation
 
@@ -497,7 +495,7 @@ git diff --check
 cd apps/ligretto-frontend
 pnpm ts-check
 pnpm test:ci
-pnpm test:ct
+pnpm e2e:start -- e2e/tests/card-placement.spec.ts
 pnpm build
 
 # Gameplay backend after shared-rule migration
