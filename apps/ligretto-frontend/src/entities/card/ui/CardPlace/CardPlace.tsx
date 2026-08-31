@@ -11,13 +11,13 @@ export interface CardPlaceProps {
   dataTestId?: string
 }
 
-export const borderBySize: Record<CardPlaceSize, string> = {
+const borderBySize: Record<CardPlaceSize, string> = {
   small: '0.125rem',
   medium: '0.125rem',
   large: '0.25rem',
 }
 
-export const mobileBorderBySize: Record<CardPlaceSize, string> = {
+const mobileBorderBySize: Record<CardPlaceSize, string> = {
   small: '0.125rem',
   medium: '0.125rem',
   large: '0.125rem',
