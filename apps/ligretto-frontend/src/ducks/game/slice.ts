@@ -33,7 +33,6 @@ export const initialState: GameState = {
 export const togglePlayerStatusAction = createAction('@@game/TOGGLE_PLAYER_STATUS')
 export const startGameAction = createAction('@@game/START_GAME')
 export const resumeGameAction = createAction('@@game/RESUME_GAME')
-
 export const tapStackDeckCardAction = createAction('@@game/TapStackDeckCardAction')
 export const tapLigrettoDeckCardAction = createAction('@@game/TapLigrettoDeckCardAction')
 

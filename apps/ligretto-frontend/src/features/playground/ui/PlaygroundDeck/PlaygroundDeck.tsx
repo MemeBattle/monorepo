@@ -54,9 +54,10 @@ export const PlaygroundDeck = ({ cardDeck, deckIndex, onClick, onDrop = () => un
         data-card-drop-target={dropId}
         data-drop-valid={isValid || undefined}
         data-drop-over={isOver || undefined}
+        onClick={onClick}
         style={{ borderRadius: '0.375rem', boxShadow, transition: 'box-shadow 100ms' }}
       >
-        {card ? <Card size="large" {...card} onClick={onClick} /> : null}
+        {card ? <Card size="large" {...card} /> : null}
       </DropSurface>
     </CardPlace>
   )

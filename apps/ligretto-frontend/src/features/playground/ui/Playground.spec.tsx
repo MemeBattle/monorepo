@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CardColors } from '@memebattle/ligretto-shared'
 
@@ -23,5 +23,18 @@ describe('Playground', () => {
     expect(cardPlace?.contains(dropTarget)).toBe(true)
     expect(getComputedStyle(dropTarget!).width).toBe(widthByCardSize.large)
     expect(getComputedStyle(dropTarget!).height).toBe(heightByCardSize.large)
+  })
+
+  it('calls onDeckClick when an empty deck surface is clicked', () => {
+    const onDeckClick = vi.fn()
+    const view = render(
+      <CardPlacementProvider enabled={false}>
+        <Playground cardsDecks={[null]} onDeckClick={onDeckClick} />
+      </CardPlacementProvider>,
+    )
+
+    fireEvent.click(view.container.querySelector('[data-card-drop-target="playground.0"]')!)
+
+    expect(onDeckClick).toHaveBeenCalledWith(0)
   })
 })

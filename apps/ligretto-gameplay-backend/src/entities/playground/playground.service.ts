@@ -39,7 +39,15 @@ export class PlaygroundService {
   }
 
   checkIsDeckAvailable(gameId: UUID, card: Card, position: number) {
-    const deck = this.playgroundRepository.getDeck(gameId, position)
-    return canPlaceCardOnDeck(card, deck)
+    if (!Number.isInteger(position) || position < 0) {
+      return false
+    }
+
+    const decks = this.getDecks(gameId)
+    if (position >= decks.length) {
+      return false
+    }
+
+    return canPlaceCardOnDeck(card, decks[position])
   }
 }
