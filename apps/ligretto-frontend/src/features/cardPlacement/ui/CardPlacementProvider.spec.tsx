@@ -2,69 +2,36 @@
 
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { CardColors, putCardAction, putCardFromStackOpenDeck } from '@memebattle/ligretto-shared'
+import { CardColors, type CardsDeck } from '@memebattle/ligretto-shared'
 
-import { Card } from '#entities/card'
-import { CardFocusProvider, useCardFocus } from '#features/cardFocus'
+import type { CardDragData, CardPlacementTarget } from '../model/types'
 import { CardPlacementProvider } from './CardPlacementProvider'
-import { DraggableCard } from './DraggableCard'
-import { PlaygroundDeckDropTarget } from './PlaygroundDeckDropTarget'
-import { useCardPlacement } from './useCardPlacement'
+import { useDraggableCard } from './useDraggableCard'
+import { useDroppableCard } from './useDroppableCard'
 
-const mocks = vi.hoisted(() => ({ dispatch: vi.fn() }))
-
-vi.mock('react-redux', async importActual => ({
-  ...(await importActual<typeof import('react-redux')>()),
-  useDispatch: () => mocks.dispatch,
-  useSelector: (selector: (state: unknown) => unknown) => selector({}),
-}))
-
-vi.mock('#ducks/game', async importActual => ({
-  ...(await importActual<typeof import('#ducks/game')>()),
-  gameIdSelector: () => 'game',
-}))
-
-const Harness = () => {
-  const focus = useCardFocus({ type: 'row', index: 2 }, [CardColors.red, 3])
-  const { placeCard } = useCardPlacement()
-  const { focusedCard } = useCardFocus()
-
-  return (
-    <>
-      <button onClick={focus.toggleFocus}>focus</button>
-      <button data-card-focus-element onClick={() => placeCard({ type: 'row', index: 2 }, 5)}>
-        place
-      </button>
-      <output>{focusedCard ? 'focused' : 'clear'}</output>
-    </>
-  )
-}
+const onDrop = vi.fn<(dragged: CardDragData) => void>()
 
 const DragHarness = ({
   valid = true,
   value = 2,
   target = { type: 'row', index: 1 },
-  showSource = true,
 }: {
   valid?: boolean
   value?: number
-  target?: { type: 'open-stack' } | { type: 'row'; index: number }
-  showSource?: boolean
-}) => (
-  <>
-    {showSource ? (
-      <DraggableCard target={target} card={{ color: CardColors.red, value }}>
-        <Card color={CardColors.red} value={value} />
-      </DraggableCard>
-    ) : null}
-    <PlaygroundDeckDropTarget
-      deckIndex={3}
-      deck={value === 1 ? null : { cards: [{ color: valid ? CardColors.red : CardColors.blue, value: 1 }], isHidden: false }}
-    >
-      <div>deck</div>
-    </PlaygroundDeckDropTarget>
-  </>
-)
+  target?: CardPlacementTarget
+}) => {
+  const card = { color: CardColors.red, value }
+  const deck: CardsDeck | null = value === 1 ? null : { cards: [{ color: valid ? CardColors.red : CardColors.blue, value: 1 }], isHidden: false }
+  const draggable = useDraggableCard(target, card)
+  const droppable = useDroppableCard('playground.3', deck, onDrop)
+
+  return (
+    <>
+      <button {...draggable}>source</button>
+      <div {...droppable}>deck</div>
+    </>
+  )
+}
 
 const rect = (left: number, top = 0, width = 50, height = 50): DOMRect =>
   ({
@@ -79,7 +46,9 @@ const rect = (left: number, top = 0, width = 50, height = 50): DOMRect =>
     toJSON: () => ({}),
   }) as DOMRect
 
-const drag = async (source: HTMLElement, destination: HTMLElement) => {
+const drag = async () => {
+  const source = screen.getByText('source')
+  const destination = screen.getByText('deck')
   source.getBoundingClientRect = () => rect(0)
   destination.getBoundingClientRect = () => rect(100)
   fireEvent.mouseDown(source, { clientX: 10, clientY: 10, button: 0, buttons: 1 })
@@ -89,112 +58,56 @@ const drag = async (source: HTMLElement, destination: HTMLElement) => {
   fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
 }
 
-const beginDrag = async (source: HTMLElement, destination: HTMLElement) => {
-  source.getBoundingClientRect = () => rect(0)
-  destination.getBoundingClientRect = () => rect(100)
-  fireEvent.mouseDown(source, { clientX: 10, clientY: 10, button: 0, buttons: 1 })
-  fireEvent.mouseMove(document, { clientX: 20, clientY: 10, buttons: 1 })
-  await Promise.resolve()
-  fireEvent.mouseMove(document, { clientX: 110, clientY: 10, buttons: 1 })
-}
-
-describe('CardPlacementProvider', () => {
-  beforeEach(() => mocks.dispatch.mockClear())
+describe('card placement hooks', () => {
+  beforeEach(() => onDrop.mockClear())
   afterEach(cleanup)
 
-  it('routes click placement without clearing focus before the backend confirms it', () => {
+  it('calls the droppable callback with row-card data for a valid drop', async () => {
     render(
-      <CardFocusProvider enabled>
-        <CardPlacementProvider enabled>
-          <Harness />
-        </CardPlacementProvider>
-      </CardFocusProvider>,
+      <CardPlacementProvider enabled>
+        <DragHarness />
+      </CardPlacementProvider>,
     )
 
-    fireEvent.click(screen.getByText('focus'))
-    expect(screen.getByText('focused')).toBeTruthy()
+    await drag()
 
-    fireEvent.click(screen.getByText('place'))
-
-    expect(mocks.dispatch).toHaveBeenCalledOnce()
-    expect(mocks.dispatch).toHaveBeenCalledWith(putCardAction({ gameId: 'game', cardIndex: 2, playgroundDeckIndex: 5 }))
-    expect(screen.getByText('focused')).toBeTruthy()
+    await waitFor(() => expect(onDrop).toHaveBeenCalledOnce())
+    expect(onDrop).toHaveBeenCalledWith({ target: { type: 'row', index: 1 }, card: { color: CardColors.red, value: 2 } })
   })
 
-  it('dispatches exactly once when a card is dragged to a valid deck', async () => {
-    const view = render(
-      <CardFocusProvider enabled>
-        <CardPlacementProvider enabled>
-          <DragHarness />
-        </CardPlacementProvider>
-      </CardFocusProvider>,
+  it('does not call the droppable callback for an invalid drop', async () => {
+    render(
+      <CardPlacementProvider enabled>
+        <DragHarness valid={false} />
+      </CardPlacementProvider>,
     )
 
-    await drag(screen.getByTestId('card-drag-source'), view.container.querySelector('[data-card-drop-target="3"]') as HTMLElement)
+    await drag()
 
-    await waitFor(() => expect(mocks.dispatch).toHaveBeenCalledOnce())
-    expect(mocks.dispatch).toHaveBeenCalledWith(putCardAction({ gameId: 'game', cardIndex: 1, playgroundDeckIndex: 3 }))
+    expect(onDrop).not.toHaveBeenCalled()
   })
 
-  it('does not dispatch when a card is dragged to an invalid deck', async () => {
-    const view = render(
-      <CardFocusProvider enabled>
-        <CardPlacementProvider enabled>
-          <DragHarness valid={false} />
-        </CardPlacementProvider>
-      </CardFocusProvider>,
+  it('supports an explicit value-1 drop on an empty deck', async () => {
+    render(
+      <CardPlacementProvider enabled>
+        <DragHarness value={1} target={{ type: 'open-stack' }} />
+      </CardPlacementProvider>,
     )
 
-    await drag(screen.getByTestId('card-drag-source'), view.container.querySelector('[data-card-drop-target="3"]') as HTMLElement)
+    await drag()
 
-    expect(mocks.dispatch).not.toHaveBeenCalled()
+    await waitFor(() => expect(onDrop).toHaveBeenCalledOnce())
+    expect(onDrop).toHaveBeenCalledWith({ target: { type: 'open-stack' }, card: { color: CardColors.red, value: 1 } })
   })
 
-  it('places a value-1 card on the explicitly chosen empty deck', async () => {
-    const view = render(
-      <CardFocusProvider enabled>
-        <CardPlacementProvider enabled>
-          <DragHarness value={1} />
-        </CardPlacementProvider>
-      </CardFocusProvider>,
+  it('registers drag and drop attributes on the elements that call the hooks', () => {
+    render(
+      <CardPlacementProvider enabled>
+        <DragHarness />
+      </CardPlacementProvider>,
     )
 
-    await drag(screen.getByTestId('card-drag-source'), view.container.querySelector('[data-card-drop-target="3"]') as HTMLElement)
-
-    await waitFor(() => expect(mocks.dispatch).toHaveBeenCalledOnce())
-    expect(mocks.dispatch).toHaveBeenCalledWith(putCardAction({ gameId: 'game', cardIndex: 1, playgroundDeckIndex: 3 }))
-  })
-
-  it('dispatches an open-stack placement to the chosen deck', async () => {
-    const view = render(
-      <CardFocusProvider enabled>
-        <CardPlacementProvider enabled>
-          <DragHarness target={{ type: 'open-stack' }} />
-        </CardPlacementProvider>
-      </CardFocusProvider>,
-    )
-
-    await drag(screen.getByTestId('card-drag-source'), view.container.querySelector('[data-card-drop-target="3"]') as HTMLElement)
-
-    await waitFor(() => expect(mocks.dispatch).toHaveBeenCalledOnce())
-    expect(mocks.dispatch).toHaveBeenCalledWith(putCardFromStackOpenDeck({ gameId: 'game', playgroundDeckIndex: 3 }))
-  })
-
-  it('does not place a stale card after its source unmounts', async () => {
-    const tree = (showSource: boolean) => (
-      <CardFocusProvider enabled>
-        <CardPlacementProvider enabled>
-          <DragHarness showSource={showSource} />
-        </CardPlacementProvider>
-      </CardFocusProvider>
-    )
-    const view = render(tree(true))
-    const destination = view.container.querySelector('[data-card-drop-target="3"]') as HTMLElement
-    await beginDrag(screen.getByTestId('card-drag-source'), destination)
-
-    view.rerender(tree(false))
-    fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
-
-    expect(mocks.dispatch).not.toHaveBeenCalled()
+    expect(screen.getByText('source').getAttribute('data-card-drag-id')).toBe('row.1.red.2')
+    expect(screen.getByText('deck').getAttribute('data-card-drop-target')).toBe('playground.3')
   })
 })

@@ -6,7 +6,7 @@ import { tapCardAction, playerCardsSelector, Hotkey } from '#ducks/game'
 import { Card, CardPlace, CardHotkeyBadge } from '#entities/card'
 import { useCardFocus } from '#features/cardFocus'
 import { useCardHotkey } from '../../lib/useCardHotkey'
-import { DraggableCard } from '#features/cardPlacement'
+import { useDraggableCard } from '#features/cardPlacement'
 import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
 
 interface PlayerRowCardProps {
@@ -18,6 +18,7 @@ interface PlayerRowCardProps {
 const PlayerRowCard = ({ card, index, hotkey }: PlayerRowCardProps) => {
   const dispatch = useDispatch()
   const { isFocused, isDimmed, toggleFocus } = useCardFocus({ type: 'row', index }, [card.color, card.value])
+  const draggable = useDraggableCard({ type: 'row', index }, card)
   const onCardActivate = () => {
     if (card.value !== 1) {
       toggleFocus()
@@ -30,9 +31,7 @@ const PlayerRowCard = ({ card, index, hotkey }: PlayerRowCardProps) => {
 
   return (
     <CardHotkeyBadge hotkey={hotkey}>
-      <DraggableCard target={{ type: 'row', index }} card={card}>
-        <Card {...card} data-card-focus-element isDarkened={isDimmed} isSelected={isFocused} onClick={onCardActivate} />
-      </DraggableCard>
+      <Card {...card} {...draggable} data-card-focus-element isDarkened={isDimmed} isSelected={isFocused} onClick={onCardActivate} />
     </CardHotkeyBadge>
   )
 }

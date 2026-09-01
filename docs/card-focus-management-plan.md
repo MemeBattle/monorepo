@@ -167,7 +167,7 @@ The closed-stack owner uses parameterless `useCardFocus()` in its shared pointer
 
 ### Drag-and-drop placement
 
-`CardPlacementProvider` is nested inside `CardFocusProvider` at the active-game boundary. It owns drag sensors, the active drag payload, destination validation feedback, and placement-command routing. Row and open-stack owners register draggable wrappers; every playground slot registers a drop target.
+`CardPlacementProvider` is nested inside `CardFocusProvider` at the active-game boundary. It owns drag sensors, the active drag payload, and the overlay. Row and open-stack owners call `useDraggableCard`; each `PlaygroundDeck` calls `useDroppableCard` on a node inside its `CardPlace`. The provider invokes the callback stored in the active droppable element, while `PlaygroundContainer` owns placement-command routing and focus clearing.
 
 Starting or cancelling a drag does not change focus. A valid drop dispatches the same explicit placement command as playground click placement and clears focus through the parameterless integration API. Invalid drops dispatch nothing and preserve the previous focus. The drag overlay is presentation-only and never registers focus or hotkey behavior.
 

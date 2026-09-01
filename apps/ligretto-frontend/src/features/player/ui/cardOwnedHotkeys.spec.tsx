@@ -35,7 +35,7 @@ vi.mock('#ducks/game', async importActual => ({
 }))
 
 vi.mock('#features/cardPlacement', () => ({
-  DraggableCard: ({ children }: React.PropsWithChildren) => children,
+  useDraggableCard: () => ({}),
 }))
 
 const card = (value: number) => ({ color: CardColors.red, value })

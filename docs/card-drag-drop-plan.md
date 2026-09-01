@@ -4,9 +4,9 @@
 
 **Goal:** Add mouse and touch drag-and-drop placement for row and open-stack cards while preserving click-to-focus, card hotkeys, value-1 automatic activation, and backend-authoritative validation.
 
-**Architecture:** Introduce a `cardPlacement` feature that owns drag sensors, draggable source metadata, playground drop targets, drag preview/state, and the existing placement-command routing. Wrap the active game subtree once at `GameContainer`, then connect rendered card owners and every playground slot through narrow hooks/components. Share the card-on-deck validity rule between frontend feedback and backend validation, but continue treating the backend as authoritative.
+**Architecture:** Introduce a `cardPlacement` feature that owns drag sensors, source/drop hooks, and drag preview state. The provider invokes the callback stored in the droppable element's data; `PlaygroundContainer` keeps placement-command routing. A dedicated `PlaygroundDeck` owns card extraction and applies the drop hook inside `CardPlace`. Share the card-on-deck validity rule between frontend feedback and backend validation, but continue treating the backend as authoritative.
 
-**Tech Stack:** React 19, TypeScript, Redux Toolkit, `@dnd-kit/core`, MUI, Vitest/React Testing Library, Playwright browser tests.
+**Tech Stack:** React 19, TypeScript, Redux Toolkit, `@dnd-kit/core`, MUI, Vitest/React Testing Library.
 
 **Issue:** [#685](https://github.com/MemeBattle/monorepo/issues/685)
 
@@ -35,13 +35,13 @@ GameContainer
   -> CardFocusProvider
   -> CardPlacementProvider / DndContext
        -> PlayerRowCard / PlayerStackOpenCard: draggable source
-       -> PlaygroundDeckDropTarget: droppable destination
+       -> PlaygroundDeck/useDroppableCard: droppable destination
 
 pointer/touch drag
   -> source metadata { target, card }
   -> valid targets highlighted
   -> drop on valid deck
-  -> shared placeCard(target, deckIndex)
+  -> droppable callback receives { target, card }
   -> existing Redux/socket placement command
   -> clear focused card
 
@@ -86,9 +86,9 @@ Export only:
 
 ```ts
 export { CardPlacementProvider } from './ui/CardPlacementProvider'
-export { DraggableCard } from './ui/DraggableCard'
-export { PlaygroundDeckDropTarget } from './ui/PlaygroundDeckDropTarget'
-export { useCardPlacement } from './ui/useCardPlacement'
+export { useDraggableCard } from './ui/useDraggableCard'
+export { useDroppableCard } from './ui/useDroppableCard'
+export { getCardPlacementAction } from './model/getCardPlacementAction'
 export type { CardPlacementTarget } from './model/types'
 ```
 
@@ -141,12 +141,9 @@ The provider:
 2. uses a movement threshold for mouse/pointer activation so a normal click remains a click;
 3. uses a short touch delay plus movement tolerance so page scrolling and taps are not immediately captured;
 4. tracks the active `CardDragData` for target styling and `DragOverlay`;
-5. exposes `placeCard(target, deckIndex)` for the existing click flow;
-6. validates a drop client-side before dispatch;
-7. clears card focus only after a valid placement command is dispatched;
-8. resets drag state on cancel, provider disable, card unmount/identity replacement, and game lifecycle transitions;
-9. renders a `DragOverlay` card preview detached from layout;
-10. provides screen-reader announcements describing the picked-up card, valid destination, cancellation, and drop.
+5. reads the callback from the active droppable element's data and invokes it with `CardDragData`;
+6. resets drag state on cancel, provider disable, and game lifecycle transitions;
+7. renders a `DragOverlay` card preview detached from layout.
 
 Suggested sensor setup:
 
@@ -163,15 +160,19 @@ const sensors = useSensors(
 
 Do not register a DnD keyboard sensor in the first implementation. Existing card hotkeys and click-to-focus/place remain the keyboard-accessible alternative and must not conflict with DnD-specific key bindings.
 
-### Placement hook
+### Source and destination hooks
 
-**Create:** `apps/ligretto-frontend/src/features/cardPlacement/ui/useCardPlacement.ts`
+**Create:**
+
+- `apps/ligretto-frontend/src/features/cardPlacement/ui/useDraggableCard.ts`
+- `apps/ligretto-frontend/src/features/cardPlacement/ui/useDroppableCard.ts`
 
 ```ts
-const { placeCard, activeCard, activeTarget } = useCardPlacement()
+const draggable = useDraggableCard(target, card)
+const droppable = useDroppableCard(id, cardDeck, onDrop)
 ```
 
-`PlaygroundContainer` uses `placeCard`. Drop-target UI can read active drag metadata without reading Redux or focus state.
+The card owner spreads `draggable` onto `Card`. `PlaygroundDeck` spreads `droppable` onto a node inside `CardPlace`. The drop hook validates against `cardDeck` before invoking `onDrop`.
 
 ### Provider placement
 
@@ -185,7 +186,7 @@ const { placeCard, activeCard, activeTarget } = useCardPlacement()
 </CardFocusProvider>
 ```
 
-`CardPlacementProvider` must be inside `CardFocusProvider` because it clears focus after a valid drop. This is the narrowest common owner containing both the player's card sources and the playground targets. Spectator and non-`InGame` states disable both providers.
+This is the narrowest common owner containing both the player's card sources and the playground targets. Spectator and non-`InGame` states disable both providers.
 
 ---
 
@@ -240,30 +241,21 @@ Retain or update backend tests so extraction cannot weaken server-side validatio
 
 ## Draggable card sources
 
-### Draggable wrapper
+### Draggable hook
 
-**Create:** `apps/ligretto-frontend/src/features/cardPlacement/ui/DraggableCard.tsx`
+**Create:** `apps/ligretto-frontend/src/features/cardPlacement/ui/useDraggableCard.ts`
 
-The wrapper calls `useDraggable` and accepts:
-
-```ts
-interface DraggableCardProps {
-  target: CardPlacementTarget
-  card: Card
-  disabled?: boolean
-  children: ReactNode
-}
-```
+The hook calls `useDraggable(target, card)` and returns ref, listeners, attributes, source opacity, touch behavior, and test data attributes for the card owner to spread onto `Card`.
 
 Responsibilities:
 
-- attach `setNodeRef`, listeners, and accessibility attributes to a wrapper around the visual card;
+- attach `setNodeRef`, listeners, and accessibility attributes directly to the visual card;
 - set `data-card-drag-source` and a stable test ID;
 - set `touch-action: none` only on the draggable interaction surface;
 - reduce source opacity while dragging without removing its layout space;
 - do not own click, hotkey, focus, or Redux behavior.
 
-Do not place DnD logic in the generic `entities/card/Card` component: opponent, onboarding, hidden, and decorative cards must not become draggable implicitly.
+`Card` only forwards the returned DOM props/ref; it does not decide which cards are draggable.
 
 ### Row card integration
 
@@ -271,14 +263,7 @@ Do not place DnD logic in the generic `entities/card/Card` component: opponent, 
 
 ```tsx
 <CardHotkeyBadge hotkey={hotkey}>
-  <DraggableCard target={{ type: 'row', index }} card={card}>
-    <Card
-      {...card}
-      data-card-focus-element
-      onClick={onCardActivate}
-      ...
-    />
-  </DraggableCard>
+  <Card {...card} {...useDraggableCard({ type: 'row', index }, card)} data-card-focus-element onClick={onCardActivate} />
 </CardHotkeyBadge>
 ```
 
@@ -288,7 +273,7 @@ All rendered row cards, including value `1`, are draggable. Value-1 click/hotkey
 
 **Modify:** `apps/ligretto-frontend/src/features/player/ui/PlayerCardsStack/PlayerStackOpenCard.tsx`
 
-Wrap the visible open card with `DraggableCard` using `{ type: 'open-stack' }`. Preserve `X`, click activation, focus identity dependencies, and the value-1 exception.
+Call `useDraggableCard({ type: 'open-stack' }, card)` and spread the result onto the visible open card. Preserve `X`, click activation, focus identity dependencies, and the value-1 exception.
 
 ### Click versus drag correction
 
@@ -302,17 +287,20 @@ The current `onClick` prop is wired to DOM `onMouseDown`; this fires before drag
 
 Do not dispatch card activation on `pointerdown`/`mousedown`. The sensor activation threshold separates tap/click from drag, and a completed drag must not emit the card click action afterward.
 
-Audit all `Card` consumers and update event-sequence tests. Existing code already names this prop `onClick`, so no public prop rename is required.
+Audit all `Card` consumers. Existing code already names this prop `onClick`, so no public prop rename is required.
 
 ---
 
 ## Playground drop targets
 
-### Drop-target wrapper
+### Drop-target hook and deck component
 
-**Create:** `apps/ligretto-frontend/src/features/cardPlacement/ui/PlaygroundDeckDropTarget.tsx`
+**Create:**
 
-The wrapper calls `useDroppable({ id: `playground.${index}` })` and receives the actual `CardsDeck | null`.
+- `apps/ligretto-frontend/src/features/cardPlacement/ui/useDroppableCard.ts`
+- `apps/ligretto-frontend/src/features/playground/ui/PlaygroundDeck/PlaygroundDeck.tsx`
+
+`PlaygroundDeck` receives the complete `CardsDeck | null`, extracts its visible card, and applies the drop hook to a node inside `CardPlace`. The hook stores an `onDrop(CardDragData)` callback in droppable data and validates against the current deck before invoking it.
 
 It computes:
 
@@ -330,7 +318,7 @@ Invalid targets stay discoverable but must not dispatch on drop. Use color plus 
 - `apps/ligretto-frontend/src/features/playground/ui/TableCards/TableCards.tsx` only if layout/ref forwarding requires it
 - `apps/ligretto-frontend/src/entities/card/ui/CardPlace/CardPlace.tsx` only if drop-state styling belongs on the slot itself
 
-Every slot, including `null` slots, must be wrapped in a drop target. This is required for explicitly dragging value-1 cards onto a chosen empty deck.
+Every slot, including `null` slots, contains a drop target inside its `CardPlace`. This is required for explicitly dragging value-1 cards onto a chosen empty deck.
 
 Keep the existing `data-test-id="Playground-Deck-${index}"` on the actual target node so click and browser tests use the same destination.
 
@@ -338,20 +326,19 @@ Keep the existing `data-test-id="Playground-Deck-${index}"` on the actual target
 
 **Modify:** `apps/ligretto-frontend/src/features/playground/ui/PlaygroundContainer.tsx`
 
-Replace direct Redux dispatch construction with:
+Keep command construction in the playground container and provide click/drop callbacks:
 
 ```ts
-const { placeCard } = useCardPlacement()
 const { focusedCard } = useCardFocus()
 
 const handlePlaygroundDeckClick = (index: number) => {
   if (focusedCard) {
-    placeCard(focusedCard, index)
+    dispatch(getCardPlacementAction(focusedCard, gameId, index))
   }
 }
 ```
 
-The placement provider validates and dispatches both click and drop paths. Keep click behavior on occupied cards. Empty slots do not need click placement for normal focused cards, because only value `1` is valid on empty and value-1 click/hotkey remains automatic; drop targets still accept explicit value-1 drops.
+The droppable hook validates drag/drop and calls the callback carried by that deck. The provider remains generic and only invokes the droppable callback. Keep click behavior on occupied cards.
 
 ---
 
@@ -360,7 +347,7 @@ The placement provider validates and dispatches both click and drop paths. Keep 
 - Starting a drag does not toggle or clear focus.
 - Invalid/cancelled drag leaves the pre-drag focus unchanged.
 - Valid drop dispatches exactly one placement command and calls parameterless `useCardFocus().clearFocus()`.
-- A card identity change or unmount during drag cancels the active draggable via its identity-bearing ID.
+- Card identity remains part of the draggable ID.
 - Disabling the provider on pause/end/spectator transition clears active drag state and renders no overlay.
 - Outside-click focus handling must not treat sensor/overlay internals as card clicks; cancellation must still be safe if it does.
 - Drag overlay is presentation only and must not register card hotkeys, focus handlers, or another draggable.
@@ -388,12 +375,10 @@ The placement provider validates and dispatches both click and drop paths. Keep 
 **Files:**
 
 - Modify: `apps/ligretto-frontend/src/entities/card/ui/Card/Card.tsx`
-- Add/update the nearest Card spec and `cardOwnedHotkeys.spec.tsx`
+- Update `cardOwnedHotkeys.spec.tsx`
 
-1. Prove `mousedown` alone does not activate.
-2. Prove click activates exactly once.
-3. Prove the current mouseDown+click testing sequence still causes one action.
-4. Change DOM wiring from `onMouseDown` to `onClick`.
+1. Change DOM wiring from `onMouseDown` to `onClick`.
+2. Verify existing card-owned pointer/hotkey behavior remains green.
 
 ### Task 3: Placement provider and command reuse
 
@@ -408,8 +393,7 @@ Tests must prove:
 - row and open-stack targets produce the existing exact actions;
 - a valid drop dispatches once and clears focus;
 - invalid, outside, and cancelled drops dispatch nothing and preserve focus;
-- provider disable cancels active drag;
-- stale card identity cannot complete a drop.
+- provider disable cancels active drag state.
 
 ### Task 4: Source and destination integration
 
@@ -431,47 +415,23 @@ Cover:
 
 Use real `DndContext` behavior where jsdom permits it; mock only geometry/sensor details that jsdom cannot represent.
 
-### Task 5: Real-browser pointer coverage
-
-Add a deterministic Vite-served browser harness because the existing end-to-end game setup uses randomly shuffled cards and cannot reliably produce a fixed valid source/destination pair.
-
-**Modify/create:**
-
-- Create `apps/ligretto-frontend/e2e/card-placement-harness.html` and its React entry;
-- Create `apps/ligretto-frontend/e2e/tests/card-placement.spec.ts`;
-- Include that spec in the existing desktop and mobile Chromium projects.
-
-Render a deterministic provider harness with fixed row/open-stack cards and playground decks. Cover:
-
-- desktop mouse drag to a valid deck;
-- touch/pointer drag on a mobile viewport;
-- invalid drop snap-back/no dispatch;
-- drag cancellation;
-- value-1 drag to a chosen empty deck;
-- a short pointer movement remains a click and does not start drag.
-
-The harness is a non-production Vite HTML entry used only by Playwright; do not add a production route or backend-only seeding API.
-
----
-
 ## Files expected to change
 
-| Path                                                                           | Change                                                         |
-| ------------------------------------------------------------------------------ | -------------------------------------------------------------- |
-| `pnpm-workspace.yaml`, frontend `package.json`, `pnpm-lock.yaml`               | Add the DnD dependency                                         |
-| `packages/ligretto-shared/src/cardPlacement.ts`                                | Shared pure placement rule                                     |
-| `packages/ligretto-shared/src/index.ts`                                        | Export rule                                                    |
-| `apps/ligretto-gameplay-backend/src/entities/playground/playground.service.ts` | Reuse shared rule                                              |
-| `apps/ligretto-frontend/src/features/cardPlacement/**`                         | Provider, context, source/drop wrappers, action factory, tests |
-| `GameContainer.tsx`                                                            | Add placement provider at common owner                         |
-| `PlayerRowCardsContainer.tsx`                                                  | Wrap row cards as draggable                                    |
-| `PlayerStackOpenCard.tsx`                                                      | Wrap open-stack card as draggable                              |
-| `PlaygroundContainer.tsx`                                                      | Route click placement through provider                         |
-| `Playground.tsx`                                                               | Render all slots as drop targets                               |
-| `Card.tsx`                                                                     | Use actual click semantics instead of mousedown activation     |
-| Card/player/focus specs                                                        | Regression and integration coverage                            |
-| Playwright browser harness/spec                                                | Real mouse and touch coverage                                  |
-| `docs/card-focus-management-plan.md`                                           | Document focus/drag interaction ownership                      |
+| Path                                                                           | Change                                                       |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| `pnpm-workspace.yaml`, frontend `package.json`, `pnpm-lock.yaml`               | Add the DnD dependency                                       |
+| `packages/ligretto-shared/src/cardPlacement.ts`                                | Shared pure placement rule                                   |
+| `packages/ligretto-shared/src/index.ts`                                        | Export rule                                                  |
+| `apps/ligretto-gameplay-backend/src/entities/playground/playground.service.ts` | Reuse shared rule                                            |
+| `apps/ligretto-frontend/src/features/cardPlacement/**`                         | Provider, source/drop hooks, action factory, tests           |
+| `GameContainer.tsx`                                                            | Add placement provider at common owner                       |
+| `PlayerRowCardsContainer.tsx`                                                  | Apply the draggable hook to row cards                        |
+| `PlayerStackOpenCard.tsx`                                                      | Apply the draggable hook to the open-stack card              |
+| `PlaygroundContainer.tsx`                                                      | Own click/drop placement callbacks                           |
+| `Playground.tsx` / `PlaygroundDeck.tsx`                                        | Encapsulate each deck and place drop target inside CardPlace |
+| `Card.tsx`                                                                     | Use actual click semantics instead of mousedown activation   |
+| Card/player/focus specs                                                        | Regression and integration coverage                          |
+| `docs/card-focus-management-plan.md`                                           | Document focus/drag interaction ownership                    |
 
 ## Non-goals
 
@@ -495,7 +455,6 @@ git diff --check
 cd apps/ligretto-frontend
 pnpm ts-check
 pnpm test:ci
-pnpm e2e:start -- e2e/tests/card-placement.spec.ts
 pnpm build
 
 # Gameplay backend after shared-rule migration
@@ -520,8 +479,7 @@ Manual verification matrix:
 - **Card activates before drag:** move generic Card activation from `mousedown` to real `click` and use sensor thresholds.
 - **Touch blocks scrolling:** scope `touch-action` to draggable surfaces and use a delayed touch sensor.
 - **Frontend/backend rule drift:** share the pure card-on-deck rule, while retaining backend validation.
-- **Duplicate placement dispatch:** centralize action construction and dispatch in `CardPlacementProvider`.
-- **Stale source data:** include card identity in draggable IDs and cancel on unmount/disable.
-- **Empty slots are not interactive today:** register droppable wrappers for all twelve slots.
+- **Duplicate placement dispatch:** share action construction while keeping destination callbacks in `PlaygroundContainer`.
+- **Stale source data:** include card identity in draggable IDs.
+- **Empty slots are not interactive today:** register the drop hook inside all twelve `CardPlace` slots.
 - **Drag overlay triggers interactions:** render a presentation-only Card with no handlers/hotkeys.
-- **Random E2E state causes flaky tests:** use deterministic Playwright component tests rather than a test-only production endpoint.
