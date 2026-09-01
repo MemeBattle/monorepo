@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CardColors } from '@memebattle/ligretto-shared'
 
 import { heightByCardSize, widthByCardSize } from '#entities/card/ui/Card'
-import { CardPlacementProvider } from '#features/cardPlacement'
+import { CardInteractionProvider } from '#features/cardInteraction'
 import { Playground } from './Playground'
 
 afterEach(cleanup)
@@ -13,9 +13,9 @@ afterEach(cleanup)
 describe('Playground', () => {
   it('renders the droppable surface inside each CardPlace', () => {
     const view = render(
-      <CardPlacementProvider enabled={false}>
+      <CardInteractionProvider enabled={false}>
         <Playground cardsDecks={[{ cards: [{ color: CardColors.red, value: 1 }], isHidden: false }]} onDeckClick={vi.fn()} />
-      </CardPlacementProvider>,
+      </CardInteractionProvider>,
     )
 
     const cardPlace = view.container.querySelector('[data-test-id="Playground-Deck-0"]')
@@ -28,9 +28,9 @@ describe('Playground', () => {
   it('calls onDeckClick when an empty deck surface is clicked', () => {
     const onDeckClick = vi.fn()
     const view = render(
-      <CardPlacementProvider enabled={false}>
+      <CardInteractionProvider enabled={false}>
         <Playground cardsDecks={[null]} onDeckClick={onDeckClick} />
-      </CardPlacementProvider>,
+      </CardInteractionProvider>,
     )
 
     fireEvent.click(view.container.querySelector('[data-card-drop-target="playground.0"]')!)

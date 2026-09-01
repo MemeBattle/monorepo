@@ -7,11 +7,10 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Provider } from 'react-redux'
 
-import { CardFocusProvider, useCardFocus } from './index'
+import { CardInteractionProvider, useCardInteraction } from './index'
 import { rootReducer } from '#app/store/rootReducer'
 import { initialState as gameInitialState } from '#ducks/game/slice'
 import { Playground } from '#features/playground/ui/Playground'
-import { CardPlacementProvider } from '#features/cardPlacement'
 
 afterEach(cleanup)
 
@@ -27,14 +26,12 @@ const testStore = configureStore({
 
 const TestProvider = ({ children, enabled = true }: PropsWithChildren<{ enabled?: boolean }>) => (
   <Provider store={testStore}>
-    <CardFocusProvider enabled={enabled}>
-      <CardPlacementProvider enabled={enabled}>{children}</CardPlacementProvider>
-    </CardFocusProvider>
+    <CardInteractionProvider enabled={enabled}>{children}</CardInteractionProvider>
   </Provider>
 )
 
 const RowCard = ({ value = 2 }: { value?: number }) => {
-  const { isFocused, toggleFocus } = useCardFocus(
+  const { isActive, toggleActiveTarget } = useCardInteraction(
     {
       type: 'row',
       index: 0,
@@ -43,18 +40,18 @@ const RowCard = ({ value = 2 }: { value?: number }) => {
   )
 
   return (
-    <button data-card-focus-element onClick={toggleFocus}>
-      {isFocused ? 'focused' : 'idle'}
+    <button data-card-interaction-element onClick={toggleActiveTarget}>
+      {isActive ? 'focused' : 'idle'}
     </button>
   )
 }
 
 const FocusController = () => {
-  const focus = useCardFocus()
+  const focus = useCardInteraction()
 
   return (
     <>
-      <output>{focus.focusedCard?.type === 'row' ? `row.${focus.focusedCard.index}` : (focus.focusedCard?.type ?? 'none')}</output>
+      <output>{focus.activeTarget?.type === 'row' ? `row.${focus.activeTarget.index}` : (focus.activeTarget?.type ?? 'none')}</output>
       <output data-testid="integration-api">{Object.keys(focus).sort().join(',')}</output>
     </>
   )
@@ -68,12 +65,12 @@ const TransferOnCleanup = ({ showFirst }: { showFirst: boolean }) => (
 )
 
 const TargetedApi = () => {
-  const focus = useCardFocus({ type: 'row', index: 1 }, [CardColors.green, 4])
+  const focus = useCardInteraction({ type: 'row', index: 1 }, [CardColors.green, 4])
   return <output data-testid="targeted-api">{Object.keys(focus).sort().join(',')}</output>
 }
 
 const OpenStackCard = () => {
-  const { isFocused, toggleFocus } = useCardFocus(
+  const { isActive, toggleActiveTarget } = useCardInteraction(
     {
       type: 'open-stack',
     },
@@ -81,13 +78,13 @@ const OpenStackCard = () => {
   )
 
   return (
-    <button data-card-focus-element onClick={toggleFocus}>
-      {isFocused ? 'open-focused' : 'open-idle'}
+    <button data-card-interaction-element onClick={toggleActiveTarget}>
+      {isActive ? 'open-focused' : 'open-idle'}
     </button>
   )
 }
 
-describe('CardFocusProvider', () => {
+describe('CardInteractionProvider', () => {
   it('exposes only the operations owned by each public hook overload', () => {
     render(
       <TestProvider>
@@ -96,8 +93,8 @@ describe('CardFocusProvider', () => {
       </TestProvider>,
     )
 
-    expect(screen.getByTestId('integration-api').textContent).toBe('clearFocus,focusedCard')
-    expect(screen.getByTestId('targeted-api').textContent).toBe('isDimmed,isFocused,toggleFocus')
+    expect(screen.getByTestId('integration-api').textContent).toBe('activeTarget,clearActiveTarget')
+    expect(screen.getByTestId('targeted-api').textContent).toBe('isActive,isDimmed,toggleActiveTarget')
   })
 
   it('toggles a card focus through the public hook', () => {
@@ -177,7 +174,7 @@ describe('CardFocusProvider', () => {
     )
 
     const card = screen.getByRole('button')
-    expect(card.matches('[data-card-focus-element]')).toBe(true)
+    expect(card.matches('[data-card-interaction-element]')).toBe(true)
     fireEvent.click(card)
     expect(screen.getByText('focused')).toBeTruthy()
   })

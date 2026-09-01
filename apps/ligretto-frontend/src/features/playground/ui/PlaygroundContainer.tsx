@@ -5,8 +5,7 @@ import { putCardAction, putCardFromStackOpenDeck } from '@memebattle/ligretto-sh
 
 import { Playground } from './Playground'
 import { gameIdSelector, playgroundDecksSelector } from '#ducks/game'
-import { useCardFocus } from '#features/cardFocus'
-import type { CardDragData, CardPlacementTarget } from '#features/cardPlacement'
+import { useCardInteraction, type CardDragData, type CardInteractionTarget } from '#features/cardInteraction'
 
 const playgroundContainerSelector = createSelector([playgroundDecksSelector, gameIdSelector], (playgroundDecks, gameId) => ({
   playgroundDecks,
@@ -16,10 +15,10 @@ const playgroundContainerSelector = createSelector([playgroundDecksSelector, gam
 export const PlaygroundContainer = () => {
   const dispatch = useDispatch()
   const { playgroundDecks, gameId } = useSelector(playgroundContainerSelector)
-  const { clearFocus, focusedCard } = useCardFocus()
+  const { activeTarget } = useCardInteraction()
 
   const placeCard = useCallback(
-    (target: CardPlacementTarget, playgroundDeckIndex: number) => {
+    (target: CardInteractionTarget, playgroundDeckIndex: number) => {
       if (target.type === 'row') {
         dispatch(putCardAction({ cardIndex: target.index, gameId, playgroundDeckIndex }))
       } else {
@@ -31,19 +30,18 @@ export const PlaygroundContainer = () => {
 
   const handlePlaygroundDeckClick = useCallback(
     (playgroundDeckIndex: number) => {
-      if (focusedCard) {
-        placeCard(focusedCard, playgroundDeckIndex)
+      if (activeTarget) {
+        placeCard(activeTarget, playgroundDeckIndex)
       }
     },
-    [focusedCard, placeCard],
+    [activeTarget, placeCard],
   )
 
   const handlePlaygroundDeckDrop = useCallback(
     (dragged: CardDragData, playgroundDeckIndex: number) => {
       placeCard(dragged.target, playgroundDeckIndex)
-      clearFocus()
     },
-    [clearFocus, placeCard],
+    [placeCard],
   )
 
   return <Playground cardsDecks={playgroundDecks} onDeckClick={handlePlaygroundDeckClick} onDeckDrop={handlePlaygroundDeckDrop} />

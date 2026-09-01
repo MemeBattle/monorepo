@@ -1,7 +1,7 @@
 import type { Ref, RefObject } from 'react'
 import type { CardsDeck } from '@memebattle/ligretto-shared'
 
-import type { CardDragData } from '#features/cardPlacement'
+import type { CardDragData } from '#features/cardInteraction'
 import { TableCards } from './TableCards'
 import { PlaygroundDeck } from './PlaygroundDeck'
 

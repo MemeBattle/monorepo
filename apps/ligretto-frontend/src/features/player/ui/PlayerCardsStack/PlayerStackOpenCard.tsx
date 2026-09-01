@@ -1,16 +1,15 @@
 import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
 import { Hotkey } from '#ducks/game'
 import { Card } from '#entities/card'
-import { useCardFocus } from '#features/cardFocus'
+import { useCardInteraction, useDraggableCard } from '#features/cardInteraction'
 import { useCardHotkey } from '../../lib/useCardHotkey'
-import { useDraggableCard } from '#features/cardPlacement'
 
 interface PlayerStackOpenCardProps {
   card: PlayerCard
 }
 
 export const PlayerStackOpenCard = ({ card }: PlayerStackOpenCardProps) => {
-  const { isFocused, isDimmed, toggleFocus } = useCardFocus(
+  const { isActive, isDimmed, toggleActiveTarget } = useCardInteraction(
     {
       type: 'open-stack',
     },
@@ -18,7 +17,7 @@ export const PlayerStackOpenCard = ({ card }: PlayerStackOpenCardProps) => {
   )
   const { id: dragId, isDragging, listeners, setNodeRef } = useDraggableCard({ type: 'open-stack' }, card)
 
-  const onCardActivate = toggleFocus
+  const onCardActivate = toggleActiveTarget
 
   useCardHotkey(Hotkey.x, onCardActivate)
 
@@ -29,8 +28,8 @@ export const PlayerStackOpenCard = ({ card }: PlayerStackOpenCardProps) => {
       ref={setNodeRef}
       data-card-drag-source
       data-card-drag-id={dragId}
-      data-card-focus-element
-      isSelected={isFocused}
+      data-card-interaction-element
+      isSelected={isActive}
       isDarkened={isDimmed}
       onClick={onCardActivate}
       style={{ opacity: isDragging ? 0.35 : 1, touchAction: 'none' }}

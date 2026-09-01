@@ -4,9 +4,8 @@ import { CardsRow } from '#entities/card/ui/CardsRow'
 
 import { playerCardsSelector, Hotkey } from '#ducks/game'
 import { Card, CardPlace, CardHotkeyBadge } from '#entities/card'
-import { useCardFocus } from '#features/cardFocus'
+import { useCardInteraction, useDraggableCard } from '#features/cardInteraction'
 import { useCardHotkey } from '../../lib/useCardHotkey'
-import { useDraggableCard } from '#features/cardPlacement'
 import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
 
 interface PlayerRowCardProps {
@@ -16,9 +15,9 @@ interface PlayerRowCardProps {
 }
 
 const PlayerRowCard = ({ card, index, hotkey }: PlayerRowCardProps) => {
-  const { isFocused, isDimmed, toggleFocus } = useCardFocus({ type: 'row', index }, [card.color, card.value])
+  const { isActive, isDimmed, toggleActiveTarget } = useCardInteraction({ type: 'row', index }, [card.color, card.value])
   const { id: dragId, isDragging, listeners, setNodeRef } = useDraggableCard({ type: 'row', index }, card)
-  const onCardActivate = toggleFocus
+  const onCardActivate = toggleActiveTarget
 
   useCardHotkey(hotkey, onCardActivate)
 
@@ -30,9 +29,9 @@ const PlayerRowCard = ({ card, index, hotkey }: PlayerRowCardProps) => {
         ref={setNodeRef}
         data-card-drag-source
         data-card-drag-id={dragId}
-        data-card-focus-element
+        data-card-interaction-element
         isDarkened={isDimmed}
-        isSelected={isFocused}
+        isSelected={isActive}
         onClick={onCardActivate}
         style={{ opacity: isDragging ? 0.35 : 1, touchAction: 'none' }}
       />

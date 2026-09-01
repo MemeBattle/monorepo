@@ -35,8 +35,7 @@ import { OnboardingTargetsProvider, useOnboardingCardsPanelRef, useOnboardingCon
 import { ResultScreen } from './ResultScreen'
 import { OpponentsDescription } from './descriptions/OpponentsDescription'
 import { AnchoredDescription, type DescriptionTargets } from './descriptions/AnchoredDescription'
-import { CardFocusProvider, useCardFocus } from '#features/cardFocus'
-import { CardPlacementProvider } from '#features/cardPlacement'
+import { CardInteractionProvider, useCardInteraction } from '#features/cardInteraction'
 import { getOnboardingPlacementAction } from './onboardingPlacement'
 import { OnboardingOpenStackCard } from './OnboardingOpenStackCard'
 
@@ -119,7 +118,7 @@ function OnboardingPageBody() {
   const game = useSelector(onboardingGameSelector)
   const step = useSelector(onboardingStepSelector)
   const allowedEvents = useSelector(onboardingAllowedEventsSelector)
-  const { focusedCard } = useCardFocus()
+  const { activeTarget } = useCardInteraction()
   const config = STEP_CONFIGS[step]
   const containerRef = useOnboardingContainerRef()
 
@@ -183,12 +182,12 @@ function OnboardingPageBody() {
   }, [dispatch])
   const handlePlaygroundDeckClick = useCallback(
     (playgroundDeckIndex: number) => {
-      const action = getOnboardingPlacementAction(focusedCard, allowedEvents, playgroundDeckIndex)
+      const action = getOnboardingPlacementAction(activeTarget, allowedEvents, playgroundDeckIndex)
       if (action) {
         dispatch(action)
       }
     },
-    [allowedEvents, dispatch, focusedCard],
+    [activeTarget, allowedEvents, dispatch],
   )
 
   const description = config.description
@@ -257,11 +256,9 @@ function OnboardingPageBody() {
 export function OnboardingPage() {
   return (
     <OnboardingTargetsProvider>
-      <CardFocusProvider enabled>
-        <CardPlacementProvider enabled={false}>
-          <OnboardingPageBody />
-        </CardPlacementProvider>
-      </CardFocusProvider>
+      <CardInteractionProvider enabled>
+        <OnboardingPageBody />
+      </CardInteractionProvider>
     </OnboardingTargetsProvider>
   )
 }

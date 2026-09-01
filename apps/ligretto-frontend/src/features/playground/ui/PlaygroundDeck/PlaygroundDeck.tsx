@@ -12,7 +12,7 @@ import {
   tabletWidthBySize,
   widthByCardSize,
 } from '#entities/card/ui/Card'
-import { useDroppableCard, type CardDragData } from '#features/cardPlacement'
+import { useDroppableCard, type CardDragData } from '#features/cardInteraction'
 
 const DropSurface = styled('div')(({ theme }) => ({
   width: widthByCardSize.large,

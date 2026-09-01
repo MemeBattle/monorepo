@@ -4,7 +4,7 @@ import { CardColors } from '@memebattle/ligretto-shared'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { CardFocusProvider, useCardFocus } from '#features/cardFocus'
+import { CardInteractionProvider, useCardInteraction } from '#features/cardInteraction'
 import { tapLigrettoDeckCardAction, tapStackDeckCardAction } from '#ducks/game'
 import { PlayerRowCardsContainer } from './PlayerRowCardsContainer/PlayerRowCardsContainer'
 import { PlayerCardsStack } from './PlayerCardsStack/PlayerCardsStack'
@@ -34,7 +34,8 @@ vi.mock('#ducks/game', async importActual => ({
   playerLigrettoDeckHiddenSelector: () => false,
 }))
 
-vi.mock('#features/cardPlacement', () => ({
+vi.mock('#features/cardInteraction', async importActual => ({
+  ...(await importActual<typeof import('#features/cardInteraction')>()),
   useDraggableCard: () => ({}),
 }))
 
@@ -46,8 +47,8 @@ const activatePointer = (element: HTMLElement) => {
 }
 
 const FocusState = () => {
-  const { focusedCard } = useCardFocus()
-  return <output data-testid="focus-state">{focusedCard?.type === 'row' ? `row.${focusedCard.index}` : (focusedCard?.type ?? 'none')}</output>
+  const { activeTarget } = useCardInteraction()
+  return <output data-testid="focus-state">{activeTarget?.type === 'row' ? `row.${activeTarget.index}` : (activeTarget?.type ?? 'none')}</output>
 }
 
 beforeEach(() => {
@@ -63,10 +64,10 @@ describe('card-owned hotkeys', () => {
   it('routes a rendered row key through the same focus behavior as pointer activation', () => {
     mocks.rowCards = [card(2)]
     render(
-      <CardFocusProvider enabled>
+      <CardInteractionProvider enabled>
         <PlayerRowCardsContainer />
         <FocusState />
-      </CardFocusProvider>,
+      </CardInteractionProvider>,
     )
 
     press('q', 'KeyQ')
@@ -83,10 +84,10 @@ describe('card-owned hotkeys', () => {
   it('focuses a value-1 row card instead of placing it automatically', () => {
     mocks.rowCards = [card(1)]
     render(
-      <CardFocusProvider enabled>
+      <CardInteractionProvider enabled>
         <PlayerRowCardsContainer />
         <FocusState />
-      </CardFocusProvider>,
+      </CardInteractionProvider>,
     )
 
     press('q', 'KeyQ')
@@ -98,9 +99,9 @@ describe('card-owned hotkeys', () => {
   it('does not show or handle a missing row card key', () => {
     mocks.rowCards = [undefined]
     render(
-      <CardFocusProvider enabled>
+      <CardInteractionProvider enabled>
         <PlayerRowCardsContainer />
-      </CardFocusProvider>,
+      </CardInteractionProvider>,
     )
     expect(screen.queryByText('Q')).toBeNull()
     press('q', 'KeyQ')
@@ -112,16 +113,16 @@ describe('card-owned hotkeys', () => {
     mocks.stackCards = []
     mocks.openCards = [card(2)]
     render(
-      <CardFocusProvider enabled>
+      <CardInteractionProvider enabled>
         <PlayerCardsStack />
         <FocusState />
-      </CardFocusProvider>,
+      </CardInteractionProvider>,
     )
     press('x', 'KeyX')
     expect(screen.getByTestId('focus-state').textContent).toBe('open-stack')
     press('x', 'KeyX')
     expect(screen.getByTestId('focus-state').textContent).toBe('none')
-    const openCard = screen.getAllByRole('button').find(button => button.hasAttribute('data-card-focus-element'))!
+    const openCard = screen.getAllByRole('button').find(button => button.hasAttribute('data-card-interaction-element'))!
     activatePointer(openCard)
     expect(screen.getByTestId('focus-state').textContent).toBe('open-stack')
     activatePointer(openCard)
@@ -133,10 +134,10 @@ describe('card-owned hotkeys', () => {
     mocks.stackCards = []
     mocks.openCards = [card(1)]
     render(
-      <CardFocusProvider enabled>
+      <CardInteractionProvider enabled>
         <PlayerCardsStack />
         <FocusState />
-      </CardFocusProvider>,
+      </CardInteractionProvider>,
     )
     press('x', 'KeyX')
     expect(screen.getByTestId('focus-state').textContent).toBe('open-stack')
@@ -146,9 +147,9 @@ describe('card-owned hotkeys', () => {
   it('does not show or handle X when the open card is missing', () => {
     mocks.stackCards = []
     render(
-      <CardFocusProvider enabled>
+      <CardInteractionProvider enabled>
         <PlayerCardsStack />
-      </CardFocusProvider>,
+      </CardInteractionProvider>,
     )
     expect(screen.queryByText('X')).toBeNull()
     press('x', 'KeyX')
@@ -159,10 +160,10 @@ describe('card-owned hotkeys', () => {
     mocks.stackCards = [card(3)]
     mocks.openCards = [card(2)]
     render(
-      <CardFocusProvider enabled>
+      <CardInteractionProvider enabled>
         <PlayerCardsStack />
         <FocusState />
-      </CardFocusProvider>,
+      </CardInteractionProvider>,
     )
     press('x', 'KeyX')
     expect(screen.getByTestId('focus-state').textContent).toBe('open-stack')
@@ -185,9 +186,9 @@ describe('card-owned hotkeys', () => {
     mocks.stackCards = []
     mocks.openCards = []
     render(
-      <CardFocusProvider enabled>
+      <CardInteractionProvider enabled>
         <PlayerCardsStack />
-      </CardFocusProvider>,
+      </CardInteractionProvider>,
     )
 
     expect(screen.queryByText('SPACE')).toBeNull()
@@ -201,9 +202,9 @@ describe('card-owned hotkeys', () => {
     mocks.stackCards = []
     mocks.openCards = [card(2)]
     render(
-      <CardFocusProvider enabled>
+      <CardInteractionProvider enabled>
         <PlayerCardsStack />
-      </CardFocusProvider>,
+      </CardInteractionProvider>,
     )
 
     press(' ', 'Space')
