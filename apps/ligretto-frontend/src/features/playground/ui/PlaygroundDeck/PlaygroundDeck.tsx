@@ -36,12 +36,28 @@ interface PlaygroundDeckProps {
 }
 
 export const PlaygroundDeck = ({ cardDeck, deckIndex, onClick, onDrop = () => undefined, ref }: PlaygroundDeckProps) => {
-  const droppable = useDroppableCard(`playground.${deckIndex}`, cardDeck, onDrop)
+  const dropId = `playground.${deckIndex}`
+  const { isOver, isValid, setNodeRef } = useDroppableCard(dropId, cardDeck, onDrop)
   const card = last(cardDeck?.cards)
+  const boxShadow = isValid
+    ? isOver
+      ? '0 0 0 0.3rem #6ee7a0'
+      : '0 0 0 0.2rem rgba(110, 231, 160, 0.7)'
+    : isOver
+      ? '0 0 0 0.3rem #f87171'
+      : undefined
 
   return (
     <CardPlace size="large" ref={ref} dataTestId={`Playground-Deck-${deckIndex}`}>
-      <DropSurface {...droppable}>{card ? <Card size="large" {...card} onClick={onClick} /> : null}</DropSurface>
+      <DropSurface
+        ref={setNodeRef}
+        data-card-drop-target={dropId}
+        data-drop-valid={isValid || undefined}
+        data-drop-over={isOver || undefined}
+        style={{ borderRadius: '0.375rem', boxShadow, transition: 'box-shadow 100ms' }}
+      >
+        {card ? <Card size="large" {...card} onClick={onClick} /> : null}
+      </DropSurface>
     </CardPlace>
   )
 }

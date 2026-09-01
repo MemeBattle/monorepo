@@ -36,6 +36,7 @@ import { ResultScreen } from './ResultScreen'
 import { OpponentsDescription } from './descriptions/OpponentsDescription'
 import { AnchoredDescription, type DescriptionTargets } from './descriptions/AnchoredDescription'
 import { CardFocusProvider, useCardFocus } from '#features/cardFocus'
+import { CardPlacementProvider } from '#features/cardPlacement'
 import { getOnboardingPlacementAction } from './onboardingPlacement'
 import { OnboardingOpenStackCard } from './OnboardingOpenStackCard'
 
@@ -257,7 +258,9 @@ export function OnboardingPage() {
   return (
     <OnboardingTargetsProvider>
       <CardFocusProvider enabled>
-        <OnboardingPageBody />
+        <CardPlacementProvider enabled={false}>
+          <OnboardingPageBody />
+        </CardPlacementProvider>
       </CardFocusProvider>
     </OnboardingTargetsProvider>
   )

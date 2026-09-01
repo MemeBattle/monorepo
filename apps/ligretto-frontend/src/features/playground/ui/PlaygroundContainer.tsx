@@ -1,11 +1,12 @@
 import { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from '@reduxjs/toolkit'
+import { putCardAction, putCardFromStackOpenDeck } from '@memebattle/ligretto-shared'
 
 import { Playground } from './Playground'
 import { gameIdSelector, playgroundDecksSelector } from '#ducks/game'
 import { useCardFocus } from '#features/cardFocus'
-import { getCardPlacementAction, type CardDragData, type CardPlacementTarget } from '#features/cardPlacement'
+import type { CardDragData, CardPlacementTarget } from '#features/cardPlacement'
 
 const playgroundContainerSelector = createSelector([playgroundDecksSelector, gameIdSelector], (playgroundDecks, gameId) => ({
   playgroundDecks,
@@ -19,7 +20,11 @@ export const PlaygroundContainer = () => {
 
   const placeCard = useCallback(
     (target: CardPlacementTarget, playgroundDeckIndex: number) => {
-      dispatch(getCardPlacementAction(target, gameId, playgroundDeckIndex))
+      if (target.type === 'row') {
+        dispatch(putCardAction({ cardIndex: target.index, gameId, playgroundDeckIndex }))
+      } else {
+        dispatch(putCardFromStackOpenDeck({ gameId, playgroundDeckIndex }))
+      }
     },
     [dispatch, gameId],
   )

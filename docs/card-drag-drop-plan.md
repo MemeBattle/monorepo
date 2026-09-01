@@ -2,7 +2,7 @@
 
 > **For Hermes:** Use subagent-driven-development skill to implement this plan task-by-task.
 
-**Goal:** Add mouse and touch drag-and-drop placement for row and open-stack cards while preserving click-to-focus, card hotkeys, value-1 automatic activation, and backend-authoritative validation.
+**Goal:** Add mouse and touch drag-and-drop placement for row and open-stack cards while preserving click-to-focus, card hotkeys, and backend-authoritative validation.
 
 **Architecture:** Introduce a `cardPlacement` feature that owns drag sensors, source/drop hooks, and drag preview state. The provider invokes the callback stored in the droppable element's data; `PlaygroundContainer` keeps placement-command routing. A dedicated `PlaygroundDeck` owns card extraction and applies the drop hook inside `CardPlace`. Share the card-on-deck validity rule between frontend feedback and backend validation, but continue treating the backend as authoritative.
 
@@ -21,9 +21,9 @@ normal card click/hotkey
   -> playground card click
   -> dispatch putCardAction / putCardFromStackOpenDeck
 
-value-1 click/hotkey
-  -> tapCardAction / tapStackOpenDeckCardAction
-  -> backend chooses an empty deck automatically
+all card values, including value 1
+  -> focus through click/hotkey
+  -> require an explicit playground destination
 ```
 
 `PlaygroundContainer` currently owns placement-command construction. `Playground` renders twelve `CardPlace` slots, but only occupied slots contain a clickable `Card`; empty slots have no pointer interaction. `Card` maps its `onClick` prop to DOM `onMouseDown`, which would activate the existing click behavior before a drag sensor can distinguish click from drag.
@@ -88,7 +88,6 @@ Export only:
 export { CardPlacementProvider } from './ui/CardPlacementProvider'
 export { useDraggableCard } from './ui/useDraggableCard'
 export { useDroppableCard } from './ui/useDroppableCard'
-export { getCardPlacementAction } from './model/getCardPlacementAction'
 export type { CardPlacementTarget } from './model/types'
 ```
 
@@ -112,24 +111,7 @@ row.0.red.2
 open-stack.blue.5
 ```
 
-A card replacement therefore unregisters the old draggable identity and cannot finish a stale drag using a new card at the same location.
-
-### Command routing
-
-**Create:** `apps/ligretto-frontend/src/features/cardPlacement/model/getCardPlacementAction.ts`
-
-```ts
-export const getCardPlacementAction = (target: CardPlacementTarget, gameId: string, playgroundDeckIndex: number) =>
-  target.type === 'row'
-    ? putCardAction({
-        cardIndex: target.index,
-        gameId,
-        playgroundDeckIndex,
-      })
-    : putCardFromStackOpenDeck({ gameId, playgroundDeckIndex })
-```
-
-Both drag-drop and click-to-place must use this function. Remove duplicated action selection from `PlaygroundContainer`.
+A card replacement produces a new draggable identity for that location.
 
 ### Provider responsibilities
 
@@ -172,7 +154,7 @@ const draggable = useDraggableCard(target, card)
 const droppable = useDroppableCard(id, cardDeck, onDrop)
 ```
 
-The card owner spreads `draggable` onto `Card`. `PlaygroundDeck` spreads `droppable` onto a node inside `CardPlace`. The drop hook validates against `cardDeck` before invoking `onDrop`.
+The card owner applies the returned listener/ref/state properties to `Card` and owns source styling. `PlaygroundDeck` applies the returned ref/validity state to a node inside `CardPlace` and owns target styling. The drop hook validates against `cardDeck` before invoking `onDrop`.
 
 ### Provider placement
 
@@ -219,10 +201,9 @@ export const canPlaceCardOnDeck = (card: Card, deck: CardsDeck | null | undefine
 Replace its private duplicate `isDeckAvailable` rule with the shared pure function for:
 
 - explicit destination validation;
-- automatic value-1 deck lookup;
 - mutation guard in `putCard`.
 
-Backend behavior remains authoritative and unchanged. Frontend validity only controls visual feedback and whether the client dispatches an obviously invalid drop.
+Backend validation remains authoritative. Frontend validity only controls visual feedback and whether the client dispatches an obviously invalid drop.
 
 ### Rule tests
 
@@ -245,15 +226,9 @@ Retain or update backend tests so extraction cannot weaken server-side validatio
 
 **Create:** `apps/ligretto-frontend/src/features/cardPlacement/ui/useDraggableCard.ts`
 
-The hook calls `useDraggable(target, card)` and returns ref, listeners, attributes, source opacity, touch behavior, and test data attributes for the card owner to spread onto `Card`.
+The hook calls `useDraggable(target, card)` and returns only the draggable ID, dragging state, listeners, and node ref. The card owner applies data attributes, opacity, and touch styling.
 
-Responsibilities:
-
-- attach `setNodeRef`, listeners, and accessibility attributes directly to the visual card;
-- set `data-card-drag-source` and a stable test ID;
-- set `touch-action: none` only on the draggable interaction surface;
-- reduce source opacity while dragging without removing its layout space;
-- do not own click, hotkey, focus, or Redux behavior.
+The card owner attaches the returned ref/listeners, adds drag data attributes, scopes `touch-action: none`, and reduces opacity while dragging. The hook does not own styling, click, hotkey, focus, or Redux behavior.
 
 `Card` only forwards the returned DOM props/ref; it does not decide which cards are draggable.
 
@@ -263,17 +238,17 @@ Responsibilities:
 
 ```tsx
 <CardHotkeyBadge hotkey={hotkey}>
-  <Card {...card} {...useDraggableCard({ type: 'row', index }, card)} data-card-focus-element onClick={onCardActivate} />
+  <Card {...card} {...listeners} ref={setNodeRef} data-card-drag-id={id} style={dragStyle} onClick={onCardActivate} />
 </CardHotkeyBadge>
 ```
 
-All rendered row cards, including value `1`, are draggable. Value-1 click/hotkey behavior remains automatic; dragging it to an empty deck uses the explicit chosen destination.
+All rendered row cards, including value `1`, are draggable and use explicit destination placement.
 
 ### Open-stack integration
 
 **Modify:** `apps/ligretto-frontend/src/features/player/ui/PlayerCardsStack/PlayerStackOpenCard.tsx`
 
-Call `useDraggableCard({ type: 'open-stack' }, card)` and spread the result onto the visible open card. Preserve `X`, click activation, focus identity dependencies, and the value-1 exception.
+Call `useDraggableCard({ type: 'open-stack' }, card)` and apply the returned properties to the visible open card. Preserve `X`, click activation, and focus identity dependencies.
 
 ### Click versus drag correction
 
@@ -318,7 +293,7 @@ Invalid targets stay discoverable but must not dispatch on drop. Use color plus 
 - `apps/ligretto-frontend/src/features/playground/ui/TableCards/TableCards.tsx` only if layout/ref forwarding requires it
 - `apps/ligretto-frontend/src/entities/card/ui/CardPlace/CardPlace.tsx` only if drop-state styling belongs on the slot itself
 
-Every slot, including `null` slots, contains a drop target inside its `CardPlace`. This is required for explicitly dragging value-1 cards onto a chosen empty deck.
+Every slot, including `null` slots, contains a drop target inside its `CardPlace`. Value `1` is valid on an empty slot through explicit placement.
 
 Keep the existing `data-test-id="Playground-Deck-${index}"` on the actual target node so click and browser tests use the same destination.
 
@@ -333,7 +308,11 @@ const { focusedCard } = useCardFocus()
 
 const handlePlaygroundDeckClick = (index: number) => {
   if (focusedCard) {
-    dispatch(getCardPlacementAction(focusedCard, gameId, index))
+    dispatch(
+      focusedCard.type === 'row'
+        ? putCardAction({ cardIndex: focusedCard.index, gameId, playgroundDeckIndex: index })
+        : putCardFromStackOpenDeck({ gameId, playgroundDeckIndex: index }),
+    )
   }
 }
 ```
@@ -437,7 +416,6 @@ Use real `DndContext` behavior where jsdom permits it; mock only geometry/sensor
 
 - No drag-and-drop for opponent cards, Ligretto deck, closed stack deck, onboarding cards, or spectator UI.
 - No replacement of click-to-focus/place or hotkeys.
-- No backend protocol/action changes.
 - No optimistic local game-state mutation.
 - No keyboard DnD sensor in the first version; keyboard placement remains available through existing controls.
 

@@ -1,5 +1,4 @@
 export { CardPlacementProvider } from './ui/CardPlacementProvider'
 export { useDraggableCard } from './ui/useDraggableCard'
 export { useDroppableCard } from './ui/useDroppableCard'
-export { getCardPlacementAction } from './model/getCardPlacementAction'
 export type { CardDragData, CardPlacementTarget } from './model/types'

@@ -11,6 +11,7 @@ import { CardFocusProvider, useCardFocus } from './index'
 import { rootReducer } from '#app/store/rootReducer'
 import { initialState as gameInitialState } from '#ducks/game/slice'
 import { Playground } from '#features/playground/ui/Playground'
+import { CardPlacementProvider } from '#features/cardPlacement'
 
 afterEach(cleanup)
 
@@ -26,7 +27,9 @@ const testStore = configureStore({
 
 const TestProvider = ({ children, enabled = true }: PropsWithChildren<{ enabled?: boolean }>) => (
   <Provider store={testStore}>
-    <CardFocusProvider enabled={enabled}>{children}</CardFocusProvider>
+    <CardFocusProvider enabled={enabled}>
+      <CardPlacementProvider enabled={enabled}>{children}</CardPlacementProvider>
+    </CardFocusProvider>
   </Provider>
 )
 

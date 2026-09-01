@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { CardFocusProvider, useCardFocus } from '#features/cardFocus'
-import { tapCardAction, tapLigrettoDeckCardAction, tapStackDeckCardAction, tapStackOpenDeckCardAction } from '#ducks/game'
+import { tapLigrettoDeckCardAction, tapStackDeckCardAction } from '#ducks/game'
 import { PlayerRowCardsContainer } from './PlayerRowCardsContainer/PlayerRowCardsContainer'
 import { PlayerCardsStack } from './PlayerCardsStack/PlayerCardsStack'
 import { LigrettoDeckContainer } from './LigrettoDeckContainer'
@@ -80,18 +80,19 @@ describe('card-owned hotkeys', () => {
     expect(mocks.dispatch).not.toHaveBeenCalled()
   })
 
-  it('dispatches a value-1 row card exactly once from its key', () => {
+  it('focuses a value-1 row card instead of placing it automatically', () => {
     mocks.rowCards = [card(1)]
     render(
       <CardFocusProvider enabled>
         <PlayerRowCardsContainer />
+        <FocusState />
       </CardFocusProvider>,
     )
 
     press('q', 'KeyQ')
 
-    expect(mocks.dispatch).toHaveBeenCalledOnce()
-    expect(mocks.dispatch).toHaveBeenCalledWith(tapCardAction({ cardIndex: 0 }))
+    expect(screen.getByTestId('focus-state').textContent).toBe('row.0')
+    expect(mocks.dispatch).not.toHaveBeenCalled()
   })
 
   it('does not show or handle a missing row card key', () => {
@@ -128,17 +129,18 @@ describe('card-owned hotkeys', () => {
     expect(mocks.dispatch).not.toHaveBeenCalled()
   })
 
-  it('dispatches a value-1 open card exactly once from X', () => {
+  it('focuses a value-1 open card instead of placing it automatically', () => {
     mocks.stackCards = []
     mocks.openCards = [card(1)]
     render(
       <CardFocusProvider enabled>
         <PlayerCardsStack />
+        <FocusState />
       </CardFocusProvider>,
     )
     press('x', 'KeyX')
-    expect(mocks.dispatch).toHaveBeenCalledOnce()
-    expect(mocks.dispatch).toHaveBeenCalledWith(tapStackOpenDeckCardAction())
+    expect(screen.getByTestId('focus-state').textContent).toBe('open-stack')
+    expect(mocks.dispatch).not.toHaveBeenCalled()
   })
 
   it('does not show or handle X when the open card is missing', () => {

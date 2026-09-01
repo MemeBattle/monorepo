@@ -16,5 +16,3 @@ export const useCardPlacement = () => {
   }
   return context
 }
-
-export const useOptionalCardPlacement = () => useContext(CardPlacementContext)

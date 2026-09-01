@@ -73,18 +73,9 @@ const { isFocused, isDimmed, toggleFocus } = useCardFocus(
   [card.color, card.value],
 )
 
-const onCardActivate = () => {
-  if (isDndEnabled && card.value !== 1) {
-    toggleFocus()
-    return
-  }
+useCardHotkey(hotkey, toggleFocus)
 
-  dispatch(tapCardAction({ cardIndex: index }))
-}
-
-useCardHotkey(hotkey, onCardActivate, isDndEnabled)
-
-return <Card onClick={onCardActivate} /* existing props */ />
+return <Card onClick={toggleFocus} /* existing props */ />
 ```
 
 The existing index mapping remains `Q/W/E/R/T`. Card activation never calls `clearFocus`; a changed/unmounted card is cleared by the targeted `useCardFocus` lifecycle cleanup.
@@ -99,18 +90,9 @@ const { isFocused, isDimmed, toggleFocus } = useCardFocus(
   [card.color, card.value],
 )
 
-const onCardActivate = () => {
-  if (isDndEnabled && card.value !== 1) {
-    toggleFocus()
-    return
-  }
+useCardHotkey(Hotkey.x, toggleFocus)
 
-  dispatch(tapStackOpenDeckCardAction())
-}
-
-useCardHotkey(Hotkey.x, onCardActivate, isDndEnabled)
-
-return <Card onClick={onCardActivate} /* existing props */ />
+return <Card onClick={toggleFocus} /* existing props */ />
 ```
 
 The component only mounts when an open card exists. It never clears focus manually.
@@ -127,7 +109,7 @@ const onStackDeckActivate = () => {
 }
 
 const stackActionAvailable = stackDeckCards.length > 0 || !!stackOpenDeckCard
-useCardHotkey(Hotkey.space, onStackDeckActivate, isDndEnabled && stackActionAvailable)
+useCardHotkey(stackActionAvailable ? Hotkey.space : undefined, onStackDeckActivate)
 
 return <Card onClick={onStackDeckActivate} /* existing props */ />
 ```
@@ -143,7 +125,7 @@ const onLigrettoDeckActivate = useCallback(() => {
   dispatch(tapLigrettoDeckCardAction())
 }, [dispatch])
 
-useCardHotkey(Hotkey.l, onLigrettoDeckActivate, isDndEnabled && ligrettoDeckCards.length > 0)
+useCardHotkey(ligrettoDeckCards.length > 0 ? Hotkey.l : undefined, onLigrettoDeckActivate)
 
 return <LigrettoPack onLigrettoDeckCardClick={onLigrettoDeckActivate} /* existing props */ />
 ```
@@ -347,4 +329,4 @@ node_modules/.bin/vite build
 - **Duplicate handlers during migration:** delete each key from `usePanelHotkeys` when its owner hook is added, then delete the panel hook.
 - **Conditional hooks:** mount hooks unconditionally inside owner components and use the `enabled` option.
 - **Badge mismatch:** show key badges only when their owner/action is available.
-- **Immediate-play regression:** explicitly test value `1` for pointer and keyboard activation.
+- **Value-1 regression:** explicitly test that value `1` focuses through both pointer and keyboard activation.

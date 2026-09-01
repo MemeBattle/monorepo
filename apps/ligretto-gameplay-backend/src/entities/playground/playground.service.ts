@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify'
 import type { PlaygroundRepository } from './playground.repo'
-import type { Card, Game, UUID } from '@memebattle/ligretto-shared'
+import type { Card, UUID } from '@memebattle/ligretto-shared'
 import { canPlaceCardOnDeck } from '@memebattle/ligretto-shared'
 import { IOC_TYPES } from '../../IOC_TYPES'
 
@@ -10,11 +10,6 @@ export class PlaygroundService {
 
   getDecks(gameId: UUID) {
     return this.playgroundRepository.getDecks(gameId)
-  }
-
-  findAvailableDeckIndex(gameId: UUID, card: Card) {
-    const decks = this.getDecks(gameId)
-    return decks.findIndex(deck => canPlaceCardOnDeck(card, deck))
   }
 
   putCard(gameId: UUID, card: Card, deckIndex: number) {
@@ -46,20 +41,5 @@ export class PlaygroundService {
   checkIsDeckAvailable(gameId: UUID, card: Card, position: number) {
     const deck = this.playgroundRepository.getDeck(gameId, position)
     return canPlaceCardOnDeck(card, deck)
-  }
-
-  /**
-   * if deckPosition passed, check this deck
-   * else find available deck position
-   */
-  getAvailableDeckPosition(gameId: Game['id'], card: Card, deckPosition?: number): number | undefined {
-    let finalDeckPosition: number | undefined
-    if (deckPosition !== undefined) {
-      finalDeckPosition = this.checkIsDeckAvailable(gameId, card, deckPosition) ? deckPosition : undefined
-    } else {
-      finalDeckPosition = this.findAvailableDeckIndex(gameId, card)
-    }
-
-    return finalDeckPosition
   }
 }

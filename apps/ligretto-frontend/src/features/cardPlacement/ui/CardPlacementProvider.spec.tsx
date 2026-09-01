@@ -22,13 +22,23 @@ const DragHarness = ({
 }) => {
   const card = { color: CardColors.red, value }
   const deck: CardsDeck | null = value === 1 ? null : { cards: [{ color: valid ? CardColors.red : CardColors.blue, value: 1 }], isHidden: false }
-  const draggable = useDraggableCard(target, card)
-  const droppable = useDroppableCard('playground.3', deck, onDrop)
+  const { id, isDragging, listeners, setNodeRef: setDraggableRef } = useDraggableCard(target, card)
+  const { isOver, isValid, setNodeRef: setDroppableRef } = useDroppableCard('playground.3', deck, onDrop)
 
   return (
     <>
-      <button {...draggable}>source</button>
-      <div {...droppable}>deck</div>
+      <button
+        {...listeners}
+        ref={setDraggableRef}
+        data-card-drag-source
+        data-card-drag-id={id}
+        style={{ opacity: isDragging ? 0.35 : 1, touchAction: 'none' }}
+      >
+        source
+      </button>
+      <div ref={setDroppableRef} data-card-drop-target="playground.3" data-drop-valid={isValid || undefined} data-drop-over={isOver || undefined}>
+        deck
+      </div>
     </>
   )
 }

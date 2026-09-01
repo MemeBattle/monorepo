@@ -1,7 +1,5 @@
 import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
-import { useDispatch } from 'react-redux'
-
-import { Hotkey, tapStackOpenDeckCardAction } from '#ducks/game'
+import { Hotkey } from '#ducks/game'
 import { Card } from '#entities/card'
 import { useCardFocus } from '#features/cardFocus'
 import { useCardHotkey } from '../../lib/useCardHotkey'
@@ -12,24 +10,30 @@ interface PlayerStackOpenCardProps {
 }
 
 export const PlayerStackOpenCard = ({ card }: PlayerStackOpenCardProps) => {
-  const dispatch = useDispatch()
   const { isFocused, isDimmed, toggleFocus } = useCardFocus(
     {
       type: 'open-stack',
     },
     [card.color, card.value],
   )
-  const draggable = useDraggableCard({ type: 'open-stack' }, card)
+  const { id: dragId, isDragging, listeners, setNodeRef } = useDraggableCard({ type: 'open-stack' }, card)
 
-  const onCardActivate = () => {
-    if (card.value !== 1) {
-      toggleFocus()
-      return
-    }
-    dispatch(tapStackOpenDeckCardAction())
-  }
+  const onCardActivate = toggleFocus
 
   useCardHotkey(Hotkey.x, onCardActivate)
 
-  return <Card {...card} {...draggable} data-card-focus-element isSelected={isFocused} isDarkened={isDimmed} onClick={onCardActivate} />
+  return (
+    <Card
+      {...card}
+      {...listeners}
+      ref={setNodeRef}
+      data-card-drag-source
+      data-card-drag-id={dragId}
+      data-card-focus-element
+      isSelected={isFocused}
+      isDarkened={isDimmed}
+      onClick={onCardActivate}
+      style={{ opacity: isDragging ? 0.35 : 1, touchAction: 'none' }}
+    />
+  )
 }

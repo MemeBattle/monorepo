@@ -102,8 +102,7 @@ Each targeted hook call installs target-aware cleanup for its rendered card. Cle
 - Clicking the focused card clears focus.
 - Clicking another focusable card transfers focus to it.
 - The matching row/open-stack hotkey follows the same rules.
-- Cards that must play immediately, including value `1`, continue through the existing game-action path without becoming focused.
-- Automatic placement mode does not create focus.
+- Value `1` follows the same focus and explicit placement flow as every other card.
 
 ### Card identity changes
 
@@ -117,13 +116,13 @@ The hook also clears focus when the focused card component unmounts. This covers
 
 Rendered controls are the keyboard integration boundary. The internal `useCardHotkey` hook prevents the browser default and invokes the same callback as the control's pointer interaction. An absent control has no mounted handler.
 
-- `Q/W/E/R/T`: resolve row indices `0..4`; focus/toggle in manual placement mode or dispatch the existing row-card action when immediate play applies.
-- `X`: focus/toggle the open stack card or dispatch its existing immediate-play action.
+- `Q/W/E/R/T`: resolve row indices `0..4` and focus/toggle the rendered row card.
+- `X`: focus/toggle the open stack card.
 - Space: the rendered stack deck clears focus, then dispatches `tapStackDeckCardAction()` exactly once through its shared activation callback.
 - `L`: dispatch `tapLigrettoDeckCardAction()` without introducing a Ligretto focus target.
 - Escape: provider-owned focus dismissal without dispatching a game command.
 
-Row cards own `Q/W/E/R/T`, the open-stack card owns `X`, the stack deck owns Space, and the Ligretto deck owns `L`. Owner hotkeys are disabled with manual controls. Pointer and keyboard paths call the same activation callbacks so their command and value-1 behavior cannot drift.
+Row cards own `Q/W/E/R/T`, the open-stack card owns `X`, the stack deck owns Space, and the Ligretto deck owns `L`. Owner hotkeys are disabled with manual controls. Pointer and keyboard paths call the same activation callbacks.
 
 ### Clicking outside cards
 
@@ -227,7 +226,7 @@ Starting or cancelling a drag does not change focus. A valid drop dispatches the
 1. Use the hook for each row card and the open stack card.
 2. Replace Redux focus selectors with `isFocused`/`isDimmed`.
 3. Route manual pointer focus through `toggleFocus()`.
-4. Keep existing Redux actions for immediate-play game commands.
+4. Route every row/open-stack value through focus and explicit playground placement.
 5. Mark only focusable row and open-stack `Card` roots; closed-stack and Ligretto cards remain outside-click targets.
 6. Remove all per-card outside-click focus handlers.
 7. Preserve presentational `isSelected` and `isDarkened` props.
@@ -290,7 +289,7 @@ Manual acceptance checks:
 6. Rotate the stack by click and Space; focus clears and rotation occurs once.
 7. Place row and open-stack cards on the playground; the correct existing action is dispatched and focus clears.
 8. Press Escape; focus clears without a game command.
-9. Verify automatic placement mode and Ligretto deck behavior do not regress.
+9. Verify value-1 cards use the same focus and explicit placement flow.
 10. Navigate away from the game and verify no hotkey/document listeners remain.
 
 ## Delivery sequence

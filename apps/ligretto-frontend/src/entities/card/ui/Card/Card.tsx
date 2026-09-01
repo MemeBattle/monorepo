@@ -1,6 +1,6 @@
 import React from 'react'
 import { CardColors } from '@memebattle/ligretto-shared'
-import { ButtonBase, type ButtonBaseProps } from '@mui/material'
+import { ButtonBase } from '@mui/material'
 import { Typography } from '@memebattle/ui'
 import { styled } from '@mui/material/styles'
 import type { CardPlaceSize } from '../CardPlace'
@@ -8,7 +8,7 @@ import { CardBackFace } from './CardBackFace'
 
 type CardSize = 'small' | 'medium' | 'large'
 
-interface CardProps extends Omit<ButtonBaseProps, 'color' | 'onClick' | 'size' | 'value'> {
+interface CardProps {
   [dataAttribute: `data-${string}`]: string | boolean | undefined
   /** Color of card **/
   color?: CardColors
@@ -28,6 +28,11 @@ interface CardProps extends Omit<ButtonBaseProps, 'color' | 'onClick' | 'size' |
   /** Size of card **/
   size?: CardSize
   ref?: React.Ref<HTMLButtonElement>
+  style?: React.CSSProperties
+  onKeyDown?: React.KeyboardEventHandler<HTMLButtonElement>
+  onMouseDown?: React.MouseEventHandler<HTMLButtonElement>
+  onPointerDown?: React.PointerEventHandler<HTMLButtonElement>
+  onTouchStart?: React.TouchEventHandler<HTMLButtonElement>
 }
 
 export const widthByCardSize: Record<CardSize, string> = {

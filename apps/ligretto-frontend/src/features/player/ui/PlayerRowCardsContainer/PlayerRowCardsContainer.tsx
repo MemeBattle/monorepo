@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { CardsRow } from '#entities/card/ui/CardsRow'
 
-import { tapCardAction, playerCardsSelector, Hotkey } from '#ducks/game'
+import { playerCardsSelector, Hotkey } from '#ducks/game'
 import { Card, CardPlace, CardHotkeyBadge } from '#entities/card'
 import { useCardFocus } from '#features/cardFocus'
 import { useCardHotkey } from '../../lib/useCardHotkey'
@@ -16,22 +16,26 @@ interface PlayerRowCardProps {
 }
 
 const PlayerRowCard = ({ card, index, hotkey }: PlayerRowCardProps) => {
-  const dispatch = useDispatch()
   const { isFocused, isDimmed, toggleFocus } = useCardFocus({ type: 'row', index }, [card.color, card.value])
-  const draggable = useDraggableCard({ type: 'row', index }, card)
-  const onCardActivate = () => {
-    if (card.value !== 1) {
-      toggleFocus()
-      return
-    }
-    dispatch(tapCardAction({ cardIndex: index }))
-  }
+  const { id: dragId, isDragging, listeners, setNodeRef } = useDraggableCard({ type: 'row', index }, card)
+  const onCardActivate = toggleFocus
 
   useCardHotkey(hotkey, onCardActivate)
 
   return (
     <CardHotkeyBadge hotkey={hotkey}>
-      <Card {...card} {...draggable} data-card-focus-element isDarkened={isDimmed} isSelected={isFocused} onClick={onCardActivate} />
+      <Card
+        {...card}
+        {...listeners}
+        ref={setNodeRef}
+        data-card-drag-source
+        data-card-drag-id={dragId}
+        data-card-focus-element
+        isDarkened={isDimmed}
+        isSelected={isFocused}
+        onClick={onCardActivate}
+        style={{ opacity: isDragging ? 0.35 : 1, touchAction: 'none' }}
+      />
     </CardHotkeyBadge>
   )
 }

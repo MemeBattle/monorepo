@@ -11,14 +11,12 @@ export const useDraggableCard = (target: CardPlacementTarget, card: Card, disabl
   const { enabled } = useCardPlacement()
   const id = `${getTargetKey(target)}.${card.color}.${card.value}`
   const data = useMemo<CardDragData>(() => ({ target, card }), [card, target])
-  const { attributes, isDragging, listeners, setNodeRef } = useDraggable({ id, data, disabled: disabled || !enabled })
+  const { isDragging, listeners, setNodeRef } = useDraggable({ id, data, disabled: disabled || !enabled })
 
   return {
-    ...attributes,
-    ...listeners,
-    ref: setNodeRef,
-    'data-card-drag-source': true,
-    'data-card-drag-id': id,
-    style: { opacity: isDragging ? 0.35 : 1, touchAction: 'none' },
-  } as const
+    id,
+    isDragging,
+    listeners,
+    setNodeRef,
+  }
 }
