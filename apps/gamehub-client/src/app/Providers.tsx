@@ -11,7 +11,7 @@ import { useServerInsertedHTML } from 'next/navigation'
 import { gamehubClientTheme } from '../themes/gamehubClient'
 import { createEmotionCache } from '../utils/createEmotionCache'
 
-export function EmotionCacheProvider({ children }: { children: ReactNode }) {
+function EmotionCacheProvider({ children }: { children: ReactNode }) {
   const cache = useMemo(() => {
     const c = createEmotionCache()
     c.compat = true

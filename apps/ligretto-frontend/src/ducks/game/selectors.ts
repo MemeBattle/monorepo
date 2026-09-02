@@ -7,13 +7,13 @@ import { currentUserIdSelector } from '#ducks/auth'
 import { usersMapSelector } from '../users'
 import { mergePlayerAndUser } from './utils'
 
-export const gameSelector = (state: All) => state.game.game
+const gameSelector = (state: All) => state.game.game
 
 export const gameIdSelector = (state: All) => gameSelector(state).id
 export const gameStatusSelector = (state: All) => gameSelector(state).status
 export const gameNameSelector = (state: All) => gameSelector(state).name
 
-export const playersSelector = (state: All) => gameSelector(state).players
+const playersSelector = (state: All) => gameSelector(state).players
 
 export const isGameReadyToStartSelector = createSelector(
   playersSelector,
@@ -22,7 +22,7 @@ export const isGameReadyToStartSelector = createSelector(
 
 export const playersIdsSelector = createSelector(playersSelector, players => Object.keys(players))
 
-export const spectatorsSelector = (state: All) => gameSelector(state).spectators
+const spectatorsSelector = (state: All) => gameSelector(state).spectators
 
 export const isGameLoadedSelector = (state: All) => state.game.isGameLoaded
 
@@ -31,7 +31,7 @@ export const gameResultsSelector = (state: All) => state.game.results
 export const playgroundDecksSelector = (state: All) => gameSelector(state).playground.decks
 
 /** Game Config */
-export const gameConfigSelector = (state: All) => gameSelector(state).config
+const gameConfigSelector = (state: All) => gameSelector(state).config
 export const startingDelayInSecSelector = (state: All) => gameConfigSelector(state).startingDelayInSec
 
 /** Player State */
