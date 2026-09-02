@@ -4,8 +4,7 @@ import { CardsRow } from '#entities/card/ui/CardsRow'
 
 import { playerCardsSelector, Hotkey } from '#ducks/game'
 import { Card, CardPlace, CardHotkeyBadge } from '#entities/card'
-import { useCardInteraction, useDraggableCard } from '#features/cardInteraction'
-import { useCardHotkey } from '../../lib/useCardHotkey'
+import { useCardHotkey, useCardInteraction, useDraggableCard } from '#features/cardInteraction'
 import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
 
 interface PlayerRowCardProps {
@@ -19,7 +18,7 @@ const PlayerRowCard = ({ card, index, hotkey }: PlayerRowCardProps) => {
   const { id: dragId, isDragging, listeners, setNodeRef } = useDraggableCard({ type: 'row', index }, card)
   const onCardActivate = toggleActiveTarget
 
-  useCardHotkey(hotkey, onCardActivate)
+  useCardHotkey(hotkey, onCardActivate, { clearActive: false })
 
   return (
     <CardHotkeyBadge hotkey={hotkey}>

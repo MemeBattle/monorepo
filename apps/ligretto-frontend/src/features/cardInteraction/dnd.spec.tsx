@@ -2,7 +2,7 @@
 
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { CardColors, type CardsDeck } from '@memebattle/ligretto-shared'
+import { canPlaceCardOnDeck, CardColors, type CardsDeck } from '@memebattle/ligretto-shared'
 
 import type { CardDragData, CardInteractionTarget } from './model/types'
 import { CardInteractionProvider } from './ui/CardInteractionProvider'
@@ -11,6 +11,7 @@ import { useDraggableCard } from './ui/useDraggableCard'
 import { useDroppableCard } from './ui/useDroppableCard'
 
 const onDrop = vi.fn<(dragged: CardDragData) => void>()
+const onDragOver = vi.fn<(dragged: CardDragData) => void>()
 
 const ActiveTarget = () => {
   const { activeTarget } = useCardInteraction()
@@ -29,7 +30,15 @@ const DragHarness = ({
   const card = { color: CardColors.red, value }
   const deck: CardsDeck | null = value === 1 ? null : { cards: [{ color: valid ? CardColors.red : CardColors.blue, value: 1 }], isHidden: false }
   const { id, isDragging, listeners, setNodeRef: setDraggableRef } = useDraggableCard(target, card)
-  const { isOver, isValid, setNodeRef: setDroppableRef } = useDroppableCard('playground.3', deck, onDrop)
+  const { isOver, setNodeRef: setDroppableRef } = useDroppableCard(
+    'playground.3',
+    dragged => {
+      if (canPlaceCardOnDeck(dragged.card, deck)) {
+        onDrop(dragged)
+      }
+    },
+    onDragOver,
+  )
 
   return (
     <>
@@ -42,7 +51,7 @@ const DragHarness = ({
       >
         source
       </button>
-      <div ref={setDroppableRef} data-card-drop-target="playground.3" data-drop-valid={isValid || undefined} data-drop-over={isOver || undefined}>
+      <div ref={setDroppableRef} data-card-drop-target="playground.3" data-drop-over={isOver || undefined}>
         deck
       </div>
       <ActiveTarget />
@@ -78,7 +87,10 @@ const drag = async (release = true) => {
 }
 
 describe('card placement hooks', () => {
-  beforeEach(() => onDrop.mockClear())
+  beforeEach(() => {
+    onDragOver.mockClear()
+    onDrop.mockClear()
+  })
   afterEach(cleanup)
 
   it('calls the droppable callback with row-card data for a valid drop', async () => {
@@ -92,6 +104,19 @@ describe('card placement hooks', () => {
 
     await waitFor(() => expect(onDrop).toHaveBeenCalledOnce())
     expect(onDrop).toHaveBeenCalledWith({ target: { type: 'row', index: 1 }, card: { color: CardColors.red, value: 2 } })
+  })
+
+  it('calls the droppable drag-over callback with row-card data', async () => {
+    render(
+      <CardInteractionProvider enabled>
+        <DragHarness />
+      </CardInteractionProvider>,
+    )
+
+    await drag(false)
+
+    await waitFor(() => expect(onDragOver).toHaveBeenCalled())
+    expect(onDragOver).toHaveBeenLastCalledWith({ target: { type: 'row', index: 1 }, card: { color: CardColors.red, value: 2 } })
   })
 
   it('uses activeTarget for the card currently being dragged', async () => {

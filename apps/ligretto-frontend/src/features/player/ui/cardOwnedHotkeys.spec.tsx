@@ -215,7 +215,11 @@ describe('card-owned hotkeys', () => {
 
   it('does not handle L when the Ligretto deck is empty', () => {
     mocks.ligrettoCards = []
-    render(<LigrettoDeckContainer />)
+    render(
+      <CardInteractionProvider enabled>
+        <LigrettoDeckContainer />
+      </CardInteractionProvider>,
+    )
 
     expect(screen.queryByText('L')).toBeNull()
     press('l', 'KeyL')
@@ -226,14 +230,19 @@ describe('card-owned hotkeys', () => {
 
   it('dispatches the Ligretto command exactly once from L only while mounted and enabled', () => {
     mocks.ligrettoCards = [card(4)]
-    const view = render(<LigrettoDeckContainer />)
+    const tree = () => (
+      <CardInteractionProvider enabled>
+        <LigrettoDeckContainer />
+      </CardInteractionProvider>
+    )
+    const view = render(tree())
     press('l', 'KeyL')
     expect(mocks.dispatch).toHaveBeenCalledOnce()
     expect(mocks.dispatch).toHaveBeenCalledWith(tapLigrettoDeckCardAction())
 
     mocks.dispatch.mockClear()
     mocks.ligrettoCards = undefined
-    view.rerender(<LigrettoDeckContainer />)
+    view.rerender(tree())
     press('l', 'KeyL')
     expect(mocks.dispatch).not.toHaveBeenCalled()
   })

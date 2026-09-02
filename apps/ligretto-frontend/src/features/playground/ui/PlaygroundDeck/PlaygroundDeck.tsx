@@ -1,5 +1,5 @@
-import type { Ref } from 'react'
-import type { CardsDeck } from '@memebattle/ligretto-shared'
+import { useCallback, type Ref } from 'react'
+import { canPlaceCardOnDeck, type CardsDeck } from '@memebattle/ligretto-shared'
 import last from 'lodash/last'
 import { styled } from '@mui/material/styles'
 
@@ -37,7 +37,16 @@ interface PlaygroundDeckProps {
 
 export const PlaygroundDeck = ({ cardDeck, deckIndex, onClick, onDrop = () => undefined, ref }: PlaygroundDeckProps) => {
   const dropId = `playground.${deckIndex}`
-  const { isOver, isValid, setNodeRef } = useDroppableCard(dropId, cardDeck, onDrop)
+  const handleDrop = useCallback(
+    (dragged: CardDragData) => {
+      if (canPlaceCardOnDeck(dragged.card, cardDeck)) {
+        onDrop(dragged)
+      }
+    },
+    [cardDeck, onDrop],
+  )
+  const { activeCard, isOver, setNodeRef } = useDroppableCard(dropId, handleDrop)
+  const isValid = !!activeCard && canPlaceCardOnDeck(activeCard, cardDeck)
   const card = last(cardDeck?.cards)
   const boxShadow = isValid
     ? isOver

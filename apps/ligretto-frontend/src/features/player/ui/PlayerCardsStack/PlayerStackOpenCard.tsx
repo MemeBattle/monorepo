@@ -1,8 +1,7 @@
 import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
 import { Hotkey } from '#ducks/game'
 import { Card } from '#entities/card'
-import { useCardInteraction, useDraggableCard } from '#features/cardInteraction'
-import { useCardHotkey } from '../../lib/useCardHotkey'
+import { useCardHotkey, useCardInteraction, useDraggableCard } from '#features/cardInteraction'
 
 interface PlayerStackOpenCardProps {
   card: PlayerCard
@@ -19,7 +18,7 @@ export const PlayerStackOpenCard = ({ card }: PlayerStackOpenCardProps) => {
 
   const onCardActivate = toggleActiveTarget
 
-  useCardHotkey(Hotkey.x, onCardActivate)
+  useCardHotkey(Hotkey.x, onCardActivate, { clearActive: false })
 
   return (
     <Card
