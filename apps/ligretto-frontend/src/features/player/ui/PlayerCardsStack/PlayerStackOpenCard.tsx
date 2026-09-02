@@ -18,7 +18,7 @@ export const PlayerStackOpenCard = ({ card }: PlayerStackOpenCardProps) => {
 
   const onCardActivate = toggleActiveTarget
 
-  useCardHotkey(Hotkey.x, onCardActivate, { clearActive: false })
+  useCardHotkey(Hotkey.x, onCardActivate)
 
   return (
     <Card
@@ -31,7 +31,7 @@ export const PlayerStackOpenCard = ({ card }: PlayerStackOpenCardProps) => {
       isSelected={isActive}
       isDarkened={isDimmed}
       onClick={onCardActivate}
-      style={{ opacity: isDragging ? 0.35 : 1, touchAction: 'none' }}
+      style={{ opacity: isDragging ? 0 : 1, touchAction: 'none' }}
     />
   )
 }

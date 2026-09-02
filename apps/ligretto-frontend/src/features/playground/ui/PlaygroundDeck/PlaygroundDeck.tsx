@@ -12,7 +12,7 @@ import {
   tabletWidthBySize,
   widthByCardSize,
 } from '#entities/card/ui/Card'
-import { useDroppableCard, type CardDragData } from '#features/cardInteraction'
+import { useDroppableTarget, type CardDragData } from '#features/cardInteraction'
 
 const DropSurface = styled('div')(({ theme }) => ({
   width: widthByCardSize.large,
@@ -36,7 +36,6 @@ interface PlaygroundDeckProps {
 }
 
 export const PlaygroundDeck = ({ cardDeck, deckIndex, onClick, onDrop = () => undefined, ref }: PlaygroundDeckProps) => {
-  const dropId = `playground.${deckIndex}`
   const handleDrop = useCallback(
     (dragged: CardDragData) => {
       if (canPlaceCardOnDeck(dragged.card, cardDeck)) {
@@ -45,7 +44,7 @@ export const PlaygroundDeck = ({ cardDeck, deckIndex, onClick, onDrop = () => un
     },
     [cardDeck, onDrop],
   )
-  const { activeCard, isOver, setNodeRef } = useDroppableCard(dropId, handleDrop)
+  const { activeCard, id: dropId, isOver, setNodeRef } = useDroppableTarget({ type: 'playground', index: deckIndex }, handleDrop)
   const isValid = !!activeCard && canPlaceCardOnDeck(activeCard, cardDeck)
   const card = last(cardDeck?.cards)
   const boxShadow = isValid

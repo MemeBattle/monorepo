@@ -8,10 +8,9 @@ import type { CardDragData, CardInteractionTarget } from './model/types'
 import { CardInteractionProvider } from './ui/CardInteractionProvider'
 import { useCardInteraction } from './ui/useCardInteraction'
 import { useDraggableCard } from './ui/useDraggableCard'
-import { useDroppableCard } from './ui/useDroppableCard'
+import { useDroppableTarget } from './ui/useDroppableTarget'
 
 const onDrop = vi.fn<(dragged: CardDragData) => void>()
-const onDragOver = vi.fn<(dragged: CardDragData) => void>()
 
 const ActiveTarget = () => {
   const { activeTarget } = useCardInteraction()
@@ -30,15 +29,15 @@ const DragHarness = ({
   const card = { color: CardColors.red, value }
   const deck: CardsDeck | null = value === 1 ? null : { cards: [{ color: valid ? CardColors.red : CardColors.blue, value: 1 }], isHidden: false }
   const { id, isDragging, listeners, setNodeRef: setDraggableRef } = useDraggableCard(target, card)
-  const { isOver, setNodeRef: setDroppableRef } = useDroppableCard(
-    'playground.3',
-    dragged => {
-      if (canPlaceCardOnDeck(dragged.card, deck)) {
-        onDrop(dragged)
-      }
-    },
-    onDragOver,
-  )
+  const {
+    id: dropId,
+    isOver,
+    setNodeRef: setDroppableRef,
+  } = useDroppableTarget({ type: 'playground', index: 3 }, dragged => {
+    if (canPlaceCardOnDeck(dragged.card, deck)) {
+      onDrop(dragged)
+    }
+  })
 
   return (
     <>
@@ -47,11 +46,11 @@ const DragHarness = ({
         ref={setDraggableRef}
         data-card-drag-source
         data-card-drag-id={id}
-        style={{ opacity: isDragging ? 0.35 : 1, touchAction: 'none' }}
+        style={{ opacity: isDragging ? 0 : 1, touchAction: 'none' }}
       >
         source
       </button>
-      <div ref={setDroppableRef} data-card-drop-target="playground.3" data-drop-over={isOver || undefined}>
+      <div ref={setDroppableRef} data-card-drop-target={dropId} data-drop-over={isOver || undefined}>
         deck
       </div>
       <ActiveTarget />
@@ -87,10 +86,7 @@ const drag = async (release = true) => {
 }
 
 describe('card placement hooks', () => {
-  beforeEach(() => {
-    onDragOver.mockClear()
-    onDrop.mockClear()
-  })
+  beforeEach(() => onDrop.mockClear())
   afterEach(cleanup)
 
   it('calls the droppable callback with row-card data for a valid drop', async () => {
@@ -106,19 +102,6 @@ describe('card placement hooks', () => {
     expect(onDrop).toHaveBeenCalledWith({ target: { type: 'row', index: 1 }, card: { color: CardColors.red, value: 2 } })
   })
 
-  it('calls the droppable drag-over callback with row-card data', async () => {
-    render(
-      <CardInteractionProvider enabled>
-        <DragHarness />
-      </CardInteractionProvider>,
-    )
-
-    await drag(false)
-
-    await waitFor(() => expect(onDragOver).toHaveBeenCalled())
-    expect(onDragOver).toHaveBeenLastCalledWith({ target: { type: 'row', index: 1 }, card: { color: CardColors.red, value: 2 } })
-  })
-
   it('uses activeTarget for the card currently being dragged', async () => {
     render(
       <CardInteractionProvider enabled>
@@ -128,6 +111,7 @@ describe('card placement hooks', () => {
 
     await drag(false)
     expect(screen.getByText('row.1')).toBeTruthy()
+    expect(screen.getByText('source').style.opacity).toBe('0')
     fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
     expect(screen.getByText('none')).toBeTruthy()
   })

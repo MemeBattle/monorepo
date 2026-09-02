@@ -1,6 +1,6 @@
 export { CardInteractionProvider } from './ui/CardInteractionProvider'
 export { useCardInteraction } from './ui/useCardInteraction'
 export { useDraggableCard } from './ui/useDraggableCard'
-export { useDroppableCard } from './ui/useDroppableCard'
+export { useDroppableTarget } from './ui/useDroppableTarget'
 export { useCardHotkey } from './ui/useCardHotkey'
-export type { CardDragData, CardInteractionTarget } from './model/types'
+export type { CardDragData, CardDropTarget, CardInteractionTarget } from './model/types'

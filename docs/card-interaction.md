@@ -10,8 +10,9 @@
 export { CardInteractionProvider } from './ui/CardInteractionProvider'
 export { useCardInteraction } from './ui/useCardInteraction'
 export { useDraggableCard } from './ui/useDraggableCard'
-export { useDroppableCard } from './ui/useDroppableCard'
-export type { CardDragData, CardInteractionTarget } from './model/types'
+export { useDroppableTarget } from './ui/useDroppableTarget'
+export { useCardHotkey } from './ui/useCardHotkey'
+export type { CardDragData, CardDropTarget, CardInteractionTarget } from './model/types'
 ```
 
 ```ts
@@ -32,7 +33,7 @@ interface CardInteractionContextValue {
 
 `activeTarget` is `undefined` when no card is selected or dragged.
 
-- Card click/hotkey toggles `activeTarget`.
+- Card click toggles `activeTarget`; card hotkey clears the previous target before activating its owner.
 - Drag start sets the same `activeTarget` and stores card data for preview/drop validation.
 - Successful drop, cancellation, Escape, outside click, disabled interaction, card replacement, or unmount clears it.
 - No interaction mode is stored. Click and drag hooks own their input-specific details.
@@ -78,15 +79,19 @@ const { id, isDragging, listeners, setNodeRef } = useDraggableCard(target, card)
 
 The card component owns ref/listener application, data attributes, opacity, and touch styling.
 
-### `useDroppableCard`
+### `useDroppableTarget`
 
 Returns behavioral drop state only:
 
 ```ts
-const { isOver, isValid, setNodeRef } = useDroppableCard(id, cardDeck, onDrop)
+const { activeCard, id, isOver, setNodeRef } = useDroppableTarget({ type: 'playground', index }, onDrop)
 ```
 
-`PlaygroundDeck` owns target dimensions, visual feedback, and data attributes. The hook validates the current dragged card against the current deck before invoking `onDrop`.
+The hook composes the DnD ID from the semantic target. `PlaygroundDeck` owns target dimensions, validity rules, visual feedback, and data attributes. `isOver` is sufficient for hover behavior.
+
+### `useCardHotkey`
+
+Every card hotkey clears `activeTarget` before invoking its callback so keyboard behavior matches document-click dismissal.
 
 ## Placement flow
 

@@ -9,7 +9,6 @@ import {
   useSensors,
   type DragCancelEvent,
   type DragEndEvent,
-  type DragOverEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { useHotkeys } from 'react-hotkeys-hook'
@@ -100,14 +99,6 @@ export const CardInteractionProvider = ({ children, enabled }: CardInteractionPr
     clearActiveTarget()
   }
 
-  const handleDragOver = ({ active, over }: DragOverEvent) => {
-    const dragged = active.data.current as CardDragData | undefined
-    const drop = over?.data.current as CardDropData | undefined
-    if (enabled && dragged && drop) {
-      drop.onDragOver?.(dragged)
-    }
-  }
-
   const handleDragCancel = (_event: DragCancelEvent) => clearActiveTarget()
   const value = useMemo(
     () => ({ ...interaction, enabled, clearActiveTarget, toggleActiveTarget }),
@@ -120,7 +111,7 @@ export const CardInteractionProvider = ({ children, enabled }: CardInteractionPr
         sensors={sensors}
         collisionDetection={pointerWithin}
         onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
+
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >

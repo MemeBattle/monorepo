@@ -61,7 +61,7 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('card-owned hotkeys', () => {
-  it('routes a rendered row key through the same focus behavior as pointer activation', () => {
+  it('keeps a rendered row card active from its hotkey while pointer activation toggles it', () => {
     mocks.rowCards = [card(2)]
     render(
       <CardInteractionProvider enabled>
@@ -73,11 +73,11 @@ describe('card-owned hotkeys', () => {
     press('q', 'KeyQ')
     expect(screen.getByTestId('focus-state').textContent).toBe('row.0')
     press('q', 'KeyQ')
-    expect(screen.getByTestId('focus-state').textContent).toBe('none')
-    activatePointer(screen.getByRole('button'))
     expect(screen.getByTestId('focus-state').textContent).toBe('row.0')
     activatePointer(screen.getByRole('button'))
     expect(screen.getByTestId('focus-state').textContent).toBe('none')
+    activatePointer(screen.getByRole('button'))
+    expect(screen.getByTestId('focus-state').textContent).toBe('row.0')
     expect(mocks.dispatch).not.toHaveBeenCalled()
   })
 
@@ -109,7 +109,7 @@ describe('card-owned hotkeys', () => {
     expect(mocks.dispatch).not.toHaveBeenCalled()
   })
 
-  it('routes X and pointer activation through open-card focus toggle behavior', () => {
+  it('keeps the open card active from X while pointer activation toggles it', () => {
     mocks.stackCards = []
     mocks.openCards = [card(2)]
     render(
@@ -121,12 +121,12 @@ describe('card-owned hotkeys', () => {
     press('x', 'KeyX')
     expect(screen.getByTestId('focus-state').textContent).toBe('open-stack')
     press('x', 'KeyX')
-    expect(screen.getByTestId('focus-state').textContent).toBe('none')
+    expect(screen.getByTestId('focus-state').textContent).toBe('open-stack')
     const openCard = screen.getAllByRole('button').find(button => button.hasAttribute('data-card-interaction-element'))!
     activatePointer(openCard)
-    expect(screen.getByTestId('focus-state').textContent).toBe('open-stack')
-    activatePointer(openCard)
     expect(screen.getByTestId('focus-state').textContent).toBe('none')
+    activatePointer(openCard)
+    expect(screen.getByTestId('focus-state').textContent).toBe('open-stack')
     expect(mocks.dispatch).not.toHaveBeenCalled()
   })
 

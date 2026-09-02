@@ -1,6 +1,7 @@
 import type { Card } from '@memebattle/ligretto-shared'
 
 export type CardInteractionTarget = { type: 'open-stack' } | { type: 'row'; index: number }
+export type CardDropTarget = { type: 'playground'; index: number }
 
 export interface CardDragData {
   target: CardInteractionTarget
@@ -8,6 +9,5 @@ export interface CardDragData {
 }
 
 export interface CardDropData {
-  onDragOver?: (dragged: CardDragData) => void
   onDrop: (dragged: CardDragData) => void
 }

@@ -18,7 +18,7 @@ const PlayerRowCard = ({ card, index, hotkey }: PlayerRowCardProps) => {
   const { id: dragId, isDragging, listeners, setNodeRef } = useDraggableCard({ type: 'row', index }, card)
   const onCardActivate = toggleActiveTarget
 
-  useCardHotkey(hotkey, onCardActivate, { clearActive: false })
+  useCardHotkey(hotkey, onCardActivate)
 
   return (
     <CardHotkeyBadge hotkey={hotkey}>
@@ -32,7 +32,7 @@ const PlayerRowCard = ({ card, index, hotkey }: PlayerRowCardProps) => {
         isDarkened={isDimmed}
         isSelected={isActive}
         onClick={onCardActivate}
-        style={{ opacity: isDragging ? 0.35 : 1, touchAction: 'none' }}
+        style={{ opacity: isDragging ? 0 : 1, touchAction: 'none' }}
       />
     </CardHotkeyBadge>
   )
