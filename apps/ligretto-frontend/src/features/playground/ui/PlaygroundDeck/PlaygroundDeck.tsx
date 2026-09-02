@@ -1,5 +1,6 @@
-import { useCallback, type Ref } from 'react'
-import { canPlaceCardOnDeck, type CardsDeck } from '@memebattle/ligretto-shared'
+import { useCallback } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { canPlaceCardOnDeck, putCardAction, putCardFromStackOpenDeck, type CardsDeck } from '@memebattle/ligretto-shared'
 import last from 'lodash/last'
 import { styled } from '@mui/material/styles'
 
@@ -12,7 +13,9 @@ import {
   tabletWidthBySize,
   widthByCardSize,
 } from '#entities/card/ui/Card'
-import { useDroppableTarget, type CardDragData } from '#features/cardInteraction'
+import { useCardInteraction, useDroppableTarget, type CardDragData } from '#features/cardInteraction'
+import { gameIdSelector, playerCardsSelector, playerStackOpenDeckCardsSelector } from '#ducks/game'
+import type { All } from '#types/store'
 
 const DropSurface = styled('div')(({ theme }) => ({
   width: widthByCardSize.large,
@@ -30,21 +33,39 @@ const DropSurface = styled('div')(({ theme }) => ({
 interface PlaygroundDeckProps {
   cardDeck: CardsDeck | null | undefined
   deckIndex: number
-  onClick: () => void
-  onDrop?: (dragged: CardDragData) => void
-  ref?: Ref<HTMLDivElement>
 }
 
-export const PlaygroundDeck = ({ cardDeck, deckIndex, onClick, onDrop = () => undefined, ref }: PlaygroundDeckProps) => {
+export const PlaygroundDeck = ({ cardDeck, deckIndex }: PlaygroundDeckProps) => {
+  const dispatch = useDispatch()
+  const gameId = useSelector(gameIdSelector)
+  const { activeTarget } = useCardInteraction()
+  const activeCard = useSelector((state: All) => {
+    if (activeTarget?.type === 'row') {
+      return playerCardsSelector(state)?.[activeTarget.index]
+    }
+    if (activeTarget?.type === 'open-stack') {
+      return last(playerStackOpenDeckCardsSelector(state))
+    }
+  })
+  const placeCard = useCallback(
+    (target: CardDragData['target']) => {
+      if (target.type === 'row') {
+        dispatch(putCardAction({ cardIndex: target.index, gameId, playgroundDeckIndex: deckIndex }))
+      } else {
+        dispatch(putCardFromStackOpenDeck({ gameId, playgroundDeckIndex: deckIndex }))
+      }
+    },
+    [deckIndex, dispatch, gameId],
+  )
   const handleDrop = useCallback(
     (dragged: CardDragData) => {
       if (canPlaceCardOnDeck(dragged.card, cardDeck)) {
-        onDrop(dragged)
+        placeCard(dragged.target)
       }
     },
-    [cardDeck, onDrop],
+    [cardDeck, placeCard],
   )
-  const { activeCard, id: dropId, isOver, setNodeRef } = useDroppableTarget({ type: 'playground', index: deckIndex }, handleDrop)
+  const { id: dropId, isOver, setNodeRef } = useDroppableTarget({ type: 'playground', index: deckIndex }, handleDrop)
   const isValid = !!activeCard && canPlaceCardOnDeck(activeCard, cardDeck)
   const card = last(cardDeck?.cards)
   const boxShadow = isValid
@@ -56,13 +77,17 @@ export const PlaygroundDeck = ({ cardDeck, deckIndex, onClick, onDrop = () => un
       : undefined
 
   return (
-    <CardPlace size="large" ref={ref} dataTestId={`Playground-Deck-${deckIndex}`}>
+    <CardPlace size="large" dataTestId={`Playground-Deck-${deckIndex}`}>
       <DropSurface
         ref={setNodeRef}
         data-card-drop-target={dropId}
         data-drop-valid={isValid || undefined}
         data-drop-over={isOver || undefined}
-        onClick={onClick}
+        onClick={() => {
+          if (activeTarget?.type === 'row' || activeTarget?.type === 'open-stack') {
+            placeCard(activeTarget)
+          }
+        }}
         style={{ borderRadius: '0.375rem', boxShadow, transition: 'box-shadow 100ms' }}
       >
         {card ? <Card size="large" {...card} /> : null}

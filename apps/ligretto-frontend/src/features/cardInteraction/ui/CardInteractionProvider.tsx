@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type PropsWithChildren } from 'react'
+import { useSelector } from 'react-redux'
 import {
   DndContext,
   DragOverlay,
@@ -12,10 +13,11 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { useHotkeys } from 'react-hotkeys-hook'
-import type { Card } from '@memebattle/ligretto-shared'
+import last from 'lodash/last'
 
-import { Hotkey } from '#ducks/game'
+import { Hotkey, playerCardsSelector, playerStackOpenDeckCardsSelector } from '#ducks/game'
 import { Card as CardComponent } from '#entities/card'
+import type { All } from '#types/store'
 import type { CardDragData, CardDropData, CardInteractionTarget } from '../model/types'
 import { CardInteractionContext, isSameCardInteractionTarget } from './CardInteractionContext'
 
@@ -25,7 +27,19 @@ interface CardInteractionProviderProps extends PropsWithChildren {
 
 interface InteractionState {
   activeTarget?: CardInteractionTarget
-  activeCard?: Card
+}
+
+const ActiveCardOverlay = ({ target }: { target?: CardInteractionTarget }) => {
+  const card = useSelector((state: All) => {
+    if (target?.type === 'row') {
+      return playerCardsSelector(state)?.[target.index]
+    }
+    if (target?.type === 'open-stack') {
+      return last(playerStackOpenDeckCardsSelector(state))
+    }
+  })
+
+  return card ? <CardComponent {...card} data-card-drag-overlay /> : null
 }
 
 export const CardInteractionProvider = ({ children, enabled }: CardInteractionProviderProps) => {
@@ -87,7 +101,7 @@ export const CardInteractionProvider = ({ children, enabled }: CardInteractionPr
       return
     }
     const dragged = active.data.current as CardDragData | undefined
-    setInteraction(dragged ? { activeTarget: dragged.target, activeCard: dragged.card } : {})
+    setInteraction(dragged ? { activeTarget: dragged.target } : {})
   }
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
@@ -116,7 +130,9 @@ export const CardInteractionProvider = ({ children, enabled }: CardInteractionPr
         onDragCancel={handleDragCancel}
       >
         {children}
-        <DragOverlay>{interaction.activeCard ? <CardComponent {...interaction.activeCard} data-card-drag-overlay /> : null}</DragOverlay>
+        <DragOverlay>
+          <ActiveCardOverlay target={interaction.activeTarget} />
+        </DragOverlay>
       </DndContext>
     </CardInteractionContext>
   )

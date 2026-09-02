@@ -1,7 +1,7 @@
 import { useCallback, useContext, useEffect, type DependencyList } from 'react'
 
 import type { CardInteractionTarget } from '../model/types'
-import { CardInteractionContext, isSameCardInteractionTarget } from './CardInteractionContext'
+import { CardInteractionContext, getInteractionTargetKey, isSameCardInteractionTarget } from './CardInteractionContext'
 
 export function useCardInteraction(): {
   activeTarget: CardInteractionTarget | undefined
@@ -23,6 +23,7 @@ export function useCardInteraction(target?: CardInteractionTarget, deps: Depende
 
   const { activeTarget, clearActiveTarget, toggleActiveTarget } = context
   const isActive = !!target && isSameCardInteractionTarget(activeTarget, target)
+  const targetKey = target ? getInteractionTargetKey(target) : undefined
 
   useEffect(() => {
     if (!target) {
@@ -31,7 +32,7 @@ export function useCardInteraction(target?: CardInteractionTarget, deps: Depende
     return () => clearActiveTarget(target)
     // The caller-provided dependencies define when the rendered card identity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clearActiveTarget, target?.type, target?.type === 'row' ? target.index : undefined, ...deps])
+  }, [clearActiveTarget, targetKey, ...deps])
 
   const toggleOwnTarget = useCallback(() => {
     if (target) {

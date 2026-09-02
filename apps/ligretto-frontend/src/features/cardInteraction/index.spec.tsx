@@ -84,6 +84,11 @@ const OpenStackCard = () => {
   )
 }
 
+const PlaygroundTarget = ({ index }: { index: number }) => {
+  const { toggleActiveTarget } = useCardInteraction({ type: 'playground', index }, [])
+  return <button onClick={toggleActiveTarget}>select playground</button>
+}
+
 describe('CardInteractionProvider', () => {
   it('exposes only the operations owned by each public hook overload', () => {
     render(
@@ -183,7 +188,7 @@ describe('CardInteractionProvider', () => {
     const view = render(
       <TestProvider>
         <RowCard />
-        <Playground cardsDecks={Array.from({ length: 12 }, () => null)} onDeckClick={() => undefined} />
+        <Playground cardsDecks={Array.from({ length: 12 }, () => null)} />
       </TestProvider>,
     )
 
@@ -208,6 +213,25 @@ describe('CardInteractionProvider', () => {
       </TestProvider>,
     )
     expect(screen.getByText('idle')).toBeTruthy()
+  })
+
+  it('clears focus when the focused playground target index changes', () => {
+    const view = render(
+      <TestProvider>
+        <PlaygroundTarget index={0} />
+        <FocusController />
+      </TestProvider>,
+    )
+
+    fireEvent.click(screen.getByText('select playground'))
+    expect(screen.getByText('playground')).toBeTruthy()
+    view.rerender(
+      <TestProvider>
+        <PlaygroundTarget index={1} />
+        <FocusController />
+      </TestProvider>,
+    )
+    expect(screen.getByText('none')).toBeTruthy()
   })
 
   it('does not allow pointer focus while disabled', () => {

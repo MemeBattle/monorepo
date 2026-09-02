@@ -1,17 +1,14 @@
 import { createContext, useContext } from 'react'
-import type { Card } from '@memebattle/ligretto-shared'
-
 import type { CardInteractionTarget } from '../model/types'
 
-export const getCardInteractionKey = (target: CardInteractionTarget): string =>
-  target.type === 'row' ? `${target.type}.${target.index}` : target.type
+export const getInteractionTargetKey = (target: CardInteractionTarget): string =>
+  target.type === 'open-stack' ? target.type : `${target.type}.${target.index}`
 
 export const isSameCardInteractionTarget = (left: CardInteractionTarget | undefined, right: CardInteractionTarget | undefined) =>
-  left === right || (!!left && !!right && getCardInteractionKey(left) === getCardInteractionKey(right))
+  left === right || (!!left && !!right && getInteractionTargetKey(left) === getInteractionTargetKey(right))
 
 export interface CardInteractionContextValue {
   activeTarget?: CardInteractionTarget
-  activeCard?: Card
   enabled: boolean
   clearActiveTarget: (target?: CardInteractionTarget) => void
   toggleActiveTarget: (target: CardInteractionTarget) => void

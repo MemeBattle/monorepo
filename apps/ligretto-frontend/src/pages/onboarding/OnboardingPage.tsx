@@ -5,7 +5,6 @@ import CachedIcon from '@mui/icons-material/Cached'
 
 import { GameLayout } from '#shared/ui/layouts/game/GameLayout'
 import { GameGrid } from '#widgets/game/ui/GameGrid/GameGrid'
-import { Playground } from '#features/playground/ui/Playground'
 import { LigrettoPack, Opponent } from '#features/player'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { CardsPanel } from '#features/player/ui/CardsPanel/CardsPanel'
@@ -38,6 +37,7 @@ import { AnchoredDescription, type DescriptionTargets } from './descriptions/Anc
 import { CardInteractionProvider, useCardInteraction } from '#features/cardInteraction'
 import { getOnboardingPlacementAction } from './onboardingPlacement'
 import { OnboardingOpenStackCard } from './OnboardingOpenStackCard'
+import { OnboardingPlayground } from './OnboardingPlayground'
 
 interface OnboardingCardPanelProps {
   stackRef: RefObject<HTMLDivElement | null>
@@ -207,7 +207,7 @@ function OnboardingPageBody() {
             // the slack between them and the playground is where the hints go.
             <Box sx={{ marginTop: { xs: '1.5rem', md: 0 } }}>
               <Layer id="playgroundCards">
-                <Playground
+                <OnboardingPlayground
                   ref={playgroundRef}
                   cardsDecks={game.playground.decks}
                   onDeckClick={handlePlaygroundDeckClick}
