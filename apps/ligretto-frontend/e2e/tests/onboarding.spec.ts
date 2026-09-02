@@ -115,6 +115,8 @@ test.describe('Onboarding', () => {
 
     await test.step('opponent answers and the optional ligretto move fills the free slot', async () => {
       await onboarding.getRowCard(1).click()
+      await expect(onboarding.getRowCard(1)).toHaveAttribute('data-card-active', 'true')
+      await onboarding.getPlaygroundDeck(0).click()
       await expectStep(page, OnboardingStep.OpponentTurn)
 
       await onboarding.getLigrettoDeckCard().click() // the second row slot is free — a ligretto card goes there
