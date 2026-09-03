@@ -8,6 +8,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div>
     <h1>Passkey Client</h1>
 
+    <input id="displayName" type="text" placeholder="Display name" value="Ada" />
+
     <button id="register">Start Registration</button>
 
     <br />
@@ -18,11 +20,12 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 `
 
 const elemRegister = document.getElementById('register')
+const elemDisplayName = document.getElementById('displayName') as HTMLInputElement | null
 const elemSuccess = document.getElementById('success')
 const elemError = document.getElementById('error')
 
-if (!elemRegister || !elemSuccess || !elemError) {
-  throw new Error('Register button not found')
+if (!elemRegister || !elemDisplayName || !elemSuccess || !elemError) {
+  throw new Error('Register form not found')
 }
 
 elemRegister.addEventListener('click', async () => {
@@ -34,6 +37,7 @@ elemRegister.addEventListener('click', async () => {
     headers: {
       'Content-Type': 'application/json',
     },
+    body: JSON.stringify({ displayName: elemDisplayName.value }),
   })
 
   const optionsResponseJSON = await optionsResponse.json()
@@ -72,9 +76,9 @@ elemRegister.addEventListener('click', async () => {
   // Wait for the results of verification
   const verificationJSON = await verificationResp.json()
 
-  // Show UI appropriate for the `verified` status
-  if (verificationJSON && verificationJSON.cred.user_verified) {
-    elemSuccess.innerHTML = 'Success!'
+  // A finished registration answers with the account it created.
+  if (verificationJSON?.accountId) {
+    elemSuccess.innerHTML = `Success! Account: ${verificationJSON.accountId}`
   } else {
     elemError.innerHTML = `Oh no, something went wrong! Response: <pre>${JSON.stringify(verificationJSON)}</pre>`
   }
