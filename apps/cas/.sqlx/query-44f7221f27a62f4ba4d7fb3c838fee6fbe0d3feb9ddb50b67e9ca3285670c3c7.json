@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO accounts (display_name, type, email)\n               VALUES ($1, $2, $3)\n               RETURNING\n                   id,\n                   display_name,\n                   type AS \"type: AccountType\",\n                   email,\n                   created_at,\n                   last_seen_at",
+  "query": "INSERT INTO accounts (id, display_name, type, email)\n           VALUES ($1, $2, $3, $4)\n           RETURNING\n               id,\n               display_name,\n               type AS \"type: AccountType\",\n               email,\n               created_at,\n               last_seen_at",
   "describe": {
     "columns": [
       {
@@ -82,6 +82,7 @@
     ],
     "parameters": {
       "Left": [
+        "Uuid",
         "Text",
         {
           "Custom": {
@@ -106,5 +107,5 @@
       false
     ]
   },
-  "hash": "c20f863765d6dfc90da6c0ec48a40916c4db0f34d9cec776faa20074932b04e2"
+  "hash": "44f7221f27a62f4ba4d7fb3c838fee6fbe0d3feb9ddb50b67e9ca3285670c3c7"
 }
