@@ -141,6 +141,13 @@ dashboard [#671](https://github.com/MemeBattle/monorepo/issues/671).
       service.
 - [ ] Deployment/infra: where it runs, TLS/domain (WebAuthn requires a stable
       rp_id), secrets.
+- [ ] WebAuthn ceremony state is in-memory (`src/ceremony.rs`), so a ceremony
+      must finish on the instance that started it: the deployment runs a single
+      replica until the state moves to a shared store.
+- [ ] Registration requests `residentKey: discouraged` (see
+      `docs/adr/0001-passkey-persistence.md`), so a hardware security key may
+      not be discoverable and cannot serve usernameless login. Decide with
+      #666/#670 what the sign-in screen falls back to.
 
 ## Working agreements (lit factory)
 

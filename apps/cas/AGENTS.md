@@ -10,3 +10,6 @@ SQL query and offline cache workflow is described in
 
 Test setup and the isolated SQLx database workflow are described in
 [docs/TESTS.md](./docs/TESTS.md).
+
+Decisions that shaped the schema and the ceremonies are recorded as ADRs in
+[docs/adr/](./docs/adr/).
