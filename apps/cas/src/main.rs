@@ -1,3 +1,4 @@
+mod ceremony;
 mod error;
 mod extract;
 mod health;
@@ -18,15 +19,14 @@ use tower_http::{
 };
 use tracing::Level;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use webauthn_rs::prelude::PasskeyRegistration;
 
+use crate::ceremony::CeremonyStore;
 use crate::error::ApiError;
-use crate::webauthn::{ApiState, UserId, router as webauthn_router};
+use crate::webauthn::{ApiState, router as webauthn_router};
 use cas::config::{Config, ConfigError, load_env_files};
+use cas::passkeys::PasskeyRepository;
 use std::net::Ipv4Addr;
-use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
-use tokio::sync::Mutex;
 
 #[derive(Debug, Error, miette::Diagnostic)]
 enum CasError {
@@ -102,15 +102,15 @@ fn app(config: Config) -> Result<Router, CasError> {
         .connect_lazy(&config.database_url)
         .map_err(CasError::DbPool)?;
 
-    let registration_state = Arc::new(Mutex::new(HashMap::<UserId, PasskeyRegistration>::new()));
     let webauthn = webauthn_rs::WebauthnBuilder::new(&config.rp_id, &config.origin)
         .map_err(CasError::WebauthnInit)?
         .build()
         .map_err(CasError::WebauthnInit)?;
 
     let api_state = ApiState {
-        registration_state,
         webauthn,
+        registrations: CeremonyStore::new(),
+        passkeys: PasskeyRepository::new(pool.clone()),
     };
 
     let router = Router::new()
