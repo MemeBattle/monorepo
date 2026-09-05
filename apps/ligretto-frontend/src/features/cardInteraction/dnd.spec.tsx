@@ -111,6 +111,7 @@ const drag = async (release = true) => {
   const destination = screen.getByText('deck')
   source.getBoundingClientRect = () => rect(0)
   destination.getBoundingClientRect = () => rect(100)
+  fireEvent.pointerDown(source, { pointerType: 'mouse', clientX: 10, clientY: 10, button: 0 })
   fireEvent.mouseDown(source, { clientX: 10, clientY: 10, button: 0, buttons: 1 })
   fireEvent.mouseMove(document, { clientX: 20, clientY: 10, buttons: 1 })
   await Promise.resolve()
@@ -136,6 +137,7 @@ const touchDrag = async (release = true) => {
 const pendingMouseDrag = () => {
   const source = screen.getByText('source')
   source.getBoundingClientRect = () => rect(0)
+  fireEvent.pointerDown(source, { pointerType: 'mouse', clientX: 10, clientY: 10, button: 0 })
   fireEvent.mouseDown(source, { clientX: 10, clientY: 10, button: 0, buttons: 1 })
 }
 
@@ -338,6 +340,33 @@ describe('card placement hooks', () => {
     fireEvent.click(clicked === 'outside' ? document.body : screen.getByText(clicked))
     expect(screen.getByText('row.1')).toBeTruthy()
     expect(onDrop).not.toHaveBeenCalled()
+    fireEvent.mouseDown(document.body)
+    fireEvent.mouseUp(document.body)
+    fireEvent.click(document.body)
+    expect(screen.getByText('none')).toBeTruthy()
+  })
+
+  it('ignores touch compatibility mouse events after a hotkey cancels the gesture', async () => {
+    render(
+      <TestProvider>
+        <DragHarness />
+      </TestProvider>,
+    )
+    pendingTouchDrag()
+    fireEvent.keyDown(document.body, { key: 'q', code: 'KeyQ' })
+    expect(screen.getByText('row.1')).toBeTruthy()
+    await new Promise(resolve => setTimeout(resolve, 60))
+    const source = screen.getByText('source')
+    fireEvent.touchEnd(source)
+    // Compatibility mouse events have no new physical pointerdown.
+    fireEvent.mouseMove(source, { clientX: 10, clientY: 10 })
+    fireEvent.mouseDown(source, { button: 0, buttons: 1 })
+    fireEvent.mouseUp(source, { button: 0 })
+    fireEvent.click(source)
+    expect(screen.getByText('row.1')).toBeTruthy()
+    expect(onDrop).not.toHaveBeenCalled()
+    // A deliberate mouse gesture still clears focus normally.
+    fireEvent.pointerDown(document.body, { pointerType: 'mouse' })
     fireEvent.mouseDown(document.body)
     fireEvent.mouseUp(document.body)
     fireEvent.click(document.body)

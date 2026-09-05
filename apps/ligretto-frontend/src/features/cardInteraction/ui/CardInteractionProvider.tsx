@@ -142,10 +142,11 @@ export const CardInteractionProvider = ({ children, enabled }: CardInteractionPr
       releaseCleanupRef.current?.()
       suppressReleaseClickRef.current = false
     }
-    document.addEventListener('mousedown', resetReleaseGuard, true)
+    // Compatibility mouse events after touchend are not a new pointer gesture.
+    document.addEventListener('pointerdown', resetReleaseGuard, true)
     document.addEventListener('touchstart', resetReleaseGuard, true)
     return () => {
-      document.removeEventListener('mousedown', resetReleaseGuard, true)
+      document.removeEventListener('pointerdown', resetReleaseGuard, true)
       document.removeEventListener('touchstart', resetReleaseGuard, true)
       cancelSensorRef.current?.()
       releaseCleanupRef.current?.()
@@ -190,9 +191,7 @@ export const CardInteractionProvider = ({ children, enabled }: CardInteractionPr
     }
   }
   const capturePointerStart = (event: React.SyntheticEvent) => {
-    releaseCleanupRef.current?.()
-    suppressReleaseClickRef.current = false
-    if (!enabled) {
+    if (!enabled || suppressReleaseClickRef.current) {
       event.preventDefault()
       event.stopPropagation()
     }
@@ -202,6 +201,7 @@ export const CardInteractionProvider = ({ children, enabled }: CardInteractionPr
       <div
         style={{ display: 'contents' }}
         onClickCapture={captureClick}
+        onPointerDownCapture={capturePointerStart}
         onMouseDownCapture={capturePointerStart}
         onTouchStartCapture={capturePointerStart}
       >
