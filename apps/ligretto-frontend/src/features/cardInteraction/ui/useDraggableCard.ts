@@ -6,23 +6,23 @@ import type { CardDragData, CardDragTarget } from '../model/types'
 import { getInteractionTargetKey, isSameCardInteractionTarget, useCardInteractionContext } from './CardInteractionContext'
 
 export const useDraggableCard = (target: CardDragTarget, card: Card, disabled = false) => {
-  const { enabled, activeTarget, clearActiveTarget } = useCardInteractionContext()
+  const { activeTarget, clearActiveTarget } = useCardInteractionContext()
   const id = `${getInteractionTargetKey(target)}.${card.color}.${card.value}`
   const data = useMemo<CardDragData>(() => ({ target, card }), [card, target])
-  const { isDragging, listeners, setNodeRef } = useDraggable({ id, data, disabled: disabled || !enabled })
+  const { isDragging, listeners, setNodeRef } = useDraggable({ id, data, disabled })
 
   useEffect(() => {
-    if (disabled || !enabled) {
+    if (disabled) {
       clearActiveTarget(target)
     }
     return () => clearActiveTarget(target)
     // Semantic drag identity, not freshly allocated card/target objects.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, disabled, enabled, clearActiveTarget])
+  }, [id, disabled, clearActiveTarget])
 
   return {
     id,
-    isDragging: isDragging && enabled && !disabled && isSameCardInteractionTarget(activeTarget, target),
+    isDragging: isDragging && !disabled && isSameCardInteractionTarget(activeTarget, target),
     listeners,
     setNodeRef,
   }

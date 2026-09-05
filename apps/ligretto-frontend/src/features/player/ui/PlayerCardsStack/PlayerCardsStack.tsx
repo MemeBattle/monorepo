@@ -3,7 +3,6 @@ import { styled } from '@mui/material/styles'
 import React from 'react'
 import { useSelector } from 'react-redux'
 
-import { useCardInputEnabled } from '#features/cardInteraction'
 import { Hotkey } from '#ducks/game'
 import { CardHotkeyBadge, CardPlace } from '#entities/card'
 import { CardsRow } from '#entities/card/ui/CardsRow'
@@ -26,21 +25,19 @@ const ReshuffleHint = styled('div')(({ theme }) => ({
 }))
 
 export const PlayerCardsStack = () => {
-  const { stackDeckCards, isStackDeckHidden, stackOpenDeckCard } = useSelector(playerCardsStackSelector)
-
-  const inputEnabled = useCardInputEnabled()
+  const { stackDeckCards, stackOpenDeckCard } = useSelector(playerCardsStackSelector)
 
   if (!stackDeckCards) {
     return null
   }
 
-  const isStackDeckEnabled = inputEnabled && (stackDeckCards.length > 0 || !!stackOpenDeckCard)
+  const isStackDeckEnabled = stackDeckCards.length > 0 || !!stackOpenDeckCard
 
   return (
     <CardsRow>
       <CardPlace>
         {stackOpenDeckCard && (
-          <CardHotkeyBadge hotkey={inputEnabled ? Hotkey.x : undefined}>
+          <CardHotkeyBadge hotkey={Hotkey.x}>
             <PlayerStackOpenCard card={stackOpenDeckCard} />
           </CardHotkeyBadge>
         )}
@@ -48,7 +45,7 @@ export const PlayerCardsStack = () => {
 
       <CardHotkeyBadge hotkey={isStackDeckEnabled ? Hotkey.space : undefined}>
         <CardPlace>
-          <PlayerStackDeck card={stackDeckCards[0]} enabled={isStackDeckEnabled} isHidden={isStackDeckHidden && stackDeckCards.length > 0} />
+          <PlayerStackDeck />
           {stackDeckCards.length === 0 && stackOpenDeckCard ? (
             <ReshuffleHint>
               <CachedIcon fontSize="inherit" />

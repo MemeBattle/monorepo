@@ -1,19 +1,19 @@
 import { useHotkeys } from 'react-hotkeys-hook'
+import { useCallback } from 'react'
 
 import type { Hotkey } from '#ducks/game'
 import { useCardInteractionContext } from './CardInteractionContext'
-import { useCardInputEnabled } from './useCardInputEnabled'
 
 export const useCardHotkey = (hotkey: Hotkey | undefined, onActivate: () => void) => {
-  const { clearActiveTarget } = useCardInteractionContext()
-  const enabled = useCardInputEnabled()
+  const { runCommand } = useCardInteractionContext()
+  const activate = useCallback(() => runCommand(onActivate), [onActivate, runCommand])
   useHotkeys(
     hotkey ?? '',
     event => {
       event.preventDefault()
-      clearActiveTarget()
-      onActivate()
+      activate()
     },
-    { enabled: enabled && !!hotkey },
+    { enabled: !!hotkey },
   )
+  return activate
 }

@@ -8,3 +8,8 @@ export interface CardDragData {
   target: CardDragTarget
   card: Card
 }
+
+export interface CardDropData {
+  target: CardDropTarget
+  onDrop: (dragged: CardDragData) => void
+}

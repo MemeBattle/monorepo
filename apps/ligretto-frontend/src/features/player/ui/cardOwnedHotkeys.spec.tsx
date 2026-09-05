@@ -8,6 +8,7 @@ import { CardInteractionProvider, useCardInteraction } from '#features/cardInter
 import { tapLigrettoDeckCardAction, tapStackDeckCardAction } from '#ducks/game'
 import { PlayerRowCardsContainer } from './PlayerRowCardsContainer/PlayerRowCardsContainer'
 import { PlayerCardsStack } from './PlayerCardsStack/PlayerCardsStack'
+import { PlayerStackDeck } from './PlayerCardsStack/PlayerStackDeck'
 import { LigrettoDeckContainer } from './LigrettoDeckContainer'
 
 const mocks = vi.hoisted(() => ({
@@ -61,6 +62,16 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('card-owned hotkeys', () => {
+  it('derives stack availability locally without enabled props', () => {
+    mocks.stackCards = [card(3)]
+    render(
+      <CardInteractionProvider enabled>
+        <PlayerStackDeck />
+      </CardInteractionProvider>,
+    )
+    press(' ', 'Space')
+    expect(mocks.dispatch).toHaveBeenCalledWith(tapStackDeckCardAction())
+  })
   it('blocks both pointer commands and hotkeys while interactions are disabled', () => {
     mocks.stackCards = [card(3)]
     mocks.openCards = [card(2)]
@@ -79,9 +90,9 @@ describe('card-owned hotkeys', () => {
     }
     expect(mocks.dispatch).not.toHaveBeenCalled()
     expect(screen.getByTestId('focus-state').textContent).toBe('none')
-    expect(screen.queryByText('L')).toBeNull()
-    expect(screen.queryByText('SPACE')).toBeNull()
-    expect(screen.queryByText('X')).toBeNull()
+    expect(screen.getByText('L')).toBeTruthy()
+    expect(screen.getByText('SPACE')).toBeTruthy()
+    expect(screen.getByText('X')).toBeTruthy()
   })
   it('hides the row shortcut while interactions are disabled', () => {
     mocks.rowCards = [card(2)]
@@ -94,7 +105,7 @@ describe('card-owned hotkeys', () => {
     press('q', 'KeyQ')
     activatePointer(screen.getByRole('button'))
     expect(screen.getByTestId('focus-state').textContent).toBe('none')
-    expect(screen.queryByText('Q')).toBeNull()
+    expect(screen.getByText('Q')).toBeTruthy()
   })
 
   it('keeps a rendered row card active from its hotkey while pointer activation toggles it', () => {
@@ -212,7 +223,7 @@ describe('card-owned hotkeys', () => {
     mocks.dispatch.mockClear()
     press('x', 'KeyX')
     expect(screen.getByTestId('focus-state').textContent).toBe('open-stack')
-    activatePointer(screen.getByText('3').closest('button')!)
+    activatePointer(screen.getByText('SPACE').parentElement!.querySelector('button')!)
     expect(screen.getByTestId('focus-state').textContent).toBe('none')
     expect(mocks.dispatch).toHaveBeenCalledOnce()
     expect(mocks.dispatch).toHaveBeenCalledWith(tapStackDeckCardAction())

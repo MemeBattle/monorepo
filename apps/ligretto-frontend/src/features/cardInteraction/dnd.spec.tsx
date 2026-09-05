@@ -30,9 +30,12 @@ const InteractionContextKeys = () => {
 }
 
 const DragSource = ({ value, target, disabled }: { value: number; target: CardDragTarget; disabled: boolean }) => {
-  useCardHotkey(Hotkey.q, onShortcut)
   const card = { color: CardColors.red, value }
   const { toggleActiveTarget } = useCardInteraction(target, [value])
+  useCardHotkey(Hotkey.q, () => {
+    onShortcut()
+    toggleActiveTarget()
+  })
   const { id, isDragging, listeners, setNodeRef } = useDraggableCard(target, card, disabled)
   return (
     <button
@@ -115,6 +118,31 @@ const drag = async (release = true) => {
   if (release) {
     fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
   }
+}
+
+const touchDrag = async (release = true) => {
+  const source = screen.getByText('source')
+  const destination = screen.getByText('deck')
+  source.getBoundingClientRect = () => rect(0)
+  destination.getBoundingClientRect = () => rect(100)
+  fireEvent.touchStart(source, { touches: [{ clientX: 10, clientY: 10, identifier: 1 }] })
+  await vi.waitFor(() => expect(source.style.opacity).toBe('0'))
+  fireEvent.touchMove(document, { touches: [{ clientX: 110, clientY: 10, identifier: 1 }] })
+  if (release) {
+    fireEvent.touchEnd(document, { changedTouches: [{ clientX: 110, clientY: 10, identifier: 1 }] })
+  }
+}
+
+const pendingMouseDrag = () => {
+  const source = screen.getByText('source')
+  source.getBoundingClientRect = () => rect(0)
+  fireEvent.mouseDown(source, { clientX: 10, clientY: 10, button: 0, buttons: 1 })
+}
+
+const pendingTouchDrag = () => {
+  const source = screen.getByText('source')
+  source.getBoundingClientRect = () => rect(0)
+  fireEvent.touchStart(source, { touches: [{ clientX: 10, clientY: 10, identifier: 1 }] })
 }
 
 describe('card placement hooks', () => {
@@ -238,9 +266,9 @@ describe('card placement hooks', () => {
     view.rerender(tree(true))
     fireEvent.keyDown(document.body, { key: 'q', code: 'KeyQ' })
     fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
-    expect(onShortcut).not.toHaveBeenCalled()
+    expect(onShortcut).toHaveBeenCalledOnce()
     expect(onDrop).not.toHaveBeenCalled()
-    expect(screen.getByText('none')).toBeTruthy()
+    expect(screen.getByText('row.1')).toBeTruthy()
   })
 
   it('does not drop a replacement card after its source identity changes', async () => {
@@ -257,7 +285,46 @@ describe('card placement hooks', () => {
     expect(screen.getByText('none')).toBeTruthy()
   })
 
-  it('leaves input with the native drag until release instead of running hotkey commands', async () => {
+  it.each([
+    ['mouse', drag],
+    ['touch', touchDrag],
+  ] as const)('cancels a real %s drag before running a hotkey command', async (_sensor, startDrag) => {
+    render(
+      <TestProvider>
+        <DragHarness />
+      </TestProvider>,
+    )
+    await startDrag(false)
+    fireEvent.keyDown(document.body, { key: 'q', code: 'KeyQ' })
+    expect(onShortcut).toHaveBeenCalledOnce()
+    expect(screen.getByText('row.1')).toBeTruthy()
+    expect(screen.getByText('source').style.opacity).toBe('1')
+    fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
+    fireEvent.touchEnd(document, { changedTouches: [{ clientX: 110, clientY: 10, identifier: 1 }] })
+    expect(onDrop).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['mouse distance', pendingMouseDrag],
+    ['touch delay', pendingTouchDrag],
+  ] as const)('cancels a pending %s sensor before it can activate', async (_sensor, startPendingDrag) => {
+    render(
+      <TestProvider>
+        <DragHarness />
+      </TestProvider>,
+    )
+    startPendingDrag()
+    fireEvent.keyDown(document.body, { key: 'q', code: 'KeyQ' })
+    fireEvent.mouseMove(document, { clientX: 110, clientY: 10, buttons: 1 })
+    fireEvent.touchMove(document, { touches: [{ clientX: 110, clientY: 10, identifier: 1 }] })
+    await new Promise(resolve => setTimeout(resolve, 180))
+    expect(onShortcut).toHaveBeenCalledOnce()
+    expect(screen.getByText('row.1')).toBeTruthy()
+    expect(screen.getByText('source').style.opacity).toBe('1')
+    expect(onDrop).not.toHaveBeenCalled()
+  })
+
+  it.each(['source', 'deck', 'outside'])('keeps newly focused target through a late abandoned release and ensuing %s click', async clicked => {
     render(
       <TestProvider>
         <DragHarness />
@@ -265,12 +332,16 @@ describe('card placement hooks', () => {
     )
     await drag(false)
     fireEvent.keyDown(document.body, { key: 'q', code: 'KeyQ' })
-    expect(onShortcut).not.toHaveBeenCalled()
     expect(screen.getByText('row.1')).toBeTruthy()
+    await new Promise(resolve => setTimeout(resolve, 60))
     fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
-    expect(onDrop).toHaveBeenCalledOnce()
-    fireEvent.keyDown(document.body, { key: 'q', code: 'KeyQ' })
-    expect(onShortcut).toHaveBeenCalledOnce()
+    fireEvent.click(clicked === 'outside' ? document.body : screen.getByText(clicked))
+    expect(screen.getByText('row.1')).toBeTruthy()
+    expect(onDrop).not.toHaveBeenCalled()
+    fireEvent.mouseDown(document.body)
+    fireEvent.mouseUp(document.body)
+    fireEvent.click(document.body)
+    expect(screen.getByText('none')).toBeTruthy()
   })
 
   it('does not call the droppable callback for an invalid drop', async () => {

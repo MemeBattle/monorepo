@@ -9,9 +9,9 @@ export const isSameCardInteractionTarget = (left: CardInteractionTarget | undefi
 
 export interface CardInteractionContextValue {
   activeTarget?: CardInteractionTarget
-  enabled: boolean
   clearActiveTarget: (target?: CardInteractionTarget) => void
   toggleActiveTarget: (target: CardInteractionTarget) => void
+  runCommand: (command: () => void) => void
 }
 
 export const CardInteractionContext = createContext<CardInteractionContextValue | undefined>(undefined)

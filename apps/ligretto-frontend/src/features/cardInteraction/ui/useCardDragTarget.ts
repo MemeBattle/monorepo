@@ -4,7 +4,7 @@ import type { CardDragData } from '../model/types'
 
 export const useCardDragTarget = () => {
   const { active } = useDndContext()
-  const { activeTarget, enabled } = useCardInteractionContext()
+  const { activeTarget } = useCardInteractionContext()
   const dragged = active?.data.current as CardDragData | undefined
-  return enabled && active && dragged?.target && isSameCardInteractionTarget(activeTarget, dragged.target) ? dragged.target : undefined
+  return active && dragged?.target && isSameCardInteractionTarget(activeTarget, dragged.target) ? dragged.target : undefined
 }
