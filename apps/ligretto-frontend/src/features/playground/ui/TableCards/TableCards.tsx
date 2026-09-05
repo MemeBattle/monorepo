@@ -20,7 +20,7 @@ const StyledGrid = styled('div')(({ theme }) => ({
 }))
 
 export const TableCards = ({ children, ref }: PropsWithChildren<{ ref?: Ref<HTMLDivElement> }>) => (
-  <Box ref={ref} data-card-focus-element display="flex" justifyContent="center" alignItems="center" flex={1}>
+  <Box ref={ref} data-card-interaction-element display="flex" justifyContent="center" alignItems="center" flex={1}>
     <StyledGrid>
       {Children.map(children, (child, index) => (
         <Box key={index}>{child}</Box>

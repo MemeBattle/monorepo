@@ -5,7 +5,6 @@ import CachedIcon from '@mui/icons-material/Cached'
 
 import { GameLayout } from '#shared/ui/layouts/game/GameLayout'
 import { GameGrid } from '#widgets/game/ui/GameGrid/GameGrid'
-import { Playground } from '#features/playground/ui/Playground'
 import { LigrettoPack, Opponent } from '#features/player'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { CardsPanel } from '#features/player/ui/CardsPanel/CardsPanel'
@@ -35,9 +34,10 @@ import { OnboardingTargetsProvider, useOnboardingCardsPanelRef, useOnboardingCon
 import { ResultScreen } from './ResultScreen'
 import { OpponentsDescription } from './descriptions/OpponentsDescription'
 import { AnchoredDescription, type DescriptionTargets } from './descriptions/AnchoredDescription'
-import { CardFocusProvider, useCardFocus } from '#features/cardFocus'
+import { CardInteractionProvider, useCardInteraction } from '#features/cardInteraction'
 import { getOnboardingPlacementAction } from './onboardingPlacement'
 import { OnboardingOpenStackCard } from './OnboardingOpenStackCard'
+import { OnboardingPlayground } from './OnboardingPlayground'
 
 interface OnboardingCardPanelProps {
   stackRef: RefObject<HTMLDivElement | null>
@@ -118,7 +118,7 @@ function OnboardingPageBody() {
   const game = useSelector(onboardingGameSelector)
   const step = useSelector(onboardingStepSelector)
   const allowedEvents = useSelector(onboardingAllowedEventsSelector)
-  const { focusedCard } = useCardFocus()
+  const { activeTarget } = useCardInteraction()
   const config = STEP_CONFIGS[step]
   const containerRef = useOnboardingContainerRef()
 
@@ -182,12 +182,12 @@ function OnboardingPageBody() {
   }, [dispatch])
   const handlePlaygroundDeckClick = useCallback(
     (playgroundDeckIndex: number) => {
-      const action = getOnboardingPlacementAction(focusedCard, allowedEvents, playgroundDeckIndex)
+      const action = getOnboardingPlacementAction(activeTarget, allowedEvents, playgroundDeckIndex)
       if (action) {
         dispatch(action)
       }
     },
-    [allowedEvents, dispatch, focusedCard],
+    [activeTarget, allowedEvents, dispatch],
   )
 
   const description = config.description
@@ -207,7 +207,7 @@ function OnboardingPageBody() {
             // the slack between them and the playground is where the hints go.
             <Box sx={{ marginTop: { xs: '1.5rem', md: 0 } }}>
               <Layer id="playgroundCards">
-                <Playground
+                <OnboardingPlayground
                   ref={playgroundRef}
                   cardsDecks={game.playground.decks}
                   onDeckClick={handlePlaygroundDeckClick}
@@ -256,9 +256,9 @@ function OnboardingPageBody() {
 export function OnboardingPage() {
   return (
     <OnboardingTargetsProvider>
-      <CardFocusProvider enabled>
+      <CardInteractionProvider enabled>
         <OnboardingPageBody />
-      </CardFocusProvider>
+      </CardInteractionProvider>
     </OnboardingTargetsProvider>
   )
 }

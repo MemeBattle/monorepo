@@ -27,6 +27,12 @@ interface CardProps {
   onClick?: () => void
   /** Size of card **/
   size?: CardSize
+  ref?: React.Ref<HTMLButtonElement>
+  style?: React.CSSProperties
+  onKeyDown?: React.KeyboardEventHandler<HTMLButtonElement>
+  onMouseDown?: React.MouseEventHandler<HTMLButtonElement>
+  onPointerDown?: React.PointerEventHandler<HTMLButtonElement>
+  onTouchStart?: React.TouchEventHandler<HTMLButtonElement>
 }
 
 export const widthByCardSize: Record<CardSize, string> = {
@@ -153,7 +159,7 @@ export const Card: React.FC<CardProps> = ({
     isHighlighted={isHighlighted}
     disableRipple={isDisabled}
     size={size}
-    onMouseDown={onClick}
+    onClick={onClick}
     isDisabled={isDisabled}
     isSelected={isSelected}
     isHidden={isHidden}

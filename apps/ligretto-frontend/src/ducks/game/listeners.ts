@@ -2,8 +2,6 @@ import type { TypedStartListening } from '@reduxjs/toolkit'
 import { TaskAbortError } from '@reduxjs/toolkit'
 import {
   PlayerStatus,
-  putCardAction,
-  putCardFromStackOpenDeck,
   resumeGameEmitAction,
   setPlayerStatusEmitAction,
   startGameEmitAction,
@@ -21,8 +19,6 @@ import {
   startGameAction,
   togglePlayerStatusAction,
   updateGameAction as updateGameSliceAction,
-  tapCardAction,
-  tapStackOpenDeckCardAction,
   tapStackDeckCardAction,
   tapLigrettoDeckCardAction,
   resetGameStateAction,
@@ -142,22 +138,6 @@ export function addListeners(startListener: TypedStartListening<All>) {
       const gameId = gameIdSelector(listenerApi.getState())
 
       listenerApi.dispatch(resumeGameEmitAction({ gameId }))
-    },
-  })
-
-  startListener({
-    actionCreator: tapCardAction,
-    effect: ({ payload }, listenerApi) => {
-      const gameId = gameIdSelector(listenerApi.getState())
-      listenerApi.dispatch(putCardAction({ cardIndex: payload.cardIndex, gameId }))
-    },
-  })
-
-  startListener({
-    actionCreator: tapStackOpenDeckCardAction,
-    effect: (_action, listenerApi) => {
-      const gameId = gameIdSelector(listenerApi.getState())
-      listenerApi.dispatch(putCardFromStackOpenDeck({ gameId }))
     },
   })
 }

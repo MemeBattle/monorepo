@@ -1,58 +1,34 @@
 import { type Ref, type RefObject } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
-import type { ActionCreatorWithoutPayload } from '@reduxjs/toolkit'
 import { CardsRow } from '#entities/card/ui/CardsRow'
 
 import { Card, CardPlace } from '#entities/card'
-import {
-  OnboardingEvent,
-  onboardingAllowedEventsSelector,
-  onboardingGameSelector,
-  putFirstCardAction,
-  putSecondCardAction,
-  putThirdCardAction,
-} from '#features/onboarding'
-import { useCardFocus } from '#features/cardFocus'
+import { OnboardingEvent, onboardingAllowedEventsSelector, onboardingGameSelector } from '#features/onboarding'
+import { useCardInteraction } from '#features/cardInteraction'
 
-const ROW_CARD_EVENTS = [
-  { event: OnboardingEvent.PutFirstCard, action: putFirstCardAction },
-  { event: OnboardingEvent.PutSecondCard, action: putSecondCardAction },
-  { event: OnboardingEvent.PutThirdCard, action: putThirdCardAction },
-] as const
+const ROW_CARD_EVENTS = [OnboardingEvent.PutFirstCard, OnboardingEvent.PutSecondCard, OnboardingEvent.PutThirdCard] as const
 
 interface OnboardingRowCardProps {
-  action: ActionCreatorWithoutPayload
   card: PlayerCard | null
   index: number
-  isActive: boolean
+  isEnabled: boolean
 }
 
-const OnboardingRowCard = ({ action, card, index, isActive }: OnboardingRowCardProps) => {
-  const dispatch = useDispatch()
-  const { isFocused, isDimmed, toggleFocus } = useCardFocus({ type: 'row', index }, [card?.color, card?.value])
-
-  const onCardActivate = () => {
-    if (!isActive || !card) {
-      return
-    }
-    if (card.value === 1) {
-      dispatch(action())
-      return
-    }
-    toggleFocus()
-  }
+const OnboardingRowCard = ({ card, index, isEnabled }: OnboardingRowCardProps) => {
+  const { isActive, isDimmed, toggleActiveTarget } = useCardInteraction({ type: 'row', index }, [card?.color, card?.value, isEnabled])
+  const onCardActivate = isEnabled && card ? toggleActiveTarget : undefined
 
   return (
     <Card
       {...card}
-      data-card-focus-element
-      data-card-focused={isFocused}
+      data-card-interaction-element
+      data-card-active={isActive}
       isDarkened={isDimmed}
-      isDisabled={!isActive}
-      isHighlighted={isActive}
-      isSelected={isFocused}
-      onClick={isActive ? onCardActivate : undefined}
+      isDisabled={!isEnabled}
+      isHighlighted={isEnabled}
+      isSelected={isActive}
+      onClick={onCardActivate}
     />
   )
 }
@@ -69,14 +45,11 @@ export const PlayerRowCards = ({ cardRefs, ref }: PlayerRowCardsProps) => {
 
   return (
     <CardsRow ref={ref}>
-      {ROW_CARD_EVENTS.map(({ event, action }, index) => {
-        const isActive = allowedEvents.includes(event)
-        return (
-          <CardPlace key={event} ref={cardRefs[index]} dataTestId={`OnboardingPage-RowCard-${index}`}>
-            <OnboardingRowCard action={action} card={current.cards[index]} index={index} isActive={isActive} />
-          </CardPlace>
-        )
-      })}
+      {ROW_CARD_EVENTS.map((event, index) => (
+        <CardPlace key={event} ref={cardRefs[index]} dataTestId={`OnboardingPage-RowCard-${index}`}>
+          <OnboardingRowCard card={current.cards[index]} index={index} isEnabled={allowedEvents.includes(event)} />
+        </CardPlace>
+      ))}
     </CardsRow>
   )
 }
