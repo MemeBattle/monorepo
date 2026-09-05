@@ -7,6 +7,7 @@ import { gameStatusSelector, isPlayerSpectatorSelector, opponentsSelector, start
 import { GameStatus } from '@memebattle/ligretto-shared'
 import { ScreenCountdown } from './ScreenCountdown'
 import { CardInteractionProvider } from '#features/cardInteraction'
+import { PlayerCardDragOverlay } from '#features/player/ui/PlayerCardDragOverlay'
 
 const gamePageContainerSelector = createSelector(
   [gameStatusSelector, isPlayerSpectatorSelector, startingDelayInSecSelector, opponentsSelector],
@@ -24,6 +25,7 @@ export const GameContainer = () => {
 
   return (
     <CardInteractionProvider enabled={isInteractionEnabled}>
+      <PlayerCardDragOverlay />
       {gameStatus === GameStatus.Starting && <ScreenCountdown timeToGo={startingDelayInSec} />}
       <GameGrid centerElement={<PlaygroundContainer />} bottomElement={isPlayerSpectator ? null : <CardsPanelContainer />}>
         {opponents.map(opponent => (

@@ -1,10 +1,12 @@
 import { useHotkeys } from 'react-hotkeys-hook'
 
 import type { Hotkey } from '#ducks/game'
-import { useCardInteraction } from './useCardInteraction'
+import { useCardInteractionContext } from './CardInteractionContext'
+import { useCardInputEnabled } from './useCardInputEnabled'
 
 export const useCardHotkey = (hotkey: Hotkey | undefined, onActivate: () => void) => {
-  const { clearActiveTarget } = useCardInteraction()
+  const { clearActiveTarget } = useCardInteractionContext()
+  const enabled = useCardInputEnabled()
   useHotkeys(
     hotkey ?? '',
     event => {
@@ -12,6 +14,6 @@ export const useCardHotkey = (hotkey: Hotkey | undefined, onActivate: () => void
       clearActiveTarget()
       onActivate()
     },
-    { enabled: !!hotkey },
+    { enabled: enabled && !!hotkey },
   )
 }

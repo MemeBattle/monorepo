@@ -3,7 +3,7 @@ import { useDispatch } from 'react-redux'
 
 import { Hotkey, tapStackDeckCardAction } from '#ducks/game'
 import { Card } from '#entities/card'
-import { useCardHotkey } from '#features/cardInteraction'
+import { useCardHotkey, useCardAction } from '#features/cardInteraction'
 
 interface PlayerStackDeckProps {
   card?: PlayerCard
@@ -19,5 +19,7 @@ export const PlayerStackDeck = ({ card, enabled, isHidden }: PlayerStackDeckProp
 
   useCardHotkey(enabled ? Hotkey.space : undefined, onStackDeckActivate)
 
-  return <Card {...card} isHidden={isHidden} onClick={enabled ? onStackDeckActivate : undefined} />
+  const activate = useCardAction(onStackDeckActivate, enabled)
+
+  return <Card {...card} isHidden={isHidden} onClick={activate} />
 }

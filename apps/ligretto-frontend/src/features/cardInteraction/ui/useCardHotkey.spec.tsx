@@ -11,7 +11,7 @@ import { useCardHotkey } from './useCardHotkey'
 
 afterEach(cleanup)
 
-const HotkeyOwner = ({ hotkey = Hotkey.q, onActivate }: { hotkey?: Hotkey; onActivate: () => void }) => {
+const HotkeyOwner = ({ hotkey, onActivate }: { hotkey?: Hotkey; onActivate: () => void }) => {
   useCardHotkey(hotkey, onActivate)
   return null
 }
@@ -36,7 +36,7 @@ describe('useCardHotkey', () => {
     const onActivate = vi.fn()
     render(
       <CardInteractionProvider enabled>
-        <HotkeyOwner onActivate={onActivate} />
+        <HotkeyOwner hotkey={Hotkey.q} onActivate={onActivate} />
       </CardInteractionProvider>,
     )
     const event = new KeyboardEvent('keydown', { key: 'q', code: 'KeyQ', bubbles: true, cancelable: true })
@@ -55,7 +55,7 @@ describe('useCardHotkey', () => {
       </CardInteractionProvider>,
     )
 
-    fireEvent.keyDown(document, { key: 'q' })
+    fireEvent.keyDown(document, { key: 'q', code: 'KeyQ' })
 
     expect(onActivate).not.toHaveBeenCalled()
   })

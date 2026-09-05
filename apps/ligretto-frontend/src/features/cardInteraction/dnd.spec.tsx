@@ -2,47 +2,21 @@
 
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Provider } from 'react-redux'
-import { canPlaceCardOnDeck, CardColors, PlayerStatus, type CardsDeck } from '@memebattle/ligretto-shared'
+import { canPlaceCardOnDeck, CardColors, type CardsDeck } from '@memebattle/ligretto-shared'
 
-import { authInitialState } from '#ducks/auth/authSlice'
-import { initialState as gameInitialState } from '#ducks/game/slice'
-import { createMockStore } from '#testing/lib/createMockStore'
 import type { CardDragData, CardDragTarget } from './model/types'
 import { getInteractionTargetKey, useCardInteractionContext } from './ui/CardInteractionContext'
 import { CardInteractionProvider } from './ui/CardInteractionProvider'
 import { useCardInteraction } from './ui/useCardInteraction'
 import { useDraggableCard } from './ui/useDraggableCard'
 import { useDroppableTarget } from './ui/useDroppableTarget'
+import { useCardHotkey } from './ui/useCardHotkey'
+import { Hotkey } from '#ducks/game'
 
+const onShortcut = vi.fn()
 const onDrop = vi.fn<(dragged: CardDragData) => void>()
-const store = createMockStore({
-  preloadedState: {
-    auth: { ...authInitialState, userId: 'player' },
-    game: {
-      ...gameInitialState,
-      game: {
-        ...gameInitialState.game,
-        players: {
-          player: {
-            id: 'player',
-            isHost: true,
-            status: PlayerStatus.InGame,
-            cards: [{ color: CardColors.red, value: 2 }],
-            ligrettoDeck: { cards: [], isHidden: true },
-            stackDeck: { cards: [], isHidden: true },
-            stackOpenDeck: { cards: [{ color: CardColors.red, value: 1 }], isHidden: false },
-          },
-        },
-      },
-    },
-  },
-})
-
 const TestProvider = ({ children, enabled = true }: React.PropsWithChildren<{ enabled?: boolean }>) => (
-  <Provider store={store}>
-    <CardInteractionProvider enabled={enabled}>{children}</CardInteractionProvider>
-  </Provider>
+  <CardInteractionProvider enabled={enabled}>{children}</CardInteractionProvider>
 )
 
 const ActiveTarget = () => {
@@ -55,42 +29,61 @@ const InteractionContextKeys = () => {
   return <output data-testid="interaction-context-keys">{Object.keys(context).sort().join(',')}</output>
 }
 
+const DragSource = ({ value, target, disabled }: { value: number; target: CardDragTarget; disabled: boolean }) => {
+  useCardHotkey(Hotkey.q, onShortcut)
+  const card = { color: CardColors.red, value }
+  const { toggleActiveTarget } = useCardInteraction(target, [value])
+  const { id, isDragging, listeners, setNodeRef } = useDraggableCard(target, card, disabled)
+  return (
+    <button
+      {...listeners}
+      ref={setNodeRef}
+      data-card-drag-source
+      data-card-drag-id={id}
+      data-card-interaction-element
+      onClick={toggleActiveTarget}
+      style={{ opacity: isDragging ? 0 : 1, touchAction: 'none' }}
+    >
+      source
+    </button>
+  )
+}
+
 const DragHarness = ({
   valid = true,
   value = 2,
   target = { type: 'row', index: 1 },
+  disabled = false,
+  showSource = true,
+  showDestination = true,
+  dropIndex = 3,
 }: {
   valid?: boolean
   value?: number
   target?: CardDragTarget
+  disabled?: boolean
+  showSource?: boolean
+  showDestination?: boolean
+  dropIndex?: number
 }) => {
-  const card = { color: CardColors.red, value }
   const deck: CardsDeck | null = value === 1 ? null : { cards: [{ color: valid ? CardColors.red : CardColors.blue, value: 1 }], isHidden: false }
-  const { id, isDragging, listeners, setNodeRef: setDraggableRef } = useDraggableCard(target, card)
   const {
     id: dropId,
     isOver,
-    setNodeRef: setDroppableRef,
-  } = useDroppableTarget({ type: 'playground', index: 3 }, dragged => {
+    setNodeRef,
+  } = useDroppableTarget({ type: 'playground', index: dropIndex }, dragged => {
     if (canPlaceCardOnDeck(dragged.card, deck)) {
       onDrop(dragged)
     }
   })
-
   return (
     <>
-      <button
-        {...listeners}
-        ref={setDraggableRef}
-        data-card-drag-source
-        data-card-drag-id={id}
-        style={{ opacity: isDragging ? 0 : 1, touchAction: 'none' }}
-      >
-        source
-      </button>
-      <div ref={setDroppableRef} data-card-drop-target={dropId} data-drop-over={isOver || undefined}>
-        deck
-      </div>
+      {showSource && <DragSource value={value} target={target} disabled={disabled} />}
+      {showDestination && (
+        <div ref={setNodeRef} data-card-drop-target={dropId} data-drop-over={isOver || undefined}>
+          deck
+        </div>
+      )}
       <ActiveTarget />
       <InteractionContextKeys />
     </>
@@ -125,8 +118,62 @@ const drag = async (release = true) => {
 }
 
 describe('card placement hooks', () => {
-  beforeEach(() => onDrop.mockClear())
+  beforeEach(() => {
+    onDrop.mockClear()
+    onShortcut.mockClear()
+  })
   afterEach(cleanup)
+
+  it.each(['disabled source', 'removed source', 'changed target', 'removed destination'] as const)('rejects a %s during a gesture', async change => {
+    const view = render(
+      <TestProvider>
+        <DragHarness />
+      </TestProvider>,
+    )
+    await drag(false)
+    view.rerender(
+      <TestProvider>
+        <DragHarness
+          disabled={change === 'disabled source'}
+          showSource={change !== 'removed source'}
+          target={{ type: 'row', index: change === 'changed target' ? 0 : 1 }}
+          showDestination={change !== 'removed destination'}
+        />
+      </TestProvider>,
+    )
+    fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
+    expect(onDrop).not.toHaveBeenCalled()
+    expect(screen.getByText('none')).toBeTruthy()
+  })
+
+  it('cancels with Escape and permits a fresh drag afterwards', async () => {
+    render(
+      <TestProvider>
+        <DragHarness />
+      </TestProvider>,
+    )
+    await drag(false)
+    fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' })
+    expect(screen.getByText('none')).toBeTruthy()
+    expect(screen.getByText('source').style.opacity).toBe('1')
+    fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
+    expect(onDrop).not.toHaveBeenCalled()
+    await drag()
+    expect(onDrop).toHaveBeenCalledOnce()
+  })
+
+  it('clears a drag released outside any destination', async () => {
+    render(
+      <TestProvider>
+        <DragHarness />
+      </TestProvider>,
+    )
+    await drag(false)
+    fireEvent.mouseMove(document, { clientX: 300, clientY: 10, buttons: 1 })
+    fireEvent.mouseUp(document, { clientX: 300, clientY: 10, button: 0 })
+    expect(onDrop).not.toHaveBeenCalled()
+    expect(screen.getByText('none')).toBeTruthy()
+  })
 
   it('uses one interaction key format for source and playground targets', () => {
     expect(getInteractionTargetKey({ type: 'open-stack' })).toBe('open-stack')
@@ -176,6 +223,54 @@ describe('card placement hooks', () => {
 
     expect(onDrop).not.toHaveBeenCalled()
     expect(screen.getByText('none')).toBeTruthy()
+  })
+
+  it('restores the source and cannot resume a drag across disable and re-enable', async () => {
+    const tree = (enabled: boolean) => (
+      <TestProvider enabled={enabled}>
+        <DragHarness />
+      </TestProvider>
+    )
+    const view = render(tree(true))
+    await drag(false)
+    view.rerender(tree(false))
+    expect(screen.getByText('source').style.opacity).toBe('1')
+    view.rerender(tree(true))
+    fireEvent.keyDown(document.body, { key: 'q', code: 'KeyQ' })
+    fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
+    expect(onShortcut).not.toHaveBeenCalled()
+    expect(onDrop).not.toHaveBeenCalled()
+    expect(screen.getByText('none')).toBeTruthy()
+  })
+
+  it('does not drop a replacement card after its source identity changes', async () => {
+    const tree = (value: number) => (
+      <TestProvider>
+        <DragHarness value={value} />
+      </TestProvider>
+    )
+    const view = render(tree(2))
+    await drag(false)
+    view.rerender(tree(1))
+    fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
+    expect(onDrop).not.toHaveBeenCalled()
+    expect(screen.getByText('none')).toBeTruthy()
+  })
+
+  it('leaves input with the native drag until release instead of running hotkey commands', async () => {
+    render(
+      <TestProvider>
+        <DragHarness />
+      </TestProvider>,
+    )
+    await drag(false)
+    fireEvent.keyDown(document.body, { key: 'q', code: 'KeyQ' })
+    expect(onShortcut).not.toHaveBeenCalled()
+    expect(screen.getByText('row.1')).toBeTruthy()
+    fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
+    expect(onDrop).toHaveBeenCalledOnce()
+    fireEvent.keyDown(document.body, { key: 'q', code: 'KeyQ' })
+    expect(onShortcut).toHaveBeenCalledOnce()
   })
 
   it('does not call the droppable callback for an invalid drop', async () => {

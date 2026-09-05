@@ -61,6 +61,42 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('card-owned hotkeys', () => {
+  it('blocks both pointer commands and hotkeys while interactions are disabled', () => {
+    mocks.stackCards = [card(3)]
+    mocks.openCards = [card(2)]
+    mocks.ligrettoCards = [card(4)]
+    render(
+      <CardInteractionProvider enabled={false}>
+        <PlayerCardsStack />
+        <LigrettoDeckContainer />
+        <FocusState />
+      </CardInteractionProvider>,
+    )
+    press(' ', 'Space')
+    press('l', 'KeyL')
+    for (const button of screen.getAllByRole('button')) {
+      activatePointer(button)
+    }
+    expect(mocks.dispatch).not.toHaveBeenCalled()
+    expect(screen.getByTestId('focus-state').textContent).toBe('none')
+    expect(screen.queryByText('L')).toBeNull()
+    expect(screen.queryByText('SPACE')).toBeNull()
+    expect(screen.queryByText('X')).toBeNull()
+  })
+  it('hides the row shortcut while interactions are disabled', () => {
+    mocks.rowCards = [card(2)]
+    render(
+      <CardInteractionProvider enabled={false}>
+        <PlayerRowCardsContainer />
+        <FocusState />
+      </CardInteractionProvider>,
+    )
+    press('q', 'KeyQ')
+    activatePointer(screen.getByRole('button'))
+    expect(screen.getByTestId('focus-state').textContent).toBe('none')
+    expect(screen.queryByText('Q')).toBeNull()
+  })
+
   it('keeps a rendered row card active from its hotkey while pointer activation toggles it', () => {
     mocks.rowCards = [card(2)]
     render(

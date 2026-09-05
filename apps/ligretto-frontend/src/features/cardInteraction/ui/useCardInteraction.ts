@@ -1,5 +1,6 @@
 import { useCallback, useContext, useEffect, type DependencyList } from 'react'
 
+import { useCardInputEnabled } from './useCardInputEnabled'
 import type { CardInteractionTarget } from '../model/types'
 import { CardInteractionContext, getInteractionTargetKey, isSameCardInteractionTarget } from './CardInteractionContext'
 
@@ -16,6 +17,7 @@ export function useCardInteraction(
   toggleActiveTarget: () => void
 }
 export function useCardInteraction(target?: CardInteractionTarget, deps: DependencyList = []) {
+  const inputEnabled = useCardInputEnabled()
   const context = useContext(CardInteractionContext)
   if (!context) {
     throw new Error('useCardInteraction must be used within CardInteractionProvider')
@@ -35,10 +37,10 @@ export function useCardInteraction(target?: CardInteractionTarget, deps: Depende
   }, [clearActiveTarget, targetKey, ...deps])
 
   const toggleOwnTarget = useCallback(() => {
-    if (target) {
+    if (target && inputEnabled) {
       toggleActiveTarget(target)
     }
-  }, [target, toggleActiveTarget])
+  }, [target, inputEnabled, toggleActiveTarget])
 
   return target
     ? {

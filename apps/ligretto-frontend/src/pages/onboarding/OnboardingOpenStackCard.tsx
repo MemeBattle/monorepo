@@ -9,7 +9,7 @@ interface OnboardingOpenStackCardProps {
 }
 
 export const OnboardingOpenStackCard = ({ card, isActive }: OnboardingOpenStackCardProps) => {
-  const interaction = useCardInteraction({ type: 'open-stack' }, [card?.color, card?.value])
+  const interaction = useCardInteraction({ type: 'open-stack' }, [card?.color, card?.value, isActive])
 
   return (
     <CardHotkeyBadge>

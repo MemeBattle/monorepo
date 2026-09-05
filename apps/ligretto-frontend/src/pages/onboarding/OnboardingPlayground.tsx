@@ -12,6 +12,7 @@ import {
   tabletWidthBySize,
   widthByCardSize,
 } from '#entities/card/ui/Card'
+import { getInteractionTargetKey } from '#features/cardInteraction'
 import { TableCards } from '#features/playground/ui/TableCards'
 
 const DeckSurface = styled('div')(({ theme }) => ({
@@ -40,7 +41,7 @@ export const OnboardingPlayground = ({ cardsDecks, onDeckClick, ref, deckRefs }:
       const card = last(cardsDecks[index]?.cards)
       return (
         <CardPlace key={index} ref={deckRefs?.[index]} size="large" dataTestId={`Playground-Deck-${index}`}>
-          <DeckSurface data-card-drop-target={`playground.${index}`} onClick={() => onDeckClick(index)}>
+          <DeckSurface data-card-drop-target={getInteractionTargetKey({ type: 'playground', index })} onClick={() => onDeckClick(index)}>
             {card ? <Card size="large" {...card} /> : null}
           </DeckSurface>
         </CardPlace>
