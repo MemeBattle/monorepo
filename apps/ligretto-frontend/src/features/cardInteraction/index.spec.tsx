@@ -117,7 +117,7 @@ describe('CardInteractionProvider', () => {
     expect(card.textContent).toBe('idle')
   })
 
-  it('clears focus with Escape and prevents the browser default', () => {
+  it('leaves Escape untouched when a card is focused', () => {
     render(
       <TestProvider>
         <RowCard />
@@ -127,8 +127,8 @@ describe('CardInteractionProvider', () => {
 
     const wasNotPrevented = fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' })
 
-    expect(screen.getByText('idle')).toBeTruthy()
-    expect(wasNotPrevented).toBe(false)
+    expect(screen.getByText('focused')).toBeTruthy()
+    expect(wasNotPrevented).toBe(true)
   })
 
   it('transfers focus without treating another card as an outside click', () => {

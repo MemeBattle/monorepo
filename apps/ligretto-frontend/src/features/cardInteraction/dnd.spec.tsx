@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { useDndContext, useDndMonitor } from '@dnd-kit/core'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { canPlaceCardOnDeck, CardColors, type CardsDeck } from '@memebattle/ligretto-shared'
@@ -11,6 +12,7 @@ import { useCardInteraction } from './ui/useCardInteraction'
 import { useDraggableCard } from './ui/useDraggableCard'
 import { useDroppableTarget } from './ui/useDroppableTarget'
 import { useCardHotkey } from './ui/useCardHotkey'
+import { useCardDragTarget } from './ui/useCardDragTarget'
 import { Hotkey } from '#ducks/game'
 
 const onShortcut = vi.fn()
@@ -128,23 +130,10 @@ const touchDrag = async (release = true) => {
   destination.getBoundingClientRect = () => rect(100)
   fireEvent.touchStart(source, { touches: [{ clientX: 10, clientY: 10, identifier: 1 }] })
   await vi.waitFor(() => expect(source.style.opacity).toBe('0'))
-  fireEvent.touchMove(document, { touches: [{ clientX: 110, clientY: 10, identifier: 1 }] })
+  fireEvent.touchMove(source, { touches: [{ clientX: 110, clientY: 10, identifier: 1 }] })
   if (release) {
-    fireEvent.touchEnd(document, { changedTouches: [{ clientX: 110, clientY: 10, identifier: 1 }] })
+    fireEvent.touchEnd(screen.getByText('source'), { changedTouches: [{ clientX: 110, clientY: 10, identifier: 1 }] })
   }
-}
-
-const pendingMouseDrag = () => {
-  const source = screen.getByText('source')
-  source.getBoundingClientRect = () => rect(0)
-  fireEvent.pointerDown(source, { pointerType: 'mouse', clientX: 10, clientY: 10, button: 0 })
-  fireEvent.mouseDown(source, { clientX: 10, clientY: 10, button: 0, buttons: 1 })
-}
-
-const pendingTouchDrag = () => {
-  const source = screen.getByText('source')
-  source.getBoundingClientRect = () => rect(0)
-  fireEvent.touchStart(source, { touches: [{ clientX: 10, clientY: 10, identifier: 1 }] })
 }
 
 describe('card placement hooks', () => {
@@ -174,22 +163,6 @@ describe('card placement hooks', () => {
     fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
     expect(onDrop).not.toHaveBeenCalled()
     expect(screen.getByText('none')).toBeTruthy()
-  })
-
-  it('cancels with Escape and permits a fresh drag afterwards', async () => {
-    render(
-      <TestProvider>
-        <DragHarness />
-      </TestProvider>,
-    )
-    await drag(false)
-    fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' })
-    expect(screen.getByText('none')).toBeTruthy()
-    expect(screen.getByText('source').style.opacity).toBe('1')
-    fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
-    expect(onDrop).not.toHaveBeenCalled()
-    await drag()
-    expect(onDrop).toHaveBeenCalledOnce()
   })
 
   it('clears a drag released outside any destination', async () => {
@@ -255,7 +228,7 @@ describe('card placement hooks', () => {
     expect(screen.getByText('none')).toBeTruthy()
   })
 
-  it('restores the source and cannot resume a drag across disable and re-enable', async () => {
+  it('rejects a drop while disabled and allows hotkeys after re-enable', async () => {
     const tree = (enabled: boolean) => (
       <TestProvider enabled={enabled}>
         <DragHarness />
@@ -264,10 +237,9 @@ describe('card placement hooks', () => {
     const view = render(tree(true))
     await drag(false)
     view.rerender(tree(false))
-    expect(screen.getByText('source').style.opacity).toBe('1')
+    fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
     view.rerender(tree(true))
     fireEvent.keyDown(document.body, { key: 'q', code: 'KeyQ' })
-    fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
     expect(onShortcut).toHaveBeenCalledOnce()
     expect(onDrop).not.toHaveBeenCalled()
     expect(screen.getByText('row.1')).toBeTruthy()
@@ -290,87 +262,46 @@ describe('card placement hooks', () => {
   it.each([
     ['mouse', drag],
     ['touch', touchDrag],
-  ] as const)('cancels a real %s drag before running a hotkey command', async (_sensor, startDrag) => {
+  ] as const)('runs a hotkey without forcing native %s drag cancellation', async (_sensor, startDrag) => {
+    const onDragCancel = vi.fn()
+    const onDragEnd = vi.fn()
+    const NativeGesture = () => {
+      const { active } = useDndContext()
+      const dragTarget = useCardDragTarget()
+      const { toggleActiveTarget } = useCardInteraction({ type: 'row', index: 0 }, [])
+      useCardHotkey(Hotkey.w, () => {
+        onShortcut()
+        toggleActiveTarget()
+      })
+      useDndMonitor({ onDragCancel, onDragEnd })
+      return (
+        <>
+          <output data-testid="native-gesture">{active ? 'active' : 'idle'}</output>
+          <output data-testid="overlay-target">{dragTarget ? getInteractionTargetKey(dragTarget) : 'none'}</output>
+        </>
+      )
+    }
     render(
       <TestProvider>
         <DragHarness />
+        <NativeGesture />
       </TestProvider>,
     )
     await startDrag(false)
-    fireEvent.keyDown(document.body, { key: 'q', code: 'KeyQ' })
+    expect(screen.getByTestId('native-gesture').textContent).toBe('active')
+    fireEvent.keyDown(document.body, { key: 'w', code: 'KeyW' })
     expect(onShortcut).toHaveBeenCalledOnce()
-    expect(screen.getByText('row.1')).toBeTruthy()
-    expect(screen.getByText('source').style.opacity).toBe('1')
+    expect(screen.getByText('row.0')).toBeTruthy()
+    expect(screen.getByTestId('overlay-target').textContent).toBe('row.1')
+    expect(onDragCancel).not.toHaveBeenCalled()
+    expect(screen.getByTestId('native-gesture').textContent).toBe('active')
+    expect(screen.getByText('source').style.opacity).toBe('0')
     fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
-    fireEvent.touchEnd(document, { changedTouches: [{ clientX: 110, clientY: 10, identifier: 1 }] })
-    expect(onDrop).not.toHaveBeenCalled()
-  })
-
-  it.each([
-    ['mouse distance', pendingMouseDrag],
-    ['touch delay', pendingTouchDrag],
-  ] as const)('cancels a pending %s sensor before it can activate', async (_sensor, startPendingDrag) => {
-    render(
-      <TestProvider>
-        <DragHarness />
-      </TestProvider>,
-    )
-    startPendingDrag()
-    fireEvent.keyDown(document.body, { key: 'q', code: 'KeyQ' })
-    fireEvent.mouseMove(document, { clientX: 110, clientY: 10, buttons: 1 })
-    fireEvent.touchMove(document, { touches: [{ clientX: 110, clientY: 10, identifier: 1 }] })
-    await new Promise(resolve => setTimeout(resolve, 180))
-    expect(onShortcut).toHaveBeenCalledOnce()
-    expect(screen.getByText('row.1')).toBeTruthy()
-    expect(screen.getByText('source').style.opacity).toBe('1')
-    expect(onDrop).not.toHaveBeenCalled()
-  })
-
-  it.each(['source', 'deck', 'outside'])('keeps newly focused target through a late abandoned release and ensuing %s click', async clicked => {
-    render(
-      <TestProvider>
-        <DragHarness />
-      </TestProvider>,
-    )
-    await drag(false)
-    fireEvent.keyDown(document.body, { key: 'q', code: 'KeyQ' })
-    expect(screen.getByText('row.1')).toBeTruthy()
-    await new Promise(resolve => setTimeout(resolve, 60))
-    fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
-    fireEvent.click(clicked === 'outside' ? document.body : screen.getByText(clicked))
-    expect(screen.getByText('row.1')).toBeTruthy()
-    expect(onDrop).not.toHaveBeenCalled()
-    fireEvent.mouseDown(document.body)
-    fireEvent.mouseUp(document.body)
-    fireEvent.click(document.body)
-    expect(screen.getByText('none')).toBeTruthy()
-  })
-
-  it('ignores touch compatibility mouse events after a hotkey cancels the gesture', async () => {
-    render(
-      <TestProvider>
-        <DragHarness />
-      </TestProvider>,
-    )
-    pendingTouchDrag()
-    fireEvent.keyDown(document.body, { key: 'q', code: 'KeyQ' })
-    expect(screen.getByText('row.1')).toBeTruthy()
-    await new Promise(resolve => setTimeout(resolve, 60))
-    const source = screen.getByText('source')
-    fireEvent.touchEnd(source)
-    // Compatibility mouse events have no new physical pointerdown.
-    fireEvent.mouseMove(source, { clientX: 10, clientY: 10 })
-    fireEvent.mouseDown(source, { button: 0, buttons: 1 })
-    fireEvent.mouseUp(source, { button: 0 })
-    fireEvent.click(source)
-    expect(screen.getByText('row.1')).toBeTruthy()
-    expect(onDrop).not.toHaveBeenCalled()
-    // A deliberate mouse gesture still clears focus normally.
-    fireEvent.pointerDown(document.body, { pointerType: 'mouse' })
-    fireEvent.mouseDown(document.body)
-    fireEvent.mouseUp(document.body)
-    fireEvent.click(document.body)
-    expect(screen.getByText('none')).toBeTruthy()
+    fireEvent.touchEnd(screen.getByText('source'), { changedTouches: [{ clientX: 110, clientY: 10, identifier: 1 }] })
+    expect(onDragEnd).toHaveBeenCalledOnce()
+    expect(screen.getByTestId('native-gesture').textContent).toBe('idle')
+    expect(onDrop).toHaveBeenCalledWith({ target: { type: 'row', index: 1 }, card: { color: CardColors.red, value: 2 } })
+    expect(screen.getByText('row.0')).toBeTruthy()
   })
 
   it('does not call the droppable callback for an invalid drop', async () => {

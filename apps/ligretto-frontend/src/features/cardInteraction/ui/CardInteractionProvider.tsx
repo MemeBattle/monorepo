@@ -1,10 +1,18 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, type MouseEvent, type PropsWithChildren } from 'react'
-import { DndContext, pointerWithin, useDndContext, useDndMonitor, useSensor, useSensors, type UniqueIdentifier } from '@dnd-kit/core'
-import { useHotkeys } from 'react-hotkeys-hook'
+import { useCallback, useEffect, useMemo, useReducer, useRef, type PropsWithChildren } from 'react'
+import {
+  DndContext,
+  MouseSensor,
+  TouchSensor,
+  pointerWithin,
+  useDndContext,
+  useDndMonitor,
+  useSensor,
+  useSensors,
+  type UniqueIdentifier,
+} from '@dnd-kit/core'
 
 import type { CardDragData, CardDropData, CardInteractionTarget } from '../model/types'
-import { CardInteractionContext, getInteractionTargetKey, isSameCardInteractionTarget } from './CardInteractionContext'
-import { CancellableMouseSensor, CancellableTouchSensor, type RegisterSensorCancellation } from './CancellableSensors'
+import { CardInteractionContext, isSameCardInteractionTarget } from './CardInteractionContext'
 
 interface CardInteractionProviderProps extends PropsWithChildren {
   enabled: boolean
@@ -17,7 +25,7 @@ type Action =
   | { type: 'toggle'; target: CardInteractionTarget }
   | { type: 'clear'; target?: CardInteractionTarget }
   | { type: 'dragStart'; target: CardInteractionTarget; sourceId: UniqueIdentifier }
-  | { type: 'dragTerminal'; sourceId?: UniqueIdentifier }
+  | { type: 'dragTerminal'; sourceId: UniqueIdentifier }
 
 const reducer = (state: State, action: Action): State => {
   switch (action.type) {
@@ -30,11 +38,11 @@ const reducer = (state: State, action: Action): State => {
     case 'dragStart':
       return { mode: 'dragging', target: action.target, sourceId: action.sourceId }
     case 'dragTerminal':
-      return state.mode === 'dragging' && (!action.sourceId || state.sourceId === action.sourceId) ? { mode: 'idle' } : state
+      return state.mode === 'dragging' && state.sourceId === action.sourceId ? { mode: 'idle' } : state
   }
 }
 
-const DndLifecycle = ({ enabled, state, dispatch }: { enabled: boolean; state: State; dispatch: React.Dispatch<Action> }) => {
+const DndLifecycle = ({ enabled, dispatch }: { enabled: boolean; dispatch: React.Dispatch<Action> }) => {
   const { draggableNodes, droppableContainers } = useDndContext()
   useDndMonitor({
     onDragStart({ active }) {
@@ -44,16 +52,15 @@ const DndLifecycle = ({ enabled, state, dispatch }: { enabled: boolean; state: S
       }
     },
     onDragEnd({ active, over }) {
-      const dragged = active.data.current as CardDragData | undefined
+      const source = draggableNodes.get(active.id)
+      const dragged = source?.data.current as CardDragData | undefined
       const destination = over?.data.current as CardDropData | undefined
       if (
         enabled &&
-        state.mode === 'dragging' &&
-        state.sourceId === active.id &&
         dragged?.target &&
+        !dragged.disabled &&
         destination?.onDrop &&
-        isSameCardInteractionTarget(state.target, dragged.target) &&
-        draggableNodes.get(active.id)?.node.current?.isConnected &&
+        source?.node.current?.isConnected &&
         over &&
         droppableContainers.get(over.id)?.node.current?.isConnected
       ) {
@@ -70,48 +77,14 @@ const DndLifecycle = ({ enabled, state, dispatch }: { enabled: boolean; state: S
 
 export const CardInteractionProvider = ({ children, enabled }: CardInteractionProviderProps) => {
   const [state, dispatch] = useReducer(reducer, { mode: 'idle' })
-  const cancelSensorRef = useRef<(() => void) | undefined>(undefined)
   const enabledRef = useRef(enabled)
-  const sensorSourceRef = useRef<UniqueIdentifier | undefined>(undefined)
-  const suppressReleaseClickRef = useRef(false)
-  const releaseCleanupRef = useRef<(() => void) | undefined>(undefined)
   enabledRef.current = enabled
-
-  const registerCancellation = useCallback<RegisterSensorCancellation>((cancel, sourceId) => {
-    sensorSourceRef.current = sourceId
-    const cancelAndGuardRelease = () => {
-      releaseCleanupRef.current?.()
-      const onRelease = () => {
-        suppressReleaseClickRef.current = true
-        cleanup()
-      }
-      const cleanup = () => {
-        document.removeEventListener('mouseup', onRelease, true)
-        document.removeEventListener('touchend', onRelease, true)
-        releaseCleanupRef.current = undefined
-      }
-      document.addEventListener('mouseup', onRelease, true)
-      document.addEventListener('touchend', onRelease, true)
-      releaseCleanupRef.current = cleanup
-      cancel()
-    }
-    cancelSensorRef.current = cancelAndGuardRelease
-    return () => {
-      if (cancelSensorRef.current === cancelAndGuardRelease) {
-        cancelSensorRef.current = undefined
-        sensorSourceRef.current = undefined
-      }
-    }
-  }, [])
   const sensors = useSensors(
-    useSensor(CancellableMouseSensor, { activationConstraint: { distance: 6 }, registerCancellation }),
-    useSensor(CancellableTouchSensor, { activationConstraint: { delay: 150, tolerance: 8 }, registerCancellation }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
   )
   const activeTarget = state.mode === 'idle' ? undefined : state.target
   const clearActiveTarget = useCallback((target?: CardInteractionTarget) => {
-    if (!target || String(sensorSourceRef.current).startsWith(`${getInteractionTargetKey(target)}.`)) {
-      cancelSensorRef.current?.()
-    }
     dispatch({ type: 'clear', target })
   }, [])
   const toggleActiveTarget = useCallback((target: CardInteractionTarget) => {
@@ -123,54 +96,20 @@ export const CardInteractionProvider = ({ children, enabled }: CardInteractionPr
     if (!enabledRef.current) {
       return
     }
-    cancelSensorRef.current?.()
-    dispatch({ type: 'dragTerminal' })
     dispatch({ type: 'clear' })
     command()
   }, [])
 
   useEffect(() => {
     if (!enabled) {
-      cancelSensorRef.current?.()
-      dispatch({ type: 'dragTerminal' })
       dispatch({ type: 'clear' })
     }
   }, [enabled])
-  useEffect(() => {
-    // A new physical gesture is deliberate input, not the cancelled one's click.
-    const resetReleaseGuard = () => {
-      releaseCleanupRef.current?.()
-      suppressReleaseClickRef.current = false
-    }
-    // Compatibility mouse events after touchend are not a new pointer gesture.
-    document.addEventListener('pointerdown', resetReleaseGuard, true)
-    document.addEventListener('touchstart', resetReleaseGuard, true)
-    return () => {
-      document.removeEventListener('pointerdown', resetReleaseGuard, true)
-      document.removeEventListener('touchstart', resetReleaseGuard, true)
-      cancelSensorRef.current?.()
-      releaseCleanupRef.current?.()
-    }
-  }, [])
-  useHotkeys(
-    'escape',
-    event => {
-      event.preventDefault()
-      cancelSensorRef.current?.()
-      dispatch({ type: 'dragTerminal' })
-      dispatch({ type: 'clear' })
-    },
-    { enabled },
-  )
   useEffect(() => {
     if (state.mode !== 'focused') {
       return
     }
     const listener = (event: globalThis.MouseEvent) => {
-      if (suppressReleaseClickRef.current) {
-        suppressReleaseClickRef.current = false
-        return
-      }
       if (!(event.target instanceof Element && event.target.closest('[data-card-interaction-element]'))) {
         dispatch({ type: 'clear' })
       }
@@ -183,15 +122,8 @@ export const CardInteractionProvider = ({ children, enabled }: CardInteractionPr
     () => ({ activeTarget, clearActiveTarget, toggleActiveTarget, runCommand }),
     [activeTarget, clearActiveTarget, runCommand, toggleActiveTarget],
   )
-  const captureClick = (event: MouseEvent) => {
-    if (!enabled || suppressReleaseClickRef.current) {
-      event.preventDefault()
-      event.stopPropagation()
-      suppressReleaseClickRef.current = false
-    }
-  }
-  const capturePointerStart = (event: React.SyntheticEvent) => {
-    if (!enabled || suppressReleaseClickRef.current) {
+  const captureInput = (event: React.SyntheticEvent) => {
+    if (!enabled) {
       event.preventDefault()
       event.stopPropagation()
     }
@@ -200,13 +132,13 @@ export const CardInteractionProvider = ({ children, enabled }: CardInteractionPr
     <CardInteractionContext value={value}>
       <div
         style={{ display: 'contents' }}
-        onClickCapture={captureClick}
-        onPointerDownCapture={capturePointerStart}
-        onMouseDownCapture={capturePointerStart}
-        onTouchStartCapture={capturePointerStart}
+        onClickCapture={captureInput}
+        onPointerDownCapture={captureInput}
+        onMouseDownCapture={captureInput}
+        onTouchStartCapture={captureInput}
       >
         <DndContext sensors={sensors} collisionDetection={pointerWithin}>
-          <DndLifecycle enabled={enabled} state={state} dispatch={dispatch} />
+          <DndLifecycle enabled={enabled} dispatch={dispatch} />
           {children}
         </DndContext>
       </div>

@@ -7,6 +7,7 @@ export type CardDropTarget = Extract<CardInteractionTarget, { type: 'playground'
 export interface CardDragData {
   target: CardDragTarget
   card: Card
+  disabled?: boolean
 }
 
 export interface CardDropData {

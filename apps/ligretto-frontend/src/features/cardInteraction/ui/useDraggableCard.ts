@@ -3,12 +3,12 @@ import { useDraggable } from '@dnd-kit/core'
 import type { Card } from '@memebattle/ligretto-shared'
 
 import type { CardDragData, CardDragTarget } from '../model/types'
-import { getInteractionTargetKey, isSameCardInteractionTarget, useCardInteractionContext } from './CardInteractionContext'
+import { getInteractionTargetKey, useCardInteractionContext } from './CardInteractionContext'
 
 export const useDraggableCard = (target: CardDragTarget, card: Card, disabled = false) => {
-  const { activeTarget, clearActiveTarget } = useCardInteractionContext()
+  const { clearActiveTarget } = useCardInteractionContext()
   const id = `${getInteractionTargetKey(target)}.${card.color}.${card.value}`
-  const data = useMemo<CardDragData>(() => ({ target, card }), [card, target])
+  const data = useMemo<CardDragData>(() => ({ target, card, disabled }), [card, target, disabled])
   const { isDragging, listeners, setNodeRef } = useDraggable({ id, data, disabled })
 
   useEffect(() => {
@@ -22,7 +22,7 @@ export const useDraggableCard = (target: CardDragTarget, card: Card, disabled = 
 
   return {
     id,
-    isDragging: isDragging && !disabled && isSameCardInteractionTarget(activeTarget, target),
+    isDragging: isDragging && !disabled,
     listeners,
     setNodeRef,
   }
