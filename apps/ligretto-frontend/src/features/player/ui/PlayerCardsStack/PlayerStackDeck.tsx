@@ -1,26 +1,21 @@
-import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 
 import { Hotkey, tapStackDeckCardAction } from '#ducks/game'
 import { Card } from '#entities/card'
-import { useCardFocus } from '#features/cardFocus'
-import { useCardHotkey } from '../../lib/useCardHotkey'
+import { useCardHotkey } from '#features/cardInteraction'
+import { playerCardsStackSelector } from './PlayerCardsStack.selector'
 
-interface PlayerStackDeckProps {
-  card?: PlayerCard
-  enabled: boolean
-  isHidden: boolean
-}
-
-export const PlayerStackDeck = ({ card, enabled, isHidden }: PlayerStackDeckProps) => {
+export const PlayerStackDeck = () => {
   const dispatch = useDispatch()
-  const { clearFocus } = useCardFocus()
+  const { stackDeckCards, stackOpenDeckCard } = useSelector(playerCardsStackSelector)
+  const hasCards = !!stackDeckCards?.length
+  const available = hasCards || !!stackOpenDeckCard
   const onStackDeckActivate = () => {
-    clearFocus()
-    dispatch(tapStackDeckCardAction())
+    if (available) {
+      dispatch(tapStackDeckCardAction())
+    }
   }
+  const activate = useCardHotkey(available ? Hotkey.space : undefined, onStackDeckActivate)
 
-  useCardHotkey(enabled ? Hotkey.space : undefined, onStackDeckActivate)
-
-  return <Card {...card} isHidden={isHidden} onClick={enabled ? onStackDeckActivate : undefined} />
+  return <Card isHidden={hasCards} onClick={available ? activate : undefined} />
 }

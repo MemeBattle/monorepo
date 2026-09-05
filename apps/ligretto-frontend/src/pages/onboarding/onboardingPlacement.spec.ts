@@ -5,6 +5,11 @@ import { OnboardingEvent } from '#features/onboarding'
 import { getOnboardingPlacementAction } from './onboardingPlacement'
 
 describe('getOnboardingPlacementAction', () => {
+  it('routes the first row card to the first playground deck', () => {
+    expect(getOnboardingPlacementAction({ type: 'row', index: 0 }, [OnboardingEvent.PutFirstCard], 1)).toBeUndefined()
+    expect(getOnboardingPlacementAction({ type: 'row', index: 0 }, [OnboardingEvent.PutFirstCard], 0)?.type).toBe('features/onboarding/putFirstCard')
+  })
+
   it('routes a focused second row card only to the first playground deck', () => {
     expect(getOnboardingPlacementAction({ type: 'row', index: 1 }, [OnboardingEvent.PutSecondCard], 1)).toBeUndefined()
     expect(getOnboardingPlacementAction({ type: 'row', index: 1 }, [OnboardingEvent.PutSecondCard], 0)?.type).toBe(

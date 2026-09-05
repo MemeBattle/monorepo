@@ -1,0 +1,29 @@
+import { useEffect, useMemo } from 'react'
+import { useDraggable } from '@dnd-kit/core'
+import type { Card } from '@memebattle/ligretto-shared'
+
+import type { CardDragData, CardDragTarget } from '../model/types'
+import { getInteractionTargetKey, useCardInteractionContext } from './CardInteractionContext'
+
+export const useDraggableCard = (target: CardDragTarget, card: Card, disabled = false) => {
+  const { clearActiveTarget } = useCardInteractionContext()
+  const id = `${getInteractionTargetKey(target)}.${card.color}.${card.value}`
+  const data = useMemo<CardDragData>(() => ({ target, card, disabled }), [card, target, disabled])
+  const { isDragging, listeners, setNodeRef } = useDraggable({ id, data, disabled })
+
+  useEffect(() => {
+    if (disabled) {
+      clearActiveTarget(target)
+    }
+    return () => clearActiveTarget(target)
+    // Semantic drag identity, not freshly allocated card/target objects.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, disabled, clearActiveTarget])
+
+  return {
+    id,
+    isDragging: isDragging && !disabled,
+    listeners,
+    setNodeRef,
+  }
+}

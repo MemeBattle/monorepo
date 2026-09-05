@@ -19,13 +19,15 @@
     }
   },
   "scripts": {
+    "test:ci": "vitest run",
     "ts-check": "tsc --noEmit",
-    "build": "tsc"
+    "build": "tsc --project tsconfig.build.json"
   },
   "dependencies": {
     "@reduxjs/toolkit": "catalog:"
   },
   "devDependencies": {
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

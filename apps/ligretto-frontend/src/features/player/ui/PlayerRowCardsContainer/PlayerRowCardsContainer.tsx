@@ -1,11 +1,10 @@
 import React, { useMemo } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { CardsRow } from '#entities/card/ui/CardsRow'
 
-import { tapCardAction, playerCardsSelector, Hotkey } from '#ducks/game'
+import { playerCardsSelector, Hotkey } from '#ducks/game'
 import { Card, CardPlace, CardHotkeyBadge } from '#entities/card'
-import { useCardFocus } from '#features/cardFocus'
-import { useCardHotkey } from '../../lib/useCardHotkey'
+import { useCardHotkey, useCardInteraction, useDraggableCard } from '#features/cardInteraction'
 import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
 
 interface PlayerRowCardProps {
@@ -15,21 +14,26 @@ interface PlayerRowCardProps {
 }
 
 const PlayerRowCard = ({ card, index, hotkey }: PlayerRowCardProps) => {
-  const dispatch = useDispatch()
-  const { isFocused, isDimmed, toggleFocus } = useCardFocus({ type: 'row', index }, [card.color, card.value])
-  const onCardActivate = () => {
-    if (card.value !== 1) {
-      toggleFocus()
-      return
-    }
-    dispatch(tapCardAction({ cardIndex: index }))
-  }
+  const { isActive, isDimmed, toggleActiveTarget } = useCardInteraction({ type: 'row', index }, [card.color, card.value])
+  const { id: dragId, isDragging, listeners, setNodeRef } = useDraggableCard({ type: 'row', index }, card)
+  const onCardActivate = toggleActiveTarget
 
   useCardHotkey(hotkey, onCardActivate)
 
   return (
     <CardHotkeyBadge hotkey={hotkey}>
-      <Card {...card} data-card-focus-element isDarkened={isDimmed} isSelected={isFocused} onClick={onCardActivate} />
+      <Card
+        {...card}
+        {...listeners}
+        ref={setNodeRef}
+        data-card-drag-source
+        data-card-drag-id={dragId}
+        data-card-interaction-element
+        isDarkened={isDimmed}
+        isSelected={isActive}
+        onClick={onCardActivate}
+        style={{ opacity: isDragging ? 0 : 1, touchAction: 'none' }}
+      />
     </CardHotkeyBadge>
   )
 }
