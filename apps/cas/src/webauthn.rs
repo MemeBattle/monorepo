@@ -327,6 +327,21 @@ mod tests {
         assert_eq!(options.ccr.public_key.user.display_name, "Ada Lovelace");
     }
 
+    /// Emoji reach the authenticator prompt exactly as typed, variation
+    /// selector included.
+    #[sqlx::test]
+    async fn register_options_keeps_an_emoji_display_name(pool: PgPool) {
+        let app = test_app(pool);
+
+        let options = start(&app, "Ada \u{2764}\u{fe0f}").await;
+
+        assert_eq!(options.ccr.public_key.user.name, "Ada \u{2764}\u{fe0f}");
+        assert_eq!(
+            options.ccr.public_key.user.display_name,
+            "Ada \u{2764}\u{fe0f}"
+        );
+    }
+
     #[tokio::test]
     async fn register_options_without_a_display_name_returns_422() {
         let response = test_app_without_db()
