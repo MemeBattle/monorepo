@@ -5,9 +5,91 @@
 //! code path for guests and full accounts; a guest that registers a passkey is
 //! upgraded in place, keeping its `sub`. See `docs/PLAN.md`.
 
+use nutype::nutype;
+use precis_profiles::{
+    Nickname,
+    precis_core::{self, profile::PrecisFastInvocation},
+};
 use sqlx::PgPool;
 use time::OffsetDateTime;
 use uuid::Uuid;
+
+/// Upper bound on a display name, in characters. Long enough for a real name,
+/// short enough to keep the sign-in UI and the authenticator prompt readable.
+pub const MAX_DISPLAY_NAME_LENGTH: usize = 64;
+
+/// Why a string is not a [`DisplayName`].
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum DisplayNameError {
+    #[error("must not be empty")]
+    Empty,
+
+    #[error("must be at most {MAX_DISPLAY_NAME_LENGTH} characters")]
+    TooLong,
+
+    /// A code point the PRECIS Nickname profile disallows: controls, invisible
+    /// format characters (zero-width space, bidi overrides), unassigned code
+    /// points. `position` is its index in the sanitised value.
+    #[error("must not contain the character at position {position}")]
+    DisallowedCharacter { position: usize },
+}
+
+/// Unicode general category Zs: the space separators. RFC 8266 maps every one
+/// of them to ASCII space; `precis-profiles` 0.1 drops the non-ASCII ones
+/// instead ("Ada\u{a0}Lovelace" would become "AdaLovelace"), so the mapping
+/// is done here before the profile runs.
+fn is_space_separator(c: char) -> bool {
+    const EN_QUAD_TO_HAIR_SPACE: std::ops::RangeInclusive<char> = '\u{2000}'..='\u{200a}';
+    matches!(
+        c,
+        '\u{20}' | '\u{a0}' | '\u{1680}' | '\u{202f}' | '\u{205f}' | '\u{3000}'
+    ) || EN_QUAD_TO_HAIR_SPACE.contains(&c)
+}
+
+/// Applies the PRECIS Nickname profile (RFC 8266): NFKC normalisation, every
+/// space mapped to ASCII space, leading and trailing spaces removed, runs of
+/// spaces collapsed. A value the profile rejects is passed on unchanged so
+/// that validation reports why.
+fn sanitize_display_name(value: String) -> String {
+    let value: String = value
+        .chars()
+        .map(|c| if is_space_separator(c) { ' ' } else { c })
+        .collect();
+    match Nickname::enforce(value.as_str()) {
+        Ok(enforced) => enforced.into_owned(),
+        Err(_) => value,
+    }
+}
+
+fn validate_display_name(value: &str) -> Result<(), DisplayNameError> {
+    match Nickname::enforce(value) {
+        Ok(enforced) if enforced.is_empty() => Err(DisplayNameError::Empty),
+        Ok(enforced) if enforced.chars().count() > MAX_DISPLAY_NAME_LENGTH => {
+            Err(DisplayNameError::TooLong)
+        }
+        Ok(_) => Ok(()),
+        Err(precis_core::Error::BadCodepoint(info)) => Err(DisplayNameError::DisallowedCharacter {
+            position: info.position,
+        }),
+        // The Nickname profile only fails otherwise on a value that is empty
+        // once mapped.
+        Err(_) => Err(DisplayNameError::Empty),
+    }
+}
+
+/// A user-facing name, valid by construction.
+///
+/// Sanitised and validated by the PRECIS Nickname profile plus a length cap,
+/// so every UI and every authenticator prompt can show it as-is: no control
+/// or invisible characters, no bidi tricks, no leading or doubled spaces.
+/// Deserialising re-validates, so a stored or received value is as safe as a
+/// freshly constructed one.
+#[nutype(
+    sanitize(with = sanitize_display_name),
+    validate(with = validate_display_name, error = DisplayNameError),
+    derive(Debug, Clone, PartialEq, Eq, AsRef, Deref, Display, Into, Serialize, Deserialize),
+)]
+pub struct DisplayName(String);
 
 /// Whether an account has credentials of its own.
 ///
@@ -26,7 +108,8 @@ pub enum AccountType {
 pub struct Account {
     /// Stable account id, exposed as the OIDC `sub`.
     pub id: Uuid,
-    /// Non-unique: CAS has no username in v1.
+    /// Non-unique: CAS has no username in v1. Always a valid [`DisplayName`];
+    /// kept as a plain string because the row, not the reader, guarantees it.
     pub display_name: String,
     pub r#type: AccountType,
     /// Optional and unverified in v1; the future recovery anchor.
@@ -46,17 +129,17 @@ pub struct NewAccount {
     /// discoverable login (#666) gets it back as the account to sign in.
     /// Defaults to a fresh v4 uuid; [`NewAccount::with_id`] pins a chosen one.
     pub id: Uuid,
-    pub display_name: String,
+    pub display_name: DisplayName,
     pub r#type: AccountType,
     pub email: Option<String>,
 }
 
 impl NewAccount {
     /// A guest: no credentials, no email.
-    pub fn guest(display_name: impl Into<String>) -> Self {
+    pub fn guest(display_name: DisplayName) -> Self {
         Self {
             id: Uuid::new_v4(),
-            display_name: display_name.into(),
+            display_name,
             r#type: AccountType::Guest,
             email: None,
         }
@@ -64,10 +147,10 @@ impl NewAccount {
 
     /// A full account. Email stays optional — registration only asks for a
     /// display name.
-    pub fn full(display_name: impl Into<String>) -> Self {
+    pub fn full(display_name: DisplayName) -> Self {
         Self {
             id: Uuid::new_v4(),
-            display_name: display_name.into(),
+            display_name,
             r#type: AccountType::Full,
             email: None,
         }
@@ -95,6 +178,8 @@ pub(crate) async fn insert<'e, E>(executor: E, account: NewAccount) -> Result<Ac
 where
     E: sqlx::PgExecutor<'e>,
 {
+    let display_name: String = account.display_name.into();
+
     sqlx::query_as!(
         Account,
         r#"INSERT INTO accounts (id, display_name, type, email)
@@ -107,7 +192,7 @@ where
                created_at,
                last_seen_at"#,
         account.id,
-        account.display_name,
+        display_name,
         account.r#type as AccountType,
         account.email,
     )
@@ -153,15 +238,95 @@ impl AccountRepository {
 }
 
 #[cfg(test)]
+mod display_name_tests {
+    use super::*;
+
+    fn name(value: &str) -> Result<String, DisplayNameError> {
+        DisplayName::try_new(value).map(Into::into)
+    }
+
+    #[test]
+    fn keeps_an_ordinary_name() {
+        assert_eq!(name("Ada Lovelace"), Ok("Ada Lovelace".to_owned()));
+        assert_eq!(name("Ада"), Ok("Ада".to_owned()));
+        assert_eq!(name("Ada 🚀"), Ok("Ada 🚀".to_owned()));
+    }
+
+    #[test]
+    fn trims_and_collapses_spaces() {
+        assert_eq!(name("  Ada   Lovelace  "), Ok("Ada Lovelace".to_owned()));
+        // Non-ASCII spaces become ASCII ones and collapse with them.
+        assert_eq!(name("Ada\u{a0}Lovelace"), Ok("Ada Lovelace".to_owned()));
+        assert_eq!(
+            name("Ada\u{3000} \u{2003}Lovelace"),
+            Ok("Ada Lovelace".to_owned())
+        );
+        assert_eq!(name("\u{a0}Ada\u{a0}"), Ok("Ada".to_owned()));
+    }
+
+    #[test]
+    fn normalises_compatibility_forms() {
+        // Fullwidth letters are the same name as their ASCII form.
+        assert_eq!(name("Ａda"), Ok("Ada".to_owned()));
+    }
+
+    #[test]
+    fn rejects_empty_names() {
+        assert_eq!(name(""), Err(DisplayNameError::Empty));
+        assert_eq!(name("   "), Err(DisplayNameError::Empty));
+    }
+
+    #[test]
+    fn rejects_names_over_the_limit() {
+        assert!(name(&"a".repeat(MAX_DISPLAY_NAME_LENGTH)).is_ok());
+        assert_eq!(
+            name(&"a".repeat(MAX_DISPLAY_NAME_LENGTH + 1)),
+            Err(DisplayNameError::TooLong)
+        );
+    }
+
+    /// Invisible and direction-changing characters would let a name render as
+    /// empty or as another name in the authenticator prompt.
+    #[test]
+    fn rejects_control_and_format_characters() {
+        for value in [
+            "Ada\u{7}",
+            "\u{200b}",
+            "Ada\u{200b}",
+            "\u{202e}adA",
+            "\u{feff}Ada",
+        ] {
+            assert!(
+                matches!(
+                    name(value),
+                    Err(DisplayNameError::DisallowedCharacter { .. })
+                ),
+                "{value:?} must be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn deserialising_validates() {
+        let error = serde_json::from_str::<DisplayName>("\"\"").unwrap_err();
+        assert!(error.to_string().contains("must not be empty"));
+
+        let ok: DisplayName = serde_json::from_str("\"  Ada  \"").unwrap();
+        assert_eq!(ok.as_ref(), "Ada");
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
+    use crate::testing::display_name;
 
     #[sqlx::test]
     async fn creates_a_full_account_with_an_email(pool: PgPool) {
         let repository = AccountRepository::new(pool);
 
         let account = repository
-            .create(NewAccount::full("Ada").with_email("ada@example.com"))
+            .create(NewAccount::full(display_name("Ada")).with_email("ada@example.com"))
             .await
             .unwrap();
 
@@ -176,7 +341,10 @@ mod tests {
     async fn creates_a_guest_without_an_email(pool: PgPool) {
         let repository = AccountRepository::new(pool);
 
-        let account = repository.create(NewAccount::guest("Guest")).await.unwrap();
+        let account = repository
+            .create(NewAccount::guest(display_name("Guest")))
+            .await
+            .unwrap();
 
         assert_eq!(account.r#type, AccountType::Guest);
         assert_eq!(account.email, None);
@@ -185,7 +353,10 @@ mod tests {
     #[sqlx::test]
     async fn get_returns_the_created_account(pool: PgPool) {
         let repository = AccountRepository::new(pool);
-        let created = repository.create(NewAccount::full("Grace")).await.unwrap();
+        let created = repository
+            .create(NewAccount::full(display_name("Grace")))
+            .await
+            .unwrap();
 
         let found = repository.get(created.id).await.unwrap();
 
@@ -207,7 +378,7 @@ mod tests {
         let id = Uuid::new_v4();
 
         let account = repository
-            .create(NewAccount::full("Ada").with_id(id))
+            .create(NewAccount::full(display_name("Ada")).with_id(id))
             .await
             .unwrap();
 
@@ -219,8 +390,14 @@ mod tests {
     async fn display_names_are_not_unique(pool: PgPool) {
         let repository = AccountRepository::new(pool);
 
-        let first = repository.create(NewAccount::full("Ada")).await.unwrap();
-        let second = repository.create(NewAccount::full("Ada")).await.unwrap();
+        let first = repository
+            .create(NewAccount::full(display_name("Ada")))
+            .await
+            .unwrap();
+        let second = repository
+            .create(NewAccount::full(display_name("Ada")))
+            .await
+            .unwrap();
 
         assert_ne!(first.id, second.id);
     }

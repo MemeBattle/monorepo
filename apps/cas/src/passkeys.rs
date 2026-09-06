@@ -6,7 +6,8 @@
 //! that id to look the account up by. See
 //! `docs/adr/0001-passkey-persistence.md`.
 
-use sqlx::{PgPool, types::Json};
+use sqlx::{PgConnection, PgPool, types::Json};
+use thiserror::Error;
 use time::OffsetDateTime;
 use uuid::Uuid;
 use webauthn_rs::prelude::Passkey;
@@ -18,8 +19,15 @@ use crate::accounts::{self, Account, NewAccount};
 /// rename it.
 pub const DEFAULT_PASSKEY_NAME: &str = "Passkey";
 
+/// Name Postgres gives the `UNIQUE` constraint on `credential_id`.
+const CREDENTIAL_ID_UNIQUE: &str = "passkey_credentials_credential_id_key";
+
 /// A row of `passkey_credentials`.
-#[derive(Debug, Clone, PartialEq)]
+///
+/// Deliberately not `PartialEq`: `Passkey` compares credential ids only, so a
+/// derived equality would call two rows with different counters or keys
+/// equal. Compare fields, or the serde form, explicitly.
+#[derive(Debug, Clone)]
 pub struct PasskeyCredential {
     pub id: Uuid,
     pub account_id: Uuid,
@@ -36,6 +44,55 @@ pub struct PasskeyCredential {
     pub last_used_at: Option<OffsetDateTime>,
 }
 
+/// The row as the queries return it: the credential still wrapped for jsonb.
+struct PasskeyRow {
+    id: Uuid,
+    account_id: Uuid,
+    credential_id: Vec<u8>,
+    credential: Json<Passkey>,
+    name: String,
+    created_at: OffsetDateTime,
+    last_used_at: Option<OffsetDateTime>,
+}
+
+impl From<PasskeyRow> for PasskeyCredential {
+    fn from(row: PasskeyRow) -> Self {
+        Self {
+            id: row.id,
+            account_id: row.account_id,
+            credential_id: row.credential_id,
+            passkey: row.credential.0,
+            name: row.name,
+            created_at: row.created_at,
+            last_used_at: row.last_used_at,
+        }
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum CreateError {
+    /// The credential id is already stored, on this account or another one.
+    /// An authenticator must never be registered twice.
+    #[error("the credential is already registered")]
+    CredentialAlreadyRegistered,
+
+    #[error(transparent)]
+    Db(sqlx::Error),
+}
+
+impl From<sqlx::Error> for CreateError {
+    fn from(error: sqlx::Error) -> Self {
+        match &error {
+            sqlx::Error::Database(db)
+                if db.is_unique_violation() && db.constraint() == Some(CREDENTIAL_ID_UNIQUE) =>
+            {
+                Self::CredentialAlreadyRegistered
+            }
+            _ => Self::Db(error),
+        }
+    }
+}
+
 /// Data access for `passkey_credentials`.
 #[derive(Debug, Clone)]
 pub struct PasskeyRepository {
@@ -47,25 +104,19 @@ impl PasskeyRepository {
         Self { pool }
     }
 
-    /// Creates an account together with its first passkey, in one transaction.
-    ///
-    /// Registration is the only writer of full accounts, and an account without
-    /// a credential could never be signed into — it would be an orphan row that
-    /// nothing can reach or clean up. So both rows are written, or neither.
+    /// Creates an account together with its first passkey, in one transaction
+    /// of its own. Registration runs [`create_with_account`] inside its wider
+    /// transaction instead.
     pub async fn create_with_account(
         &self,
         account: NewAccount,
         passkey: &Passkey,
         name: &str,
-    ) -> Result<(Account, PasskeyCredential), sqlx::Error> {
+    ) -> Result<(Account, PasskeyCredential), CreateError> {
         let mut tx = self.pool.begin().await?;
-
-        let account = accounts::insert(&mut *tx, account).await?;
-        let credential = insert(&mut *tx, account.id, passkey, name).await?;
-
+        let created = create_with_account(&mut tx, account, passkey, name).await?;
         tx.commit().await?;
-
-        Ok((account, credential))
+        Ok(created)
     }
 
     /// All passkeys of an account, oldest first. Powers the management screen
@@ -75,7 +126,8 @@ impl PasskeyRepository {
         &self,
         account_id: Uuid,
     ) -> Result<Vec<PasskeyCredential>, sqlx::Error> {
-        let rows = sqlx::query!(
+        let rows = sqlx::query_as!(
+            PasskeyRow,
             r#"SELECT
                    id,
                    account_id,
@@ -92,19 +144,22 @@ impl PasskeyRepository {
         .fetch_all(&self.pool)
         .await?;
 
-        Ok(rows
-            .into_iter()
-            .map(|row| PasskeyCredential {
-                id: row.id,
-                account_id: row.account_id,
-                credential_id: row.credential_id,
-                passkey: row.credential.0,
-                name: row.name,
-                created_at: row.created_at,
-                last_used_at: row.last_used_at,
-            })
-            .collect())
+        Ok(rows.into_iter().map(Into::into).collect())
     }
+}
+
+/// Writes an account and its first passkey on the caller's connection, meant
+/// to be a transaction: an account without a credential could never be signed
+/// into, so both rows are written or neither.
+pub async fn create_with_account(
+    conn: &mut PgConnection,
+    account: NewAccount,
+    passkey: &Passkey,
+    name: &str,
+) -> Result<(Account, PasskeyCredential), CreateError> {
+    let account = accounts::insert(&mut *conn, account).await?;
+    let credential = insert(&mut *conn, account.id, passkey, name).await?;
+    Ok((account, credential))
 }
 
 /// Inserts a credential with any executor, so it can join the transaction that
@@ -120,7 +175,8 @@ where
 {
     let credential_id: &[u8] = passkey.cred_id().as_ref();
 
-    let row = sqlx::query!(
+    sqlx::query_as!(
+        PasskeyRow,
         r#"INSERT INTO passkey_credentials (account_id, credential_id, credential, name)
            VALUES ($1, $2, $3, $4)
            RETURNING
@@ -137,50 +193,15 @@ where
         name,
     )
     .fetch_one(executor)
-    .await?;
-
-    Ok(PasskeyCredential {
-        id: row.id,
-        account_id: row.account_id,
-        credential_id: row.credential_id,
-        passkey: row.credential.0,
-        name: row.name,
-        created_at: row.created_at,
-        last_used_at: row.last_used_at,
-    })
+    .await
+    .map(Into::into)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::accounts::{AccountRepository, AccountType};
-    use webauthn_authenticator_rs::{WebauthnAuthenticator, softpasskey::SoftPasskey};
-    use webauthn_rs::prelude::Url;
-
-    /// Runs a full registration ceremony against a software authenticator to
-    /// obtain a real `Passkey` — a hand-built one would not prove that the
-    /// library's own serde shape survives the round trip through jsonb.
-    fn test_passkey() -> Passkey {
-        let origin: Url = "http://localhost:5173".parse().unwrap();
-        let webauthn = webauthn_rs::WebauthnBuilder::new("localhost", &origin)
-            .unwrap()
-            .build()
-            .unwrap();
-
-        let (ccr, state) = webauthn
-            .start_passkey_registration(Uuid::new_v4(), "test", "test", None)
-            .unwrap();
-
-        // `falsify_uv = true`: registration requires user verification, which a
-        // software authenticator can only claim.
-        let response = WebauthnAuthenticator::new(SoftPasskey::new(true))
-            .do_registration(origin, ccr)
-            .unwrap();
-
-        webauthn
-            .finish_passkey_registration(&response, &state)
-            .unwrap()
-    }
+    use crate::testing::{display_name, test_passkey};
 
     #[sqlx::test]
     async fn create_with_account_writes_the_account_and_the_credential(pool: PgPool) {
@@ -190,7 +211,7 @@ mod tests {
 
         let (account, credential) = repository
             .create_with_account(
-                NewAccount::full("Ada").with_id(id),
+                NewAccount::full(display_name("Ada")).with_id(id),
                 &passkey,
                 DEFAULT_PASSKEY_NAME,
             )
@@ -216,16 +237,19 @@ mod tests {
         let repository = PasskeyRepository::new(pool);
         let passkey = test_passkey();
         let (account, _) = repository
-            .create_with_account(NewAccount::full("Ada"), &passkey, DEFAULT_PASSKEY_NAME)
+            .create_with_account(
+                NewAccount::full(display_name("Ada")),
+                &passkey,
+                DEFAULT_PASSKEY_NAME,
+            )
             .await
             .unwrap();
 
         let credentials = repository.list_for_account(account.id).await.unwrap();
 
         assert_eq!(credentials.len(), 1);
-        assert_eq!(credentials[0].passkey, passkey);
         // `Passkey`'s equality only compares credential ids, so compare the
-        // serialized form too: that is what proves nothing was lost in jsonb.
+        // serialized form: that is what proves nothing was lost in jsonb.
         assert_eq!(
             serde_json::to_value(&credentials[0].passkey).unwrap(),
             serde_json::to_value(&passkey).unwrap()
@@ -248,21 +272,25 @@ mod tests {
         let repository = PasskeyRepository::new(pool.clone());
         let passkey = test_passkey();
         repository
-            .create_with_account(NewAccount::full("Ada"), &passkey, DEFAULT_PASSKEY_NAME)
+            .create_with_account(
+                NewAccount::full(display_name("Ada")),
+                &passkey,
+                DEFAULT_PASSKEY_NAME,
+            )
             .await
             .unwrap();
 
         let second_id = Uuid::new_v4();
         let error = repository
             .create_with_account(
-                NewAccount::full("Ada").with_id(second_id),
+                NewAccount::full(display_name("Ada")).with_id(second_id),
                 &passkey,
                 DEFAULT_PASSKEY_NAME,
             )
             .await
             .unwrap_err();
 
-        assert!(matches!(error, sqlx::Error::Database(ref db) if db.is_unique_violation()));
+        assert!(matches!(error, CreateError::CredentialAlreadyRegistered));
         let orphan = AccountRepository::new(pool).get(second_id).await.unwrap();
         assert_eq!(orphan, None);
     }
@@ -272,7 +300,7 @@ mod tests {
         let repository = PasskeyRepository::new(pool.clone());
         let (account, _) = repository
             .create_with_account(
-                NewAccount::full("Ada"),
+                NewAccount::full(display_name("Ada")),
                 &test_passkey(),
                 DEFAULT_PASSKEY_NAME,
             )

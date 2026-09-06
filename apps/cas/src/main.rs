@@ -1,4 +1,3 @@
-mod ceremony;
 mod error;
 mod extract;
 mod health;
@@ -20,11 +19,11 @@ use tower_http::{
 use tracing::Level;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use crate::ceremony::CeremonyStore;
 use crate::error::ApiError;
 use crate::webauthn::{ApiState, router as webauthn_router};
+use cas::ceremonies::build_webauthn;
 use cas::config::{Config, ConfigError, load_env_files};
-use cas::passkeys::PasskeyRepository;
+use cas::registration::RegistrationService;
 use std::net::Ipv4Addr;
 use thiserror::Error;
 
@@ -102,15 +101,10 @@ fn app(config: Config) -> Result<Router, CasError> {
         .connect_lazy(&config.database_url)
         .map_err(CasError::DbPool)?;
 
-    let webauthn = webauthn_rs::WebauthnBuilder::new(&config.rp_id, &config.origin)
-        .map_err(CasError::WebauthnInit)?
-        .build()
-        .map_err(CasError::WebauthnInit)?;
+    let webauthn = build_webauthn(&config.rp_id, &config.origin).map_err(CasError::WebauthnInit)?;
 
     let api_state = ApiState {
-        webauthn,
-        registrations: CeremonyStore::new(),
-        passkeys: PasskeyRepository::new(pool.clone()),
+        registration: RegistrationService::new(webauthn, pool.clone()),
     };
 
     let router = Router::new()

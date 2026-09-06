@@ -28,7 +28,8 @@ and would have to be migrated whenever the library learns a new flag; CBOR in a
 It is passed to `start_passkey_registration` before the account row exists,
 which means it cannot be a database default. The handle is baked into the
 credential and can never change; discoverable login returns it as the account
-to sign in.
+to sign in. The ceremony itself is identified by a separate random id
+(ADR 0002).
 
 **(c) The account row is created when the ceremony finishes, not when it
 starts.** An abandoned registration is the common case (the user closes the

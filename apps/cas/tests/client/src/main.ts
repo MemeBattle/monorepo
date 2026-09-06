@@ -41,6 +41,10 @@ elemRegister.addEventListener('click', async () => {
   })
 
   const optionsResponseJSON = await optionsResponse.json()
+  if (!optionsResponse.ok) {
+    elemError.innerHTML = `Could not start registration: <pre>${JSON.stringify(optionsResponseJSON)}</pre>`
+    return
+  }
   const optionsJSON = optionsResponseJSON.ccr.publicKey
   const registrationId = optionsResponseJSON.registrationId
 

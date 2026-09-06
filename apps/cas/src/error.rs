@@ -10,6 +10,11 @@ use serde_json::json;
 ///
 /// Domain modules keep their own error enums and map them into this type
 /// via `From` impls, so the wire format stays in one place.
+///
+/// Every failure the code can name gets a specific status and a stable code.
+/// A 500 is reserved for what nobody anticipated — a panic, an error no
+/// branch knows — and is treated as an incident, so no handler maps a known
+/// condition to [`ApiError::internal`] on purpose.
 #[derive(Debug)]
 pub struct ApiError {
     status: StatusCode,
@@ -23,23 +28,42 @@ pub struct ApiError {
 
 impl ApiError {
     pub fn bad_request(code: &'static str, message: impl Into<String>) -> Self {
-        Self {
-            status: StatusCode::BAD_REQUEST,
-            code,
-            message: message.into(),
-            source: None,
-        }
+        Self::client(StatusCode::BAD_REQUEST, code, message)
     }
 
     pub fn not_found(code: &'static str, message: impl Into<String>) -> Self {
+        Self::client(StatusCode::NOT_FOUND, code, message)
+    }
+
+    pub fn conflict(code: &'static str, message: impl Into<String>) -> Self {
+        Self::client(StatusCode::CONFLICT, code, message)
+    }
+
+    fn client(status: StatusCode, code: &'static str, message: impl Into<String>) -> Self {
         Self {
-            status: StatusCode::NOT_FOUND,
+            status,
             code,
             message: message.into(),
             source: None,
         }
     }
 
+    /// A dependency the request needs is not answering. The client may retry.
+    pub fn service_unavailable(
+        code: &'static str,
+        message: impl Into<String>,
+        source: impl Into<Box<dyn std::error::Error + Send + Sync>>,
+    ) -> Self {
+        Self {
+            status: StatusCode::SERVICE_UNAVAILABLE,
+            code,
+            message: message.into(),
+            source: Some(source.into()),
+        }
+    }
+
+    /// The fallback for failures the code cannot name. Not for known
+    /// conditions: give those their own status and code.
     pub fn internal(source: impl Into<Box<dyn std::error::Error + Send + Sync>>) -> Self {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
@@ -63,10 +87,30 @@ impl From<JsonRejection> for ApiError {
     }
 }
 
+/// The one place a database error becomes a response. A database that does
+/// not answer is a known condition (503, retryable); anything else — a query
+/// the schema no longer matches, a row that will not decode — is a bug and
+/// takes the 500 fallback.
+impl From<sqlx::Error> for ApiError {
+    fn from(error: sqlx::Error) -> Self {
+        match error {
+            sqlx::Error::PoolTimedOut
+            | sqlx::Error::PoolClosed
+            | sqlx::Error::Io(_)
+            | sqlx::Error::Tls(_) => Self::service_unavailable(
+                "database_unavailable",
+                "The database is not available, try again later",
+                error,
+            ),
+            error => Self::internal(error),
+        }
+    }
+}
+
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         if self.status.is_server_error() {
-            tracing::error!(code = self.code, source = ?self.source, "internal error");
+            tracing::error!(status = %self.status, code = self.code, source = ?self.source, "server error");
         }
         let body = json!({
             "error": {
