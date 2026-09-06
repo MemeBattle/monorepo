@@ -15,6 +15,11 @@ Each SQLx test receives a throwaway database with all migrations applied. Tests 
 Handler tests that fail before any query (body validation, an unknown id
 format) use a lazy pool that never connects, so they run without a database.
 
+Test queries use the unchecked `sqlx::query*` functions rather than the
+compile-time-checked macros, because CI runs the tests with `SQLX_OFFLINE=true`
+and `cargo sqlx prepare` does not cache queries from the test target; the
+comment `// Unchecked query: see docs/TESTS.md.` marks them.
+
 ## Test support
 
 Helpers shared by the library's tests and the server binary's tests live in

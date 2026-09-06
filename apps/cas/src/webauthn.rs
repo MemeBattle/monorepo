@@ -1,6 +1,5 @@
 use axum::{Json, Router, extract::State, routing::post};
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 use uuid::Uuid;
 use webauthn_rs::prelude::{CreationChallengeResponse, CredentialID, RegisterPublicKeyCredential};
 
@@ -10,42 +9,40 @@ use cas::registration::{FinishError, RegistrationService, StartError};
 use crate::error::ApiError;
 use crate::extract::Json as AppJson;
 
-#[derive(Debug, Error, miette::Diagnostic)]
-pub enum RegistrationError {
-    #[diagnostic(code(cas::invalid_display_name))]
-    #[error("Invalid display name: {0}")]
-    InvalidDisplayName(#[source] DisplayNameError),
-
-    #[diagnostic(code(cas::registration_start_failed))]
-    #[error(transparent)]
-    Start(StartError),
-
-    #[diagnostic(code(cas::registration_finish_failed))]
-    #[error(transparent)]
-    Finish(FinishError),
+/// The name is validated by the handler rather than by the body type, so a bad
+/// one gets this code instead of a generic `invalid_body`.
+impl From<DisplayNameError> for ApiError {
+    fn from(error: DisplayNameError) -> Self {
+        ApiError::bad_request(
+            "invalid_display_name",
+            format!("Invalid display name: {error}"),
+        )
+    }
 }
 
-impl From<RegistrationError> for ApiError {
-    fn from(err: RegistrationError) -> Self {
-        let message = err.to_string();
-        match err {
-            RegistrationError::InvalidDisplayName(_) => {
-                ApiError::bad_request("invalid_display_name", message)
-            }
-            RegistrationError::Start(StartError::Db(error))
-            | RegistrationError::Finish(FinishError::Db(error)) => ApiError::from(error),
+impl From<StartError> for ApiError {
+    fn from(error: StartError) -> Self {
+        match error {
             // webauthn-rs refusing to issue a challenge for a valid relying
             // party is nothing this code can name.
-            RegistrationError::Start(StartError::Webauthn(error)) => ApiError::internal(error),
-            RegistrationError::Finish(FinishError::NotFound) => {
-                ApiError::not_found("registration_not_found", message)
-            }
-            RegistrationError::Finish(FinishError::Verification(_)) => {
+            StartError::Webauthn(error) => ApiError::internal(error),
+            StartError::Db(error) => ApiError::from(error),
+        }
+    }
+}
+
+impl From<FinishError> for ApiError {
+    fn from(error: FinishError) -> Self {
+        let message = error.to_string();
+        match error {
+            FinishError::NotFound => ApiError::not_found("registration_not_found", message),
+            FinishError::Verification(_) => {
                 ApiError::bad_request("registration_verification_failed", message)
             }
-            RegistrationError::Finish(FinishError::CredentialAlreadyRegistered) => {
+            FinishError::CredentialAlreadyRegistered => {
                 ApiError::conflict("credential_already_registered", message)
             }
+            FinishError::Db(error) => ApiError::from(error),
         }
     }
 }
@@ -100,14 +97,9 @@ async fn get_registration_options(
     State(state): State<ApiState>,
     AppJson(request): AppJson<RegistrationOptionsRequest>,
 ) -> Result<Json<RegistrationOptionsResponse>, ApiError> {
-    let display_name = DisplayName::try_new(request.display_name)
-        .map_err(RegistrationError::InvalidDisplayName)?;
+    let display_name = DisplayName::try_new(request.display_name)?;
 
-    let started = state
-        .registration
-        .start(display_name)
-        .await
-        .map_err(RegistrationError::Start)?;
+    let started = state.registration.start(display_name).await?;
 
     Ok(Json(RegistrationOptionsResponse {
         registration_id: started.registration_id,
@@ -122,8 +114,7 @@ async fn verify_registration(
     let registered = state
         .registration
         .finish(data.registration_id, &data.response)
-        .await
-        .map_err(RegistrationError::Finish)?;
+        .await?;
 
     Ok(Json(VerifyRegistrationResponse {
         account_id: registered.account.id,
@@ -140,6 +131,7 @@ mod tests {
         response::IntoResponse,
     };
     use cas::accounts::{AccountRepository, AccountType};
+    use cas::ceremonies::CEREMONY_TIMEOUT;
     use cas::passkeys::{DEFAULT_PASSKEY_NAME, PasskeyRepository};
     use cas::testing::{soft_passkey_registration, test_webauthn};
     use sqlx::{PgPool, postgres::PgPoolOptions};
@@ -317,6 +309,22 @@ mod tests {
         }
     }
 
+    /// The challenge carries the same countdown the server stores the ceremony
+    /// for, in milliseconds. If the two ever drift apart, one side gives up
+    /// while the other is still waiting.
+    #[sqlx::test]
+    async fn register_options_sends_the_ceremony_timeout(pool: PgPool) {
+        let app = test_app(pool);
+
+        let options = start(&app, "Ada").await;
+
+        assert_eq!(
+            options.ccr.public_key.timeout,
+            Some(u32::try_from(CEREMONY_TIMEOUT.as_millis()).expect("the timeout fits in a u32"))
+        );
+        assert_eq!(options.ccr.public_key.timeout, Some(300_000));
+    }
+
     #[sqlx::test]
     async fn register_options_normalises_the_display_name(pool: PgPool) {
         let app = test_app(pool);
@@ -407,7 +415,7 @@ mod tests {
     /// checked on the error itself.
     #[tokio::test]
     async fn an_already_registered_credential_is_a_conflict() {
-        let error = RegistrationError::Finish(FinishError::CredentialAlreadyRegistered);
+        let error = FinishError::CredentialAlreadyRegistered;
 
         let response = ApiError::from(error).into_response();
 
@@ -422,7 +430,7 @@ mod tests {
     /// retry, and the ceremony is still there when it does.
     #[tokio::test]
     async fn a_database_timeout_is_service_unavailable() {
-        let error = RegistrationError::Finish(FinishError::Db(sqlx::Error::PoolTimedOut));
+        let error = FinishError::Db(sqlx::Error::PoolTimedOut);
 
         let response = ApiError::from(error).into_response();
 

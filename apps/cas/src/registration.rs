@@ -15,7 +15,7 @@ use webauthn_rs::prelude::{
 };
 
 use crate::accounts::{Account, DisplayName, NewAccount};
-use crate::ceremonies::{self, CeremonyKind, PendingRegistration};
+use crate::ceremonies::{self, PendingRegistration, Taken};
 use crate::passkeys::{self, CreateError, DEFAULT_PASSKEY_NAME, PasskeyCredential};
 
 #[derive(Debug, Error)]
@@ -106,7 +106,6 @@ impl RegistrationService {
 
         let registration_id = ceremonies::start(
             &self.pool,
-            CeremonyKind::Registration,
             &PendingRegistration {
                 account_id,
                 display_name,
@@ -135,10 +134,18 @@ impl RegistrationService {
     ) -> Result<Registered, FinishError> {
         let mut tx = self.pool.begin().await?;
 
-        let pending: PendingRegistration =
-            ceremonies::take(&mut *tx, registration_id, CeremonyKind::Registration)
-                .await?
-                .ok_or(FinishError::NotFound)?;
+        let pending: PendingRegistration = match ceremonies::take(&mut *tx, registration_id).await?
+        {
+            Taken::Found(pending) => pending,
+            // The row was found and deleted, only its state was unusable. The
+            // commit is what makes the deletion stick: rolling back here would
+            // hand the same unusable row to every retry until it expires.
+            Taken::Undecodable => {
+                tx.commit().await?;
+                return Err(FinishError::NotFound);
+            }
+            Taken::Missing => return Err(FinishError::NotFound),
+        };
 
         let passkey = match self
             .webauthn
@@ -176,8 +183,7 @@ mod tests {
     }
 
     async fn ceremony_count(pool: &PgPool) -> i64 {
-        // Unchecked query on purpose: CI runs tests with SQLX_OFFLINE=true and
-        // `cargo sqlx prepare` does not cache queries from the test target.
+        // Unchecked query: see docs/TESTS.md.
         sqlx::query_scalar("SELECT count(*) FROM webauthn_ceremonies")
             .fetch_one(pool)
             .await
@@ -275,6 +281,34 @@ mod tests {
             ceremony_count(&pool).await,
             1,
             "only Bob's ceremony is left"
+        );
+    }
+
+    /// A state shape that changed under a rollout: the client is told to start
+    /// over, and the row is really gone, so the next attempt is not answered by
+    /// the same unusable row.
+    #[sqlx::test]
+    async fn an_undecodable_ceremony_is_not_found_and_is_discarded(pool: PgPool) {
+        let service = service(pool.clone());
+        let started = service.start(display_name("Ada")).await.unwrap();
+        let response = soft_passkey_registration(started.ccr);
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("UPDATE webauthn_ceremonies SET state = '{\"nope\": 1}'::jsonb WHERE id = $1")
+            .bind(started.registration_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let error = service
+            .finish(started.registration_id, &response)
+            .await
+            .unwrap_err();
+
+        assert!(matches!(error, FinishError::NotFound));
+        assert_eq!(
+            ceremony_count(&pool).await,
+            0,
+            "the deletion must be committed, not rolled back"
         );
     }
 

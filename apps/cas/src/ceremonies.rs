@@ -55,6 +55,28 @@ pub enum CeremonyKind {
     Authentication,
 }
 
+/// State that can be parked in the ceremony table. The kind belongs to the
+/// type: a state and the row's `kind` column can never drift apart, and no
+/// caller has to remember to pass the matching one.
+pub trait Ceremony: Serialize + DeserializeOwned {
+    const KIND: CeremonyKind;
+}
+
+/// What [`take`] found. A row that was deleted but does not deserialise is not
+/// the same as no row at all: the caller must commit that deletion, or the row
+/// answers the next attempt exactly as badly.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Taken<T> {
+    Found(T),
+    /// A row was there and has been deleted, but its stored state no longer
+    /// matches the type — a state shape that changed under a rollout. Expected,
+    /// short-lived, and not a server fault: see
+    /// `docs/adr/0002-ceremony-state-in-postgres.md`.
+    Undecodable,
+    /// Unknown id, expired, already used, or of another kind.
+    Missing,
+}
+
 /// A registration in flight: the account that will be created if the browser
 /// comes back with a valid credential.
 #[derive(Debug, Serialize, serde::Deserialize)]
@@ -66,20 +88,20 @@ pub struct PendingRegistration {
     pub state: PasskeyRegistration,
 }
 
+impl Ceremony for PendingRegistration {
+    const KIND: CeremonyKind = CeremonyKind::Registration;
+}
+
 /// Stores a ceremony and returns its id. The row lives for
 /// [`CEREMONY_TIMEOUT`] plus [`CEREMONY_GRACE`], measured by the database
 /// clock so that every replica agrees on it.
 ///
 /// Expired rows are swept in the same statement: abandoned ceremonies are the
 /// common case and nothing else ever removes them.
-pub async fn start<'e, E, T>(
-    executor: E,
-    kind: CeremonyKind,
-    state: &T,
-) -> Result<Uuid, sqlx::Error>
+pub async fn start<'e, E, T>(executor: E, state: &T) -> Result<Uuid, sqlx::Error>
 where
     E: sqlx::PgExecutor<'e>,
-    T: Serialize,
+    T: Ceremony,
 {
     let id = Uuid::new_v4();
     let state =
@@ -93,7 +115,7 @@ where
            INSERT INTO webauthn_ceremonies (id, kind, state, expires_at)
            VALUES ($1, $2, $3, now() + make_interval(secs => $4))"#,
         id,
-        kind as CeremonyKind,
+        T::KIND as CeremonyKind,
         state,
         ttl_secs,
     )
@@ -104,46 +126,73 @@ where
 }
 
 /// Consumes a ceremony: returns its state and deletes the row in one
-/// statement. `Ok(None)` means unknown, expired, already used, or of another
-/// kind. Run it inside the transaction that finishes the ceremony, so a
+/// statement. Run it inside the transaction that finishes the ceremony, so a
 /// failure later in that transaction leaves the row in place for a retry.
-pub async fn take<'e, E, T>(
-    executor: E,
-    id: Uuid,
-    kind: CeremonyKind,
-) -> Result<Option<T>, sqlx::Error>
+///
+/// A row whose state no longer deserialises is discarded rather than reported
+/// as an error: it can only be a state shape that changed under a rollout, the
+/// row is worthless either way, and letting the deletion stand is what stops it
+/// from failing every retry until it expires. The caller must commit for that
+/// to hold — see [`Taken::Undecodable`].
+pub async fn take<'e, E, T>(executor: E, id: Uuid) -> Result<Taken<T>, sqlx::Error>
 where
     E: sqlx::PgExecutor<'e>,
-    T: DeserializeOwned,
+    T: Ceremony,
 {
     let row = sqlx::query!(
         r#"DELETE FROM webauthn_ceremonies
            WHERE id = $1 AND kind = $2 AND expires_at > now()
            RETURNING state"#,
         id,
-        kind as CeremonyKind,
+        T::KIND as CeremonyKind,
     )
     .fetch_optional(executor)
     .await?;
 
-    row.map(|row| serde_json::from_value(row.state))
-        .transpose()
-        .map_err(|error| sqlx::Error::Decode(Box::new(error)))
+    let Some(row) = row else {
+        return Ok(Taken::Missing);
+    };
+
+    match serde_json::from_value(row.state) {
+        Ok(state) => Ok(Taken::Found(state)),
+        Err(error) => {
+            tracing::warn!(
+                ceremony_id = %id,
+                error = %error,
+                "discarding a ceremony whose stored state no longer deserialises"
+            );
+            Ok(Taken::Undecodable)
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sqlx::PgPool;
+    use sqlx::{PgPool, postgres::types::PgInterval};
 
     #[derive(Debug, PartialEq, Serialize, serde::Deserialize)]
     struct State {
         value: u32,
     }
 
-    /// Moves a ceremony's expiry into the past. Unchecked query on purpose:
-    /// CI runs tests with SQLX_OFFLINE=true and `cargo sqlx prepare` does not
-    /// cache queries from the test target.
+    impl Ceremony for State {
+        const KIND: CeremonyKind = CeremonyKind::Registration;
+    }
+
+    /// A state of the other kind, so a mismatch can be provoked without
+    /// passing the kind by hand.
+    #[derive(Debug, PartialEq, Serialize, serde::Deserialize)]
+    struct LoginState {
+        value: u32,
+    }
+
+    impl Ceremony for LoginState {
+        const KIND: CeremonyKind = CeremonyKind::Authentication;
+    }
+
+    /// Moves a ceremony's expiry into the past. Unchecked query: see
+    /// docs/TESTS.md.
     async fn expire(pool: &PgPool, id: Uuid) {
         sqlx::query(
             "UPDATE webauthn_ceremonies SET expires_at = now() - interval '1 second' WHERE id = $1",
@@ -163,82 +212,112 @@ mod tests {
 
     #[sqlx::test]
     async fn take_returns_the_state_once(pool: PgPool) {
-        let id = start(&pool, CeremonyKind::Registration, &State { value: 7 })
-            .await
-            .unwrap();
+        let id = start(&pool, &State { value: 7 }).await.unwrap();
 
-        let first: Option<State> = take(&pool, id, CeremonyKind::Registration).await.unwrap();
-        let second: Option<State> = take(&pool, id, CeremonyKind::Registration).await.unwrap();
+        let first: Taken<State> = take(&pool, id).await.unwrap();
+        let second: Taken<State> = take(&pool, id).await.unwrap();
 
-        assert_eq!(first, Some(State { value: 7 }));
-        assert_eq!(second, None);
+        assert_eq!(first, Taken::Found(State { value: 7 }));
+        assert_eq!(second, Taken::Missing);
     }
 
     #[sqlx::test]
-    async fn take_returns_none_for_an_unknown_id(pool: PgPool) {
-        let state: Option<State> = take(&pool, Uuid::new_v4(), CeremonyKind::Registration)
-            .await
-            .unwrap();
+    async fn take_is_missing_for_an_unknown_id(pool: PgPool) {
+        let state: Taken<State> = take(&pool, Uuid::new_v4()).await.unwrap();
 
-        assert_eq!(state, None);
+        assert_eq!(state, Taken::Missing);
     }
 
     #[sqlx::test]
-    async fn take_returns_none_for_another_kind(pool: PgPool) {
-        let id = start(&pool, CeremonyKind::Registration, &State { value: 7 })
-            .await
-            .unwrap();
+    async fn take_is_missing_for_another_kind(pool: PgPool) {
+        let id = start(&pool, &State { value: 7 }).await.unwrap();
 
-        let state: Option<State> = take(&pool, id, CeremonyKind::Authentication).await.unwrap();
+        let state: Taken<LoginState> = take(&pool, id).await.unwrap();
 
-        assert_eq!(state, None);
+        assert_eq!(state, Taken::Missing);
         // Still there for the right kind: the mismatch consumed nothing.
         assert_eq!(count(&pool).await, 1);
     }
 
     #[sqlx::test]
     async fn an_expired_ceremony_cannot_be_taken(pool: PgPool) {
-        let id = start(&pool, CeremonyKind::Registration, &State { value: 7 })
-            .await
-            .unwrap();
+        let id = start(&pool, &State { value: 7 }).await.unwrap();
         expire(&pool, id).await;
 
-        let state: Option<State> = take(&pool, id, CeremonyKind::Registration).await.unwrap();
+        let state: Taken<State> = take(&pool, id).await.unwrap();
 
-        assert_eq!(state, None);
+        assert_eq!(state, Taken::Missing);
+    }
+
+    /// A state shape that changed under a rollout: the row is discarded, not
+    /// reported as an error, so it cannot poison every retry until it expires.
+    #[sqlx::test]
+    async fn an_undecodable_state_is_discarded(pool: PgPool) {
+        let id = Uuid::new_v4();
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query(
+            "INSERT INTO webauthn_ceremonies (id, kind, state, expires_at) VALUES ($1, 'registration', '{\"nope\": 1}'::jsonb, now() + interval '5 minutes')",
+        )
+        .bind(id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let taken: Taken<State> = take(&pool, id).await.unwrap();
+
+        assert_eq!(taken, Taken::Undecodable);
+        assert_eq!(count(&pool).await, 0, "the row is gone, not left to rot");
     }
 
     /// Abandoned ceremonies must not accumulate: nobody ever takes them out.
     #[sqlx::test]
     async fn start_sweeps_expired_ceremonies(pool: PgPool) {
-        let abandoned = start(&pool, CeremonyKind::Registration, &State { value: 1 })
-            .await
-            .unwrap();
+        let abandoned = start(&pool, &State { value: 1 }).await.unwrap();
         expire(&pool, abandoned).await;
 
-        start(&pool, CeremonyKind::Registration, &State { value: 2 })
-            .await
-            .unwrap();
+        start(&pool, &State { value: 2 }).await.unwrap();
 
         assert_eq!(count(&pool).await, 1);
+    }
+
+    /// The row must outlive the challenge the browser is counting down, or the
+    /// server gives up first and the credential the authenticator just created
+    /// is orphaned.
+    #[sqlx::test]
+    async fn a_ceremony_lives_for_the_timeout_plus_the_grace(pool: PgPool) {
+        let id = start(&pool, &State { value: 7 }).await.unwrap();
+
+        // Unchecked query: see docs/TESTS.md.
+        let lifetime: PgInterval = sqlx::query_scalar(
+            "SELECT expires_at - created_at FROM webauthn_ceremonies WHERE id = $1",
+        )
+        .bind(id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+
+        assert_eq!(
+            lifetime,
+            PgInterval {
+                months: 0,
+                days: 0,
+                microseconds: (CEREMONY_TIMEOUT + CEREMONY_GRACE).as_micros() as i64,
+            }
+        );
     }
 
     /// Inside a transaction, a rollback puts the ceremony back: a finish that
     /// fails after consuming the state can be retried.
     #[sqlx::test]
     async fn a_rolled_back_take_keeps_the_ceremony(pool: PgPool) {
-        let id = start(&pool, CeremonyKind::Registration, &State { value: 7 })
-            .await
-            .unwrap();
+        let id = start(&pool, &State { value: 7 }).await.unwrap();
 
         let mut tx = pool.begin().await.unwrap();
-        let taken: Option<State> = take(&mut *tx, id, CeremonyKind::Registration)
-            .await
-            .unwrap();
-        assert!(taken.is_some());
+        let taken: Taken<State> = take(&mut *tx, id).await.unwrap();
+        assert_eq!(taken, Taken::Found(State { value: 7 }));
         tx.rollback().await.unwrap();
 
-        let again: Option<State> = take(&pool, id, CeremonyKind::Registration).await.unwrap();
-        assert_eq!(again, Some(State { value: 7 }));
+        let again: Taken<State> = take(&pool, id).await.unwrap();
+        assert_eq!(again, Taken::Found(State { value: 7 }));
     }
 }

@@ -56,7 +56,11 @@ swept when the next ceremony starts; there is no background reaper.
   'authentication'`.
 - The serde shape of `PasskeyRegistration` is now stored. A change to it in
   webauthn-rs only affects rows younger than a few minutes, so no migration is
-  needed: the old rows expire.
+  needed: the old rows expire. A row that no longer deserialises is discarded —
+  the take deletes it and the finish commits that deletion — and the client gets
+  `registration_not_found` and restarts the ceremony. It is a rollout condition,
+  not a server fault, so it is never a 500 and it never survives to fail the
+  next retry.
 - The unauthenticated `/register-options` can write rows at will. The sweep
   bounds them to what fits in one timeout window; rate limiting is the
   deployment's job (ingress), not the application's.

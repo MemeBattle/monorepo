@@ -104,21 +104,6 @@ impl PasskeyRepository {
         Self { pool }
     }
 
-    /// Creates an account together with its first passkey, in one transaction
-    /// of its own. Registration runs [`create_with_account`] inside its wider
-    /// transaction instead.
-    pub async fn create_with_account(
-        &self,
-        account: NewAccount,
-        passkey: &Passkey,
-        name: &str,
-    ) -> Result<(Account, PasskeyCredential), CreateError> {
-        let mut tx = self.pool.begin().await?;
-        let created = create_with_account(&mut tx, account, passkey, name).await?;
-        tx.commit().await?;
-        Ok(created)
-    }
-
     /// All passkeys of an account, oldest first. Powers the management screen
     /// (#668); the stable secondary sort by id keeps the order deterministic
     /// when two credentials share a timestamp.
@@ -203,20 +188,31 @@ mod tests {
     use crate::accounts::{AccountRepository, AccountType};
     use crate::testing::{display_name, test_passkey};
 
+    /// Runs the free function in a transaction of its own and commits it, the
+    /// way registration's wider transaction eventually does.
+    async fn create_committed(
+        pool: &PgPool,
+        account: NewAccount,
+        passkey: &Passkey,
+    ) -> Result<(Account, PasskeyCredential), CreateError> {
+        let mut tx = pool.begin().await.unwrap();
+        let created = create_with_account(&mut tx, account, passkey, DEFAULT_PASSKEY_NAME).await?;
+        tx.commit().await?;
+        Ok(created)
+    }
+
     #[sqlx::test]
     async fn create_with_account_writes_the_account_and_the_credential(pool: PgPool) {
-        let repository = PasskeyRepository::new(pool.clone());
         let passkey = test_passkey();
         let id = Uuid::new_v4();
 
-        let (account, credential) = repository
-            .create_with_account(
-                NewAccount::full(display_name("Ada")).with_id(id),
-                &passkey,
-                DEFAULT_PASSKEY_NAME,
-            )
-            .await
-            .unwrap();
+        let (account, credential) = create_committed(
+            &pool,
+            NewAccount::full(display_name("Ada")).with_id(id),
+            &passkey,
+        )
+        .await
+        .unwrap();
 
         assert_eq!(account.id, id);
         assert_eq!(account.display_name, "Ada");
@@ -234,17 +230,12 @@ mod tests {
 
     #[sqlx::test]
     async fn list_for_account_round_trips_the_passkey(pool: PgPool) {
-        let repository = PasskeyRepository::new(pool);
         let passkey = test_passkey();
-        let (account, _) = repository
-            .create_with_account(
-                NewAccount::full(display_name("Ada")),
-                &passkey,
-                DEFAULT_PASSKEY_NAME,
-            )
+        let (account, _) = create_committed(&pool, NewAccount::full(display_name("Ada")), &passkey)
             .await
             .unwrap();
 
+        let repository = PasskeyRepository::new(pool);
         let credentials = repository.list_for_account(account.id).await.unwrap();
 
         assert_eq!(credentials.len(), 1);
@@ -269,26 +260,26 @@ mod tests {
     /// not leave the half-created account behind.
     #[sqlx::test]
     async fn registering_the_same_credential_twice_fails_and_creates_no_account(pool: PgPool) {
-        let repository = PasskeyRepository::new(pool.clone());
         let passkey = test_passkey();
-        repository
-            .create_with_account(
-                NewAccount::full(display_name("Ada")),
-                &passkey,
-                DEFAULT_PASSKEY_NAME,
-            )
+        create_committed(&pool, NewAccount::full(display_name("Ada")), &passkey)
             .await
             .unwrap();
 
         let second_id = Uuid::new_v4();
-        let error = repository
-            .create_with_account(
-                NewAccount::full(display_name("Ada")).with_id(second_id),
-                &passkey,
-                DEFAULT_PASSKEY_NAME,
-            )
-            .await
-            .unwrap_err();
+        let mut tx = pool.begin().await.unwrap();
+        let error = create_with_account(
+            &mut tx,
+            NewAccount::full(display_name("Ada")).with_id(second_id),
+            &passkey,
+            DEFAULT_PASSKEY_NAME,
+        )
+        .await
+        .unwrap_err();
+        // Dropping the uncommitted transaction rolls the account insert back,
+        // which is exactly what the caller must do: the account row is written
+        // before the credential fails, so only the rollback keeps it from being
+        // orphaned.
+        drop(tx);
 
         assert!(matches!(error, CreateError::CredentialAlreadyRegistered));
         let orphan = AccountRepository::new(pool).get(second_id).await.unwrap();
@@ -297,25 +288,25 @@ mod tests {
 
     #[sqlx::test]
     async fn deleting_an_account_deletes_its_credentials(pool: PgPool) {
-        let repository = PasskeyRepository::new(pool.clone());
-        let (account, _) = repository
-            .create_with_account(
-                NewAccount::full(display_name("Ada")),
-                &test_passkey(),
-                DEFAULT_PASSKEY_NAME,
-            )
-            .await
-            .unwrap();
+        let (account, _) = create_committed(
+            &pool,
+            NewAccount::full(display_name("Ada")),
+            &test_passkey(),
+        )
+        .await
+        .unwrap();
 
-        // Unchecked query on purpose: CI runs tests with SQLX_OFFLINE=true and
-        // `cargo sqlx prepare` does not cache queries from the test target.
+        // Unchecked query: see docs/TESTS.md.
         sqlx::query("DELETE FROM accounts WHERE id = $1")
             .bind(account.id)
             .execute(&pool)
             .await
             .unwrap();
 
-        let credentials = repository.list_for_account(account.id).await.unwrap();
+        let credentials = PasskeyRepository::new(pool)
+            .list_for_account(account.id)
+            .await
+            .unwrap();
         assert!(credentials.is_empty());
     }
 }
