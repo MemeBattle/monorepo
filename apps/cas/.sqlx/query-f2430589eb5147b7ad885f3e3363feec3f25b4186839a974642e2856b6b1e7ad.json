@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "WITH swept AS (\n               DELETE FROM webauthn_ceremonies WHERE expires_at <= now()\n           )\n           INSERT INTO webauthn_ceremonies (id, kind, state, expires_at)\n           VALUES ($1, $2, $3, now() + make_interval(secs => $4))",
+  "query": "INSERT INTO webauthn_ceremonies (id, kind, state, expires_at)\n           VALUES ($1, $2, $3, now() + make_interval(secs => $4))",
   "describe": {
     "columns": [],
     "parameters": {
@@ -23,5 +23,5 @@
     },
     "nullable": []
   },
-  "hash": "01d7d0ea75efd7dffd6c881d988e04ca997751901b872d4f2e559f8c00beec47"
+  "hash": "f2430589eb5147b7ad885f3e3363feec3f25b4186839a974642e2856b6b1e7ad"
 }

@@ -23,8 +23,9 @@ CREATE TABLE webauthn_ceremonies (
     -- finish: for a registration, the future account id and the display name.
     state jsonb NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
-    -- Finishing after this point fails. Rows past it are swept when the next
-    -- ceremony starts; there is no background reaper.
+    -- Finishing after this point fails. The application never removes rows past
+    -- it; a separate scheduled cleanup will (see
+    -- docs/adr/0002-ceremony-state-in-postgres.md).
     expires_at timestamptz NOT NULL
 );
 

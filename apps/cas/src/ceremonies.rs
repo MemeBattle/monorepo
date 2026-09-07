@@ -96,8 +96,9 @@ impl Ceremony for PendingRegistration {
 /// [`CEREMONY_TIMEOUT`] plus [`CEREMONY_GRACE`], measured by the database
 /// clock so that every replica agrees on it.
 ///
-/// Expired rows are swept in the same statement: abandoned ceremonies are the
-/// common case and nothing else ever removes them.
+/// Starting removes nothing: a row past its `expires_at` is ignored by [`take`]
+/// and stays until a separate cleanup deletes it, so housekeeping never sits in
+/// the request path. See `docs/adr/0002-ceremony-state-in-postgres.md`.
 pub async fn start<'e, E, T>(executor: E, state: &T) -> Result<Uuid, sqlx::Error>
 where
     E: sqlx::PgExecutor<'e>,
@@ -109,10 +110,7 @@ where
     let ttl_secs = (CEREMONY_TIMEOUT + CEREMONY_GRACE).as_secs_f64();
 
     sqlx::query!(
-        r#"WITH swept AS (
-               DELETE FROM webauthn_ceremonies WHERE expires_at <= now()
-           )
-           INSERT INTO webauthn_ceremonies (id, kind, state, expires_at)
+        r#"INSERT INTO webauthn_ceremonies (id, kind, state, expires_at)
            VALUES ($1, $2, $3, now() + make_interval(secs => $4))"#,
         id,
         T::KIND as CeremonyKind,
@@ -267,17 +265,6 @@ mod tests {
 
         assert_eq!(taken, Taken::Undecodable);
         assert_eq!(count(&pool).await, 0, "the row is gone, not left to rot");
-    }
-
-    /// Abandoned ceremonies must not accumulate: nobody ever takes them out.
-    #[sqlx::test]
-    async fn start_sweeps_expired_ceremonies(pool: PgPool) {
-        let abandoned = start(&pool, &State { value: 1 }).await.unwrap();
-        expire(&pool, abandoned).await;
-
-        start(&pool, &State { value: 2 }).await.unwrap();
-
-        assert_eq!(count(&pool).await, 1);
     }
 
     /// The row must outlive the challenge the browser is counting down, or the

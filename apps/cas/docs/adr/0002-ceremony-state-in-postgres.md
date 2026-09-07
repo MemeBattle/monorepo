@@ -46,7 +46,9 @@ credential by then, and a retry is the only way not to orphan it.
 period over the timeout sent to the browser. Every replica agrees on the
 clock, and the browser, which starts counting later than the server, is never
 the one that is still waiting when the server has given up. Expired rows are
-swept when the next ceremony starts; there is no background reaper.
+ignored by the finish and are not removed by the application: cleanup is kept
+out of the request path and becomes a separate scheduled job (a k8s CronJob
+running the delete, or pg_cron).
 
 ## Consequences
 
@@ -61,6 +63,9 @@ swept when the next ceremony starts; there is no background reaper.
   `registration_not_found` and restarts the ceremony. It is a rollout condition,
   not a server fault, so it is never a 500 and it never survives to fail the
   next retry.
-- The unauthenticated `/register-options` can write rows at will. The sweep
-  bounds them to what fits in one timeout window; rate limiting is the
-  deployment's job (ingress), not the application's.
+- Until the scheduled cleanup exists, the table grows by one row (~500 bytes)
+  per abandoned ceremony. At CAS's scale that is acceptable; the index on
+  `expires_at` is there for the cleanup to use.
+- The unauthenticated `/register-options` can write rows at will, and nothing
+  in the request path bounds them. Rate limiting is the deployment's job
+  (ingress), not the application's.
