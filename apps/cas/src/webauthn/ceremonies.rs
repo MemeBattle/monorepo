@@ -16,32 +16,12 @@
 //! it, so a challenge answers exactly one request even when two finishes race,
 //! and it is the caller's transaction that decides whether the deletion sticks.
 
-use std::time::Duration;
-
 use serde::{Serialize, de::DeserializeOwned};
 use uuid::Uuid;
-use webauthn_rs::prelude::{PasskeyRegistration, Url, Webauthn, WebauthnBuilder, WebauthnError};
+use webauthn_rs::prelude::PasskeyRegistration;
 
 use crate::accounts::DisplayName;
-
-/// How long the browser is given to complete a ceremony. [`build_webauthn`]
-/// puts it into every challenge, and [`start`] derives the row's expiry from
-/// it, so the server and the browser count down from one number.
-pub const CEREMONY_TIMEOUT: Duration = webauthn_rs::DEFAULT_AUTHENTICATOR_TIMEOUT;
-
-/// How much longer than the browser the server keeps a ceremony. The browser
-/// starts counting when the challenge reaches it, the row started earlier, and
-/// the answer needs time to travel back. Without a margin the server would give
-/// up first, after the authenticator has already created the credential.
-pub const CEREMONY_GRACE: Duration = Duration::from_secs(30);
-
-/// Builds the `Webauthn` instance for a relying party with the ceremony
-/// timeout applied. The only place the timeout reaches webauthn-rs.
-pub fn build_webauthn(rp_id: &str, origin: &Url) -> Result<Webauthn, WebauthnError> {
-    WebauthnBuilder::new(rp_id, origin)?
-        .timeout(CEREMONY_TIMEOUT)
-        .build()
-}
+use crate::webauthn::{CEREMONY_GRACE, CEREMONY_TIMEOUT};
 
 /// Which ceremony a row belongs to. Finishing looks rows up by kind as well as
 /// by id, so a registration id can never finish a login and vice versa.

@@ -22,18 +22,16 @@ comment `// Unchecked query: see docs/TESTS.md.` marks them.
 
 ## Test support
 
-Helpers shared by the library's tests and the server binary's tests live in
-`cas::testing` (`src/testing.rs`). The module is compiled only with the
-`test-support` feature, which the crate enables for its own tests through a
-dev-dependency on itself; a normal build never includes it.
+Helpers shared by all of the crate's tests live in `src/testing.rs`. The module
+is compiled only for `cfg(test)`, so a normal build never includes it.
 
 ## The software authenticator
 
 Tests that need a real credential run a full WebAuthn ceremony against
 `SoftPasskey` from [webauthn-authenticator-rs](https://crates.io/crates/webauthn-authenticator-rs)
 instead of hand-building a `Passkey`, so what is stored and verified is exactly
-what the library produces. `cas::testing::soft_passkey_registration` answers a
-challenge; `cas::testing::test_passkey` runs a whole ceremony.
+what the library produces. `crate::testing::soft_passkey_registration` answers a
+challenge; `crate::testing::test_passkey` runs a whole ceremony.
 
 It is constructed with `falsify_uv = true`: registration requires user
 verification, which a software authenticator can only claim to have done.

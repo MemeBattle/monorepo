@@ -307,7 +307,6 @@ name = "cas"
 version = "0.1.0"
 dependencies = [
  "axum",
- "cas",
  "dotenvy",
  "miette",
  "nutype",

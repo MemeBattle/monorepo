@@ -1,13 +1,16 @@
-use axum::{Json, Router, extract::State, routing::post};
+//! The passkey registration endpoints: issuing a challenge and verifying the
+//! browser's answer.
+
+use axum::{Json, extract::State};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use webauthn_rs::prelude::{CreationChallengeResponse, CredentialID, RegisterPublicKeyCredential};
 
-use cas::accounts::{DisplayName, DisplayNameError};
-use cas::registration::{FinishError, RegistrationService, StartError};
-
-use crate::error::ApiError;
-use crate::extract::Json as AppJson;
+use crate::accounts::{DisplayName, DisplayNameError};
+use crate::http::ApiState;
+use crate::http::error::ApiError;
+use crate::http::extract::Json as AppJson;
+use crate::webauthn::registration::{FinishError, StartError};
 
 /// The name is validated by the handler rather than by the body type, so a bad
 /// one gets this code instead of a generic `invalid_body`.
@@ -47,11 +50,6 @@ impl From<FinishError> for ApiError {
     }
 }
 
-#[derive(Clone)]
-pub struct ApiState {
-    pub registration: RegistrationService,
-}
-
 #[derive(Debug, Serialize, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RegistrationOptionsRequest {
@@ -86,14 +84,7 @@ pub struct VerifyRegistrationResponse {
     credential_id: CredentialID,
 }
 
-pub fn router(state: ApiState) -> Router {
-    Router::new()
-        .route("/register-options", post(get_registration_options))
-        .route("/verify-registration", post(verify_registration))
-        .with_state(state)
-}
-
-async fn get_registration_options(
+pub(super) async fn get_registration_options(
     State(state): State<ApiState>,
     AppJson(request): AppJson<RegistrationOptionsRequest>,
 ) -> Result<Json<RegistrationOptionsResponse>, ApiError> {
@@ -107,7 +98,7 @@ async fn get_registration_options(
     }))
 }
 
-async fn verify_registration(
+pub(super) async fn verify_registration(
     State(state): State<ApiState>,
     AppJson(data): AppJson<VerifyRegistrationData>,
 ) -> Result<Json<VerifyRegistrationResponse>, ApiError> {
@@ -126,16 +117,20 @@ async fn verify_registration(
 mod tests {
     use super::*;
     use axum::{
+        Router,
         body::{Body, to_bytes},
         http::{Request, StatusCode, header},
         response::IntoResponse,
     };
-    use cas::accounts::{AccountRepository, AccountType};
-    use cas::ceremonies::CEREMONY_TIMEOUT;
-    use cas::passkeys::{DEFAULT_PASSKEY_NAME, PasskeyRepository};
-    use cas::testing::{soft_passkey_registration, test_webauthn};
     use sqlx::{PgPool, postgres::PgPoolOptions};
     use tower::ServiceExt;
+
+    use crate::accounts::{AccountRepository, AccountType};
+    use crate::http::webauthn::router;
+    use crate::testing::{soft_passkey_registration, test_webauthn};
+    use crate::webauthn::CEREMONY_TIMEOUT;
+    use crate::webauthn::passkeys::{DEFAULT_PASSKEY_NAME, PasskeyRepository};
+    use crate::webauthn::registration::RegistrationService;
 
     fn test_app(pool: PgPool) -> Router {
         router(ApiState {

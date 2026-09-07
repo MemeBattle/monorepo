@@ -1,6 +1,6 @@
 use axum::extract::FromRequest;
 
-use crate::error::ApiError;
+use crate::http::error::ApiError;
 
 /// JSON body extractor whose rejections render as [`ApiError`] instead of
 /// axum's plain-text responses. Use for request bodies; responses can keep

@@ -29,19 +29,13 @@ unicode-general-category = "1.1"
 unicode-normalization = "0.1.25"
 uuid = { version = "1.26.0", features = ["fast-rng", "serde"] }
 # `danger-allow-state-serialisation` lets ceremony state be stored in Postgres
-# so any replica can finish a ceremony (src/ceremonies.rs). The danger the
-# feature guards against is client-side storage, which CAS never does.
+# so any replica can finish a ceremony (src/webauthn/ceremonies.rs). The danger
+# the feature guards against is client-side storage, which CAS never does.
 webauthn-rs = { version = "0.5.5", features = ["danger-allow-state-serialisation"] }
-# Software authenticator driving the WebAuthn ceremonies in tests, exposed
-# through `cas::testing` behind the `test-support` feature. Its version must
-# move in lockstep with webauthn-rs: it pins the same webauthn-rs-core and
-# webauthn-rs-proto, which is what makes the types interchangeable.
-webauthn-authenticator-rs = { version = "0.5.5", default-features = false, features = ["softpasskey"], optional = true }
-
-[features]
-# Test helpers (`cas::testing`). Enabled for the crate's own tests through the
-# dev-dependency on itself below, never in a normal build.
-test-support = ["dep:webauthn-authenticator-rs"]
 
 [dev-dependencies]
-cas = { path = ".", features = ["test-support"] }
+# Software authenticator driving the WebAuthn ceremonies in tests, exposed
+# through `cas::testing` in test builds. Its version must move in lockstep with
+# webauthn-rs: it pins the same webauthn-rs-core and webauthn-rs-proto, which is
+# what makes the types interchangeable.
+webauthn-authenticator-rs = { version = "0.5.5", default-features = false, features = ["softpasskey"] }

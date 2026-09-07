@@ -15,8 +15,8 @@ use webauthn_rs::prelude::{
 };
 
 use crate::accounts::{Account, DisplayName, NewAccount};
-use crate::ceremonies::{self, PendingRegistration, Taken};
-use crate::passkeys::{self, CreateError, DEFAULT_PASSKEY_NAME, PasskeyCredential};
+use crate::webauthn::ceremonies::{self, PendingRegistration, Taken};
+use crate::webauthn::passkeys::{self, CreateError, DEFAULT_PASSKEY_NAME, PasskeyCredential};
 
 #[derive(Debug, Error)]
 pub enum StartError {
@@ -175,8 +175,8 @@ impl RegistrationService {
 mod tests {
     use super::*;
     use crate::accounts::AccountRepository;
-    use crate::passkeys::PasskeyRepository;
     use crate::testing::{display_name, soft_passkey_registration, test_webauthn};
+    use crate::webauthn::passkeys::PasskeyRepository;
 
     fn service(pool: PgPool) -> RegistrationService {
         RegistrationService::new(test_webauthn(), pool)

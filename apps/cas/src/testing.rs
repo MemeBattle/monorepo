@@ -1,8 +1,7 @@
-//! Test support shared by the library's tests and the server binary's tests.
+//! Test support shared by all of the crate's tests.
 //!
-//! Compiled only with the `test-support` feature, which the crate enables for
-//! its own tests through a dev-dependency on itself; a normal build never
-//! includes the software authenticator. See `docs/TESTS.md`.
+//! Compiled only for `cfg(test)`, so a normal build never includes the
+//! software authenticator. See `docs/TESTS.md`.
 
 use uuid::Uuid;
 use webauthn_authenticator_rs::{WebauthnAuthenticator, softpasskey::SoftPasskey};
@@ -11,7 +10,7 @@ use webauthn_rs::prelude::{
 };
 
 use crate::accounts::DisplayName;
-use crate::ceremonies::build_webauthn;
+use crate::webauthn::build_webauthn;
 
 pub const TEST_RP_ID: &str = "localhost";
 pub const TEST_ORIGIN: &str = "http://localhost:5173";

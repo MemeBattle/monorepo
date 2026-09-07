@@ -2,6 +2,18 @@
 
 Rust (axum) authentication service.
 
+## Layout
+
+- `accounts` and `webauthn` (with `ceremonies`, `passkeys`, `registration`) are
+  the domain modules. They never import axum.
+- `http` is the only transport layer: the router, the middleware stack, the
+  handlers, and `ApiError` with the domain-error → HTTP mappings that live next
+  to the handlers they belong to.
+- `config` and `migrations` are shared infrastructure, used by both binaries.
+- `testing` holds the test helpers and is compiled only for `cfg(test)`.
+- `main.rs` and `bin/migrate.rs` are thin: they load the config and call into
+  the library.
+
 Database migration workflow (sqlx, `cas-migrate`, immutability, expand/contract) is described in
 [docs/MIGRATIONS.md](./docs/MIGRATIONS.md).
 
