@@ -9,7 +9,9 @@ Rust (axum) authentication service.
 - `http` is the only transport layer: the router, the middleware stack, the
   handlers, and `ApiError` with the domain-error → HTTP mappings that live next
   to the handlers they belong to.
-- `config` and `migrations` are shared infrastructure, used by both binaries.
+- `config`, `db` and `migrations` are shared infrastructure, used by both
+  binaries. `db` classifies database failures (unavailable, busy, or a bug the
+  code has no name for), so a transport only maps that verdict to a status.
 - `testing` holds the test helpers and is compiled only for `cfg(test)`.
 - `main.rs` and `bin/migrate.rs` are thin: they load the config and call into
   the library.

@@ -2,6 +2,7 @@
 // shared between the `cas` server binary and the `cas-migrate` binary.
 pub mod accounts;
 pub mod config;
+pub mod db;
 pub mod http;
 pub mod migrations;
 #[cfg(test)]
