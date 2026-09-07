@@ -201,7 +201,7 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(registered.account.display_name, "Ada");
+        assert_eq!(registered.account.display_name.as_ref(), "Ada");
         assert_ne!(
             registered.account.id, started.registration_id,
             "the ceremony id must not double as the account id"

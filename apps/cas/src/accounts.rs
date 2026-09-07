@@ -161,6 +161,44 @@ fn validate_display_name(value: &str) -> Result<(), DisplayNameError> {
 )]
 pub struct DisplayName(String);
 
+// `nutype` cannot derive the sqlx traits, so the three that let a
+// `DisplayName` cross the database boundary are written by hand. Together they
+// make the reader — not the table, which has no CHECK — the guarantee that a
+// stored display name is valid.
+
+/// A `DisplayName` is a Postgres text value, exactly like the `String` it
+/// wraps.
+impl sqlx::Type<sqlx::Postgres> for DisplayName {
+    fn type_info() -> sqlx::postgres::PgTypeInfo {
+        <String as sqlx::Type<sqlx::Postgres>>::type_info()
+    }
+
+    fn compatible(ty: &sqlx::postgres::PgTypeInfo) -> bool {
+        <String as sqlx::Type<sqlx::Postgres>>::compatible(ty)
+    }
+}
+
+/// Re-validates on the way out of the database: a row that does not pass fails
+/// to decode instead of becoming an unchecked `DisplayName`.
+impl<'r> sqlx::Decode<'r, sqlx::Postgres> for DisplayName {
+    fn decode(value: sqlx::postgres::PgValueRef<'r>) -> Result<Self, sqlx::error::BoxDynError> {
+        let value = <String as sqlx::Decode<'r, sqlx::Postgres>>::decode(value)?;
+        Self::try_new(value).map_err(Into::into)
+    }
+}
+
+/// Lets a query bind the newtype directly, without unwrapping it to a
+/// `String` first.
+impl sqlx::Encode<'_, sqlx::Postgres> for DisplayName {
+    fn encode_by_ref(
+        &self,
+        buf: &mut sqlx::postgres::PgArgumentBuffer,
+    ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
+        let value: &str = self.as_ref();
+        <&str as sqlx::Encode<'_, sqlx::Postgres>>::encode_by_ref(&value, buf)
+    }
+}
+
 /// Whether an account has credentials of its own.
 ///
 /// Maps to the Postgres `account_type` enum.
@@ -178,9 +216,11 @@ pub enum AccountType {
 pub struct Account {
     /// Stable account id, exposed as the OIDC `sub`.
     pub id: Uuid,
-    /// Non-unique: CAS has no username in v1. Always a valid [`DisplayName`];
-    /// kept as a plain string because the row, not the reader, guarantees it.
-    pub display_name: String,
+    /// Non-unique: CAS has no username in v1. Always a valid [`DisplayName`]:
+    /// validated when the row is decoded, so a row that was written or altered
+    /// outside CAS and does not pass surfaces as a decode error instead of
+    /// reaching a UI.
+    pub display_name: DisplayName,
     pub r#type: AccountType,
     /// Optional and unverified in v1; the future recovery anchor.
     pub email: Option<String>,
@@ -248,21 +288,21 @@ pub(crate) async fn insert<'e, E>(executor: E, account: NewAccount) -> Result<Ac
 where
     E: sqlx::PgExecutor<'e>,
 {
-    let display_name: String = account.display_name.into();
-
     sqlx::query_as!(
         Account,
         r#"INSERT INTO accounts (id, display_name, type, email)
            VALUES ($1, $2, $3, $4)
            RETURNING
                id,
-               display_name,
+               display_name AS "display_name: DisplayName",
                type AS "type: AccountType",
                email,
                created_at,
                last_seen_at"#,
         account.id,
-        display_name,
+        // `as _`: the macro infers `&str` for a text parameter, so the cast is
+        // what makes it use the `Encode` impl for the newtype instead.
+        account.display_name as _,
         account.r#type as AccountType,
         account.email,
     )
@@ -293,7 +333,7 @@ impl AccountRepository {
             Account,
             r#"SELECT
                    id,
-                   display_name,
+                   display_name AS "display_name: DisplayName",
                    type AS "type: AccountType",
                    email,
                    created_at,
@@ -459,7 +499,7 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(account.display_name, "Ada");
+        assert_eq!(account.display_name.as_ref(), "Ada");
         assert_eq!(account.r#type, AccountType::Full);
         assert_eq!(account.email.as_deref(), Some("ada@example.com"));
         // A fresh account has never been seen after its creation.
@@ -512,6 +552,28 @@ mod tests {
             .unwrap();
 
         assert_eq!(account.id, id);
+    }
+
+    /// The table has no CHECK, so nothing stops a row written outside CAS from
+    /// holding a name with a bidi override in it. The reader is the guarantee:
+    /// such a row fails to decode instead of reaching a UI.
+    #[sqlx::test]
+    async fn get_fails_to_decode_an_invalid_display_name(pool: PgPool) {
+        let id = Uuid::new_v4();
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("INSERT INTO accounts (id, display_name, type) VALUES ($1, $2, 'full')")
+            .bind(id)
+            .bind("\u{202e}adA")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let error = AccountRepository::new(pool).get(id).await.unwrap_err();
+
+        assert!(
+            matches!(error, sqlx::Error::ColumnDecode { .. }),
+            "expected a column decode error, got {error:?}"
+        );
     }
 
     /// v1 has no username: two accounts may share a display name.

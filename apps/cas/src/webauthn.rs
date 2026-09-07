@@ -240,7 +240,7 @@ mod tests {
             .await
             .unwrap()
             .expect("registration must create the account");
-        assert_eq!(account.display_name, "Ada");
+        assert_eq!(account.display_name.as_ref(), "Ada");
         assert_eq!(account.r#type, AccountType::Full);
 
         let credentials = PasskeyRepository::new(pool)

@@ -145,6 +145,9 @@ dashboard [#671](https://github.com/MemeBattle/monorepo/issues/671).
       `docs/adr/0001-passkey-persistence.md`), so a hardware security key may
       not be discoverable and cannot serve usernameless login. Decide with
       #666/#670 what the sign-in screen falls back to.
+- [ ] Generate an OpenAPI description of the HTTP API, including error responses
+      and their codes (e.g. utoipa), instead of maintaining a hand-written
+      catalogue.
 
 ## Working agreements (lit factory)
 

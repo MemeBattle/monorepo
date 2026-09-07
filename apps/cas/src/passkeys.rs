@@ -215,7 +215,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(account.id, id);
-        assert_eq!(account.display_name, "Ada");
+        assert_eq!(account.display_name.as_ref(), "Ada");
         assert_eq!(account.r#type, AccountType::Full);
 
         assert_eq!(credential.account_id, id);
