@@ -128,6 +128,31 @@ describe('Playground', () => {
     expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: putCardAction.type }))
   })
 
+  it('rejects an invalid pile click without dispatching a placement', () => {
+    const store = createTestStore()
+    const game = store.getState().game.game
+    store.dispatch(
+      updateGameAction({
+        ...game,
+        playground: { decks: [{ cards: [{ color: CardColors.blue, value: 1 }], isHidden: false }], droppedDecks: [] },
+      }),
+    )
+    const dispatch = vi.spyOn(store, 'dispatch')
+    const view = render(
+      <Provider store={store}>
+        <CardInteractionProvider enabled>
+          <PlayerRowCardsContainer />
+          <Playground />
+        </CardInteractionProvider>
+      </Provider>,
+    )
+    fireEvent.click(view.container.querySelector('[data-card-drag-source]')!)
+    const destination = view.container.querySelector('[data-card-drop-target="playground.0"]')!
+    expect(destination.hasAttribute('data-drop-valid')).toBe(false)
+    fireEvent.click(destination)
+    expect(dispatch).not.toHaveBeenCalled()
+  })
+
   it('dispatches row-card placement from the playground deck', () => {
     const store = createTestStore()
     const dispatch = vi.spyOn(store, 'dispatch')

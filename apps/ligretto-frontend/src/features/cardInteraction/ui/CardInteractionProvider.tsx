@@ -80,7 +80,7 @@ export const CardInteractionProvider = ({ children, enabled, cardByTargetSelecto
   const [state, dispatch] = useReducer(reducer, { mode: 'idle' })
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { distance: 8 } }),
   )
   const activeTarget = state.mode === 'idle' ? undefined : state.target
   const clearActiveTarget = useCallback((target?: CardInteractionTarget) => {

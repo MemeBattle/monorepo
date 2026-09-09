@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 
 import { useDndContext, useDndMonitor } from '@dnd-kit/core'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CardColors, PlayerStatus, type CardsDeck } from '@memebattle/ligretto-shared'
 
 import type { CardDragData, CardDragTarget } from './model/types'
-import { getInteractionTargetKey, useCardInteractionContext } from './ui/CardInteractionContext'
+import { CardInteractionContext, getInteractionTargetKey, useCardInteractionContext } from './ui/CardInteractionContext'
 import { CardInteractionProvider } from './ui/CardInteractionProvider'
 import { useCardInteraction } from './ui/useCardInteraction'
 import { useDraggableCard } from './ui/useDraggableCard'
@@ -14,7 +14,7 @@ import { useDroppableTarget } from './ui/useDroppableTarget'
 import { useCardHotkey } from './ui/useCardHotkey'
 import { useCardDragTarget } from './ui/useCardDragTarget'
 import { Hotkey, updateGameAction } from '#ducks/game'
-import { useLayoutEffect, useState } from 'react'
+import { useCallback, useLayoutEffect, useState } from 'react'
 import { Provider, useStore } from 'react-redux'
 import { createMockStore } from '#testing/lib/createMockStore'
 import { authInitialState } from '#ducks/auth/authSlice'
@@ -153,6 +153,7 @@ const touchDrag = async (release = true) => {
   source.getBoundingClientRect = () => rect(0)
   destination.getBoundingClientRect = () => rect(100)
   fireEvent.touchStart(source, { touches: [{ clientX: 10, clientY: 10, identifier: 1 }] })
+  fireEvent.touchMove(source, { touches: [{ clientX: 20, clientY: 10, identifier: 1 }] })
   await vi.waitFor(() => expect(source.style.opacity).toBe('0'))
   fireEvent.touchMove(source, { touches: [{ clientX: 110, clientY: 10, identifier: 1 }] })
   if (release) {
@@ -166,6 +167,58 @@ describe('card placement hooks', () => {
     onShortcut.mockClear()
   })
   afterEach(cleanup)
+
+  it.each(['replacement', 'unmount'] as const)('clears a source exactly once on %s', change => {
+    const onClear = vi.fn()
+    const ObserveCleanup = ({ children }: React.PropsWithChildren) => {
+      const context = useCardInteractionContext()
+      const clear = context.clearActiveTarget
+      const clearActiveTarget = useCallback<typeof clear>(
+        target => {
+          onClear(target)
+          clear(target)
+        },
+        [clear],
+      )
+      return <CardInteractionContext value={{ ...context, clearActiveTarget }}>{children}</CardInteractionContext>
+    }
+    const tree = (changed: boolean) => (
+      <TestProvider>
+        <ObserveCleanup>
+          <DragHarness value={changed && change === 'replacement' ? 3 : 2} showSource={!changed || change !== 'unmount'} />
+        </ObserveCleanup>
+      </TestProvider>
+    )
+    const view = render(tree(false))
+    fireEvent.click(screen.getByText('source'))
+    expect(screen.getByText('row.1')).toBeTruthy()
+    onClear.mockClear()
+    view.rerender(tree(true))
+    expect(onClear).toHaveBeenCalledExactlyOnceWith({ type: 'row', index: 1 })
+    expect(screen.getByText('none')).toBeTruthy()
+  })
+
+  it.each([false, true])('toggles a stationary 300 ms touch with initial selection %s', async initiallySelected => {
+    render(
+      <TestProvider>
+        <DragHarness />
+      </TestProvider>,
+    )
+    const source = screen.getByText('source')
+    // Let any previous native sensor's document click suppression expire.
+    await act(() => new Promise(resolve => setTimeout(resolve, 60)))
+    if (initiallySelected) {
+      fireEvent.click(source)
+      expect(screen.getByText('row.1')).toBeTruthy()
+    }
+    fireEvent.touchStart(source, { touches: [{ clientX: 10, clientY: 10, identifier: 1 }] })
+    await act(() => new Promise(resolve => setTimeout(resolve, 300)))
+    fireEvent.touchEnd(source, { changedTouches: [{ clientX: 10, clientY: 10, identifier: 1 }] })
+    // Browsers emit a click after a completed tap; dnd-kit must not suppress it.
+    fireEvent.click(source)
+    expect(screen.getByText(initiallySelected ? 'none' : 'row.1')).toBeTruthy()
+    expect(onDrop).not.toHaveBeenCalled()
+  })
 
   it('does not activate a mounted native source while its provider is disabled', async () => {
     render(

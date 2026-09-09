@@ -71,7 +71,7 @@ export const PlaygroundDeck = ({ cardDeck, deckIndex }: PlaygroundDeckProps) => 
         data-drop-valid={isValid || undefined}
         data-drop-over={isOver || undefined}
         onClick={() => {
-          if (activeTarget?.type === 'row' || activeTarget?.type === 'open-stack') {
+          if (isValid && (activeTarget?.type === 'row' || activeTarget?.type === 'open-stack')) {
             placeCard(activeTarget)
           }
         }}

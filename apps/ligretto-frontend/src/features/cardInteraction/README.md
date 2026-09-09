@@ -19,7 +19,9 @@ Components opt into behavior through hooks:
 - `useDraggableCard(target, card)` attaches the native source to the owner's
   element. Mounted consumers are available whenever their provider is enabled;
   there is no consumer disabled argument. Card identity changes and unmount
-  remove the old source registration. Components own source visibility/styles.
+  remove the old source registration. Selection cleanup belongs only to
+  `useCardInteraction`; provider disablement clears selection centrally.
+  Components own source visibility/styles.
 - `useDroppableTarget(target, onDrop)` selects the source and destination and
   returns `isValid`, `isOver`, `id` and `setNodeRef`. Validity follows the
   native dragged source during a gesture, independently of hotkey selection.
@@ -46,10 +48,27 @@ Source visibility and the overlay follow the native gesture, not selection.
 There are no custom sensors, Escape interception or release-click guards.
 Standard dnd-kit terminal events synchronize reducer state.
 
-Click placement keeps its selected source until a server-confirmed identity
-update and submits the explicit destination to backend validation. Drag/drop
-prevalidates the current destination. Do not clear click selection optimistically
-or auto-place value-1 source cards.
+Mouse dragging activates after movement exceeds 6 px; touch dragging after
+movement exceeds 8 px. Holding a stationary finger does not start a drag, so
+its eventual tap can toggle selection without a time limit. Sources use
+`touchAction: 'none'` to avoid a competing scroll gesture.
+
+Card activation currently uses `onClick`, not the historical `onMouseDown`
+speed-game behavior introduced in LIG-144 (`8c6e400b`). This separates activation
+from native drag initiation but waits for release, including on non-draggable
+stack, Ligretto and onboarding cards. Press-drag-off-release no longer activates
+those controls. On a draggable source, movement past the mouse threshold followed
+by release over the source is a cancelled placement, not a selection: dnd-kit
+suppresses the subsequent click. These are usability trade-offs, not equivalent
+input behavior; retaining them versus restoring press activation needs review.
+
+Click placement prevalidates with the hook's `isValid`, as drag/drop does, but
+still keeps its selected source until a server-confirmed identity update.
+Backend validation remains authoritative. This retained selection allows a
+second click before the server echo to submit the same source again; clearing
+on accepted dispatch versus retaining focus with an in-flight guard needs a
+product decision because prior review assigned click dismissal to the document.
+Do not auto-place value-1 source cards.
 
 ## Onboarding isolation
 
