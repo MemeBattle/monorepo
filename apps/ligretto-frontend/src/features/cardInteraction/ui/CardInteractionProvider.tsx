@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, type PropsWithChildren } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, type PropsWithChildren } from 'react'
 import {
   DndContext,
   MouseSensor,
@@ -11,11 +11,13 @@ import {
   type UniqueIdentifier,
 } from '@dnd-kit/core'
 
+import { cardByInteractionTarget } from '../model/cardByInteractionTarget'
 import type { CardDragData, CardDropData, CardInteractionTarget } from '../model/types'
 import { CardInteractionContext, isSameCardInteractionTarget } from './CardInteractionContext'
 
 interface CardInteractionProviderProps extends PropsWithChildren {
   enabled: boolean
+  cardByTargetSelector?: typeof cardByInteractionTarget
 }
 type State =
   | { mode: 'idle' }
@@ -54,11 +56,10 @@ const DndLifecycle = ({ enabled, dispatch }: { enabled: boolean; dispatch: React
     onDragEnd({ active, over }) {
       const source = draggableNodes.get(active.id)
       const dragged = source?.data.current as CardDragData | undefined
-      const destination = over?.data.current as CardDropData | undefined
+      const destination = over ? (droppableContainers.get(over.id)?.data.current as CardDropData | undefined) : undefined
       if (
         enabled &&
         dragged?.target &&
-        !dragged.disabled &&
         destination?.onDrop &&
         source?.node.current?.isConnected &&
         over &&
@@ -75,10 +76,8 @@ const DndLifecycle = ({ enabled, dispatch }: { enabled: boolean; dispatch: React
   return null
 }
 
-export const CardInteractionProvider = ({ children, enabled }: CardInteractionProviderProps) => {
+export const CardInteractionProvider = ({ children, enabled, cardByTargetSelector = cardByInteractionTarget }: CardInteractionProviderProps) => {
   const [state, dispatch] = useReducer(reducer, { mode: 'idle' })
-  const enabledRef = useRef(enabled)
-  enabledRef.current = enabled
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
@@ -87,18 +86,14 @@ export const CardInteractionProvider = ({ children, enabled }: CardInteractionPr
   const clearActiveTarget = useCallback((target?: CardInteractionTarget) => {
     dispatch({ type: 'clear', target })
   }, [])
-  const toggleActiveTarget = useCallback((target: CardInteractionTarget) => {
-    if (enabledRef.current) {
-      dispatch({ type: 'toggle', target })
-    }
-  }, [])
-  const runCommand = useCallback((command: () => void) => {
-    if (!enabledRef.current) {
-      return
-    }
-    dispatch({ type: 'clear' })
-    command()
-  }, [])
+  const toggleActiveTarget = useCallback(
+    (target: CardInteractionTarget) => {
+      if (enabled) {
+        dispatch({ type: 'toggle', target })
+      }
+    },
+    [enabled],
+  )
 
   useEffect(() => {
     if (!enabled) {
@@ -119,24 +114,12 @@ export const CardInteractionProvider = ({ children, enabled }: CardInteractionPr
   }, [state.mode])
 
   const value = useMemo(
-    () => ({ activeTarget, clearActiveTarget, toggleActiveTarget, runCommand }),
-    [activeTarget, clearActiveTarget, runCommand, toggleActiveTarget],
+    () => ({ activeTarget, clearActiveTarget, toggleActiveTarget, enabled, cardByTargetSelector }),
+    [activeTarget, clearActiveTarget, toggleActiveTarget, enabled, cardByTargetSelector],
   )
-  const captureInput = (event: React.SyntheticEvent) => {
-    if (!enabled) {
-      event.preventDefault()
-      event.stopPropagation()
-    }
-  }
   return (
     <CardInteractionContext value={value}>
-      <div
-        style={{ display: 'contents' }}
-        onClickCapture={captureInput}
-        onPointerDownCapture={captureInput}
-        onMouseDownCapture={captureInput}
-        onTouchStartCapture={captureInput}
-      >
+      <div style={{ display: 'contents' }} inert={!enabled}>
         <DndContext sensors={sensors} collisionDetection={pointerWithin}>
           <DndLifecycle enabled={enabled} dispatch={dispatch} />
           {children}

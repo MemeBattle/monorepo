@@ -16,7 +16,7 @@ export const LigrettoDeckContainer = () => {
     }
   }, [dispatch, isLigrettoDeckEnabled])
 
-  const activate = useCardHotkey(isLigrettoDeckEnabled ? Hotkey.l : undefined, onLigrettoDeckCardClick)
+  useCardHotkey(isLigrettoDeckEnabled ? Hotkey.l : undefined, onLigrettoDeckCardClick)
 
   if (!ligrettoDeckCards) {
     return null
@@ -29,7 +29,7 @@ export const LigrettoDeckContainer = () => {
       hotkey={isLigrettoDeckEnabled ? Hotkey.l : undefined}
       ligrettoDeckCards={ligrettoDeckCards}
       isDeckHidden={isDeckHidden ?? true}
-      onLigrettoDeckCardClick={isLigrettoDeckEnabled ? activate : undefined}
+      onLigrettoDeckCardClick={isLigrettoDeckEnabled ? onLigrettoDeckCardClick : undefined}
     />
   )
 }

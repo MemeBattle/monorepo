@@ -31,3 +31,20 @@ it('does not invoke hotkey owners while the provider is disabled', () => {
   fireEvent.keyDown(document.body, { key: 'q', code: 'KeyQ' })
   expect(activate).not.toHaveBeenCalled()
 })
+
+it('makes disabled descendants natively inert and restores input after re-enabling', () => {
+  const activate = vi.fn()
+  const tree = (enabled: boolean) => (
+    <CardInteractionProvider enabled={enabled}>
+      <Owner activate={activate} />
+    </CardInteractionProvider>
+  )
+  const view = render(tree(false))
+  expect(screen.getByText('owner').closest('[inert]')).not.toBeNull()
+  fireEvent.keyDown(document.body, { key: 'q', code: 'KeyQ' })
+  expect(activate).not.toHaveBeenCalled()
+  view.rerender(tree(true))
+  expect(screen.getByText('owner').closest('[inert]')).toBeNull()
+  fireEvent.keyDown(document.body, { key: 'q', code: 'KeyQ' })
+  expect(activate).toHaveBeenCalledOnce()
+})

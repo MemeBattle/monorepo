@@ -1,6 +1,6 @@
 import { GameGrid } from './GameGrid'
 import { Opponent, CardsPanelContainer } from '#features/player'
-import { PlaygroundContainer } from '#features/playground'
+import { Playground } from '#features/playground'
 import { createSelector } from '@reduxjs/toolkit'
 import { useSelector } from 'react-redux'
 import { gameStatusSelector, isPlayerSpectatorSelector, opponentsSelector, startingDelayInSecSelector } from '#ducks/game'
@@ -27,7 +27,7 @@ export const GameContainer = () => {
     <CardInteractionProvider enabled={isInteractionEnabled}>
       <PlayerCardDragOverlay />
       {gameStatus === GameStatus.Starting && <ScreenCountdown timeToGo={startingDelayInSec} />}
-      <GameGrid centerElement={<PlaygroundContainer />} bottomElement={isPlayerSpectator ? null : <CardsPanelContainer />}>
+      <GameGrid centerElement={<Playground />} bottomElement={isPlayerSpectator ? null : <CardsPanelContainer />}>
         {opponents.map(opponent => (
           <Opponent
             id={opponent.id}

@@ -31,8 +31,6 @@ export const PlayerCardsStack = () => {
     return null
   }
 
-  const isStackDeckEnabled = stackDeckCards.length > 0 || !!stackOpenDeckCard
-
   return (
     <CardsRow>
       <CardPlace>
@@ -43,7 +41,7 @@ export const PlayerCardsStack = () => {
         )}
       </CardPlace>
 
-      <CardHotkeyBadge hotkey={isStackDeckEnabled ? Hotkey.space : undefined}>
+      <CardHotkeyBadge hotkey={Hotkey.space}>
         <CardPlace>
           <PlayerStackDeck />
           {stackDeckCards.length === 0 && stackOpenDeckCard ? (

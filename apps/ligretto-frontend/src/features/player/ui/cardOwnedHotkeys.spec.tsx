@@ -85,8 +85,9 @@ describe('card-owned hotkeys', () => {
     )
     press(' ', 'Space')
     press('l', 'KeyL')
+    // jsdom does not enforce native inert hit testing; browser validation covers pointer input.
     for (const button of screen.getAllByRole('button')) {
-      activatePointer(button)
+      expect(button.closest('[inert]')).not.toBeNull()
     }
     expect(mocks.dispatch).not.toHaveBeenCalled()
     expect(screen.getByTestId('focus-state').textContent).toBe('none')
@@ -229,7 +230,7 @@ describe('card-owned hotkeys', () => {
     expect(mocks.dispatch).toHaveBeenCalledWith(tapStackDeckCardAction())
   })
 
-  it('does not handle Space when the stack and open decks are empty', () => {
+  it('dispatches Space and pointer commands even when both stack decks are empty', () => {
     mocks.stackCards = []
     mocks.openCards = []
     render(
@@ -238,11 +239,13 @@ describe('card-owned hotkeys', () => {
       </CardInteractionProvider>,
     )
 
-    expect(screen.queryByText('SPACE')).toBeNull()
+    expect(screen.getByText('SPACE')).toBeTruthy()
     press(' ', 'Space')
     activatePointer(screen.getByRole('button'))
 
-    expect(mocks.dispatch).not.toHaveBeenCalled()
+    expect(mocks.dispatch).toHaveBeenCalledTimes(2)
+    expect(mocks.dispatch).toHaveBeenNthCalledWith(1, tapStackDeckCardAction())
+    expect(mocks.dispatch).toHaveBeenNthCalledWith(2, tapStackDeckCardAction())
   })
 
   it('dispatches the reshuffle command from Space when only an open-stack card exists', () => {
@@ -293,4 +296,25 @@ describe('card-owned hotkeys', () => {
     press('l', 'KeyL')
     expect(mocks.dispatch).not.toHaveBeenCalled()
   })
+})
+
+it('leaves pointer dismissal to document clicks while Space clears before its command', () => {
+  mocks.stackCards = [card(3)]
+  mocks.openCards = [card(2)]
+  render(
+    <CardInteractionProvider enabled>
+      <div onClick={event => event.stopPropagation()}>
+        <PlayerCardsStack />
+      </div>
+      <FocusState />
+    </CardInteractionProvider>,
+  )
+  press('x', 'KeyX')
+  activatePointer(screen.getByText('SPACE').parentElement!.querySelector('button')!)
+  expect(mocks.dispatch).toHaveBeenCalledExactlyOnceWith(tapStackDeckCardAction())
+  expect(screen.getByTestId('focus-state').textContent).toBe('open-stack')
+  mocks.dispatch.mockClear()
+  press(' ', 'Space')
+  expect(mocks.dispatch).toHaveBeenCalledExactlyOnceWith(tapStackDeckCardAction())
+  expect(screen.getByTestId('focus-state').textContent).toBe('none')
 })

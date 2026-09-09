@@ -37,6 +37,7 @@ import { AnchoredDescription, type DescriptionTargets } from './descriptions/Anc
 import { CardInteractionProvider, useCardInteraction } from '#features/cardInteraction'
 import { getOnboardingPlacementAction } from './onboardingPlacement'
 import { OnboardingOpenStackCard } from './OnboardingOpenStackCard'
+import { cardByOnboardingTarget } from './cardByOnboardingTarget'
 import { OnboardingPlayground } from './OnboardingPlayground'
 
 interface OnboardingCardPanelProps {
@@ -256,7 +257,7 @@ function OnboardingPageBody() {
 export function OnboardingPage() {
   return (
     <OnboardingTargetsProvider>
-      <CardInteractionProvider enabled>
+      <CardInteractionProvider enabled cardByTargetSelector={cardByOnboardingTarget}>
         <OnboardingPageBody />
       </CardInteractionProvider>
     </OnboardingTargetsProvider>

@@ -5,20 +5,28 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
 
 import { Hotkey } from '#ducks/game'
-import { CardInteractionProvider } from './CardInteractionProvider'
+import { CardInteractionProvider as InteractionProvider } from './CardInteractionProvider'
+import { Provider } from 'react-redux'
+import { createMockStore } from '#testing/lib/createMockStore'
+const store = createMockStore()
+const CardInteractionProvider = ({ children }: React.PropsWithChildren<{ enabled: boolean }>) => (
+  <Provider store={store}>
+    <InteractionProvider enabled>{children}</InteractionProvider>
+  </Provider>
+)
 import { useCardInteraction } from './useCardInteraction'
 import { useCardHotkey } from './useCardHotkey'
 
 afterEach(cleanup)
 
 const HotkeyOwner = ({ hotkey, onActivate }: { hotkey?: Hotkey; onActivate: () => void }) => {
-  useCardHotkey(hotkey, onActivate)
-  return null
+  const result = useCardHotkey(hotkey, onActivate)
+  return <output data-testid="hotkey-api">{typeof result}</output>
 }
 
 const SelectedCardHotkeyOwner = ({ onActivate }: { onActivate: () => void }) => {
   const { activeTarget } = useCardInteraction()
-  const { toggleActiveTarget } = useCardInteraction({ type: 'row', index: 0 }, [])
+  const { toggleActiveTarget } = useCardInteraction({ type: 'row', index: 0 })
   useCardHotkey(Hotkey.q, onActivate)
 
   return (
@@ -41,6 +49,7 @@ describe('useCardHotkey', () => {
     )
     const event = new KeyboardEvent('keydown', { key: 'q', code: 'KeyQ', bubbles: true, cancelable: true })
 
+    expect(document.querySelector('[data-testid="hotkey-api"]')?.textContent).toBe('undefined')
     document.body.dispatchEvent(event)
 
     expect(onActivate).toHaveBeenCalledOnce()

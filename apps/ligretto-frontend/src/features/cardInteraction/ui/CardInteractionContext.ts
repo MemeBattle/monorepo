@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react'
+import type { cardByInteractionTarget } from '../model/cardByInteractionTarget'
 import type { CardInteractionTarget } from '../model/types'
 
 export const getInteractionTargetKey = (target: CardInteractionTarget): string =>
@@ -11,7 +12,8 @@ export interface CardInteractionContextValue {
   activeTarget?: CardInteractionTarget
   clearActiveTarget: (target?: CardInteractionTarget) => void
   toggleActiveTarget: (target: CardInteractionTarget) => void
-  runCommand: (command: () => void) => void
+  enabled: boolean
+  cardByTargetSelector: typeof cardByInteractionTarget
 }
 
 export const CardInteractionContext = createContext<CardInteractionContextValue | undefined>(undefined)

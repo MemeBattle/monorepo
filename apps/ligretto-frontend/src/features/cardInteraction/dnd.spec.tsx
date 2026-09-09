@@ -3,7 +3,7 @@
 import { useDndContext, useDndMonitor } from '@dnd-kit/core'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { canPlaceCardOnDeck, CardColors, type CardsDeck } from '@memebattle/ligretto-shared'
+import { CardColors, PlayerStatus, type CardsDeck } from '@memebattle/ligretto-shared'
 
 import type { CardDragData, CardDragTarget } from './model/types'
 import { getInteractionTargetKey, useCardInteractionContext } from './ui/CardInteractionContext'
@@ -13,13 +13,23 @@ import { useDraggableCard } from './ui/useDraggableCard'
 import { useDroppableTarget } from './ui/useDroppableTarget'
 import { useCardHotkey } from './ui/useCardHotkey'
 import { useCardDragTarget } from './ui/useCardDragTarget'
-import { Hotkey } from '#ducks/game'
+import { Hotkey, updateGameAction } from '#ducks/game'
+import { useLayoutEffect, useState } from 'react'
+import { Provider, useStore } from 'react-redux'
+import { createMockStore } from '#testing/lib/createMockStore'
+import { authInitialState } from '#ducks/auth/authSlice'
+import type { All } from '#types/store'
 
 const onShortcut = vi.fn()
 const onDrop = vi.fn<(dragged: CardDragData) => void>()
-const TestProvider = ({ children, enabled = true }: React.PropsWithChildren<{ enabled?: boolean }>) => (
-  <CardInteractionProvider enabled={enabled}>{children}</CardInteractionProvider>
-)
+const TestProvider = ({ children, enabled = true }: React.PropsWithChildren<{ enabled?: boolean }>) => {
+  const [store] = useState(() => createMockStore({ preloadedState: { auth: { ...authInitialState, userId: 'player' } } }))
+  return (
+    <Provider store={store}>
+      <CardInteractionProvider enabled={enabled}>{children}</CardInteractionProvider>
+    </Provider>
+  )
+}
 
 const ActiveTarget = () => {
   const { activeTarget } = useCardInteraction()
@@ -31,14 +41,14 @@ const InteractionContextKeys = () => {
   return <output data-testid="interaction-context-keys">{Object.keys(context).sort().join(',')}</output>
 }
 
-const DragSource = ({ value, target, disabled }: { value: number; target: CardDragTarget; disabled: boolean }) => {
+const DragSource = ({ value, target }: { value: number; target: CardDragTarget }) => {
   const card = { color: CardColors.red, value }
-  const { toggleActiveTarget } = useCardInteraction(target, [value])
+  const { toggleActiveTarget } = useCardInteraction(target)
   useCardHotkey(Hotkey.q, () => {
     onShortcut()
     toggleActiveTarget()
   })
-  const { id, isDragging, listeners, setNodeRef } = useDraggableCard(target, card, disabled)
+  const { id, isDragging, listeners, setNodeRef } = useDraggableCard(target, card)
   return (
     <button
       {...listeners}
@@ -71,19 +81,33 @@ const DragHarness = ({
   showDestination?: boolean
   dropIndex?: number
 }) => {
-  const deck: CardsDeck | null = value === 1 ? null : { cards: [{ color: valid ? CardColors.red : CardColors.blue, value: 1 }], isHidden: false }
-  const {
-    id: dropId,
-    isOver,
-    setNodeRef,
-  } = useDroppableTarget({ type: 'playground', index: dropIndex }, dragged => {
-    if (canPlaceCardOnDeck(dragged.card, deck)) {
-      onDrop(dragged)
-    }
-  })
+  const store = useStore<All>()
+  const rowIndex = target.type === 'row' ? target.index : undefined
+  useLayoutEffect(() => {
+    const card = { color: CardColors.red, value }
+    const deck: CardsDeck | null = value === 1 ? null : { cards: [{ color: valid ? CardColors.red : CardColors.blue, value: 1 }], isHidden: false }
+    store.dispatch(
+      updateGameAction({
+        ...store.getState().game.game,
+        players: {
+          player: {
+            id: 'player',
+            isHost: true,
+            status: PlayerStatus.InGame,
+            cards: rowIndex !== undefined ? Array.from({ length: rowIndex + 1 }, () => card) : [],
+            stackOpenDeck: { cards: rowIndex === undefined ? [card] : [], isHidden: false },
+            stackDeck: { cards: [], isHidden: true },
+            ligrettoDeck: { cards: [], isHidden: true },
+          },
+        },
+        playground: { decks: Array.from({ length: dropIndex + 1 }, () => deck), droppedDecks: [] },
+      }),
+    )
+  }, [store, value, valid, rowIndex, dropIndex])
+  const { id: dropId, isOver, setNodeRef } = useDroppableTarget({ type: 'playground', index: dropIndex }, onDrop)
   return (
     <>
-      {showSource && <DragSource value={value} target={target} disabled={disabled} />}
+      {showSource && !disabled && <DragSource value={value} target={target} />}
       {showDestination && (
         <div ref={setNodeRef} data-card-drop-target={dropId} data-drop-over={isOver || undefined}>
           deck
@@ -142,6 +166,18 @@ describe('card placement hooks', () => {
     onShortcut.mockClear()
   })
   afterEach(cleanup)
+
+  it('does not activate a mounted native source while its provider is disabled', async () => {
+    render(
+      <TestProvider enabled={false}>
+        <DragHarness />
+      </TestProvider>,
+    )
+    await drag(false)
+    expect(screen.getByText('source').style.opacity).toBe('1')
+    fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
+    expect(onDrop).not.toHaveBeenCalled()
+  })
 
   it.each(['disabled source', 'removed source', 'changed target', 'removed destination'] as const)('rejects a %s during a gesture', async change => {
     const view = render(
@@ -268,7 +304,7 @@ describe('card placement hooks', () => {
     const NativeGesture = () => {
       const { active } = useDndContext()
       const dragTarget = useCardDragTarget()
-      const { toggleActiveTarget } = useCardInteraction({ type: 'row', index: 0 }, [])
+      const { toggleActiveTarget } = useCardInteraction({ type: 'row', index: 0 })
       useCardHotkey(Hotkey.w, () => {
         onShortcut()
         toggleActiveTarget()

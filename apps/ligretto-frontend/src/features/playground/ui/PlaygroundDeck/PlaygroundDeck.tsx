@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { canPlaceCardOnDeck, putCardAction, putCardFromStackOpenDeck, type CardsDeck } from '@memebattle/ligretto-shared'
+import { putCardAction, putCardFromStackOpenDeck, type CardsDeck } from '@memebattle/ligretto-shared'
 import last from 'lodash/last'
 import { styled } from '@mui/material/styles'
 
@@ -14,8 +14,7 @@ import {
   widthByCardSize,
 } from '#entities/card/ui/Card'
 import { useCardInteraction, useDroppableTarget, type CardDragData } from '#features/cardInteraction'
-import { gameIdSelector, playerCardsSelector, playerStackOpenDeckCardsSelector } from '#ducks/game'
-import type { All } from '#types/store'
+import { gameIdSelector } from '#ducks/game'
 
 const DropSurface = styled('div')(({ theme }) => ({
   width: widthByCardSize.large,
@@ -39,14 +38,6 @@ export const PlaygroundDeck = ({ cardDeck, deckIndex }: PlaygroundDeckProps) => 
   const dispatch = useDispatch()
   const gameId = useSelector(gameIdSelector)
   const { activeTarget } = useCardInteraction()
-  const activeCard = useSelector((state: All) => {
-    if (activeTarget?.type === 'row') {
-      return playerCardsSelector(state)?.[activeTarget.index]
-    }
-    if (activeTarget?.type === 'open-stack') {
-      return last(playerStackOpenDeckCardsSelector(state))
-    }
-  })
   const placeCard = useCallback(
     (target: CardDragData['target']) => {
       if (target.type === 'row') {
@@ -57,16 +48,12 @@ export const PlaygroundDeck = ({ cardDeck, deckIndex }: PlaygroundDeckProps) => 
     },
     [deckIndex, dispatch, gameId],
   )
-  const handleDrop = useCallback(
-    (dragged: CardDragData) => {
-      if (canPlaceCardOnDeck(dragged.card, cardDeck)) {
-        placeCard(dragged.target)
-      }
-    },
-    [cardDeck, placeCard],
-  )
-  const { id: dropId, isOver, setNodeRef } = useDroppableTarget({ type: 'playground', index: deckIndex }, handleDrop)
-  const isValid = !!activeCard && canPlaceCardOnDeck(activeCard, cardDeck)
+  const {
+    id: dropId,
+    isOver,
+    isValid,
+    setNodeRef,
+  } = useDroppableTarget({ type: 'playground', index: deckIndex }, dragged => placeCard(dragged.target))
   const card = last(cardDeck?.cards)
   const boxShadow = isValid
     ? isOver

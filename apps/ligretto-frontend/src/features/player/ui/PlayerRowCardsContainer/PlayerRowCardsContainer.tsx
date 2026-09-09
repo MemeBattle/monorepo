@@ -14,7 +14,7 @@ interface PlayerRowCardProps {
 }
 
 const PlayerRowCard = ({ card, index, hotkey }: PlayerRowCardProps) => {
-  const { isActive, isDimmed, toggleActiveTarget } = useCardInteraction({ type: 'row', index }, [card.color, card.value])
+  const { isActive, isDimmed, toggleActiveTarget } = useCardInteraction({ type: 'row', index })
   const { id: dragId, isDragging, listeners, setNodeRef } = useDraggableCard({ type: 'row', index }, card)
   const onCardActivate = toggleActiveTarget
 

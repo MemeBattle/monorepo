@@ -8,12 +8,9 @@ interface PlayerStackOpenCardProps {
 }
 
 export const PlayerStackOpenCard = ({ card }: PlayerStackOpenCardProps) => {
-  const { isActive, isDimmed, toggleActiveTarget } = useCardInteraction(
-    {
-      type: 'open-stack',
-    },
-    [card.color, card.value],
-  )
+  const { isActive, isDimmed, toggleActiveTarget } = useCardInteraction({
+    type: 'open-stack',
+  })
   const { id: dragId, isDragging, listeners, setNodeRef } = useDraggableCard({ type: 'open-stack' }, card)
 
   const onCardActivate = toggleActiveTarget

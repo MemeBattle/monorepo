@@ -16,7 +16,7 @@ interface OnboardingRowCardProps {
 }
 
 const OnboardingRowCard = ({ card, index, isEnabled }: OnboardingRowCardProps) => {
-  const { isActive, isDimmed, toggleActiveTarget } = useCardInteraction({ type: 'row', index }, [card?.color, card?.value, isEnabled])
+  const { isActive, isDimmed, toggleActiveTarget } = useCardInteraction({ type: 'row', index })
   const onCardActivate = isEnabled && card ? toggleActiveTarget : undefined
 
   return (

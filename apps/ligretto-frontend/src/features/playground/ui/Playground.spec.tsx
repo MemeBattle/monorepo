@@ -1,17 +1,18 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Provider } from 'react-redux'
-import { CardColors, PlayerStatus, putCardAction } from '@memebattle/ligretto-shared'
+import { CardColors, PlayerStatus, putCardAction, putCardFromStackOpenDeck } from '@memebattle/ligretto-shared'
 
 import { authInitialState } from '#ducks/auth/authSlice'
-import { initialState as gameInitialState } from '#ducks/game/slice'
+import { initialState as gameInitialState, updateGameAction } from '#ducks/game/slice'
 import { heightByCardSize, widthByCardSize } from '#entities/card/ui/Card'
 import { CardInteractionProvider, useCardInteraction } from '#features/cardInteraction'
 import { createMockStore } from '#testing/lib/createMockStore'
 import { Playground } from './Playground'
 import { PlayerRowCardsContainer } from '#features/player/ui/PlayerRowCardsContainer/PlayerRowCardsContainer'
+import { PlayerCardsStack } from '#features/player/ui/PlayerCardsStack/PlayerCardsStack'
 import { PlayerCardDragOverlay } from '#features/player/ui/PlayerCardDragOverlay'
 
 afterEach(async () => {
@@ -29,6 +30,7 @@ const createTestStore = () =>
         game: {
           ...gameInitialState.game,
           id: 'game',
+          playground: { decks: [{ cards: [{ color: CardColors.red, value: 1 }], isHidden: false }], droppedDecks: [] },
           players: {
             player: {
               id: 'player',
@@ -45,8 +47,21 @@ const createTestStore = () =>
     },
   })
 
+const startDrag = async (container: HTMLElement) => {
+  const source = container.querySelector<HTMLElement>('[data-card-drag-source]')!
+  const destination = container.querySelector<HTMLElement>('[data-card-drop-target="playground.0"]')!
+  const rect = (left: number) => ({ x: left, y: 0, left, top: 0, right: left + 50, bottom: 50, width: 50, height: 50, toJSON() {} })
+  source.getBoundingClientRect = () => rect(0)
+  destination.getBoundingClientRect = () => rect(100)
+  fireEvent.mouseDown(source, { clientX: 10, clientY: 10, button: 0, buttons: 1 })
+  fireEvent.mouseMove(document, { clientX: 20, clientY: 10, buttons: 1 })
+  await Promise.resolve()
+  fireEvent.mouseMove(document, { clientX: 110, clientY: 10, buttons: 1 })
+  return { source, destination }
+}
+
 const RowCard = () => {
-  const { toggleActiveTarget } = useCardInteraction({ type: 'row', index: 0 }, [])
+  const { toggleActiveTarget } = useCardInteraction({ type: 'row', index: 0 })
   return <button onClick={toggleActiveTarget}>select row card</button>
 }
 
@@ -68,19 +83,11 @@ describe('Playground', () => {
         <CardInteractionProvider enabled>
           <PlayerCardDragOverlay />
           <PlayerRowCardsContainer />
-          <Playground cardsDecks={[{ cards: [{ color: CardColors.red, value: 1 }], isHidden: false }]} />
+          <Playground />
         </CardInteractionProvider>
       </Provider>,
     )
-    const source = view.container.querySelector<HTMLElement>('[data-card-drag-source]')!
-    const destination = view.container.querySelector<HTMLElement>('[data-card-drop-target="playground.0"]')!
-    const rect = (left: number) => ({ x: left, y: 0, left, top: 0, right: left + 50, bottom: 50, width: 50, height: 50, toJSON() {} })
-    source.getBoundingClientRect = () => rect(0)
-    destination.getBoundingClientRect = () => rect(100)
-    fireEvent.mouseDown(source, { clientX: 10, clientY: 10, button: 0, buttons: 1 })
-    fireEvent.mouseMove(document, { clientX: 20, clientY: 10, buttons: 1 })
-    await Promise.resolve()
-    fireEvent.mouseMove(document, { clientX: 110, clientY: 10, buttons: 1 })
+    const { source, destination } = await startDrag(view.container)
     expect(source.style.opacity).toBe('0')
     expect(view.container.querySelector('[data-card-drag-overlay]')?.textContent).toContain('2')
     fireEvent.click(destination)
@@ -94,7 +101,7 @@ describe('Playground', () => {
   it('renders the droppable surface inside each CardPlace', () => {
     const view = render(
       <TestProvider>
-        <Playground cardsDecks={[{ cards: [{ color: CardColors.red, value: 1 }], isHidden: false }]} />
+        <Playground />
       </TestProvider>,
     )
 
@@ -111,7 +118,7 @@ describe('Playground', () => {
     const view = render(
       <Provider store={store}>
         <CardInteractionProvider enabled>
-          <Playground cardsDecks={[null]} />
+          <Playground />
         </CardInteractionProvider>
       </Provider>,
     )
@@ -128,7 +135,7 @@ describe('Playground', () => {
       <Provider store={store}>
         <CardInteractionProvider enabled>
           <RowCard />
-          <Playground cardsDecks={[null]} />
+          <Playground />
         </CardInteractionProvider>
       </Provider>,
     )
@@ -138,4 +145,65 @@ describe('Playground', () => {
 
     expect(dispatch).toHaveBeenCalledWith(putCardAction({ cardIndex: 0, gameId: 'game', playgroundDeckIndex: 0 }))
   })
+})
+
+it.each(['source', 'destination'] as const)('rejects a rendered row drop after the %s changes in Redux', async change => {
+  const store = createTestStore()
+  const dispatch = vi.spyOn(store, 'dispatch')
+  const view = render(
+    <Provider store={store}>
+      <CardInteractionProvider enabled>
+        <PlayerRowCardsContainer />
+        <Playground />
+      </CardInteractionProvider>
+    </Provider>,
+  )
+  await startDrag(view.container)
+  const game = store.getState().game.game
+  act(() => {
+    store.dispatch(
+      updateGameAction(
+        change === 'source'
+          ? {
+              ...game,
+              players: { player: { ...game.players.player!, cards: [{ color: CardColors.red, value: 3 }] } },
+            }
+          : {
+              ...game,
+              playground: { decks: [{ cards: [{ color: CardColors.blue, value: 1 }], isHidden: false }], droppedDecks: [] },
+            },
+      ),
+    )
+  })
+  dispatch.mockClear()
+  fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
+  expect(dispatch).not.toHaveBeenCalled()
+})
+
+it('dispatches the open-stack placement exactly once through a real rendered drag', async () => {
+  const store = createTestStore()
+  const game = store.getState().game.game
+  store.dispatch(
+    updateGameAction({
+      ...game,
+      players: {
+        player: {
+          ...game.players.player!,
+          stackOpenDeck: { cards: [{ color: CardColors.red, value: 2 }], isHidden: false },
+        },
+      },
+    }),
+  )
+  const dispatch = vi.spyOn(store, 'dispatch')
+  const view = render(
+    <Provider store={store}>
+      <CardInteractionProvider enabled>
+        <PlayerCardsStack />
+        <Playground />
+      </CardInteractionProvider>
+    </Provider>,
+  )
+  await startDrag(view.container)
+  fireEvent.mouseUp(document, { clientX: 110, clientY: 10, button: 0 })
+  expect(dispatch).toHaveBeenCalledExactlyOnceWith(putCardFromStackOpenDeck({ gameId: 'game', playgroundDeckIndex: 0 }))
 })

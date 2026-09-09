@@ -2,7 +2,7 @@
 
 import type { PropsWithChildren } from 'react'
 import { configureStore } from '@reduxjs/toolkit'
-import { CardColors, GameStatus } from '@memebattle/ligretto-shared'
+import { GameStatus } from '@memebattle/ligretto-shared'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Provider } from 'react-redux'
@@ -30,14 +30,11 @@ const TestProvider = ({ children, enabled = true }: PropsWithChildren<{ enabled?
   </Provider>
 )
 
-const RowCard = ({ value = 2 }: { value?: number }) => {
-  const { isActive, toggleActiveTarget } = useCardInteraction(
-    {
-      type: 'row',
-      index: 0,
-    },
-    [CardColors.red, value],
-  )
+const RowCard = () => {
+  const { isActive, toggleActiveTarget } = useCardInteraction({
+    type: 'row',
+    index: 0,
+  })
 
   return (
     <button data-card-interaction-element onClick={toggleActiveTarget}>
@@ -65,17 +62,14 @@ const TransferOnCleanup = ({ showFirst }: { showFirst: boolean }) => (
 )
 
 const TargetedApi = () => {
-  const focus = useCardInteraction({ type: 'row', index: 1 }, [CardColors.green, 4])
+  const focus = useCardInteraction({ type: 'row', index: 1 })
   return <output data-testid="targeted-api">{Object.keys(focus).sort().join(',')}</output>
 }
 
 const OpenStackCard = () => {
-  const { isActive, toggleActiveTarget } = useCardInteraction(
-    {
-      type: 'open-stack',
-    },
-    [CardColors.blue, 3],
-  )
+  const { isActive, toggleActiveTarget } = useCardInteraction({
+    type: 'open-stack',
+  })
 
   return (
     <button data-card-interaction-element onClick={toggleActiveTarget}>
@@ -85,7 +79,7 @@ const OpenStackCard = () => {
 }
 
 const PlaygroundTarget = ({ index }: { index: number }) => {
-  const { toggleActiveTarget } = useCardInteraction({ type: 'playground', index }, [])
+  const { toggleActiveTarget } = useCardInteraction({ type: 'playground', index })
   return <button onClick={toggleActiveTarget}>select playground</button>
 }
 
@@ -188,7 +182,7 @@ describe('CardInteractionProvider', () => {
     const view = render(
       <TestProvider>
         <RowCard />
-        <Playground cardsDecks={Array.from({ length: 12 }, () => null)} />
+        <Playground />
       </TestProvider>,
     )
 
@@ -197,22 +191,6 @@ describe('CardInteractionProvider', () => {
     expect(playgroundDeck).toBeTruthy()
     fireEvent.click(playgroundDeck!)
     expect(screen.getByText('focused')).toBeTruthy()
-  })
-
-  it('clears focus when the focused card identity changes', () => {
-    const view = render(
-      <TestProvider>
-        <RowCard />
-      </TestProvider>,
-    )
-
-    fireEvent.click(screen.getByText('idle'))
-    view.rerender(
-      <TestProvider>
-        <RowCard value={3} />
-      </TestProvider>,
-    )
-    expect(screen.getByText('idle')).toBeTruthy()
   })
 
   it('clears focus when the focused playground target index changes', () => {
