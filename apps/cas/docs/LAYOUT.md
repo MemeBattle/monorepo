@@ -16,6 +16,8 @@ apps/cas/
     config.rs          ┐
     db.rs              │ shared infrastructure: knows no context
     migrations.rs      ┘
+    shared/            shared vocabulary: rules and types more than one context
+      label.rs           needs and none owns (a user-facing label's rules)
     testing.rs         test helpers, cfg(test) only
     http/              transport root: mounts the contexts, owns the wire contract
       mod.rs           router, middleware stack, pool construction
@@ -62,9 +64,18 @@ Each rule says what a layer is for and what it must not touch.
    binaries, knows no context. `db` classifies database failures (unavailable,
    busy, or a bug the code has no name for); a transport only maps that verdict
    to a status.
-6. **Dependency direction** — `http → <context>/http → services → repository → db`. Domain types
+6. **Shared vocabulary** — `shared/`. Domain-level rules and types that at
+   least two contexts need and none of them owns: the rules for a user-facing
+   label are the first. The bar for entry is that second context; a rule one
+   context uses stays in that context. No axum, no SQL, no configuration.
+   A context's newtype over a shared rule (`DisplayName`, `PasskeyName`)
+   stays in the context, with an error type of its own, so the wire error
+   code stays next to the handler that maps it.
+7. **Dependency direction** — `http → <context>/http → services → repository → db`. Domain types
    are visible to every layer. Contexts talk to each other through their public
-   types and services, never through another context's repository.
-7. **Tests** live next to the code. Repositories and services are tested with
+   types and services, never through another context's repository, and never
+   reach into another context for a rule: what two contexts share lives in
+   `shared/`.
+8. **Tests** live next to the code. Repositories and services are tested with
    `#[sqlx::test]`, transport through the full router. Shared fixtures are in
    `testing.rs`. See TESTS.md.

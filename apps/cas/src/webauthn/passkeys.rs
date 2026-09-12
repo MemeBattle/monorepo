@@ -13,28 +13,29 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 use webauthn_rs::prelude::Passkey;
 
-use crate::accounts::{DisplayNameError, sanitize_display_name, validate_display_name};
+use crate::shared::label::{LabelError, sanitize_label, validate_label};
 
 /// Label given to the passkey created during registration. The user has not
 /// been asked for one at that point; passkey management lets them rename it.
 pub const DEFAULT_PASSKEY_NAME: &str = "Passkey";
 
-/// Why a string is not a [`PasskeyName`]: the same reasons a string is not a
-/// display name, since both are labels a UI shows as-is.
+/// Why a string is not a [`PasskeyName`]: the label rules, under a name of
+/// this context's own so the transport can give it its own error code.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 #[error(transparent)]
-pub struct PasskeyNameError(DisplayNameError);
+pub struct PasskeyNameError(LabelError);
 
 fn validate_passkey_name(value: &str) -> Result<(), PasskeyNameError> {
-    validate_display_name(value).map_err(PasskeyNameError)
+    validate_label(value).map_err(PasskeyNameError)
 }
 
 /// The user-facing label of a passkey ("MacBook", "YubiKey"), valid by
-/// construction under the display name rules: sanitised spaces and NFC, no
-/// invisible or direction-changing characters, at most the display name's
-/// length. Not unique: naming two keys alike is the user's business.
+/// construction under the shared label rules (`crate::shared::label`):
+/// sanitised spaces and NFC, no invisible or direction-changing characters,
+/// the same length cap as a display name. Not unique: naming two keys alike
+/// is the user's business.
 #[nutype(
-    sanitize(with = sanitize_display_name),
+    sanitize(with = sanitize_label),
     validate(with = validate_passkey_name, error = PasskeyNameError),
     derive(Debug, Clone, PartialEq, Eq, AsRef, Deref, Display, Into, Serialize, Deserialize),
 )]
@@ -87,7 +88,7 @@ mod passkey_name_tests {
     }
 
     #[test]
-    fn a_name_is_sanitised_like_a_display_name() {
+    fn a_name_is_a_sanitised_valid_label() {
         assert_eq!(
             PasskeyName::try_new("  My\u{a0} YubiKey  ").map(Into::<String>::into),
             Ok("My YubiKey".to_owned())

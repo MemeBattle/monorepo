@@ -48,13 +48,14 @@ count two and both proceed, leaving none; with the lock the second waits and
 counts what the first left. Contention is per account and the transaction is
 one read and one write.
 
-**(e) A passkey's name is a display name.** It is shown as-is in a list,
-next to other names, so it gets the same sanitising and the same rejections
-as an account's display name (`accounts::DisplayName`): spaces normalised,
-NFC, no invisible or direction-changing characters, the same length cap. The
-type is its own (`PasskeyName`) because the two are different things, but
-the rules are one implementation, not two. A bad name is
-`400 invalid_passkey_name`.
+**(e) A passkey's name is a label, like a display name.** It is shown
+as-is in a list, next to other names, so it gets the same sanitising and the
+same rejections as an account's display name: spaces normalised, NFC, no
+invisible or direction-changing characters, the same length cap. The rules
+are one implementation in `shared::label`, owned by neither context; each
+context has its own newtype over them (`PasskeyName`, `DisplayName`) with an
+error type of its own, so the wire error code stays next to the handler
+that maps it. A bad name is `400 invalid_passkey_name`.
 
 **(f) Deleting a passkey ends no session.** As ADR 0004 says, a passkey is a
 way in, not the session itself. The dashboard session that deletes a passkey
