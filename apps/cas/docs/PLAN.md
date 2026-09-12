@@ -147,9 +147,9 @@ dashboard [#671](https://github.com/MemeBattle/monorepo/issues/671).
 - [ ] Generate an OpenAPI description of the HTTP API, including error responses
       and their codes (e.g. utoipa), instead of maintaining a hand-written
       catalogue.
-- [ ] Expired `webauthn_ceremonies` rows are not removed by the application
-      (ADR 0002): add a periodic cleanup (k8s CronJob running the DELETE, or
-      pg_cron) before launch.
+- [ ] Expired `webauthn_ceremonies` and `sessions` rows are not removed by the
+      application (ADR 0002, ADR 0004): add a periodic cleanup (k8s CronJob
+      running the DELETE, or pg_cron) before launch.
 
 ## Working agreements (lit factory)
 

@@ -18,10 +18,35 @@ use webauthn_rs_proto::{
 };
 
 use crate::accounts::DisplayName;
+use crate::http::ApiState;
+use crate::sessions::http::CookieSettings;
+use crate::sessions::{SessionService, SessionToken};
 use crate::webauthn::build_webauthn;
+use crate::webauthn::login::LoginService;
 use crate::webauthn::registration::{
     Registered, RegistrationService, start_discoverable_registration,
 };
+
+/// The API state the handler tests run against: every service on the given
+/// pool, cookies as the development origin would have them.
+pub fn test_state(pool: PgPool) -> ApiState {
+    ApiState {
+        registration: RegistrationService::new(test_webauthn(), pool.clone()),
+        login: LoginService::new(test_webauthn(), pool.clone()),
+        sessions: SessionService::new(pool),
+        cookies: CookieSettings::for_origin(&test_origin()),
+    }
+}
+
+/// The session cookie a `Set-Cookie` header carries, parsed back into the
+/// token, so a test can check what the browser was given and use it.
+pub fn session_cookie(response: &axum::response::Response) -> Option<SessionToken> {
+    let header = response.headers().get(axum::http::header::SET_COOKIE)?;
+    let cookie = axum_extra::extract::cookie::Cookie::parse(header.to_str().ok()?).ok()?;
+    (cookie.name() == crate::sessions::http::cookie::SESSION_COOKIE)
+        .then(|| SessionToken::parse(cookie.value()))
+        .flatten()
+}
 
 struct ResidentCredential {
     rp_id: String,

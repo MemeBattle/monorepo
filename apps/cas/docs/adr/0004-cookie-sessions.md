@@ -1,0 +1,90 @@
+# 4. Cookie sessions
+
+## Status
+
+Accepted (2026-09-12), with [#667](https://github.com/MemeBattle/monorepo/issues/667).
+
+## Context
+
+Registration (ADR 0001) and login (ADR 0003) prove who a browser is at one
+moment. Something has to carry that proof to the next request: the dashboard,
+passkey management (#668), and later the OIDC `/authorize` endpoint, which
+must know who is asking before it can issue a code to a client.
+
+CAS runs as several replicas (ADR 0002), so whatever a session is, it cannot
+live in a process. The frontend is served from a different origin in
+development and must be able to call the API with the session attached.
+
+## Decision
+
+**(a) Server-side sessions, referenced by a random token in a cookie.** A
+session is a row in `sessions`; the cookie holds 256 random bits, base64url
+encoded. No signed or encrypted cookie: a row can be revoked, listed and
+expired by the server, and an opaque token reveals nothing if the cookie is
+ever read.
+
+**(b) The row stores the SHA-256 of the token, never the token.** A read of
+the table, in a backup or over the shoulder in `psql`, does not hand out live
+sessions. Lookup is by the hash, which is the unique column. The token exists
+in memory only between its generation and the response that sets the cookie.
+
+**(c) Expiry is absolute, 30 days, measured by the database clock.** The
+cookie's `Max-Age` and the row's `expires_at` are derived from the same
+constant, so the browser and the server give up together. A sliding expiry
+would cost a write on every authenticated request; it can be added when a
+product need appears. Expired rows are not returned and are not removed by
+the application: like `webauthn_ceremonies`, cleanup is a scheduled job, never
+part of the request path.
+
+**(d) The cookie is `HttpOnly`, `SameSite=Lax`, `Path=/`, host-only, and
+`Secure` when the relying party origin is https.** `HttpOnly`: script never
+reads it. `Lax` rather than `Strict`: the future `/authorize` redirect is a
+top-level navigation from another site and must carry the cookie; `Lax` still
+withholds it from cross-site POSTs, which is the CSRF line. `Secure` follows
+the scheme of `CAS_ORIGIN` because Safari refuses a `Secure` cookie over plain
+http even from localhost, and the development origin is plain http.
+
+**(e) CORS allows credentials, and therefore lists methods and headers.**
+The frontend calls the API cross-origin in development with
+`credentials: 'include'`. Browsers refuse `Access-Control-Allow-Credentials`
+next to a wildcard, so the allowed methods and headers are enumerated. The
+JSON content type forces a preflight on every state-changing request, which
+together with `SameSite=Lax` is the CSRF posture for v1. A dedicated CSRF
+token is not needed while every mutating endpoint takes JSON.
+
+**(f) Registration and login sign the account in.** Their finish handlers
+create a session and set the cookie in the same response. The session is
+written after the ceremony's transaction commits: a failed session write after
+a successful login is a 503 the client retries by signing in again, and the
+recorded credential use is not undone. Session creation also moves the
+account's `last_seen_at`, in the session's own transaction: signing in is the
+activity guest GC will look for.
+
+**(g) One 401 code, `unauthenticated`, for every way a request fails to
+carry a session** — no cookie, a malformed one, an unknown, expired or
+revoked session. The client's remedy is the same in every case, and a probe
+learns nothing about which sessions exist. `POST /api/logout` is the
+exception: it is idempotent and never a 401. A browser holding a stale cookie
+is asking to forget it, and the answer to that is yes; the cookie is cleared
+whether or not a row was found.
+
+**(h) `Authenticated` is an axum extractor.** A handler that takes one runs
+only for a request with a live session and receives the session and the
+account; the 401 happens before the handler. It lives in the sessions
+context's transport and is the one thing other contexts import from it.
+
+## Consequences
+
+- `GET /api/me` answers with the account (id, display name, type, email) and
+  the session's expiry, nothing else about the session.
+- A session outlives a passkey: deleting a credential (#668) does not end the
+  sessions that were opened with it. Ending them is an explicit act, and a
+  "sign out everywhere" belongs with session listing, later.
+- Every authenticated request costs two reads: the session by hash, then the
+  account by id. A join would save one round trip and put another context's
+  columns in this context's SQL; the round trip is the cheaper price.
+- The `sessions` table grows by one row per sign-in and per expired session
+  until the scheduled cleanup exists; the index on `expires_at` is there for
+  it.
+- The session id is the row's identity for the future management screen; the
+  token never identifies a session anywhere but in the lookup.

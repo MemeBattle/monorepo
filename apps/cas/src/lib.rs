@@ -5,6 +5,7 @@ pub mod config;
 pub mod db;
 pub mod http;
 pub mod migrations;
+pub mod sessions;
 #[cfg(test)]
 pub(crate) mod testing;
 pub mod webauthn;

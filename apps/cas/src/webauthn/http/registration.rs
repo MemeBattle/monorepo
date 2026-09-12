@@ -2,6 +2,7 @@
 //! browser's answer.
 
 use axum::{Json, extract::State};
+use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use webauthn_rs::prelude::{CreationChallengeResponse, CredentialID, RegisterPublicKeyCredential};
@@ -101,19 +102,26 @@ pub(super) async fn get_registration_options(
     }))
 }
 
+/// A finished registration signs the new account in: the response sets the
+/// session cookie alongside the body.
 pub(super) async fn verify_registration(
     State(state): State<ApiState>,
+    jar: CookieJar,
     AppJson(data): AppJson<VerifyRegistrationData>,
-) -> Result<Json<VerifyRegistrationResponse>, ApiError> {
+) -> Result<(CookieJar, Json<VerifyRegistrationResponse>), ApiError> {
     let registered = state
         .registration
         .finish(data.registration_id, &data.response)
         .await?;
+    let issued = state.sessions.create(registered.account.id).await?;
 
-    Ok(Json(VerifyRegistrationResponse {
-        account_id: registered.account.id,
-        credential_id: registered.credential.passkey.cred_id().clone(),
-    }))
+    Ok((
+        jar.add(state.cookies.session(&issued.token)),
+        Json(VerifyRegistrationResponse {
+            account_id: registered.account.id,
+            credential_id: registered.credential.passkey.cred_id().clone(),
+        }),
+    ))
 }
 
 #[cfg(test)]
@@ -129,19 +137,15 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::accounts::{AccountRepository, AccountType};
-    use crate::testing::{soft_passkey_registration, test_webauthn};
+    use crate::sessions::SessionService;
+    use crate::testing::{session_cookie, soft_passkey_registration, test_state};
     use crate::webauthn::CEREMONY_TIMEOUT;
     use crate::webauthn::http::router;
-    use crate::webauthn::login::LoginService;
     use crate::webauthn::passkeys::DEFAULT_PASSKEY_NAME;
-    use crate::webauthn::registration::RegistrationService;
     use crate::webauthn::repository::PasskeyRepository;
 
     fn test_app(pool: PgPool) -> Router {
-        router(ApiState {
-            registration: RegistrationService::new(test_webauthn(), pool.clone()),
-            login: LoginService::new(test_webauthn(), pool),
-        })
+        router(test_state(pool))
     }
 
     /// For requests that fail before any query: a lazy pool never connects,
@@ -228,6 +232,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+        let token = session_cookie(&response).expect("registration signs the account in");
         let body = body_json(response).await;
         let account_id: Uuid = serde_json::from_value(body["accountId"].clone()).unwrap();
         assert_ne!(account_id, options.registration_id);
@@ -244,12 +249,20 @@ mod tests {
         assert_eq!(account.display_name.as_ref(), "Ada");
         assert_eq!(account.r#type, AccountType::Full);
 
-        let credentials = PasskeyRepository::new(pool)
+        let credentials = PasskeyRepository::new(pool.clone())
             .list_for_account(account_id)
             .await
             .unwrap();
         assert_eq!(credentials.len(), 1);
         assert_eq!(credentials[0].name, DEFAULT_PASSKEY_NAME);
+
+        // The cookie names a live session of the new account.
+        let authenticated = SessionService::new(pool)
+            .authenticate(&token)
+            .await
+            .unwrap()
+            .expect("the cookie must carry a live session");
+        assert_eq!(authenticated.account.id, account_id);
     }
 
     /// The challenge answers exactly one request; a replayed finish finds no

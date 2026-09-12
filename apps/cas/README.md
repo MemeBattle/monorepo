@@ -10,7 +10,7 @@ Configuration is read from environment variables at startup. Every variable has 
 | ------------------ | --------------------------------------- | ------------------------------------------------------------------ |
 | `CAS_PORT`         | `3000`                                  | TCP port the server listens on.                                    |
 | `CAS_RP_ID`        | `localhost`                             | WebAuthn relying party ID.                                         |
-| `CAS_ORIGIN`       | `http://localhost:5173`                 | WebAuthn relying party origin URL.                                 |
+| `CAS_ORIGIN`       | `http://localhost:5173`                 | WebAuthn relying party origin URL. An `https` origin also marks the session cookie `Secure`. |
 | `CAS_CORS_ORIGINS` | `http://localhost:5173`                 | Comma-separated list of allowed CORS origins.                      |
 | `DATABASE_URL`     | `postgres://cas:cas@localhost:5434/cas` | Postgres connection URL. The default matches `docker-compose.yml`. |
 
