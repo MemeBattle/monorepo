@@ -2,12 +2,22 @@
 //! functions take an executor so the service can compose a transaction out of
 //! them and out of the accounts context's own functions.
 
+use time::OffsetDateTime;
 use uuid::Uuid;
 
-use super::{SESSION_LIFETIME, Session, TokenHash};
+use super::{SESSION_IDLE_TIMEOUT, SESSION_LIFETIME, SESSION_RENEWAL_WINDOW, Session, TokenHash};
+
+/// A live session as `find_live` returns it, with the one thing the service
+/// cannot see from the row alone: whether the idle clock is due for a reset,
+/// judged by the database clock like everything else about expiry.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct Live {
+    pub session: Session,
+    pub renewal_due: bool,
+}
 
 /// Inserts a session for an account. `expires_at` is measured by the
-/// database clock so every replica agrees on it.
+/// database clock so every replica agrees on it; the idle clock starts now.
 pub(super) async fn insert<'e, E>(
     executor: E,
     account_id: Uuid,
@@ -22,7 +32,7 @@ where
         Session,
         r#"INSERT INTO sessions (account_id, token_hash, expires_at)
            VALUES ($1, $2, now() + make_interval(secs => $3))
-           RETURNING id, account_id, created_at, expires_at"#,
+           RETURNING id, account_id, created_at, expires_at, last_seen_at"#,
         account_id,
         token_hash.as_ref(),
         ttl_secs,
@@ -31,24 +41,58 @@ where
     .await
 }
 
-/// The session a token names, if it exists and has not expired. An expired
-/// row is the same as no row: it is not returned, and it is not removed here
-/// either, so that housekeeping stays out of the request path.
+/// The session a token names, if it exists and neither clock has run out: it
+/// is before the absolute cap and was seen within the idle timeout. A row past
+/// either is the same as no row: it is not returned, and it is not removed
+/// here either, so that housekeeping stays out of the request path.
 pub(super) async fn find_live<'e, E>(
     executor: E,
     token_hash: &TokenHash,
-) -> Result<Option<Session>, sqlx::Error>
+) -> Result<Option<Live>, sqlx::Error>
 where
     E: sqlx::PgExecutor<'e>,
 {
-    sqlx::query_as!(
-        Session,
-        r#"SELECT id, account_id, created_at, expires_at
+    let idle_secs = SESSION_IDLE_TIMEOUT.as_secs_f64();
+    let window_secs = SESSION_RENEWAL_WINDOW.as_secs_f64();
+
+    let row = sqlx::query!(
+        r#"SELECT id, account_id, created_at, expires_at, last_seen_at,
+                  last_seen_at <= now() - make_interval(secs => $3) AS "renewal_due!"
            FROM sessions
-           WHERE token_hash = $1 AND expires_at > now()"#,
+           WHERE token_hash = $1
+             AND expires_at > now()
+             AND last_seen_at > now() - make_interval(secs => $2)"#,
         token_hash.as_ref(),
+        idle_secs,
+        window_secs,
     )
     .fetch_optional(executor)
+    .await?;
+
+    Ok(row.map(|row| Live {
+        session: Session {
+            id: row.id,
+            account_id: row.account_id,
+            created_at: row.created_at,
+            expires_at: row.expires_at,
+            last_seen_at: row.last_seen_at,
+        },
+        renewal_due: row.renewal_due,
+    }))
+}
+
+/// Resets a session's idle clock and returns the new `last_seen_at`. The
+/// absolute cap is untouched: renewal never moves `expires_at`. The service
+/// decides when to call this, from what `find_live` reported.
+pub(super) async fn renew<'e, E>(executor: E, id: Uuid) -> Result<OffsetDateTime, sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    sqlx::query_scalar!(
+        "UPDATE sessions SET last_seen_at = now() WHERE id = $1 RETURNING last_seen_at",
+        id,
+    )
+    .fetch_one(executor)
     .await
 }
 
@@ -94,6 +138,17 @@ mod tests {
             .unwrap();
     }
 
+    /// Moves a session's last use into the past by the given interval.
+    /// Unchecked query: see docs/TESTS.md.
+    async fn last_seen(pool: &PgPool, id: Uuid, ago: &str) {
+        sqlx::query("UPDATE sessions SET last_seen_at = now() - $2::interval WHERE id = $1")
+            .bind(id)
+            .bind(ago)
+            .execute(pool)
+            .await
+            .unwrap();
+    }
+
     async fn count(pool: &PgPool) -> i64 {
         // Unchecked query: see docs/TESTS.md.
         sqlx::query_scalar("SELECT count(*) FROM sessions")
@@ -110,9 +165,19 @@ mod tests {
         let inserted = insert(&pool, account_id, &hash).await.unwrap();
         let found = find_live(&pool, &hash).await.unwrap();
 
-        assert_eq!(found, Some(inserted.clone()));
+        assert_eq!(
+            found,
+            Some(Live {
+                session: inserted.clone(),
+                renewal_due: false,
+            })
+        );
         assert_eq!(inserted.account_id, account_id);
         assert!(inserted.expires_at > inserted.created_at);
+        assert_eq!(
+            inserted.last_seen_at, inserted.created_at,
+            "the idle clock starts at creation"
+        );
     }
 
     #[sqlx::test]
@@ -135,6 +200,55 @@ mod tests {
 
         assert_eq!(found, None);
         assert_eq!(count(&pool).await, 1, "cleanup is not this query's job");
+    }
+
+    /// The idle clock is the second way out: a row well before its cap is
+    /// still not live once it has been unused for the idle timeout.
+    #[sqlx::test]
+    async fn an_idle_session_is_not_found_and_not_removed(pool: PgPool) {
+        let account_id = account(&pool).await;
+        let hash = SessionToken::generate().unwrap().hash();
+        let session = insert(&pool, account_id, &hash).await.unwrap();
+        last_seen(&pool, session.id, "7 days 1 second").await;
+
+        let found = find_live(&pool, &hash).await.unwrap();
+
+        assert_eq!(found, None);
+        assert_eq!(count(&pool).await, 1, "cleanup is not this query's job");
+    }
+
+    /// Renewal is due once the last reset is a whole window in the past, and
+    /// not a moment before: a fresh session and one seen half a window ago
+    /// are both reported as not due.
+    #[sqlx::test]
+    async fn renewal_is_due_only_outside_the_window(pool: PgPool) {
+        let account_id = account(&pool).await;
+        let hash = SessionToken::generate().unwrap().hash();
+        let session = insert(&pool, account_id, &hash).await.unwrap();
+
+        last_seen(&pool, session.id, "30 minutes").await;
+        assert!(!find_live(&pool, &hash).await.unwrap().unwrap().renewal_due);
+
+        last_seen(&pool, session.id, "61 minutes").await;
+        assert!(find_live(&pool, &hash).await.unwrap().unwrap().renewal_due);
+    }
+
+    /// Renewal moves the idle clock and nothing else: the cap stays where
+    /// creation put it.
+    #[sqlx::test]
+    async fn renew_resets_the_idle_clock_and_keeps_the_cap(pool: PgPool) {
+        let account_id = account(&pool).await;
+        let hash = SessionToken::generate().unwrap().hash();
+        let session = insert(&pool, account_id, &hash).await.unwrap();
+        last_seen(&pool, session.id, "2 hours").await;
+
+        let seen = renew(&pool, session.id).await.unwrap();
+
+        let live = find_live(&pool, &hash).await.unwrap().unwrap();
+        assert_eq!(live.session.last_seen_at, seen);
+        assert!(seen > session.last_seen_at);
+        assert_eq!(live.session.expires_at, session.expires_at);
+        assert!(!live.renewal_due);
     }
 
     /// The row must give up when the cookie does: both are derived from

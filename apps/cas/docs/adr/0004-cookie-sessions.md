@@ -3,6 +3,8 @@
 ## Status
 
 Accepted (2026-09-12), with [#667](https://github.com/MemeBattle/monorepo/issues/667).
+Amended (2026-09-12) by [#697](https://github.com/MemeBattle/monorepo/issues/697):
+decision (c) gained an idle timeout with sliding renewal.
 
 ## Context
 
@@ -28,19 +30,35 @@ the table, in a backup or over the shoulder in `psql`, does not hand out live
 sessions. Lookup is by the hash, which is the unique column. The token exists
 in memory only between its generation and the response that sets the cookie.
 
-**(c) Expiry is absolute, 30 days, measured by the database clock.** The
-cookie's `Max-Age` and the row's `expires_at` are derived from the same
-constant, so the browser and the server give up together. A sliding expiry
-would cost a write on every authenticated request; it can be added when a
-product need appears. Expired rows are not returned and are not removed by
-the application: like `webauthn_ceremonies`, cleanup is a scheduled job, never
-part of the request path.
+**(c) Two clocks, both the database's: an idle timeout of 7 days with
+sliding renewal, under an absolute cap of 30 days.** The row's `expires_at`
+is fixed at creation and never moves; `last_seen_at` is reset by an
+authenticated request, and a session is live only while it is before the cap
+and was seen within the idle timeout. Renewal is not a write per request: a
+request inside the renewal window (one hour) after the last reset writes
+nothing, one outside it resets the clock and moves the account's
+`last_seen_at` with it, in one transaction, as at creation. A session's real
+idle limit is therefore between seven days and seven days plus an hour, and
+a session in constant use costs one write an hour. The cookie's `Max-Age`
+runs to the moment the session stops being honoured if nothing renews it,
+the idle timeout or the cap, whichever is first, and a renewal re-sends the
+cookie with the clock pushed out, so the browser and the server give up
+together, as before. Expired rows of either kind are not returned and are
+not removed by the application: like `webauthn_ceremonies`, cleanup is a
+scheduled job, never part of the request path.
 
-This is longer than the OWASP Session Management guidance (an idle timeout on
-top of an absolute one, and a non-persistent cookie). Whether a game SSO
-justifies it is decided in
-[#697](https://github.com/MemeBattle/monorepo/issues/697); this ADR is amended
-with the outcome.
+The first version of this decision had one absolute clock of 30 days and no
+idle timeout, on the grounds that a sliding expiry costs a write on every
+request. The OWASP Session Management guidance asks for an idle timeout on
+top of an absolute one, and the objection falls once renewal is rate limited
+by the window. Seven days is long for OWASP and short for a game: it is what
+a player who opens the game most weeks never notices, and a passkey makes
+signing in again a single touch rather than a password to remember, which is
+what makes a shorter idle limit affordable here. The cap stays at 30 days as
+the bound on how long a stolen cookie is worth anything, however active the
+thief. The cookie stays persistent (`Max-Age` rather than a session cookie):
+a game's players close the tab between rounds, and a non-persistent cookie
+would sign them out every time.
 
 **(d) The cookie is `HttpOnly`, `SameSite=Lax`, `Path=/`, host-only, and
 `Secure` when the relying party origin is https.** `HttpOnly`: script never
@@ -83,26 +101,38 @@ whether or not a row was found.
 **(h) `Authenticated` is an axum extractor.** A handler that takes one runs
 only for a request with a live session and receives the session and the
 account; the 401 happens before the handler. It lives in the sessions
-context's transport and is the one thing other contexts import from it.
+context's transport and is the one thing other contexts import from it. The
+extractor is also where renewal happens, and since an extractor cannot touch
+the response, a layer on the `/api` router carries the renewed cookie out:
+the extractor leaves it in a per-request slot, the layer sets it on the way
+back. A handler that sets the session cookie itself wins over the layer.
 
 ## Consequences
 
 - `GET /api/me` answers with the account (id, display name, type, email) and
-  the session's expiry, nothing else about the session.
+  when the session ends if left alone (the idle timeout from its last reset,
+  or the cap, whichever is first), nothing else about the session.
 - A session outlives a passkey: deleting a credential (#668) does not end the
   sessions that were opened with it. Ending them is an explicit act, and a
   "sign out everywhere" belongs with session listing, later.
 - Every authenticated request costs two reads: the session by hash, then the
   account by id. A join would save one round trip and put another context's
-  columns in this context's SQL; the round trip is the cheaper price.
+  columns in this context's SQL; the round trip is the cheaper price. A
+  request that renews the session adds one transaction with two writes, at
+  most once an hour per session.
 - The `sessions` table grows by one row per sign-in and per expired session
-  until the scheduled cleanup exists; the index on `expires_at` is there for
-  it.
+  until the scheduled cleanup exists; the indexes on `expires_at` and
+  `last_seen_at` are there for it, and it must delete rows past either
+  clock.
+- Renewal makes `last_seen_at` on `sessions` and on `accounts` move
+  together, so account activity for guest GC (M2) is as fresh as the
+  renewal window, not as fresh as the last sign-in.
 - The session id is the row's identity for the future management screen; the
   token never identifies a session anywhere but in the lookup.
 - Hardening that OWASP recommends and this change leaves out is tracked
   separately: the CSRF layer ([#696](https://github.com/MemeBattle/monorepo/issues/696),
-  done in ADR 0005), the timeout decision ([#697](https://github.com/MemeBattle/monorepo/issues/697)),
+  done in ADR 0005), the timeout decision ([#697](https://github.com/MemeBattle/monorepo/issues/697),
+  done in (c) above),
   `Cache-Control: no-store` and `Clear-Site-Data`
   ([#698](https://github.com/MemeBattle/monorepo/issues/698)), session
   lifecycle logging ([#699](https://github.com/MemeBattle/monorepo/issues/699))

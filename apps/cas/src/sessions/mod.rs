@@ -3,9 +3,10 @@
 //! A session is a row in `sessions` and a random token in an HttpOnly cookie.
 //! The row stores the SHA-256 of the token, never the token itself, so a read
 //! of the table does not hand out live sessions. Registration and login create
-//! a session; `GET /api/me` reads it; `POST /api/logout` deletes it. Expiry is
-//! absolute and enforced by the database clock. See
-//! `docs/adr/0004-cookie-sessions.md`.
+//! a session; `GET /api/me` reads it; `POST /api/logout` deletes it. A session
+//! ends when it has been idle for [`SESSION_IDLE_TIMEOUT`] or, whatever
+//! happens, [`SESSION_LIFETIME`] after it was created; both clocks are the
+//! database's. See `docs/adr/0004-cookie-sessions.md`.
 //!
 //! This module is the vocabulary: the token, its hash, the row. Issuing,
 //! resolving and revoking sessions is [`service`]; the SQL is `repository`;
@@ -26,10 +27,30 @@ use crate::accounts::Account;
 
 pub use service::SessionService;
 
-/// How long a session lives from the moment it is created. Absolute, not
-/// sliding: the cookie's `Max-Age` and the row's `expires_at` are both derived
-/// from this one number, so the browser and the server give up together.
+/// The absolute cap: how long a session may live from the moment it is
+/// created, however active it is. The row's `expires_at` is derived from it
+/// and never moves.
 pub const SESSION_LIFETIME: Duration = Duration::from_secs(30 * 24 * 60 * 60);
+
+/// The idle timeout: a session that has not been used for this long is over,
+/// even if the absolute cap is far away. The cookie's `Max-Age` is derived
+/// from it, so the browser drops the cookie when the server would stop
+/// honouring it.
+pub const SESSION_IDLE_TIMEOUT: Duration = Duration::from_secs(7 * 24 * 60 * 60);
+
+/// How often an authenticated request may reset the idle clock. A request
+/// inside this window after the last reset costs no write; one outside it
+/// renews the session and re-sends the cookie. A session's real idle limit is
+/// therefore between the timeout and the timeout plus this window, which is
+/// nothing against seven days, and the price of a session is one write per
+/// hour of use, not one per request.
+pub const SESSION_RENEWAL_WINDOW: Duration = Duration::from_secs(60 * 60);
+
+/// `std::time::Duration` for arithmetic with `OffsetDateTime`. The constants
+/// above are small enough that the conversion cannot fail.
+pub(crate) fn as_time(duration: Duration) -> time::Duration {
+    time::Duration::try_from(duration).expect("a session duration fits in time::Duration")
+}
 
 /// Bytes of entropy in a token. 256 bits: not guessable, and the same size as
 /// the hash that indexes it.
@@ -94,7 +115,30 @@ pub struct Session {
     pub id: Uuid,
     pub account_id: Uuid,
     pub created_at: OffsetDateTime,
+    /// The absolute cap, fixed at creation.
     pub expires_at: OffsetDateTime,
+    /// The last time the idle clock was reset: creation, then each renewal.
+    pub last_seen_at: OffsetDateTime,
+}
+
+impl Session {
+    /// When the session stops being honoured if nothing renews it: the idle
+    /// timeout from the last reset, or the absolute cap, whichever is first.
+    /// What `/api/me` reports and what the cookie's `Max-Age` is cut to.
+    pub fn valid_until(&self) -> OffsetDateTime {
+        (self.last_seen_at + as_time(SESSION_IDLE_TIMEOUT)).min(self.expires_at)
+    }
+}
+
+/// What [`SessionService::authenticate`] did to a session's idle clock, so
+/// the transport knows whether the browser needs a fresh cookie.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Renewal {
+    /// The last reset was inside the renewal window; nothing was written.
+    Kept,
+    /// The idle clock was reset; the cookie must be re-sent with a new
+    /// `Max-Age`.
+    Renewed,
 }
 
 /// Who a request is: the live session it presented and the account it
@@ -150,6 +194,30 @@ mod tests {
                 "{value:?} must not parse"
             );
         }
+    }
+
+    #[test]
+    fn a_session_is_valid_until_the_idle_timeout_or_the_cap() {
+        let now = OffsetDateTime::now_utc();
+        let mut session = Session {
+            id: Uuid::new_v4(),
+            account_id: Uuid::new_v4(),
+            created_at: now,
+            expires_at: now + as_time(SESSION_LIFETIME),
+            last_seen_at: now,
+        };
+
+        assert_eq!(session.valid_until(), now + as_time(SESSION_IDLE_TIMEOUT));
+
+        // Renewed one day before the cap: the cap wins.
+        session.last_seen_at = session.expires_at - time::Duration::days(1);
+        assert_eq!(session.valid_until(), session.expires_at);
+    }
+
+    #[test]
+    fn the_renewal_window_is_small_against_the_idle_timeout() {
+        assert!(SESSION_RENEWAL_WINDOW * 24 < SESSION_IDLE_TIMEOUT);
+        assert!(SESSION_IDLE_TIMEOUT < SESSION_LIFETIME);
     }
 
     #[test]
