@@ -91,6 +91,15 @@ the name as well as the flags, and the extractor, logout and the removal
 cookie all ask it: a cookie arriving under the other deployment's name is
 not this deployment's session and does not authenticate.
 
+The name is matched on the wire, byte for byte, without percent-decoding.
+A browser never decodes a cookie name (RFC 6265bis §5.6), so it holds
+`%5F%5FHost-cas_session` to no `__Host-` rule and would accept it from a
+sibling subdomain as a domain-wide cookie; a server that decoded names
+would then read it as the real one and sign the victim into whatever
+session the attacker put in it. So the extractor and logout read the
+`Cookie` header directly rather than through the decoding jar, and an
+encoded alias of the name is simply another cookie.
+
 **(e) CORS allows credentials, and therefore lists methods and headers.**
 The frontend calls the API cross-origin in development with
 `credentials: 'include'`. Browsers refuse `Access-Control-Allow-Credentials`

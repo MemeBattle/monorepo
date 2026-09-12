@@ -9,7 +9,7 @@ pub mod renewal;
 use axum::{
     Json, Router,
     extract::State,
-    http::{HeaderName, HeaderValue, StatusCode},
+    http::{HeaderMap, HeaderName, HeaderValue, StatusCode},
     routing::get,
     routing::post,
 };
@@ -100,11 +100,15 @@ async fn me(authenticated: Authenticated) -> Json<MeResponse> {
 /// same thing.
 async fn logout(
     State(state): State<ApiState>,
+    headers: HeaderMap,
     jar: CookieJar,
 ) -> Result<(CookieJar, [(HeaderName, HeaderValue); 1], StatusCode), ApiError> {
-    if let Some(token) = jar
-        .get(state.cookies.name())
-        .and_then(|cookie| SessionToken::parse(cookie.value()))
+    // The name is matched on the wire, undecoded, as the extractor does
+    // (see `CookieSettings::presented`); the jar only carries the answer.
+    if let Some(token) = state
+        .cookies
+        .presented(&headers)
+        .and_then(|value| SessionToken::parse(&value))
     {
         state.sessions.revoke(&token).await?;
     }
@@ -362,6 +366,49 @@ mod tests {
                 "a {} cookie must not authenticate where the name is {}",
                 other.name(),
                 settings.name()
+            );
+        }
+    }
+
+    /// The name on the wire is the name. A browser holds a cookie named
+    /// `%5F%5FHost-cas_session` to no `__Host-` rule, so a sibling subdomain
+    /// could toss one domain-wide with the attacker's own valid token in it;
+    /// a lookup that decoded the name would sign the victim into that
+    /// session. Neither `/me` nor logout may see the alias as the cookie.
+    #[sqlx::test]
+    async fn a_percent_encoded_alias_of_the_cookie_name_is_not_the_cookie(pool: PgPool) {
+        let (_, token) = signed_in(&pool).await;
+        let secure = CookieSettings { secure: true };
+        let development = test_cookies();
+
+        for (settings, alias) in [
+            (secure, "%5F%5FHost-cas_session"),
+            (secure, "__Host-cas%5Fsession"),
+            (development, "cas%5Fsession"),
+        ] {
+            let app = router(test_state_with_cookies(pool.clone(), settings));
+
+            let me = app
+                .clone()
+                .oneshot(get_me(Some(&cookie(alias, &token))))
+                .await
+                .unwrap();
+            assert_eq!(me.status(), StatusCode::UNAUTHORIZED, "{alias}");
+
+            let logout = app
+                .clone()
+                .oneshot(post_logout(Some(&cookie(alias, &token))))
+                .await
+                .unwrap();
+            assert_eq!(logout.status(), StatusCode::NO_CONTENT, "{alias}");
+            let still_there = app
+                .oneshot(get_me(Some(&cookie(settings.name(), &token))))
+                .await
+                .unwrap();
+            assert_eq!(
+                still_there.status(),
+                StatusCode::OK,
+                "a logout under the alias {alias} must not end the real session"
             );
         }
     }

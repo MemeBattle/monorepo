@@ -1,5 +1,6 @@
 //! The session cookie: the one place its name and attributes are decided.
 
+use axum::http::{HeaderMap, header};
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use time::OffsetDateTime;
 use webauthn_rs::prelude::Url;
@@ -60,6 +61,31 @@ impl CookieSettings {
         }
     }
 
+    /// The value the request presents under the session cookie's name, or
+    /// `None` when it presents nothing under that name. Read straight from
+    /// the `Cookie` header(s) with the name compared byte for byte, without
+    /// percent-decoding.
+    ///
+    /// The decoding jar (`axum_extra::extract::CookieJar`) is not used here
+    /// on purpose. It percent-decodes names, so `%5F%5FHost-cas_session`
+    /// would be read as `__Host-cas_session`, while a browser keeps names as
+    /// written (RFC 6265bis §5.6) and applies the `__Host-` rules only to a
+    /// name that literally starts with the prefix. A sibling subdomain could
+    /// therefore set a domain-wide cookie under the encoded spelling, which
+    /// the browser would accept and send here, and a decoding lookup would
+    /// take it for the real one: cookie tossing through the back door the
+    /// prefix is meant to close. Matching the wire name shuts it.
+    pub fn presented(&self, headers: &HeaderMap) -> Option<String> {
+        headers
+            .get_all(header::COOKIE)
+            .iter()
+            .filter_map(|value| value.to_str().ok())
+            .flat_map(Cookie::split_parse)
+            .filter_map(Result::ok)
+            .find(|cookie| cookie.name() == self.name())
+            .map(|cookie| cookie.value().to_owned())
+    }
+
     /// The cookie that carries a session: sent when it is issued and again
     /// each time it is renewed.
     ///
@@ -104,6 +130,57 @@ mod tests {
 
     fn origin(value: &str) -> Url {
         value.parse().unwrap()
+    }
+
+    fn headers(cookies: &[&str]) -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        for cookie in cookies {
+            headers.append(header::COOKIE, cookie.parse().unwrap());
+        }
+        headers
+    }
+
+    #[test]
+    fn presented_finds_the_cookie_by_its_exact_name() {
+        let settings = CookieSettings { secure: true };
+
+        assert_eq!(
+            settings.presented(&headers(&["other=1; __Host-cas_session=tok; more=2"])),
+            Some("tok".to_owned())
+        );
+        // Across several `Cookie` headers, which HTTP/2 clients send.
+        assert_eq!(
+            settings.presented(&headers(&["other=1", "__Host-cas_session=tok"])),
+            Some("tok".to_owned())
+        );
+        assert_eq!(settings.presented(&headers(&["cas_session=tok"])), None);
+        assert_eq!(settings.presented(&headers(&[])), None);
+    }
+
+    /// A percent-encoded spelling of the name is another name. A browser
+    /// never decodes it, so it would not hold it to the `__Host-` rules, and
+    /// a sibling subdomain could toss a domain cookie under it; the lookup
+    /// must not decode it either.
+    #[test]
+    fn presented_does_not_decode_an_encoded_alias_of_the_name() {
+        let secure = CookieSettings { secure: true };
+        let development = CookieSettings { secure: false };
+
+        for alias in [
+            "%5F%5FHost-cas_session=tok",
+            "__Host-cas%5Fsession=tok",
+            "%5f%5fHost-cas_session=tok",
+        ] {
+            assert_eq!(secure.presented(&headers(&[alias])), None, "{alias}");
+        }
+        assert_eq!(
+            development.presented(&headers(&["cas%5Fsession=tok"])),
+            None
+        );
+        assert_eq!(
+            development.presented(&headers(&["cas_session=tok"])),
+            Some("tok".to_owned())
+        );
     }
 
     #[test]
