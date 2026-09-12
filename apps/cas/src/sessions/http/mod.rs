@@ -6,7 +6,13 @@ pub mod cookie;
 pub mod extract;
 pub mod renewal;
 
-use axum::{Json, Router, extract::State, http::StatusCode, routing::get, routing::post};
+use axum::{
+    Json, Router,
+    extract::State,
+    http::{HeaderName, HeaderValue, StatusCode},
+    routing::get,
+    routing::post,
+};
 use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
@@ -34,6 +40,21 @@ impl From<CreateError> for ApiError {
         }
     }
 }
+
+/// `Clear-Site-Data`, which the `http` crate has no constant for.
+const CLEAR_SITE_DATA: HeaderName = HeaderName::from_static("clear-site-data");
+
+/// What logout asks the browser to throw away. The quotation marks are part
+/// of the value: the header carries a list of quoted directives.
+///
+/// `cache` is the point of the exercise: no cached answer about the account
+/// that just signed out may be replayed by the back button. `cookies` clears
+/// every cookie of the site, which is the right blast radius here — the CAS
+/// origin serves nothing but CAS, so the only cookie to lose is the session.
+/// `storage` costs nothing, because CAS stores nothing client-side, and
+/// covers whatever a frontend on this origin may leave behind later.
+const CLEAR_SITE_DATA_ON_LOGOUT: HeaderValue =
+    HeaderValue::from_static(r#""cache", "cookies", "storage""#);
 
 pub fn router(state: ApiState) -> Router {
     Router::new()
@@ -71,10 +92,15 @@ async fn me(authenticated: Authenticated) -> Json<MeResponse> {
 /// Ends the session the cookie names and clears the cookie. Idempotent and
 /// never a 401: a browser holding an expired or already revoked cookie is
 /// asking to forget it, and the answer to that is yes.
+///
+/// The removal cookie stays even though `Clear-Site-Data` asks for the
+/// cookies as well: a browser that does not implement the header — and it is
+/// not universal — has only the removal cookie to go on, and the two say the
+/// same thing.
 async fn logout(
     State(state): State<ApiState>,
     jar: CookieJar,
-) -> Result<(CookieJar, StatusCode), ApiError> {
+) -> Result<(CookieJar, [(HeaderName, HeaderValue); 1], StatusCode), ApiError> {
     if let Some(token) = jar
         .get(SESSION_COOKIE)
         .and_then(|cookie| SessionToken::parse(cookie.value()))
@@ -82,9 +108,13 @@ async fn logout(
         state.sessions.revoke(&token).await?;
     }
 
-    // `add`, not `remove`: the jar only emits a removal for a cookie the
-    // request carried, and the answer must clear the cookie either way.
-    Ok((jar.add(state.cookies.removal()), StatusCode::NO_CONTENT))
+    Ok((
+        // `add`, not `remove`: the jar only emits a removal for a cookie the
+        // request carried, and the answer must clear the cookie either way.
+        jar.add(state.cookies.removal()),
+        [(CLEAR_SITE_DATA, CLEAR_SITE_DATA_ON_LOGOUT)],
+        StatusCode::NO_CONTENT,
+    ))
 }
 
 #[cfg(test)]
@@ -242,6 +272,13 @@ mod tests {
         );
         assert!(set_cookie.contains("Max-Age=0"), "{set_cookie}");
         assert!(set_cookie.contains("Path=/"), "{set_cookie}");
+        assert_eq!(
+            response
+                .headers()
+                .get(CLEAR_SITE_DATA)
+                .expect("logout must ask the browser to drop cached data"),
+            r#""cache", "cookies", "storage""#
+        );
 
         let after = app.oneshot(get_me(Some(&cookie))).await.unwrap();
         assert_eq!(after.status(), StatusCode::UNAUTHORIZED);
@@ -262,6 +299,11 @@ mod tests {
 
             assert_eq!(response.status(), StatusCode::NO_CONTENT);
             assert!(response.headers().contains_key(header::SET_COOKIE));
+            assert_eq!(
+                response.headers().get(CLEAR_SITE_DATA),
+                Some(&CLEAR_SITE_DATA_ON_LOGOUT),
+                "an idempotent logout still clears the browser, cookie {cookie:?}"
+            );
         }
     }
 }
