@@ -286,6 +286,10 @@ mod tests {
             "Ada\u{7}",
             "\u{200b}",
             "\u{202e}adA",
+            "\u{034f}",
+            "\u{fe0f}",
+            "\u{3164}",
+            "\u{fe0f}\u{200d}\u{fe0f}",
         ] {
             let response = app
                 .clone()

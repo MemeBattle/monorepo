@@ -2,6 +2,10 @@
 //! validated. How it crosses the database boundary is the repository's
 //! business (`repository.rs`).
 
+use icu_properties::{
+    CodePointSetData,
+    props::{DefaultIgnorableCodePoint, VariationSelector},
+};
 use nutype::nutype;
 use unicode_general_category::GeneralCategory;
 use unicode_normalization::UnicodeNormalization;
@@ -82,28 +86,57 @@ fn sanitize_display_name(value: String) -> String {
     result
 }
 
-/// Whether `c` may appear in a display name at all, ignoring the placement
-/// rules for the zero width joiners.
-fn is_allowed_character(c: char) -> bool {
-    !matches!(
+fn is_variation_selector(c: char) -> bool {
+    CodePointSetData::new::<VariationSelector>().contains(c)
+}
+
+fn is_combining_mark(c: char) -> bool {
+    matches!(
         unicode_general_category::get_general_category(c),
-        GeneralCategory::Control
-            | GeneralCategory::Format
-            | GeneralCategory::LineSeparator
-            | GeneralCategory::ParagraphSeparator
-            | GeneralCategory::Surrogate
-            | GeneralCategory::PrivateUse
-            | GeneralCategory::Unassigned
-    ) || is_zero_width_joiner(c)
+        GeneralCategory::NonspacingMark
+            | GeneralCategory::SpacingMark
+            | GeneralCategory::EnclosingMark
+    )
+}
+
+/// A base for combining marks and selectors, or the right side of a joiner.
+/// Unicode properties describe characters, not font-specific glyph coverage.
+fn is_visible_base(c: char) -> bool {
+    is_allowed_character(c)
+        && c != ' '
+        && !is_combining_mark(c)
+        && !CodePointSetData::new::<DefaultIgnorableCodePoint>().contains(c)
+}
+
+/// General categories alone miss invisibles such as CGJ and Hangul fillers.
+/// Use Unicode's Default_Ignorable_Code_Point property as well, with contextual
+/// exceptions for joiners and variation selectors below.
+fn is_allowed_character(c: char) -> bool {
+    if is_zero_width_joiner(c) || is_variation_selector(c) {
+        return true;
+    }
+    // Braille Pattern Blank has no dots, but is a symbol rather than a space
+    // or default-ignorable character in Unicode.
+    c != '\u{2800}'
+        && !CodePointSetData::new::<DefaultIgnorableCodePoint>().contains(c)
+        && !matches!(
+            unicode_general_category::get_general_category(c),
+            GeneralCategory::Control
+                | GeneralCategory::Format
+                | GeneralCategory::LineSeparator
+                | GeneralCategory::ParagraphSeparator
+                | GeneralCategory::Surrogate
+                | GeneralCategory::PrivateUse
+                | GeneralCategory::Unassigned
+        )
 }
 
 /// Rejects anything invisible or direction-changing, then the empty and the
 /// over-long. Runs on the sanitised value.
 ///
-/// A joiner is only a joiner between two visible characters: at either end of
-/// the name, next to a space or next to another joiner it is a zero width
-/// character with nothing to join, which is exactly the invisible padding the
-/// rest of the rule keeps out.
+/// Marks need a preceding base, selectors must immediately follow a base, and
+/// joiners need a base on both sides. A mark or selector may precede a joiner
+/// (as in emoji and Indic text), but cannot supply the base itself.
 fn validate_display_name(value: &str) -> Result<(), DisplayNameError> {
     if value.is_empty() {
         return Err(DisplayNameError::Empty);
@@ -113,18 +146,29 @@ fn validate_display_name(value: &str) -> Result<(), DisplayNameError> {
     }
 
     let mut previous: Option<char> = None;
+    let mut has_base = false;
     let mut characters = value.chars().peekable();
     while let Some(c) = characters.next() {
         if !is_allowed_character(c) {
             return Err(DisplayNameError::DisallowedCharacter);
         }
-        if is_zero_width_joiner(c) {
-            let joins = |neighbour: Option<char>| {
-                neighbour.is_some_and(|n| n != ' ' && !is_zero_width_joiner(n))
-            };
-            if !joins(previous) || !joins(characters.peek().copied()) {
+        if c == ' ' {
+            has_base = false;
+        } else if is_variation_selector(c) {
+            if !previous.is_some_and(is_visible_base) {
                 return Err(DisplayNameError::DisallowedCharacter);
             }
+        } else if is_zero_width_joiner(c) {
+            if !has_base || !characters.peek().copied().is_some_and(is_visible_base) {
+                return Err(DisplayNameError::DisallowedCharacter);
+            }
+            has_base = false;
+        } else if is_combining_mark(c) {
+            if !has_base {
+                return Err(DisplayNameError::DisallowedCharacter);
+            }
+        } else {
+            has_base = true;
         }
         previous = Some(c);
     }
@@ -181,6 +225,8 @@ mod display_name_tests {
             "Ada 👨\u{200d}👩\u{200d}👧",
             "👍🏽 Ada",
             "1\u{fe0f}\u{20e3}",
+            "👩\u{200d}❤️\u{200d}👩",
+            "🏳\u{fe0f}\u{200d}🌈",
         ] {
             assert_eq!(name(value), Ok(value.to_owned()));
         }
@@ -255,6 +301,61 @@ mod display_name_tests {
         }
     }
 
+    #[test]
+    fn rejects_invisibles_outside_the_format_category() {
+        for invisible in [
+            '\u{034f}', '\u{115f}', '\u{1160}', '\u{17b4}', '\u{17b5}', '\u{2800}', '\u{3164}',
+            '\u{ffa0}',
+        ] {
+            for value in [
+                invisible.to_string(),
+                format!("Ada{invisible}"),
+                format!("A{invisible}B"),
+            ] {
+                assert_eq!(
+                    name(&value),
+                    Err(DisplayNameError::DisallowedCharacter),
+                    "{value:?} must be rejected"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn rejects_selectors_and_marks_without_a_base() {
+        for value in [
+            "\u{fe0f}",
+            "\u{e0100}",
+            "\u{180b}",
+            "\u{fe0f}Ada",
+            "Ada \u{fe0f}",
+            "A\u{fe0f}\u{fe0f}",
+            "\u{301}",
+            "Ada \u{301}",
+            "\u{fe0f}\u{200d}\u{fe0f}",
+            "A\u{200d}\u{fe0f}",
+            "A\u{200d}\u{301}B",
+        ] {
+            assert_eq!(
+                name(value),
+                Err(DisplayNameError::DisallowedCharacter),
+                "{value:?} must be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn keeps_marks_and_selectors_with_a_base() {
+        for value in [
+            "q\u{301}\u{302}",
+            "\u{4e00}\u{e0100}",
+            "\u{1820}\u{180b}",
+            "\u{915}\u{94d}\u{200d}\u{937}",
+        ] {
+            assert_eq!(name(value), Ok(value.to_owned()));
+        }
+    }
+
     /// A zero width joiner is only allowed where it joins two visible
     /// characters; anywhere else it is invisible padding.
     #[test]
@@ -287,6 +388,11 @@ mod display_name_tests {
     fn deserialising_validates() {
         let error = serde_json::from_str::<DisplayName>("\"\"").unwrap_err();
         assert!(error.to_string().contains("must not be empty"));
+
+        for value in ["\u{034f}", "\u{fe0f}", "\u{3164}"] {
+            let json = serde_json::to_string(value).unwrap();
+            assert!(serde_json::from_str::<DisplayName>(&json).is_err());
+        }
 
         let ok: DisplayName = serde_json::from_str("\"  Ada  \"").unwrap();
         assert_eq!(ok.as_ref(), "Ada");

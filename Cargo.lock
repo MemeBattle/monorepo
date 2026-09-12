@@ -308,6 +308,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "dotenvy",
+ "icu_properties",
  "miette",
  "nutype",
  "serde",

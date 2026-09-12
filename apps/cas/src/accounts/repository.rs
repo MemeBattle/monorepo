@@ -182,21 +182,24 @@ mod tests {
     /// such a row fails to decode instead of reaching a UI.
     #[sqlx::test]
     async fn get_fails_to_decode_an_invalid_display_name(pool: PgPool) {
-        let id = Uuid::new_v4();
-        // Unchecked query: see docs/TESTS.md.
-        sqlx::query("INSERT INTO accounts (id, display_name, type) VALUES ($1, $2, 'full')")
-            .bind(id)
-            .bind("\u{202e}adA")
-            .execute(&pool)
-            .await
-            .unwrap();
+        let repository = AccountRepository::new(pool.clone());
+        for invalid_name in ["\u{202e}adA", "\u{034f}", "\u{fe0f}", "\u{3164}"] {
+            let id = Uuid::new_v4();
+            // Unchecked query: see docs/TESTS.md.
+            sqlx::query("INSERT INTO accounts (id, display_name, type) VALUES ($1, $2, 'full')")
+                .bind(id)
+                .bind(invalid_name)
+                .execute(&pool)
+                .await
+                .unwrap();
 
-        let error = AccountRepository::new(pool).get(id).await.unwrap_err();
+            let error = repository.get(id).await.unwrap_err();
 
-        assert!(
-            matches!(error, sqlx::Error::ColumnDecode { .. }),
-            "expected a column decode error, got {error:?}"
-        );
+            assert!(
+                matches!(error, sqlx::Error::ColumnDecode { .. }),
+                "expected a column decode error for {invalid_name:?}, got {error:?}"
+            );
+        }
     }
 
     /// v1 has no username: two accounts may share a display name.
