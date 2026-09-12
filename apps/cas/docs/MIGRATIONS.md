@@ -36,6 +36,18 @@ The app never applies migrations, but dev builds check in the background on
 startup and log a warning listing pending migrations. A release build skips the
 check entirely; an unreachable DB only logs an info line.
 
+One case needs sqlx-cli instead: a branch that adds a table *and* the first
+queries against it. `cas-migrate` shares the crate with those queries, and
+with `DATABASE_URL` set the query macros check them against the database at
+compile time — before the migration that creates the table has run. Apply the
+migration without compiling the crate, then refresh the cache:
+
+```
+cd apps/cas
+sqlx migrate run
+cargo sqlx prepare
+```
+
 ## Immutability
 
 An applied migration is recorded in `_sqlx_migrations` with a checksum, and

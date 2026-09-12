@@ -8,7 +8,7 @@ mod health;
 
 use axum::{
     Router,
-    http::HeaderValue,
+    http::{HeaderValue, Method, header},
     response::{IntoResponse, Response},
 };
 use sqlx::postgres::PgPoolOptions;
@@ -16,13 +16,16 @@ use thiserror::Error;
 use tower::ServiceBuilder;
 use tower_http::{
     catch_panic::CatchPanicLayer,
-    cors::{AllowOrigin, Any, CorsLayer},
+    cors::{AllowOrigin, CorsLayer},
     trace::{self, TraceLayer},
 };
 use tracing::Level;
 
 use crate::config::Config;
 use crate::http::error::ApiError;
+use crate::sessions::SessionService;
+use crate::sessions::http as sessions_http;
+use crate::sessions::http::CookieSettings;
 use crate::webauthn::build_webauthn;
 use crate::webauthn::http as webauthn_http;
 use crate::webauthn::login::LoginService;
@@ -46,6 +49,8 @@ pub enum AppError {
 pub struct ApiState {
     pub registration: RegistrationService,
     pub login: LoginService,
+    pub sessions: SessionService,
+    pub cookies: CookieSettings,
 }
 
 pub fn app(config: Config) -> Result<Router, AppError> {
@@ -61,11 +66,14 @@ pub fn app(config: Config) -> Result<Router, AppError> {
     let api_state = ApiState {
         registration: RegistrationService::new(webauthn.clone(), pool.clone()),
         login: LoginService::new(webauthn, pool.clone()),
+        sessions: SessionService::new(pool.clone()),
+        cookies: CookieSettings::for_origin(&config.origin),
     };
 
     let router = Router::new()
         .merge(health::router(pool))
-        .nest("/api/webauthn", webauthn_http::router(api_state));
+        .nest("/api/webauthn", webauthn_http::router(api_state.clone()))
+        .nest("/api", sessions_http::router(api_state));
 
     Ok(with_middleware(router, config.cors_origins))
 }
@@ -75,11 +83,22 @@ pub fn app(config: Config) -> Result<Router, AppError> {
 ///
 /// `CatchPanicLayer` sits innermost so a panic response still passes through
 /// the CORS and trace layers on the way out.
+///
+/// The session cookie travels cross-origin from the frontend, which needs
+/// `Access-Control-Allow-Credentials`; browsers refuse that next to a
+/// wildcard, so methods and headers are listed rather than `Any`.
 fn with_middleware(router: Router, cors_origins: Vec<HeaderValue>) -> Router {
     let cors_layer = CorsLayer::new()
         .allow_origin(AllowOrigin::list(cors_origins))
-        .allow_methods(Any)
-        .allow_headers(Any);
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::PATCH,
+            Method::DELETE,
+        ])
+        .allow_headers([header::CONTENT_TYPE])
+        .allow_credentials(true);
 
     router.layer(
         ServiceBuilder::new()
@@ -154,6 +173,46 @@ mod tests {
                 .headers()
                 .contains_key(header::ACCESS_CONTROL_ALLOW_METHODS)
         );
+        assert_eq!(
+            response
+                .headers()
+                .get(header::ACCESS_CONTROL_ALLOW_CREDENTIALS)
+                .expect("the session cookie needs credentials to be allowed"),
+            "true"
+        );
+    }
+
+    /// The sessions router is nested at `/api` and the webauthn one inside
+    /// that prefix; a request must reach the right one. Both requests fail
+    /// before any query, so no database is needed.
+    #[tokio::test]
+    async fn both_contexts_are_reachable_under_the_api_prefix() {
+        let app = app(test_config()).unwrap();
+
+        let me = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/me")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(me.status(), StatusCode::UNAUTHORIZED);
+
+        let login = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/webauthn/verify-login")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(r#"{"loginId":"not-a-uuid","response":{}}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(login.status(), StatusCode::UNPROCESSABLE_ENTITY);
     }
 
     #[tokio::test]

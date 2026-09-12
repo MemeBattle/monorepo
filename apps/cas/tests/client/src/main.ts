@@ -18,6 +18,12 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 
     <br />
 
+    <button id="me">Who am I?</button>
+
+    <button id="logout">Sign out</button>
+
+    <br />
+
     <div id="success"></div>
     <div id="error"></div>
   </div>
@@ -25,13 +31,46 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 
 const elemRegister = document.getElementById('register')
 const elemLogin = document.getElementById('login')
+const elemMe = document.getElementById('me')
+const elemLogout = document.getElementById('logout')
 const elemDisplayName = document.getElementById('displayName') as HTMLInputElement | null
 const elemSuccess = document.getElementById('success')
 const elemError = document.getElementById('error')
 
-if (!elemRegister || !elemLogin || !elemDisplayName || !elemSuccess || !elemError) {
+if (!elemRegister || !elemLogin || !elemMe || !elemLogout || !elemDisplayName || !elemSuccess || !elemError) {
   throw new Error('Register form not found')
 }
+
+// The session lives in an HttpOnly cookie set by the API's origin; a
+// cross-origin fetch only sends and accepts it with credentials included.
+elemMe.addEventListener('click', async () => {
+  elemSuccess.innerHTML = ''
+  elemError.innerHTML = ''
+
+  const response = await fetch(`${API_URL}/api/me`, { credentials: 'include' })
+  const json = await response.json()
+
+  if (response.ok) {
+    elemSuccess.innerHTML = `Signed in as ${json.displayName} (${json.accountType}), account ${json.accountId}, session until ${json.sessionExpiresAt}`
+  } else if (json?.error?.code === 'unauthenticated') {
+    elemError.innerText = 'Not signed in.'
+  } else {
+    elemError.innerHTML = `Oh no, something went wrong! Response: <pre>${JSON.stringify(json)}</pre>`
+  }
+})
+
+elemLogout.addEventListener('click', async () => {
+  elemSuccess.innerHTML = ''
+  elemError.innerHTML = ''
+
+  const response = await fetch(`${API_URL}/api/logout`, { method: 'POST', credentials: 'include' })
+
+  if (response.ok) {
+    elemSuccess.innerText = 'Signed out.'
+  } else {
+    elemError.innerHTML = `Oh no, something went wrong! Response: <pre>${await response.text()}</pre>`
+  }
+})
 
 // Sign-in asks for nothing: the browser lists the passkeys it holds for this
 // relying party and the chosen one names the account.
@@ -60,8 +99,11 @@ elemLogin.addEventListener('click', async () => {
     throw error
   }
 
+  // A finished login sets the session cookie; the browser only keeps it
+  // from a cross-origin response when credentials are included.
   const verificationResp = await fetch(`${API_URL}/api/webauthn/verify-login`, {
     method: 'POST',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
     },
@@ -123,8 +165,11 @@ elemRegister.addEventListener('click', async () => {
 
   // POST the response to the endpoint that calls
   // @simplewebauthn/server -> verifyRegistrationResponse()
+  // A finished registration sets the session cookie; the browser only keeps
+  // it from a cross-origin response when credentials are included.
   const verificationResp = await fetch(`${API_URL}/api/webauthn/verify-registration`, {
     method: 'POST',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
     },

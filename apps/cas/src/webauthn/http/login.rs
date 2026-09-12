@@ -2,6 +2,7 @@
 //! may answer, and verifying the browser's assertion.
 
 use axum::{Json, extract::State};
+use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use webauthn_rs::prelude::{CredentialID, PublicKeyCredential, RequestChallengeResponse};
@@ -75,16 +76,23 @@ pub(super) async fn get_login_options(
     }))
 }
 
+/// A finished login signs the account in: the response sets the session
+/// cookie alongside the body.
 pub(super) async fn verify_login(
     State(state): State<ApiState>,
+    jar: CookieJar,
     AppJson(data): AppJson<VerifyLoginData>,
-) -> Result<Json<VerifyLoginResponse>, ApiError> {
+) -> Result<(CookieJar, Json<VerifyLoginResponse>), ApiError> {
     let logged_in = state.login.finish(data.login_id, &data.response).await?;
+    let issued = state.sessions.create(logged_in.account.id).await?;
 
-    Ok(Json(VerifyLoginResponse {
-        account_id: logged_in.account.id,
-        credential_id: logged_in.credential.passkey.cred_id().clone(),
-    }))
+    Ok((
+        jar.add(state.cookies.session(&issued.token)),
+        Json(VerifyLoginResponse {
+            account_id: logged_in.account.id,
+            credential_id: logged_in.credential.passkey.cred_id().clone(),
+        }),
+    ))
 }
 
 #[cfg(test)]
@@ -99,22 +107,19 @@ mod tests {
     use sqlx::{PgPool, postgres::PgPoolOptions};
     use tower::ServiceExt;
 
+    use crate::sessions::SessionService;
     use crate::testing::{
-        ResidentSoftPasskey, register_soft_passkey, soft_passkey_assertion, test_origin,
-        test_webauthn,
+        ResidentSoftPasskey, register_soft_passkey, session_cookie, soft_passkey_assertion,
+        test_origin, test_state, test_webauthn,
     };
     use crate::webauthn::CEREMONY_TIMEOUT;
     use crate::webauthn::http::router;
-    use crate::webauthn::login::LoginService;
-    use crate::webauthn::registration::{RegistrationService, start_discoverable_registration};
+    use crate::webauthn::registration::start_discoverable_registration;
     use crate::webauthn::repository::PasskeyRepository;
     use webauthn_authenticator_rs::WebauthnAuthenticator;
 
     fn test_app(pool: PgPool) -> Router {
-        router(ApiState {
-            registration: RegistrationService::new(test_webauthn(), pool.clone()),
-            login: LoginService::new(test_webauthn(), pool),
-        })
+        router(test_state(pool))
     }
 
     /// For requests that fail before any query: a lazy pool never connects,
@@ -200,6 +205,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+        let token = session_cookie(&response).expect("login signs the account in");
         let body = body_json(response).await;
         let account_id: Uuid = serde_json::from_value(body["accountId"].clone()).unwrap();
         assert_eq!(account_id, registered.account.id);
@@ -209,11 +215,19 @@ mod tests {
         // The stored credential stays server-side.
         assert!(body.get("credential").is_none());
 
-        let credentials = PasskeyRepository::new(pool)
+        let credentials = PasskeyRepository::new(pool.clone())
             .list_for_account(account_id)
             .await
             .unwrap();
         assert!(credentials[0].last_used_at.is_some());
+
+        // The cookie names a live session of the signed-in account.
+        let authenticated = SessionService::new(pool)
+            .authenticate(&token)
+            .await
+            .unwrap()
+            .expect("the cookie must carry a live session");
+        assert_eq!(authenticated.account.id, account_id);
     }
 
     /// The wire shape of a discoverable challenge: nothing names the user or

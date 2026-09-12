@@ -13,13 +13,15 @@ use uuid::Uuid;
 
 pub use display_name::{DisplayName, DisplayNameError, MAX_DISPLAY_NAME_LENGTH};
 pub use repository::AccountRepository;
-pub(crate) use repository::{get, insert};
+pub(crate) use repository::{get, insert, touch_last_seen};
 
 /// Whether an account has credentials of its own.
 ///
-/// Maps to the Postgres `account_type` enum.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+/// Maps to the Postgres `account_type` enum; on the wire it is the same
+/// lowercase word.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type, serde::Serialize, serde::Deserialize)]
 #[sqlx(type_name = "account_type", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
 pub enum AccountType {
     /// Temporary identity created without any user interaction.
     Guest,

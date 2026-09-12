@@ -95,6 +95,19 @@ where
     .await
 }
 
+/// Marks an account as active now. Session creation calls it inside its own
+/// transaction; guest GC will read what it writes.
+pub(crate) async fn touch_last_seen<'e, E>(executor: E, id: Uuid) -> Result<(), sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    sqlx::query!("UPDATE accounts SET last_seen_at = now() WHERE id = $1", id)
+        .execute(executor)
+        .await?;
+
+    Ok(())
+}
+
 /// Data access for `accounts`.
 #[derive(Debug, Clone)]
 pub struct AccountRepository {
