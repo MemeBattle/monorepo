@@ -14,10 +14,12 @@ use axum::{
 };
 use sqlx::postgres::PgPoolOptions;
 use thiserror::Error;
+use tower::Layer;
 use tower::ServiceBuilder;
 use tower_http::{
     catch_panic::CatchPanicLayer,
     cors::{AllowOrigin, CorsLayer},
+    normalize_path::{NormalizePath, NormalizePathLayer},
     set_header::SetResponseHeaderLayer,
     trace::{self, TraceLayer},
 };
@@ -56,7 +58,16 @@ pub struct ApiState {
     pub cookies: CookieSettings,
 }
 
-pub fn app(config: Config) -> Result<Router, AppError> {
+/// The whole service: the routers behind their middleware, with trailing
+/// slashes trimmed before routing. `NormalizePath` wraps the `Router` from
+/// the outside rather than through `Router::layer`, because routing has
+/// already happened by the time a `Router::layer` middleware runs; from the
+/// outside, `/api/` becomes `/api` and lands on the `/api` router's own
+/// fallback, behind its layers, instead of falling through to the outer
+/// router (a nested router's catch-all does not match an empty rest, so the
+/// slash-terminated prefix alone escaped it). `/api/me/` is `/api/me`, and
+/// nothing served here gives a trailing slash a meaning of its own.
+pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
     // Lazy pool: connections open on first use, so startup succeeds even when
     // the DB is down and `/health` reports the actual connectivity.
     let pool = PgPoolOptions::new()
@@ -78,7 +89,8 @@ pub fn app(config: Config) -> Result<Router, AppError> {
         api_router(api_state, AllowedOrigins::new(config.cors_origins.clone())),
     );
 
-    Ok(with_middleware(router, config.cors_origins))
+    Ok(NormalizePathLayer::trim_trailing_slash()
+        .layer(with_middleware(router, config.cors_origins)))
 }
 
 /// Everything under `/api`: the contexts' routers, re-sending the session
@@ -538,6 +550,45 @@ mod tests {
         }
     }
 
+    /// A trailing slash is trimmed before routing: `/api/` is the `/api`
+    /// router's own 404 behind its layers, not the outer router's, and
+    /// `/api/me/` reaches `/api/me`. Without the normalization, `/api/` alone
+    /// escaped the nested router, since its catch-all does not match an
+    /// empty rest.
+    #[tokio::test]
+    async fn a_trailing_slash_names_the_same_route() {
+        let app = app(test_config()).unwrap();
+
+        for uri in ["/api", "/api/"] {
+            let response = app
+                .clone()
+                .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+                .await
+                .unwrap();
+
+            assert_eq!(response.status(), StatusCode::NOT_FOUND, "{uri}");
+            assert_eq!(cache_control(&response), Some("no-store"), "{uri}");
+            let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+            let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+            assert_eq!(body["error"]["code"], "not_found", "{uri}");
+        }
+
+        let me = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/me/")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            me.status(),
+            StatusCode::UNAUTHORIZED,
+            "the route itself, not a 404"
+        );
+    }
+
     /// What the fallback is really for: a cross-site probe of a path that
     /// does not exist is turned away by the CSRF line as a registered route
     /// would be. Without a fallback of its own the `/api` router would hand
@@ -546,7 +597,7 @@ mod tests {
     async fn a_cross_site_probe_of_an_unknown_api_path_is_forbidden() {
         let app = app(test_config()).unwrap();
 
-        for uri in ["/api/nowhere", "/api/webauthn/nowhere"] {
+        for uri in ["/api/", "/api/nowhere", "/api/webauthn/nowhere"] {
             let response = app
                 .clone()
                 .oneshot(

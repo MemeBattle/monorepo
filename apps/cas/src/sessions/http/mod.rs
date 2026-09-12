@@ -48,13 +48,15 @@ const CLEAR_SITE_DATA: HeaderName = HeaderName::from_static("clear-site-data");
 /// of the value: the header carries a list of quoted directives.
 ///
 /// `cache` is the point of the exercise: no cached answer about the account
-/// that just signed out may be replayed by the back button. `cookies` clears
-/// every cookie of the site, which is the right blast radius here — the CAS
-/// origin serves nothing but CAS, so the only cookie to lose is the session.
-/// `storage` costs nothing, because CAS stores nothing client-side, and
-/// covers whatever a frontend on this origin may leave behind later.
-const CLEAR_SITE_DATA_ON_LOGOUT: HeaderValue =
-    HeaderValue::from_static(r#""cache", "cookies", "storage""#);
+/// that just signed out may be replayed by the back button. `storage` costs
+/// nothing, because CAS stores nothing client-side, and covers whatever a
+/// frontend on this origin may leave behind later. Both are scoped to this
+/// origin. `cookies` is deliberately absent: the specification clears cookies
+/// for the whole registrable domain, every sibling subdomain included, so a
+/// CAS logout would sign the browser out of every other application on the
+/// site and drop their preferences with it. The session cookie is removed
+/// explicitly instead, by the removal cookie next to this header.
+const CLEAR_SITE_DATA_ON_LOGOUT: HeaderValue = HeaderValue::from_static(r#""cache", "storage""#);
 
 pub fn router(state: ApiState) -> Router {
     Router::new()
@@ -277,7 +279,8 @@ mod tests {
                 .headers()
                 .get(CLEAR_SITE_DATA)
                 .expect("logout must ask the browser to drop cached data"),
-            r#""cache", "cookies", "storage""#
+            r#""cache", "storage""#,
+            "cache and storage are origin-scoped; cookies would clear the whole site"
         );
 
         let after = app.oneshot(get_me(Some(&cookie))).await.unwrap();
