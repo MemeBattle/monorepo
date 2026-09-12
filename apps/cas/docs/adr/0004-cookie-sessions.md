@@ -7,6 +7,8 @@ Amended (2026-09-12) by [#697](https://github.com/MemeBattle/monorepo/issues/697
 decision (c) gained an idle timeout with sliding renewal.
 Amended (2026-09-12) by [#699](https://github.com/MemeBattle/monorepo/issues/699):
 decision (j) says what the session lifecycle logs.
+Amended (2026-09-12) by [#700](https://github.com/MemeBattle/monorepo/issues/700):
+decision (d) gained the `__Host-` name prefix.
 
 ## Context
 
@@ -67,12 +69,36 @@ a game's players close the tab between rounds, and a non-persistent cookie
 would sign them out every time.
 
 **(d) The cookie is `HttpOnly`, `SameSite=Lax`, `Path=/`, host-only, and
-`Secure` when the relying party origin is https.** `HttpOnly`: script never
+`Secure` when the relying party origin is https; its name carries the
+`__Host-` prefix wherever `Secure` allows it.** `HttpOnly`: script never
 reads it. `Lax` rather than `Strict`: the future `/authorize` redirect is a
 top-level navigation from another site and must carry the cookie; `Lax` still
 withholds it from cross-site POSTs, which is the CSRF line. `Secure` follows
 the scheme of `CAS_ORIGIN` because Safari refuses a `Secure` cookie over plain
 http even from localhost, and the development origin is plain http.
+
+The name is `__Host-cas_session` on a `Secure` deployment and `cas_session`
+otherwise, because the prefix is a promise the browser keeps for us rather
+than a label: it stores a cookie under such a name only when the cookie is
+`Secure`, carries no `Domain` and has `Path=/`, which is how this decision
+sets it anyway, and it holds every other writer of that name to the same
+rule. That is what closes cookie tossing — a compromised sibling subdomain
+can set a cookie for the parent domain, but not one under this name. The
+prefix rides on `Secure`, so it cannot be unconditional: the development
+origin has no `Secure` to offer, and a browser would drop its `__Host-`
+cookie outright, leaving no session at all. `CookieSettings` therefore owns
+the name as well as the flags, and the extractor, logout and the removal
+cookie all ask it: a cookie arriving under the other deployment's name is
+not this deployment's session and does not authenticate.
+
+The name is matched on the wire, byte for byte, without percent-decoding.
+A browser never decodes a cookie name (RFC 6265bis §5.6), so it holds
+`%5F%5FHost-cas_session` to no `__Host-` rule and would accept it from a
+sibling subdomain as a domain-wide cookie; a server that decoded names
+would then read it as the real one and sign the victim into whatever
+session the attacker put in it. So the extractor and logout read the
+`Cookie` header directly rather than through the decoding jar, and an
+encoded alias of the name is simply another cookie.
 
 **(e) CORS allows credentials, and therefore lists methods and headers.**
 The frontend calls the API cross-origin in development with
@@ -194,4 +220,5 @@ rather than remembered.
   above), session lifecycle logging
   ([#699](https://github.com/MemeBattle/monorepo/issues/699), done in (j)
   above) and the `__Host-` cookie prefix
-  ([#700](https://github.com/MemeBattle/monorepo/issues/700)).
+  ([#700](https://github.com/MemeBattle/monorepo/issues/700), done in (d)
+  above).

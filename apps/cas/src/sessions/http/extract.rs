@@ -14,12 +14,10 @@
 
 use axum::extract::{FromRef, FromRequestParts};
 use axum::http::request::Parts;
-use axum_extra::extract::CookieJar;
 
 use crate::http::ApiState;
 use crate::http::error::ApiError;
 use crate::http::extract::original_path;
-use crate::sessions::http::cookie::SESSION_COOKIE;
 use crate::sessions::http::renewal::{self, RenewalSlot};
 use crate::sessions::{Authenticated, Renewal, SessionToken};
 
@@ -40,16 +38,12 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let state = ApiState::from_ref(state);
-        // Reading the cookie header cannot fail; a missing or unparsable
-        // header is an empty jar.
-        let jar = CookieJar::from_request_parts(parts, &state)
-            .await
-            .unwrap_or_default();
 
         // No cookie is the ordinary state of a browser that has not signed
         // in, and of every request to a protected route from one: nothing
-        // happened, so nothing is logged.
-        let Some(cookie) = jar.get(SESSION_COOKIE) else {
+        // happened, so nothing is logged. The name is matched on the wire,
+        // undecoded (see `CookieSettings::presented`).
+        let Some(value) = state.cookies.presented(&parts.headers) else {
             return Err(unauthenticated());
         };
 
@@ -57,7 +51,7 @@ where
         // session — a truncated cookie, another service's cookie under the
         // same name — and says nothing about this service's sessions, so it
         // is only worth a `debug`.
-        let Some(token) = SessionToken::parse(cookie.value()) else {
+        let Some(token) = SessionToken::parse(&value) else {
             tracing::debug!(
                 path = original_path(&parts.extensions, &parts.uri),
                 "session cookie is not a well-formed token"
@@ -97,7 +91,7 @@ mod tests {
 
     use crate::accounts::{AccountRepository, NewAccount};
     use crate::sessions::{SessionOrigin, SessionService};
-    use crate::testing::{capture_tracing, display_name, test_state};
+    use crate::testing::{capture_tracing, display_name, test_cookies, test_state};
 
     async fn whoami(authenticated: Authenticated) -> String {
         authenticated.account.id.to_string()
@@ -140,7 +134,7 @@ mod tests {
             .await
             .unwrap();
         service.revoke(&issued.token).await.unwrap();
-        let cookie = format!("{SESSION_COOKIE}={}", issued.token.expose());
+        let cookie = format!("{}={}", test_cookies().name(), issued.token.expose());
 
         let response = app(pool).oneshot(request(Some(&cookie))).await.unwrap();
 
@@ -192,7 +186,7 @@ mod tests {
         for value in values {
             let response = app
                 .clone()
-                .oneshot(request(Some(&format!("{SESSION_COOKIE}={value}"))))
+                .oneshot(request(Some(&format!("{}={value}", test_cookies().name()))))
                 .await
                 .unwrap();
 

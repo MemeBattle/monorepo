@@ -142,7 +142,7 @@ mod tests {
 
     use crate::accounts::{AccountRepository, AccountType};
     use crate::sessions::SessionService;
-    use crate::testing::{session_cookie, soft_passkey_registration, test_state};
+    use crate::testing::{session_cookie, soft_passkey_registration, test_cookies, test_state};
     use crate::webauthn::CEREMONY_TIMEOUT;
     use crate::webauthn::http::router;
     use crate::webauthn::passkeys::DEFAULT_PASSKEY_NAME;
@@ -236,7 +236,8 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
-        let token = session_cookie(&response).expect("registration signs the account in");
+        let token = session_cookie(&response, test_cookies().name())
+            .expect("registration signs the account in");
         let body = body_json(response).await;
         let account_id: Uuid = serde_json::from_value(body["accountId"].clone()).unwrap();
         assert_ne!(account_id, options.registration_id);

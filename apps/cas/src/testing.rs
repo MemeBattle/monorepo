@@ -39,21 +39,36 @@ use crate::webauthn::registration::{
 /// The API state the handler tests run against: every service on the given
 /// pool, cookies as the development origin would have them.
 pub fn test_state(pool: PgPool) -> ApiState {
+    test_state_with_cookies(pool, test_cookies())
+}
+
+/// The same state with the cookie settings of another deployment, for a test
+/// that has to see what an https origin puts on the wire.
+pub fn test_state_with_cookies(pool: PgPool, cookies: CookieSettings) -> ApiState {
     ApiState {
         registration: RegistrationService::new(test_webauthn(), pool.clone()),
         login: LoginService::new(test_webauthn(), pool.clone()),
         passkeys: PasskeyManagement::new(pool.clone()),
         sessions: SessionService::new(pool),
-        cookies: CookieSettings::for_origin(&test_origin()),
+        cookies,
     }
 }
 
+/// The cookie settings `test_state` runs with. The test origin is plain
+/// http, so these are the development ones: no `Secure`, and therefore the
+/// unprefixed cookie name.
+pub fn test_cookies() -> CookieSettings {
+    CookieSettings::for_origin(&test_origin())
+}
+
 /// The session cookie a `Set-Cookie` header carries, parsed back into the
-/// token, so a test can check what the browser was given and use it.
-pub fn session_cookie(response: &axum::response::Response) -> Option<SessionToken> {
+/// token, so a test can check what the browser was given and use it. The
+/// name comes from the settings the response was produced with: a cookie
+/// under any other name is not this deployment's session.
+pub fn session_cookie(response: &axum::response::Response, name: &str) -> Option<SessionToken> {
     let header = response.headers().get(axum::http::header::SET_COOKIE)?;
     let cookie = axum_extra::extract::cookie::Cookie::parse(header.to_str().ok()?).ok()?;
-    (cookie.name() == crate::sessions::http::cookie::SESSION_COOKIE)
+    (cookie.name() == name)
         .then(|| SessionToken::parse(cookie.value()))
         .flatten()
 }
