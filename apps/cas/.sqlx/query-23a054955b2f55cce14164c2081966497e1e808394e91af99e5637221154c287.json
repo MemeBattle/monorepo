@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE sessions SET last_seen_at = now() WHERE id = $1 RETURNING last_seen_at",
+  "query": "UPDATE sessions SET last_seen_at = now()\n           WHERE id = $1 AND last_seen_at <= now() - make_interval(secs => $2)\n           RETURNING last_seen_at",
   "describe": {
     "columns": [
       {
@@ -17,12 +17,13 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Uuid",
+        "Float8"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "c935d10d0dc39d07738550cb5e418a8a71ce2b0a5b9bb4bd2eaf24bff3bd5831"
+  "hash": "23a054955b2f55cce14164c2081966497e1e808394e91af99e5637221154c287"
 }

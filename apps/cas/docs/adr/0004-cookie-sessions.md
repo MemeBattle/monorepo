@@ -37,9 +37,13 @@ authenticated request, and a session is live only while it is before the cap
 and was seen within the idle timeout. Renewal is not a write per request: a
 request inside the renewal window (one hour) after the last reset writes
 nothing, one outside it resets the clock and moves the account's
-`last_seen_at` with it, in one transaction, as at creation. A session's real
-idle limit is therefore between seven days and seven days plus an hour, and
-a session in constant use costs one write an hour. The cookie's `Max-Age`
+`last_seen_at` with it, in one transaction, as at creation. The clock lags
+the last request by up to an hour, so measured from that request a session
+ends between seven days less an hour and seven days, and a session in
+constant use costs one write an hour. The write checks the window again
+itself: two requests that both read the clock as due renew it once, the
+second finding nothing to do, and a request whose session logout removed in
+between is unauthenticated, not an error. The cookie's `Max-Age`
 runs to the moment the session stops being honoured if nothing renews it,
 the idle timeout or the cap, whichever is first, and a renewal re-sends the
 cookie with the clock pushed out, so the browser and the server give up

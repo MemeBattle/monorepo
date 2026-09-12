@@ -68,24 +68,44 @@ impl SessionService {
     /// is written, so a busy session costs one write per window, not one per
     /// request. The caller learns which it was and re-sends the cookie on
     /// [`Renewal::Renewed`].
+    ///
+    /// The read that says renewal is due and the write that does it are not
+    /// one step, so the write checks the window again and may find nothing to
+    /// do: another request renewed the session a moment ago, or logout
+    /// removed it. Either way this request is treated as one that arrived a
+    /// moment later: it reads the session again and authenticates with what
+    /// it finds, or is unauthenticated if nothing is there.
     pub async fn authenticate(
         &self,
         token: &SessionToken,
     ) -> Result<Option<(Authenticated, Renewal)>, sqlx::Error> {
-        let Some(live) = repository::find_live(&self.pool, &token.hash()).await? else {
+        let hash = token.hash();
+        let Some(live) = repository::find_live(&self.pool, &hash).await? else {
             return Ok(None);
         };
         let mut session = live.session;
 
-        let renewal = if live.renewal_due {
+        let mut renewal = Renewal::Kept;
+        if live.renewal_due {
             let mut tx = self.pool.begin().await?;
-            session.last_seen_at = repository::renew(&mut *tx, session.id).await?;
-            accounts::touch_last_seen(&mut *tx, session.account_id).await?;
-            tx.commit().await?;
-            Renewal::Renewed
-        } else {
-            Renewal::Kept
-        };
+            match repository::renew(&mut *tx, session.id).await? {
+                Some(last_seen_at) => {
+                    accounts::touch_last_seen(&mut *tx, session.account_id).await?;
+                    tx.commit().await?;
+                    session.last_seen_at = last_seen_at;
+                    renewal = Renewal::Renewed;
+                }
+                None => {
+                    // Nothing was written; dropping the transaction rolls it
+                    // back. The session as read is stale by one race.
+                    drop(tx);
+                    let Some(again) = repository::find_live(&self.pool, &hash).await? else {
+                        return Ok(None);
+                    };
+                    session = again.session;
+                }
+            }
+        }
 
         // The cascade removes sessions with their account, so a missing
         // account here is a race with that delete, and the answer is the same
@@ -192,6 +212,77 @@ mod tests {
         let (again, renewal) = service.authenticate(&issued.token).await.unwrap().unwrap();
         assert_eq!(renewal, Renewal::Kept);
         assert_eq!(again.session, renewed.session);
+    }
+
+    /// Two requests arrive at once with the clock due. Each is held at its
+    /// renewal write by a row lock taken here, so that both have read the
+    /// session as due before either writes; on release, exactly one renews,
+    /// the other finds the window already reset and keeps the fresh state.
+    #[sqlx::test]
+    async fn concurrent_requests_renew_once(pool: PgPool) {
+        let account = account(&pool).await;
+        let service = SessionService::new(pool.clone());
+        let issued = service.create(account.id).await.unwrap();
+        last_seen(&pool, issued.session.id, "2 hours").await;
+
+        let mut lock = pool.begin().await.unwrap();
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("SELECT id FROM sessions WHERE id = $1 FOR UPDATE")
+            .bind(issued.session.id)
+            .execute(&mut *lock)
+            .await
+            .unwrap();
+        let requests: Vec<_> = (0..2)
+            .map(|_| {
+                let service = service.clone();
+                let token = issued.token.clone();
+                tokio::spawn(async move { service.authenticate(&token).await })
+            })
+            .collect();
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        lock.commit().await.unwrap();
+
+        let mut renewed = 0;
+        let mut seen = Vec::new();
+        for request in requests {
+            let (authenticated, renewal) = request.await.unwrap().unwrap().unwrap();
+            if renewal == Renewal::Renewed {
+                renewed += 1;
+            }
+            seen.push(authenticated.session.last_seen_at);
+        }
+
+        assert_eq!(renewed, 1, "one write for the two of them");
+        assert_eq!(seen[0], seen[1], "the loser reads what the winner wrote");
+        assert!(seen[0] > issued.session.last_seen_at);
+    }
+
+    /// Logout lands between the read that found the session due and the
+    /// renewal write: the request is unauthenticated, not an error. The
+    /// uncommitted delete holds the row lock the renewal must wait for.
+    #[sqlx::test]
+    async fn a_session_deleted_during_renewal_does_not_authenticate(pool: PgPool) {
+        let account = account(&pool).await;
+        let service = SessionService::new(pool.clone());
+        let issued = service.create(account.id).await.unwrap();
+        last_seen(&pool, issued.session.id, "2 hours").await;
+
+        let mut logout = pool.begin().await.unwrap();
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("DELETE FROM sessions WHERE id = $1")
+            .bind(issued.session.id)
+            .execute(&mut *logout)
+            .await
+            .unwrap();
+        let request = {
+            let service = service.clone();
+            let token = issued.token.clone();
+            tokio::spawn(async move { service.authenticate(&token).await })
+        };
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        logout.commit().await.unwrap();
+
+        assert_eq!(request.await.unwrap().unwrap(), None);
     }
 
     /// Idle for longer than the timeout: over, however far the cap is.

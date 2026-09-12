@@ -40,8 +40,9 @@ pub const SESSION_IDLE_TIMEOUT: Duration = Duration::from_secs(7 * 24 * 60 * 60)
 
 /// How often an authenticated request may reset the idle clock. A request
 /// inside this window after the last reset costs no write; one outside it
-/// renews the session and re-sends the cookie. A session's real idle limit is
-/// therefore between the timeout and the timeout plus this window, which is
+/// renews the session and re-sends the cookie. The clock therefore lags the
+/// last request by up to one window: measured from that request, a session
+/// ends between the timeout minus this window and the timeout, which is
 /// nothing against seven days, and the price of a session is one write per
 /// hour of use, not one per request.
 pub const SESSION_RENEWAL_WINDOW: Duration = Duration::from_secs(60 * 60);

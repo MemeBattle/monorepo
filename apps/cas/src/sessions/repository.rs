@@ -81,18 +81,30 @@ where
     }))
 }
 
-/// Resets a session's idle clock and returns the new `last_seen_at`. The
-/// absolute cap is untouched: renewal never moves `expires_at`. The service
-/// decides when to call this, from what `find_live` reported.
-pub(super) async fn renew<'e, E>(executor: E, id: Uuid) -> Result<OffsetDateTime, sqlx::Error>
+/// Resets a session's idle clock if it is still due, and returns the new
+/// `last_seen_at`. The window is checked again here, in the same statement
+/// as the write: two requests that both saw the clock due from `find_live`
+/// take the row lock in turn, and the second re-evaluates the condition on
+/// the row the first just wrote and matches nothing. `Ok(None)` is that, or
+/// a session deleted in the meantime; the service tells them apart. The
+/// absolute cap is untouched: renewal never moves `expires_at`.
+pub(super) async fn renew<'e, E>(
+    executor: E,
+    id: Uuid,
+) -> Result<Option<OffsetDateTime>, sqlx::Error>
 where
     E: sqlx::PgExecutor<'e>,
 {
+    let window_secs = SESSION_RENEWAL_WINDOW.as_secs_f64();
+
     sqlx::query_scalar!(
-        "UPDATE sessions SET last_seen_at = now() WHERE id = $1 RETURNING last_seen_at",
+        r#"UPDATE sessions SET last_seen_at = now()
+           WHERE id = $1 AND last_seen_at <= now() - make_interval(secs => $2)
+           RETURNING last_seen_at"#,
         id,
+        window_secs,
     )
-    .fetch_one(executor)
+    .fetch_optional(executor)
     .await
 }
 
@@ -242,13 +254,28 @@ mod tests {
         let session = insert(&pool, account_id, &hash).await.unwrap();
         last_seen(&pool, session.id, "2 hours").await;
 
-        let seen = renew(&pool, session.id).await.unwrap();
+        let seen = renew(&pool, session.id).await.unwrap().expect("due");
 
         let live = find_live(&pool, &hash).await.unwrap().unwrap();
         assert_eq!(live.session.last_seen_at, seen);
         assert!(seen > session.last_seen_at);
         assert_eq!(live.session.expires_at, session.expires_at);
         assert!(!live.renewal_due);
+    }
+
+    /// The write carries its own check: a session inside the window, or one
+    /// that is gone, is left alone and reported as such.
+    #[sqlx::test]
+    async fn renew_writes_nothing_inside_the_window_or_for_a_missing_session(pool: PgPool) {
+        let account_id = account(&pool).await;
+        let hash = SessionToken::generate().unwrap().hash();
+        let session = insert(&pool, account_id, &hash).await.unwrap();
+
+        assert_eq!(renew(&pool, session.id).await.unwrap(), None);
+        let live = find_live(&pool, &hash).await.unwrap().unwrap();
+        assert_eq!(live.session.last_seen_at, session.last_seen_at);
+
+        assert_eq!(renew(&pool, Uuid::new_v4()).await.unwrap(), None);
     }
 
     /// The row must give up when the cookie does: both are derived from
