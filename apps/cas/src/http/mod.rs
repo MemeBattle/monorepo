@@ -80,15 +80,16 @@ pub fn app(config: Config) -> Result<Router, AppError> {
     Ok(with_middleware(router, config.cors_origins))
 }
 
-/// Everything under `/api`: the contexts' routers behind the CSRF line
-/// (ADR 0005). `/health` stays outside: it is read-only and probed by
+/// Everything under `/api`: the contexts' routers, re-sending the session
+/// cookie when a request renewed its session (ADR 0004), behind the CSRF
+/// line (ADR 0005). `/health` stays outside: it is read-only and probed by
 /// machines that send no browser headers.
 fn api_router(state: ApiState, origins: AllowedOrigins) -> Router {
     let api = Router::new()
         .nest("/webauthn", webauthn_http::router(state.clone()))
         .merge(sessions_http::router(state));
 
-    fetch_metadata::guard(api, origins)
+    fetch_metadata::guard(sessions_http::with_cookie_renewal(api), origins)
 }
 
 /// Applies the middleware stack. Must be called after all routes are

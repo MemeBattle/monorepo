@@ -87,7 +87,7 @@ pub(super) async fn verify_login(
     let issued = state.sessions.create(logged_in.account.id).await?;
 
     Ok((
-        jar.add(state.cookies.session(&issued.token)),
+        jar.add(state.cookies.session(&issued.token, &issued.session)),
         Json(VerifyLoginResponse {
             account_id: logged_in.account.id,
             credential_id: logged_in.credential.passkey.cred_id().clone(),
@@ -222,7 +222,7 @@ mod tests {
         assert!(credentials[0].last_used_at.is_some());
 
         // The cookie names a live session of the signed-in account.
-        let authenticated = SessionService::new(pool)
+        let (authenticated, _) = SessionService::new(pool)
             .authenticate(&token)
             .await
             .unwrap()

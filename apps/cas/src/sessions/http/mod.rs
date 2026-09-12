@@ -4,6 +4,7 @@
 
 pub mod cookie;
 pub mod extract;
+pub mod renewal;
 
 use axum::{Json, Router, extract::State, http::StatusCode, routing::get, routing::post};
 use axum_extra::extract::CookieJar;
@@ -19,6 +20,7 @@ use crate::sessions::service::CreateError;
 use crate::sessions::{Authenticated, SessionToken};
 
 pub use cookie::CookieSettings;
+pub use renewal::with_cookie_renewal;
 
 /// Registration and login create sessions from their own handlers; the
 /// mapping lives here, with the context that owns the error.
@@ -41,7 +43,8 @@ pub fn router(state: ApiState) -> Router {
 }
 
 /// The signed-in account as the dashboard needs it. Nothing about the
-/// session itself but its expiry: the id is server-side state.
+/// session itself but when it ends if left alone: the id is server-side
+/// state.
 #[derive(Debug, Serialize, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MeResponse {
@@ -61,7 +64,7 @@ async fn me(authenticated: Authenticated) -> Json<MeResponse> {
         display_name: account.display_name.into_inner(),
         account_type: account.r#type,
         email: account.email,
-        session_expires_at: session.expires_at,
+        session_expires_at: session.valid_until(),
     })
 }
 

@@ -1,6 +1,10 @@
 //! The `Authenticated` extractor: a handler that takes one runs only for a
 //! request carrying a live session cookie, and gets the session and the
 //! account. Everything else is a 401 before the handler is entered.
+//!
+//! When authenticating renewed the session, the extractor leaves the fresh
+//! cookie in the request's [`renewal`] slot for the layer to put on the
+//! response; the handler never sees it.
 
 use axum::extract::{FromRef, FromRequestParts};
 use axum::http::request::Parts;
@@ -9,7 +13,8 @@ use axum_extra::extract::CookieJar;
 use crate::http::ApiState;
 use crate::http::error::ApiError;
 use crate::sessions::http::cookie::SESSION_COOKIE;
-use crate::sessions::{Authenticated, SessionToken};
+use crate::sessions::http::renewal::{self, RenewalSlot};
+use crate::sessions::{Authenticated, Renewal, SessionToken};
 
 /// One code for every way a request can fail to be authenticated — no
 /// cookie, a malformed one, an unknown, expired or revoked session — so a
@@ -39,10 +44,18 @@ where
             .and_then(|cookie| SessionToken::parse(cookie.value()))
             .ok_or_else(unauthenticated)?;
 
-        state
+        let (authenticated, renewal) = state
             .sessions
             .authenticate(&token)
             .await?
-            .ok_or_else(unauthenticated)
+            .ok_or_else(unauthenticated)?;
+
+        if renewal == Renewal::Renewed
+            && let Some(slot) = parts.extensions.get::<RenewalSlot>()
+        {
+            renewal::offer(slot, state.cookies.session(&token, &authenticated.session));
+        }
+
+        Ok(authenticated)
     }
 }

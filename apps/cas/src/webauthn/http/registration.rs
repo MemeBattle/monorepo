@@ -116,7 +116,7 @@ pub(super) async fn verify_registration(
     let issued = state.sessions.create(registered.account.id).await?;
 
     Ok((
-        jar.add(state.cookies.session(&issued.token)),
+        jar.add(state.cookies.session(&issued.token, &issued.session)),
         Json(VerifyRegistrationResponse {
             account_id: registered.account.id,
             credential_id: registered.credential.passkey.cred_id().clone(),
@@ -257,7 +257,7 @@ mod tests {
         assert_eq!(credentials[0].name, DEFAULT_PASSKEY_NAME);
 
         // The cookie names a live session of the new account.
-        let authenticated = SessionService::new(pool)
+        let (authenticated, _) = SessionService::new(pool)
             .authenticate(&token)
             .await
             .unwrap()

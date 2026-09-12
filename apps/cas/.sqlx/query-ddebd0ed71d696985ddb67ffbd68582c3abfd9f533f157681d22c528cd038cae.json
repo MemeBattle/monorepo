@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO sessions (account_id, token_hash, expires_at)\n           VALUES ($1, $2, now() + make_interval(secs => $3))\n           RETURNING id, account_id, created_at, expires_at",
+  "query": "INSERT INTO sessions (account_id, token_hash, expires_at)\n           VALUES ($1, $2, now() + make_interval(secs => $3))\n           RETURNING id, account_id, created_at, expires_at, last_seen_at",
   "describe": {
     "columns": [
       {
@@ -46,6 +46,17 @@
             "name": "expires_at"
           }
         }
+      },
+      {
+        "ordinal": 4,
+        "name": "last_seen_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "sessions",
+            "name": "last_seen_at"
+          }
+        }
       }
     ],
     "parameters": {
@@ -59,8 +70,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "fda75993d329970fc735b19d6557e74d1ced52e66e6a0c4d46b695cfcce3cfdd"
+  "hash": "ddebd0ed71d696985ddb67ffbd68582c3abfd9f533f157681d22c528cd038cae"
 }
