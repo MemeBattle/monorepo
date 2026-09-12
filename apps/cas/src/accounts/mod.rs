@@ -28,7 +28,7 @@ pub enum AccountType {
 }
 
 /// A row of `accounts`.
-#[derive(Debug, Clone, PartialEq, Eq, sqlx::FromRow)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Account {
     /// Stable account id, exposed as the OIDC `sub`.
     pub id: Uuid,
