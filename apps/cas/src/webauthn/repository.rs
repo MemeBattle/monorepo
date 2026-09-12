@@ -15,7 +15,7 @@ use webauthn_rs::prelude::Passkey;
 
 use crate::accounts::{self, Account, NewAccount};
 use crate::webauthn::ceremonies::{Ceremony, CeremonyKind, Taken};
-use crate::webauthn::passkeys::{CreateError, PasskeyCredential};
+use crate::webauthn::passkeys::{CreateError, PasskeyCredential, PasskeyName};
 use crate::webauthn::{CEREMONY_GRACE, CEREMONY_TIMEOUT};
 
 // Ceremonies ---------------------------------------------------------------
@@ -257,8 +257,9 @@ pub async fn create_passkey_with_account(
 }
 
 /// Inserts a credential with any executor, so it can join the transaction that
-/// also creates the account.
-async fn insert_passkey<'e, E>(
+/// also creates the account. Adding a passkey to an existing account will be
+/// this same write.
+pub(crate) async fn insert_passkey<'e, E>(
     executor: E,
     account_id: Uuid,
     passkey: &Passkey,
@@ -289,6 +290,84 @@ where
     .fetch_one(executor)
     .await
     .map(Into::into)
+}
+
+/// The ids of an account's passkeys, locked for the rest of the caller's
+/// transaction. Deleting a passkey must know whether it is the last one, and
+/// two deletes running at once must not both see "two left": the lock makes
+/// the second wait, and it then sees the rows as the first left them.
+pub(crate) async fn lock_passkeys<'e, E>(
+    executor: E,
+    account_id: Uuid,
+) -> Result<Vec<Uuid>, sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    sqlx::query_scalar!(
+        r#"SELECT id FROM passkey_credentials
+           WHERE account_id = $1
+           ORDER BY id
+           FOR UPDATE"#,
+        account_id,
+    )
+    .fetch_all(executor)
+    .await
+}
+
+/// Renames a passkey, if it belongs to the account. `Ok(None)` for a passkey
+/// that does not exist or is someone else's: the query does not tell the two
+/// apart, and neither does the caller.
+pub(crate) async fn rename_passkey<'e, E>(
+    executor: E,
+    id: Uuid,
+    account_id: Uuid,
+    name: &PasskeyName,
+) -> Result<Option<PasskeyCredential>, sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    sqlx::query_as!(
+        PasskeyRow,
+        r#"UPDATE passkey_credentials
+           SET name = $3
+           WHERE id = $1 AND account_id = $2
+           RETURNING
+               id,
+               account_id,
+               credential_id,
+               credential AS "credential: Json<Passkey>",
+               name,
+               created_at,
+               last_used_at"#,
+        id,
+        account_id,
+        name.as_ref(),
+    )
+    .fetch_optional(executor)
+    .await
+    .map(|row| row.map(Into::into))
+}
+
+/// Deletes a passkey, if it belongs to the account. `Ok(false)` when no such
+/// row was there. The rule that the last passkey stays is the service's, taken
+/// under [`lock_passkeys`]; this is only the write.
+pub(crate) async fn delete_passkey<'e, E>(
+    executor: E,
+    id: Uuid,
+    account_id: Uuid,
+) -> Result<bool, sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    let result = sqlx::query!(
+        "DELETE FROM passkey_credentials WHERE id = $1 AND account_id = $2",
+        id,
+        account_id,
+    )
+    .execute(executor)
+    .await?;
+
+    Ok(result.rows_affected() > 0)
 }
 
 #[cfg(test)]
@@ -604,6 +683,94 @@ mod passkey_tests {
         assert_eq!(
             serde_json::to_value(&stored.passkey).unwrap()["cred"]["counter"],
             42
+        );
+    }
+
+    fn name(value: &str) -> PasskeyName {
+        PasskeyName::try_new(value).unwrap()
+    }
+
+    #[sqlx::test]
+    async fn rename_changes_the_name_of_an_owned_passkey_only(pool: PgPool) {
+        let (account, created) = create_committed(
+            &pool,
+            NewAccount::full(display_name("Ada")),
+            &test_passkey(),
+        )
+        .await
+        .unwrap();
+
+        let renamed = rename_passkey(&pool, created.id, account.id, &name("MacBook"))
+            .await
+            .unwrap()
+            .expect("own passkey");
+        assert_eq!(renamed.id, created.id);
+        assert_eq!(renamed.name, "MacBook");
+
+        let other_account = rename_passkey(&pool, created.id, Uuid::new_v4(), &name("Nope"))
+            .await
+            .unwrap();
+        assert!(other_account.is_none());
+        let stored = PasskeyRepository::new(pool)
+            .list_for_account(account.id)
+            .await
+            .unwrap();
+        assert_eq!(
+            stored[0].name, "MacBook",
+            "someone else's rename changed nothing"
+        );
+    }
+
+    #[sqlx::test]
+    async fn delete_removes_an_owned_passkey_only(pool: PgPool) {
+        let (account, created) = create_committed(
+            &pool,
+            NewAccount::full(display_name("Ada")),
+            &test_passkey(),
+        )
+        .await
+        .unwrap();
+
+        assert!(
+            !delete_passkey(&pool, created.id, Uuid::new_v4())
+                .await
+                .unwrap()
+        );
+        assert!(delete_passkey(&pool, created.id, account.id).await.unwrap());
+        assert!(!delete_passkey(&pool, created.id, account.id).await.unwrap());
+        assert!(
+            PasskeyRepository::new(pool)
+                .list_for_account(account.id)
+                .await
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[sqlx::test]
+    async fn lock_lists_the_account_passkeys_in_id_order(pool: PgPool) {
+        let (account, first) = create_committed(
+            &pool,
+            NewAccount::full(display_name("Ada")),
+            &test_passkey(),
+        )
+        .await
+        .unwrap();
+        let second = insert_passkey(&pool, account.id, &test_passkey(), "Second")
+            .await
+            .unwrap();
+        let mut expected = vec![first.id, second.id];
+        expected.sort();
+
+        let mut tx = pool.begin().await.unwrap();
+        let locked = lock_passkeys(&mut *tx, account.id).await.unwrap();
+
+        assert_eq!(locked, expected);
+        assert!(
+            lock_passkeys(&mut *tx, Uuid::new_v4())
+                .await
+                .unwrap()
+                .is_empty()
         );
     }
 

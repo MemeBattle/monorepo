@@ -62,7 +62,7 @@ fn is_zero_width_joiner(c: char) -> bool {
 /// [`validate_display_name`]. NFC still composes decomposed input, so
 /// "e\u{301}" and the Hangul jamo sequence "\u{1100}\u{1161}" become their
 /// precomposed forms.
-fn sanitize_display_name(value: String) -> String {
+pub(crate) fn sanitize_display_name(value: String) -> String {
     let mapped = value
         .chars()
         .map(|c| if is_space_separator(c) { ' ' } else { c })
@@ -137,7 +137,7 @@ fn is_allowed_character(c: char) -> bool {
 /// Marks need a preceding base, selectors must immediately follow a base, and
 /// joiners need a base on both sides. A mark or selector may precede a joiner
 /// (as in emoji and Indic text), but cannot supply the base itself.
-fn validate_display_name(value: &str) -> Result<(), DisplayNameError> {
+pub(crate) fn validate_display_name(value: &str) -> Result<(), DisplayNameError> {
     if value.is_empty() {
         return Err(DisplayNameError::Empty);
     }

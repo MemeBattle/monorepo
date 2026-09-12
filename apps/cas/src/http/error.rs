@@ -1,6 +1,6 @@
 use axum::{
     Json,
-    extract::rejection::JsonRejection,
+    extract::rejection::{JsonRejection, PathRejection},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
@@ -91,6 +91,21 @@ impl From<JsonRejection> for ApiError {
         Self {
             status: rejection.status(),
             code: "invalid_body",
+            message: rejection.body_text(),
+            source: None,
+        }
+    }
+}
+
+/// Renders `Path` extractor rejections (a segment that does not parse into
+/// the handler's type) in the standard error shape. The status is the
+/// rejection's own: 400 for a bad value, 500 for a route whose parameters do
+/// not match its handler, which is a bug.
+impl From<PathRejection> for ApiError {
+    fn from(rejection: PathRejection) -> Self {
+        Self {
+            status: rejection.status(),
+            code: "invalid_path",
             message: rejection.body_text(),
             source: None,
         }

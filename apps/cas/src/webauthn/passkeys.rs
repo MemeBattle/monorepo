@@ -7,15 +7,38 @@
 //! `docs/adr/0001-passkey-persistence.md`. The queries themselves live in
 //! [`repository`](crate::webauthn::repository).
 
+use nutype::nutype;
 use thiserror::Error;
 use time::OffsetDateTime;
 use uuid::Uuid;
 use webauthn_rs::prelude::Passkey;
 
+use crate::accounts::{DisplayNameError, sanitize_display_name, validate_display_name};
+
 /// Label given to the passkey created during registration. The user has not
-/// been asked for one at that point; passkey management (#668) lets them
-/// rename it.
+/// been asked for one at that point; passkey management lets them rename it.
 pub const DEFAULT_PASSKEY_NAME: &str = "Passkey";
+
+/// Why a string is not a [`PasskeyName`]: the same reasons a string is not a
+/// display name, since both are labels a UI shows as-is.
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[error(transparent)]
+pub struct PasskeyNameError(DisplayNameError);
+
+fn validate_passkey_name(value: &str) -> Result<(), PasskeyNameError> {
+    validate_display_name(value).map_err(PasskeyNameError)
+}
+
+/// The user-facing label of a passkey ("MacBook", "YubiKey"), valid by
+/// construction under the display name rules: sanitised spaces and NFC, no
+/// invisible or direction-changing characters, at most the display name's
+/// length. Not unique: naming two keys alike is the user's business.
+#[nutype(
+    sanitize(with = sanitize_display_name),
+    validate(with = validate_passkey_name, error = PasskeyNameError),
+    derive(Debug, Clone, PartialEq, Eq, AsRef, Deref, Display, Into, Serialize, Deserialize),
+)]
+pub struct PasskeyName(String);
 
 /// A row of `passkey_credentials`.
 ///
@@ -49,4 +72,36 @@ pub enum CreateError {
 
     #[error(transparent)]
     Db(sqlx::Error),
+}
+
+#[cfg(test)]
+mod passkey_name_tests {
+    use super::*;
+
+    #[test]
+    fn the_default_name_is_a_valid_name() {
+        assert_eq!(
+            PasskeyName::try_new(DEFAULT_PASSKEY_NAME).map(Into::<String>::into),
+            Ok(DEFAULT_PASSKEY_NAME.to_owned())
+        );
+    }
+
+    #[test]
+    fn a_name_is_sanitised_like_a_display_name() {
+        assert_eq!(
+            PasskeyName::try_new("  My\u{a0} YubiKey  ").map(Into::<String>::into),
+            Ok("My YubiKey".to_owned())
+        );
+    }
+
+    #[test]
+    fn the_display_name_rejections_apply() {
+        assert!(PasskeyName::try_new("").is_err());
+        assert!(PasskeyName::try_new("   ").is_err());
+        assert!(
+            PasskeyName::try_new("a\u{200b}b").is_err(),
+            "zero-width space"
+        );
+        assert!(PasskeyName::try_new("x".repeat(65)).is_err());
+    }
 }

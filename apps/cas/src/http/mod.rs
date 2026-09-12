@@ -34,6 +34,7 @@ use crate::sessions::http::CookieSettings;
 use crate::webauthn::build_webauthn;
 use crate::webauthn::http as webauthn_http;
 use crate::webauthn::login::LoginService;
+use crate::webauthn::management::PasskeyManagement;
 use crate::webauthn::registration::RegistrationService;
 
 /// Why the router could not be built. Everything here fails at startup, before
@@ -54,6 +55,7 @@ pub enum AppError {
 pub struct ApiState {
     pub registration: RegistrationService,
     pub login: LoginService,
+    pub passkeys: PasskeyManagement,
     pub sessions: SessionService,
     pub cookies: CookieSettings,
 }
@@ -80,6 +82,7 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
     let api_state = ApiState {
         registration: RegistrationService::new(webauthn.clone(), pool.clone()),
         login: LoginService::new(webauthn, pool.clone()),
+        passkeys: PasskeyManagement::new(pool.clone()),
         sessions: SessionService::new(pool.clone()),
         cookies: CookieSettings::for_origin(&config.origin),
     };
@@ -108,6 +111,7 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
 fn api_router(state: ApiState, origins: AllowedOrigins) -> Router {
     let api = Router::new()
         .nest("/webauthn", webauthn_http::router(state.clone()))
+        .nest("/passkeys", webauthn_http::passkeys::router(state.clone()))
         .merge(sessions_http::router(state))
         .fallback(not_found);
 
@@ -243,24 +247,21 @@ mod tests {
         );
     }
 
-    /// The sessions router is nested at `/api` and the webauthn one inside
-    /// that prefix; a request must reach the right one. Both requests fail
-    /// before any query, so no database is needed.
+    /// The sessions router is nested at `/api`, the webauthn and passkeys
+    /// ones inside that prefix; a request must reach the right one. All
+    /// requests fail before any query, so no database is needed.
     #[tokio::test]
     async fn both_contexts_are_reachable_under_the_api_prefix() {
         let app = app(test_config()).unwrap();
 
-        let me = app
-            .clone()
-            .oneshot(
-                Request::builder()
-                    .uri("/api/me")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(me.status(), StatusCode::UNAUTHORIZED);
+        for uri in ["/api/me", "/api/passkeys"] {
+            let response = app
+                .clone()
+                .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::UNAUTHORIZED, "{uri}");
+        }
 
         let login = app
             .oneshot(

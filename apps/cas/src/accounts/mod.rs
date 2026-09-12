@@ -12,6 +12,10 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 
 pub use display_name::{DisplayName, DisplayNameError, MAX_DISPLAY_NAME_LENGTH};
+/// The rules behind `DisplayName`, for another user-facing label that must
+/// be shown as-is (a passkey's name) and wants the same sanitising and the
+/// same rejections without a second copy of the Unicode reasoning.
+pub(crate) use display_name::{sanitize_display_name, validate_display_name};
 pub use repository::AccountRepository;
 pub(crate) use repository::{get, insert, touch_last_seen};
 
