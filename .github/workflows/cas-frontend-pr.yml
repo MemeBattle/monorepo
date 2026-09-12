@@ -1,0 +1,54 @@
+name: 'CAS frontend pull request'
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'apps/cas-frontend/**'
+      - .github/workflows/cas-frontend-pr.yml
+      - 'pnpm-lock.yaml'
+      - package.json
+      - pnpm-workspace.yaml
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: TS check
+        run: pnpm run --filter @memebattle/cas-frontend ts-check
+
+  tests:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Run tests
+        run: pnpm run --filter @memebattle/cas-frontend test:ci
+
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Build
+        run: pnpm cas:front:build
