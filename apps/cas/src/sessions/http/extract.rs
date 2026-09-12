@@ -12,12 +12,13 @@
 //! OWASP asks for both to be visible. Neither the cookie value nor its hash
 //! is ever part of an event.
 
-use axum::extract::{FromRef, FromRequestParts, OriginalUri};
+use axum::extract::{FromRef, FromRequestParts};
 use axum::http::request::Parts;
 use axum_extra::extract::CookieJar;
 
 use crate::http::ApiState;
 use crate::http::error::ApiError;
+use crate::http::extract::original_path;
 use crate::sessions::http::cookie::SESSION_COOKIE;
 use crate::sessions::http::renewal::{self, RenewalSlot};
 use crate::sessions::{Authenticated, Renewal, SessionToken};
@@ -28,18 +29,6 @@ use crate::sessions::{Authenticated, Renewal, SessionToken};
 /// every case: sign in.
 fn unauthenticated() -> ApiError {
     ApiError::unauthorized("unauthenticated", "Sign in to continue")
-}
-
-/// The path as the client sent it. A nested router strips its prefix from
-/// the request URI before an extractor runs, so `parts.uri` inside `/api`
-/// says `/me` where the log needs `/api/me`; axum keeps the original in
-/// [`OriginalUri`]. Outside a nested router there is no extension, and the
-/// URI itself is the original.
-fn original_path(parts: &Parts) -> &str {
-    parts
-        .extensions
-        .get::<OriginalUri>()
-        .map_or(parts.uri.path(), |uri| uri.0.path())
 }
 
 impl<S> FromRequestParts<S> for Authenticated
@@ -70,7 +59,7 @@ where
         // is only worth a `debug`.
         let Some(token) = SessionToken::parse(cookie.value()) else {
             tracing::debug!(
-                path = original_path(parts),
+                path = original_path(&parts.extensions, &parts.uri),
                 "session cookie is not a well-formed token"
             );
             return Err(unauthenticated());
@@ -78,7 +67,7 @@ where
 
         let Some((authenticated, renewal)) = state.sessions.authenticate(&token).await? else {
             tracing::warn!(
-                path = original_path(parts),
+                path = original_path(&parts.extensions, &parts.uri),
                 "session cookie names no live session"
             );
             return Err(unauthenticated());
