@@ -2,8 +2,8 @@
 //!
 //! The credential is persisted as the serde form of the webauthn-rs `Passkey`
 //! (documented as safe to store) in a jsonb column, with the raw credential id
-//! lifted out into its own indexed column because login (#666) has nothing but
-//! that id to look the account up by. See
+//! lifted out into its own indexed column because login has nothing but that
+//! id to look the account up by. See
 //! `docs/adr/0001-passkey-persistence.md`. The queries themselves live in
 //! [`repository`](crate::webauthn::repository).
 
@@ -30,7 +30,8 @@ pub struct PasskeyCredential {
     /// `passkey` so login can find the row by it.
     pub credential_id: Vec<u8>,
     /// The credential itself: public key, signature counter, backup state,
-    /// transports.
+    /// transports. Login rewrites it after every successful assertion so the
+    /// counter and the backup flags keep up with the authenticator.
     pub passkey: Passkey,
     /// User-facing label.
     pub name: String,

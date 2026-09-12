@@ -3,13 +3,14 @@
 //! Compiled only for `cfg(test)`, so a normal build never includes the
 //! software authenticator. See `docs/TESTS.md`.
 
+use sqlx::PgPool;
 use uuid::Uuid;
 use webauthn_authenticator_rs::{
     AuthenticatorBackend, WebauthnAuthenticator, error::WebauthnCError, softpasskey::SoftPasskey,
 };
 use webauthn_rs::prelude::{
     Base64UrlSafeData, CreationChallengeResponse, Passkey, PublicKeyCredential,
-    RegisterPublicKeyCredential, Url, Webauthn,
+    RegisterPublicKeyCredential, RequestChallengeResponse, Url, Webauthn,
 };
 use webauthn_rs_proto::{
     AllowCredentials, CredProps, PublicKeyCredentialCreationOptions,
@@ -18,7 +19,9 @@ use webauthn_rs_proto::{
 
 use crate::accounts::DisplayName;
 use crate::webauthn::build_webauthn;
-use crate::webauthn::registration::start_discoverable_registration;
+use crate::webauthn::registration::{
+    Registered, RegistrationService, start_discoverable_registration,
+};
 
 struct ResidentCredential {
     rp_id: String,
@@ -127,6 +130,39 @@ pub fn display_name(value: &str) -> DisplayName {
 pub fn soft_passkey_registration(ccr: CreationChallengeResponse) -> RegisterPublicKeyCredential {
     WebauthnAuthenticator::new(ResidentSoftPasskey::new())
         .do_registration(test_origin(), ccr)
+        .expect("the software authenticator answers a valid challenge")
+}
+
+/// Registers an account through the registration service and hands back the
+/// software authenticator that now holds its passkey, so a test can sign in
+/// with it: login needs the same emulator that answered the registration.
+pub async fn register_soft_passkey(
+    pool: &PgPool,
+) -> (WebauthnAuthenticator<ResidentSoftPasskey>, Registered) {
+    let service = RegistrationService::new(test_webauthn(), pool.clone());
+    let mut authenticator = WebauthnAuthenticator::new(ResidentSoftPasskey::new());
+    let started = service
+        .start(display_name("Ada"))
+        .await
+        .expect("a registration can be started");
+    let response = authenticator
+        .do_registration(test_origin(), started.ccr)
+        .expect("the software authenticator answers a valid challenge");
+    let registered = service
+        .finish(started.registration_id, &response)
+        .await
+        .expect("the software authenticator's answer verifies");
+    (authenticator, registered)
+}
+
+/// Answers a login challenge with the credential the authenticator discovers
+/// for the relying party, the way a browser with a platform passkey would.
+pub fn soft_passkey_assertion(
+    authenticator: &mut WebauthnAuthenticator<ResidentSoftPasskey>,
+    rcr: RequestChallengeResponse,
+) -> PublicKeyCredential {
+    authenticator
+        .do_authentication(test_origin(), rcr)
         .expect("the software authenticator answers a valid challenge")
 }
 
