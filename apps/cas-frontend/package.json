@@ -26,9 +26,11 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "catalog:",
+    "@testing-library/react": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
+    "jsdom": "catalog:",
     "oxc-transform-react": "catalog:",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",

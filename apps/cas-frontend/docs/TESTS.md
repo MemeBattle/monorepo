@@ -16,10 +16,8 @@ actions, anything that turns an API response into what a screen shows.
 Rendering a placeholder or a static route table does not; that is what the
 type checker and the build are for.
 
-Component tests need a DOM: add `jsdom` and `@testing-library/react` (both in
-the catalog) together with the first one, and switch that file to the jsdom
-environment with a `// @vitest-environment jsdom` comment at its top rather
-than making every spec pay for a DOM.
+Component tests render with `@testing-library/react`; vitest runs every spec
+in the `jsdom` environment, so a component test needs no per-file setup.
 
 ## End-to-end
 
