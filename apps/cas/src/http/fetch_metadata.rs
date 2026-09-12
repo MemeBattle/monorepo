@@ -17,6 +17,7 @@ use axum::{
 };
 
 use crate::http::error::ApiError;
+use crate::http::extract::original_path;
 
 const SEC_FETCH_SITE: &str = "sec-fetch-site";
 
@@ -53,7 +54,7 @@ async fn reject_cross_site(
     verdict(request.method(), request.headers(), &origins).map_err(|rejection| {
         tracing::warn!(
             method = %request.method(),
-            path = request.uri().path(),
+            path = original_path(request.extensions(), request.uri()),
             sec_fetch_site = ?request.headers().get(SEC_FETCH_SITE),
             origin = ?request.headers().get(header::ORIGIN),
             reason = rejection.reason(),
@@ -128,6 +129,8 @@ mod tests {
         routing::{get, post},
     };
     use tower::ServiceExt;
+
+    use crate::testing::capture_tracing;
 
     const ALLOWED: &str = "http://localhost:5173";
     const OTHER: &str = "https://evil.example";
@@ -365,6 +368,31 @@ mod tests {
     /// has a fallback of its own to be covered here is what
     /// `crate::http::tests::a_cross_site_probe_of_an_unknown_api_path_is_forbidden`
     /// checks, through the real composition.
+    /// The refusal is logged with the path the client sent. The layer sits
+    /// on a nested router, which strips its prefix before the layer runs, so
+    /// the plain URI would say `/mutate` for a request to `/api/mutate`.
+    #[tokio::test]
+    async fn the_refusal_names_the_path_the_client_sent() {
+        let (events, _guard) = capture_tracing();
+        let nested = Router::new().nest("/api", app());
+
+        let response = nested
+            .oneshot(request(
+                "POST",
+                "/api/mutate",
+                &[(SEC_FETCH_SITE, "cross-site"), ("origin", OTHER)],
+            ))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        let [warning] = &events.mentioning("cross-site mutating request rejected")[..] else {
+            panic!("exactly one warning: {:?}", events.all());
+        };
+        assert!(warning.starts_with("WARN"), "{warning}");
+        assert!(warning.contains("path=\"/api/mutate\""), "{warning}");
+    }
+
     #[tokio::test]
     async fn the_fallback_is_guarded_too() {
         let response = app()

@@ -131,6 +131,27 @@ impl Session {
     }
 }
 
+/// Which ceremony signed the account in. The row is the same either way; the
+/// distinction exists for the lifecycle log, where "an account just appeared"
+/// and "an account came back" are different stories about the same session
+/// (ADR 0004).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SessionOrigin {
+    Registration,
+    Login,
+}
+
+impl SessionOrigin {
+    /// What goes in the log: a stable word to filter on, rather than the
+    /// `Debug` of a Rust type, which is free to change when the type does.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Registration => "registration",
+            Self::Login => "login",
+        }
+    }
+}
+
 /// What [`SessionService::authenticate`] did to a session's idle clock, so
 /// the transport knows whether the browser needs a fresh cookie.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

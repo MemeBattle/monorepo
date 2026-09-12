@@ -130,7 +130,7 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::accounts::{AccountRepository, NewAccount};
-    use crate::sessions::SessionService;
+    use crate::sessions::{SessionOrigin, SessionService};
     use crate::testing::{display_name, test_state};
 
     async fn body_json(response: axum::response::Response) -> serde_json::Value {
@@ -145,7 +145,7 @@ mod tests {
             .await
             .unwrap();
         let issued = SessionService::new(pool.clone())
-            .create(account.id)
+            .create(account.id, SessionOrigin::Login)
             .await
             .unwrap();
         (

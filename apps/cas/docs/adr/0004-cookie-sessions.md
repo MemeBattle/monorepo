@@ -5,6 +5,8 @@
 Accepted (2026-09-12), with [#667](https://github.com/MemeBattle/monorepo/issues/667).
 Amended (2026-09-12) by [#697](https://github.com/MemeBattle/monorepo/issues/697):
 decision (c) gained an idle timeout with sliding renewal.
+Amended (2026-09-12) by [#699](https://github.com/MemeBattle/monorepo/issues/699):
+decision (j) says what the session lifecycle logs.
 
 ## Context
 
@@ -134,6 +136,33 @@ deliberate act, not a side effect of leaving the dashboard. The session
 cookie is removed by the explicit removal cookie, which is what a browser
 without `Clear-Site-Data` has to go on anyway. Added with #698.
 
+**(j) The session lifecycle is logged, and the row id is what a session is
+called in a log.** `SessionService` emits an `info` when a session is created,
+with its id, the account's id and which ceremony created it (registration or
+login), and an `info` when one is revoked, with its id — the delete returns
+the id it removed, so naming it costs no extra read. A renewal is lifecycle
+too but happens at most once an hour per session and says nothing new, so it
+is a `debug`; a logout that found no live session is a `debug` as well,
+because a browser holding a dead cookie is asking to be forgotten rather than
+reporting a problem. A cookie that parses as a token this service could have
+issued but names no live session — unknown, expired, revoked — is a `warn`
+from the `Authenticated` extractor with the path it was presented to: that is
+the invalid-session activity OWASP asks to be able to see, whether it is one
+stale tab or someone trying tokens. A request with no session cookie is the
+ordinary state of a browser that has not signed in and is logged not at all,
+and junk in the cookie is a `debug`, being no statement about any session.
+
+The token appears in no event, at no level, and neither does its hash: the id
+identifies a session for an operator exactly as it does for the future
+management screen, and a log is read, copied and shipped elsewhere, which is
+everything the token must not be. This also settles what request tracing may
+log: method, path, status and latency, and no headers in either direction,
+since the responses of registration, login and renewal carry the token in
+`Set-Cookie` and every authenticated request carries it in `Cookie`. A test
+installs a capturing subscriber, runs a registration through the middleware
+stack and searches every captured event for the token, so the rule is checked
+rather than remembered.
+
 ## Consequences
 
 - `GET /api/me` answers with the account (id, display name, type, email) and
@@ -163,6 +192,6 @@ without `Clear-Site-Data` has to go on anyway. Added with #698.
   `Cache-Control: no-store` and `Clear-Site-Data`
   ([#698](https://github.com/MemeBattle/monorepo/issues/698), done in (i)
   above), session lifecycle logging
-  ([#699](https://github.com/MemeBattle/monorepo/issues/699)) and the
-  `__Host-` cookie prefix
+  ([#699](https://github.com/MemeBattle/monorepo/issues/699), done in (j)
+  above) and the `__Host-` cookie prefix
   ([#700](https://github.com/MemeBattle/monorepo/issues/700)).

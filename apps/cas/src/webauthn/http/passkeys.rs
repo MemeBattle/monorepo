@@ -137,8 +137,8 @@ mod tests {
     use sqlx::PgPool;
     use tower::ServiceExt;
 
-    use crate::sessions::SessionService;
     use crate::sessions::http::cookie::SESSION_COOKIE;
+    use crate::sessions::{SessionOrigin, SessionService};
     use crate::testing::{register_soft_passkey, test_passkey, test_state};
     use crate::webauthn::passkeys::DEFAULT_PASSKEY_NAME;
     use crate::webauthn::repository::insert_passkey;
@@ -153,7 +153,7 @@ mod tests {
     async fn signed_in(pool: &PgPool) -> (String, Uuid, Uuid) {
         let (_, registered) = register_soft_passkey(pool).await;
         let issued = SessionService::new(pool.clone())
-            .create(registered.account.id)
+            .create(registered.account.id, SessionOrigin::Registration)
             .await
             .unwrap();
         (

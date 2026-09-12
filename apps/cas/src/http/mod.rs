@@ -145,6 +145,13 @@ async fn not_found() -> ApiError {
 /// The session cookie travels cross-origin from the frontend, which needs
 /// `Access-Control-Allow-Credentials`; browsers refuse that next to a
 /// wildcard, so methods and headers are listed rather than `Any`.
+///
+/// The request trace logs the method, the path, the status and the latency,
+/// and no headers in either direction: registration and login answer with
+/// `Set-Cookie` carrying the session token, and the whole point of the token
+/// living only in the cookie is that it appears in no log (ADR 0004). The
+/// same goes the other way, where the `Cookie` header would arrive with
+/// every authenticated request.
 fn with_middleware(router: Router, cors_origins: Vec<HeaderValue>) -> Router {
     let cors_layer = CorsLayer::new()
         .allow_origin(AllowOrigin::list(cors_origins))
@@ -161,11 +168,8 @@ fn with_middleware(router: Router, cors_origins: Vec<HeaderValue>) -> Router {
     router.layer(
         ServiceBuilder::new()
             .layer(
-                TraceLayer::new_for_http().on_response(
-                    trace::DefaultOnResponse::new()
-                        .include_headers(true)
-                        .level(Level::INFO),
-                ),
+                TraceLayer::new_for_http()
+                    .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
             )
             .layer(cors_layer)
             .layer(CatchPanicLayer::custom(handle_panic)),
@@ -196,9 +200,11 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::accounts::{AccountRepository, NewAccount};
-    use crate::sessions::SessionService;
     use crate::sessions::http::cookie::SESSION_COOKIE;
-    use crate::testing::{display_name, test_state};
+    use crate::sessions::{SessionOrigin, SessionService};
+    use crate::testing::{
+        capture_tracing, display_name, session_cookie, soft_passkey_registration, test_state,
+    };
 
     const ALLOWED_ORIGIN: &str = "http://localhost:5173";
     const OTHER_ORIGIN: &str = "https://evil.example";
@@ -287,7 +293,7 @@ mod tests {
             .await
             .unwrap();
         let issued = SessionService::new(pool.clone())
-            .create(account.id)
+            .create(account.id, SessionOrigin::Login)
             .await
             .unwrap();
         format!("{SESSION_COOKIE}={}", issued.token.expose())
@@ -397,6 +403,113 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(me.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    /// The session cookie must not leave the service through the request
+    /// trace either. Registration answers with `Set-Cookie` and the raw
+    /// token in it, so a trace that logged response headers wholesale would
+    /// write the secret to the log that ADR 0004 keeps it out of. The
+    /// ceremony runs through the real middleware stack and the real route.
+    #[sqlx::test]
+    async fn the_request_trace_does_not_log_the_session_cookie(pool: PgPool) {
+        let (events, _guard) = capture_tracing();
+        let app = with_middleware(
+            api_router(test_state(pool), allowed_origins()),
+            vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
+        );
+        let post = |uri: &str, body: serde_json::Value| {
+            Request::builder()
+                .method("POST")
+                .uri(uri)
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(body.to_string()))
+                .unwrap()
+        };
+        async fn body_json(response: axum::response::Response) -> serde_json::Value {
+            let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+            serde_json::from_slice(&bytes).unwrap()
+        }
+
+        let started = body_json(
+            app.clone()
+                .oneshot(post(
+                    "/webauthn/register-options",
+                    serde_json::json!({ "displayName": "Ada" }),
+                ))
+                .await
+                .unwrap(),
+        )
+        .await;
+        let attestation = soft_passkey_registration(
+            serde_json::from_value(started["ccr"].clone()).expect("a challenge"),
+        );
+        let response = app
+            .oneshot(post(
+                "/webauthn/verify-registration",
+                serde_json::json!({
+                    "registrationId": started["registrationId"],
+                    "response": attestation,
+                }),
+            ))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let token = session_cookie(&response).expect("registration signs the account in");
+        // The trace layer did run and was captured, so the absence below is
+        // a statement about what it logs, not about an empty capture.
+        assert!(events.contains("tower_http::trace"), "{:?}", events.all());
+        assert!(events.contains("session created"), "{:?}", events.all());
+        for event in events.all() {
+            assert!(
+                !event.contains(token.expose()),
+                "the session token must never be logged: {event}"
+            );
+        }
+    }
+
+    /// The other direction: an authenticated request carries the token in
+    /// `Cookie`, and the trace layer's request span is what a formatter
+    /// prints next to every event of that request. Neither the span nor any
+    /// event may hold the header. The capture records span fields, so a
+    /// `DefaultMakeSpan` that included headers would fail here.
+    #[sqlx::test]
+    async fn the_request_trace_does_not_log_the_cookie_header(pool: PgPool) {
+        let cookie = signed_in(&pool).await;
+        let (events, _guard) = capture_tracing();
+        let app = with_middleware(
+            api_router(test_state(pool), allowed_origins()),
+            vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
+        );
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/me")
+                    .header(header::COOKIE, &cookie)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let token = cookie.split_once('=').expect("name=value").1;
+        // The request span was created and captured, with the URI in it, so
+        // the absence below is a statement about what the span carries.
+        let spans = events.mentioning("SPAN");
+        assert!(
+            spans
+                .iter()
+                .any(|span| span.contains("request") && span.contains("/me")),
+            "{spans:?}"
+        );
+        for event in events.all() {
+            assert!(
+                !event.contains(token),
+                "the session token must never be logged, in a span or an event: {event}"
+            );
+        }
     }
 
     #[tokio::test]
