@@ -5,6 +5,44 @@ use uuid::Uuid;
 
 use super::{Account, AccountType, DisplayName, NewAccount};
 
+// `nutype` cannot derive the sqlx traits, so the three that let a
+// `DisplayName` cross the database boundary are written by hand here, next to
+// the queries that use them. Together they make the reader — not the table,
+// which has no CHECK — the guarantee that a stored display name is valid.
+
+/// A `DisplayName` is a Postgres text value, exactly like the `String` it
+/// wraps.
+impl sqlx::Type<sqlx::Postgres> for DisplayName {
+    fn type_info() -> sqlx::postgres::PgTypeInfo {
+        <String as sqlx::Type<sqlx::Postgres>>::type_info()
+    }
+
+    fn compatible(ty: &sqlx::postgres::PgTypeInfo) -> bool {
+        <String as sqlx::Type<sqlx::Postgres>>::compatible(ty)
+    }
+}
+
+/// Re-validates on the way out of the database: a row that does not pass fails
+/// to decode instead of becoming an unchecked `DisplayName`.
+impl<'r> sqlx::Decode<'r, sqlx::Postgres> for DisplayName {
+    fn decode(value: sqlx::postgres::PgValueRef<'r>) -> Result<Self, sqlx::error::BoxDynError> {
+        let value = <String as sqlx::Decode<'r, sqlx::Postgres>>::decode(value)?;
+        Self::try_new(value).map_err(Into::into)
+    }
+}
+
+/// Lets a query bind the newtype directly, without unwrapping it to a
+/// `String` first.
+impl sqlx::Encode<'_, sqlx::Postgres> for DisplayName {
+    fn encode_by_ref(
+        &self,
+        buf: &mut sqlx::postgres::PgArgumentBuffer,
+    ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
+        let value: &str = self.as_ref();
+        <&str as sqlx::Encode<'_, sqlx::Postgres>>::encode_by_ref(&value, buf)
+    }
+}
+
 /// Inserts an account with any executor — a pool, or the transaction that
 /// registration uses to write an account and its first passkey together.
 pub(crate) async fn insert<'e, E>(executor: E, account: NewAccount) -> Result<Account, sqlx::Error>
