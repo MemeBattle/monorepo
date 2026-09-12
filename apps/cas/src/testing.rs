@@ -23,6 +23,7 @@ use crate::sessions::http::CookieSettings;
 use crate::sessions::{SessionService, SessionToken};
 use crate::webauthn::build_webauthn;
 use crate::webauthn::login::LoginService;
+use crate::webauthn::management::PasskeyManagement;
 use crate::webauthn::registration::{
     Registered, RegistrationService, start_discoverable_registration,
 };
@@ -33,6 +34,7 @@ pub fn test_state(pool: PgPool) -> ApiState {
     ApiState {
         registration: RegistrationService::new(test_webauthn(), pool.clone()),
         login: LoginService::new(test_webauthn(), pool.clone()),
+        passkeys: PasskeyManagement::new(pool.clone()),
         sessions: SessionService::new(pool),
         cookies: CookieSettings::for_origin(&test_origin()),
     }

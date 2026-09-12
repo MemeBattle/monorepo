@@ -11,7 +11,7 @@ mod repository;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-pub use display_name::{DisplayName, DisplayNameError, MAX_DISPLAY_NAME_LENGTH};
+pub use display_name::{DisplayName, DisplayNameError};
 pub use repository::AccountRepository;
 pub(crate) use repository::{get, insert, touch_last_seen};
 
