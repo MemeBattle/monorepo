@@ -30,10 +30,16 @@ current browser since 2023) and in `Origin`.
 
 **(a) A layer on the `/api` router refuses a mutating request that does not
 come from this site or from an allowed origin.** Mutating means any method
-but `GET`, `HEAD` and `OPTIONS`. The layer wraps the whole `/api` router,
-fallback included, so a new endpoint is protected by where it is mounted and
-not by remembering to add anything. `/health` stays outside: read-only, and
-probed by machines that send no browser headers.
+but `GET`, `HEAD` and `OPTIONS`. The layer wraps the whole `/api` router, so a
+new endpoint is protected by where it is mounted and not by remembering to add
+anything. That includes paths `/api` does not know: the `/api` router carries
+a fallback of its own, because a nested router without one leaves unmatched
+paths to the outer router, where this layer never sees them. The fallback
+answers `404` with code `not_found` in the `ApiError` shape, so an unknown
+path under `/api` is part of the same wire contract as the rest of it — and a
+cross-site probe of one is refused before it learns whether the path exists.
+`/health` stays outside: read-only, and probed by machines that send no
+browser headers.
 
 **(b) `Sec-Fetch-Site` is the authority when present.** `same-origin` and
 `none` pass. `none` is a user-initiated request (typed URL, bookmark), which

@@ -36,8 +36,11 @@ impl AllowedOrigins {
     }
 }
 
-/// Wraps every route of `router`, including its fallback, in the check. The
-/// `/api` router goes through here before it is mounted.
+/// Wraps every route of `router` in the check, and the fallback `router`
+/// itself carries — a nested router without one of its own hands unmatched
+/// paths back to the router it is mounted in, where this layer is no longer
+/// in the way, so `/api` brings its own. The `/api` router goes through here
+/// before it is mounted.
 pub fn guard(router: Router, origins: AllowedOrigins) -> Router {
     router.layer(middleware::from_fn_with_state(origins, reject_cross_site))
 }
@@ -356,8 +359,12 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
     }
 
-    /// The layer also covers what the router does not know: a cross-site
-    /// probe of an unknown path is told nothing but 403.
+    /// The layer covers the router's fallback as well as its routes, so a
+    /// cross-site probe of an unknown path is told nothing but 403. This
+    /// holds for the router handed to `guard`; that the mounted `/api` router
+    /// has a fallback of its own to be covered here is what
+    /// `crate::http::tests::a_cross_site_probe_of_an_unknown_api_path_is_forbidden`
+    /// checks, through the real composition.
     #[tokio::test]
     async fn the_fallback_is_guarded_too() {
         let response = app()

@@ -1,3 +1,4 @@
+use axum::{ServiceExt, extract::Request};
 use tokio::net::TcpListener;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -61,7 +62,11 @@ async fn main() -> miette::Result<()> {
         config.database_url.clone(),
     ));
 
-    axum::serve(listener, cas::http::app(config).map_err(CasError::App)?)
+    // The app is a `Router` behind path normalization (see `cas::http::app`),
+    // so it is `axum::ServiceExt`, not `Router`, that turns it into a
+    // service factory.
+    let app = cas::http::app(config).map_err(CasError::App)?;
+    axum::serve(listener, ServiceExt::<Request>::into_make_service(app))
         .await
         .map_err(CasError::Io)?;
 

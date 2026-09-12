@@ -14,10 +14,13 @@ use axum::{
 };
 use sqlx::postgres::PgPoolOptions;
 use thiserror::Error;
+use tower::Layer;
 use tower::ServiceBuilder;
 use tower_http::{
     catch_panic::CatchPanicLayer,
     cors::{AllowOrigin, CorsLayer},
+    normalize_path::{NormalizePath, NormalizePathLayer},
+    set_header::SetResponseHeaderLayer,
     trace::{self, TraceLayer},
 };
 use tracing::Level;
@@ -55,7 +58,16 @@ pub struct ApiState {
     pub cookies: CookieSettings,
 }
 
-pub fn app(config: Config) -> Result<Router, AppError> {
+/// The whole service: the routers behind their middleware, with trailing
+/// slashes trimmed before routing. `NormalizePath` wraps the `Router` from
+/// the outside rather than through `Router::layer`, because routing has
+/// already happened by the time a `Router::layer` middleware runs; from the
+/// outside, `/api/` becomes `/api` and lands on the `/api` router's own
+/// fallback, behind its layers, instead of falling through to the outer
+/// router (a nested router's catch-all does not match an empty rest, so the
+/// slash-terminated prefix alone escaped it). `/api/me/` is `/api/me`, and
+/// nothing served here gives a trailing slash a meaning of its own.
+pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
     // Lazy pool: connections open on first use, so startup succeeds even when
     // the DB is down and `/health` reports the actual connectivity.
     let pool = PgPoolOptions::new()
@@ -77,19 +89,47 @@ pub fn app(config: Config) -> Result<Router, AppError> {
         api_router(api_state, AllowedOrigins::new(config.cors_origins.clone())),
     );
 
-    Ok(with_middleware(router, config.cors_origins))
+    Ok(NormalizePathLayer::trim_trailing_slash()
+        .layer(with_middleware(router, config.cors_origins)))
 }
 
 /// Everything under `/api`: the contexts' routers, re-sending the session
 /// cookie when a request renewed its session (ADR 0004), behind the CSRF
-/// line (ADR 0005). `/health` stays outside: it is read-only and probed by
-/// machines that send no browser headers.
+/// line (ADR 0005), every answer marked uncacheable (ADR 0004 (i)).
+/// `/health` stays outside all of it: it is read-only and probed by machines
+/// that send no browser headers, and nothing it says is bound to a session.
+///
+/// `no-store` is a layer on the router rather than a header each handler
+/// sets, because it has to hold for every answer under `/api` — an account,
+/// a ceremony challenge, a validation error, a 403 from the CSRF line, a
+/// path that does not exist — and a new endpoint must be covered by where it
+/// is mounted. It wraps the CSRF line from the outside so that the layer's
+/// own refusals carry it too.
 fn api_router(state: ApiState, origins: AllowedOrigins) -> Router {
     let api = Router::new()
         .nest("/webauthn", webauthn_http::router(state.clone()))
-        .merge(sessions_http::router(state));
+        .merge(sessions_http::router(state))
+        .fallback(not_found);
 
-    fetch_metadata::guard(sessions_http::with_cookie_renewal(api), origins)
+    fetch_metadata::guard(sessions_http::with_cookie_renewal(api), origins).layer(
+        SetResponseHeaderLayer::overriding(
+            header::CACHE_CONTROL,
+            HeaderValue::from_static("no-store"),
+        ),
+    )
+}
+
+/// The answer for a path under `/api` that does not exist.
+///
+/// It is here so that the `/api` router owns a fallback at all: `Router::layer`
+/// wraps a router's routes and its fallback, but a nested router without one
+/// leaves unmatched paths to the outer router, where neither the CSRF line nor
+/// `no-store` can see them. With this, "everything under `/api`" means every
+/// path under `/api` and not merely every registered one, and an unknown path
+/// answers in the same `ApiError` shape as the rest of the API instead of a
+/// bare framework 404.
+async fn not_found() -> ApiError {
+    ApiError::not_found("not_found", "Not found")
 }
 
 /// Applies the middleware stack. Must be called after all routes are
@@ -380,5 +420,203 @@ mod tests {
         let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
         assert_eq!(body["error"]["code"], "internal_error");
         assert_eq!(body["error"]["message"], "Internal server error");
+    }
+
+    fn cache_control(response: &Response) -> Option<&str> {
+        response
+            .headers()
+            .get(header::CACHE_CONTROL)
+            .map(|value| value.to_str().unwrap())
+    }
+
+    /// Nothing under `/api` is cacheable, whatever it answers: the 401 for a
+    /// missing session and a 422 for a malformed ceremony body are marked
+    /// just as a successful answer is. Both requests fail before any query,
+    /// so no database is needed.
+    #[tokio::test]
+    async fn every_api_answer_is_no_store_including_the_error_ones() {
+        let app = app(test_config()).unwrap();
+
+        let me = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/me")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(me.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(cache_control(&me), Some("no-store"));
+
+        let login = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/webauthn/verify-login")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(r#"{"loginId":"not-a-uuid","response":{}}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(login.status(), StatusCode::UNPROCESSABLE_ENTITY);
+        assert_eq!(cache_control(&login), Some("no-store"));
+    }
+
+    /// A cross-site refusal is a response like any other and must not be
+    /// cached either, which is why the layer wraps the CSRF line.
+    #[tokio::test]
+    async fn a_cross_site_refusal_is_no_store_too() {
+        let response = app(test_config())
+            .unwrap()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/logout")
+                    .header("sec-fetch-site", "cross-site")
+                    .header(header::ORIGIN, OTHER_ORIGIN)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        assert_eq!(cache_control(&response), Some("no-store"));
+    }
+
+    /// The layer is on `/api` alone. `/health` says nothing about a session
+    /// and is left to whatever caches its probes, and a path outside `/api`
+    /// is still the outer router's plain 404.
+    #[tokio::test]
+    async fn nothing_outside_api_is_marked_no_store() {
+        let app = app(test_config()).unwrap();
+
+        for uri in ["/health", "/nowhere"] {
+            let response = app
+                .clone()
+                .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+                .await
+                .unwrap();
+
+            assert_eq!(cache_control(&response), None, "{uri}");
+        }
+    }
+
+    /// The answer that actually carries session-bound data: a 200 `/api/me`
+    /// for a live session must not be cached by a shared cache or replayed
+    /// by the back button.
+    #[sqlx::test]
+    async fn a_successful_me_is_no_store(pool: PgPool) {
+        let cookie = signed_in(&pool).await;
+
+        let response = api_router(test_state(pool), allowed_origins())
+            .oneshot(
+                Request::builder()
+                    .uri("/me")
+                    .header(header::COOKIE, &cookie)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(cache_control(&response), Some("no-store"));
+    }
+
+    /// The `/api` router answers for its own unknown paths, so they are
+    /// covered by its layers and answer in the shape the rest of the API
+    /// uses. The webauthn prefix is nested inside the nested `/api`, and an
+    /// unknown path under it lands on the same fallback.
+    #[tokio::test]
+    async fn an_unknown_api_path_is_a_not_found_in_the_error_shape() {
+        let app = app(test_config()).unwrap();
+
+        for uri in ["/api/nowhere", "/api/webauthn/nowhere"] {
+            let response = app
+                .clone()
+                .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+                .await
+                .unwrap();
+
+            assert_eq!(response.status(), StatusCode::NOT_FOUND, "{uri}");
+            assert_eq!(cache_control(&response), Some("no-store"), "{uri}");
+            let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+            let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+            assert_eq!(body["error"]["code"], "not_found", "{uri}");
+        }
+    }
+
+    /// A trailing slash is trimmed before routing: `/api/` is the `/api`
+    /// router's own 404 behind its layers, not the outer router's, and
+    /// `/api/me/` reaches `/api/me`. Without the normalization, `/api/` alone
+    /// escaped the nested router, since its catch-all does not match an
+    /// empty rest.
+    #[tokio::test]
+    async fn a_trailing_slash_names_the_same_route() {
+        let app = app(test_config()).unwrap();
+
+        for uri in ["/api", "/api/"] {
+            let response = app
+                .clone()
+                .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+                .await
+                .unwrap();
+
+            assert_eq!(response.status(), StatusCode::NOT_FOUND, "{uri}");
+            assert_eq!(cache_control(&response), Some("no-store"), "{uri}");
+            let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+            let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+            assert_eq!(body["error"]["code"], "not_found", "{uri}");
+        }
+
+        let me = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/me/")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            me.status(),
+            StatusCode::UNAUTHORIZED,
+            "the route itself, not a 404"
+        );
+    }
+
+    /// What the fallback is really for: a cross-site probe of a path that
+    /// does not exist is turned away by the CSRF line as a registered route
+    /// would be. Without a fallback of its own the `/api` router would hand
+    /// the request to the outer router's 404, outside the layer.
+    #[tokio::test]
+    async fn a_cross_site_probe_of_an_unknown_api_path_is_forbidden() {
+        let app = app(test_config()).unwrap();
+
+        for uri in ["/api/", "/api/nowhere", "/api/webauthn/nowhere"] {
+            let response = app
+                .clone()
+                .oneshot(
+                    Request::builder()
+                        .method("POST")
+                        .uri(uri)
+                        .header("sec-fetch-site", "cross-site")
+                        .header(header::ORIGIN, OTHER_ORIGIN)
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(response.status(), StatusCode::FORBIDDEN, "{uri}");
+            assert_eq!(cache_control(&response), Some("no-store"), "{uri}");
+            let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+            let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+            assert_eq!(body["error"]["code"], "cross_site_request", "{uri}");
+        }
     }
 }

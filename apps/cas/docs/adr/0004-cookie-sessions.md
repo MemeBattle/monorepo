@@ -111,6 +111,29 @@ the response, a layer on the `/api` router carries the renewed cookie out:
 the extractor leaves it in a per-request slot, the layer sets it on the way
 back. A handler that sets the session cookie itself wins over the layer.
 
+**(i) Every `/api` response is `Cache-Control: no-store`, and logout asks
+the browser to forget what it holds for this origin.** Everything under `/api` is either bound to
+a session — the account, its expiry — or a step of a ceremony, and none of it
+may be held by a shared cache or replayed by the back button after the
+browser has been handed to someone else. So it is a layer on the `/api`
+router rather than a header per handler: the guarantee holds for every
+answer, the 401s and 422s, the CSRF line's own 403s and the 404 for a path
+that does not exist included, and a new endpoint inherits it from where it is
+mounted. It holds for unknown paths because the `/api` router has a fallback
+of its own, which ADR 0005 (a) describes, and for `/api/` because trailing
+slashes are trimmed before routing. `/health` stays outside, as it does for
+the CSRF line. `POST /api/logout` answers additionally with
+`Clear-Site-Data: "cache", "storage"`, both scoped to this origin; `storage`
+is free, because CAS keeps nothing client-side. The `cookies` directive that
+[#698](https://github.com/MemeBattle/monorepo/issues/698) asked for is left
+out on purpose: the specification clears cookies for the whole registrable
+domain, siblings included, so a CAS logout on `cas.mems.fun` would sign the
+browser out of the game hub, the blog and every other application on
+`mems.fun`. Ending sessions elsewhere is RP-initiated logout (M2), a
+deliberate act, not a side effect of leaving the dashboard. The session
+cookie is removed by the explicit removal cookie, which is what a browser
+without `Clear-Site-Data` has to go on anyway. Added with #698.
+
 ## Consequences
 
 - `GET /api/me` answers with the account (id, display name, type, email) and
@@ -138,7 +161,8 @@ back. A handler that sets the session cookie itself wins over the layer.
   done in ADR 0005), the timeout decision ([#697](https://github.com/MemeBattle/monorepo/issues/697),
   done in (c) above),
   `Cache-Control: no-store` and `Clear-Site-Data`
-  ([#698](https://github.com/MemeBattle/monorepo/issues/698)), session
-  lifecycle logging ([#699](https://github.com/MemeBattle/monorepo/issues/699))
-  and the `__Host-` cookie prefix
+  ([#698](https://github.com/MemeBattle/monorepo/issues/698), done in (i)
+  above), session lifecycle logging
+  ([#699](https://github.com/MemeBattle/monorepo/issues/699)) and the
+  `__Host-` cookie prefix
   ([#700](https://github.com/MemeBattle/monorepo/issues/700)).
