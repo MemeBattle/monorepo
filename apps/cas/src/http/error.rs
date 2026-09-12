@@ -37,6 +37,10 @@ impl ApiError {
         Self::client(StatusCode::UNAUTHORIZED, code, message)
     }
 
+    pub fn forbidden(code: &'static str, message: impl Into<String>) -> Self {
+        Self::client(StatusCode::FORBIDDEN, code, message)
+    }
+
     pub fn not_found(code: &'static str, message: impl Into<String>) -> Self {
         Self::client(StatusCode::NOT_FOUND, code, message)
     }

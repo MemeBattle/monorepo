@@ -60,8 +60,8 @@ change. It has one known gap: `POST /api/logout` takes no body, so a cross-site
 HTML form can reach it and only `SameSite=Lax` stands in the way. OWASP counts
 `SameSite` as defence in depth, not as a defence on its own. The exposure is a
 forced sign-out, nothing more, and it is closed by a Fetch Metadata / `Origin`
-check on every mutating request in
-[#696](https://github.com/MemeBattle/monorepo/issues/696), which also covers
+check on every mutating request (ADR 0005, from
+[#696](https://github.com/MemeBattle/monorepo/issues/696)), which also covers
 body-less endpoints to come (passkey delete, #668).
 
 **(f) Registration and login sign the account in.** Their finish handlers
@@ -101,8 +101,8 @@ context's transport and is the one thing other contexts import from it.
 - The session id is the row's identity for the future management screen; the
   token never identifies a session anywhere but in the lookup.
 - Hardening that OWASP recommends and this change leaves out is tracked
-  separately: the CSRF layer ([#696](https://github.com/MemeBattle/monorepo/issues/696)),
-  the timeout decision ([#697](https://github.com/MemeBattle/monorepo/issues/697)),
+  separately: the CSRF layer ([#696](https://github.com/MemeBattle/monorepo/issues/696),
+  done in ADR 0005), the timeout decision ([#697](https://github.com/MemeBattle/monorepo/issues/697)),
   `Cache-Control: no-store` and `Clear-Site-Data`
   ([#698](https://github.com/MemeBattle/monorepo/issues/698)), session
   lifecycle logging ([#699](https://github.com/MemeBattle/monorepo/issues/699))

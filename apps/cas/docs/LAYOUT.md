@@ -20,6 +20,7 @@ apps/cas/
     http/              transport root: mounts the contexts, owns the wire contract
       mod.rs           router, middleware stack, pool construction
       error.rs         ApiError, the error contract on the wire
+      fetch_metadata.rs  the CSRF line on /api (ADR 0005)
     <context>/         one directory per bounded context (accounts, webauthn, ...)
       mod.rs           domain types, invariants, re-exports
       <concept>.rs     more domain: newtypes, states, rules
