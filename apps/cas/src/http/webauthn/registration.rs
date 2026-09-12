@@ -129,8 +129,9 @@ mod tests {
     use crate::http::webauthn::router;
     use crate::testing::{soft_passkey_registration, test_webauthn};
     use crate::webauthn::CEREMONY_TIMEOUT;
-    use crate::webauthn::passkeys::{DEFAULT_PASSKEY_NAME, PasskeyRepository};
+    use crate::webauthn::passkeys::DEFAULT_PASSKEY_NAME;
     use crate::webauthn::registration::RegistrationService;
+    use crate::webauthn::repository::PasskeyRepository;
 
     fn test_app(pool: PgPool) -> Router {
         router(ApiState {

@@ -15,8 +15,9 @@ use webauthn_rs::prelude::{
 };
 
 use crate::accounts::{Account, DisplayName, NewAccount};
-use crate::webauthn::ceremonies::{self, PendingRegistration, Taken};
-use crate::webauthn::passkeys::{self, CreateError, DEFAULT_PASSKEY_NAME, PasskeyCredential};
+use crate::webauthn::ceremonies::{PendingRegistration, Taken};
+use crate::webauthn::passkeys::{CreateError, DEFAULT_PASSKEY_NAME, PasskeyCredential};
+use crate::webauthn::repository;
 
 #[derive(Debug, Error)]
 pub enum StartError {
@@ -104,7 +105,7 @@ impl RegistrationService {
             .start_passkey_registration(account_id, &display_name, &display_name, None)
             .map_err(StartError::Webauthn)?;
 
-        let registration_id = ceremonies::start(
+        let registration_id = repository::start_ceremony(
             &self.pool,
             &PendingRegistration {
                 account_id,
@@ -134,18 +135,18 @@ impl RegistrationService {
     ) -> Result<Registered, FinishError> {
         let mut tx = self.pool.begin().await?;
 
-        let pending: PendingRegistration = match ceremonies::take(&mut *tx, registration_id).await?
-        {
-            Taken::Found(pending) => pending,
-            // The row was found and deleted, only its state was unusable. The
-            // commit is what makes the deletion stick: rolling back here would
-            // hand the same unusable row to every retry until it expires.
-            Taken::Undecodable => {
-                tx.commit().await?;
-                return Err(FinishError::NotFound);
-            }
-            Taken::Missing => return Err(FinishError::NotFound),
-        };
+        let pending: PendingRegistration =
+            match repository::take_ceremony(&mut *tx, registration_id).await? {
+                Taken::Found(pending) => pending,
+                // The row was found and deleted, only its state was unusable. The
+                // commit is what makes the deletion stick: rolling back here would
+                // hand the same unusable row to every retry until it expires.
+                Taken::Undecodable => {
+                    tx.commit().await?;
+                    return Err(FinishError::NotFound);
+                }
+                Taken::Missing => return Err(FinishError::NotFound),
+            };
 
         let passkey = match self
             .webauthn
@@ -159,8 +160,13 @@ impl RegistrationService {
         };
 
         let account = NewAccount::full(pending.display_name).with_id(pending.account_id);
-        let (account, credential) =
-            passkeys::create_with_account(&mut tx, account, &passkey, DEFAULT_PASSKEY_NAME).await?;
+        let (account, credential) = repository::create_passkey_with_account(
+            &mut tx,
+            account,
+            &passkey,
+            DEFAULT_PASSKEY_NAME,
+        )
+        .await?;
 
         tx.commit().await?;
 
@@ -176,7 +182,7 @@ mod tests {
     use super::*;
     use crate::accounts::AccountRepository;
     use crate::testing::{display_name, soft_passkey_registration, test_webauthn};
-    use crate::webauthn::passkeys::PasskeyRepository;
+    use crate::webauthn::repository::PasskeyRepository;
 
     fn service(pool: PgPool) -> RegistrationService {
         RegistrationService::new(test_webauthn(), pool)

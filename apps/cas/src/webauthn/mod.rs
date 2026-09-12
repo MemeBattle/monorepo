@@ -1,6 +1,7 @@
 //! WebAuthn — the passkey bounded context: the ceremonies the server remembers
 //! between two requests ([`ceremonies`]), the registration flow that drives them
-//! ([`registration`]) and the credentials it stores ([`passkeys`]).
+//! ([`registration`]), the credentials it stores ([`passkeys`]) and the queries
+//! behind all of it ([`repository`]).
 
 use std::time::Duration;
 
@@ -9,9 +10,10 @@ use webauthn_rs::prelude::{Url, Webauthn, WebauthnBuilder, WebauthnError};
 pub mod ceremonies;
 pub mod passkeys;
 pub mod registration;
+pub mod repository;
 
 /// How long the browser is given to complete a ceremony. [`build_webauthn`]
-/// puts it into every challenge, and [`ceremonies::start`] derives the row's
+/// puts it into every challenge, and [`repository::start_ceremony`] derives the row's
 /// expiry from it, so the server and the browser count down from one number.
 pub const CEREMONY_TIMEOUT: Duration = webauthn_rs::DEFAULT_AUTHENTICATOR_TIMEOUT;
 
