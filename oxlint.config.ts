@@ -23,6 +23,15 @@ export default defineConfig({
         'react-hooks/rules-of-hooks': 'off',
       },
     },
+    {
+      // cas-frontend builds with the React Compiler on (`react({ compiler: true })`),
+      // so the compiler's own rules apply there and nowhere else. The rule is in the
+      // correctness category, which this config turns off globally.
+      files: ['apps/cas-frontend/**'],
+      rules: {
+        'react/react-compiler': 'error',
+      },
+    },
   ],
   rules: {
     'typescript/adjacent-overload-signatures': 'error',

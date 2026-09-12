@@ -75,6 +75,7 @@ catalog:
   '@storybook/react-vite': ^10.6.0
   '@tailwindcss/postcss': ^4.3.3
   '@tailwindcss/typography': ^0.5.20
+  '@tailwindcss/vite': ^4.3.3
   '@testing-library/react': ^16.3.2
   '@types/amplitude-js': 8.16.5
   '@types/hast': ^3.0.5
@@ -113,6 +114,7 @@ catalog:
   nanoid: ^6.0.0
   negotiator: ^1.0.0
   next: ^16.3.3
+  oxc-transform-react: ^0.148.0
   oxfmt: ^0.60.0
   oxlint: ^1.75.0
   oxlint-tsgolint: ^7.0.2001
