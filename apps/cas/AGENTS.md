@@ -3,8 +3,9 @@
 Rust (axum) authentication service.
 
 - [docs/LAYOUT.md](./docs/LAYOUT.md) — where code lives: one directory per
-  bounded context, SQL only in `repository.rs`, axum only in `http/`, shared
-  infrastructure that knows no context.
+  bounded context with its own `repository.rs` (the only SQL) and `http/`
+  (the only axum), a transport root that mounts them, shared infrastructure
+  that knows no context.
 - [docs/MIGRATIONS.md](./docs/MIGRATIONS.md) — migration workflow: sqlx,
   `cas-migrate`, immutability, expand/contract.
 - [docs/QUERIES.md](./docs/QUERIES.md) — SQL queries and the offline cache.

@@ -1,4 +1,5 @@
-//! `/api/webauthn` — the passkey ceremony endpoints.
+//! `/api/webauthn` — the passkey ceremony endpoints. Mounted by the transport
+//! root in `crate::http`; the only part of the context that knows axum.
 
 pub mod registration;
 

@@ -17,22 +17,22 @@ apps/cas/
     db.rs              │ shared infrastructure: knows no context
     migrations.rs      ┘
     testing.rs         test helpers, cfg(test) only
-    http/              transport: the only place axum exists
+    http/              transport root: mounts the contexts, owns the wire contract
       mod.rs           router, middleware stack, pool construction
       error.rs         ApiError, the error contract on the wire
-      <context>/       handlers of a context, with `From<DomainError> for ApiError`
     <context>/         one directory per bounded context (accounts, webauthn, ...)
       mod.rs           domain types, invariants, re-exports
       <concept>.rs     more domain: newtypes, states, rules
       <flow>.rs        services: use cases, orchestration, transaction ownership
       repository.rs    all SQL of the context and all sqlx impls for its types
+      http/            the context's handlers, with `From<DomainError> for ApiError`
 ```
 
 ## Layers
 
 Each rule says what a layer is for and what it must not touch.
 
-1. **Domain** — everything in `<context>/` except `repository.rs`. Types,
+1. **Domain** — everything in `<context>/` except `repository.rs` and `http/`. Types,
    invariants, errors. Never imports axum, never writes SQL, never implements
    the sqlx traits by hand. One exception: an enum that mirrors a Postgres enum
    carries `#[derive(sqlx::Type)]` with its `type_name`. Writing that by hand
@@ -50,15 +50,18 @@ Each rule says what a layer is for and what it must not touch.
    an executor rather than a pool, so a service can compose one transaction
    out of several repositories. When the file outgrows itself it becomes a
    `repository/` directory; the name stays so that it can be grepped.
-4. **Transport** — `http/`. Parses the request, calls a service, maps the
-   domain error to `ApiError`. Mirrors the contexts: `http/<context>/`. The
-   mapping `From<DomainError> for ApiError` lives next to the handler it
-   serves. Nothing below `http/` knows about axum.
+4. **Transport** — `http/` at the crate root and `<context>/http/`. The root
+   owns what is shared on the wire: the router, the middleware stack,
+   `ApiError`, the extractors. A context's handlers live inside the context,
+   parse the request, call a service and map the domain error to `ApiError`;
+   the mapping `From<DomainError> for ApiError` sits next to the handler it
+   serves. The root mounts each context's router and never reaches past it.
+   axum exists nowhere but these two places.
 5. **Shared infrastructure** — `config`, `db`, `migrations`. Used by both
    binaries, knows no context. `db` classifies database failures (unavailable,
    busy, or a bug the code has no name for); a transport only maps that verdict
    to a status.
-6. **Dependency direction** — `http → services → repository → db`. Domain types
+6. **Dependency direction** — `http → <context>/http → services → repository → db`. Domain types
    are visible to every layer. Contexts talk to each other through their public
    types and services, never through another context's repository.
 7. **Tests** live next to the code. Repositories and services are tested with

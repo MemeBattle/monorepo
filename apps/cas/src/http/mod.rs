@@ -1,10 +1,10 @@
-//! HTTP transport: the router, the middleware stack and the error contract the
-//! domain modules are mapped onto. Nothing below this module knows about axum.
+//! HTTP transport root: the router, the middleware stack and the error
+//! contract the contexts are mapped onto. The handlers themselves live with
+//! their context, in `<context>/http`; this module only mounts them.
 
 pub mod error;
-mod extract;
+pub(crate) mod extract;
 mod health;
-pub mod webauthn;
 
 use axum::{
     Router,
@@ -24,6 +24,7 @@ use tracing::Level;
 use crate::config::Config;
 use crate::http::error::ApiError;
 use crate::webauthn::build_webauthn;
+use crate::webauthn::http as webauthn_http;
 use crate::webauthn::registration::RegistrationService;
 
 /// Why the router could not be built. Everything here fails at startup, before
@@ -61,7 +62,7 @@ pub fn app(config: Config) -> Result<Router, AppError> {
 
     let router = Router::new()
         .merge(health::router(pool))
-        .nest("/api/webauthn", webauthn::router(api_state));
+        .nest("/api/webauthn", webauthn_http::router(api_state));
 
     Ok(with_middleware(router, config.cors_origins))
 }

@@ -126,9 +126,9 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::accounts::{AccountRepository, AccountType};
-    use crate::http::webauthn::router;
     use crate::testing::{soft_passkey_registration, test_webauthn};
     use crate::webauthn::CEREMONY_TIMEOUT;
+    use crate::webauthn::http::router;
     use crate::webauthn::passkeys::DEFAULT_PASSKEY_NAME;
     use crate::webauthn::registration::RegistrationService;
     use crate::webauthn::repository::PasskeyRepository;

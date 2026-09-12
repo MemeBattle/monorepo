@@ -1,13 +1,14 @@
 //! WebAuthn — the passkey bounded context: the ceremonies the server remembers
 //! between two requests ([`ceremonies`]), the registration flow that drives them
-//! ([`registration`]), the credentials it stores ([`passkeys`]) and the queries
-//! behind all of it ([`repository`]).
+//! ([`registration`]), the credentials it stores ([`passkeys`]), the queries
+//! behind all of it ([`repository`]) and the endpoints that expose it ([`http`]).
 
 use std::time::Duration;
 
 use webauthn_rs::prelude::{Url, Webauthn, WebauthnBuilder, WebauthnError};
 
 pub mod ceremonies;
+pub mod http;
 pub mod passkeys;
 pub mod registration;
 pub mod repository;
