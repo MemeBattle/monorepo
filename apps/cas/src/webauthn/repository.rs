@@ -178,6 +178,70 @@ impl PasskeyRepository {
     }
 }
 
+/// The passkey a login assertion names, locked for the rest of the caller's
+/// transaction. Login reads the counter, verifies the assertion against it and
+/// writes the new counter back; the row lock serialises two logins with the
+/// same credential so the second one sees the first one's counter instead of
+/// the value both started from. `Ok(None)` means no such credential.
+pub async fn find_passkey_for_update<'e, E>(
+    executor: E,
+    credential_id: &[u8],
+) -> Result<Option<PasskeyCredential>, sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    sqlx::query_as!(
+        PasskeyRow,
+        r#"SELECT
+               id,
+               account_id,
+               credential_id,
+               credential AS "credential: Json<Passkey>",
+               name,
+               created_at,
+               last_used_at
+           FROM passkey_credentials
+           WHERE credential_id = $1
+           FOR UPDATE"#,
+        credential_id,
+    )
+    .fetch_optional(executor)
+    .await
+    .map(|row| row.map(Into::into))
+}
+
+/// Records a successful login with a passkey: stores the credential as the
+/// verifier updated it (signature counter, backup flags) and stamps
+/// `last_used_at` with the database clock. Returns the row as stored.
+pub async fn record_passkey_use<'e, E>(
+    executor: E,
+    id: Uuid,
+    passkey: &Passkey,
+) -> Result<PasskeyCredential, sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    sqlx::query_as!(
+        PasskeyRow,
+        r#"UPDATE passkey_credentials
+           SET credential = $2, last_used_at = now()
+           WHERE id = $1
+           RETURNING
+               id,
+               account_id,
+               credential_id,
+               credential AS "credential: Json<Passkey>",
+               name,
+               created_at,
+               last_used_at"#,
+        id,
+        Json(passkey) as _,
+    )
+    .fetch_one(executor)
+    .await
+    .map(Into::into)
+}
+
 /// Writes an account and its first passkey on the caller's connection, meant
 /// to be a transaction: an account without a credential could never be signed
 /// into, so both rows are written or neither.
@@ -477,6 +541,70 @@ mod passkey_tests {
         assert!(matches!(error, CreateError::CredentialAlreadyRegistered));
         let orphan = AccountRepository::new(pool).get(second_id).await.unwrap();
         assert_eq!(orphan, None);
+    }
+
+    #[sqlx::test]
+    async fn find_for_update_returns_the_passkey_by_its_credential_id(pool: PgPool) {
+        let passkey = test_passkey();
+        let (account, created) =
+            create_committed(&pool, NewAccount::full(display_name("Ada")), &passkey)
+                .await
+                .unwrap();
+
+        let found = find_passkey_for_update(&pool, passkey.cred_id().as_ref())
+            .await
+            .unwrap()
+            .expect("the credential was just stored");
+
+        assert_eq!(found.id, created.id);
+        assert_eq!(found.account_id, account.id);
+        assert_eq!(
+            serde_json::to_value(&found.passkey).unwrap(),
+            serde_json::to_value(&passkey).unwrap()
+        );
+    }
+
+    #[sqlx::test]
+    async fn find_for_update_is_none_for_an_unknown_credential(pool: PgPool) {
+        let found = find_passkey_for_update(&pool, b"never registered")
+            .await
+            .unwrap();
+
+        assert!(found.is_none());
+    }
+
+    #[sqlx::test]
+    async fn record_use_stores_the_updated_credential_and_the_time(pool: PgPool) {
+        let passkey = test_passkey();
+        let (_, created) = create_committed(&pool, NewAccount::full(display_name("Ada")), &passkey)
+            .await
+            .unwrap();
+        // The credential as the verifier hands it back after an assertion: the
+        // same key with a moved counter. Edited through the serde form because
+        // the counter has no setter; the path is the one jsonb holds.
+        let mut updated = serde_json::to_value(&passkey).unwrap();
+        updated["cred"]["counter"] = serde_json::json!(42);
+        let updated: Passkey = serde_json::from_value(updated).unwrap();
+
+        let used = record_passkey_use(&pool, created.id, &updated)
+            .await
+            .unwrap();
+
+        assert_eq!(used.id, created.id);
+        assert!(used.last_used_at.is_some());
+        let stored = find_passkey_for_update(&pool, passkey.cred_id().as_ref())
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(stored.last_used_at, used.last_used_at);
+        assert_eq!(
+            serde_json::to_value(&stored.passkey).unwrap(),
+            serde_json::to_value(&updated).unwrap()
+        );
+        assert_eq!(
+            serde_json::to_value(&stored.passkey).unwrap()["cred"]["counter"],
+            42
+        );
     }
 
     #[sqlx::test]

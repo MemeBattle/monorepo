@@ -1,6 +1,6 @@
 import './style.css'
 
-import { startRegistration } from '@simplewebauthn/browser'
+import { startAuthentication, startRegistration } from '@simplewebauthn/browser'
 
 const API_URL = 'http://localhost:3000'
 
@@ -14,6 +14,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 
     <button id="register">Start Registration</button>
 
+    <button id="login">Sign in with a passkey</button>
+
     <br />
 
     <div id="success"></div>
@@ -22,13 +24,63 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 `
 
 const elemRegister = document.getElementById('register')
+const elemLogin = document.getElementById('login')
 const elemDisplayName = document.getElementById('displayName') as HTMLInputElement | null
 const elemSuccess = document.getElementById('success')
 const elemError = document.getElementById('error')
 
-if (!elemRegister || !elemDisplayName || !elemSuccess || !elemError) {
+if (!elemRegister || !elemLogin || !elemDisplayName || !elemSuccess || !elemError) {
   throw new Error('Register form not found')
 }
+
+// Sign-in asks for nothing: the browser lists the passkeys it holds for this
+// relying party and the chosen one names the account.
+elemLogin.addEventListener('click', async () => {
+  elemSuccess.innerHTML = ''
+  elemError.innerHTML = ''
+
+  const optionsResponse = await fetch(`${API_URL}/api/webauthn/login-options`, {
+    method: 'POST',
+  })
+
+  const optionsResponseJSON = await optionsResponse.json()
+  if (!optionsResponse.ok) {
+    elemError.innerHTML = `Could not start sign-in: <pre>${JSON.stringify(optionsResponseJSON)}</pre>`
+    return
+  }
+  const optionsJSON = optionsResponseJSON.rcr.publicKey
+  const loginId = optionsResponseJSON.loginId
+
+  let asseResp
+  try {
+    asseResp = await startAuthentication({ optionsJSON })
+  } catch (error) {
+    console.error(error)
+    elemError.innerText = error instanceof Error ? error.message : String(error)
+    throw error
+  }
+
+  const verificationResp = await fetch(`${API_URL}/api/webauthn/verify-login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      response: asseResp,
+      loginId,
+    }),
+  })
+
+  const verificationJSON = await verificationResp.json()
+
+  if (verificationJSON?.accountId) {
+    elemSuccess.innerHTML = `Signed in! Account: ${verificationJSON.accountId}`
+  } else if (verificationJSON?.error?.code === 'invalid_credential') {
+    elemError.innerText = 'This passkey is not registered here, or the sign-in could not be verified. Register first.'
+  } else {
+    elemError.innerHTML = `Oh no, something went wrong! Response: <pre>${JSON.stringify(verificationJSON)}</pre>`
+  }
+})
 
 elemRegister.addEventListener('click', async () => {
   elemSuccess.innerHTML = ''

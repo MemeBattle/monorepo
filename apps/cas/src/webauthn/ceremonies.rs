@@ -19,7 +19,7 @@
 
 use serde::{Serialize, de::DeserializeOwned};
 use uuid::Uuid;
-use webauthn_rs::prelude::PasskeyRegistration;
+use webauthn_rs::prelude::{DiscoverableAuthentication, PasskeyRegistration};
 
 use crate::accounts::DisplayName;
 
@@ -31,7 +31,6 @@ use crate::accounts::DisplayName;
 #[sqlx(type_name = "webauthn_ceremony_kind", rename_all = "lowercase")]
 pub enum CeremonyKind {
     Registration,
-    /// Reserved for login (#666).
     Authentication,
 }
 
@@ -78,4 +77,15 @@ pub struct PendingRegistration {
 
 impl Ceremony for PendingRegistration {
     const KIND: CeremonyKind = CeremonyKind::Registration;
+}
+
+/// A login in flight. It carries no account: the challenge goes out without
+/// `allowCredentials`, and only the assertion says which account signed it.
+#[derive(Debug, Serialize, serde::Deserialize)]
+pub struct PendingLogin {
+    pub state: DiscoverableAuthentication,
+}
+
+impl Ceremony for PendingLogin {
+    const KIND: CeremonyKind = CeremonyKind::Authentication;
 }

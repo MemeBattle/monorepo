@@ -25,6 +25,7 @@ use crate::config::Config;
 use crate::http::error::ApiError;
 use crate::webauthn::build_webauthn;
 use crate::webauthn::http as webauthn_http;
+use crate::webauthn::login::LoginService;
 use crate::webauthn::registration::RegistrationService;
 
 /// Why the router could not be built. Everything here fails at startup, before
@@ -44,6 +45,7 @@ pub enum AppError {
 #[derive(Clone)]
 pub struct ApiState {
     pub registration: RegistrationService,
+    pub login: LoginService,
 }
 
 pub fn app(config: Config) -> Result<Router, AppError> {
@@ -57,7 +59,8 @@ pub fn app(config: Config) -> Result<Router, AppError> {
     let webauthn = build_webauthn(&config.rp_id, &config.origin).map_err(AppError::WebauthnInit)?;
 
     let api_state = ApiState {
-        registration: RegistrationService::new(webauthn, pool.clone()),
+        registration: RegistrationService::new(webauthn.clone(), pool.clone()),
+        login: LoginService::new(webauthn, pool.clone()),
     };
 
     let router = Router::new()

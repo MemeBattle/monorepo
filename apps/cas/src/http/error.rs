@@ -33,6 +33,10 @@ impl ApiError {
         Self::client(StatusCode::BAD_REQUEST, code, message)
     }
 
+    pub fn unauthorized(code: &'static str, message: impl Into<String>) -> Self {
+        Self::client(StatusCode::UNAUTHORIZED, code, message)
+    }
+
     pub fn not_found(code: &'static str, message: impl Into<String>) -> Self {
         Self::client(StatusCode::NOT_FOUND, code, message)
     }

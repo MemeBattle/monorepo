@@ -71,6 +71,30 @@ where
     .await
 }
 
+/// Looks an account up by id with any executor, so login can read it inside
+/// the transaction that also records the passkey use. `Ok(None)` means no such
+/// account.
+pub(crate) async fn get<'e, E>(executor: E, id: Uuid) -> Result<Option<Account>, sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    sqlx::query_as!(
+        Account,
+        r#"SELECT
+               id,
+               display_name AS "display_name: DisplayName",
+               type AS "type: AccountType",
+               email,
+               created_at,
+               last_seen_at
+           FROM accounts
+           WHERE id = $1"#,
+        id,
+    )
+    .fetch_optional(executor)
+    .await
+}
+
 /// Data access for `accounts`.
 #[derive(Debug, Clone)]
 pub struct AccountRepository {
@@ -90,21 +114,7 @@ impl AccountRepository {
 
     /// Looks an account up by id. `Ok(None)` means no such account.
     pub async fn get(&self, id: Uuid) -> Result<Option<Account>, sqlx::Error> {
-        sqlx::query_as!(
-            Account,
-            r#"SELECT
-                   id,
-                   display_name AS "display_name: DisplayName",
-                   type AS "type: AccountType",
-                   email,
-                   created_at,
-                   last_seen_at
-               FROM accounts
-               WHERE id = $1"#,
-            id,
-        )
-        .fetch_optional(&self.pool)
-        .await
+        get(&self.pool, id).await
     }
 }
 
