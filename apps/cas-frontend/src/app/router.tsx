@@ -17,8 +17,7 @@ const RootLayout = () => (
   </div>
 )
 
-// Exported separately so tests can mount the same routes in a memory router.
-export const appRoutes: RouteObject[] = [
+const appRoutes: RouteObject[] = [
   {
     path: routes.DASHBOARD,
     element: <RootLayout />,
