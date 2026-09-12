@@ -8,6 +8,7 @@ use std::sync::{Arc, Mutex, Once};
 
 use sqlx::PgPool;
 use tracing::field::{Field, Visit};
+use tracing::span::{Attributes, Id, Record};
 use tracing::subscriber::DefaultGuard;
 use tracing_subscriber::Registry;
 use tracing_subscriber::layer::{Context, Layer, SubscriberExt};
@@ -58,10 +59,14 @@ pub fn session_cookie(response: &axum::response::Response) -> Option<SessionToke
 }
 
 /// Everything `tracing` emitted while the capture was installed, one string
-/// per event: its level, its target, and every field rendered with `Debug`,
-/// the message among them. A test that must prove a secret never reaches a
-/// log searches this text for it, which is the only check that holds however
-/// the event is formatted downstream.
+/// per event and one per span: its level, its target, and every field
+/// rendered with `Debug`, the message among them. Spans are captured because
+/// the production formatter prints an event together with the fields of the
+/// spans it sits in: a request span that carried a header would put that
+/// header on every line logged inside the request, and a capture that saw
+/// events alone would call such a log clean. A test that must prove a secret
+/// never reaches a log searches this text for it, which is the only check
+/// that holds however the output is formatted downstream.
 #[derive(Clone, Default)]
 pub struct CapturedEvents(Arc<Mutex<Vec<String>>>);
 
@@ -130,6 +135,30 @@ impl<S: tracing::Subscriber> Layer<S> for CaptureLayer {
         let metadata = event.metadata();
         let mut rendered = format!("{} {}", metadata.level(), metadata.target());
         event.record(&mut RenderFields(&mut rendered));
+        self.0.record(rendered);
+    }
+
+    /// A span's fields at creation, rendered like an event's. The request
+    /// span of the trace layer is one: its `uri` and, if ever enabled, its
+    /// `headers` are what a formatter would print next to every event of the
+    /// request.
+    fn on_new_span(&self, attrs: &Attributes<'_>, _id: &Id, _ctx: Context<'_, S>) {
+        let metadata = attrs.metadata();
+        let mut rendered = format!(
+            "SPAN {} {} {}",
+            metadata.level(),
+            metadata.target(),
+            metadata.name()
+        );
+        attrs.record(&mut RenderFields(&mut rendered));
+        self.0.record(rendered);
+    }
+
+    /// Fields recorded on a span after creation (`span.record(...)`), which
+    /// a formatter prints exactly like the ones it was created with.
+    fn on_record(&self, _id: &Id, values: &Record<'_>, _ctx: Context<'_, S>) {
+        let mut rendered = "SPAN record".to_owned();
+        values.record(&mut RenderFields(&mut rendered));
         self.0.record(rendered);
     }
 }
@@ -297,4 +326,35 @@ pub fn test_passkey() -> Passkey {
     webauthn
         .finish_passkey_registration(&response, &state.passkey)
         .expect("the software authenticator's answer verifies")
+}
+
+#[cfg(test)]
+mod capture_tests {
+    use super::*;
+
+    /// The capture sees what a formatter would print: the event's own fields
+    /// and the fields of the span it sits in, whether given at creation or
+    /// recorded later. Without that, a secret carried by a request span
+    /// would pass a search of the events alone.
+    #[test]
+    fn a_span_field_is_captured_with_the_events_inside_it() {
+        let (events, _guard) = capture_tracing();
+
+        let span = tracing::info_span!(
+            "request",
+            carried = "span-secret",
+            later = tracing::field::Empty
+        );
+        let _entered = span.enter();
+        span.record("later", "recorded-secret");
+        tracing::info!(own = "event-field", "inside");
+
+        assert!(events.contains("span-secret"), "{:?}", events.all());
+        assert!(events.contains("recorded-secret"), "{:?}", events.all());
+        assert!(events.contains("event-field"), "{:?}", events.all());
+        let [inside] = &events.mentioning("inside")[..] else {
+            panic!("one event: {:?}", events.all());
+        };
+        assert!(inside.starts_with("INFO"), "{inside}");
+    }
 }

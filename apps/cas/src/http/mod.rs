@@ -468,6 +468,50 @@ mod tests {
         }
     }
 
+    /// The other direction: an authenticated request carries the token in
+    /// `Cookie`, and the trace layer's request span is what a formatter
+    /// prints next to every event of that request. Neither the span nor any
+    /// event may hold the header. The capture records span fields, so a
+    /// `DefaultMakeSpan` that included headers would fail here.
+    #[sqlx::test]
+    async fn the_request_trace_does_not_log_the_cookie_header(pool: PgPool) {
+        let cookie = signed_in(&pool).await;
+        let (events, _guard) = capture_tracing();
+        let app = with_middleware(
+            api_router(test_state(pool), allowed_origins()),
+            vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
+        );
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/me")
+                    .header(header::COOKIE, &cookie)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let token = cookie.split_once('=').expect("name=value").1;
+        // The request span was created and captured, with the URI in it, so
+        // the absence below is a statement about what the span carries.
+        let spans = events.mentioning("SPAN");
+        assert!(
+            spans
+                .iter()
+                .any(|span| span.contains("request") && span.contains("/me")),
+            "{spans:?}"
+        );
+        for event in events.all() {
+            assert!(
+                !event.contains(token),
+                "the session token must never be logged, in a span or an event: {event}"
+            );
+        }
+    }
+
     #[tokio::test]
     async fn panicking_handler_returns_api_error_json() {
         async fn panicking() -> &'static str {

@@ -12,7 +12,7 @@
 //! OWASP asks for both to be visible. Neither the cookie value nor its hash
 //! is ever part of an event.
 
-use axum::extract::{FromRef, FromRequestParts};
+use axum::extract::{FromRef, FromRequestParts, OriginalUri};
 use axum::http::request::Parts;
 use axum_extra::extract::CookieJar;
 
@@ -28,6 +28,18 @@ use crate::sessions::{Authenticated, Renewal, SessionToken};
 /// every case: sign in.
 fn unauthenticated() -> ApiError {
     ApiError::unauthorized("unauthenticated", "Sign in to continue")
+}
+
+/// The path as the client sent it. A nested router strips its prefix from
+/// the request URI before an extractor runs, so `parts.uri` inside `/api`
+/// says `/me` where the log needs `/api/me`; axum keeps the original in
+/// [`OriginalUri`]. Outside a nested router there is no extension, and the
+/// URI itself is the original.
+fn original_path(parts: &Parts) -> &str {
+    parts
+        .extensions
+        .get::<OriginalUri>()
+        .map_or(parts.uri.path(), |uri| uri.0.path())
 }
 
 impl<S> FromRequestParts<S> for Authenticated
@@ -58,7 +70,7 @@ where
         // is only worth a `debug`.
         let Some(token) = SessionToken::parse(cookie.value()) else {
             tracing::debug!(
-                path = parts.uri.path(),
+                path = original_path(parts),
                 "session cookie is not a well-formed token"
             );
             return Err(unauthenticated());
@@ -66,7 +78,7 @@ where
 
         let Some((authenticated, renewal)) = state.sessions.authenticate(&token).await? else {
             tracing::warn!(
-                path = parts.uri.path(),
+                path = original_path(parts),
                 "session cookie names no live session"
             );
             return Err(unauthenticated());
@@ -102,14 +114,20 @@ mod tests {
         authenticated.account.id.to_string()
     }
 
+    /// The route sits under a prefix, as every real one does under `/api`:
+    /// the extractor must log the path the client sent, not the remainder
+    /// the nested router hands it.
     fn app(pool: PgPool) -> Router {
-        Router::new()
-            .route("/whoami", get(whoami))
-            .with_state(test_state(pool))
+        Router::new().nest(
+            "/api",
+            Router::new()
+                .route("/whoami", get(whoami))
+                .with_state(test_state(pool)),
+        )
     }
 
     fn request(cookie: Option<&str>) -> Request<Body> {
-        let mut request = Request::builder().uri("/whoami");
+        let mut request = Request::builder().uri("/api/whoami");
         if let Some(cookie) = cookie {
             request = request.header(header::COOKIE, cookie);
         }
@@ -142,8 +160,10 @@ mod tests {
             panic!("exactly one warning: {:?}", events.all());
         };
         assert!(warning.starts_with("WARN"), "{warning}");
-        assert!(warning.contains("path="), "{warning}");
-        assert!(warning.contains("/whoami"), "{warning}");
+        assert!(
+            warning.contains("path=\"/api/whoami\""),
+            "the path as the client sent it, prefix included: {warning}"
+        );
         for event in events.all() {
             assert!(
                 !event.contains(issued.token.expose()),
@@ -193,6 +213,12 @@ mod tests {
         let malformed = events.mentioning("not a well-formed token");
         assert_eq!(malformed.len(), values.len(), "{:?}", events.all());
         assert!(malformed.iter().all(|event| event.starts_with("DEBUG")));
+        assert!(
+            malformed
+                .iter()
+                .all(|event| event.contains("path=\"/api/whoami\"")),
+            "{malformed:?}"
+        );
         assert!(
             events.mentioning("names no live session").is_empty(),
             "{:?}",
