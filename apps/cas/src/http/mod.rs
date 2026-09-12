@@ -4,6 +4,7 @@
 
 pub mod error;
 pub(crate) mod extract;
+mod fetch_metadata;
 mod health;
 
 use axum::{
@@ -23,6 +24,7 @@ use tracing::Level;
 
 use crate::config::Config;
 use crate::http::error::ApiError;
+use crate::http::fetch_metadata::AllowedOrigins;
 use crate::sessions::SessionService;
 use crate::sessions::http as sessions_http;
 use crate::sessions::http::CookieSettings;
@@ -70,12 +72,23 @@ pub fn app(config: Config) -> Result<Router, AppError> {
         cookies: CookieSettings::for_origin(&config.origin),
     };
 
-    let router = Router::new()
-        .merge(health::router(pool))
-        .nest("/api/webauthn", webauthn_http::router(api_state.clone()))
-        .nest("/api", sessions_http::router(api_state));
+    let router = Router::new().merge(health::router(pool)).nest(
+        "/api",
+        api_router(api_state, AllowedOrigins::new(config.cors_origins.clone())),
+    );
 
     Ok(with_middleware(router, config.cors_origins))
+}
+
+/// Everything under `/api`: the contexts' routers behind the CSRF line
+/// (ADR 0005). `/health` stays outside: it is read-only and probed by
+/// machines that send no browser headers.
+fn api_router(state: ApiState, origins: AllowedOrigins) -> Router {
+    let api = Router::new()
+        .nest("/webauthn", webauthn_http::router(state.clone()))
+        .merge(sessions_http::router(state));
+
+    fetch_metadata::guard(api, origins)
 }
 
 /// Applies the middleware stack. Must be called after all routes are
@@ -134,9 +147,16 @@ mod tests {
         http::{Request, StatusCode, header},
         routing::get,
     };
+    use sqlx::PgPool;
     use tower::ServiceExt;
 
+    use crate::accounts::{AccountRepository, NewAccount};
+    use crate::sessions::SessionService;
+    use crate::sessions::http::cookie::SESSION_COOKIE;
+    use crate::testing::{display_name, test_state};
+
     const ALLOWED_ORIGIN: &str = "http://localhost:5173";
+    const OTHER_ORIGIN: &str = "https://evil.example";
 
     fn test_config() -> Config {
         Config {
@@ -213,6 +233,128 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(login.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    }
+
+    fn allowed_origins() -> AllowedOrigins {
+        AllowedOrigins::new(vec![HeaderValue::from_static(ALLOWED_ORIGIN)])
+    }
+
+    async fn signed_in(pool: &PgPool) -> String {
+        let account = AccountRepository::new(pool.clone())
+            .create(NewAccount::full(display_name("Ada")))
+            .await
+            .unwrap();
+        let issued = SessionService::new(pool.clone())
+            .create(account.id)
+            .await
+            .unwrap();
+        format!("{SESSION_COOKIE}={}", issued.token.expose())
+    }
+
+    /// The gap ADR 0004 left open: a cross-site HTML form posting to the
+    /// body-less logout with the victim's cookie. The layer refuses it and
+    /// the session is still there.
+    #[sqlx::test]
+    async fn a_cross_site_form_post_to_logout_is_forbidden_and_keeps_the_session(pool: PgPool) {
+        let cookie = signed_in(&pool).await;
+        let app = api_router(test_state(pool), allowed_origins());
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/logout")
+                    .header("sec-fetch-site", "cross-site")
+                    .header("sec-fetch-mode", "navigate")
+                    .header(header::ORIGIN, OTHER_ORIGIN)
+                    .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
+                    .header(header::COOKIE, &cookie)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        assert!(
+            !response.headers().contains_key(header::SET_COOKIE),
+            "a refused request must not touch the cookie"
+        );
+        let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(body["error"]["code"], "cross_site_request");
+
+        let me = app
+            .oneshot(
+                Request::builder()
+                    .uri("/me")
+                    .header(header::COOKIE, &cookie)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(me.status(), StatusCode::OK, "the session must survive");
+    }
+
+    /// The frontend's own `fetch` with credentials reaches the handler.
+    #[sqlx::test]
+    async fn a_fetch_from_the_frontend_logs_out(pool: PgPool) {
+        let cookie = signed_in(&pool).await;
+
+        let response = api_router(test_state(pool), allowed_origins())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/logout")
+                    .header("sec-fetch-site", "cross-site")
+                    .header("sec-fetch-mode", "cors")
+                    .header(header::ORIGIN, ALLOWED_ORIGIN)
+                    .header(header::COOKIE, &cookie)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+    }
+
+    /// Both nested routers sit behind the layer, and a `GET` is not its
+    /// business: `/api/me` from another site answers 401 for the missing
+    /// session, not 403.
+    #[tokio::test]
+    async fn every_api_route_is_behind_the_csrf_line_but_gets_pass() {
+        let app = app(test_config()).unwrap();
+        let cross_site = |method: &str, uri: &str| {
+            Request::builder()
+                .method(method)
+                .uri(uri)
+                .header("sec-fetch-site", "cross-site")
+                .header(header::ORIGIN, OTHER_ORIGIN)
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from("{}"))
+                .unwrap()
+        };
+
+        for uri in ["/api/logout", "/api/webauthn/verify-login"] {
+            let response = app.clone().oneshot(cross_site("POST", uri)).await.unwrap();
+            assert_eq!(response.status(), StatusCode::FORBIDDEN, "{uri}");
+        }
+
+        let me = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/me")
+                    .header("sec-fetch-site", "cross-site")
+                    .header(header::ORIGIN, OTHER_ORIGIN)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(me.status(), StatusCode::UNAUTHORIZED);
     }
 
     #[tokio::test]
