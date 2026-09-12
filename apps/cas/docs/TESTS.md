@@ -25,6 +25,16 @@ comment `// Unchecked query: see docs/TESTS.md.` marks them.
 Helpers shared by all of the crate's tests live in `src/testing.rs`. The module
 is compiled only for `cfg(test)`, so a normal build never includes it.
 
+`capture_tracing` collects everything `tracing` emits on the calling thread,
+one string per event with every field rendered, so a test can assert what was
+logged and — the reason it exists (ADR 0004) — that a secret was not. Bind its
+guard (`let (events, _guard) = capture_tracing();`) or the capture is dropped
+before the code under test runs. It also installs a global subscriber that
+keeps nothing, once per process: `tracing` caches per callsite whether a line
+is worth evaluating and computes that from the global subscriber, so without
+one a line first reached by another test's thread would be written off as
+disabled for the whole binary.
+
 ## The software authenticator
 
 Tests that need credentials use `ResidentSoftPasskey` in `src/testing.rs`.

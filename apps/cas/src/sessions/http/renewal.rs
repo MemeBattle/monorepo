@@ -66,7 +66,9 @@ mod tests {
     use crate::accounts::{AccountRepository, NewAccount};
     use crate::http::ApiState;
     use crate::sessions::http::cookie::SESSION_COOKIE;
-    use crate::sessions::{Authenticated, SESSION_IDLE_TIMEOUT, SessionService, as_time};
+    use crate::sessions::{
+        Authenticated, SESSION_IDLE_TIMEOUT, SessionOrigin, SessionService, as_time,
+    };
     use crate::testing::{display_name, test_state};
 
     async fn signed_in(pool: &PgPool) -> (Uuid, String) {
@@ -75,7 +77,7 @@ mod tests {
             .await
             .unwrap();
         let issued = SessionService::new(pool.clone())
-            .create(account.id)
+            .create(account.id, SessionOrigin::Login)
             .await
             .unwrap();
         (

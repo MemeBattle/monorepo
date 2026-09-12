@@ -3,7 +3,14 @@
 //! Compiled only for `cfg(test)`, so a normal build never includes the
 //! software authenticator. See `docs/TESTS.md`.
 
+use std::fmt::Write as _;
+use std::sync::{Arc, Mutex, Once};
+
 use sqlx::PgPool;
+use tracing::field::{Field, Visit};
+use tracing::subscriber::DefaultGuard;
+use tracing_subscriber::Registry;
+use tracing_subscriber::layer::{Context, Layer, SubscriberExt};
 use uuid::Uuid;
 use webauthn_authenticator_rs::{
     AuthenticatorBackend, WebauthnAuthenticator, error::WebauthnCError, softpasskey::SoftPasskey,
@@ -48,6 +55,93 @@ pub fn session_cookie(response: &axum::response::Response) -> Option<SessionToke
     (cookie.name() == crate::sessions::http::cookie::SESSION_COOKIE)
         .then(|| SessionToken::parse(cookie.value()))
         .flatten()
+}
+
+/// Everything `tracing` emitted while the capture was installed, one string
+/// per event: its level, its target, and every field rendered with `Debug`,
+/// the message among them. A test that must prove a secret never reaches a
+/// log searches this text for it, which is the only check that holds however
+/// the event is formatted downstream.
+#[derive(Clone, Default)]
+pub struct CapturedEvents(Arc<Mutex<Vec<String>>>);
+
+impl CapturedEvents {
+    fn record(&self, event: String) {
+        self.0
+            .lock()
+            .expect("the capture mutex is only held to push one line")
+            .push(event);
+    }
+
+    pub fn all(&self) -> Vec<String> {
+        self.0
+            .lock()
+            .expect("the capture mutex is only held to push one line")
+            .clone()
+    }
+
+    /// The captured events whose text contains `needle` — a message, a field
+    /// name, a rendered value.
+    pub fn mentioning(&self, needle: &str) -> Vec<String> {
+        self.all()
+            .into_iter()
+            .filter(|event| event.contains(needle))
+            .collect()
+    }
+
+    pub fn contains(&self, needle: &str) -> bool {
+        !self.mentioning(needle).is_empty()
+    }
+}
+
+/// Installs [`CapturedEvents`] as this thread's subscriber for as long as the
+/// returned guard lives, and returns both:
+///
+/// ```ignore
+/// let (events, _guard) = capture_tracing();
+/// ```
+///
+/// The guard must be bound, or the capture is dropped before the code under
+/// test runs. `sqlx::test` drives a current-thread runtime, so the guard
+/// covers the async code too; other threads keep whatever subscriber they
+/// had, which is what lets the tests run in parallel.
+pub fn capture_tracing() -> (CapturedEvents, DefaultGuard) {
+    // `tracing` decides once per process whether a given line is worth
+    // evaluating at all, and decides it from the *global* subscriber. With
+    // none installed, a line first reached by another test's thread is
+    // written off as disabled for everyone, and this thread's capture would
+    // then silently miss it. A global subscriber that keeps nothing makes
+    // every line live; the thread-local one below is what records.
+    static GLOBAL: Once = Once::new();
+    GLOBAL.call_once(|| {
+        let _ = tracing::subscriber::set_global_default(Registry::default());
+    });
+
+    let events = CapturedEvents::default();
+    let guard =
+        tracing::subscriber::set_default(Registry::default().with(CaptureLayer(events.clone())));
+    (events, guard)
+}
+
+struct CaptureLayer(CapturedEvents);
+
+impl<S: tracing::Subscriber> Layer<S> for CaptureLayer {
+    fn on_event(&self, event: &tracing::Event<'_>, _ctx: Context<'_, S>) {
+        let metadata = event.metadata();
+        let mut rendered = format!("{} {}", metadata.level(), metadata.target());
+        event.record(&mut RenderFields(&mut rendered));
+        self.0.record(rendered);
+    }
+}
+
+/// Renders every field, whatever its type, with `Debug`: the capture must not
+/// be able to miss a secret by not knowing how to print it.
+struct RenderFields<'a>(&'a mut String);
+
+impl Visit for RenderFields<'_> {
+    fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
+        let _ = write!(self.0, " {}={value:?}", field.name());
+    }
 }
 
 struct ResidentCredential {

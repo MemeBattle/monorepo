@@ -108,20 +108,22 @@ where
     .await
 }
 
-/// Deletes the session a token names. `Ok(false)` when there was none, which
-/// a logout treats the same as success.
-pub(super) async fn delete<'e, E>(executor: E, token_hash: &TokenHash) -> Result<bool, sqlx::Error>
+/// Deletes the session a token names and returns its id, so the caller can
+/// name what it ended without a read before the write. `Ok(None)` when there
+/// was none, which a logout treats the same as success.
+pub(super) async fn delete<'e, E>(
+    executor: E,
+    token_hash: &TokenHash,
+) -> Result<Option<Uuid>, sqlx::Error>
 where
     E: sqlx::PgExecutor<'e>,
 {
-    let result = sqlx::query!(
-        "DELETE FROM sessions WHERE token_hash = $1",
+    sqlx::query_scalar!(
+        "DELETE FROM sessions WHERE token_hash = $1 RETURNING id",
         token_hash.as_ref(),
     )
-    .execute(executor)
-    .await?;
-
-    Ok(result.rows_affected() > 0)
+    .fetch_optional(executor)
+    .await
 }
 
 #[cfg(test)]
@@ -301,14 +303,16 @@ mod tests {
         assert_eq!(lifetime_secs, SESSION_LIFETIME.as_secs_f64());
     }
 
+    /// The delete names the row it removed, and the second attempt has
+    /// nothing to name.
     #[sqlx::test]
-    async fn delete_removes_the_session_once(pool: PgPool) {
+    async fn delete_removes_the_session_once_and_returns_its_id(pool: PgPool) {
         let account_id = account(&pool).await;
         let hash = SessionToken::generate().unwrap().hash();
-        insert(&pool, account_id, &hash).await.unwrap();
+        let session = insert(&pool, account_id, &hash).await.unwrap();
 
-        assert!(delete(&pool, &hash).await.unwrap());
-        assert!(!delete(&pool, &hash).await.unwrap());
+        assert_eq!(delete(&pool, &hash).await.unwrap(), Some(session.id));
+        assert_eq!(delete(&pool, &hash).await.unwrap(), None);
         assert_eq!(find_live(&pool, &hash).await.unwrap(), None);
     }
 

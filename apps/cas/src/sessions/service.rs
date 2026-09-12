@@ -5,12 +5,17 @@
 //! request, and it is also where a session's idle clock is reset; `revoke` is
 //! logout. The secret token exists in memory only between `create` and the
 //! response that sets the cookie.
+//!
+//! This is also where the session lifecycle is logged, because this is where
+//! it happens: a session begins, is renewed and ends in these three
+//! functions, and an operator reading the log afterwards wants the same three
+//! events. A session is named by its row id, never by the token (ADR 0004).
 
 use sqlx::PgPool;
 use thiserror::Error;
 use uuid::Uuid;
 
-use super::{Authenticated, Renewal, Session, SessionToken, repository};
+use super::{Authenticated, Renewal, Session, SessionOrigin, SessionToken, repository};
 use crate::accounts;
 
 #[derive(Debug, Error)]
@@ -47,13 +52,28 @@ impl SessionService {
     /// Signing in is activity: the account's `last_seen_at` moves in the same
     /// transaction, so a session and the trace it leaves on the account are
     /// written together or not at all.
-    pub async fn create(&self, account_id: Uuid) -> Result<IssuedSession, CreateError> {
+    ///
+    /// `origin` says which ceremony proved the account and appears in the log
+    /// event, which is emitted only once the transaction has committed: a
+    /// session nobody could authenticate with was never created.
+    pub async fn create(
+        &self,
+        account_id: Uuid,
+        origin: SessionOrigin,
+    ) -> Result<IssuedSession, CreateError> {
         let token = SessionToken::generate().map_err(CreateError::Random)?;
 
         let mut tx = self.pool.begin().await?;
         let session = repository::insert(&mut *tx, account_id, &token.hash()).await?;
         accounts::touch_last_seen(&mut *tx, account_id).await?;
         tx.commit().await?;
+
+        tracing::info!(
+            session_id = %session.id,
+            account_id = %account_id,
+            origin = origin.as_str(),
+            "session created"
+        );
 
         Ok(IssuedSession { token, session })
     }
@@ -94,6 +114,15 @@ impl SessionService {
                     tx.commit().await?;
                     session.last_seen_at = last_seen_at;
                     renewal = Renewal::Renewed;
+                    // Lifecycle too, but at most once per window per
+                    // session, which is noise next to creation and logout:
+                    // `debug`, so it is there when a session's history is
+                    // being reconstructed and absent the rest of the time.
+                    tracing::debug!(
+                        session_id = %session.id,
+                        account_id = %session.account_id,
+                        "session renewed"
+                    );
                 }
                 None => {
                     // Nothing was written; dropping the transaction rolls it
@@ -117,18 +146,33 @@ impl SessionService {
         Ok(Some((Authenticated { session, account }, renewal)))
     }
 
-    /// Ends the session a token names. `Ok(false)` when there was none:
-    /// logging out of nothing is not an error.
-    pub async fn revoke(&self, token: &SessionToken) -> Result<bool, sqlx::Error> {
-        repository::delete(&self.pool, &token.hash()).await
+    /// Ends the session a token names and returns its id. `Ok(None)` when
+    /// there was none: logging out of nothing is not an error.
+    ///
+    /// The delete returns the id it removed, so the event can name the
+    /// session without a lookup before it.
+    pub async fn revoke(&self, token: &SessionToken) -> Result<Option<Uuid>, sqlx::Error> {
+        let revoked = repository::delete(&self.pool, &token.hash()).await?;
+
+        match revoked {
+            Some(id) => tracing::info!(session_id = %id, "session revoked"),
+            // A cookie whose session had already gone: an expected way for a
+            // browser to ask to be forgotten, not something to read a log
+            // for.
+            None => tracing::debug!("logout without a live session"),
+        }
+
+        Ok(revoked)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
+
     use crate::accounts::{Account, AccountRepository, NewAccount};
-    use crate::testing::display_name;
+    use crate::testing::{capture_tracing, display_name};
 
     async fn account(pool: &PgPool) -> Account {
         AccountRepository::new(pool.clone())
@@ -142,7 +186,10 @@ mod tests {
         let account = account(&pool).await;
         let service = SessionService::new(pool);
 
-        let issued = service.create(account.id).await.unwrap();
+        let issued = service
+            .create(account.id, SessionOrigin::Login)
+            .await
+            .unwrap();
         let (authenticated, renewal) = service
             .authenticate(&issued.token)
             .await
@@ -172,7 +219,10 @@ mod tests {
     async fn requests_inside_the_window_do_not_write(pool: PgPool) {
         let account = account(&pool).await;
         let service = SessionService::new(pool);
-        let issued = service.create(account.id).await.unwrap();
+        let issued = service
+            .create(account.id, SessionOrigin::Login)
+            .await
+            .unwrap();
 
         for _ in 0..2 {
             let (authenticated, renewal) =
@@ -193,7 +243,10 @@ mod tests {
     async fn a_request_outside_the_window_renews_the_session(pool: PgPool) {
         let account = account(&pool).await;
         let service = SessionService::new(pool.clone());
-        let issued = service.create(account.id).await.unwrap();
+        let issued = service
+            .create(account.id, SessionOrigin::Login)
+            .await
+            .unwrap();
         last_seen(&pool, issued.session.id, "2 hours").await;
         // Unchecked query: see docs/TESTS.md.
         sqlx::query("UPDATE accounts SET last_seen_at = now() - interval '2 hours' WHERE id = $1")
@@ -222,7 +275,10 @@ mod tests {
     async fn concurrent_requests_renew_once(pool: PgPool) {
         let account = account(&pool).await;
         let service = SessionService::new(pool.clone());
-        let issued = service.create(account.id).await.unwrap();
+        let issued = service
+            .create(account.id, SessionOrigin::Login)
+            .await
+            .unwrap();
         last_seen(&pool, issued.session.id, "2 hours").await;
 
         let mut lock = pool.begin().await.unwrap();
@@ -264,7 +320,10 @@ mod tests {
     async fn a_session_deleted_during_renewal_does_not_authenticate(pool: PgPool) {
         let account = account(&pool).await;
         let service = SessionService::new(pool.clone());
-        let issued = service.create(account.id).await.unwrap();
+        let issued = service
+            .create(account.id, SessionOrigin::Login)
+            .await
+            .unwrap();
         last_seen(&pool, issued.session.id, "2 hours").await;
 
         let mut logout = pool.begin().await.unwrap();
@@ -290,7 +349,10 @@ mod tests {
     async fn an_idle_session_does_not_authenticate(pool: PgPool) {
         let account = account(&pool).await;
         let service = SessionService::new(pool.clone());
-        let issued = service.create(account.id).await.unwrap();
+        let issued = service
+            .create(account.id, SessionOrigin::Login)
+            .await
+            .unwrap();
         last_seen(&pool, issued.session.id, "8 days").await;
 
         assert_eq!(service.authenticate(&issued.token).await.unwrap(), None);
@@ -308,7 +370,10 @@ mod tests {
             .await
             .unwrap();
 
-        let issued = service.create(account.id).await.unwrap();
+        let issued = service
+            .create(account.id, SessionOrigin::Login)
+            .await
+            .unwrap();
 
         let seen = AccountRepository::new(pool)
             .get(account.id)
@@ -334,22 +399,94 @@ mod tests {
     async fn a_revoked_session_does_not_authenticate(pool: PgPool) {
         let account = account(&pool).await;
         let service = SessionService::new(pool);
-        let issued = service.create(account.id).await.unwrap();
+        let issued = service
+            .create(account.id, SessionOrigin::Login)
+            .await
+            .unwrap();
 
-        assert!(service.revoke(&issued.token).await.unwrap());
+        assert_eq!(
+            service.revoke(&issued.token).await.unwrap(),
+            Some(issued.session.id)
+        );
 
         assert_eq!(service.authenticate(&issued.token).await.unwrap(), None);
-        assert!(
-            !service.revoke(&issued.token).await.unwrap(),
+        assert_eq!(
+            service.revoke(&issued.token).await.unwrap(),
+            None,
             "revoking twice finds nothing"
         );
+    }
+
+    /// The whole lifecycle as a log reader sees it: a session created, then
+    /// renewed, then revoked, then a logout with nothing left to revoke.
+    /// Every event names the row, none of them the secret — not the token and
+    /// not the hash the row is found by (ADR 0004).
+    #[sqlx::test]
+    async fn the_session_lifecycle_is_logged_without_the_token(pool: PgPool) {
+        let (events, _guard) = capture_tracing();
+        let account = account(&pool).await;
+        let service = SessionService::new(pool.clone());
+
+        let issued = service
+            .create(account.id, SessionOrigin::Registration)
+            .await
+            .unwrap();
+        last_seen(&pool, issued.session.id, "2 hours").await;
+        service.authenticate(&issued.token).await.unwrap().unwrap();
+        service.revoke(&issued.token).await.unwrap();
+        service.revoke(&issued.token).await.unwrap();
+
+        let session_id = format!("session_id={}", issued.session.id);
+        let account_id = format!("account_id={}", account.id);
+
+        let [created] = &events.mentioning("session created")[..] else {
+            panic!("exactly one creation event: {:?}", events.all());
+        };
+        assert!(created.starts_with("INFO"), "{created}");
+        assert!(created.contains(&session_id), "{created}");
+        assert!(created.contains(&account_id), "{created}");
+        assert!(created.contains("origin="), "{created}");
+        assert!(created.contains("registration"), "{created}");
+
+        let [renewed] = &events.mentioning("session renewed")[..] else {
+            panic!("exactly one renewal event: {:?}", events.all());
+        };
+        assert!(renewed.starts_with("DEBUG"), "{renewed}");
+        assert!(renewed.contains(&session_id), "{renewed}");
+        assert!(renewed.contains(&account_id), "{renewed}");
+
+        let [revoked] = &events.mentioning("session revoked")[..] else {
+            panic!("exactly one revocation event: {:?}", events.all());
+        };
+        assert!(revoked.starts_with("INFO"), "{revoked}");
+        assert!(revoked.contains(&session_id), "{revoked}");
+
+        let [nothing] = &events.mentioning("logout without a live session")[..] else {
+            panic!("exactly one empty-logout event: {:?}", events.all());
+        };
+        assert!(nothing.starts_with("DEBUG"), "{nothing}");
+
+        let hash = URL_SAFE_NO_PAD.encode(issued.token.hash());
+        for event in events.all() {
+            assert!(
+                !event.contains(issued.token.expose()),
+                "the token must never be logged: {event}"
+            );
+            assert!(
+                !event.contains(&hash),
+                "the token hash must never be logged: {event}"
+            );
+        }
     }
 
     #[sqlx::test]
     async fn an_expired_session_does_not_authenticate(pool: PgPool) {
         let account = account(&pool).await;
         let service = SessionService::new(pool.clone());
-        let issued = service.create(account.id).await.unwrap();
+        let issued = service
+            .create(account.id, SessionOrigin::Login)
+            .await
+            .unwrap();
         // Unchecked query: see docs/TESTS.md.
         sqlx::query("UPDATE sessions SET expires_at = now() - interval '1 second' WHERE id = $1")
             .bind(issued.session.id)
@@ -366,7 +503,10 @@ mod tests {
     async fn a_session_needs_an_account(pool: PgPool) {
         let service = SessionService::new(pool.clone());
 
-        let error = service.create(Uuid::new_v4()).await.unwrap_err();
+        let error = service
+            .create(Uuid::new_v4(), SessionOrigin::Login)
+            .await
+            .unwrap_err();
 
         assert!(matches!(error, CreateError::Db(_)));
         // Unchecked query: see docs/TESTS.md.

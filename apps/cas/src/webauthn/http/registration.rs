@@ -11,6 +11,7 @@ use crate::accounts::{DisplayName, DisplayNameError};
 use crate::http::ApiState;
 use crate::http::error::ApiError;
 use crate::http::extract::Json as AppJson;
+use crate::sessions::SessionOrigin;
 use crate::webauthn::registration::{FinishError, StartError};
 
 /// The name is validated by the handler rather than by the body type, so a bad
@@ -113,7 +114,10 @@ pub(super) async fn verify_registration(
         .registration
         .finish(data.registration_id, &data.response)
         .await?;
-    let issued = state.sessions.create(registered.account.id).await?;
+    let issued = state
+        .sessions
+        .create(registered.account.id, SessionOrigin::Registration)
+        .await?;
 
     Ok((
         jar.add(state.cookies.session(&issued.token, &issued.session)),

@@ -10,6 +10,7 @@ use webauthn_rs::prelude::{CredentialID, PublicKeyCredential, RequestChallengeRe
 use crate::http::ApiState;
 use crate::http::error::ApiError;
 use crate::http::extract::Json as AppJson;
+use crate::sessions::SessionOrigin;
 use crate::webauthn::login::{FinishError, StartError};
 
 impl From<StartError> for ApiError {
@@ -84,7 +85,10 @@ pub(super) async fn verify_login(
     AppJson(data): AppJson<VerifyLoginData>,
 ) -> Result<(CookieJar, Json<VerifyLoginResponse>), ApiError> {
     let logged_in = state.login.finish(data.login_id, &data.response).await?;
-    let issued = state.sessions.create(logged_in.account.id).await?;
+    let issued = state
+        .sessions
+        .create(logged_in.account.id, SessionOrigin::Login)
+        .await?;
 
     Ok((
         jar.add(state.cookies.session(&issued.token, &issued.session)),
