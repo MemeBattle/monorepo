@@ -21,7 +21,6 @@ use uuid::Uuid;
 use crate::accounts::AccountType;
 use crate::http::ApiState;
 use crate::http::error::ApiError;
-use crate::sessions::http::cookie::SESSION_COOKIE;
 use crate::sessions::service::CreateError;
 use crate::sessions::{Authenticated, SessionToken};
 
@@ -104,7 +103,7 @@ async fn logout(
     jar: CookieJar,
 ) -> Result<(CookieJar, [(HeaderName, HeaderValue); 1], StatusCode), ApiError> {
     if let Some(token) = jar
-        .get(SESSION_COOKIE)
+        .get(state.cookies.name())
         .and_then(|cookie| SessionToken::parse(cookie.value()))
     {
         state.sessions.revoke(&token).await?;
@@ -131,15 +130,15 @@ mod tests {
 
     use crate::accounts::{AccountRepository, NewAccount};
     use crate::sessions::{SessionOrigin, SessionService};
-    use crate::testing::{display_name, test_state};
+    use crate::testing::{display_name, test_cookies, test_state, test_state_with_cookies};
 
     async fn body_json(response: axum::response::Response) -> serde_json::Value {
         let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         serde_json::from_slice(&bytes).unwrap()
     }
 
-    /// An account with a live session; returns the cookie header value.
-    async fn signed_in(pool: &PgPool) -> (Uuid, String) {
+    /// An account with a live session; returns the token the cookie carries.
+    async fn signed_in(pool: &PgPool) -> (Uuid, SessionToken) {
         let account = AccountRepository::new(pool.clone())
             .create(NewAccount::full(display_name("Ada")).with_email("ada@example.com"))
             .await
@@ -148,10 +147,19 @@ mod tests {
             .create(account.id, SessionOrigin::Login)
             .await
             .unwrap();
-        (
-            account.id,
-            format!("{SESSION_COOKIE}={}", issued.token.expose()),
-        )
+        (account.id, issued.token)
+    }
+
+    /// The `Cookie` header a browser holding that session would send to a
+    /// deployment whose cookie goes by this name.
+    fn cookie(name: &str, token: &SessionToken) -> String {
+        format!("{name}={}", token.expose())
+    }
+
+    /// The same header for the deployment `test_state` builds: the
+    /// development origin, whose cookie has no prefix to its name.
+    fn dev_cookie(token: &SessionToken) -> String {
+        cookie(test_cookies().name(), token)
     }
 
     fn get_me(cookie: Option<&str>) -> Request<Body> {
@@ -172,10 +180,10 @@ mod tests {
 
     #[sqlx::test]
     async fn me_returns_the_signed_in_account(pool: PgPool) {
-        let (account_id, cookie) = signed_in(&pool).await;
+        let (account_id, token) = signed_in(&pool).await;
 
         let response = router(test_state(pool))
-            .oneshot(get_me(Some(&cookie)))
+            .oneshot(get_me(Some(&dev_cookie(&token))))
             .await
             .unwrap();
 
@@ -205,15 +213,13 @@ mod tests {
 
     #[sqlx::test]
     async fn me_with_a_malformed_or_unknown_cookie_is_401(pool: PgPool) {
+        let name = test_cookies().name();
         let app = router(test_state(pool));
-        let unknown = format!(
-            "{SESSION_COOKIE}={}",
-            SessionToken::generate().unwrap().expose()
-        );
+        let unknown = dev_cookie(&SessionToken::generate().unwrap());
 
         for cookie in [
-            format!("{SESSION_COOKIE}=junk"),
-            format!("{SESSION_COOKIE}="),
+            format!("{name}=junk"),
+            format!("{name}="),
             "other=value".to_owned(),
             unknown,
         ] {
@@ -235,7 +241,7 @@ mod tests {
     /// the row past its time no longer answers.
     #[sqlx::test]
     async fn me_with_an_expired_session_is_401(pool: PgPool) {
-        let (_, cookie) = signed_in(&pool).await;
+        let (_, token) = signed_in(&pool).await;
         // Unchecked query: see docs/TESTS.md.
         sqlx::query("UPDATE sessions SET expires_at = now() - interval '1 second'")
             .execute(&pool)
@@ -243,7 +249,7 @@ mod tests {
             .unwrap();
 
         let response = router(test_state(pool))
-            .oneshot(get_me(Some(&cookie)))
+            .oneshot(get_me(Some(&dev_cookie(&token))))
             .await
             .unwrap();
 
@@ -252,12 +258,46 @@ mod tests {
 
     #[sqlx::test]
     async fn logout_ends_the_session_and_clears_the_cookie(pool: PgPool) {
-        let (_, cookie) = signed_in(&pool).await;
+        let (_, token) = signed_in(&pool).await;
+        let name = test_cookies().name();
         let app = router(test_state(pool));
 
         let response = app
             .clone()
-            .oneshot(post_logout(Some(&cookie)))
+            .oneshot(post_logout(Some(&dev_cookie(&token))))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+        let set_cookie = response
+            .headers()
+            .get(header::SET_COOKIE)
+            .expect("logout must clear the cookie")
+            .to_str()
+            .unwrap();
+        assert!(set_cookie.starts_with(&format!("{name}=;")), "{set_cookie}");
+        assert!(set_cookie.contains("Max-Age=0"), "{set_cookie}");
+        assert!(set_cookie.contains("Path=/"), "{set_cookie}");
+
+        let after = app
+            .oneshot(get_me(Some(&dev_cookie(&token))))
+            .await
+            .unwrap();
+        assert_eq!(after.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    /// On an https deployment the cookie is named `__Host-cas_session`, and
+    /// the removal has to be the same cookie down to the attributes the
+    /// prefix governs, or the browser keeps the one it holds.
+    #[sqlx::test]
+    async fn logout_on_a_secure_deployment_clears_the_prefixed_cookie(pool: PgPool) {
+        let (_, token) = signed_in(&pool).await;
+        let settings = CookieSettings { secure: true };
+        let app = router(test_state_with_cookies(pool, settings));
+
+        let response = app
+            .clone()
+            .oneshot(post_logout(Some(&cookie(settings.name(), &token))))
             .await
             .unwrap();
 
@@ -269,11 +309,12 @@ mod tests {
             .to_str()
             .unwrap();
         assert!(
-            set_cookie.starts_with(&format!("{SESSION_COOKIE}=;")),
+            set_cookie.starts_with("__Host-cas_session=;"),
             "{set_cookie}"
         );
-        assert!(set_cookie.contains("Max-Age=0"), "{set_cookie}");
+        assert!(set_cookie.contains("Secure"), "{set_cookie}");
         assert!(set_cookie.contains("Path=/"), "{set_cookie}");
+        assert!(!set_cookie.contains("Domain"), "{set_cookie}");
         assert_eq!(
             response
                 .headers()
@@ -283,8 +324,46 @@ mod tests {
             "cache and storage are origin-scoped; cookies would clear the whole site"
         );
 
-        let after = app.oneshot(get_me(Some(&cookie))).await.unwrap();
+        let after = app
+            .oneshot(get_me(Some(&cookie(settings.name(), &token))))
+            .await
+            .unwrap();
         assert_eq!(after.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    /// The name is part of the cookie's identity, both ways round: an https
+    /// deployment ignores the bare name a sibling subdomain could have
+    /// tossed at it, and the development one ignores a `__Host-` cookie it
+    /// never set.
+    #[sqlx::test]
+    async fn a_cookie_under_the_other_deployments_name_does_not_authenticate(pool: PgPool) {
+        let (_, token) = signed_in(&pool).await;
+        let secure = CookieSettings { secure: true };
+        let development = test_cookies();
+        assert_ne!(secure.name(), development.name());
+
+        for (settings, other) in [(secure, development), (development, secure)] {
+            let app = router(test_state_with_cookies(pool.clone(), settings));
+
+            let own = app
+                .clone()
+                .oneshot(get_me(Some(&cookie(settings.name(), &token))))
+                .await
+                .unwrap();
+            assert_eq!(own.status(), StatusCode::OK, "{}", settings.name());
+
+            let foreign = app
+                .oneshot(get_me(Some(&cookie(other.name(), &token))))
+                .await
+                .unwrap();
+            assert_eq!(
+                foreign.status(),
+                StatusCode::UNAUTHORIZED,
+                "a {} cookie must not authenticate where the name is {}",
+                other.name(),
+                settings.name()
+            );
+        }
     }
 
     /// Logging out of nothing is still a logout: the cookie is cleared and
@@ -292,10 +371,7 @@ mod tests {
     #[sqlx::test]
     async fn logout_without_a_session_is_a_no_op_that_still_clears_the_cookie(pool: PgPool) {
         let app = router(test_state(pool));
-        let unknown = format!(
-            "{SESSION_COOKIE}={}",
-            SessionToken::generate().unwrap().expose()
-        );
+        let unknown = dev_cookie(&SessionToken::generate().unwrap());
 
         for cookie in [None, Some("junk=1"), Some(unknown.as_str())] {
             let response = app.clone().oneshot(post_logout(cookie)).await.unwrap();

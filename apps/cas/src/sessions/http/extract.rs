@@ -19,7 +19,6 @@ use axum_extra::extract::CookieJar;
 use crate::http::ApiState;
 use crate::http::error::ApiError;
 use crate::http::extract::original_path;
-use crate::sessions::http::cookie::SESSION_COOKIE;
 use crate::sessions::http::renewal::{self, RenewalSlot};
 use crate::sessions::{Authenticated, Renewal, SessionToken};
 
@@ -49,7 +48,7 @@ where
         // No cookie is the ordinary state of a browser that has not signed
         // in, and of every request to a protected route from one: nothing
         // happened, so nothing is logged.
-        let Some(cookie) = jar.get(SESSION_COOKIE) else {
+        let Some(cookie) = jar.get(state.cookies.name()) else {
             return Err(unauthenticated());
         };
 
@@ -97,7 +96,7 @@ mod tests {
 
     use crate::accounts::{AccountRepository, NewAccount};
     use crate::sessions::{SessionOrigin, SessionService};
-    use crate::testing::{capture_tracing, display_name, test_state};
+    use crate::testing::{capture_tracing, display_name, test_cookies, test_state};
 
     async fn whoami(authenticated: Authenticated) -> String {
         authenticated.account.id.to_string()
@@ -140,7 +139,7 @@ mod tests {
             .await
             .unwrap();
         service.revoke(&issued.token).await.unwrap();
-        let cookie = format!("{SESSION_COOKIE}={}", issued.token.expose());
+        let cookie = format!("{}={}", test_cookies().name(), issued.token.expose());
 
         let response = app(pool).oneshot(request(Some(&cookie))).await.unwrap();
 
@@ -192,7 +191,7 @@ mod tests {
         for value in values {
             let response = app
                 .clone()
-                .oneshot(request(Some(&format!("{SESSION_COOKIE}={value}"))))
+                .oneshot(request(Some(&format!("{}={value}", test_cookies().name()))))
                 .await
                 .unwrap();
 

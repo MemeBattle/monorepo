@@ -65,11 +65,16 @@ mod tests {
 
     use crate::accounts::{AccountRepository, NewAccount};
     use crate::http::ApiState;
-    use crate::sessions::http::cookie::SESSION_COOKIE;
     use crate::sessions::{
         Authenticated, SESSION_IDLE_TIMEOUT, SessionOrigin, SessionService, as_time,
     };
-    use crate::testing::{display_name, test_state};
+    use crate::testing::{display_name, test_cookies, test_state};
+
+    /// The name the cookies of `test_state` go by: the layer re-sends
+    /// whatever the settings produced, under their name.
+    fn cookie_name() -> &'static str {
+        test_cookies().name()
+    }
 
     async fn signed_in(pool: &PgPool) -> (Uuid, String) {
         let account = AccountRepository::new(pool.clone())
@@ -82,7 +87,7 @@ mod tests {
             .unwrap();
         (
             issued.session.id,
-            format!("{SESSION_COOKIE}={}", issued.token.expose()),
+            format!("{}={}", cookie_name(), issued.token.expose()),
         )
     }
 
@@ -105,7 +110,7 @@ mod tests {
     /// future "sign out everywhere" would do.
     async fn sign_out(_authenticated: Authenticated, jar: CookieJar) -> (CookieJar, StatusCode) {
         (
-            jar.add(Cookie::build((SESSION_COOKIE, "")).path("/").build()),
+            jar.add(Cookie::build((cookie_name(), "")).path("/").build()),
             StatusCode::NO_CONTENT,
         )
     }
@@ -161,7 +166,7 @@ mod tests {
             .to_str()
             .unwrap();
         let sent = Cookie::parse(set_cookie).unwrap();
-        assert_eq!(format!("{SESSION_COOKIE}={}", sent.value()), cookie);
+        assert_eq!(format!("{}={}", cookie_name(), sent.value()), cookie);
         assert_eq!(sent.http_only(), Some(true));
         assert_eq!(sent.path(), Some("/"));
         let max_age = sent.max_age().unwrap();
@@ -192,7 +197,7 @@ mod tests {
             set_cookies[0]
                 .to_str()
                 .unwrap()
-                .starts_with(&format!("{SESSION_COOKIE}=;")),
+                .starts_with(&format!("{}=;", cookie_name())),
             "{:?}",
             set_cookies[0]
         );

@@ -6,9 +6,25 @@ use webauthn_rs::prelude::Url;
 
 use crate::sessions::{Session, SessionToken};
 
-/// The cookie's name. The `cas_` prefix keeps it apart from anything another
-/// app on the same site might set.
-pub const SESSION_COOKIE: &str = "cas_session";
+/// The name itself, as a macro so that the prefixed spelling below is this
+/// same literal with the prefix glued on while compiling: a name is borrowed
+/// for the life of the process and cannot be joined at runtime.
+macro_rules! base_name {
+    () => {
+        "cas_session"
+    };
+}
+
+/// The name where there is no `Secure` to carry a prefix. The `cas_` part
+/// keeps it apart from anything another app on the same site might set.
+const BASE_NAME: &str = base_name!();
+
+/// The name OWASP asks for. A browser accepts a cookie whose name starts
+/// with `__Host-` only when the cookie is `Secure`, carries no `Domain` and
+/// has `Path=/` — and it holds everyone setting that name to the same rule,
+/// which is what closes cookie tossing: a compromised sibling subdomain can
+/// write a cookie for the parent domain, but not one under this name.
+const PREFIXED_NAME: &str = concat!("__Host-", base_name!());
 
 /// What varies between deployments. Decided once at startup from the
 /// configuration and carried in the API state.
@@ -24,6 +40,23 @@ impl CookieSettings {
     pub fn for_origin(origin: &Url) -> Self {
         Self {
             secure: origin.scheme() == "https",
+        }
+    }
+
+    /// The name the cookie goes out under, and therefore the name every
+    /// reader of it looks for: the extractor, logout, and the removal cookie
+    /// that must match the one the browser holds.
+    ///
+    /// The prefix rides on `Secure`, so the name has to follow the setting.
+    /// A deployment without `Secure` — the plain-http development origin,
+    /// because Safari refuses a `Secure` cookie over http even from
+    /// localhost — would have its `__Host-` cookie dropped by the browser on
+    /// the way in, so it uses the bare name and does without the guarantee.
+    pub fn name(&self) -> &'static str {
+        if self.secure {
+            PREFIXED_NAME
+        } else {
+            BASE_NAME
         }
     }
 
@@ -54,7 +87,7 @@ impl CookieSettings {
     }
 
     fn base(&self, value: String) -> Cookie<'static> {
-        Cookie::build((SESSION_COOKIE, value))
+        Cookie::build((self.name(), value))
             .http_only(true)
             .secure(self.secure)
             .same_site(SameSite::Lax)
@@ -79,6 +112,17 @@ mod tests {
         assert!(!CookieSettings::for_origin(&origin("http://localhost:5173")).secure);
     }
 
+    /// The two names as they go on the wire, written out here so that the
+    /// spelling a browser is asked to enforce the prefix rule on is pinned
+    /// by something other than the code that builds it.
+    #[test]
+    fn the_name_follows_the_secure_setting() {
+        assert_eq!(BASE_NAME, "cas_session");
+        assert_eq!(PREFIXED_NAME, "__Host-cas_session");
+        assert_eq!(CookieSettings { secure: true }.name(), PREFIXED_NAME);
+        assert_eq!(CookieSettings { secure: false }.name(), BASE_NAME);
+    }
+
     /// A session as `create` would return it right now.
     fn fresh_session() -> Session {
         let now = OffsetDateTime::now_utc();
@@ -91,6 +135,9 @@ mod tests {
         }
     }
 
+    /// The name is written out rather than taken from the settings, because
+    /// the wire spelling is what makes a browser enforce the three
+    /// attributes asserted under it: `Secure`, `Path=/` and no `Domain`.
     #[test]
     fn the_session_cookie_is_locked_down() {
         let token = SessionToken::generate().unwrap();
@@ -98,10 +145,29 @@ mod tests {
 
         let cookie = settings.session(&token, &fresh_session());
 
-        assert_eq!(cookie.name(), SESSION_COOKIE);
+        assert_eq!(cookie.name(), "__Host-cas_session");
         assert_eq!(cookie.value(), token.expose());
         assert_eq!(cookie.http_only(), Some(true));
         assert_eq!(cookie.secure(), Some(true));
+        assert_eq!(cookie.same_site(), Some(SameSite::Lax));
+        assert_eq!(cookie.path(), Some("/"));
+        assert_eq!(cookie.domain(), None, "host-only");
+    }
+
+    /// The development origin is plain http, so the cookie carries no
+    /// `Secure` and therefore cannot carry the prefix either: a browser
+    /// would refuse a `__Host-` cookie without it and the session would
+    /// never reach the server.
+    #[test]
+    fn the_development_cookie_drops_the_prefix_with_secure() {
+        let token = SessionToken::generate().unwrap();
+        let settings = CookieSettings::for_origin(&origin("http://localhost:5173"));
+
+        let cookie = settings.session(&token, &fresh_session());
+
+        assert_eq!(cookie.name(), "cas_session");
+        assert_eq!(cookie.secure(), Some(false));
+        assert_eq!(cookie.http_only(), Some(true));
         assert_eq!(cookie.same_site(), Some(SameSite::Lax));
         assert_eq!(cookie.path(), Some("/"));
         assert_eq!(cookie.domain(), None, "host-only");
@@ -136,17 +202,23 @@ mod tests {
         );
     }
 
+    /// Under either setting: a removal cookie that differs in name or in any
+    /// attribute the prefix governs is a different cookie, and the browser
+    /// would keep the one it holds.
     #[test]
     fn the_removal_cookie_matches_the_session_cookie_and_expires_at_once() {
-        let settings = CookieSettings { secure: false };
+        for secure in [true, false] {
+            let settings = CookieSettings { secure };
 
-        let cookie = settings.removal();
+            let cookie = settings.removal();
 
-        assert_eq!(cookie.name(), SESSION_COOKIE);
-        assert_eq!(cookie.value(), "");
-        assert_eq!(cookie.path(), Some("/"));
-        assert_eq!(cookie.http_only(), Some(true));
-        assert_eq!(cookie.secure(), Some(false));
-        assert_eq!(cookie.max_age(), Some(time::Duration::ZERO));
+            assert_eq!(cookie.name(), settings.name());
+            assert_eq!(cookie.value(), "");
+            assert_eq!(cookie.path(), Some("/"));
+            assert_eq!(cookie.http_only(), Some(true));
+            assert_eq!(cookie.secure(), Some(secure));
+            assert_eq!(cookie.domain(), None, "host-only");
+            assert_eq!(cookie.max_age(), Some(time::Duration::ZERO));
+        }
     }
 }

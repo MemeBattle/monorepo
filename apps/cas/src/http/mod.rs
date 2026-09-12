@@ -200,10 +200,10 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::accounts::{AccountRepository, NewAccount};
-    use crate::sessions::http::cookie::SESSION_COOKIE;
     use crate::sessions::{SessionOrigin, SessionService};
     use crate::testing::{
-        capture_tracing, display_name, session_cookie, soft_passkey_registration, test_state,
+        capture_tracing, display_name, session_cookie, soft_passkey_registration, test_cookies,
+        test_state,
     };
 
     const ALLOWED_ORIGIN: &str = "http://localhost:5173";
@@ -296,7 +296,7 @@ mod tests {
             .create(account.id, SessionOrigin::Login)
             .await
             .unwrap();
-        format!("{SESSION_COOKIE}={}", issued.token.expose())
+        format!("{}={}", test_cookies().name(), issued.token.expose())
     }
 
     /// The gap ADR 0004 left open: a cross-site HTML form posting to the
@@ -455,7 +455,8 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
-        let token = session_cookie(&response).expect("registration signs the account in");
+        let token = session_cookie(&response, test_cookies().name())
+            .expect("registration signs the account in");
         // The trace layer did run and was captured, so the absence below is
         // a statement about what it logs, not about an empty capture.
         assert!(events.contains("tower_http::trace"), "{:?}", events.all());
