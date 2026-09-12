@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO webauthn_ceremonies (id, kind, state, expires_at)\n           VALUES ($1, $2, $3, now() + make_interval(secs => $4))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        {
+          "Custom": {
+            "name": "webauthn_ceremony_kind",
+            "kind": {
+              "Enum": [
+                "registration",
+                "authentication"
+              ]
+            }
+          }
+        },
+        "Jsonb",
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f2430589eb5147b7ad885f3e3363feec3f25b4186839a974642e2856b6b1e7ad"
+}

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                   id,\n                   display_name,\n                   type AS \"type: AccountType\",\n                   email,\n                   created_at,\n                   last_seen_at\n               FROM accounts\n               WHERE id = $1",
+  "query": "SELECT\n                   id,\n                   display_name AS \"display_name: DisplayName\",\n                   type AS \"type: AccountType\",\n                   email,\n                   created_at,\n                   last_seen_at\n               FROM accounts\n               WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -16,7 +16,7 @@
       },
       {
         "ordinal": 1,
-        "name": "display_name",
+        "name": "display_name: DisplayName",
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -94,5 +94,5 @@
       false
     ]
   },
-  "hash": "e20e02a538832ade3ae6e6c7ee418cdb0be74ce69cc1a377ee6158ef8e797ade"
+  "hash": "97bf644be3b47212ab65b3e283d69f9974c169c39fbe8483ef6cc68e537e5efe"
 }

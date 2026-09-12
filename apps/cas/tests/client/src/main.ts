@@ -8,6 +8,10 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div>
     <h1>Passkey Client</h1>
 
+    <p>Use a passkey from a password manager or a compatible security key.</p>
+
+    <input id="displayName" type="text" placeholder="Display name" value="Ada" />
+
     <button id="register">Start Registration</button>
 
     <br />
@@ -18,11 +22,12 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 `
 
 const elemRegister = document.getElementById('register')
+const elemDisplayName = document.getElementById('displayName') as HTMLInputElement | null
 const elemSuccess = document.getElementById('success')
 const elemError = document.getElementById('error')
 
-if (!elemRegister || !elemSuccess || !elemError) {
-  throw new Error('Register button not found')
+if (!elemRegister || !elemDisplayName || !elemSuccess || !elemError) {
+  throw new Error('Register form not found')
 }
 
 elemRegister.addEventListener('click', async () => {
@@ -34,9 +39,14 @@ elemRegister.addEventListener('click', async () => {
     headers: {
       'Content-Type': 'application/json',
     },
+    body: JSON.stringify({ displayName: elemDisplayName.value }),
   })
 
   const optionsResponseJSON = await optionsResponse.json()
+  if (!optionsResponse.ok) {
+    elemError.innerHTML = `Could not start registration: <pre>${JSON.stringify(optionsResponseJSON)}</pre>`
+    return
+  }
   const optionsJSON = optionsResponseJSON.ccr.publicKey
   const registrationId = optionsResponseJSON.registrationId
 
@@ -47,10 +57,13 @@ elemRegister.addEventListener('click', async () => {
     })
   } catch (error) {
     console.error(error)
-    if (error.name === 'InvalidStateError') {
+    const errorName = error instanceof Error ? error.name : undefined
+    if (errorName === 'InvalidStateError') {
       elemError.innerText = 'Error: Authenticator was probably already registered by user'
+    } else if (errorName === 'NotSupportedError') {
+      elemError.innerText = 'This authenticator cannot create a passkey for sign-in without a username. Try a password manager or another security key.'
     } else {
-      elemError.innerText = error
+      elemError.innerText = error instanceof Error ? error.message : String(error)
     }
 
     throw error
@@ -72,9 +85,11 @@ elemRegister.addEventListener('click', async () => {
   // Wait for the results of verification
   const verificationJSON = await verificationResp.json()
 
-  // Show UI appropriate for the `verified` status
-  if (verificationJSON && verificationJSON.cred.user_verified) {
-    elemSuccess.innerHTML = 'Success!'
+  // A finished registration answers with the account it created.
+  if (verificationJSON?.accountId) {
+    elemSuccess.innerHTML = `Success! Account: ${verificationJSON.accountId}`
+  } else if (verificationJSON?.error?.code === 'discoverable_credential_required') {
+    elemError.innerText = 'This passkey cannot identify your account automatically. Register again with a password manager or a compatible security key.'
   } else {
     elemError.innerHTML = `Oh no, something went wrong! Response: <pre>${JSON.stringify(verificationJSON)}</pre>`
   }
