@@ -33,8 +33,12 @@ uuid = { version = "1.26.0", features = ["fast-rng", "serde"] }
 # so any replica can finish a ceremony (src/webauthn/ceremonies.rs). The danger
 # the feature guards against is client-side storage, which CAS never does.
 webauthn-rs = { version = "0.5.5", features = ["danger-allow-state-serialisation"] }
+# Public WebAuthn option types used to require discoverable credentials.
+webauthn-rs-proto = "=0.5.5"
 
 [dev-dependencies]
+# Exercises usernameless authentication against the credential registration stores.
+webauthn-rs = { version = "0.5.5", features = ["conditional-ui"] }
 # Software authenticator driving the WebAuthn ceremonies in tests, exposed
 # through `cas::testing` in test builds. Its version must move in lockstep with
 # webauthn-rs: it pins the same webauthn-rs-core and webauthn-rs-proto, which is

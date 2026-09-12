@@ -8,6 +8,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div>
     <h1>Passkey Client</h1>
 
+    <p>Use a passkey from a password manager or a compatible security key.</p>
+
     <input id="displayName" type="text" placeholder="Display name" value="Ada" />
 
     <button id="register">Start Registration</button>
@@ -55,10 +57,13 @@ elemRegister.addEventListener('click', async () => {
     })
   } catch (error) {
     console.error(error)
-    if (error.name === 'InvalidStateError') {
+    const errorName = error instanceof Error ? error.name : undefined
+    if (errorName === 'InvalidStateError') {
       elemError.innerText = 'Error: Authenticator was probably already registered by user'
+    } else if (errorName === 'NotSupportedError') {
+      elemError.innerText = 'This authenticator cannot create a passkey for sign-in without a username. Try a password manager or another security key.'
     } else {
-      elemError.innerText = error
+      elemError.innerText = error instanceof Error ? error.message : String(error)
     }
 
     throw error
@@ -83,6 +88,8 @@ elemRegister.addEventListener('click', async () => {
   // A finished registration answers with the account it created.
   if (verificationJSON?.accountId) {
     elemSuccess.innerHTML = `Success! Account: ${verificationJSON.accountId}`
+  } else if (verificationJSON?.error?.code === 'discoverable_credential_required') {
+    elemError.innerText = 'This passkey cannot identify your account automatically. Register again with a password manager or a compatible security key.'
   } else {
     elemError.innerHTML = `Oh no, something went wrong! Response: <pre>${JSON.stringify(verificationJSON)}</pre>`
   }

@@ -45,6 +45,9 @@ impl From<FinishError> for ApiError {
             FinishError::CredentialAlreadyRegistered => {
                 ApiError::conflict("credential_already_registered", message)
             }
+            FinishError::DiscoverableCredentialRequired => {
+                ApiError::bad_request("discoverable_credential_required", message)
+            }
             FinishError::Db(error) => ApiError::from(error),
         }
     }
@@ -323,6 +326,44 @@ mod tests {
             Some(u32::try_from(CEREMONY_TIMEOUT.as_millis()).expect("the timeout fits in a u32"))
         );
         assert_eq!(options.ccr.public_key.timeout, Some(300_000));
+    }
+
+    #[sqlx::test]
+    async fn register_options_requires_discoverable_credentials_and_user_verification(
+        pool: PgPool,
+    ) {
+        let options = start(&test_app(pool), "Ada").await;
+        let public_key = serde_json::to_value(options.ccr.public_key).unwrap();
+        let selection = &public_key["authenticatorSelection"];
+        assert_eq!(selection["residentKey"], "required");
+        assert_eq!(selection["requireResidentKey"], true);
+        assert_eq!(selection["userVerification"], "required");
+        assert!(selection.get("authenticatorAttachment").is_none());
+        assert_eq!(public_key["attestation"], "none");
+        assert_eq!(public_key["extensions"]["credProps"], true);
+    }
+
+    #[sqlx::test]
+    async fn a_non_discoverable_registration_returns_a_specific_error(pool: PgPool) {
+        let app = test_app(pool);
+        let options = start(&app, "Ada").await;
+        let mut response = soft_passkey_registration(options.ccr);
+        response.extensions.cred_props = Some(webauthn_rs_proto::CredProps { rk: Some(false) });
+        let response = app
+            .oneshot(json_request(
+                "/verify-registration",
+                serde_json::json!({
+                    "registrationId": options.registration_id,
+                    "response": response,
+                }),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(
+            body_json(response).await["error"]["code"],
+            "discoverable_credential_required"
+        );
     }
 
     #[sqlx::test]

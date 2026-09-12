@@ -57,6 +57,14 @@ pub enum Taken<T> {
     Missing,
 }
 
+/// Distinguishes ceremonies issued with required discoverability
+/// from the older optional-resident-key policy. Old rows fail decoding and are
+/// consumed as NotFound, so a rollout cannot finish an old-policy ceremony.
+#[derive(Debug, Serialize, serde::Deserialize)]
+pub struct DiscoverableRegistration {
+    pub(crate) passkey: PasskeyRegistration,
+}
+
 /// A registration in flight: the account that will be created if the browser
 /// comes back with a valid credential.
 #[derive(Debug, Serialize, serde::Deserialize)]
@@ -65,7 +73,7 @@ pub struct PendingRegistration {
     /// account row must be created with exactly this id.
     pub account_id: Uuid,
     pub display_name: DisplayName,
-    pub state: PasskeyRegistration,
+    pub state: DiscoverableRegistration,
 }
 
 impl Ceremony for PendingRegistration {

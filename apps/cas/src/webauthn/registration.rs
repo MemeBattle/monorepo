@@ -13,9 +13,10 @@ use uuid::Uuid;
 use webauthn_rs::prelude::{
     CreationChallengeResponse, RegisterPublicKeyCredential, Webauthn, WebauthnError,
 };
+use webauthn_rs_proto::{ResidentKeyRequirement, UserVerificationPolicy};
 
 use crate::accounts::{Account, DisplayName, NewAccount};
-use crate::webauthn::ceremonies::{PendingRegistration, Taken};
+use crate::webauthn::ceremonies::{DiscoverableRegistration, PendingRegistration, Taken};
 use crate::webauthn::passkeys::{CreateError, DEFAULT_PASSKEY_NAME, PasskeyCredential};
 use crate::webauthn::repository;
 
@@ -43,6 +44,9 @@ pub enum FinishError {
     /// conflict, not a server fault.
     #[error("the authenticator is already registered")]
     CredentialAlreadyRegistered,
+
+    #[error("a discoverable credential is required for sign-in without a username")]
+    DiscoverableCredentialRequired,
 
     #[error(transparent)]
     Db(#[from] sqlx::Error),
@@ -80,6 +84,29 @@ pub struct RegistrationService {
     pool: PgPool,
 }
 
+/// Keep webauthn-rs's passkey verification and synced-authenticator support,
+/// but require discoverability in the browser request. Its 0.5.5 high-level
+/// resident-key API requires attestation and rejects synced credentials.
+/// Discoverability is a client creation requirement, not a signed authenticator
+/// flag; changing these public options does not change signature verification.
+/// See ADR 0001 for the library limitation and the trust boundary.
+pub(crate) fn start_discoverable_registration(
+    webauthn: &Webauthn,
+    account_id: Uuid,
+    display_name: &str,
+) -> Result<(CreationChallengeResponse, DiscoverableRegistration), WebauthnError> {
+    let (mut ccr, passkey) =
+        webauthn.start_passkey_registration(account_id, display_name, display_name, None)?;
+    let selection = ccr
+        .public_key
+        .authenticator_selection
+        .get_or_insert_with(Default::default);
+    selection.resident_key = Some(ResidentKeyRequirement::Required);
+    selection.require_resident_key = true;
+    selection.user_verification = UserVerificationPolicy::Required;
+    Ok((ccr, DiscoverableRegistration { passkey }))
+}
+
 impl RegistrationService {
     pub fn new(webauthn: Webauthn, pool: PgPool) -> Self {
         Self { webauthn, pool }
@@ -100,10 +127,9 @@ impl RegistrationService {
 
         // v1 has no username (docs/PLAN.md), so the display name serves as both
         // the WebAuthn user name and its display name.
-        let (ccr, state) = self
-            .webauthn
-            .start_passkey_registration(account_id, &display_name, &display_name, None)
-            .map_err(StartError::Webauthn)?;
+        let (ccr, state) =
+            start_discoverable_registration(&self.webauthn, account_id, &display_name)
+                .map_err(StartError::Webauthn)?;
 
         let registration_id = repository::start_ceremony(
             &self.pool,
@@ -150,7 +176,7 @@ impl RegistrationService {
 
         let passkey = match self
             .webauthn
-            .finish_passkey_registration(response, &pending.state)
+            .finish_passkey_registration(response, &pending.state.passkey)
         {
             Ok(passkey) => passkey,
             Err(error) => {
@@ -158,6 +184,20 @@ impl RegistrationService {
                 return Err(FinishError::Verification(error));
             }
         };
+
+        // credProps is optional and unsigned. Reject an explicit negative
+        // report as a usability failure, but never treat a positive one as
+        // authentication proof or reject browsers that omit the extension.
+        if response
+            .extensions
+            .cred_props
+            .as_ref()
+            .and_then(|props| props.rk)
+            == Some(false)
+        {
+            tx.commit().await?;
+            return Err(FinishError::DiscoverableCredentialRequired);
+        }
 
         let account = NewAccount::full(pending.display_name).with_id(pending.account_id);
         let (account, credential) = repository::create_passkey_with_account(
@@ -181,8 +221,131 @@ impl RegistrationService {
 mod tests {
     use super::*;
     use crate::accounts::AccountRepository;
+    use crate::testing::{ResidentSoftPasskey, test_origin};
     use crate::testing::{display_name, soft_passkey_registration, test_webauthn};
     use crate::webauthn::repository::PasskeyRepository;
+    use webauthn_authenticator_rs::{
+        WebauthnAuthenticator, error::WebauthnCError, softpasskey::SoftPasskey,
+    };
+    use webauthn_rs_proto::CredProps;
+
+    #[test]
+    fn an_authenticator_without_resident_storage_cannot_register() {
+        let (ccr, _) =
+            start_discoverable_registration(&test_webauthn(), Uuid::new_v4(), "Ada").unwrap();
+        let error = WebauthnAuthenticator::new(SoftPasskey::new(true))
+            .do_registration(test_origin(), ccr)
+            .unwrap_err();
+        assert!(matches!(error, WebauthnCError::NotSupported));
+    }
+
+    #[sqlx::test]
+    async fn the_stored_passkey_supports_usernameless_sign_in(pool: PgPool) {
+        let service = service(pool.clone());
+        let mut authenticator = WebauthnAuthenticator::new(ResidentSoftPasskey::new());
+        let started = service.start(display_name("Ada")).await.unwrap();
+        let response = authenticator
+            .do_registration(test_origin(), started.ccr)
+            .unwrap();
+        let registered = service
+            .finish(started.registration_id, &response)
+            .await
+            .unwrap();
+
+        let webauthn = test_webauthn();
+        let (request, state) = webauthn.start_discoverable_authentication().unwrap();
+        assert!(request.public_key.allow_credentials.is_empty());
+        let assertion = authenticator
+            .do_authentication(test_origin(), request)
+            .unwrap();
+        let (account_id, credential_id) = webauthn
+            .identify_discoverable_authentication(&assertion)
+            .unwrap();
+        assert_eq!(account_id, registered.account.id);
+        let stored = PasskeyRepository::new(pool)
+            .list_for_account(account_id)
+            .await
+            .unwrap();
+        let credential = stored
+            .iter()
+            .find(|credential| credential.credential_id == credential_id)
+            .unwrap();
+        let result = webauthn
+            .finish_discoverable_authentication(&assertion, state, &[(&credential.passkey).into()])
+            .unwrap();
+        assert!(result.user_verified());
+        assert_eq!(result.cred_id(), credential.passkey.cred_id());
+    }
+
+    #[sqlx::test]
+    async fn a_non_discoverable_result_consumes_the_ceremony_without_creating_an_account(
+        pool: PgPool,
+    ) {
+        let service = service(pool.clone());
+        let started = service.start(display_name("Ada")).await.unwrap();
+        let account_id = Uuid::from_slice(started.ccr.public_key.user.id.as_ref()).unwrap();
+        let mut response = soft_passkey_registration(started.ccr);
+        response.extensions.cred_props = Some(CredProps { rk: Some(false) });
+        let error = service
+            .finish(started.registration_id, &response)
+            .await
+            .unwrap_err();
+        assert!(matches!(error, FinishError::DiscoverableCredentialRequired));
+        assert_eq!(ceremony_count(&pool).await, 0);
+        assert!(
+            AccountRepository::new(pool.clone())
+                .get(account_id)
+                .await
+                .unwrap()
+                .is_none()
+        );
+        assert!(
+            PasskeyRepository::new(pool)
+                .list_for_account(account_id)
+                .await
+                .unwrap()
+                .is_empty()
+        );
+        assert!(matches!(
+            service
+                .finish(started.registration_id, &response)
+                .await
+                .unwrap_err(),
+            FinishError::NotFound
+        ));
+    }
+
+    #[sqlx::test]
+    async fn browsers_may_omit_the_optional_credential_properties(pool: PgPool) {
+        let service = service(pool);
+        for properties in [None, Some(CredProps { rk: None })] {
+            let started = service.start(display_name("Ada")).await.unwrap();
+            let mut response = soft_passkey_registration(started.ccr);
+            response.extensions.cred_props = properties;
+            service
+                .finish(started.registration_id, &response)
+                .await
+                .unwrap();
+        }
+    }
+
+    #[sqlx::test]
+    async fn a_ceremony_from_the_optional_resident_key_policy_is_discarded(pool: PgPool) {
+        let service = service(pool.clone());
+        let started = service.start(display_name("Ada")).await.unwrap();
+        let response = soft_passkey_registration(started.ccr);
+        // Restore the pre-policy-wrapper JSON shape. Unchecked query: see docs/TESTS.md.
+        sqlx::query("UPDATE webauthn_ceremonies SET state = jsonb_set(state, '{state}', state #> '{state,passkey}') WHERE id = $1")
+            .bind(started.registration_id).execute(&pool).await.unwrap();
+        assert!(matches!(
+            service
+                .finish(started.registration_id, &response)
+                .await
+                .unwrap_err(),
+            FinishError::NotFound
+        ));
+        assert_eq!(ceremony_count(&pool).await, 0);
+    }
 
     fn service(pool: PgPool) -> RegistrationService {
         RegistrationService::new(test_webauthn(), pool)

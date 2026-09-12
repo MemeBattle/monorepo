@@ -3,6 +3,8 @@
 ## Status
 
 Accepted (2026-09-03), with [#665](https://github.com/MemeBattle/monorepo/issues/665).
+Revised 2026-09-12: discoverable credentials are required to meet the original
+usernameless sign-in requirement.
 
 ## Context
 
@@ -10,7 +12,12 @@ Registration has to store what an authenticator produced so that login (#666)
 can verify a later assertion against it, and passkey management (#668) can list
 and delete credentials. webauthn-rs hands us a `Passkey` value it documents as
 safe to serialise; everything else — where the account id comes from, when the
-account row appears, whether the credential is discoverable — is our decision.
+account row appears, how discoverability is requested — is our decision.
+
+CAS sign-in identifies the account through a discoverable credential, without
+asking for a username or email. Display names are non-unique and email is
+optional, so there is no identifier-first fallback. Every successful browser
+registration must support this flow.
 
 ## Decision
 
@@ -37,21 +44,62 @@ prompt), and it must not leave an account that has no credential and that
 nothing can ever reach. Account and first credential are written in one
 transaction.
 
-**(d) Registration keeps webauthn-rs's `start_passkey_registration`, which
-requests `residentKey: discouraged`.** That is the library's recommended
-default: platform authenticators (iCloud Keychain, Google Password Manager,
-Windows Hello, password managers) create discoverable credentials anyway, while
-requiring resident keys can exhaust the limited slots of a CTAP2.0 security key
-and lock the user out of it.
+**(d) Registration requires discoverable credentials.** Both
+`residentKey: required` and the legacy `requireResidentKey: true` are sent to
+the browser. `userVerification: required` remains in effect. A conforming
+browser must fail registration if the selected authenticator cannot create a
+discoverable credential; CAS does not downgrade to a non-discoverable one.
+The user can choose another compatible authenticator or password manager.
+
+The earlier `discouraged` decision followed the library's default to conserve
+storage on older hardware keys. That conflicted with CAS's original sign-in
+requirement and deferred the problem to an undefined fallback. Compatibility
+with non-discoverable credentials does not take priority over a usable account.
+`preferred` is also insufficient because it permits non-discoverable results.
+
+**(e) Keep the high-level passkey verifier and adapt the public creation options.**
+In webauthn-rs 0.5.5, `start_passkey_registration` has no resident-key option.
+The separate `start_attested_resident_key_registration` API requires an
+attestation CA list and rejects synchronised credentials, which would exclude
+synced passkeys. CAS therefore sets the two resident-key options in
+`registration::start_discoverable_registration`, retaining the normal passkey
+state, verification, algorithms, and support for synced credentials. This does
+not introduce a custom cryptographic verifier or attestation requirement.
+
+Discoverability is a browser/authenticator creation requirement, not a signed
+flag the registration verifier can prove. The requested `credProps` extension
+is optional and unsigned. CAS rejects an explicit `rk: false` with
+`400 discoverable_credential_required`, consuming the ceremony without creating
+an account. Missing `credProps` or `rk` is accepted for browser compatibility;
+`rk: true` never substitutes for the library's cryptographic verification.
+A modified client can lie about storage; this policy guarantees the intended
+flow for conforming clients, not attestation of their storage behaviour.
+
+References: [WebAuthn resident-key requirements](https://www.w3.org/TR/webauthn-3/#enum-residentKeyRequirement),
+[credential properties](https://www.w3.org/TR/webauthn-3/#sctn-authenticator-credential-properties-extension),
+[webauthn-rs 0.5.5 source](https://docs.rs/webauthn-rs/0.5.5/src/webauthn_rs/lib.rs.html).
 
 ## Consequences
 
 - A change to the serde shape of `Passkey` in webauthn-rs needs a data
-  migration. Mitigated by pinning the exact version and moving it deliberately.
+  migration. The lockfile pins the resolved version; dependency updates must
+  review the persisted format and creation-policy adapter.
 - Deleting an account cascades to its credentials; there is no other way for a
   credential row to become orphaned.
 - Registration cannot reuse an id that already exists — the insert fails and the
   transaction rolls back, leaving no partial account.
-- A hardware security key registered through (d) may not be discoverable, so it
-  cannot serve the usernameless conditional-UI login of #666. The sign-in screen
-  has to keep a fallback path. Revisit if a product need appears.
+- Keys without resident storage, or without space for another resident
+  credential, cannot be used for new registrations. This is an explicit
+  compatibility tradeoff; existing credentials on a device are not erased.
+- Login (#666) starts without `allowCredentials`, identifies the account and
+  credential from the assertion, then verifies it against the stored passkey.
+  Account discovery still requires the user's authentication confirmation.
+- Pending registrations have a `DiscoverableRegistration` state wrapper.
+  Pre-change ceremony rows cannot decode into it and are consumed as
+  `registration_not_found`; users restart registration after a rollout.
+- Already stored credentials are not made discoverable by changing server
+  options. Non-discoverable credentials created during development must be
+  registered again; there is no database-only conversion.
+- Tests cover the wire options, unsupported authenticators, rejection of an
+  explicit negative `credProps` result, old-policy ceremony invalidation, and
+  usernameless authentication using the credential read back from Postgres.
