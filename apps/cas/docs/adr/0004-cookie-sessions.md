@@ -36,6 +36,12 @@ product need appears. Expired rows are not returned and are not removed by
 the application: like `webauthn_ceremonies`, cleanup is a scheduled job, never
 part of the request path.
 
+This is longer than the OWASP Session Management guidance (an idle timeout on
+top of an absolute one, and a non-persistent cookie). Whether a game SSO
+justifies it is decided in
+[#697](https://github.com/MemeBattle/monorepo/issues/697); this ADR is amended
+with the outcome.
+
 **(d) The cookie is `HttpOnly`, `SameSite=Lax`, `Path=/`, host-only, and
 `Secure` when the relying party origin is https.** `HttpOnly`: script never
 reads it. `Lax` rather than `Strict`: the future `/authorize` redirect is a
@@ -48,9 +54,15 @@ http even from localhost, and the development origin is plain http.
 The frontend calls the API cross-origin in development with
 `credentials: 'include'`. Browsers refuse `Access-Control-Allow-Credentials`
 next to a wildcard, so the allowed methods and headers are enumerated. The
-JSON content type forces a preflight on every state-changing request, which
-together with `SameSite=Lax` is the CSRF posture for v1. A dedicated CSRF
-token is not needed while every mutating endpoint takes JSON.
+JSON content type forces a preflight on every state-changing request that
+carries a body, which together with `SameSite=Lax` is the CSRF posture of this
+change. It has one known gap: `POST /api/logout` takes no body, so a cross-site
+HTML form can reach it and only `SameSite=Lax` stands in the way. OWASP counts
+`SameSite` as defence in depth, not as a defence on its own. The exposure is a
+forced sign-out, nothing more, and it is closed by a Fetch Metadata / `Origin`
+check on every mutating request in
+[#696](https://github.com/MemeBattle/monorepo/issues/696), which also covers
+body-less endpoints to come (passkey delete, #668).
 
 **(f) Registration and login sign the account in.** Their finish handlers
 create a session and set the cookie in the same response. The session is
@@ -88,3 +100,11 @@ context's transport and is the one thing other contexts import from it.
   it.
 - The session id is the row's identity for the future management screen; the
   token never identifies a session anywhere but in the lookup.
+- Hardening that OWASP recommends and this change leaves out is tracked
+  separately: the CSRF layer ([#696](https://github.com/MemeBattle/monorepo/issues/696)),
+  the timeout decision ([#697](https://github.com/MemeBattle/monorepo/issues/697)),
+  `Cache-Control: no-store` and `Clear-Site-Data`
+  ([#698](https://github.com/MemeBattle/monorepo/issues/698)), session
+  lifecycle logging ([#699](https://github.com/MemeBattle/monorepo/issues/699))
+  and the `__Host-` cookie prefix
+  ([#700](https://github.com/MemeBattle/monorepo/issues/700)).
