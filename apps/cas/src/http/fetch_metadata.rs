@@ -66,7 +66,8 @@ async fn reject_cross_site(
 /// response is the same 403 whatever the reason.
 #[derive(Debug, PartialEq, Eq)]
 enum Rejection {
-    /// `Sec-Fetch-Site` names another site and `Origin` is not an allowed one.
+    /// `Sec-Fetch-Site` names another origin and `Origin` is not an allowed
+    /// one.
     CrossSite,
     /// No Fetch Metadata, and an `Origin` that is not an allowed one.
     UnknownOrigin,
@@ -85,9 +86,10 @@ impl Rejection {
 ///
 /// Safe methods always pass: `GET` navigations from other sites are how the
 /// future OIDC `/authorize` arrives, and a safe method changes nothing. For
-/// the rest, `Sec-Fetch-Site` is the authority when present: `same-origin`,
-/// `same-site` and `none` (a user-initiated request) pass; `cross-site`, and
-/// any value this code does not know, passes only with an allowed `Origin`.
+/// the rest, `Sec-Fetch-Site` is the authority when present: `same-origin`
+/// and `none` (a user-initiated request) pass; `same-site`, `cross-site`,
+/// and any value this code does not know, pass only with an allowed
+/// `Origin`. A sibling subdomain is same-site and still another party.
 /// Without Fetch Metadata the request is an old browser or a non-browser
 /// client, and `Origin` decides alone: absent or allowed passes.
 fn verdict(
@@ -106,7 +108,7 @@ fn verdict(
     };
 
     match headers.get(SEC_FETCH_SITE).map(HeaderValue::as_bytes) {
-        Some(b"same-origin" | b"same-site" | b"none") => Ok(()),
+        Some(b"same-origin" | b"none") => Ok(()),
         Some(_) if origin_allowed() => Ok(()),
         Some(_) => Err(Rejection::CrossSite),
         None if headers.get(header::ORIGIN).is_none() || origin_allowed() => Ok(()),
@@ -157,8 +159,8 @@ mod tests {
     }
 
     #[test]
-    fn same_site_fetch_metadata_passes_whatever_the_origin() {
-        for site in ["same-origin", "same-site", "none"] {
+    fn same_origin_and_user_initiated_requests_pass_whatever_the_origin() {
+        for site in ["same-origin", "none"] {
             for origin in [None, Some(ALLOWED), Some(OTHER)] {
                 let mut headers = HeaderMap::new();
                 headers.insert(SEC_FETCH_SITE, HeaderValue::from_static(site));
@@ -175,23 +177,34 @@ mod tests {
         }
     }
 
+    /// `same-site` is held to the same rule as `cross-site`: a sibling
+    /// subdomain shares the cookie jar (`SameSite=Lax` does not stop it) but
+    /// is not this service, so only the origin list admits it.
     #[test]
-    fn cross_site_fetch_metadata_needs_an_allowed_origin() {
-        let mut headers = HeaderMap::new();
-        headers.insert(SEC_FETCH_SITE, HeaderValue::from_static("cross-site"));
-        assert_eq!(
-            verdict(&Method::POST, &headers, &origins()),
-            Err(Rejection::CrossSite)
-        );
+    fn same_site_and_cross_site_fetch_metadata_need_an_allowed_origin() {
+        for site in ["same-site", "cross-site"] {
+            let mut headers = HeaderMap::new();
+            headers.insert(SEC_FETCH_SITE, HeaderValue::from_static(site));
+            assert_eq!(
+                verdict(&Method::POST, &headers, &origins()),
+                Err(Rejection::CrossSite),
+                "{site} without origin"
+            );
 
-        headers.insert(header::ORIGIN, HeaderValue::from_static(OTHER));
-        assert_eq!(
-            verdict(&Method::POST, &headers, &origins()),
-            Err(Rejection::CrossSite)
-        );
+            headers.insert(header::ORIGIN, HeaderValue::from_static(OTHER));
+            assert_eq!(
+                verdict(&Method::POST, &headers, &origins()),
+                Err(Rejection::CrossSite),
+                "{site} with a foreign origin"
+            );
 
-        headers.insert(header::ORIGIN, HeaderValue::from_static(ALLOWED));
-        assert_eq!(verdict(&Method::POST, &headers, &origins()), Ok(()));
+            headers.insert(header::ORIGIN, HeaderValue::from_static(ALLOWED));
+            assert_eq!(
+                verdict(&Method::POST, &headers, &origins()),
+                Ok(()),
+                "{site} with an allowed origin"
+            );
+        }
     }
 
     /// A `Sec-Fetch-Site` value this code has never heard of is treated like
@@ -291,20 +304,35 @@ mod tests {
         assert_eq!(body["error"]["code"], "cross_site_request");
     }
 
-    /// `fetch` from the development frontend: the API is on another port,
-    /// so the browser reports `cross-site` (localhost ports are different
-    /// sites only by scheme and host, but the header says what it says)
-    /// with the frontend's `Origin`. In production, served from a sibling
-    /// subdomain, the same call is `same-site`.
+    /// `fetch` from the frontend with its `Origin`. In development the API
+    /// is on another port of the same host, which browsers report as
+    /// `same-site`; a frontend on a sibling subdomain in production is
+    /// `same-site` too, and one on another domain is `cross-site`. The
+    /// origin list admits all three.
     #[tokio::test]
     async fn a_fetch_from_the_frontend_passes() {
+        for site in ["same-site", "cross-site"] {
+            assert_eq!(
+                status_of(&[(SEC_FETCH_SITE, site), ("origin", ALLOWED)]).await,
+                StatusCode::NO_CONTENT,
+                "{site}"
+            );
+        }
+    }
+
+    /// A form on a sibling subdomain: the browser sends `same-site` and the
+    /// session cookie, and the sibling is not in the origin list.
+    #[tokio::test]
+    async fn a_same_site_form_post_from_a_sibling_subdomain_is_forbidden() {
         assert_eq!(
-            status_of(&[(SEC_FETCH_SITE, "cross-site"), ("origin", ALLOWED)]).await,
-            StatusCode::NO_CONTENT
-        );
-        assert_eq!(
-            status_of(&[(SEC_FETCH_SITE, "same-site"), ("origin", ALLOWED)]).await,
-            StatusCode::NO_CONTENT
+            status_of(&[
+                (SEC_FETCH_SITE, "same-site"),
+                ("sec-fetch-mode", "navigate"),
+                ("origin", "https://blog.example.test"),
+                ("content-type", "application/x-www-form-urlencoded"),
+            ])
+            .await,
+            StatusCode::FORBIDDEN
         );
     }
 

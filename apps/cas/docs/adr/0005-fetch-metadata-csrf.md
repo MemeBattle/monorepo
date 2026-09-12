@@ -35,14 +35,15 @@ fallback included, so a new endpoint is protected by where it is mounted and
 not by remembering to add anything. `/health` stays outside: read-only, and
 probed by machines that send no browser headers.
 
-**(b) `Sec-Fetch-Site` is the authority when present.** `same-origin`,
-`same-site` and `none` pass. `same-site` is admitted because the production
-frontend lives on a sibling subdomain of the API; the `__Host-` cookie prefix
-(#700) handles what a sibling could do to the cookie itself. `none` is a
-user-initiated request (typed URL, bookmark), which a third party cannot
-forge. `cross-site` passes only with an `Origin` in `CAS_CORS_ORIGINS`. A
-value this code does not know is read as `cross-site`: the safe reading of
-an unknown claim.
+**(b) `Sec-Fetch-Site` is the authority when present.** `same-origin` and
+`none` pass. `none` is a user-initiated request (typed URL, bookmark), which
+a third party cannot forge. `same-site` and `cross-site` pass only with an
+`Origin` in `CAS_CORS_ORIGINS`. A sibling subdomain is same-site, shares the
+cookie jar (`SameSite=Lax` does not withhold the cookie from it) and can post
+an HTML form that no CORS preflight ever sees; it is not this service and is
+trusted only when the origin list names it. The frontend is in that list
+already, wherever it is served from. A value this code does not know is read
+as `cross-site`: the safe reading of an unknown claim.
 
 **(c) Without Fetch Metadata, `Origin` decides alone.** A request with no
 `Sec-Fetch-Site` is a browser from before Fetch Metadata or not a browser at
