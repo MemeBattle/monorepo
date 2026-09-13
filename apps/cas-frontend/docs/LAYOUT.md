@@ -17,7 +17,8 @@ apps/cas-frontend/
     entities/<name>/   API calls, types and hooks of one domain concept
                        (session, passkey); added with #670 / #671
     shared/api/        request(), ApiError: the wire contract with CAS
-    shared/ui/         reusable presentational pieces, once there are two users
+    shared/ui/         the primitives every screen is made of (Button, TextField,
+                       Alert, Card, Screen, Icon, Logo), each with a *.stories.tsx
 ```
 
 Imports inside `src` use subpath imports `#…` (see `imports` in
@@ -34,6 +35,11 @@ All commands run from `apps/cas-frontend`.
 The CAS dev server must be running on :3000 (`bacon run` in `apps/cas`, see
 its README): vite proxies `/api` to it. Point `CAS_API_PROXY_TARGET` elsewhere
 when CAS listens on another address.
+
+Stories run in the root Storybook: `pnpm storybook` from the repo root, under
+the "CAS" group. The root config wraps stories in the MUI theme of the other
+apps; this app's stories opt out with `parameters: { mui: false }` and load
+`app/styles.css` instead, both through `casStory` in `shared/ui/storybook.ts`.
 
 ## The same-origin rule
 

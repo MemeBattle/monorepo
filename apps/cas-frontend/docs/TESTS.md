@@ -19,6 +19,15 @@ type checker and the build are for.
 Component tests render with `@testing-library/react`; vitest runs every spec
 in the `jsdom` environment, so a component test needs no per-file setup.
 
+## Stories
+
+Every primitive in `shared/ui` has a story next to it covering its states;
+a screen state that is only a composition of primitives is a story too. The
+root Storybook picks them up (`pnpm storybook` / `pnpm build-storybook` from
+the repo root), Chromatic on the PR gives the visual review, and the a11y
+addon runs axe on every story: a story with a violation is a bug in the
+primitive, not in the story.
+
 ## End-to-end
 
 Not yet. Planned: Playwright with Chromium's virtual authenticator (CDP

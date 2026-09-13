@@ -16,6 +16,11 @@ const themesByNames: Record<string, object> = {
 const getTheme = (themeName: string) => themesByNames[themeName] ?? theme
 
 const withThemeProvider: Decorator = (Story, context) => {
+  // Stories that opt out with `parameters: { mui: false }` bring their own
+  // global styles (cas-frontend runs on Tailwind, without MUI).
+  if (context.parameters['mui'] === false) {
+    return <Story />
+  }
   const currentTheme = getTheme(context.globals['theme'] as string)
 
   return (

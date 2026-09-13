@@ -32,35 +32,45 @@ still there. Nothing navigates away on failure and no raw exception text is
 shown (see `CODE.md`, "API access").
 
 **No component library.** The pieces below are built in `src/shared/ui`
-(#710) with Tailwind utilities.
+with Tailwind utilities: Button (primary, secondary, danger, pending,
+disabled), TextField, Alert, Card and Section, Screen with Hero, Footer and
+SwitchLink, Icon, Logo. Each has stories in the root Storybook.
 
 ## Tokens
 
 Names are the `@theme` variables to declare in `src/app/styles.css`.
 
-| Token                   | Value     | Use                                                    |
-| ----------------------- | --------- | ------------------------------------------------------ |
-| `--color-ground`        | `#FFFCF0` | page background                                        |
-| `--color-surface`       | `#FFFFFF` | inputs, cards, dialogs                                 |
-| `--color-ink`           | `#0D2F39` | primary text, icons, focus ring                        |
-| `--color-ink-muted`     | `#4A6570` | secondary text, labels                                 |
-| `--color-ink-hint`      | `#9AA9B0` | placeholders, footer, disabled icons                   |
-| `--color-line`          | `#E6DFC4` | input and card borders                                 |
-| `--color-line-soft`     | `#F1ECD8` | row separators, disabled button fill                   |
-| `--color-accent`        | `#FCE26B` | primary button, nudge border                           |
-| `--color-accent-shadow` | `#E3C33A` | 4px hard shadow under the primary button               |
-| `--color-accent-tint`   | `#FFF6C7` | nudge card, icon chips, pending button                 |
-| `--color-danger`        | `#B8321F` | error text, danger button, error border tint `#F3C2B8` |
-| `--color-danger-tint`   | `#FDECE8` | alert background                                       |
-| `--color-danger-shadow` | `#8A2416` | hard shadow under the danger button                    |
+| Token                   | Value     | Use                                              |
+| ----------------------- | --------- | ------------------------------------------------ |
+| `--color-ground`        | `#FFFCF0` | page background                                  |
+| `--color-surface`       | `#FFFFFF` | inputs, cards, dialogs                           |
+| `--color-ink`           | `#0D2F39` | primary text, icons, focus ring                  |
+| `--color-ink-muted`     | `#4A6570` | secondary text, labels                           |
+| `--color-ink-hint`      | `#9AA9B0` | placeholders, disabled icons; never running text |
+| `--color-line`          | `#E6DFC4` | input and card borders                           |
+| `--color-line-soft`     | `#F1ECD8` | row separators, disabled button fill             |
+| `--color-accent`        | `#FCE26B` | primary button, nudge border                     |
+| `--color-accent-shadow` | `#E3C33A` | 4px hard shadow under the primary button         |
+| `--color-accent-tint`   | `#FFF6C7` | nudge card, icon chips, pending button           |
+| `--color-danger`        | `#B8321F` | error text, alert title, danger button           |
+| `--color-danger-ink`    | `#7A2A1D` | alert body text                                  |
+| `--color-danger-line`   | `#F3C2B8` | alert border                                     |
+| `--color-danger-tint`   | `#FDECE8` | alert background                                 |
+| `--color-danger-shadow` | `#8A2416` | hard shadow under the danger button              |
+
+Contrast: everything that is text meets WCAG AA (4.5:1) against what it sits
+on, and the a11y addon in Storybook checks it. Hint (`#9AA9B0`) is 2.4:1 on
+the ground, which is why it is reserved for placeholders and disabled
+controls; the footer is in muted.
 
 Type: Nunito. Headline 30/800 (sign-in, create account), 22/800 (dashboard
 name, dialog title), 16/800 row titles, 16/500 body, 15/500 secondary, 13/700
 labels, 12/700 uppercase with 0.14em tracking for the footer and section
 titles.
 
-Radii: inputs 14px, buttons 16px, cards and dialogs 20px, icon chips and
-small controls 12px. Control heights: inputs 52px, primary buttons 56px,
+Radii, also `@theme` tokens: inputs 14px (`--radius-field`), buttons 16px
+(`--radius-button`), cards and dialogs 20px (`--radius-card`), icon chips and
+small controls 12px (`--radius-chip`). Control heights: inputs 52px, primary buttons 56px,
 secondary and inline buttons 44px. Nothing tappable is under 44px.
 
 Primary button: accent fill, ink text, `0 4px 0 accent-shadow`. Pending
@@ -73,7 +83,7 @@ emoji anywhere in the UI.
 
 ## Screens and states
 
-Every screen ends with the footer `CAS.MEMS.FUN` in hint colour. Copy is
+Every screen ends with the footer `CAS.MEMS.FUN` in muted colour. Copy is
 Russian; the strings below are the ones on the canvas and are the source for
 the code.
 
@@ -124,8 +134,9 @@ States:
 
 ### Session check (root loader)
 
-While `/api/me` is in flight: the logo at 96px and "Проверяем, кто вы…",
-pulsing, footer in place. No spinner, no layout of the page behind it. It
+While `/api/me` is in flight: the logo at 96px, pulsing, and "Проверяем, кто
+вы…" under it (static: text at half opacity fails the contrast check), footer
+in place. No spinner, no layout of the page behind it. It
 should be visible for well under a second in practice.
 
 ### Dashboard (`/`)
