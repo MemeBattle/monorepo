@@ -3,10 +3,9 @@ import { useEffect, useRef } from 'react'
 
 import { Button, SubmitButton } from './Button'
 import { Icon } from './icons'
-import { casStory } from './storybook'
 
 const meta: Meta<typeof Button> = {
-  ...casStory,
+  parameters: { layout: 'padded' },
   title: 'CAS / Button',
   component: Button,
   args: { children: 'Войти с пасскеем' },

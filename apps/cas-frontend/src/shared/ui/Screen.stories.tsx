@@ -6,11 +6,9 @@ import { Section } from './Card'
 import { Icon } from './icons'
 import { Logo } from './Logo'
 import { Hero, Screen, SwitchLink } from './Screen'
-import { casScreenStory } from './storybook'
 import { TextField } from './TextField'
 
 const meta: Meta<typeof Screen> = {
-  ...casScreenStory,
   title: 'CAS / Screen',
   component: Screen,
 }

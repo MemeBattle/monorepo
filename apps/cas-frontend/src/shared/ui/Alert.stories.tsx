@@ -1,10 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react'
 
 import { Alert } from './Alert'
-import { casStory } from './storybook'
 
 const meta: Meta<typeof Alert> = {
-  ...casStory,
+  parameters: { layout: 'padded' },
   title: 'CAS / Alert',
   component: Alert,
   decorators: [Story => <div className="max-w-[360px]">{Story()}</div>],

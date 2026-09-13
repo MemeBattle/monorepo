@@ -37,9 +37,9 @@ its README): vite proxies `/api` to it. Point `CAS_API_PROXY_TARGET` elsewhere
 when CAS listens on another address.
 
 Stories run in the root Storybook: `pnpm storybook` from the repo root, under
-the "CAS" group. The root config wraps stories in the MUI theme of the other
-apps; this app's stories opt out with `parameters: { mui: false }` and load
-`app/styles.css` instead, both through `casStory` in `shared/ui/storybook.ts`.
+the "CAS" group. The root `.storybook/preview.tsx` tells this app's stories
+apart by path: they skip the MUI theme of the other apps and get
+`app/styles.css` from a loader instead, so a story file needs nothing for that.
 
 ## The same-origin rule
 

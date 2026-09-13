@@ -1,11 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react'
 
 import { Icon } from './icons'
-import { casStory } from './storybook'
 import { TextField } from './TextField'
 
 const meta: Meta<typeof TextField> = {
-  ...casStory,
+  parameters: { layout: 'padded' },
   title: 'CAS / TextField',
   component: TextField,
   args: { label: 'Имя', name: 'displayName', placeholder: 'Как вас называть' },

@@ -3,10 +3,9 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { Button } from './Button'
 import { Card, Section } from './Card'
 import { Icon } from './icons'
-import { casStory } from './storybook'
 
 const meta: Meta<typeof Card> = {
-  ...casStory,
+  parameters: { layout: 'padded' },
   title: 'CAS / Card',
   component: Card,
   decorators: [Story => <div className="max-w-[380px]">{Story()}</div>],

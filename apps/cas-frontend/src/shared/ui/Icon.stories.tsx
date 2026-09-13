@@ -1,10 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react'
 
 import { Icon, iconNames } from './icons'
-import { casStory } from './storybook'
 
 const meta: Meta<typeof Icon> = {
-  ...casStory,
+  parameters: { layout: 'padded' },
   title: 'CAS / Icon',
   component: Icon,
   args: { name: 'key', size: 24 },
