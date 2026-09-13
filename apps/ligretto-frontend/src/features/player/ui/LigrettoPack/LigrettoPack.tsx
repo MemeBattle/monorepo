@@ -13,7 +13,7 @@ interface LigrettoPackProps {
   ligrettoDeckCards: PlayerCards[]
   /** The deck's `isHidden` flag from the game data: the ligretto deck lies face down. */
   isDeckHidden: boolean
-  onLigrettoDeckCardClick: () => void
+  onLigrettoDeckCardClick?: () => void
   isHighlighted?: boolean
   isDisabled?: boolean
   ref?: Ref<HTMLDivElement>

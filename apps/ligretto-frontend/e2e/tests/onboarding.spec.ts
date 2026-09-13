@@ -18,26 +18,24 @@ const performEvent = async (onboarding: OnboardingPage, event: OnboardingEvent) 
       return
     case OnboardingEvent.PutStackCard:
       await onboarding.getStackOpenDeckCard().click()
-      await expect(onboarding.getStackOpenDeckCard()).toHaveAttribute('data-card-focused', 'true')
+      await expect(onboarding.getStackOpenDeckCard()).toHaveAttribute('data-card-active', 'true')
       await onboarding.getPlaygroundDeck(0).click()
       return
     case OnboardingEvent.PutFirstCard:
       await onboarding.getRowCard(0).click()
+      await expect(onboarding.getRowCard(0)).toHaveAttribute('data-card-active', 'true')
+      await onboarding.getPlaygroundDeck(0).click()
       return
     case OnboardingEvent.PutSecondCard: {
       const card = onboarding.getRowCard(1)
-      if ((await card.textContent())?.trim() === '1') {
-        await card.click()
-        return
-      }
       await card.click()
-      await expect(card).toHaveAttribute('data-card-focused', 'true')
+      await expect(card).toHaveAttribute('data-card-active', 'true')
       await onboarding.getPlaygroundDeck(0).click()
       return
     }
     case OnboardingEvent.PutThirdCard:
       await onboarding.getRowCard(2).click()
-      await expect(onboarding.getRowCard(2)).toHaveAttribute('data-card-focused', 'true')
+      await expect(onboarding.getRowCard(2)).toHaveAttribute('data-card-active', 'true')
       await onboarding.getPlaygroundDeck(2).click()
       return
     case OnboardingEvent.PutLigretto:
@@ -117,6 +115,8 @@ test.describe('Onboarding', () => {
 
     await test.step('opponent answers and the optional ligretto move fills the free slot', async () => {
       await onboarding.getRowCard(1).click()
+      await expect(onboarding.getRowCard(1)).toHaveAttribute('data-card-active', 'true')
+      await onboarding.getPlaygroundDeck(0).click()
       await expectStep(page, OnboardingStep.OpponentTurn)
 
       await onboarding.getLigrettoDeckCard().click() // the second row slot is free — a ligretto card goes there
@@ -128,7 +128,7 @@ test.describe('Onboarding', () => {
 
     await test.step('the green three and the final ligretto card end the round', async () => {
       await onboarding.getRowCard(2).click()
-      await expect(onboarding.getRowCard(2)).toHaveAttribute('data-card-focused', 'true')
+      await expect(onboarding.getRowCard(2)).toHaveAttribute('data-card-active', 'true')
       await expectStep(page, OnboardingStep.OpponentTurnSecondCard)
 
       await onboarding.getPlaygroundDeck(0).click() // the wrong pile does not advance

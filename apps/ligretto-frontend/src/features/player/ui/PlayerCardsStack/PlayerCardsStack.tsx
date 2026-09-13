@@ -25,13 +25,11 @@ const ReshuffleHint = styled('div')(({ theme }) => ({
 }))
 
 export const PlayerCardsStack = () => {
-  const { stackDeckCards, isStackDeckHidden, stackOpenDeckCard } = useSelector(playerCardsStackSelector)
+  const { stackDeckCards, stackOpenDeckCard } = useSelector(playerCardsStackSelector)
 
   if (!stackDeckCards) {
     return null
   }
-
-  const isStackDeckEnabled = stackDeckCards.length > 0 || !!stackOpenDeckCard
 
   return (
     <CardsRow>
@@ -43,9 +41,9 @@ export const PlayerCardsStack = () => {
         )}
       </CardPlace>
 
-      <CardHotkeyBadge hotkey={isStackDeckEnabled ? Hotkey.space : undefined}>
+      <CardHotkeyBadge hotkey={Hotkey.space}>
         <CardPlace>
-          <PlayerStackDeck card={stackDeckCards[0]} enabled={isStackDeckEnabled} isHidden={isStackDeckHidden && stackDeckCards.length > 0} />
+          <PlayerStackDeck />
           {stackDeckCards.length === 0 && stackOpenDeckCard ? (
             <ReshuffleHint>
               <CachedIcon fontSize="inherit" />

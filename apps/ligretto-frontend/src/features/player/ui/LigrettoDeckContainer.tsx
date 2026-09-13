@@ -1,8 +1,8 @@
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Hotkey, tapLigrettoDeckCardAction, playerLigrettoDeckCardsSelector, playerLigrettoDeckHiddenSelector } from '#ducks/game'
+import { useCardHotkey } from '#features/cardInteraction'
 import { LigrettoPack } from './LigrettoPack'
-import { useCardHotkey } from '../lib/useCardHotkey'
 
 export const LigrettoDeckContainer = () => {
   const dispatch = useDispatch()
@@ -29,7 +29,7 @@ export const LigrettoDeckContainer = () => {
       hotkey={isLigrettoDeckEnabled ? Hotkey.l : undefined}
       ligrettoDeckCards={ligrettoDeckCards}
       isDeckHidden={isDeckHidden ?? true}
-      onLigrettoDeckCardClick={onLigrettoDeckCardClick}
+      onLigrettoDeckCardClick={isLigrettoDeckEnabled ? onLigrettoDeckCardClick : undefined}
     />
   )
 }

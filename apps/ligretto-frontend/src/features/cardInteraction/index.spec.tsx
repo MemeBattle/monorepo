@@ -2,12 +2,12 @@
 
 import type { PropsWithChildren } from 'react'
 import { configureStore } from '@reduxjs/toolkit'
-import { CardColors, GameStatus } from '@memebattle/ligretto-shared'
+import { GameStatus } from '@memebattle/ligretto-shared'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Provider } from 'react-redux'
 
-import { CardFocusProvider, useCardFocus } from './index'
+import { CardInteractionProvider, useCardInteraction } from './index'
 import { rootReducer } from '#app/store/rootReducer'
 import { initialState as gameInitialState } from '#ducks/game/slice'
 import { Playground } from '#features/playground/ui/Playground'
@@ -26,32 +26,29 @@ const testStore = configureStore({
 
 const TestProvider = ({ children, enabled = true }: PropsWithChildren<{ enabled?: boolean }>) => (
   <Provider store={testStore}>
-    <CardFocusProvider enabled={enabled}>{children}</CardFocusProvider>
+    <CardInteractionProvider enabled={enabled}>{children}</CardInteractionProvider>
   </Provider>
 )
 
-const RowCard = ({ value = 2 }: { value?: number }) => {
-  const { isFocused, toggleFocus } = useCardFocus(
-    {
-      type: 'row',
-      index: 0,
-    },
-    [CardColors.red, value],
-  )
+const RowCard = () => {
+  const { isActive, toggleActiveTarget } = useCardInteraction({
+    type: 'row',
+    index: 0,
+  })
 
   return (
-    <button data-card-focus-element onClick={toggleFocus}>
-      {isFocused ? 'focused' : 'idle'}
+    <button data-card-interaction-element onClick={toggleActiveTarget}>
+      {isActive ? 'focused' : 'idle'}
     </button>
   )
 }
 
 const FocusController = () => {
-  const focus = useCardFocus()
+  const focus = useCardInteraction()
 
   return (
     <>
-      <output>{focus.focusedCard?.type === 'row' ? `row.${focus.focusedCard.index}` : (focus.focusedCard?.type ?? 'none')}</output>
+      <output>{focus.activeTarget?.type === 'row' ? `row.${focus.activeTarget.index}` : (focus.activeTarget?.type ?? 'none')}</output>
       <output data-testid="integration-api">{Object.keys(focus).sort().join(',')}</output>
     </>
   )
@@ -65,26 +62,28 @@ const TransferOnCleanup = ({ showFirst }: { showFirst: boolean }) => (
 )
 
 const TargetedApi = () => {
-  const focus = useCardFocus({ type: 'row', index: 1 }, [CardColors.green, 4])
+  const focus = useCardInteraction({ type: 'row', index: 1 })
   return <output data-testid="targeted-api">{Object.keys(focus).sort().join(',')}</output>
 }
 
 const OpenStackCard = () => {
-  const { isFocused, toggleFocus } = useCardFocus(
-    {
-      type: 'open-stack',
-    },
-    [CardColors.blue, 3],
-  )
+  const { isActive, toggleActiveTarget } = useCardInteraction({
+    type: 'open-stack',
+  })
 
   return (
-    <button data-card-focus-element onClick={toggleFocus}>
-      {isFocused ? 'open-focused' : 'open-idle'}
+    <button data-card-interaction-element onClick={toggleActiveTarget}>
+      {isActive ? 'open-focused' : 'open-idle'}
     </button>
   )
 }
 
-describe('CardFocusProvider', () => {
+const PlaygroundTarget = ({ index }: { index: number }) => {
+  const { toggleActiveTarget } = useCardInteraction({ type: 'playground', index })
+  return <button onClick={toggleActiveTarget}>select playground</button>
+}
+
+describe('CardInteractionProvider', () => {
   it('exposes only the operations owned by each public hook overload', () => {
     render(
       <TestProvider>
@@ -93,8 +92,8 @@ describe('CardFocusProvider', () => {
       </TestProvider>,
     )
 
-    expect(screen.getByTestId('integration-api').textContent).toBe('clearFocus,focusedCard')
-    expect(screen.getByTestId('targeted-api').textContent).toBe('isDimmed,isFocused,toggleFocus')
+    expect(screen.getByTestId('integration-api').textContent).toBe('activeTarget,clearActiveTarget')
+    expect(screen.getByTestId('targeted-api').textContent).toBe('isActive,isDimmed,toggleActiveTarget')
   })
 
   it('toggles a card focus through the public hook', () => {
@@ -112,7 +111,7 @@ describe('CardFocusProvider', () => {
     expect(card.textContent).toBe('idle')
   })
 
-  it('clears focus with Escape and prevents the browser default', () => {
+  it('leaves Escape untouched when a card is focused', () => {
     render(
       <TestProvider>
         <RowCard />
@@ -122,8 +121,8 @@ describe('CardFocusProvider', () => {
 
     const wasNotPrevented = fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' })
 
-    expect(screen.getByText('idle')).toBeTruthy()
-    expect(wasNotPrevented).toBe(false)
+    expect(screen.getByText('focused')).toBeTruthy()
+    expect(wasNotPrevented).toBe(true)
   })
 
   it('transfers focus without treating another card as an outside click', () => {
@@ -174,7 +173,7 @@ describe('CardFocusProvider', () => {
     )
 
     const card = screen.getByRole('button')
-    expect(card.matches('[data-card-focus-element]')).toBe(true)
+    expect(card.matches('[data-card-interaction-element]')).toBe(true)
     fireEvent.click(card)
     expect(screen.getByText('focused')).toBeTruthy()
   })
@@ -183,7 +182,7 @@ describe('CardFocusProvider', () => {
     const view = render(
       <TestProvider>
         <RowCard />
-        <Playground cardsDecks={Array.from({ length: 12 }, () => null)} onDeckClick={() => undefined} />
+        <Playground />
       </TestProvider>,
     )
 
@@ -194,20 +193,23 @@ describe('CardFocusProvider', () => {
     expect(screen.getByText('focused')).toBeTruthy()
   })
 
-  it('clears focus when the focused card identity changes', () => {
+  it('clears focus when the focused playground target index changes', () => {
     const view = render(
       <TestProvider>
-        <RowCard />
+        <PlaygroundTarget index={0} />
+        <FocusController />
       </TestProvider>,
     )
 
-    fireEvent.click(screen.getByText('idle'))
+    fireEvent.click(screen.getByText('select playground'))
+    expect(screen.getByText('playground')).toBeTruthy()
     view.rerender(
       <TestProvider>
-        <RowCard value={3} />
+        <PlaygroundTarget index={1} />
+        <FocusController />
       </TestProvider>,
     )
-    expect(screen.getByText('idle')).toBeTruthy()
+    expect(screen.getByText('none')).toBeTruthy()
   })
 
   it('does not allow pointer focus while disabled', () => {
