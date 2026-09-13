@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE sessions SET last_seen_at = now()\n           WHERE id = $1 AND last_seen_at <= now() - make_interval(secs => $2)\n           RETURNING last_seen_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "last_seen_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "sessions",
+            "name": "last_seen_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "23a054955b2f55cce14164c2081966497e1e808394e91af99e5637221154c287"
+}

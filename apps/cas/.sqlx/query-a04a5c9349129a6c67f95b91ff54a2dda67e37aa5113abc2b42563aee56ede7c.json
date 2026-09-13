@@ -1,0 +1,39 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM webauthn_ceremonies\n           WHERE id = $1 AND kind = $2 AND expires_at > now()\n           RETURNING state",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "state",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "webauthn_ceremonies",
+            "name": "state"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        {
+          "Custom": {
+            "name": "webauthn_ceremony_kind",
+            "kind": {
+              "Enum": [
+                "registration",
+                "authentication"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a04a5c9349129a6c67f95b91ff54a2dda67e37aa5113abc2b42563aee56ede7c"
+}

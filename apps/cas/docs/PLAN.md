@@ -26,7 +26,10 @@ email/password + VK login, 7-service architecture).
   backend, but the frontend has a single entry screen: conditional-mediation login
   via discoverable credentials (no identifier asked) plus an explicit
   "create account" path.
-- Registration asks only for a display name.
+- Registration asks only for a display name and requires discoverable
+  credentials (`residentKey: required`, `requireResidentKey: true`) plus user
+  verification. Unsupported authenticators must fail registration; there is no
+  identifier-first fallback. See ADR 0001.
 
 **Identity**
 
@@ -141,6 +144,12 @@ dashboard [#671](https://github.com/MemeBattle/monorepo/issues/671).
       service.
 - [ ] Deployment/infra: where it runs, TLS/domain (WebAuthn requires a stable
       rp_id), secrets.
+- [ ] Generate an OpenAPI description of the HTTP API, including error responses
+      and their codes (e.g. utoipa), instead of maintaining a hand-written
+      catalogue.
+- [ ] Expired `webauthn_ceremonies` and `sessions` rows are not removed by the
+      application (ADR 0002, ADR 0004): add a periodic cleanup (k8s CronJob
+      running the DELETE, or pg_cron) before launch.
 
 ## Working agreements (lit factory)
 

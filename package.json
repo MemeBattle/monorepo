@@ -15,6 +15,8 @@
     "ligretto:start": "pnpm run --parallel --no-bail --filter '@memebattle/ligretto-*' start:dev",
     "ligretto:front:build": "pnpm run --filter @memebattle/ligretto-frontend build",
     "ligretto:front:start:dev": "pnpm run --filter @memebattle/ligretto-frontend start:dev",
+    "cas:front:build": "pnpm run --filter @memebattle/cas-frontend build",
+    "cas:front:start:dev": "pnpm run --filter @memebattle/cas-frontend start:dev",
     "ligretto:gameplay-backend:start:dev": "pnpm run --filter @memebattle/ligretto-gameplay-backend start:dev",
     "ligretto:gameplay-backend:build": "pnpm run --filter @memebattle/ligretto-gameplay-backend build",
     "ligretto:core-backend:build": "pnpm run --filter @memebattle/ligretto-core-backend build",

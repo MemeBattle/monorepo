@@ -1,0 +1,103 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO passkey_credentials (account_id, credential_id, credential, name)\n           VALUES ($1, $2, $3, $4)\n           RETURNING\n               id,\n               account_id,\n               credential_id,\n               credential AS \"credential: Json<Passkey>\",\n               name,\n               created_at,\n               last_used_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "passkey_credentials",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "account_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "passkey_credentials",
+            "name": "account_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "credential_id",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "passkey_credentials",
+            "name": "credential_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "credential: Json<Passkey>",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "passkey_credentials",
+            "name": "credential"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "passkey_credentials",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "passkey_credentials",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "last_used_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "passkey_credentials",
+            "name": "last_used_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bytea",
+        "Jsonb",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "edb85e4dcfc610276f777d8a05108ed3827db9dee63a9df4cd8808803e20565e"
+}
