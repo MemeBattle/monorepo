@@ -24,7 +24,9 @@
     "ts-check": "tsc --noEmit",
     "test": "vitest",
     "test:ci": "vitest run",
-    "e2e:start": "playwright test"
+    "e2e:start": "playwright test",
+    "unused_code:check": "pnpm -w exec knip --no-config-hints --workspace apps/ligretto-frontend",
+    "unused_code:remove": "pnpm unused_code:check --fix --allow-remove-files"
   },
   "dependencies": {
     "@floating-ui/react-dom": "^2.1.6",
@@ -39,7 +41,6 @@
     "@mui/system": "catalog:",
     "@reduxjs/toolkit": "catalog:",
     "@sentry/browser": "catalog:",
-    "clsx": "catalog:",
     "csstype": "catalog:",
     "history": "catalog:",
     "lodash": "catalog:",
@@ -51,7 +52,6 @@
     "react-router": "catalog:",
     "redux": "catalog:",
     "redux-first-history": "catalog:",
-    "reselect": "catalog:",
     "socket.io-client": "catalog:"
   },
   "devDependencies": {

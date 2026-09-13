@@ -6,7 +6,9 @@
   "module": "src/module.tsx",
   "types": "src/module.tsx",
   "scripts": {
-    "ts-check": "tsc --noEmit"
+    "ts-check": "tsc --noEmit",
+    "unused_code:check": "pnpm -w exec knip --no-config-hints --workspace apps/auth-front",
+    "unused_code:remove": "pnpm unused_code:check --fix --allow-remove-files"
   },
   "dependencies": {
     "@memebattle/cas-services": "workspace:^",
