@@ -2,6 +2,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { mergeConfig } from 'vite'
 import svgr from 'vite-plugin-svgr'
+import tailwindcss from '@tailwindcss/vite'
 import type { StorybookConfig } from '@storybook/react-vite'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -20,7 +21,8 @@ const config: StorybookConfig = {
   async viteFinal(config) {
     return mergeConfig(config, {
       define: { 'process.env': {} },
-      plugins: [svgr()],
+      // Tailwind only touches stylesheets that import it (apps/cas-frontend).
+      plugins: [svgr(), tailwindcss()],
       resolve: {
         // Workspace packages are aliased to sources: their injected dist copies
         // live under node_modules, so vite would serve them without CJS interop

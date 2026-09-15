@@ -1,4 +1,4 @@
-import type { Decorator, Preview } from '@storybook/react'
+import type { Decorator, Preview, StoryContext } from '@storybook/react'
 import { MINIMAL_VIEWPORTS } from 'storybook/viewport'
 import { CssBaseline } from '@memebattle/ui'
 import { ThemeProvider } from '@mui/material/styles'
@@ -15,7 +15,14 @@ const themesByNames: Record<string, object> = {
 
 const getTheme = (themeName: string) => themesByNames[themeName] ?? theme
 
+// cas-frontend runs on Tailwind without MUI: its stories are told apart by
+// path, get its stylesheet instead of the theme, and need nothing per file.
+const isCasStory = (context: StoryContext) => String(context.parameters['fileName'] ?? '').includes('/apps/cas-frontend/')
+
 const withThemeProvider: Decorator = (Story, context) => {
+  if (isCasStory(context)) {
+    return <Story />
+  }
   const currentTheme = getTheme(context.globals['theme'] as string)
 
   return (
@@ -46,6 +53,16 @@ const preview: Preview = {
     },
     layout: 'fullscreen',
   },
+  loaders: [
+    // Loaders run before a story renders, so the stylesheet is in place for
+    // the first paint; the dynamic import keeps Tailwind's preflight away
+    // from the MUI apps' stories.
+    async context => {
+      if (isCasStory(context)) {
+        await import('../apps/cas-frontend/src/app/styles.css')
+      }
+    },
+  ],
   decorators: [withThemeProvider],
 }
 

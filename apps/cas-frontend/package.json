@@ -25,6 +25,7 @@
     "react-router": "catalog:"
   },
   "devDependencies": {
+    "@storybook/react": "catalog:",
     "@tailwindcss/vite": "catalog:",
     "@testing-library/react": "catalog:",
     "@types/react": "catalog:",

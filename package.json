@@ -36,6 +36,7 @@
     "@mui/material": "catalog:",
     "@storybook/addon-a11y": "catalog:",
     "@storybook/react-vite": "catalog:",
+    "@tailwindcss/vite": "catalog:",
     "@types/node": "catalog:",
     "chromatic": "catalog:",
     "oxfmt": "catalog:",
