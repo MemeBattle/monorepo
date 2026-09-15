@@ -1,13 +1,14 @@
 import { Link } from 'react-router'
 
+import { Hero, Screen, SwitchLink } from '#shared/ui'
 import { routes } from '#app/routes'
 
+/** The hero and the way to create an account; the passkey button itself comes with #713. */
 export const SignInPage = () => (
-  <>
-    <h1 className="text-2xl font-semibold tracking-tight">Вход</h1>
-    <p className="text-neutral-600 dark:text-neutral-400">Войдите в аккаунт по ключу доступа — пароль не нужен.</p>
-    <Link className="font-medium text-blue-600 underline-offset-4 hover:underline dark:text-blue-400" to={routes.CREATE_ACCOUNT}>
-      Создать аккаунт
-    </Link>
-  </>
+  <Screen>
+    <Hero title="Вход в MemeBattle" subtitle="Без пароля. Один пасскей для всех игр." />
+    <SwitchLink question="Нет аккаунта?">
+      <Link to={routes.CREATE_ACCOUNT}>Создать</Link>
+    </SwitchLink>
+  </Screen>
 )

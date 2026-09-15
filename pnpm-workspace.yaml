@@ -77,6 +77,7 @@ catalog:
   '@tailwindcss/typography': ^0.5.20
   '@tailwindcss/vite': ^4.3.3
   '@testing-library/react': ^16.3.2
+  '@testing-library/user-event': ^14.6.3
   '@types/amplitude-js': 8.16.5
   '@types/hast': ^3.0.5
   '@types/jsonwebtoken': ^9.0.1
