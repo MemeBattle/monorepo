@@ -42,8 +42,11 @@ writing components:
   screens branch on codes, never on messages or status numbers.
 - Request and response types are hand-written next to the calls in
   `entities/<name>/` until CAS publishes an OpenAPI description.
-- Errors reach the user as Russian messages from one mapping place; a raw
-  `ApiError` or `DOMException` message is never shown.
+- Errors reach the user as Russian messages; a raw `ApiError` or
+  `DOMException` message is never shown. `shared/errors` holds only what every
+  screen shares: the `Failure` shape and the generic fallback. The mapping of
+  what a screen can actually get lives next to that screen, and a check on
+  an error (`isCeremonyCancelled`) next to the code that throws it.
 
 ## Styling
 

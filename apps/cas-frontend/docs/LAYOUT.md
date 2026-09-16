@@ -18,7 +18,8 @@ apps/cas-frontend/
     entities/<name>/   API calls and types of one domain concept: session
                        (/api/me, the ceremonies); passkey comes with #716
     shared/api/        request(), ApiError: the wire contract with CAS
-    shared/errors/     toFailure(): every failure as a Russian title and text
+    shared/errors/     the Failure shape and the generic fallback; screen-specific
+                       failures are mapped next to their screen
     shared/ui/         the primitives every screen is made of (Button, TextField,
                        Alert, Card, Screen, Icon, Logo), each with a *.stories.tsx
 ```

@@ -9,7 +9,8 @@ import { CreateAccountPage } from './CreateAccountPage'
 import { messages } from './validateDisplayName'
 
 const { registerWithPasskey } = vi.hoisted(() => ({ registerWithPasskey: vi.fn() }))
-vi.mock('#entities/session', () => ({ registerWithPasskey }))
+// Only the ceremony is faked; `isCeremonyCancelled` stays real, so the spec covers the mapping too.
+vi.mock('#entities/session', async importOriginal => ({ ...(await importOriginal<typeof import('#entities/session')>()), registerWithPasskey }))
 
 const renderPage = () => {
   const router = createMemoryRouter(
@@ -77,6 +78,16 @@ describe('CreateAccountPage', () => {
     expect(screen.getByLabelText<HTMLInputElement>('Имя').value).toBe('Ада​')
     expect(screen.queryByText(/Invalid display name/)).toBeNull()
     expect(screen.getByRole('button', { name: 'Создать пасскей' })).toBeDefined()
+  })
+
+  it('shows a failure it cannot name as the generic alert, never the raw message', async () => {
+    registerWithPasskey.mockRejectedValue(new TypeError('Failed to fetch'))
+
+    await submit('Ада')
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toContain('Что-то пошло не так')
+    expect(alert.textContent).not.toContain('Failed to fetch')
   })
 
   it('shows a cancelled ceremony as an alert above a still usable form', async () => {

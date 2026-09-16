@@ -1,13 +1,21 @@
 import { useActionState } from 'react'
 import { Link, useNavigate } from 'react-router'
 
-import { registerWithPasskey } from '#entities/session'
+import { isCeremonyCancelled, registerWithPasskey } from '#entities/session'
 import { isApiError } from '#shared/api/request'
-import { toFailure } from '#shared/errors/toFailure'
-import type { Failure } from '#shared/errors/toFailure'
+import { GENERIC_FAILURE } from '#shared/errors/failure'
+import type { Failure } from '#shared/errors/failure'
 import { Alert, Hero, Icon, Screen, SubmitButton, SwitchLink, TextField } from '#shared/ui'
 import { routes } from '#app/routes'
 import { MAX_DISPLAY_NAME_LENGTH, messages, normalizeDisplayName, validateDisplayName } from './validateDisplayName'
+
+const CANCELLED: Failure = {
+  title: 'Создание отменено',
+  text: 'Окно подтверждения закрылось или вышло время. Ничего не сломалось, попробуйте ещё раз.',
+}
+
+/** What this screen can say about a failed ceremony; the rest of what it can get is #715. */
+const toFailure = (error: unknown): Failure => (isCeremonyCancelled(error) ? CANCELLED : GENERIC_FAILURE)
 
 interface FormState {
   /** What was submitted, so the field keeps it after a failure. */
@@ -36,7 +44,7 @@ export const CreateAccountPage = () => {
       if (isApiError(error) && error.code === 'invalid_display_name') {
         return { displayName, nameError: messages.disallowed, failure: null }
       }
-      return { displayName, nameError: null, failure: toFailure(error, 'createAccount') }
+      return { displayName, nameError: null, failure: toFailure(error) }
     }
     // The finish set the session cookie; the dashboard's loader reads it.
     await navigate(routes.DASHBOARD, { replace: true })
