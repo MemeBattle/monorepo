@@ -100,9 +100,9 @@ States:
 - **Pending** (ceremony started): button shows a spinner and "Подтвердите
   пасскей…"; below it "Следуйте подсказке браузера или телефона. Окно можно
   закрыть, тогда вход отменится."
-- **Cancelled** (`NotAllowedError`, timeout): alert "Вход отменён" /
-  "Окно подтверждения закрылось или вышло время. Ничего не сломалось,
-  попробуйте ещё раз."
+- **Cancelled** (`NotAllowedError`, timeout, a challenge the server no
+  longer has: `login_not_found`): alert "Вход отменён" / "Окно подтверждения
+  закрылось или вышло время. Ничего не сломалось, попробуйте ещё раз."
 - **Unknown passkey** (`invalid_credential`): alert "Этот пасскей здесь не
   зарегистрирован" / "Возможно, он от другого сайта, или аккаунта ещё нет."
   with the link "Создать аккаунт"; the button reads "Выбрать другой пасскей".
@@ -129,7 +129,23 @@ States:
   проверкой владельца. Подойдут Touch ID, Face ID, Windows Hello или менеджер
   паролей на телефоне." The name stays filled; the button reads "Попробовать
   ещё раз".
-- **Cancelled**: same alert as on sign-in, titled "Создание отменено".
+- **Cancelled** (`NotAllowedError`, timeout, `registration_not_found`): same
+  alert as on sign-in, titled "Создание отменено".
+- **Already registered** (`InvalidStateError`, `credential_already_registered`):
+  alert "Такой пасскей уже есть" / "Этот пасскей уже зарегистрирован здесь."
+  with the link "Войти".
+
+### Failures every ceremony can have
+
+- **Wrong address** (`SecurityError`: the page is served from an origin the
+  relying party id does not cover): alert "Этот адрес не подходит для входа"
+  / "Сайт открыт не по тому адресу, для которого настроен вход. Откройте его
+  по основному адресу."
+- **Everything else** (an outage, `cross_site_request`, no network, a
+  verification the server could not do): alert "Что-то пошло не так" /
+  "Попробуйте ещё раз через минуту."
+- **No session** (`unauthenticated`) is not an alert: the route loaders send
+  the browser to `/sign-in`.
 
 ### Session check (route loaders)
 

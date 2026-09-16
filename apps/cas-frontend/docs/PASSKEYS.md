@@ -44,8 +44,9 @@ started; the autofill list is rebuilt from it.
 
 ## What each browser does
 
-From the vendors' documentation; a hand check on real devices is still to
-be done, and this table should be corrected from it.
+Checked by hand on macOS on 2026-09-16 in Safari, Chrome and Firefox: all
+three show the passkey in the autofill list under the field and sign in from
+a pick. The notes are from the vendors' documentation.
 
 | Browser                        | Autofill offer                                                                                                                         | Notes                                                                                                                  |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |

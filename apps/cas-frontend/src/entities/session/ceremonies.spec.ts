@@ -2,7 +2,13 @@ import { WebAuthnError } from '@simplewebauthn/browser'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiError } from '#shared/api/request'
-import { isCeremonyCancelled, signInWithPasskeyFromAutofill } from './ceremonies'
+import {
+  isAuthenticatorUnsupported,
+  isCeremonyCancelled,
+  isPasskeyAlreadyRegistered,
+  isWrongOrigin,
+  signInWithPasskeyFromAutofill,
+} from './ceremonies'
 
 const { request, startAuthentication, browserSupportsWebAuthnAutofill, cancelCeremony } = vi.hoisted(() => ({
   request: vi.fn(),
@@ -42,6 +48,30 @@ describe('isCeremonyCancelled', () => {
     ]) {
       expect(isCeremonyCancelled(error)).toBe(false)
     }
+  })
+})
+
+describe('the other verdicts of the authenticator', () => {
+  const named = (name: string) => new DOMException(`the browser said ${name}`, name)
+  const wrapped = (name: string) => new WebAuthnError({ message: 'wrapped', code: 'ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY', cause: named(name) })
+
+  it('tells a passkey the authenticator already holds', () => {
+    expect(isPasskeyAlreadyRegistered(named('InvalidStateError'))).toBe(true)
+    expect(isPasskeyAlreadyRegistered(wrapped('InvalidStateError'))).toBe(true)
+    expect(isPasskeyAlreadyRegistered(named('NotAllowedError'))).toBe(false)
+  })
+
+  it('tells an authenticator that cannot make a discoverable credential', () => {
+    expect(isAuthenticatorUnsupported(named('NotSupportedError'))).toBe(true)
+    expect(isAuthenticatorUnsupported(named('ConstraintError'))).toBe(true)
+    expect(isAuthenticatorUnsupported(wrapped('ConstraintError'))).toBe(true)
+    expect(isAuthenticatorUnsupported(named('NotAllowedError'))).toBe(false)
+  })
+
+  it('tells a page served from the wrong origin', () => {
+    expect(isWrongOrigin(named('SecurityError'))).toBe(true)
+    expect(isWrongOrigin(wrapped('SecurityError'))).toBe(true)
+    expect(isWrongOrigin(new TypeError('Failed to fetch'))).toBe(false)
   })
 })
 
