@@ -16,8 +16,21 @@ actions, anything that turns an API response into what a screen shows.
 Rendering a placeholder or a static route table does not; that is what the
 type checker and the build are for.
 
-Component tests render with `@testing-library/react`; vitest runs every spec
-in the `jsdom` environment, so a component test needs no per-file setup.
+Component tests render with `@testing-library/react` and drive the page with
+`@testing-library/user-event`; vitest runs every spec in the `jsdom`
+environment. There are no vitest globals, so a spec that renders calls
+`cleanup()` in its `afterEach`. A screen that needs the router renders inside
+`createMemoryRouter`, and the entity it calls is mocked with `vi.mock`, so the
+spec exercises the form action and what it shows, not the network.
+
+## Stories
+
+Every primitive in `shared/ui` has a story next to it covering its states;
+a screen state that is only a composition of primitives is a story too. The
+root Storybook picks them up (`pnpm storybook` / `pnpm build-storybook` from
+the repo root), Chromatic on the PR gives the visual review, and the a11y
+addon runs axe on every story: a story with a violation is a bug in the
+primitive, not in the story.
 
 ## End-to-end
 

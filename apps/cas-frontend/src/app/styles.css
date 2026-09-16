@@ -1,1 +1,40 @@
-@import 'tailwindcss';
+/* Class names are scanned under src/ only (the path is relative to this file), so
+   the root Storybook, which runs from the monorepo root, does not walk the repo. */
+@import 'tailwindcss' source('../');
+
+/* Tokens from docs/DESIGN.md. */
+@theme {
+  --font-sans: 'Nunito', 'Trebuchet MS', 'Segoe UI', sans-serif;
+
+  --color-ground: #fffcf0;
+  --color-surface: #ffffff;
+  --color-ink: #0d2f39;
+  --color-ink-muted: #4a6570;
+  --color-ink-hint: #9aa9b0;
+  --color-line: #e6dfc4;
+  --color-line-soft: #f1ecd8;
+  --color-accent: #fce26b;
+  --color-accent-shadow: #e3c33a;
+  --color-accent-tint: #fff6c7;
+  --color-danger: #b8321f;
+  --color-danger-ink: #7a2a1d;
+  --color-danger-line: #f3c2b8;
+  --color-danger-tint: #fdece8;
+  --color-danger-shadow: #8a2416;
+
+  --radius-field: 14px;
+  --radius-button: 16px;
+  --radius-card: 20px;
+  --radius-chip: 12px;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background: var(--color-ground);
+    color: var(--color-ink);
+  }
+}

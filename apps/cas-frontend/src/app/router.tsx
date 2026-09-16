@@ -4,27 +4,23 @@ import type { RouteObject } from 'react-router'
 import { SignInPage } from '#pages/sign-in/SignInPage'
 import { CreateAccountPage } from '#pages/create-account/CreateAccountPage'
 import { DashboardPage } from '#pages/dashboard/DashboardPage'
+import { LoadingScreen } from '#pages/loading/LoadingScreen'
+import { ErrorScreen } from '#pages/error/ErrorScreen'
+import { requireNoSession, requireSession } from './gates'
 import { routes } from './routes'
-
-const RootLayout = () => (
-  <div className="min-h-dvh bg-neutral-50 text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100">
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-10 px-6 py-12">
-      <p className="text-xs font-semibold tracking-[0.2em] text-neutral-500 uppercase">CAS</p>
-      <main className="flex flex-col gap-6">
-        <Outlet />
-      </main>
-    </div>
-  </div>
-)
 
 const appRoutes: RouteObject[] = [
   {
     path: routes.DASHBOARD,
-    element: <RootLayout />,
+    // Each page draws its own Screen; the shell only holds the fallbacks.
+    element: <Outlet />,
+    HydrateFallback: LoadingScreen,
+    errorElement: <ErrorScreen />,
+    // Every page asks `/api/me` on its own, so the gate runs on each navigation and the answer is never stale.
     children: [
-      { index: true, element: <DashboardPage /> },
-      { path: routes.SIGN_IN, element: <SignInPage /> },
-      { path: routes.CREATE_ACCOUNT, element: <CreateAccountPage /> },
+      { index: true, loader: requireSession, element: <DashboardPage /> },
+      { path: routes.SIGN_IN, loader: requireNoSession, element: <SignInPage /> },
+      { path: routes.CREATE_ACCOUNT, loader: requireNoSession, element: <CreateAccountPage /> },
     ],
   },
 ]
