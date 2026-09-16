@@ -3,19 +3,29 @@ import { Link, useNavigate } from 'react-router'
 
 import { isCeremonyCancelled, registerWithPasskey } from '#entities/session'
 import { isApiError } from '#shared/api/request'
-import { GENERIC_FAILURE } from '#shared/errors/failure'
-import type { Failure } from '#shared/errors/failure'
 import { Alert, Hero, Icon, Screen, SubmitButton, SwitchLink, TextField } from '#shared/ui'
 import { routes } from '#app/routes'
 import { MAX_DISPLAY_NAME_LENGTH, messages, normalizeDisplayName, validateDisplayName } from './validateDisplayName'
 
-const CANCELLED: Failure = {
-  title: 'Создание отменено',
-  text: 'Окно подтверждения закрылось или вышло время. Ничего не сломалось, попробуйте ещё раз.',
+/** What the alert above the form says; never the raw `message` of an exception. */
+interface Failure {
+  title: string
+  text: string
 }
 
+const failures = {
+  cancelled: {
+    title: 'Создание отменено',
+    text: 'Окно подтверждения закрылось или вышло время. Ничего не сломалось, попробуйте ещё раз.',
+  },
+  generic: {
+    title: 'Что-то пошло не так',
+    text: 'Попробуйте ещё раз через минуту.',
+  },
+} satisfies Record<string, Failure>
+
 /** What this screen can say about a failed ceremony; the rest of what it can get is #715. */
-const toFailure = (error: unknown): Failure => (isCeremonyCancelled(error) ? CANCELLED : GENERIC_FAILURE)
+const toFailure = (error: unknown): Failure => (isCeremonyCancelled(error) ? failures.cancelled : failures.generic)
 
 interface FormState {
   /** What was submitted, so the field keeps it after a failure. */

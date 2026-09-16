@@ -83,9 +83,8 @@ emoji anywhere in the UI.
 
 ## Screens and states
 
-Every screen ends with the footer `CAS.MEMS.FUN` in muted colour. Copy is
-Russian; the strings below are the ones on the canvas and are the source for
-the code.
+Every screen ends with the footer `CAS.MEMS.FUN` in muted colour. The strings
+below are the ones on the canvas and are the source for the code.
 
 ### Sign-in (`/sign-in`)
 
@@ -148,7 +147,7 @@ Sections, each a card with an uppercase title:
 
 - **"Пасскеи"**, with "Добавить" in the title row (after #720). A row per
   passkey: key chip, name, meta "Создан 12 сентября · Использован сегодня"
-  (relative dates in Russian; never used: "Не использовался"), rename and
+  (relative dates; never used: "Не использовался"), rename and
   delete icon buttons at 44px. Inline rename replaces the row with an input
   and "Сохранить" / "Отмена".
 - **"Почта"**: empty state "Не указана" / "Понадобится для восстановления,

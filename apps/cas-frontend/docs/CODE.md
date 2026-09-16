@@ -5,7 +5,9 @@ their reasons are in `adr/0001-stack.md`.
 
 ## Languages
 
-Code, comments, docs and commit messages are English. UI copy is Russian.
+Code, comments, docs and commit messages are English. UI copy comes from
+`docs/DESIGN.md` and is a plain string in the component for now; a
+translation layer is planned, so no screen should assume a language.
 
 ## React Compiler
 
@@ -42,11 +44,11 @@ writing components:
   screens branch on codes, never on messages or status numbers.
 - Request and response types are hand-written next to the calls in
   `entities/<name>/` until CAS publishes an OpenAPI description.
-- Errors reach the user as Russian messages; a raw `ApiError` or
-  `DOMException` message is never shown. `shared/errors` holds only what every
-  screen shares: the `Failure` shape and the generic fallback. The mapping of
-  what a screen can actually get lives next to that screen, and a check on
-  an error (`isCeremonyCancelled`) next to the code that throws it.
+- Errors reach the user as messages written for the screen; a raw `ApiError`
+  or `DOMException` message is never shown. The mapping of what a screen can
+  actually get lives in that screen's directory, and a check on an error
+  (`isCeremonyCancelled`) next to the code that throws it. Nothing about
+  errors is shared until two screens need the same thing.
 
 ## Styling
 
