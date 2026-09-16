@@ -1,5 +1,5 @@
-import { startRegistration } from '@simplewebauthn/browser'
-import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser'
+import { startAuthentication, startRegistration } from '@simplewebauthn/browser'
+import type { PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser'
 
 import { request } from '#shared/api/request'
 
@@ -30,6 +30,33 @@ export const registerWithPasskey = async (displayName: string): Promise<Register
   return request<Registered>('/api/webauthn/verify-registration', {
     method: 'POST',
     body: { registrationId, response },
+  })
+}
+
+interface LoginOptionsResponse {
+  /** Names the ceremony; goes back with the assertion. */
+  loginId: string
+  rcr: { publicKey: PublicKeyCredentialRequestOptionsJSON }
+}
+
+export interface SignedIn {
+  accountId: string
+  credentialId: string
+}
+
+/**
+ * The login ceremony: the server issues a challenge any registered passkey may
+ * answer (nothing about the user is asked first), the authenticator signs it
+ * with one, and the finish sets the session cookie. Throws like
+ * `registerWithPasskey`; a passkey this CAS does not know is the `ApiError`
+ * code `invalid_credential`.
+ */
+export const signInWithPasskey = async (): Promise<SignedIn> => {
+  const { loginId, rcr } = await request<LoginOptionsResponse>('/api/webauthn/login-options', { method: 'POST' })
+  const response = await startAuthentication({ optionsJSON: rcr.publicKey })
+  return request<SignedIn>('/api/webauthn/verify-login', {
+    method: 'POST',
+    body: { loginId, response },
   })
 }
 
