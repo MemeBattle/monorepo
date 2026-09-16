@@ -131,7 +131,7 @@ States:
   ещё раз".
 - **Cancelled**: same alert as on sign-in, titled "Создание отменено".
 
-### Session check (root loader)
+### Session check (route loaders)
 
 While `/api/me` is in flight: the logo at 96px, pulsing, and "Проверяем, кто
 вы…" under it (static: text at half opacity fails the contrast check), footer
@@ -165,6 +165,8 @@ States:
   "Единственный пасскей нельзя удалить: сначала добавьте второй." The same
   sentence is the message for a `409 last_passkey` from the API.
 - **Two or more passkeys**: no nudge, delete enabled on every row.
+- **Sign-out failed**: alert "Не получилось выйти" / "Попробуйте ещё раз
+  через минуту." under the header; "Выйти" stays where it was.
 - **Delete**: a bottom sheet over a dimmed page, "Удалить пасскей «iPhone
   Ады»?" / "Вход с этого устройства перестанет работать. Открытые сессии
   останутся, из них можно выйти отдельно.", danger "Удалить" with the trash

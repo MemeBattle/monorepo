@@ -1,6 +1,5 @@
 import { isRouteErrorResponse, useRouteError } from 'react-router'
 
-import { isApiError } from '#shared/api/request'
 import { Alert, Button, Hero, Screen } from '#shared/ui'
 import { routes } from '#app/routes'
 
@@ -11,17 +10,10 @@ interface Recovery {
   to: string
 }
 
-/**
- * The root error boundary: a loader failed or a route does not exist. Until
- * the auth gate (#712) redirects, a dashboard opened without a session lands
- * here too, with the way to sign in.
- */
+/** The root error boundary: a loader failed or a route does not exist. */
 const recoveryFor = (error: unknown): Recovery => {
   if (isRouteErrorResponse(error) && error.status === 404) {
     return { title: 'Такой страницы нет', text: 'Проверьте адрес или вернитесь на главную.', action: 'На главную', to: routes.DASHBOARD }
-  }
-  if (isApiError(error) && error.code === 'unauthenticated') {
-    return { title: 'Вы не вошли', text: 'Войдите или создайте аккаунт.', action: 'Войти', to: routes.SIGN_IN }
   }
   return { title: 'Что-то пошло не так', text: 'Попробуйте ещё раз через минуту.', action: 'Попробовать ещё раз', to: routes.DASHBOARD }
 }
