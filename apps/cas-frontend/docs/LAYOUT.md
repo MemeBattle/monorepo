@@ -13,9 +13,10 @@ apps/cas-frontend/
     index.tsx          createRoot + RouterProvider, imports app/styles.css
     app/               the shell: router.tsx (routes and the root layout),
                        routes.ts (path constants), styles.css (Tailwind entry)
-    pages/<page>/      one directory per route, the screen and nothing else
-    entities/<name>/   API calls, types and hooks of one domain concept
-                       (session, passkey); added with #670 / #671
+    pages/<page>/      one directory per route, the screen and nothing else;
+                       loading/ and error/ are the root route's fallbacks
+    entities/<name>/   API calls and types of one domain concept: session
+                       (/api/me, the ceremonies); passkey comes with #716
     shared/api/        request(), ApiError: the wire contract with CAS
     shared/ui/         the primitives every screen is made of (Button, TextField,
                        Alert, Card, Screen, Icon, Logo), each with a *.stories.tsx

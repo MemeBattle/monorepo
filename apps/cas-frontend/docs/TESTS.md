@@ -16,8 +16,12 @@ actions, anything that turns an API response into what a screen shows.
 Rendering a placeholder or a static route table does not; that is what the
 type checker and the build are for.
 
-Component tests render with `@testing-library/react`; vitest runs every spec
-in the `jsdom` environment, so a component test needs no per-file setup.
+Component tests render with `@testing-library/react` and drive the page with
+`@testing-library/user-event`; vitest runs every spec in the `jsdom`
+environment. There are no vitest globals, so a spec that renders calls
+`cleanup()` in its `afterEach`. A screen that needs the router renders inside
+`createMemoryRouter`, and the entity it calls is mocked with `vi.mock`, so the
+spec exercises the form action and what it shows, not the network.
 
 ## Stories
 
