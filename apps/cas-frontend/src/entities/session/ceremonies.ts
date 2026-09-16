@@ -85,6 +85,31 @@ const nameOf = (error: unknown): string | null =>
  */
 export const isCeremonyCancelled = (error: unknown): boolean => nameOf(error) === 'NotAllowedError'
 
+/**
+ * Whether the authenticator refused to register because it already holds a
+ * passkey for this account: `InvalidStateError` is its answer to a
+ * credential on the `excludeCredentials` list.
+ */
+export const isPasskeyAlreadyRegistered = (error: unknown): boolean => nameOf(error) === 'InvalidStateError'
+
+/**
+ * Whether the authenticator cannot make the passkey CAS asks for: a
+ * discoverable credential with user verification. `NotSupportedError` and
+ * `ConstraintError` are the two ways the browser says so; the server says
+ * the same with `discoverable_credential_required` when it finds out later.
+ */
+export const isAuthenticatorUnsupported = (error: unknown): boolean => {
+  const name = nameOf(error)
+  return name === 'NotSupportedError' || name === 'ConstraintError'
+}
+
+/**
+ * Whether the page is served from an origin the relying party id does not
+ * cover: `SecurityError`. A deployment mistake, not something the user can
+ * fix from here, but they can be told which address to open.
+ */
+export const isWrongOrigin = (error: unknown): boolean => nameOf(error) === 'SecurityError'
+
 /** What CAS puts into a challenge when the options carry no `timeout` (the webauthn-rs default). */
 const DEFAULT_CHALLENGE_LIFETIME_MS = 60_000
 

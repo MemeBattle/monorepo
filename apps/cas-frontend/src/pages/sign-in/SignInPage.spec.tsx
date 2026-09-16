@@ -85,14 +85,38 @@ describe('SignInPage', () => {
     expect(screen.getByRole('button', { name: 'Попробовать ещё раз' })).toBeDefined()
   })
 
-  it('shows a failure it cannot name as the generic alert, never the raw message', async () => {
-    signInWithPasskey.mockRejectedValue(new TypeError('Failed to fetch'))
+  it('shows a challenge the server no longer has as a cancelled ceremony', async () => {
+    signInWithPasskey.mockRejectedValue(new ApiError(404, 'login_not_found', 'login not found: expired, unknown or already finished'))
+
+    await signIn()
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toContain('Вход отменён')
+    expect(alert.textContent).not.toContain('expired')
+  })
+
+  it('tells a page served from the wrong origin which address to open', async () => {
+    signInWithPasskey.mockRejectedValue(new DOMException('The operation is insecure.', 'SecurityError'))
+
+    await signIn()
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toContain('Этот адрес не подходит для входа')
+    expect(alert.textContent).not.toContain('insecure')
+  })
+
+  it.each([
+    ['a network failure', new TypeError('Failed to fetch'), 'Failed to fetch'],
+    ['an outage', new ApiError(503, 'database_unavailable', 'Database unavailable'), 'Database unavailable'],
+    ['a refused cross-site request', new ApiError(403, 'cross_site_request', 'Cross-site request refused'), 'Cross-site'],
+  ])('shows %s as the generic alert, never the raw message', async (_, error, raw) => {
+    signInWithPasskey.mockRejectedValue(error)
 
     await signIn()
 
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toContain('Что-то пошло не так')
-    expect(alert.textContent).not.toContain('Failed to fetch')
+    expect(alert.textContent).not.toContain(raw)
   })
 
   it('offers the passkey through autofill as soon as the screen is up and signs in with the pick', async () => {

@@ -2,7 +2,7 @@ import { useActionState, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 
-import { isCeremonyCancelled, signInWithPasskey, signInWithPasskeyFromAutofill } from '#entities/session'
+import { isCeremonyCancelled, isWrongOrigin, signInWithPasskey, signInWithPasskeyFromAutofill } from '#entities/session'
 import { isApiError } from '#shared/api/request'
 import { Alert, Hero, Icon, Screen, SubmitButton, SwitchLink, TextField } from '#shared/ui'
 import { routes } from '#app/routes'
@@ -30,6 +30,11 @@ const failures = {
     ),
     retry: 'Выбрать другой пасскей',
   },
+  wrongAddress: {
+    title: 'Этот адрес не подходит для входа',
+    text: 'Сайт открыт не по тому адресу, для которого настроен вход. Откройте его по основному адресу.',
+    retry: 'Попробовать ещё раз',
+  },
   generic: {
     title: 'Что-то пошло не так',
     text: 'Попробуйте ещё раз через минуту.',
@@ -37,12 +42,30 @@ const failures = {
   },
 } satisfies Record<string, Failure>
 
-/** What this screen can say about a failed ceremony; the rest of what it can get is #715. */
+/**
+ * Everything a failed sign-in can be, as this screen says it. A challenge
+ * the server no longer has (`login_not_found`) is a ceremony that took too
+ * long, the same story as a closed prompt. Anything else (an outage, a
+ * refused cross-site request, no network) is the generic alert.
+ */
 const toFailure = (error: unknown): Failure => {
-  if (isApiError(error) && error.code === 'invalid_credential') {
-    return failures.unknownPasskey
+  if (isApiError(error)) {
+    switch (error.code) {
+      case 'invalid_credential':
+        return failures.unknownPasskey
+      case 'login_not_found':
+        return failures.cancelled
+      default:
+        return failures.generic
+    }
   }
-  return isCeremonyCancelled(error) ? failures.cancelled : failures.generic
+  if (isCeremonyCancelled(error)) {
+    return failures.cancelled
+  }
+  if (isWrongOrigin(error)) {
+    return failures.wrongAddress
+  }
+  return failures.generic
 }
 
 /**
