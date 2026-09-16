@@ -1,14 +1,89 @@
-import { Link } from 'react-router'
+import { useActionState } from 'react'
+import type { ReactNode } from 'react'
+import { Link, useNavigate } from 'react-router'
 
-import { Hero, Screen, SwitchLink } from '#shared/ui'
+import { isCeremonyCancelled, signInWithPasskey } from '#entities/session'
+import { isApiError } from '#shared/api/request'
+import { Alert, Hero, Icon, Screen, SubmitButton, SwitchLink, TextField } from '#shared/ui'
 import { routes } from '#app/routes'
 
-/** The hero and the way to create an account; the passkey button itself comes with #713. */
-export const SignInPage = () => (
-  <Screen>
-    <Hero title="Вход в MemeBattle" subtitle="Без пароля. Один пасскей для всех игр." />
-    <SwitchLink question="Нет аккаунта?">
-      <Link to={routes.CREATE_ACCOUNT}>Создать</Link>
-    </SwitchLink>
-  </Screen>
-)
+/** What the alert above the form says; never the raw `message` of an exception. */
+interface Failure {
+  title: string
+  text: ReactNode
+  /** What the button offers once the alert is up. */
+  retry: string
+}
+
+const failures = {
+  cancelled: {
+    title: 'Вход отменён',
+    text: 'Окно подтверждения закрылось или вышло время. Ничего не сломалось, попробуйте ещё раз.',
+    retry: 'Попробовать ещё раз',
+  },
+  unknownPasskey: {
+    title: 'Этот пасскей здесь не зарегистрирован',
+    text: (
+      <>
+        Возможно, он от другого сайта, или аккаунта ещё нет. <Link to={routes.CREATE_ACCOUNT}>Создать аккаунт</Link>
+      </>
+    ),
+    retry: 'Выбрать другой пасскей',
+  },
+  generic: {
+    title: 'Что-то пошло не так',
+    text: 'Попробуйте ещё раз через минуту.',
+    retry: 'Попробовать ещё раз',
+  },
+} satisfies Record<string, Failure>
+
+/** What this screen can say about a failed ceremony; the rest of what it can get is #715. */
+const toFailure = (error: unknown): Failure => {
+  if (isApiError(error) && error.code === 'invalid_credential') {
+    return failures.unknownPasskey
+  }
+  return isCeremonyCancelled(error) ? failures.cancelled : failures.generic
+}
+
+/** The passkey button; conditional mediation on the field comes with #714. */
+export const SignInPage = () => {
+  const navigate = useNavigate()
+
+  const [failure, signIn, pending] = useActionState(async (): Promise<Failure | null> => {
+    try {
+      await signInWithPasskey()
+    } catch (error) {
+      return toFailure(error)
+    }
+    // The finish set the session cookie; the dashboard's loader reads it.
+    await navigate(routes.DASHBOARD, { replace: true })
+    return null
+  }, null)
+
+  return (
+    <Screen>
+      <Hero title="Вход в MemeBattle" subtitle="Без пароля. Один пасскей для всех игр." />
+      <form action={signIn} className="flex flex-col gap-3.5">
+        {failure && <Alert title={failure.title}>{failure.text}</Alert>}
+        {/* Nobody types here: the browser anchors its passkey autofill to this field (#714). */}
+        <TextField
+          label="Пасскей"
+          name="passkey"
+          placeholder="Браузер предложит сохранённый"
+          autoComplete="username webauthn"
+          icon={<Icon name="key" />}
+        />
+        <SubmitButton pendingLabel="Подтвердите пасскей…">{failure ? failure.retry : 'Войти с пасскеем'}</SubmitButton>
+        {pending ? (
+          <p className="mt-1.5 text-center text-sm leading-[1.45] font-medium text-ink-muted">
+            Следуйте подсказке браузера или телефона. Окно можно закрыть, тогда вход отменится.
+          </p>
+        ) : (
+          <SwitchLink question="Нет аккаунта?">
+            <Link to={routes.CREATE_ACCOUNT}>Создать</Link>
+          </SwitchLink>
+        )}
+      </form>
+    </Screen>
+  )
+}
