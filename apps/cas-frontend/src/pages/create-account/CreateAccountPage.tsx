@@ -7,7 +7,7 @@ import { toFailure } from '#shared/errors/toFailure'
 import type { Failure } from '#shared/errors/toFailure'
 import { Alert, Hero, Icon, Screen, SubmitButton, SwitchLink, TextField } from '#shared/ui'
 import { routes } from '#app/routes'
-import { MAX_DISPLAY_NAME_LENGTH, messages, validateDisplayName } from './validateDisplayName'
+import { MAX_DISPLAY_NAME_LENGTH, messages, normalizeDisplayName, validateDisplayName } from './validateDisplayName'
 
 interface FormState {
   /** What was submitted, so the field keeps it after a failure. */
@@ -24,7 +24,8 @@ export const CreateAccountPage = () => {
   const navigate = useNavigate()
 
   const [state, createAccount, pending] = useActionState(async (_previous: FormState, form: FormData): Promise<FormState> => {
-    const displayName = String(form.get('displayName') ?? '').trim()
+    // Normalised the way the server does it, so the length check and the sent value agree with it.
+    const displayName = normalizeDisplayName(String(form.get('displayName') ?? ''))
     const nameError = validateDisplayName(displayName)
     if (nameError) {
       return { displayName, nameError, failure: null }

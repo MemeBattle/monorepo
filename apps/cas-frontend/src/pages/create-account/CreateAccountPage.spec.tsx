@@ -48,6 +48,15 @@ describe('CreateAccountPage', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Дашборд' })).toBeDefined())
   })
 
+  it('sends a decomposed name near the cap in NFC instead of rejecting it', async () => {
+    registerWithPasskey.mockResolvedValue({ accountId: 'acc', credentialId: 'cred' })
+
+    await submit('é'.repeat(33))
+
+    expect(screen.queryByText(messages.tooLong)).toBeNull()
+    expect(registerWithPasskey).toHaveBeenCalledWith('é'.repeat(33))
+  })
+
   it('rejects an empty name before asking the server', async () => {
     await submit('')
 
