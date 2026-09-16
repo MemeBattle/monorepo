@@ -11,4 +11,6 @@ React + Vite SPA for CAS, the passkey identity provider in `apps/cas`
   React 19 idioms, imports, languages.
 - [docs/TESTS.md](./docs/TESTS.md) — type checking, unit tests, lint and
   format.
+- [docs/PASSKEYS.md](./docs/PASSKEYS.md) — the ceremonies as the browser
+  runs them: autofill, one request at a time, the challenge lifetime.
 - [docs/adr/](./docs/adr/) — decisions that shaped the stack.
