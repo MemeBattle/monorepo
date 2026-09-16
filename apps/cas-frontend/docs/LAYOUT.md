@@ -6,7 +6,7 @@ today; a new one is added when there is something to put in it, not before.
 ```
 apps/cas-frontend/
   AGENTS.md            one-screen card for agents, links into docs/
-  docs/                this file, TESTS.md, CODE.md, ADRs
+  docs/                this file, TESTS.md, CODE.md, PASSKEYS.md, ADRs
   index.html           the single page, lang="ru"
   vite.config.ts       React Compiler, Tailwind, the /api dev proxy, vitest
   src/
