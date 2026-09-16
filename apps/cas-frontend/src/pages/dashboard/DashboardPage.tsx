@@ -3,8 +3,9 @@ import { useFormStatus } from 'react-dom'
 import { useLoaderData, useRevalidator } from 'react-router'
 
 import { logout } from '#entities/session'
-import type { Me } from '#entities/session'
-import { Alert, Icon, Logo, Screen } from '#shared/ui'
+import { Alert, Icon, Logo, Screen, Section } from '#shared/ui'
+import type { DashboardData } from './loadDashboard'
+import { PasskeyRow } from './PasskeyRow'
 
 /** What the alert under the header says when sign-out did not go through; never the raw message. */
 const signOutFailure = {
@@ -12,9 +13,9 @@ const signOutFailure = {
   text: 'Попробуйте ещё раз через минуту.',
 }
 
-/** Greets the account by name and lets it sign out; the passkey sections come with #716 and on. */
+/** The account by name, its passkeys, and the way out. Managing the passkeys and the email come with #717 and on. */
 export const DashboardPage = () => {
-  const me = useLoaderData<Me>()
+  const { me, passkeys } = useLoaderData<DashboardData>()
   const revalidator = useRevalidator()
 
   const [failure, signOut] = useActionState(async (): Promise<typeof signOutFailure | null> => {
@@ -43,6 +44,13 @@ export const DashboardPage = () => {
         </form>
       </header>
       {failure && <Alert title={failure.title}>{failure.text}</Alert>}
+      <Section title="Пасскеи">
+        <ul>
+          {passkeys.map(passkey => (
+            <PasskeyRow key={passkey.id} passkey={passkey} />
+          ))}
+        </ul>
+      </Section>
     </Screen>
   )
 }

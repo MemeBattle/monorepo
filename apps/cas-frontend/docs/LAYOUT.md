@@ -17,7 +17,7 @@ apps/cas-frontend/
     pages/<page>/      one directory per route, the screen and nothing else;
                        loading/ and error/ are the root route's fallbacks
     entities/<name>/   API calls and types of one domain concept: session
-                       (/api/me, /api/logout, the ceremonies); passkey comes with #716
+                       (/api/me, /api/logout, the ceremonies), passkey (/api/passkeys)
     shared/api/        request(), ApiError: the wire contract with CAS
     shared/ui/         the primitives every screen is made of (Button, TextField,
                        Alert, Card, Screen, Icon, Logo), each with a *.stories.tsx
