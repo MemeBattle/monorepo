@@ -4,9 +4,10 @@ import { Link, useNavigate } from 'react-router'
 
 import { isAuthenticatorUnsupported, isCeremonyCancelled, isPasskeyAlreadyRegistered, isWrongOrigin, registerWithPasskey } from '#entities/session'
 import { isApiError } from '#shared/api/request'
+import { MAX_LABEL_LENGTH, normalizeLabel } from '#shared/lib/label'
 import { Alert, Hero, Icon, Screen, SubmitButton, SwitchLink, TextField } from '#shared/ui'
 import { routes } from '#app/routes'
-import { MAX_DISPLAY_NAME_LENGTH, messages, normalizeDisplayName, validateDisplayName } from './validateDisplayName'
+import { messages, validateDisplayName } from './validateDisplayName'
 
 /** What the alert above the form says; never the raw `message` of an exception. */
 interface Failure {
@@ -93,7 +94,7 @@ export const CreateAccountPage = () => {
 
   const [state, createAccount, pending] = useActionState(async (_previous: FormState, form: FormData): Promise<FormState> => {
     // Normalised the way the server does it, so the length check and the sent value agree with it.
-    const displayName = normalizeDisplayName(String(form.get('displayName') ?? ''))
+    const displayName = normalizeLabel(String(form.get('displayName') ?? ''))
     const nameError = validateDisplayName(displayName)
     if (nameError) {
       return { displayName, nameError, failure: null }
@@ -123,7 +124,7 @@ export const CreateAccountPage = () => {
           defaultValue={state.displayName}
           autoComplete="nickname"
           // Twice the cap in UTF-16 units: the check counts code points, and a hard limit here would cut emoji names short.
-          maxLength={MAX_DISPLAY_NAME_LENGTH * 2}
+          maxLength={MAX_LABEL_LENGTH * 2}
           error={state.nameError}
           helper="Его увидят другие игроки, и оно же станет подписью пасскея в вашем менеджере."
         />
