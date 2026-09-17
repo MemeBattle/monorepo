@@ -185,7 +185,8 @@ States:
   через минуту." under the header; "Выйти" stays where it was.
 - **Rename**: the row becomes the field "Название" holding the current
   name, with the secondary "Сохранить" and "Отмена"; Escape cancels. On
-  save the row shows the new name at once. A rejected name brings the field
+  save the row shows the new name at once, with the spinner in place of
+  the pencil until the server has confirmed it. A rejected name brings the field
   back with the rejected value still in it and the reason under it, and the
   list keeps the old name: "Введите название.", "Слишком длинное название,
   максимум 64 символа.", `invalid_passkey_name` "Название содержит

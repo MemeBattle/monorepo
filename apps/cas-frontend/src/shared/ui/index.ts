@@ -1,5 +1,5 @@
 export { Alert } from './Alert'
-export { Button, SubmitButton } from './Button'
+export { Button, Spinner, SubmitButton } from './Button'
 export { Card, Section } from './Card'
 export { Icon, iconNames } from './icons'
 export type { IconName } from './icons'

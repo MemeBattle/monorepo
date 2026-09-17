@@ -127,9 +127,12 @@ describe('DashboardPage', () => {
 
       await rename('  Мой  iPhone ')
 
-      // Before the server answers: the row already reads the new name and the form is gone.
+      // Before the server answers: the row already reads the new name, the form is gone, the button waits.
       await waitFor(() => expect(rowNames()[1]).toContain('Мой iPhone'))
       expect(screen.queryByLabelText('Название')).toBeNull()
+      const waiting = screen.getByRole('button', { name: 'Переименовать «Мой iPhone»' })
+      expect(waiting).toHaveProperty('disabled', true)
+      expect(waiting.getAttribute('aria-busy')).toBe('true')
       expect(renamePasskey).toHaveBeenCalledWith('p2', 'Мой iPhone')
       expect(listPasskeys).toHaveBeenCalledOnce()
 
@@ -138,7 +141,7 @@ describe('DashboardPage', () => {
 
       await waitFor(() => expect(listPasskeys).toHaveBeenCalledTimes(2))
       expect(rowNames()[1]).toContain('Мой iPhone')
-      expect(screen.getByRole('button', { name: 'Переименовать «Мой iPhone»' })).toBeDefined()
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Переименовать «Мой iPhone»' })).toHaveProperty('disabled', false))
     })
 
     it('takes back a name the server rejects and says why under the field', async () => {

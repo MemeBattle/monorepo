@@ -4,7 +4,7 @@ import type { Ref } from 'react'
 import type { Passkey } from '#entities/passkey'
 import { isApiError } from '#shared/api/request'
 import { MAX_LABEL_LENGTH, labelProblem, normalizeLabel } from '#shared/lib/label'
-import { Button, Icon, SubmitButton, TextField } from '#shared/ui'
+import { Button, Icon, Spinner, SubmitButton, TextField } from '#shared/ui'
 import { describeDate } from './describeDate'
 
 /** What the field says about a name this row could not give the passkey; never the raw message. */
@@ -87,7 +87,7 @@ const Editor = ({ passkey, onRename, onDone }: EditorProps) => {
   }, idle)
 
   if (pending) {
-    return <Row passkey={passkey} disabled />
+    return <Row passkey={passkey} pending />
   }
 
   return (
@@ -120,8 +120,8 @@ const Editor = ({ passkey, onRename, onDone }: EditorProps) => {
 interface RowProps {
   passkey: Passkey
   onEdit?: () => void
-  /** While a rename is on its way: the row shows the new name, the button waits. */
-  disabled?: boolean
+  /** While a rename is on its way: the row shows the new name and the button shows the spinner in place of the pencil. */
+  pending?: boolean
   ref?: Ref<HTMLButtonElement>
 }
 
@@ -129,7 +129,7 @@ interface RowProps {
 const describe = ({ createdAt, lastUsedAt }: Passkey) =>
   `Создан ${describeDate(createdAt)} · ${lastUsedAt ? `Использован ${describeDate(lastUsedAt)}` : 'Не использовался'}`
 
-const Row = ({ passkey, onEdit, disabled = false, ref }: RowProps) => (
+const Row = ({ passkey, onEdit, pending = false, ref }: RowProps) => (
   <div className="flex items-center gap-3">
     <span className="flex size-10 shrink-0 items-center justify-center rounded-chip bg-accent-tint text-ink">
       <Icon name="key" />
@@ -142,11 +142,12 @@ const Row = ({ passkey, onEdit, disabled = false, ref }: RowProps) => (
       ref={ref}
       type="button"
       onClick={onEdit}
-      disabled={disabled}
+      disabled={pending}
+      aria-busy={pending || undefined}
       aria-label={`Переименовать «${passkey.name}»`}
-      className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-chip text-ink-muted transition outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink enabled:hover:bg-line-soft disabled:text-ink-hint"
+      className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-chip text-ink-muted transition outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink enabled:hover:bg-line-soft"
     >
-      <Icon name="pencil" />
+      {pending ? <Spinner /> : <Icon name="pencil" />}
     </button>
   </div>
 )
