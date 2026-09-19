@@ -4,9 +4,10 @@ import { useLoaderData, useRevalidator } from 'react-router'
 
 import { addPasskey, deletePasskey, renamePasskey } from '#entities/passkey'
 import type { Passkey } from '#entities/passkey'
-import { logout } from '#entities/session'
+import { logout, updateEmail } from '#entities/session'
 import { isApiError } from '#shared/api/request'
 import { Alert, Icon, Logo, Screen, Section, Spinner } from '#shared/ui'
+import { EmailSection } from './EmailSection'
 import type { DashboardData } from './loadDashboard'
 import { PasskeyNudge } from './PasskeyNudge'
 import { PasskeyRow } from './PasskeyRow'
@@ -29,12 +30,14 @@ const withChange = (passkeys: Passkey[], change: Change) =>
     ? passkeys.filter(passkey => passkey.id !== change.deleted)
     : passkeys.map(passkey => (passkey.id === change.renamed.id ? { ...passkey, name: change.renamed.name } : passkey))
 
-/** The account by name, its passkeys and the ways to add and manage them, and the way out. The email comes later. */
+/** The account by name, its passkeys and the ways to add and manage them, its email, and the way out. */
 export const DashboardPage = () => {
   const { me, passkeys } = useLoaderData<DashboardData>()
   const revalidator = useRevalidator()
   // React shows the changed list while the row's action runs and goes back to the loader's once it settles.
   const [shownPasskeys, showChange] = useOptimistic(passkeys, withChange)
+  // The same for the email: the address on its way to the server, until the loader has what it stored.
+  const [shownEmail, showEmail] = useOptimistic(me.email)
   // Each row that could not be deleted explains why once it is back in the list. Keyed by passkey: with three or
   // more passkeys two deletes can be in flight at once, and one failure must not take the other's words away.
   const [deleteFailures, setDeleteFailures] = useState<Record<string, DeleteFailure>>({})
@@ -119,6 +122,23 @@ export const DashboardPage = () => {
     await revalidator.revalidate()
   }
 
+  const saveEmail = async (email: string | null) => {
+    showEmail(email)
+    try {
+      await updateEmail(email)
+    } catch (error) {
+      if (isApiError(error) && error.code === 'unauthenticated') {
+        // The session ended under the page: the loader finds none and redirects to sign-in.
+        await revalidator.revalidate()
+        return
+      }
+      throw error
+    }
+    // The server stores the address its own way (the domain lower-cased) and answers with nothing, so the action
+    // stays pending until the loader has read it back: what the row shows is what survives a reload.
+    await revalidator.revalidate()
+  }
+
   return (
     <Screen align="top">
       <header className="flex items-center justify-between gap-4">
@@ -157,6 +177,7 @@ export const DashboardPage = () => {
           ))}
         </ul>
       </Section>
+      <EmailSection email={shownEmail} onSave={saveEmail} />
     </Screen>
   )
 }

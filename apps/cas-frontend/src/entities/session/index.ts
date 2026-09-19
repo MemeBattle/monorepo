@@ -1,4 +1,4 @@
-export { getMe, logout } from './api'
+export { getMe, logout, updateEmail } from './api'
 export type { Me } from './api'
 export {
   isAuthenticatorUnsupported,
