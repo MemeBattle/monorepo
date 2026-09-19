@@ -8,16 +8,22 @@ import { routes } from '#app/routes'
 import { DashboardPage } from './DashboardPage'
 import { loadDashboard } from './loadDashboard'
 
-const { getMe, logout, listPasskeys, renamePasskey, deletePasskey, addPasskey } = vi.hoisted(() => ({
+const { getMe, logout, updateEmail, listPasskeys, renamePasskey, deletePasskey, addPasskey } = vi.hoisted(() => ({
   getMe: vi.fn(),
   logout: vi.fn(),
+  updateEmail: vi.fn(),
   listPasskeys: vi.fn(),
   renamePasskey: vi.fn(),
   deletePasskey: vi.fn(),
   addPasskey: vi.fn(),
 }))
 // Only the calls are faked; the ceremony predicates (`isCeremonyCancelled`, ...) stay real, so the spec covers the mapping too.
-vi.mock('#entities/session', async importOriginal => ({ ...(await importOriginal<typeof import('#entities/session')>()), getMe, logout }))
+vi.mock('#entities/session', async importOriginal => ({
+  ...(await importOriginal<typeof import('#entities/session')>()),
+  getMe,
+  logout,
+  updateEmail,
+}))
 vi.mock('#entities/passkey', () => ({ listPasskeys, renamePasskey, deletePasskey, addPasskey }))
 
 /** jsdom has no modal dialogs; this is as much of one as the sheet needs: open, close with the event, and focus back where it was. */
@@ -110,6 +116,7 @@ describe('DashboardPage', () => {
     cleanup()
     getMe.mockReset()
     logout.mockReset()
+    updateEmail.mockReset()
     listPasskeys.mockReset()
     renamePasskey.mockReset()
     deletePasskey.mockReset()
@@ -615,6 +622,257 @@ describe('DashboardPage', () => {
 
       await waitFor(() => expect(screen.getByRole('heading', { name: 'Вход' })).toBeDefined())
       expect(screen.queryByRole('alert')).toBeNull()
+    })
+  })
+
+  describe('email', () => {
+    const address = 'ada@mems.fun'
+    const emptyTitle = 'Не указана'
+    const unverified = 'Не подтверждена. Подтверждение появится позже.'
+    const failed = 'Не получилось сохранить почту. Попробуйте ещё раз через минуту.'
+
+    /** Renders the dashboard and opens the email form: from "Добавить" when there is no address, from the pencil when there is. */
+    const openEditor = async () => {
+      renderPage()
+      await screen.findByRole('heading', { name: 'Ада' })
+      const user = userEvent.setup()
+      await user.click(screen.getByRole('button', { name: /Добавить почту|Изменить почту/ }))
+      return user
+    }
+
+    /** Opens the form, replaces what is in the field with `email` and saves. */
+    const save = async (email: string) => {
+      const user = await openEditor()
+      const field = screen.getByLabelText('Почта')
+      await user.clear(field)
+      if (email) {
+        await user.type(field, email)
+      }
+      await user.click(screen.getByRole('button', { name: 'Сохранить' }))
+      return user
+    }
+
+    it('shows the empty state with the way to add an address', async () => {
+      getMe.mockResolvedValue(me)
+
+      renderPage()
+
+      expect(await screen.findByText(emptyTitle)).toBeDefined()
+      expect(screen.getByText('Понадобится для восстановления, когда оно появится. Пока без подтверждения.')).toBeDefined()
+      expect(screen.getByRole('button', { name: 'Добавить почту' })).toBeDefined()
+      expect(screen.queryByRole('button', { name: 'Изменить почту' })).toBeNull()
+    })
+
+    it('shows the address as unverified with the way to change it', async () => {
+      getMe.mockResolvedValue({ ...me, email: address })
+
+      renderPage()
+
+      expect(await screen.findByText(address)).toBeDefined()
+      expect(screen.getByText(unverified)).toBeDefined()
+      expect(screen.getByRole('button', { name: 'Изменить почту' })).toBeDefined()
+      expect(screen.queryByRole('button', { name: 'Добавить почту' })).toBeNull()
+    })
+
+    it('shows the new address at once, sends it trimmed and keeps what the server stored after the reload', async () => {
+      getMe.mockResolvedValue(me)
+      let confirm = () => {}
+      updateEmail.mockImplementation(
+        () =>
+          new Promise<void>(resolve => {
+            confirm = resolve
+          }),
+      )
+
+      await save('  Ada@Mems.fun ')
+
+      // Before the server answers: the row already reads the address, the form is gone, the pencil waits.
+      expect(await screen.findByText('Ada@Mems.fun')).toBeDefined()
+      expect(screen.getByText(unverified)).toBeDefined()
+      expect(screen.queryByLabelText('Почта')).toBeNull()
+      const waiting = screen.getByRole('button', { name: 'Изменить почту' })
+      expect(waiting).toHaveProperty('disabled', true)
+      expect(waiting.getAttribute('aria-busy')).toBe('true')
+      expect(updateEmail).toHaveBeenCalledWith('Ada@Mems.fun')
+      expect(getMe).toHaveBeenCalledOnce()
+
+      // The server keeps the local part and lower-cases the domain; that is what the loader reads back.
+      getMe.mockResolvedValue({ ...me, email: 'Ada@mems.fun' })
+      confirm()
+
+      await waitFor(() => expect(getMe).toHaveBeenCalledTimes(2))
+      expect(await screen.findByText('Ada@mems.fun')).toBeDefined()
+      expect(screen.queryByText('Ada@Mems.fun')).toBeNull()
+      const pencil = screen.getByRole('button', { name: 'Изменить почту' })
+      await waitFor(() => expect(pencil).toHaveProperty('disabled', false))
+      expect(document.activeElement).toBe(pencil)
+      expect(screen.queryByRole('button', { name: 'Добавить почту' })).toBeNull()
+    })
+
+    it('changes the address', async () => {
+      getMe.mockResolvedValue({ ...me, email: address })
+      updateEmail.mockImplementation(async () => {
+        getMe.mockResolvedValue({ ...me, email: 'lovelace@mems.fun' })
+      })
+
+      await save('lovelace@mems.fun')
+
+      expect(await screen.findByText('lovelace@mems.fun')).toBeDefined()
+      expect(updateEmail).toHaveBeenCalledWith('lovelace@mems.fun')
+      await waitFor(() => expect(getMe).toHaveBeenCalledTimes(2))
+      expect(screen.queryByText(address)).toBeNull()
+      expect(screen.queryByLabelText('Почта')).toBeNull()
+    })
+
+    it('clears the address from its own control and sends null', async () => {
+      getMe.mockResolvedValue({ ...me, email: address })
+      let confirm = () => {}
+      updateEmail.mockImplementation(
+        () =>
+          new Promise<void>(resolve => {
+            confirm = resolve
+          }),
+      )
+      const user = await openEditor()
+
+      await user.click(screen.getByRole('button', { name: 'Удалить' }))
+
+      // Before the server answers: the empty state is already there, with the wait where the pencil was.
+      expect(await screen.findByText(emptyTitle)).toBeDefined()
+      expect(screen.queryByText(address)).toBeNull()
+      expect(screen.queryByLabelText('Почта')).toBeNull()
+      expect(updateEmail).toHaveBeenCalledWith(null)
+      expect(getMe).toHaveBeenCalledOnce()
+
+      getMe.mockResolvedValue(me)
+      confirm()
+
+      await waitFor(() => expect(getMe).toHaveBeenCalledTimes(2))
+      const add = await screen.findByRole('button', { name: 'Добавить почту' })
+      expect(screen.getByText(emptyTitle)).toBeDefined()
+      expect(screen.queryByRole('button', { name: 'Изменить почту' })).toBeNull()
+      expect(document.activeElement).toBe(add)
+    })
+
+    it('offers no clear control while there is no address', async () => {
+      getMe.mockResolvedValue(me)
+
+      await openEditor()
+
+      expect(screen.getByLabelText('Почта')).toBeDefined()
+      expect(screen.queryByRole('button', { name: 'Удалить' })).toBeNull()
+    })
+
+    it('leaves the address alone on cancel and puts focus back where the editing began', async () => {
+      getMe.mockResolvedValue(me)
+      const user = await openEditor()
+      await user.type(screen.getByLabelText('Почта'), 'ada@mems')
+
+      await user.click(screen.getByRole('button', { name: 'Отмена' }))
+
+      expect(screen.queryByLabelText('Почта')).toBeNull()
+      expect(screen.getByText(emptyTitle)).toBeDefined()
+      expect(updateEmail).not.toHaveBeenCalled()
+      expect(getMe).toHaveBeenCalledOnce()
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Добавить почту' }))
+    })
+
+    it('cancels on Escape', async () => {
+      getMe.mockResolvedValue({ ...me, email: address })
+      const user = await openEditor()
+
+      await user.keyboard('{Escape}')
+
+      expect(screen.queryByLabelText('Почта')).toBeNull()
+      expect(screen.getByText(address)).toBeDefined()
+      expect(updateEmail).not.toHaveBeenCalled()
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Изменить почту' }))
+    })
+
+    it('closes the form without a request when the address did not change', async () => {
+      getMe.mockResolvedValue({ ...me, email: address })
+
+      await save(` ${address} `)
+
+      await waitFor(() => expect(screen.queryByLabelText('Почта')).toBeNull())
+      expect(updateEmail).not.toHaveBeenCalled()
+      expect(getMe).toHaveBeenCalledOnce()
+    })
+
+    it('does not send an empty address', async () => {
+      getMe.mockResolvedValue(me)
+
+      await save('   ')
+
+      expect(screen.getByText('Введите адрес.')).toBeDefined()
+      expect(screen.getByLabelText('Почта')).toHaveProperty('ariaInvalid', 'true')
+      expect(updateEmail).not.toHaveBeenCalled()
+    })
+
+    it('does not send a value without an @', async () => {
+      getMe.mockResolvedValue(me)
+
+      await save('ada.mems.fun')
+
+      expect(screen.getByText('Похоже, это не адрес почты.')).toBeDefined()
+      expect(screen.getByLabelText<HTMLInputElement>('Почта').value).toBe('ada.mems.fun')
+      expect(updateEmail).not.toHaveBeenCalled()
+    })
+
+    it('takes back an address the server rejects and says why under the field, never the raw message', async () => {
+      getMe.mockResolvedValue(me)
+      updateEmail.mockRejectedValue(new ApiError(400, 'invalid_email', 'Invalid email: must contain a single @'))
+
+      await save('ada@mems@fun')
+
+      const field = await screen.findByLabelText<HTMLInputElement>('Почта')
+      expect(field.value).toBe('ada@mems@fun')
+      expect(field).toHaveProperty('ariaInvalid', 'true')
+      expect(screen.getByText('Проверьте адрес: в нём ошибка или недопустимые символы.')).toBeDefined()
+      expect(screen.queryByText(/must contain/)).toBeNull()
+      // The optimistic address is gone with the failed action; the loader was not asked again.
+      expect(screen.queryByText(unverified)).toBeNull()
+      expect(getMe).toHaveBeenCalledOnce()
+      expect(screen.getByRole('button', { name: 'Сохранить' })).toHaveProperty('disabled', false)
+    })
+
+    it('keeps the form with its own words when the request fails for another reason', async () => {
+      getMe.mockResolvedValue(me)
+      updateEmail.mockRejectedValue(new TypeError('Failed to fetch'))
+
+      await save('ada@mems.fun')
+
+      expect(await screen.findByText(failed)).toBeDefined()
+      expect(screen.queryByText('Failed to fetch')).toBeNull()
+      expect(screen.getByLabelText<HTMLInputElement>('Почта').value).toBe('ada@mems.fun')
+      expect(screen.queryByText(unverified)).toBeNull()
+      expect(getMe).toHaveBeenCalledOnce()
+    })
+
+    it('brings the address back with its own words when the clear fails', async () => {
+      getMe.mockResolvedValue({ ...me, email: address })
+      updateEmail.mockRejectedValue(new ApiError(404, 'account_not_found', 'No such account'))
+      const user = await openEditor()
+
+      await user.click(screen.getByRole('button', { name: 'Удалить' }))
+
+      expect(await screen.findByText(failed)).toBeDefined()
+      expect(screen.getByLabelText<HTMLInputElement>('Почта').value).toBe(address)
+      expect(screen.queryByText('No such account')).toBeNull()
+      expect(getMe).toHaveBeenCalledOnce()
+    })
+
+    it('lands on sign-in when the session ended under the page', async () => {
+      getMe.mockResolvedValue(me)
+      updateEmail.mockImplementation(async () => {
+        getMe.mockRejectedValue(new ApiError(401, 'unauthenticated', 'No live session'))
+        throw new ApiError(401, 'unauthenticated', 'No live session')
+      })
+
+      await save('ada@mems.fun')
+
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Вход' })).toBeDefined())
+      expect(screen.queryByText(failed)).toBeNull()
     })
   })
 })

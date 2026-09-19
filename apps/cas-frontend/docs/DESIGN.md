@@ -166,10 +166,12 @@ Sections, each a card with an uppercase title:
   (relative dates; never used: "Не использовался"), rename and
   delete icon buttons at 44px. Inline rename replaces the row with an input
   and "Сохранить" / "Отмена".
-- **"Почта"**: empty state "Не указана" / "Понадобится для восстановления,
-  когда оно появится. Пока без подтверждения." with the link "Добавить";
-  set state shows the address, "Не подтверждена. Подтверждение появится
-  позже." and the rename icon.
+- **"Почта"**: mail chip and one row. Empty state "Не указана" /
+  "Понадобится для восстановления, когда оно появится. Пока без
+  подтверждения." with "Добавить" (plus icon) in the title row, where the
+  passkeys' "Добавить" is; set state shows the address, "Не подтверждена.
+  Подтверждение появится позже." and the pencil at 44px. The empty state is
+  the whole nudge for the email: there is no card for it.
 
 States:
 
@@ -227,6 +229,24 @@ States:
     can have.
   - **No session** (`unauthenticated`): no alert; the page reloads and the
     loader sends the browser to `/sign-in`.
+- **Email**: "Добавить" in the title row and the pencil open the same form
+  in place of the row: the field "Почта" (`type="email"`, the browser's own
+  check off) holding the current address, the secondary "Сохранить" and
+  "Отмена", and, when an address is set, the danger-coloured inline
+  "Удалить" with the trash icon on the right, which clears it; Escape
+  cancels. On save the row shows the new address at once (the empty state
+  after a clear), with the spinner in place of the pencil until the loader
+  has read back what the server stored: the domain lower-cased, so
+  "Ada@Mems.fun" comes back as "Ada@mems.fun". The address is not verified
+  in v1 and the row says so. A rejected address brings the field back with
+  the rejected value still in it and the reason under it, and the row keeps
+  what it had: "Введите адрес.", no `@` "Похоже, это не адрес почты.",
+  `invalid_email` (spaces or invisible characters, a second `@`, a broken
+  domain, over 254 bytes) "Проверьте адрес: в нём ошибка или недопустимые
+  символы.", anything else "Не получилось сохранить почту. Попробуйте ещё
+  раз через минуту." A clear that fails brings the form back with the
+  address and the same last sentence. No session (`unauthenticated`): no
+  message; the page reloads and the loader sends the browser to `/sign-in`.
 
 ## Flows
 
