@@ -1,6 +1,8 @@
 //! The session endpoints (`GET /api/me`, `POST /api/logout`), the cookie that
 //! carries a session and the extractor other contexts use to require one.
-//! Mounted by the transport root in `crate::http`.
+//! Mounted by the transport root in `crate::http`. `PATCH /api/me`, the
+//! write half of the resource, is the accounts context's
+//! (`crate::accounts::http`), merged at the same path (ADR 0007).
 
 pub mod cookie;
 pub mod extract;
