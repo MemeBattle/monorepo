@@ -25,6 +25,8 @@ use tower_http::{
 };
 use tracing::Level;
 
+use crate::accounts::AccountManagement;
+use crate::accounts::http as accounts_http;
 use crate::config::Config;
 use crate::http::error::ApiError;
 use crate::http::fetch_metadata::AllowedOrigins;
@@ -58,6 +60,7 @@ pub struct ApiState {
     pub login: LoginService,
     pub addition: AdditionService,
     pub passkeys: PasskeyManagement,
+    pub accounts: AccountManagement,
     pub sessions: SessionService,
     pub cookies: CookieSettings,
 }
@@ -86,6 +89,7 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
         login: LoginService::new(webauthn.clone(), pool.clone()),
         addition: AdditionService::new(webauthn, pool.clone()),
         passkeys: PasskeyManagement::new(pool.clone()),
+        accounts: AccountManagement::new(pool.clone()),
         sessions: SessionService::new(pool.clone()),
         cookies: CookieSettings::for_origin(&config.origin),
     };
@@ -112,10 +116,14 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
 /// is mounted. It wraps the CSRF line from the outside so that the layer's
 /// own refusals carry it too.
 fn api_router(state: ApiState, origins: AllowedOrigins) -> Router {
+    // `/me` is one path with two owners by verb: the sessions router answers
+    // `GET`, the accounts router `PATCH`, and axum merges the two method
+    // routers for the path (ADR 0007).
     let api = Router::new()
         .nest("/webauthn", webauthn_http::router(state.clone()))
         .nest("/passkeys", webauthn_http::passkeys::router(state.clone()))
-        .merge(sessions_http::router(state))
+        .merge(sessions_http::router(state.clone()))
+        .merge(accounts_http::router(state))
         .fallback(not_found);
 
     fetch_metadata::guard(sessions_http::with_cookie_renewal(api), origins).layer(
@@ -256,20 +264,35 @@ mod tests {
         );
     }
 
-    /// The sessions router is nested at `/api`, the webauthn and passkeys
-    /// ones inside that prefix; a request must reach the right one. All
-    /// requests fail before any query, so no database is needed.
+    /// The sessions and accounts routers are merged at `/api`, the webauthn
+    /// and passkeys ones nested inside that prefix; a request must reach the
+    /// right one. All requests fail before any query, so no database is
+    /// needed.
     #[tokio::test]
-    async fn both_contexts_are_reachable_under_the_api_prefix() {
+    async fn every_context_is_reachable_under_the_api_prefix() {
         let app = app(test_config()).unwrap();
 
-        for uri in ["/api/me", "/api/passkeys"] {
+        for (method, uri) in [
+            ("GET", "/api/me"),
+            ("PATCH", "/api/me"),
+            ("GET", "/api/passkeys"),
+        ] {
             let response = app
                 .clone()
-                .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+                .oneshot(
+                    Request::builder()
+                        .method(method)
+                        .uri(uri)
+                        .body(Body::empty())
+                        .unwrap(),
+                )
                 .await
                 .unwrap();
-            assert_eq!(response.status(), StatusCode::UNAUTHORIZED, "{uri}");
+            assert_eq!(
+                response.status(),
+                StatusCode::UNAUTHORIZED,
+                "{method} {uri}"
+            );
         }
 
         let login = app
@@ -372,7 +395,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::NO_CONTENT);
     }
 
-    /// Both nested routers sit behind the layer, and a `GET` is not its
+    /// Every context's router sits behind the layer, and a `GET` is not its
     /// business: `/api/me` from another site answers 401 for the missing
     /// session, not 403.
     #[tokio::test]
@@ -389,13 +412,14 @@ mod tests {
                 .unwrap()
         };
 
-        for uri in [
-            "/api/logout",
-            "/api/webauthn/verify-login",
-            "/api/passkeys/register-options",
+        for (method, uri) in [
+            ("POST", "/api/logout"),
+            ("POST", "/api/webauthn/verify-login"),
+            ("POST", "/api/passkeys/register-options"),
+            ("PATCH", "/api/me"),
         ] {
-            let response = app.clone().oneshot(cross_site("POST", uri)).await.unwrap();
-            assert_eq!(response.status(), StatusCode::FORBIDDEN, "{uri}");
+            let response = app.clone().oneshot(cross_site(method, uri)).await.unwrap();
+            assert_eq!(response.status(), StatusCode::FORBIDDEN, "{method} {uri}");
         }
 
         let me = app

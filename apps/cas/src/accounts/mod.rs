@@ -6,12 +6,17 @@
 //! upgraded in place, keeping its `sub`. See `docs/PLAN.md`.
 
 mod display_name;
+mod email;
+pub mod http;
+pub mod management;
 mod repository;
 
 use time::OffsetDateTime;
 use uuid::Uuid;
 
 pub use display_name::{DisplayName, DisplayNameError};
+pub use email::{Email, EmailError, MAX_EMAIL_LENGTH};
+pub use management::AccountManagement;
 pub use repository::AccountRepository;
 pub(crate) use repository::{get, insert, touch_last_seen};
 
@@ -40,7 +45,11 @@ pub struct Account {
     /// reaching a UI.
     pub display_name: DisplayName,
     pub r#type: AccountType,
-    /// Optional and unverified in v1; the future recovery anchor.
+    /// Optional and unverified in v1; the future recovery anchor. Written
+    /// only through an [`Email`], but not re-validated when the row is
+    /// decoded: nothing signs in with it, and a stricter rule later must
+    /// not lock an account out of `/me` over a field it cannot fix from
+    /// there.
     pub email: Option<String>,
     pub created_at: OffsetDateTime,
     /// Refreshed on activity; drives guest GC.
