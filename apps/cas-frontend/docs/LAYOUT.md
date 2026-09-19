@@ -9,6 +9,9 @@ apps/cas-frontend/
   docs/                this file, TESTS.md, CODE.md, PASSKEYS.md, ADRs
   index.html           the single page, lang="ru"
   vite.config.ts       React Compiler, Tailwind, the /api dev proxy, vitest
+  playwright.config.ts the e2e suite: Chromium, vite as its webServer
+  e2e/                 the e2e scenarios (*.e2e.ts) and fixtures.ts, the
+                       virtual authenticator over CDP (see TESTS.md)
   src/
     index.tsx          createRoot + RouterProvider, imports app/styles.css
     app/               the shell: router.tsx (routes and the root layout),

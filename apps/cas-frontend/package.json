@@ -17,7 +17,8 @@
     "build": "vite build",
     "ts-check": "tsc --noEmit",
     "test": "vitest",
-    "test:ci": "vitest run"
+    "test:ci": "vitest run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@simplewebauthn/browser": "catalog:",
@@ -26,6 +27,7 @@
     "react-router": "catalog:"
   },
   "devDependencies": {
+    "@playwright/test": "catalog:",
     "@storybook/react": "catalog:",
     "@tailwindcss/vite": "catalog:",
     "@testing-library/react": "catalog:",
