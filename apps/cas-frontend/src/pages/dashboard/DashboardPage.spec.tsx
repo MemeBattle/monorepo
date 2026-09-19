@@ -1,21 +1,42 @@
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiError } from '#shared/api/request'
 import { routes } from '#app/routes'
 import { DashboardPage } from './DashboardPage'
 import { loadDashboard } from './loadDashboard'
 
-const { getMe, logout, listPasskeys, renamePasskey } = vi.hoisted(() => ({
+const { getMe, logout, listPasskeys, renamePasskey, deletePasskey } = vi.hoisted(() => ({
   getMe: vi.fn(),
   logout: vi.fn(),
   listPasskeys: vi.fn(),
   renamePasskey: vi.fn(),
+  deletePasskey: vi.fn(),
 }))
 vi.mock('#entities/session', () => ({ getMe, logout }))
-vi.mock('#entities/passkey', () => ({ listPasskeys, renamePasskey }))
+vi.mock('#entities/passkey', () => ({ listPasskeys, renamePasskey, deletePasskey }))
+
+/** jsdom has no modal dialogs; this is as much of one as the sheet needs: open, close with the event, and focus back where it was. */
+const polyfillDialog = () => {
+  const openers = new WeakMap<HTMLDialogElement, Element | null>()
+  HTMLDialogElement.prototype.showModal = function () {
+    openers.set(this, document.activeElement)
+    this.open = true
+  }
+  HTMLDialogElement.prototype.close = function () {
+    if (!this.open) {
+      return
+    }
+    this.open = false
+    this.dispatchEvent(new Event('close'))
+    const opener = openers.get(this)
+    if (opener instanceof HTMLElement) {
+      opener.focus()
+    }
+  }
+}
 
 const me = { accountId: 'acc', displayName: 'Ада', accountType: 'full', email: null, sessionExpiresAt: '2026-09-17T00:00:00Z' }
 const today = new Date().toISOString()
@@ -56,9 +77,28 @@ const rename = async (name: string) => {
   await user.click(screen.getByRole('button', { name: 'Сохранить' }))
 }
 
+/** Opens the delete sheet for the second row, "iPhone Ады". */
+const openDelete = async () => {
+  renderPage()
+  await screen.findByRole('heading', { name: 'Ада' })
+  const user = userEvent.setup()
+  await user.click(screen.getByRole('button', { name: 'Удалить «iPhone Ады»' }))
+  return user
+}
+
+/** Opens the delete sheet for "iPhone Ады" and confirms. */
+const confirmDelete = async () => {
+  const user = await openDelete()
+  await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Удалить' }))
+}
+
 const rowNames = () => screen.getAllByRole('listitem').map(item => item.textContent)
 
+const lastPasskeyNote = 'Единственный пасскей нельзя удалить: сначала добавьте второй.'
+
 describe('DashboardPage', () => {
+  beforeAll(polyfillDialog)
+
   beforeEach(() => {
     listPasskeys.mockResolvedValue(passkeys)
   })
@@ -70,6 +110,7 @@ describe('DashboardPage', () => {
     logout.mockReset()
     listPasskeys.mockReset()
     renamePasskey.mockReset()
+    deletePasskey.mockReset()
   })
 
   it('lists the passkeys with when they were made and last used', async () => {
@@ -249,6 +290,177 @@ describe('DashboardPage', () => {
       // Focus is back where the editing began.
       expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Переименовать «iPhone Ады»' }))
       expect(within(screen.getAllByRole('listitem')[1]).queryByText('iPhone Ады Плюс')).toBeNull()
+    })
+  })
+  describe('delete', () => {
+    beforeEach(() => {
+      getMe.mockResolvedValue(me)
+    })
+
+    it('asks in a sheet, takes the row out at once and keeps it out after the reload', async () => {
+      let confirm = () => {}
+      deletePasskey.mockImplementation(
+        () =>
+          new Promise<void>(resolve => {
+            confirm = resolve
+          }),
+      )
+
+      const user = await openDelete()
+
+      const dialog = screen.getByRole('dialog', { name: 'Удалить пасскей «iPhone Ады»?' })
+      expect(dialog.textContent).toContain('Вход с этого устройства перестанет работать.')
+      expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: 'Отмена' }))
+      expect(deletePasskey).not.toHaveBeenCalled()
+
+      await user.click(within(dialog).getByRole('button', { name: 'Удалить' }))
+
+      // Before the server answers: the sheet is gone and so is the row; the other one is now the only one.
+      await waitFor(() => expect(rowNames()).toEqual(['ПасскейСоздан сегодня · Не использовался' + lastPasskeyNote]))
+      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(screen.getByRole('button', { name: 'Удалить «Пасскей»' })).toHaveProperty('disabled', true)
+      expect(deletePasskey).toHaveBeenCalledWith('p2')
+      expect(listPasskeys).toHaveBeenCalledOnce()
+
+      listPasskeys.mockResolvedValue([passkeys[0]])
+      confirm()
+
+      await waitFor(() => expect(listPasskeys).toHaveBeenCalledTimes(2))
+      expect(rowNames()).toHaveLength(1)
+      expect(screen.getByRole('button', { name: 'Удалить «Пасскей»' })).toHaveProperty('disabled', true)
+    })
+
+    it('leaves the list alone on cancel and puts focus back on the button', async () => {
+      const user = await openDelete()
+
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Отмена' }))
+
+      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(rowNames()).toHaveLength(2)
+      expect(deletePasskey).not.toHaveBeenCalled()
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Удалить «iPhone Ады»' }))
+    })
+
+    it('keeps the only passkey with its delete off and the reason under it', async () => {
+      listPasskeys.mockResolvedValue([passkeys[0]])
+
+      renderPage()
+
+      const button = await screen.findByRole('button', { name: 'Удалить «Пасскей»' })
+      expect(button).toHaveProperty('disabled', true)
+      const note = screen.getByText(lastPasskeyNote)
+      expect(button.getAttribute('aria-describedby')).toBe(note.id)
+      expect(screen.getByRole('button', { name: 'Переименовать «Пасскей»' })).toHaveProperty('disabled', false)
+    })
+
+    it('brings the row back with the same reason when the server says it is the last one', async () => {
+      // The other passkey went in another tab between the list and the delete, so the server refuses.
+      deletePasskey.mockImplementation(async () => {
+        listPasskeys.mockResolvedValue([passkeys[1]])
+        throw new ApiError(409, 'last_passkey', 'Cannot delete the last passkey; add another one first')
+      })
+
+      await confirmDelete()
+
+      await waitFor(() => expect(rowNames()).toEqual(['iPhone АдыСоздан 31 декабря 2025 г. · Использован сегодня' + lastPasskeyNote]))
+      expect(screen.getByRole('button', { name: 'Удалить «iPhone Ады»' })).toHaveProperty('disabled', true)
+      expect(screen.getAllByText(lastPasskeyNote)).toHaveLength(1)
+      expect(listPasskeys).toHaveBeenCalledTimes(2)
+    })
+
+    it('says so in the row when the server refuses and the list has not caught up', async () => {
+      deletePasskey.mockRejectedValue(new ApiError(409, 'last_passkey', 'Cannot delete the last passkey; add another one first'))
+
+      await confirmDelete()
+
+      await waitFor(() => expect(rowNames()).toHaveLength(2))
+      expect(within(screen.getAllByRole('listitem')[1]).getByText(lastPasskeyNote)).toBeDefined()
+      expect(screen.getAllByText(lastPasskeyNote)).toHaveLength(1)
+    })
+
+    it('brings the row back with its own words when the request fails for another reason', async () => {
+      deletePasskey.mockRejectedValue(new TypeError('Failed to fetch'))
+
+      await confirmDelete()
+
+      await waitFor(() => expect(rowNames()).toHaveLength(2))
+      const row = screen.getAllByRole('listitem')[1]
+      expect(within(row).getByText('Не получилось удалить. Попробуйте ещё раз через минуту.')).toBeDefined()
+      expect(screen.queryByText('Failed to fetch')).toBeNull()
+      // The list is fine as it is: the loader was not asked again, and the delete stays on offer.
+      expect(listPasskeys).toHaveBeenCalledOnce()
+      expect(screen.getByRole('button', { name: 'Удалить «iPhone Ады»' })).toHaveProperty('disabled', false)
+    })
+
+    it('keeps a reason on every row when two deletes in flight both fail', async () => {
+      const third = { id: 'p3', name: 'Ключ на работе', createdAt: today, lastUsedAt: null }
+      listPasskeys.mockResolvedValue([...passkeys, third])
+      const rejections: Array<() => void> = []
+      deletePasskey.mockImplementation(
+        () =>
+          new Promise<void>((_resolve, reject) => {
+            rejections.push(() => reject(new TypeError('Failed to fetch')))
+          }),
+      )
+
+      const user = await openDelete()
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Удалить' }))
+      await waitFor(() => expect(rowNames()).toHaveLength(2))
+      await user.click(screen.getByRole('button', { name: 'Удалить «Ключ на работе»' }))
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Удалить' }))
+      await waitFor(() => expect(rowNames()).toHaveLength(1))
+      expect(rejections).toHaveLength(2)
+
+      rejections.forEach(reject => reject())
+
+      await waitFor(() => expect(rowNames()).toHaveLength(3))
+      expect(screen.getAllByText('Не получилось удалить. Попробуйте ещё раз через минуту.')).toHaveLength(2)
+      const [, second, last] = screen.getAllByRole('listitem')
+      expect(within(second).getByText('Не получилось удалить. Попробуйте ещё раз через минуту.')).toBeDefined()
+      expect(within(last).getByText('Не получилось удалить. Попробуйте ещё раз через минуту.')).toBeDefined()
+    })
+
+    it('takes away only the retried row reason', async () => {
+      const third = { id: 'p3', name: 'Ключ на работе', createdAt: today, lastUsedAt: null }
+      listPasskeys.mockResolvedValue([...passkeys, third])
+      deletePasskey.mockRejectedValue(new TypeError('Failed to fetch'))
+
+      const user = await openDelete()
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Удалить' }))
+      await waitFor(() => expect(screen.getAllByText('Не получилось удалить. Попробуйте ещё раз через минуту.')).toHaveLength(1))
+      await user.click(screen.getByRole('button', { name: 'Удалить «Ключ на работе»' }))
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Удалить' }))
+      await waitFor(() => expect(screen.getAllByText('Не получилось удалить. Попробуйте ещё раз через минуту.')).toHaveLength(2))
+
+      // Retrying the second row takes only its own words away while the request is out.
+      let settle = () => {}
+      deletePasskey.mockImplementation(
+        () =>
+          new Promise<void>((_resolve, reject) => {
+            settle = () => reject(new TypeError('Failed to fetch'))
+          }),
+      )
+      await user.click(screen.getByRole('button', { name: 'Удалить «iPhone Ады»' }))
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Удалить' }))
+
+      await waitFor(() => expect(rowNames()).toHaveLength(2))
+      expect(screen.getAllByText('Не получилось удалить. Попробуйте ещё раз через минуту.')).toHaveLength(1)
+      expect(within(screen.getAllByRole('listitem')[1]).getByText('Не получилось удалить. Попробуйте ещё раз через минуту.')).toBeDefined()
+      settle()
+      await waitFor(() => expect(rowNames()).toHaveLength(3))
+    })
+
+    it('lets the row go when the passkey was deleted in another tab', async () => {
+      deletePasskey.mockImplementation(async () => {
+        listPasskeys.mockResolvedValue([passkeys[0]])
+        throw new ApiError(404, 'passkey_not_found', 'No such passkey')
+      })
+
+      await confirmDelete()
+
+      await waitFor(() => expect(listPasskeys).toHaveBeenCalledTimes(2))
+      expect(rowNames()).toHaveLength(1)
+      expect(screen.queryByText('Не получилось удалить. Попробуйте ещё раз через минуту.')).toBeNull()
     })
   })
 })

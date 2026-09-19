@@ -196,7 +196,14 @@ States:
 - **Delete**: a bottom sheet over a dimmed page, "Удалить пасскей «iPhone
   Ады»?" / "Вход с этого устройства перестанет работать. Открытые сессии
   останутся, из них можно выйти отдельно.", danger "Удалить" with the trash
-  icon, secondary "Отмена".
+  icon, secondary "Отмена"; Escape and a tap on the dimmed page cancel. On
+  confirm the sheet closes and the row leaves the list at once. A delete the
+  server refused brings the row back with the reason under its meta line:
+  `last_passkey` (the other passkey went in another tab) "Единственный
+  пасскей нельзя удалить: сначала добавьте второй." and the list reloads
+  so the delete is off; anything else "Не получилось удалить. Попробуйте
+  ещё раз через минуту." A passkey deleted in another tab
+  (`passkey_not_found`) leaves the list with no message.
 
 ## Flows
 
