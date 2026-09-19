@@ -32,8 +32,19 @@ export const DashboardPage = () => {
   const revalidator = useRevalidator()
   // React shows the changed list while the row's action runs and goes back to the loader's once it settles.
   const [shownPasskeys, showChange] = useOptimistic(passkeys, withChange)
-  // The row that could not be deleted explains why once it is back in the list; the next delete starts clean.
-  const [deleteFailure, setDeleteFailure] = useState<{ id: string; reason: DeleteFailure } | null>(null)
+  // Each row that could not be deleted explains why once it is back in the list. Keyed by passkey: with three or
+  // more passkeys two deletes can be in flight at once, and one failure must not take the other's words away.
+  const [deleteFailures, setDeleteFailures] = useState<Record<string, DeleteFailure>>({})
+  const setDeleteFailure = (id: string, reason: DeleteFailure | null) =>
+    setDeleteFailures(failures => {
+      const next = { ...failures }
+      if (reason) {
+        next[id] = reason
+      } else {
+        delete next[id]
+      }
+      return next
+    })
 
   const [failure, signOut] = useActionState(async (): Promise<typeof signOutFailure | null> => {
     try {
@@ -61,21 +72,21 @@ export const DashboardPage = () => {
   }
 
   const remove = async (id: string) => {
-    setDeleteFailure(null)
+    setDeleteFailure(id, null)
     showChange({ deleted: id })
     try {
       await deletePasskey(id)
     } catch (error) {
       if (isApiError(error) && error.code === 'last_passkey') {
         // Lost a race with another tab: this is the only passkey now. The reload below turns its delete off with the same words.
-        setDeleteFailure({ id, reason: 'lastPasskey' })
+        setDeleteFailure(id, 'lastPasskey')
         await revalidator.revalidate()
         return
       }
       // Deleted in another tab: the list is stale, and the reload below takes the row away all the same.
       if (!(isApiError(error) && error.code === 'passkey_not_found')) {
         // The list is fine; the row comes back with the failed action and says so.
-        setDeleteFailure({ id, reason: 'failed' })
+        setDeleteFailure(id, 'failed')
         return
       }
     }
@@ -105,7 +116,7 @@ export const DashboardPage = () => {
               key={passkey.id}
               passkey={passkey}
               deletable={shownPasskeys.length > 1}
-              deleteFailure={deleteFailure?.id === passkey.id ? deleteFailure.reason : null}
+              deleteFailure={deleteFailures[passkey.id] ?? null}
               onRename={name => rename(passkey.id, name)}
               onDelete={() => remove(passkey.id)}
             />

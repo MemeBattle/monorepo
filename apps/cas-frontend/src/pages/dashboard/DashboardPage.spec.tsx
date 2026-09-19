@@ -392,6 +392,64 @@ describe('DashboardPage', () => {
       expect(screen.getByRole('button', { name: 'Удалить «iPhone Ады»' })).toHaveProperty('disabled', false)
     })
 
+    it('keeps a reason on every row when two deletes in flight both fail', async () => {
+      const third = { id: 'p3', name: 'Ключ на работе', createdAt: today, lastUsedAt: null }
+      listPasskeys.mockResolvedValue([...passkeys, third])
+      const rejections: Array<() => void> = []
+      deletePasskey.mockImplementation(
+        () =>
+          new Promise<void>((_resolve, reject) => {
+            rejections.push(() => reject(new TypeError('Failed to fetch')))
+          }),
+      )
+
+      const user = await openDelete()
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Удалить' }))
+      await waitFor(() => expect(rowNames()).toHaveLength(2))
+      await user.click(screen.getByRole('button', { name: 'Удалить «Ключ на работе»' }))
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Удалить' }))
+      await waitFor(() => expect(rowNames()).toHaveLength(1))
+      expect(rejections).toHaveLength(2)
+
+      rejections.forEach(reject => reject())
+
+      await waitFor(() => expect(rowNames()).toHaveLength(3))
+      expect(screen.getAllByText('Не получилось удалить. Попробуйте ещё раз через минуту.')).toHaveLength(2)
+      const [, second, last] = screen.getAllByRole('listitem')
+      expect(within(second).getByText('Не получилось удалить. Попробуйте ещё раз через минуту.')).toBeDefined()
+      expect(within(last).getByText('Не получилось удалить. Попробуйте ещё раз через минуту.')).toBeDefined()
+    })
+
+    it('takes away only the retried row reason', async () => {
+      const third = { id: 'p3', name: 'Ключ на работе', createdAt: today, lastUsedAt: null }
+      listPasskeys.mockResolvedValue([...passkeys, third])
+      deletePasskey.mockRejectedValue(new TypeError('Failed to fetch'))
+
+      const user = await openDelete()
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Удалить' }))
+      await waitFor(() => expect(screen.getAllByText('Не получилось удалить. Попробуйте ещё раз через минуту.')).toHaveLength(1))
+      await user.click(screen.getByRole('button', { name: 'Удалить «Ключ на работе»' }))
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Удалить' }))
+      await waitFor(() => expect(screen.getAllByText('Не получилось удалить. Попробуйте ещё раз через минуту.')).toHaveLength(2))
+
+      // Retrying the second row takes only its own words away while the request is out.
+      let settle = () => {}
+      deletePasskey.mockImplementation(
+        () =>
+          new Promise<void>((_resolve, reject) => {
+            settle = () => reject(new TypeError('Failed to fetch'))
+          }),
+      )
+      await user.click(screen.getByRole('button', { name: 'Удалить «iPhone Ады»' }))
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Удалить' }))
+
+      await waitFor(() => expect(rowNames()).toHaveLength(2))
+      expect(screen.getAllByText('Не получилось удалить. Попробуйте ещё раз через минуту.')).toHaveLength(1)
+      expect(within(screen.getAllByRole('listitem')[1]).getByText('Не получилось удалить. Попробуйте ещё раз через минуту.')).toBeDefined()
+      settle()
+      await waitFor(() => expect(rowNames()).toHaveLength(3))
+    })
+
     it('lets the row go when the passkey was deleted in another tab', async () => {
       deletePasskey.mockImplementation(async () => {
         listPasskeys.mockResolvedValue([passkeys[0]])
