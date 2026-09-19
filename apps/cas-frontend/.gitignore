@@ -1,0 +1,3 @@
+# Playwright leaves these behind; the report is uploaded by CI and never committed.
+playwright-report/
+test-results/
