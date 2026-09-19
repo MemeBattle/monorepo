@@ -58,7 +58,12 @@ test('signs in from the autofill offer without pressing anything', async ({ page
 
   const displayName = uniqueName('autofill')
   await createAccount(page, displayName)
-  await signOut(page)
+  // Not `signOut`: the sign-in screen is transient here, the virtual authenticator takes the offer as soon as it is
+  // up, so the URL and the heading may be gone before they are looked for. The server's answer to the logout is
+  // the proof that the session ended and what follows is a fresh sign-in.
+  const loggedOut = page.waitForResponse(response => response.url().endsWith('/api/logout') && response.status() === 204)
+  await page.getByRole('button', { name: 'Выйти' }).click()
+  await loggedOut
 
   // Conditional mediation: the offer stands from the moment the screen is up, and the virtual authenticator takes it.
   await expect(page).toHaveURL('/')
