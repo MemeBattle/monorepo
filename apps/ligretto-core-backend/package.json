@@ -32,20 +32,20 @@
     "production-migrate": "node ace migration:run --force",
     "ts-check": "tsc --noEmit",
     "test": "node ace test",
-    "test:ci": "node ace test"
+    "test:ci": "node ace test",
+    "unused_code:check": "pnpm -w exec knip --no-config-hints --workspace apps/ligretto-core-backend",
+    "unused_code:remove": "pnpm unused_code:check --fix --allow-remove-files"
   },
   "dependencies": {
     "@adonisjs/core": "catalog:",
     "@adonisjs/cors": "catalog:",
     "@adonisjs/lucid": "catalog:",
-    "@codexsoft/dotenv-flow": "catalog:",
     "@memebattle/cas-services": "workspace:^",
     "@memebattle/ligretto-shared": "workspace:^",
     "@vinejs/vine": "catalog:",
     "lodash": "catalog:",
     "luxon": "catalog:",
     "pg": "catalog:",
-    "proxy-addr": "catalog:",
     "reflect-metadata": "catalog:"
   },
   "devDependencies": {
@@ -53,16 +53,13 @@
     "@adonisjs/tsconfig": "catalog:",
     "@japa/api-client": "catalog:",
     "@japa/assert": "catalog:",
-    "@japa/plugin-adonisjs": "catalog:",
     "@japa/runner": "catalog:",
     "@poppinss/ts-exec": "catalog:",
     "@types/lodash": "catalog:",
     "@types/luxon": "catalog:",
     "better-sqlite3": "catalog:",
-    "cpx": "catalog:",
     "pino-pretty": "catalog:",
     "typescript": "catalog:adonis",
-    "youch": "catalog:",
-    "youch-terminal": "catalog:"
+    "youch": "catalog:"
   }
 }
