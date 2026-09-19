@@ -27,6 +27,7 @@
     "e2e:start": "playwright test"
   },
   "dependencies": {
+    "@dnd-kit/core": "catalog:",
     "@floating-ui/react-dom": "^2.1.6",
     "@fsmoothy/core": "^1.3.0",
     "@memebattle/analytics": "workspace:^",

@@ -1,10 +1,7 @@
-import { useCallback } from 'react'
-import { useDispatch } from 'react-redux'
 import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
 
 import { Card, CardHotkeyBadge, CardPlace } from '#entities/card'
-import { useCardFocus } from '#features/cardFocus'
-import { putStackCardAction } from '#features/onboarding'
+import { useCardInteraction } from '#features/cardInteraction'
 
 interface OnboardingOpenStackCardProps {
   card?: PlayerCard
@@ -12,34 +9,24 @@ interface OnboardingOpenStackCardProps {
 }
 
 export const OnboardingOpenStackCard = ({ card, isActive }: OnboardingOpenStackCardProps) => {
-  const dispatch = useDispatch()
-  const { isFocused, isDimmed, toggleFocus } = useCardFocus({ type: 'open-stack' }, [card?.color, card?.value])
-  const onCardActivate = useCallback(() => {
-    if (!card || !isActive) {
-      return
-    }
-    if (card.value === 1) {
-      dispatch(putStackCardAction())
-      return
-    }
-    toggleFocus()
-  }, [card, dispatch, isActive, toggleFocus])
+  // Passing the card only while the step allows it drops the selection when the step moves on.
+  const interaction = useCardInteraction({ type: 'open-stack' }, (isActive && card) || undefined)
 
   return (
-    <CardHotkeyBadge>
-      <CardPlace dataTestId="OnboardingPage-Stack-OpenDeck">
-        {card && (
+    <CardPlace dataTestId="OnboardingPage-Stack-OpenDeck">
+      {card && (
+        <CardHotkeyBadge>
           <Card
             {...card}
-            data-card-focus-element
-            data-card-focused={isFocused}
-            isDarkened={isDimmed}
+            data-card-interaction-element
+            data-card-active={interaction.isActive}
+            isDarkened={interaction.isDimmed}
             isDisabled={!isActive}
-            isSelected={isFocused}
-            onClick={onCardActivate}
+            isSelected={interaction.isActive}
+            onClick={isActive ? interaction.toggleActiveTarget : undefined}
           />
-        )}
-      </CardPlace>
-    </CardHotkeyBadge>
+        </CardHotkeyBadge>
+      )}
+    </CardPlace>
   )
 }
