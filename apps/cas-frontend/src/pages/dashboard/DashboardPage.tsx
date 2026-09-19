@@ -1,8 +1,11 @@
-import { useActionState } from 'react'
+import { useActionState, useOptimistic } from 'react'
 import { useFormStatus } from 'react-dom'
 import { useLoaderData, useRevalidator } from 'react-router'
 
+import { renamePasskey } from '#entities/passkey'
+import type { Passkey } from '#entities/passkey'
 import { logout } from '#entities/session'
+import { isApiError } from '#shared/api/request'
 import { Alert, Icon, Logo, Screen, Section } from '#shared/ui'
 import type { DashboardData } from './loadDashboard'
 import { PasskeyRow } from './PasskeyRow'
@@ -13,10 +16,16 @@ const signOutFailure = {
   text: 'Попробуйте ещё раз через минуту.',
 }
 
-/** The account by name, its passkeys, and the way out. Managing the passkeys and the email come with #717 and on. */
+/** The list with a rename the server has not confirmed yet applied to it. */
+const withRenamed = (passkeys: Passkey[], renamed: Pick<Passkey, 'id' | 'name'>) =>
+  passkeys.map(passkey => (passkey.id === renamed.id ? { ...passkey, name: renamed.name } : passkey))
+
+/** The account by name, its passkeys, and the way out. Deleting and adding passkeys, and the email, come with #718 and on. */
 export const DashboardPage = () => {
   const { me, passkeys } = useLoaderData<DashboardData>()
   const revalidator = useRevalidator()
+  // React shows the renamed list while the row's action runs and goes back to the loader's once it settles.
+  const [shownPasskeys, showRenamed] = useOptimistic(passkeys, withRenamed)
 
   const [failure, signOut] = useActionState(async (): Promise<typeof signOutFailure | null> => {
     try {
@@ -28,6 +37,20 @@ export const DashboardPage = () => {
     await revalidator.revalidate()
     return null
   }, null)
+
+  const rename = async (id: string, name: string) => {
+    showRenamed({ id, name })
+    try {
+      await renamePasskey(id, name)
+    } catch (error) {
+      // Deleted in another tab: the list is stale, not the name. The reload below takes the row away.
+      if (!(isApiError(error) && error.code === 'passkey_not_found')) {
+        throw error
+      }
+    }
+    // The action stays pending until the loader has the new name, so the optimistic one never flickers back.
+    await revalidator.revalidate()
+  }
 
   return (
     <Screen align="top">
@@ -46,8 +69,8 @@ export const DashboardPage = () => {
       {failure && <Alert title={failure.title}>{failure.text}</Alert>}
       <Section title="Пасскеи">
         <ul>
-          {passkeys.map(passkey => (
-            <PasskeyRow key={passkey.id} passkey={passkey} />
+          {shownPasskeys.map(passkey => (
+            <PasskeyRow key={passkey.id} passkey={passkey} onRename={name => rename(passkey.id, name)} />
           ))}
         </ul>
       </Section>

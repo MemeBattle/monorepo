@@ -19,6 +19,8 @@ apps/cas-frontend/
     entities/<name>/   API calls and types of one domain concept: session
                        (/api/me, /api/logout, the ceremonies), passkey (/api/passkeys)
     shared/api/        request(), ApiError: the wire contract with CAS
+    shared/lib/        rules more than one screen applies: label (the name
+                       rules CAS applies to a display name and a passkey)
     shared/ui/         the primitives every screen is made of (Button, TextField,
                        Alert, Card, Screen, Icon, Logo), each with a *.stories.tsx
 ```

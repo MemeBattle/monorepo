@@ -1,2 +1,2 @@
-export { listPasskeys } from './api'
+export { listPasskeys, renamePasskey } from './api'
 export type { Passkey } from './api'

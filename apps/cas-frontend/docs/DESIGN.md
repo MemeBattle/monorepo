@@ -183,6 +183,16 @@ States:
 - **Two or more passkeys**: no nudge, delete enabled on every row.
 - **Sign-out failed**: alert "Не получилось выйти" / "Попробуйте ещё раз
   через минуту." under the header; "Выйти" stays where it was.
+- **Rename**: the row becomes the field "Название" holding the current
+  name, with the secondary "Сохранить" and "Отмена"; Escape cancels. On
+  save the row shows the new name at once, with the spinner in place of
+  the pencil until the server has confirmed it. A rejected name brings the field
+  back with the rejected value still in it and the reason under it, and the
+  list keeps the old name: "Введите название.", "Слишком длинное название,
+  максимум 64 символа.", `invalid_passkey_name` "Название содержит
+  недопустимые символы.", anything else "Не получилось переименовать.
+  Попробуйте ещё раз через минуту." A passkey deleted in another tab
+  (`passkey_not_found`) leaves the list with no message.
 - **Delete**: a bottom sheet over a dimmed page, "Удалить пасскей «iPhone
   Ады»?" / "Вход с этого устройства перестанет работать. Открытые сессии
   останутся, из них можно выйти отдельно.", danger "Удалить" with the trash
