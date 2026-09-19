@@ -144,6 +144,31 @@ describe('DashboardPage', () => {
       await waitFor(() => expect(screen.getByRole('button', { name: 'Переименовать «Мой iPhone»' })).toHaveProperty('disabled', false))
     })
 
+    it('puts focus back on the button after a save unless the user has moved on', async () => {
+      let confirm = () => {}
+      renamePasskey.mockImplementation(
+        () =>
+          new Promise<(typeof passkeys)[1]>(resolve => {
+            confirm = () => resolve({ ...passkeys[1], name: 'Мой iPhone' })
+          }),
+      )
+
+      await rename('Мой iPhone')
+
+      // Meanwhile the user starts on the other row.
+      const user = userEvent.setup()
+      await user.click(screen.getByRole('button', { name: 'Переименовать «Пасскей»' }))
+      const other = screen.getByLabelText<HTMLInputElement>('Название')
+      await user.type(other, ' Ады')
+
+      listPasskeys.mockResolvedValue([passkeys[0], { ...passkeys[1], name: 'Мой iPhone' }])
+      confirm()
+
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Переименовать «Мой iPhone»' })).toHaveProperty('disabled', false))
+      expect(document.activeElement).toBe(other)
+      expect(other.value).toBe('Пасскей Ады')
+    })
+
     it('takes back a name the server rejects and says why under the field', async () => {
       renamePasskey.mockRejectedValue(
         new ApiError(400, 'invalid_passkey_name', 'Invalid passkey name: must not contain control or invisible characters'),

@@ -26,19 +26,23 @@ interface PasskeyRowProps {
 /** One passkey in the list: the key chip, the name, when it was made and last used, and the way to rename it. Delete comes with #718. */
 export const PasskeyRow = ({ passkey, onRename }: PasskeyRowProps) => {
   const [editing, setEditing] = useState(false)
+  const row = useRef<HTMLLIElement>(null)
   const renameButton = useRef<HTMLButtonElement>(null)
   const wasEditing = useRef(false)
 
   // Focus goes back to where the editing began, after a save and a cancel alike; not on first render.
+  // A save ends later than the form, so by then the user may be typing elsewhere: then it stays there.
   useEffect(() => {
-    if (wasEditing.current && !editing) {
+    const active = document.activeElement
+    const movedAway = active !== null && active !== document.body && !row.current?.contains(active)
+    if (wasEditing.current && !editing && !movedAway) {
       renameButton.current?.focus()
     }
     wasEditing.current = editing
   }, [editing])
 
   return (
-    <li className="px-4 py-3.5">
+    <li ref={row} className="px-4 py-3.5">
       {editing ? (
         <Editor passkey={passkey} onRename={onRename} onDone={() => setEditing(false)} />
       ) : (
