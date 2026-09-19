@@ -31,6 +31,7 @@ use crate::http::fetch_metadata::AllowedOrigins;
 use crate::sessions::SessionService;
 use crate::sessions::http as sessions_http;
 use crate::sessions::http::CookieSettings;
+use crate::webauthn::addition::AdditionService;
 use crate::webauthn::build_webauthn;
 use crate::webauthn::http as webauthn_http;
 use crate::webauthn::login::LoginService;
@@ -55,6 +56,7 @@ pub enum AppError {
 pub struct ApiState {
     pub registration: RegistrationService,
     pub login: LoginService,
+    pub addition: AdditionService,
     pub passkeys: PasskeyManagement,
     pub sessions: SessionService,
     pub cookies: CookieSettings,
@@ -81,7 +83,8 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
 
     let api_state = ApiState {
         registration: RegistrationService::new(webauthn.clone(), pool.clone()),
-        login: LoginService::new(webauthn, pool.clone()),
+        login: LoginService::new(webauthn.clone(), pool.clone()),
+        addition: AdditionService::new(webauthn, pool.clone()),
         passkeys: PasskeyManagement::new(pool.clone()),
         sessions: SessionService::new(pool.clone()),
         cookies: CookieSettings::for_origin(&config.origin),
@@ -386,7 +389,11 @@ mod tests {
                 .unwrap()
         };
 
-        for uri in ["/api/logout", "/api/webauthn/verify-login"] {
+        for uri in [
+            "/api/logout",
+            "/api/webauthn/verify-login",
+            "/api/passkeys/register-options",
+        ] {
             let response = app.clone().oneshot(cross_site("POST", uri)).await.unwrap();
             assert_eq!(response.status(), StatusCode::FORBIDDEN, "{uri}");
         }

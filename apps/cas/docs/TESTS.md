@@ -50,6 +50,12 @@ it stores and discovers the resulting credential itself. Production options
 are never downgraded. This is an in-process emulator, not a browser or hardware
 compatibility test.
 
+The adapter also honours `excludeCredentials`, which `SoftPasskey` ignores:
+asked to register when it already holds a credential the challenge
+excludes for that relying party, it answers `Ctap2CredentialExcluded`, the
+way a CTAP2 authenticator does. The passkey addition tests rely on that to
+show a registered device refusing the challenge that adds a passkey.
+
 `crate::testing::soft_passkey_registration` answers a registration challenge;
 `crate::testing::test_passkey` runs a whole ceremony using the same registration
 policy as production. Login tests need the emulator that answered the

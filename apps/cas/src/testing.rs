@@ -14,7 +14,9 @@ use tracing_subscriber::Registry;
 use tracing_subscriber::layer::{Context, Layer, SubscriberExt};
 use uuid::Uuid;
 use webauthn_authenticator_rs::{
-    AuthenticatorBackend, WebauthnAuthenticator, error::WebauthnCError, softpasskey::SoftPasskey,
+    AuthenticatorBackend, WebauthnAuthenticator,
+    error::{CtapError, WebauthnCError},
+    softpasskey::SoftPasskey,
 };
 use webauthn_rs::prelude::{
     Base64UrlSafeData, CreationChallengeResponse, Passkey, PublicKeyCredential,
@@ -29,6 +31,7 @@ use crate::accounts::DisplayName;
 use crate::http::ApiState;
 use crate::sessions::http::CookieSettings;
 use crate::sessions::{SessionService, SessionToken};
+use crate::webauthn::addition::AdditionService;
 use crate::webauthn::build_webauthn;
 use crate::webauthn::login::LoginService;
 use crate::webauthn::management::PasskeyManagement;
@@ -48,6 +51,7 @@ pub fn test_state_with_cookies(pool: PgPool, cookies: CookieSettings) -> ApiStat
     ApiState {
         registration: RegistrationService::new(test_webauthn(), pool.clone()),
         login: LoginService::new(test_webauthn(), pool.clone()),
+        addition: AdditionService::new(test_webauthn(), pool.clone()),
         passkeys: PasskeyManagement::new(pool.clone()),
         sessions: SessionService::new(pool),
         cookies,
@@ -197,6 +201,12 @@ struct ResidentCredential {
 /// Adds resident storage and RP-scoped discovery to SoftPasskey's real key
 /// generation and signing. Only this test adapter downgrades the options passed
 /// to SoftPasskey, which otherwise rejects every resident-key request.
+///
+/// It also honours `excludeCredentials`, which SoftPasskey ignores: asked to
+/// create a credential when it already holds one the relying party excluded,
+/// it refuses the way a CTAP2 authenticator does (`CREDENTIAL_EXCLUDED`), so
+/// a test can show that a registered authenticator never answers the
+/// challenge that adds a passkey.
 pub struct ResidentSoftPasskey {
     signer: SoftPasskey,
     credentials: Vec<ResidentCredential>,
@@ -229,6 +239,16 @@ impl AuthenticatorBackend for ResidentSoftPasskey {
         }
         let rp_id = options.rp.id.clone();
         let user_handle = options.user.id.clone();
+        if let Some(excluded) = &options.exclude_credentials
+            && self.credentials.iter().any(|credential| {
+                credential.rp_id == rp_id
+                    && excluded
+                        .iter()
+                        .any(|descriptor| descriptor.id == credential.descriptor.id)
+            })
+        {
+            return Err(WebauthnCError::Ctap(CtapError::Ctap2CredentialExcluded));
+        }
         selection.resident_key = Some(ResidentKeyRequirement::Discouraged);
         selection.require_resident_key = false;
         let mut response = self.signer.perform_register(origin, options, timeout_ms)?;
@@ -335,7 +355,7 @@ pub fn soft_passkey_assertion(
 /// one would not prove that the library's own serde shape survives storage.
 pub fn test_passkey() -> Passkey {
     let webauthn = test_webauthn();
-    let (ccr, state) = start_discoverable_registration(&webauthn, Uuid::new_v4(), "test")
+    let (ccr, state) = start_discoverable_registration(&webauthn, Uuid::new_v4(), "test", None)
         .expect("a registration can be started");
     let response = soft_passkey_registration(ccr);
     webauthn
