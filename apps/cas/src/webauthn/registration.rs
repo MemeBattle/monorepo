@@ -11,7 +11,8 @@ use sqlx::PgPool;
 use thiserror::Error;
 use uuid::Uuid;
 use webauthn_rs::prelude::{
-    CreationChallengeResponse, RegisterPublicKeyCredential, Webauthn, WebauthnError,
+    CreationChallengeResponse, CredentialID, Passkey, RegisterPublicKeyCredential, Webauthn,
+    WebauthnError,
 };
 use webauthn_rs_proto::{ResidentKeyRequirement, UserVerificationPolicy};
 
@@ -32,6 +33,8 @@ pub enum StartError {
 #[derive(Debug, Error)]
 pub enum FinishError {
     /// Unknown id, expired, or already used: a challenge answers one request.
+    /// For a passkey addition ([`addition`](super::addition)), also a
+    /// ceremony another account's session started.
     #[error("registration not found: expired, unknown or already finished")]
     NotFound,
 
@@ -90,13 +93,24 @@ pub struct RegistrationService {
 /// Discoverability is a client creation requirement, not a signed authenticator
 /// flag; changing these public options does not change signature verification.
 /// See ADR 0001 for the library limitation and the trust boundary.
+///
+/// `exclude_credentials` goes to the browser as `excludeCredentials`: a
+/// conforming client refuses to create a credential on an authenticator that
+/// already holds one of them. Account registration has nothing to exclude;
+/// adding a passkey to an existing account ([`addition`](super::addition))
+/// lists the account's credentials.
 pub(crate) fn start_discoverable_registration(
     webauthn: &Webauthn,
     account_id: Uuid,
     display_name: &str,
+    exclude_credentials: Option<Vec<CredentialID>>,
 ) -> Result<(CreationChallengeResponse, DiscoverableRegistration), WebauthnError> {
-    let (mut ccr, passkey) =
-        webauthn.start_passkey_registration(account_id, display_name, display_name, None)?;
+    let (mut ccr, passkey) = webauthn.start_passkey_registration(
+        account_id,
+        display_name,
+        display_name,
+        exclude_credentials,
+    )?;
     let selection = ccr
         .public_key
         .authenticator_selection
@@ -105,6 +119,36 @@ pub(crate) fn start_discoverable_registration(
     selection.require_resident_key = true;
     selection.user_verification = UserVerificationPolicy::Required;
     Ok((ccr, DiscoverableRegistration { passkey }))
+}
+
+/// Verifies the browser's answer to a challenge from
+/// [`start_discoverable_registration`]: the library's cryptographic check,
+/// then the discoverability policy of ADR 0001 (e). Account registration and
+/// passkey addition ([`addition`](super::addition)) share it; what they do
+/// with the passkey is theirs.
+pub(crate) fn verify_discoverable_registration(
+    webauthn: &Webauthn,
+    response: &RegisterPublicKeyCredential,
+    state: &DiscoverableRegistration,
+) -> Result<Passkey, FinishError> {
+    let passkey = webauthn
+        .finish_passkey_registration(response, &state.passkey)
+        .map_err(FinishError::Verification)?;
+
+    // credProps is optional and unsigned. Reject an explicit negative
+    // report as a usability failure, but never treat a positive one as
+    // authentication proof or reject browsers that omit the extension.
+    if response
+        .extensions
+        .cred_props
+        .as_ref()
+        .and_then(|props| props.rk)
+        == Some(false)
+    {
+        return Err(FinishError::DiscoverableCredentialRequired);
+    }
+
+    Ok(passkey)
 }
 
 impl RegistrationService {
@@ -128,7 +172,7 @@ impl RegistrationService {
         // v1 has no username (docs/PLAN.md), so the display name serves as both
         // the WebAuthn user name and its display name.
         let (ccr, state) =
-            start_discoverable_registration(&self.webauthn, account_id, &display_name)
+            start_discoverable_registration(&self.webauthn, account_id, &display_name, None)
                 .map_err(StartError::Webauthn)?;
 
         let registration_id = repository::start_ceremony(
@@ -174,30 +218,16 @@ impl RegistrationService {
                 Taken::Missing => return Err(FinishError::NotFound),
             };
 
-        let passkey = match self
-            .webauthn
-            .finish_passkey_registration(response, &pending.state.passkey)
-        {
-            Ok(passkey) => passkey,
-            Err(error) => {
-                tx.commit().await?;
-                return Err(FinishError::Verification(error));
-            }
-        };
-
-        // credProps is optional and unsigned. Reject an explicit negative
-        // report as a usability failure, but never treat a positive one as
-        // authentication proof or reject browsers that omit the extension.
-        if response
-            .extensions
-            .cred_props
-            .as_ref()
-            .and_then(|props| props.rk)
-            == Some(false)
-        {
-            tx.commit().await?;
-            return Err(FinishError::DiscoverableCredentialRequired);
-        }
+        let passkey =
+            match verify_discoverable_registration(&self.webauthn, response, &pending.state) {
+                Ok(passkey) => passkey,
+                // The challenge was answered, wrongly: the commit makes the
+                // consumed ceremony stick.
+                Err(error) => {
+                    tx.commit().await?;
+                    return Err(error);
+                }
+            };
 
         let account = NewAccount::full(pending.display_name).with_id(pending.account_id);
         let (account, credential) = repository::create_passkey_with_account(
@@ -232,7 +262,7 @@ mod tests {
     #[test]
     fn an_authenticator_without_resident_storage_cannot_register() {
         let (ccr, _) =
-            start_discoverable_registration(&test_webauthn(), Uuid::new_v4(), "Ada").unwrap();
+            start_discoverable_registration(&test_webauthn(), Uuid::new_v4(), "Ada", None).unwrap();
         let error = WebauthnAuthenticator::new(SoftPasskey::new(true))
             .do_registration(test_origin(), ccr)
             .unwrap_err();
