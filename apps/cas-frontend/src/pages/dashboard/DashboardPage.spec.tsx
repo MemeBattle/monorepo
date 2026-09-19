@@ -8,15 +8,17 @@ import { routes } from '#app/routes'
 import { DashboardPage } from './DashboardPage'
 import { loadDashboard } from './loadDashboard'
 
-const { getMe, logout, listPasskeys, renamePasskey, deletePasskey } = vi.hoisted(() => ({
+const { getMe, logout, listPasskeys, renamePasskey, deletePasskey, addPasskey } = vi.hoisted(() => ({
   getMe: vi.fn(),
   logout: vi.fn(),
   listPasskeys: vi.fn(),
   renamePasskey: vi.fn(),
   deletePasskey: vi.fn(),
+  addPasskey: vi.fn(),
 }))
-vi.mock('#entities/session', () => ({ getMe, logout }))
-vi.mock('#entities/passkey', () => ({ listPasskeys, renamePasskey, deletePasskey }))
+// Only the calls are faked; the ceremony predicates (`isCeremonyCancelled`, ...) stay real, so the spec covers the mapping too.
+vi.mock('#entities/session', async importOriginal => ({ ...(await importOriginal<typeof import('#entities/session')>()), getMe, logout }))
+vi.mock('#entities/passkey', () => ({ listPasskeys, renamePasskey, deletePasskey, addPasskey }))
 
 /** jsdom has no modal dialogs; this is as much of one as the sheet needs: open, close with the event, and focus back where it was. */
 const polyfillDialog = () => {
@@ -111,6 +113,7 @@ describe('DashboardPage', () => {
     listPasskeys.mockReset()
     renamePasskey.mockReset()
     deletePasskey.mockReset()
+    addPasskey.mockReset()
   })
 
   it('lists the passkeys with when they were made and last used', async () => {
@@ -461,6 +464,157 @@ describe('DashboardPage', () => {
       await waitFor(() => expect(listPasskeys).toHaveBeenCalledTimes(2))
       expect(rowNames()).toHaveLength(1)
       expect(screen.queryByText('Не получилось удалить. Попробуйте ещё раз через минуту.')).toBeNull()
+    })
+  })
+
+  describe('add', () => {
+    const added = { id: 'p3', name: 'Пасскей', createdAt: today, lastUsedAt: null }
+    const nudgeTitle = 'Добавьте второй пасскей'
+
+    /** Renders the one-passkey dashboard and clicks the nudge's button. */
+    const addFromNudge = async () => {
+      renderPage()
+      await screen.findByRole('heading', { name: 'Ада' })
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Добавить пасскей' }))
+    }
+
+    beforeEach(() => {
+      getMe.mockResolvedValue(me)
+      listPasskeys.mockResolvedValue([passkeys[1]])
+    })
+
+    it('runs the ceremony from the nudge, then lists both passkeys, drops the nudge and turns delete on', async () => {
+      let confirm = () => {}
+      addPasskey.mockImplementation(
+        () =>
+          new Promise<typeof added>(resolve => {
+            confirm = () => resolve(added)
+          }),
+      )
+
+      await addFromNudge()
+
+      // While the browser's prompt is up: both controls wait, the hint says what to do, nothing has been reloaded.
+      const waiting = await screen.findByRole('button', { name: 'Подтвердите пасскей…' })
+      expect(waiting).toHaveProperty('disabled', true)
+      expect(screen.getByText('Следуйте подсказке браузера или телефона.')).toBeDefined()
+      expect(screen.getByRole('button', { name: 'Добавить' })).toHaveProperty('disabled', true)
+      expect(addPasskey).toHaveBeenCalledOnce()
+      expect(listPasskeys).toHaveBeenCalledOnce()
+      expect(screen.getByRole('button', { name: 'Удалить «iPhone Ады»' })).toHaveProperty('disabled', true)
+
+      listPasskeys.mockResolvedValue([passkeys[1], added])
+      confirm()
+
+      await waitFor(() => expect(rowNames()).toHaveLength(2))
+      expect(rowNames()[1]).toBe('ПасскейСоздан сегодня · Не использовался')
+      expect(screen.queryByText(nudgeTitle)).toBeNull()
+      expect(screen.queryByText(lastPasskeyNote)).toBeNull()
+      expect(screen.getByRole('button', { name: 'Удалить «iPhone Ады»' })).toHaveProperty('disabled', false)
+      expect(screen.getByRole('button', { name: 'Добавить' })).toHaveProperty('disabled', false)
+      expect(screen.queryByRole('alert')).toBeNull()
+    })
+
+    it('takes away the last-passkey words a refused delete left once a second passkey is added', async () => {
+      // Two passkeys listed; the other one goes in another tab, so the delete is refused and the list catches up.
+      listPasskeys.mockResolvedValue(passkeys)
+      deletePasskey.mockImplementation(async () => {
+        listPasskeys.mockResolvedValue([passkeys[1]])
+        throw new ApiError(409, 'last_passkey', 'Cannot delete the last passkey; add another one first')
+      })
+      addPasskey.mockImplementation(async () => {
+        listPasskeys.mockResolvedValue([passkeys[1], added])
+        return added
+      })
+      const user = await openDelete()
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Удалить' }))
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Удалить «iPhone Ады»' })).toHaveProperty('disabled', true))
+      expect(screen.getByText(lastPasskeyNote)).toBeDefined()
+
+      await user.click(screen.getByRole('button', { name: 'Добавить пасскей' }))
+
+      await waitFor(() => expect(rowNames()).toHaveLength(2))
+      expect(screen.queryByText(lastPasskeyNote)).toBeNull()
+      expect(screen.getByRole('button', { name: 'Удалить «iPhone Ады»' })).toHaveProperty('disabled', false)
+    })
+
+    it('runs the same ceremony from the title row', async () => {
+      listPasskeys.mockResolvedValue(passkeys)
+      addPasskey.mockImplementation(async () => {
+        listPasskeys.mockResolvedValue([...passkeys, added])
+        return added
+      })
+      renderPage()
+      await screen.findByRole('heading', { name: 'Ада' })
+      expect(screen.queryByText(nudgeTitle)).toBeNull()
+
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Добавить' }))
+
+      await waitFor(() => expect(rowNames()).toHaveLength(3))
+      expect(addPasskey).toHaveBeenCalledOnce()
+      expect(screen.queryByRole('alert')).toBeNull()
+    })
+
+    it.each([
+      ['the browser’s NotAllowedError', new DOMException('The operation either timed out or was not allowed.', 'NotAllowedError')],
+      ['a challenge the server no longer has', new ApiError(404, 'registration_not_found', 'No such registration')],
+    ])('says the addition was cancelled after %s and keeps the nudge', async (_case, error) => {
+      addPasskey.mockRejectedValue(error)
+
+      await addFromNudge()
+
+      const alert = await screen.findByRole('alert')
+      expect(alert.textContent).toContain('Добавление отменено')
+      expect(alert.textContent).toContain('Окно подтверждения закрылось или вышло время.')
+      expect(screen.getByText(nudgeTitle)).toBeDefined()
+      expect(screen.getByRole('button', { name: 'Добавить пасскей' })).toHaveProperty('disabled', false)
+      expect(rowNames()).toHaveLength(1)
+      expect(listPasskeys).toHaveBeenCalledOnce()
+    })
+
+    it.each([
+      [
+        'the authenticator refuses the exclude list',
+        new DOMException('The user attempted to register an authenticator that is already registered.', 'InvalidStateError'),
+      ],
+      ['the server already holds the credential', new ApiError(409, 'credential_already_registered', 'Credential already registered')],
+    ])('says this device already has a passkey when %s', async (_case, error) => {
+      addPasskey.mockRejectedValue(error)
+
+      await addFromNudge()
+
+      const alert = await screen.findByRole('alert')
+      expect(alert.textContent).toContain('На этом устройстве уже есть пасскей')
+      expect(alert.textContent).toContain('Второй пасскей нужен на другом устройстве')
+      expect(alert.textContent).not.toContain('already registered')
+      expect(screen.getByText(nudgeTitle)).toBeDefined()
+      expect(rowNames()).toHaveLength(1)
+    })
+
+    it('says so in its own words when the ceremony fails for another reason, never the raw message', async () => {
+      addPasskey.mockRejectedValue(new TypeError('Failed to fetch'))
+
+      await addFromNudge()
+
+      const alert = await screen.findByRole('alert')
+      expect(alert.textContent).toContain('Что-то пошло не так')
+      expect(alert.textContent).toContain('Попробуйте ещё раз через минуту.')
+      expect(screen.queryByText('Failed to fetch')).toBeNull()
+      expect(screen.getByRole('button', { name: 'Добавить пасскей' })).toHaveProperty('disabled', false)
+      expect(listPasskeys).toHaveBeenCalledOnce()
+    })
+
+    it('lands on sign-in when the session ended under the page', async () => {
+      // The session is gone by the time the ceremony asks for its challenge; `/api/me` says the same on the reload.
+      addPasskey.mockImplementation(async () => {
+        getMe.mockRejectedValue(new ApiError(401, 'unauthenticated', 'No live session'))
+        throw new ApiError(401, 'unauthenticated', 'No live session')
+      })
+
+      await addFromNudge()
+
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Вход' })).toBeDefined())
+      expect(screen.queryByRole('alert')).toBeNull()
     })
   })
 })

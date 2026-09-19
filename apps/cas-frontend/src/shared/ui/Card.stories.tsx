@@ -34,20 +34,18 @@ export const Surface: Story = {
   ),
 }
 
-/** The one-passkey nudge on the dashboard. */
+/** The tone of the nudge card; the nudge itself is `pages/dashboard/PasskeyNudge` and has its own stories. */
 export const Accent: Story = {
   render: () => (
     <Card tone="accent" className="gap-3 p-[18px]">
       <div className="flex items-start gap-3">
         <Icon name="shield" size={24} />
         <div className="flex flex-col gap-1">
-          <span className="text-base leading-tight font-extrabold">Добавьте второй пасскей</span>
-          <span className="text-sm leading-[1.45] font-medium text-ink-muted">
-            Если потеряете устройство, второй пасскей это единственный способ вернуться в аккаунт. Восстановления по почте пока нет.
-          </span>
+          <span className="text-base leading-tight font-extrabold">Заголовок карточки</span>
+          <span className="text-sm leading-[1.45] font-medium text-ink-muted">Текст, который объясняет, зачем нужна кнопка под ним.</span>
         </div>
       </div>
-      <Button icon={<Icon name="plus" />}>Добавить пасскей</Button>
+      <Button icon={<Icon name="plus" />}>Действие</Button>
     </Card>
   ),
 }
