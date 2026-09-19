@@ -9,9 +9,10 @@ use nutype::nutype;
 use thiserror::Error;
 use unicode_general_category::{GeneralCategory, get_general_category};
 
-/// Upper bound on an address, in characters. RFC 5321 caps a forward path
-/// at 256 octets with its angle brackets, so no mail system has to accept an
-/// address longer than 254, and nothing longer could ever be delivered to.
+/// Upper bound on an address, in bytes of UTF-8. RFC 5321 caps a forward
+/// path at 256 octets with its angle brackets, so no mail system has to
+/// accept an address longer than 254 octets, and nothing longer could ever
+/// be delivered to. Octets, not characters: `é` is two of them.
 pub const MAX_EMAIL_LENGTH: usize = 254;
 
 /// Why a string is not an [`Email`]. Each variant is a sentence the form can
@@ -21,7 +22,7 @@ pub enum EmailError {
     #[error("must not be empty")]
     Empty,
 
-    #[error("must be at most {MAX_EMAIL_LENGTH} characters")]
+    #[error("must be at most {MAX_EMAIL_LENGTH} bytes")]
     TooLong,
 
     /// Whitespace inside the address, a control character, or an invisible
@@ -46,6 +47,15 @@ pub enum EmailError {
     /// `ada@.com` are typos, not domains.
     #[error("the domain must be labels separated by single dots")]
     InvalidDomain,
+
+    /// A label holding something other than letters, digits and hyphens
+    /// (RFC 5321 §4.1.2), or a hyphen at either end of it: `example.com/`
+    /// and `exam,ple.com` are not host names, whatever a mailer might do
+    /// with them.
+    #[error(
+        "a domain label must be letters, digits and hyphens, not starting or ending with a hyphen"
+    )]
+    InvalidDomainLabel,
 }
 
 /// Lower-cases what follows the last `@` and leaves the rest alone. Domain
@@ -77,13 +87,35 @@ fn is_disallowed_character(c: char) -> bool {
         )
 }
 
+/// What a domain label is made of: the letters, digits and hyphens of RFC
+/// 5321 §4.1.2, with letters and digits read across every script so an
+/// internationalised domain passes as typed (`пример.рф`), plus the
+/// combining marks some scripts write their letters with.
+fn is_label_character(c: char) -> bool {
+    c == '-'
+        || c.is_alphanumeric()
+        || matches!(
+            get_general_category(c),
+            GeneralCategory::NonspacingMark | GeneralCategory::SpacingMark
+        )
+}
+
+/// A non-empty label of label characters that neither starts nor ends with
+/// a hyphen.
+fn is_label(label: &str) -> bool {
+    !label.is_empty()
+        && !label.starts_with('-')
+        && !label.ends_with('-')
+        && label.chars().all(is_label_character)
+}
+
 /// The syntactic rules, in the order a user would want to hear about them.
 /// Runs on the sanitised value: trimmed, domain lower-cased.
 fn validate_email(value: &str) -> Result<(), EmailError> {
     if value.is_empty() {
         return Err(EmailError::Empty);
     }
-    if value.chars().count() > MAX_EMAIL_LENGTH {
+    if value.len() > MAX_EMAIL_LENGTH {
         return Err(EmailError::TooLong);
     }
     if value.chars().any(is_disallowed_character) {
@@ -104,6 +136,9 @@ fn validate_email(value: &str) -> Result<(), EmailError> {
     if domain.split('.').any(str::is_empty) {
         return Err(EmailError::InvalidDomain);
     }
+    if !domain.split('.').all(is_label) {
+        return Err(EmailError::InvalidDomainLabel);
+    }
 
     Ok(())
 }
@@ -111,8 +146,9 @@ fn validate_email(value: &str) -> Result<(), EmailError> {
 /// An account's email address, valid by construction under the syntactic
 /// rules of this module: surrounding whitespace trimmed, the domain
 /// lower-cased, then exactly one `@` with something on both sides, the
-/// domain made of non-empty dot-separated labels, no whitespace, control or
-/// invisible characters anywhere, at most [`MAX_EMAIL_LENGTH`] characters.
+/// domain made of non-empty dot-separated labels of letters, digits and
+/// hyphens, no whitespace, control or invisible characters anywhere, at most
+/// [`MAX_EMAIL_LENGTH`] bytes of UTF-8.
 /// Nothing more: no attempt to say whether the address exists or can
 /// receive mail, which is the verification flow's job when it arrives.
 /// Non-ASCII local parts and domains are accepted as typed; the rules are
@@ -139,8 +175,10 @@ mod tests {
             "ada.lovelace+cas@mail.example.co.uk",
             "o'brien@example.org",
             "ada@localhost",
+            "ada@my-mail.example",
             "ада@пример.рф",
             "李雷@example.com",
+            "ada@मेल.भारत",
         ] {
             assert_eq!(email(value), Ok(value.to_owned()));
         }
@@ -171,6 +209,22 @@ mod tests {
         let longest = format!("{}{domain}", "a".repeat(MAX_EMAIL_LENGTH - domain.len()));
         assert!(email(&longest).is_ok());
         assert_eq!(email(&format!("a{longest}")), Err(EmailError::TooLong));
+    }
+
+    /// The limit is the octet count of RFC 5321, not a character count: 32
+    /// `é` are 32 characters but 64 bytes, and this address of 224
+    /// characters is 256 bytes.
+    #[test]
+    fn counts_the_limit_in_bytes() {
+        let label = "a".repeat(63);
+        let long = format!("{}@{label}.{label}.{label}", "é".repeat(32));
+        assert_eq!(long.chars().count(), 224);
+        assert_eq!(long.len(), 256);
+        assert_eq!(email(&long), Err(EmailError::TooLong));
+
+        let fitting = format!("{}@{label}.{label}.{label}", "é".repeat(31));
+        assert_eq!(fitting.len(), MAX_EMAIL_LENGTH);
+        assert!(email(&fitting).is_ok());
     }
 
     #[test]
@@ -210,6 +264,26 @@ mod tests {
             assert_eq!(
                 email(value),
                 Err(EmailError::InvalidDomain),
+                "{value:?} must be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_a_domain_label_that_is_not_a_host_name() {
+        for value in [
+            "ada@example.com/",
+            "ada@exam,ple.com",
+            "ada@exa_mple.com",
+            "ada@example.com:25",
+            "ada@[127.0.0.1]",
+            "ada@-example.com",
+            "ada@example-.com",
+            "ada@exam!ple.com",
+        ] {
+            assert_eq!(
+                email(value),
+                Err(EmailError::InvalidDomainLabel),
                 "{value:?} must be rejected"
             );
         }

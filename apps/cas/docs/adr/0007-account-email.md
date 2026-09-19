@@ -58,15 +58,21 @@ after sanitising:
   names are case-insensitive and one stored form should say so, while RFC
   5321 leaves the local part's case to the receiving host, and rewriting it
   could name another mailbox;
-- not empty; at most 254 characters, the longest address a forward path of
-  256 octets with its angle brackets can carry;
+- not empty; at most 254 bytes of UTF-8, the longest address a forward path
+  of 256 octets with its angle brackets can carry — octets, as RFC 5321
+  counts them, not characters;
 - no whitespace, control, format (invisible), separator, surrogate, private
   use or unassigned character anywhere: none can be part of a mailbox, and
   the invisible ones make one address look like another;
 - exactly one `@`, with a non-empty local part before it and a non-empty
   domain after it;
 - the domain is non-empty labels separated by single dots: `ada@example.`
-  and `ada@.com` are typos, not domains.
+  and `ada@.com` are typos, not domains;
+- each label is letters, digits and hyphens (RFC 5321 §4.1.2), not starting
+  or ending with a hyphen, with letters and digits read across every script
+  and combining marks allowed, so `пример.рф` passes and `example.com/`,
+  `exam,ple.com`, `exa_mple.com` do not. No address literal (`[127.0.0.1]`):
+  nothing here will ever connect to one.
 
 Non-ASCII local parts and domains pass as typed: the rules are about shape,
 not alphabet, and the frontend's own `type=email` input is the stricter
