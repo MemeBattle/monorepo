@@ -161,7 +161,7 @@ Header: logo 44px, the uppercase label "Аккаунт" over the display name
 
 Sections, each a card with an uppercase title:
 
-- **"Пасскеи"**, with "Добавить" in the title row (after #720). A row per
+- **"Пасскеи"**, with "Добавить" (plus icon) in the title row. A row per
   passkey: key chip, name, meta "Создан 12 сентября · Использован сегодня"
   (relative dates; never used: "Не использовался"), rename and
   delete icon buttons at 44px. Inline rename replaces the row with an input
@@ -204,6 +204,29 @@ States:
   so the delete is off; anything else "Не получилось удалить. Попробуйте
   ещё раз через минуту." A passkey deleted in another tab
   (`passkey_not_found`) leaves the list with no message.
+- **Add**: "Добавить пасскей" on the nudge and "Добавить" in the title row
+  run the same ceremony, so while it runs both wait: the nudge's button
+  shows the spinner and "Подтвердите пасскей…" with "Следуйте подсказке
+  браузера или телефона." under it, the title-row action shows the spinner
+  in place of the plus and is disabled. On success the list reloads with
+  the new passkey (default name, renamed like any other), the nudge goes
+  and delete comes on for every row. A failure is an alert above the
+  "Пасскеи" section, under the nudge when there is one; the buttons stay:
+  - **Cancelled** (`NotAllowedError`, timeout, `registration_not_found`):
+    "Добавление отменено" / "Окно подтверждения закрылось или вышло время.
+    Ничего не сломалось, попробуйте ещё раз."
+  - **Unsupported authenticator** (`NotSupportedError`, `ConstraintError`,
+    `discoverable_credential_required`): "Не получилось добавить пасскей" /
+    the same explanation as on create account.
+  - **Already on this device** (`InvalidStateError` from the browser's
+    `excludeCredentials` check, `credential_already_registered` from the
+    server): "На этом устройстве уже есть пасскей" / "Он уже привязан к
+    вашему аккаунту. Второй пасскей нужен на другом устройстве: телефоне,
+    ключе или в другом менеджере паролей."
+  - **Wrong address** and **everything else**: the alerts every ceremony
+    can have.
+  - **No session** (`unauthenticated`): no alert; the page reloads and the
+    loader sends the browser to `/sign-in`.
 
 ## Flows
 

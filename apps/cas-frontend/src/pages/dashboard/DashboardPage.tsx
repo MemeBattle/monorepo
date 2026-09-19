@@ -2,14 +2,17 @@ import { useActionState, useOptimistic, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { useLoaderData, useRevalidator } from 'react-router'
 
-import { deletePasskey, renamePasskey } from '#entities/passkey'
+import { addPasskey, deletePasskey, renamePasskey } from '#entities/passkey'
 import type { Passkey } from '#entities/passkey'
 import { logout } from '#entities/session'
 import { isApiError } from '#shared/api/request'
-import { Alert, Icon, Logo, Screen, Section } from '#shared/ui'
+import { Alert, Icon, Logo, Screen, Section, Spinner } from '#shared/ui'
 import type { DashboardData } from './loadDashboard'
+import { PasskeyNudge } from './PasskeyNudge'
 import { PasskeyRow } from './PasskeyRow'
 import type { DeleteFailure } from './PasskeyRow'
+import { toAddPasskeyFailure } from './addPasskeyFailure'
+import type { AddPasskeyFailure } from './addPasskeyFailure'
 
 /** What the alert under the header says when sign-out did not go through; never the raw message. */
 const signOutFailure = {
@@ -26,7 +29,7 @@ const withChange = (passkeys: Passkey[], change: Change) =>
     ? passkeys.filter(passkey => passkey.id !== change.deleted)
     : passkeys.map(passkey => (passkey.id === change.renamed.id ? { ...passkey, name: change.renamed.name } : passkey))
 
-/** The account by name, its passkeys, and the way out. Adding passkeys and the email come with #720 and on. */
+/** The account by name, its passkeys and the ways to add and manage them, and the way out. The email comes later. */
 export const DashboardPage = () => {
   const { me, passkeys } = useLoaderData<DashboardData>()
   const revalidator = useRevalidator()
@@ -53,6 +56,25 @@ export const DashboardPage = () => {
       return signOutFailure
     }
     // The cookie is gone: the loader finds no session and redirects to sign-in.
+    await revalidator.revalidate()
+    return null
+  }, null)
+
+  // One action behind both the nudge's button and "Добавить" in the title row: a browser runs one ceremony at a
+  // time, so while it is pending both controls wait.
+  const [addFailure, add, adding] = useActionState(async (): Promise<AddPasskeyFailure | null> => {
+    try {
+      await addPasskey()
+    } catch (error) {
+      if (isApiError(error) && error.code === 'unauthenticated') {
+        // The session ended under the page: the loader finds none and redirects to sign-in.
+        await revalidator.revalidate()
+        return null
+      }
+      return toAddPasskeyFailure(error)
+    }
+    // The action stays pending until the loader lists the new passkey, so the nudge goes and the first row's delete
+    // comes on in one step.
     await revalidator.revalidate()
     return null
   }, null)
@@ -109,7 +131,16 @@ export const DashboardPage = () => {
         </form>
       </header>
       {failure && <Alert title={failure.title}>{failure.text}</Alert>}
-      <Section title="Пасскеи">
+      {shownPasskeys.length === 1 && <PasskeyNudge action={add} pending={adding} />}
+      {addFailure && <Alert title={addFailure.title}>{addFailure.text}</Alert>}
+      <Section
+        title="Пасскеи"
+        action={
+          <form action={add}>
+            <AddPasskeyButton pending={adding} />
+          </form>
+        }
+      >
         <ul>
           {shownPasskeys.map(passkey => (
             <PasskeyRow
@@ -127,17 +158,24 @@ export const DashboardPage = () => {
   )
 }
 
+const inlineButton =
+  'flex h-11 shrink-0 items-center gap-1.5 text-sm font-bold text-ink-muted outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:text-ink-hint'
+
 /** Its own component: `useFormStatus` reads the form it is rendered in. */
 const SignOutButton = () => {
   const { pending } = useFormStatus()
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="flex h-11 shrink-0 items-center gap-1.5 text-sm font-bold text-ink-muted outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:text-ink-hint"
-    >
+    <button type="submit" disabled={pending} className={inlineButton}>
       <Icon name="logout" size={18} />
       Выйти
     </button>
   )
 }
+
+/** "Добавить" in the passkeys title row. Waits on the page's word, not its own form's: the nudge starts the same ceremony. */
+const AddPasskeyButton = ({ pending }: { pending: boolean }) => (
+  <button type="submit" disabled={pending} aria-busy={pending || undefined} className={inlineButton}>
+    {pending ? <Spinner /> : <Icon name="plus" size={18} />}
+    Добавить
+  </button>
+)
