@@ -73,6 +73,9 @@ export const DashboardPage = () => {
       }
       return toAddPasskeyFailure(error)
     }
+    // The list is about to change under every row, so what a row said about its last delete is stale: in particular
+    // "the only passkey" after a `last_passkey` refusal, which the new passkey has just made untrue.
+    setDeleteFailures({})
     // The action stays pending until the loader lists the new passkey, so the nudge goes and the first row's delete
     // comes on in one step.
     await revalidator.revalidate()

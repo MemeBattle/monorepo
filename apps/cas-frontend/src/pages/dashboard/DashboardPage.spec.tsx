@@ -515,6 +515,29 @@ describe('DashboardPage', () => {
       expect(screen.queryByRole('alert')).toBeNull()
     })
 
+    it('takes away the last-passkey words a refused delete left once a second passkey is added', async () => {
+      // Two passkeys listed; the other one goes in another tab, so the delete is refused and the list catches up.
+      listPasskeys.mockResolvedValue(passkeys)
+      deletePasskey.mockImplementation(async () => {
+        listPasskeys.mockResolvedValue([passkeys[1]])
+        throw new ApiError(409, 'last_passkey', 'Cannot delete the last passkey; add another one first')
+      })
+      addPasskey.mockImplementation(async () => {
+        listPasskeys.mockResolvedValue([passkeys[1], added])
+        return added
+      })
+      const user = await openDelete()
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Удалить' }))
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Удалить «iPhone Ады»' })).toHaveProperty('disabled', true))
+      expect(screen.getByText(lastPasskeyNote)).toBeDefined()
+
+      await user.click(screen.getByRole('button', { name: 'Добавить пасскей' }))
+
+      await waitFor(() => expect(rowNames()).toHaveLength(2))
+      expect(screen.queryByText(lastPasskeyNote)).toBeNull()
+      expect(screen.getByRole('button', { name: 'Удалить «iPhone Ады»' })).toHaveProperty('disabled', false)
+    })
+
     it('runs the same ceremony from the title row', async () => {
       listPasskeys.mockResolvedValue(passkeys)
       addPasskey.mockImplementation(async () => {
