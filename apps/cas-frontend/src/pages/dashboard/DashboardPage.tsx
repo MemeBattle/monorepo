@@ -1,14 +1,15 @@
-import { useActionState, useOptimistic } from 'react'
+import { useActionState, useOptimistic, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { useLoaderData, useRevalidator } from 'react-router'
 
-import { renamePasskey } from '#entities/passkey'
+import { deletePasskey, renamePasskey } from '#entities/passkey'
 import type { Passkey } from '#entities/passkey'
 import { logout } from '#entities/session'
 import { isApiError } from '#shared/api/request'
 import { Alert, Icon, Logo, Screen, Section } from '#shared/ui'
 import type { DashboardData } from './loadDashboard'
 import { PasskeyRow } from './PasskeyRow'
+import type { DeleteFailure } from './PasskeyRow'
 
 /** What the alert under the header says when sign-out did not go through; never the raw message. */
 const signOutFailure = {
@@ -16,16 +17,23 @@ const signOutFailure = {
   text: 'Попробуйте ещё раз через минуту.',
 }
 
-/** The list with a rename the server has not confirmed yet applied to it. */
-const withRenamed = (passkeys: Passkey[], renamed: Pick<Passkey, 'id' | 'name'>) =>
-  passkeys.map(passkey => (passkey.id === renamed.id ? { ...passkey, name: renamed.name } : passkey))
+/** A rename or a delete the server has not confirmed yet. */
+type Change = { renamed: Pick<Passkey, 'id' | 'name'> } | { deleted: Passkey['id'] }
 
-/** The account by name, its passkeys, and the way out. Deleting and adding passkeys, and the email, come with #718 and on. */
+/** The list with a change the server has not confirmed yet applied to it. */
+const withChange = (passkeys: Passkey[], change: Change) =>
+  'deleted' in change
+    ? passkeys.filter(passkey => passkey.id !== change.deleted)
+    : passkeys.map(passkey => (passkey.id === change.renamed.id ? { ...passkey, name: change.renamed.name } : passkey))
+
+/** The account by name, its passkeys, and the way out. Adding passkeys and the email come with #720 and on. */
 export const DashboardPage = () => {
   const { me, passkeys } = useLoaderData<DashboardData>()
   const revalidator = useRevalidator()
-  // React shows the renamed list while the row's action runs and goes back to the loader's once it settles.
-  const [shownPasskeys, showRenamed] = useOptimistic(passkeys, withRenamed)
+  // React shows the changed list while the row's action runs and goes back to the loader's once it settles.
+  const [shownPasskeys, showChange] = useOptimistic(passkeys, withChange)
+  // The row that could not be deleted explains why once it is back in the list; the next delete starts clean.
+  const [deleteFailure, setDeleteFailure] = useState<{ id: string; reason: DeleteFailure } | null>(null)
 
   const [failure, signOut] = useActionState(async (): Promise<typeof signOutFailure | null> => {
     try {
@@ -39,7 +47,7 @@ export const DashboardPage = () => {
   }, null)
 
   const rename = async (id: string, name: string) => {
-    showRenamed({ id, name })
+    showChange({ renamed: { id, name } })
     try {
       await renamePasskey(id, name)
     } catch (error) {
@@ -49,6 +57,29 @@ export const DashboardPage = () => {
       }
     }
     // The action stays pending until the loader has the new name, so the optimistic one never flickers back.
+    await revalidator.revalidate()
+  }
+
+  const remove = async (id: string) => {
+    setDeleteFailure(null)
+    showChange({ deleted: id })
+    try {
+      await deletePasskey(id)
+    } catch (error) {
+      if (isApiError(error) && error.code === 'last_passkey') {
+        // Lost a race with another tab: this is the only passkey now. The reload below turns its delete off with the same words.
+        setDeleteFailure({ id, reason: 'lastPasskey' })
+        await revalidator.revalidate()
+        return
+      }
+      // Deleted in another tab: the list is stale, and the reload below takes the row away all the same.
+      if (!(isApiError(error) && error.code === 'passkey_not_found')) {
+        // The list is fine; the row comes back with the failed action and says so.
+        setDeleteFailure({ id, reason: 'failed' })
+        return
+      }
+    }
+    // The action stays pending until the loader no longer has the row, so it never flickers back.
     await revalidator.revalidate()
   }
 
@@ -70,7 +101,14 @@ export const DashboardPage = () => {
       <Section title="Пасскеи">
         <ul>
           {shownPasskeys.map(passkey => (
-            <PasskeyRow key={passkey.id} passkey={passkey} onRename={name => rename(passkey.id, name)} />
+            <PasskeyRow
+              key={passkey.id}
+              passkey={passkey}
+              deletable={shownPasskeys.length > 1}
+              deleteFailure={deleteFailure?.id === passkey.id ? deleteFailure.reason : null}
+              onRename={name => rename(passkey.id, name)}
+              onDelete={() => remove(passkey.id)}
+            />
           ))}
         </ul>
       </Section>
