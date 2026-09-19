@@ -7,9 +7,9 @@ import { Button, Icon, Section, Spinner, SubmitButton, TextField } from '#shared
 /** What the field says about an address this section could not save; never the raw message. */
 export const messages = {
   empty: 'Введите адрес.',
-  /** No `@`: the one shape the client tells before asking. */
+  /** What the browser's own `type="email"` check rejects: no `@`, a comma in the name, a broken domain. */
   notAnAddress: 'Похоже, это не адрес почты.',
-  /** The server's `invalid_email` for anything the client did not catch: spaces or invisible characters, a second `@`, a broken domain, over the cap. */
+  /** The server's `invalid_email` for anything the browser let through: invisible characters, over the cap. */
   invalid: 'Проверьте адрес: в нём ошибка или недопустимые символы.',
   /** Anything else: an outage, no network. */
   failed: 'Не получилось сохранить почту. Попробуйте ещё раз через минуту.',
@@ -28,14 +28,18 @@ type EmailProblem = 'empty' | 'notAnAddress'
 
 /**
  * What the client can tell before asking the server, on an address already
- * trimmed: emptiness and a missing `@`. Everything else (the characters, the
- * domain, the length) is the server's call, answered as `invalid_email`.
+ * trimmed: emptiness, and the shape, as the browser's own `type="email"`
+ * check judges it (`validity.typeMismatch`: one `@`, a name of the
+ * characters a mailbox can have, a domain of letters, digits and hyphens).
+ * Its rules are the server's, so the field reads it and shows this
+ * section's words instead of the browser's. What is left (invisible
+ * characters, the length) is the server's call, answered as `invalid_email`.
  */
-const emailProblem = (email: string): EmailProblem | null => {
+const emailProblem = (email: string, field: HTMLInputElement | null): EmailProblem | null => {
   if (email.length === 0) {
     return 'empty'
   }
-  if (!email.includes('@')) {
+  if (field ? field.validity.typeMismatch : !email.includes('@')) {
     return 'notAnAddress'
   }
   return null
@@ -103,11 +107,13 @@ interface EditorProps extends EmailSectionProps {
  * "Удалить" is a second submit of the same form that sends `null`.
  */
 const Editor = ({ email, onSave, onDone }: EditorProps) => {
+  const field = useRef<HTMLInputElement>(null)
   const [state, submit, pending] = useActionState(async (_previous: FormState, form: FormData): Promise<FormState> => {
     // Trimmed the way the server does it first, so an address of spaces is empty here and not `invalid_email` there.
+    // A clear sends `null` whatever the field holds: a broken address must not stand in the way of removing the stored one.
     const address = form.get('intent') === 'clear' ? null : String(form.get('email') ?? '').trim()
     if (address !== null) {
-      const problem = emailProblem(address)
+      const problem = emailProblem(address, field.current)
       if (problem) {
         return { email: address, error: messages[problem] }
       }
@@ -129,9 +135,11 @@ const Editor = ({ email, onSave, onDone }: EditorProps) => {
   }
 
   return (
-    // `noValidate`: the browser's own check on `type="email"` would stop the submit with its own words.
+    // `noValidate`: the browser's own check on `type="email"` would stop the submit with its own words; the action
+    // reads that check from the field instead and answers in this section's words.
     <form action={submit} noValidate className="flex flex-col gap-3">
       <TextField
+        ref={field}
         label="Почта"
         name="email"
         type="email"

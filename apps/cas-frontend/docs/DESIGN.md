@@ -230,8 +230,9 @@ States:
   - **No session** (`unauthenticated`): no alert; the page reloads and the
     loader sends the browser to `/sign-in`.
 - **Email**: "Добавить" in the title row and the pencil open the same form
-  in place of the row: the field "Почта" (`type="email"`, the browser's own
-  check off) holding the current address, the secondary "Сохранить" and
+  in place of the row: the field "Почта" (`type="email"`; the browser's own
+  check is read on save, its words are never shown) holding the current
+  address, the secondary "Сохранить" and
   "Отмена", and, when an address is set, the danger-coloured inline
   "Удалить" with the trash icon on the right, which clears it; Escape
   cancels. On save the row shows the new address at once (the empty state
@@ -240,10 +241,10 @@ States:
   "Ada@Mems.fun" comes back as "Ada@mems.fun". The address is not verified
   in v1 and the row says so. A rejected address brings the field back with
   the rejected value still in it and the reason under it, and the row keeps
-  what it had: "Введите адрес.", no `@` "Похоже, это не адрес почты.",
-  `invalid_email` (spaces or invisible characters, a second `@`, a broken
-  domain, over 254 bytes) "Проверьте адрес: в нём ошибка или недопустимые
-  символы.", anything else "Не получилось сохранить почту. Попробуйте ещё
+  what it had: "Введите адрес.", a shape the browser's `type="email"` check
+  rejects (no `@`, a comma in the name, a broken domain) "Похоже, это не
+  адрес почты.", `invalid_email` (invisible characters, over 254 bytes)
+  "Проверьте адрес: в нём ошибка или недопустимые символы.", anything else "Не получилось сохранить почту. Попробуйте ещё
   раз через минуту." A clear that fails brings the form back with the
   address and the same last sentence. No session (`unauthenticated`): no
   message; the page reloads and the loader sends the browser to `/sign-in`.

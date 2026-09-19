@@ -809,24 +809,57 @@ describe('DashboardPage', () => {
       expect(updateEmail).not.toHaveBeenCalled()
     })
 
-    it('does not send a value without an @', async () => {
+    it.each([
+      ['no @', 'ada.mems.fun'],
+      ['a comma in the name', 'ada,lovelace@mems.fun'],
+      ['an underscore in the domain', 'ada@mems_fun.example'],
+      ['a hyphen at the start of a label', 'ada@-mems.fun'],
+    ])('does not send what the browser’s own check rejects: %s', async (_shape, value) => {
       getMe.mockResolvedValue(me)
 
-      await save('ada.mems.fun')
+      await save(value)
 
       expect(screen.getByText('Похоже, это не адрес почты.')).toBeDefined()
-      expect(screen.getByLabelText<HTMLInputElement>('Почта').value).toBe('ada.mems.fun')
+      expect(screen.getByLabelText<HTMLInputElement>('Почта').value).toBe(value)
       expect(updateEmail).not.toHaveBeenCalled()
+    })
+
+    it('sends an address with a plus in the name and a dotless domain: the shape is fine, the rest is the server’s call', async () => {
+      getMe.mockResolvedValue(me)
+      updateEmail.mockResolvedValue(undefined)
+
+      await save('ada+cas@localhost')
+
+      await waitFor(() => expect(updateEmail).toHaveBeenCalledWith('ada+cas@localhost'))
+    })
+
+    it('clears the address whatever the field holds', async () => {
+      getMe.mockResolvedValue({ ...me, email: address })
+      updateEmail.mockImplementation(async () => {
+        getMe.mockResolvedValue(me)
+      })
+      const user = await openEditor()
+      const field = screen.getByLabelText('Почта')
+      await user.clear(field)
+      await user.type(field, 'not an address')
+
+      await user.click(screen.getByRole('button', { name: 'Удалить' }))
+
+      await waitFor(() => expect(updateEmail).toHaveBeenCalledWith(null))
+      expect(await screen.findByText(emptyTitle)).toBeDefined()
+      expect(screen.queryByText('Похоже, это не адрес почты.')).toBeNull()
     })
 
     it('takes back an address the server rejects and says why under the field, never the raw message', async () => {
       getMe.mockResolvedValue(me)
-      updateEmail.mockRejectedValue(new ApiError(400, 'invalid_email', 'Invalid email: must contain a single @'))
+      // Over the cap: the one rule the browser's own check does not count, so it is the server that says no.
+      const tooLong = `${'a'.repeat(250)}@mems.fun`
+      updateEmail.mockRejectedValue(new ApiError(400, 'invalid_email', 'Invalid email: must be at most 254 bytes'))
 
-      await save('ada@mems@fun')
+      await save(tooLong)
 
       const field = await screen.findByLabelText<HTMLInputElement>('Почта')
-      expect(field.value).toBe('ada@mems@fun')
+      expect(field.value).toBe(tooLong)
       expect(field).toHaveProperty('ariaInvalid', 'true')
       expect(screen.getByText('Проверьте адрес: в нём ошибка или недопустимые символы.')).toBeDefined()
       expect(screen.queryByText(/must contain/)).toBeNull()
