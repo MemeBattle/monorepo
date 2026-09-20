@@ -1,6 +1,7 @@
 import { WebAuthnError } from '@simplewebauthn/browser'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { mockLoginOptions, mockLoginVerification } from './testing/stages'
 import { ApiError } from '#shared/api/request'
 import {
   isAuthenticatorUnsupported,
@@ -10,13 +11,11 @@ import {
   signInWithPasskeyFromAutofill,
 } from './ceremonies'
 
-const { request, startAuthentication, browserSupportsWebAuthnAutofill, cancelCeremony } = vi.hoisted(() => ({
-  request: vi.fn(),
+const { startAuthentication, browserSupportsWebAuthnAutofill, cancelCeremony } = vi.hoisted(() => ({
   startAuthentication: vi.fn(),
   browserSupportsWebAuthnAutofill: vi.fn(),
   cancelCeremony: vi.fn(),
 }))
-vi.mock('#shared/api/request', async importOriginal => ({ ...(await importOriginal<typeof import('#shared/api/request')>()), request }))
 vi.mock('@simplewebauthn/browser', async importOriginal => ({
   ...(await importOriginal<typeof import('@simplewebauthn/browser')>()),
   startAuthentication,
@@ -93,16 +92,17 @@ describe('signInWithPasskeyFromAutofill', () => {
       cancelCeremony.mockImplementationOnce(() => reject(aborted()))
     })
 
-  const loginOptionsCalls = () => request.mock.calls.filter(([path]) => path === '/api/webauthn/login-options').length
+  let requested: ReturnType<typeof mockLoginOptions>
+  const loginOptionsCalls = () => requested.mock.calls.length
 
   beforeEach(() => {
     vi.useFakeTimers()
     browserSupportsWebAuthnAutofill.mockResolvedValue(true)
+    requested = mockLoginOptions()
   })
 
   afterEach(() => {
     vi.useRealTimers()
-    request.mockReset()
     startAuthentication.mockReset()
     browserSupportsWebAuthnAutofill.mockReset()
     cancelCeremony.mockReset()
@@ -113,21 +113,24 @@ describe('signInWithPasskeyFromAutofill', () => {
 
     await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toBeNull()
 
-    expect(request).not.toHaveBeenCalled()
+    expect(requested).not.toHaveBeenCalled()
   })
 
   it('verifies the passkey the user picked', async () => {
-    request.mockResolvedValueOnce(options('l1')).mockResolvedValueOnce(signedIn)
+    requested = mockLoginOptions(options('l1'))
+    const verified = mockLoginVerification(signedIn)
     startAuthentication.mockResolvedValue(picked)
 
     await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toEqual(signedIn)
 
     expect(startAuthentication).toHaveBeenCalledWith({ optionsJSON: options('l1').rcr.publicKey, useBrowserAutofill: true })
-    expect(request).toHaveBeenLastCalledWith('/api/webauthn/verify-login', { method: 'POST', body: { loginId: 'l1', response: picked } })
+    expect(verified).toHaveBeenCalledExactlyOnceWith({ loginId: 'l1', response: picked })
   })
 
   it('replaces the challenge before it expires while the offer stands', async () => {
-    request.mockResolvedValueOnce(options('l1')).mockResolvedValueOnce(options('l2')).mockResolvedValueOnce(signedIn)
+    let count = 0
+    requested = mockLoginOptions.respond(() => options(`l${++count}`))
+    const verified = mockLoginVerification(signedIn)
     startAuthentication.mockReturnValueOnce(pendingOffer()).mockResolvedValueOnce(picked)
 
     const outcome = signInWithPasskeyFromAutofill(new AbortController().signal)
@@ -137,11 +140,11 @@ describe('signInWithPasskeyFromAutofill', () => {
 
     await expect(outcome).resolves.toEqual(signedIn)
     expect(loginOptionsCalls()).toBe(2)
-    expect(request).toHaveBeenLastCalledWith('/api/webauthn/verify-login', { method: 'POST', body: { loginId: 'l2', response: picked } })
+    expect(verified).toHaveBeenCalledExactlyOnceWith({ loginId: 'l2', response: picked })
   })
 
   it('withdraws the offer when the signal is aborted and asks for nothing more', async () => {
-    request.mockResolvedValueOnce(options('l1'))
+    requested = mockLoginOptions(options('l1'))
     startAuthentication.mockReturnValueOnce(pendingOffer())
     const controller = new AbortController()
 
@@ -156,7 +159,7 @@ describe('signInWithPasskeyFromAutofill', () => {
   })
 
   it('offers nothing when the options cannot be fetched', async () => {
-    request.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    mockLoginOptions.networkError()
 
     await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toBeNull()
 
@@ -164,7 +167,7 @@ describe('signInWithPasskeyFromAutofill', () => {
   })
 
   it('ends the offer quietly when the browser refuses it or the user backs out of the pick', async () => {
-    request.mockResolvedValueOnce(options('l1'))
+    requested = mockLoginOptions(options('l1'))
     startAuthentication.mockRejectedValueOnce(notAllowed())
 
     await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toBeNull()
@@ -174,7 +177,8 @@ describe('signInWithPasskeyFromAutofill', () => {
   })
 
   it('reports a failure after the pick, as the button would', async () => {
-    request.mockResolvedValueOnce(options('l1')).mockRejectedValueOnce(new ApiError(401, 'invalid_credential', 'not registered'))
+    requested = mockLoginOptions(options('l1'))
+    mockLoginVerification.error('invalid_credential')
     startAuthentication.mockResolvedValue(picked)
 
     await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).rejects.toSatisfy(

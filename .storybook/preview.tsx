@@ -1,4 +1,5 @@
 import type { Decorator, Preview, StoryContext } from '@storybook/react'
+import { prepareStory } from '../apps/cas-frontend/src/shared/testing/storybook'
 import { MINIMAL_VIEWPORTS } from 'storybook/viewport'
 import { CssBaseline } from '@memebattle/ui'
 import { ThemeProvider } from '@mui/material/styles'
@@ -58,6 +59,7 @@ const preview: Preview = {
     // the first paint; the dynamic import keeps Tailwind's preflight away
     // from the MUI apps' stories.
     async context => {
+      await prepareStory(isCasStory(context), context.parameters['casScenario'] as (() => void) | undefined)
       if (isCasStory(context)) {
         await import('../apps/cas-frontend/src/app/styles.css')
       }

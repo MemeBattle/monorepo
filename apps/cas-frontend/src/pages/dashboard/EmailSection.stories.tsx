@@ -1,16 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/react'
 
-import { ApiError } from '#shared/api/request'
+import { updateEmail } from '#entities/session'
+import { mockUpdateEmail } from '#entities/session/testing'
 import { EmailSection } from './EmailSection'
 
-const never = () => new Promise<void>(() => {})
-
 const meta: Meta<typeof EmailSection> = {
-  parameters: { layout: 'padded' },
+  parameters: { layout: 'padded', casScenario: () => mockUpdateEmail() },
   title: 'CAS / Email',
   component: EmailSection,
   decorators: [Story => <div className="max-w-[380px]">{Story()}</div>],
-  args: { email: null, onSave: never },
+  args: { email: null, onSave: updateEmail },
 }
 export default meta
 
@@ -41,17 +40,18 @@ export const Adding: Story = {
 
 /** The server refused the address (`invalid_email`): the field keeps it and says why. */
 export const Invalid: Story = {
-  args: { onSave: () => Promise.reject(new ApiError(400, 'invalid_email', 'Invalid email: must contain a single @')) },
+  parameters: { casScenario: () => mockUpdateEmail.error('invalid_email') },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Добавить почту' }))
-    await userEvent.type(canvas.getByLabelText('Почта'), 'ada@mems@fun')
+    await userEvent.type(canvas.getByLabelText('Почта'), 'ada@mems.fun')
     await userEvent.click(canvas.getByRole('button', { name: 'Сохранить' }))
   },
 }
 
 /** The request did not go through for another reason: the form stays with its own words. */
 export const Failed: Story = {
-  args: { email: 'ada@mems.fun', onSave: () => Promise.reject(new TypeError('Failed to fetch')) },
+  args: { email: 'ada@mems.fun' },
+  parameters: { casScenario: () => mockUpdateEmail.networkError() },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Изменить почту' }))
     await userEvent.click(canvas.getByRole('button', { name: 'Удалить' }))

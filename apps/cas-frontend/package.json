@@ -18,7 +18,8 @@
     "ts-check": "tsc --noEmit",
     "test": "vitest",
     "test:ci": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:storybook": "node scripts/storybook-smoke.mjs"
   },
   "dependencies": {
     "@simplewebauthn/browser": "catalog:",
@@ -36,7 +37,10 @@
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "jsdom": "catalog:",
+    "msw": "catalog:",
+    "msw-storybook-addon": "catalog:",
     "oxc-transform-react": "catalog:",
+    "storybook": "catalog:",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
