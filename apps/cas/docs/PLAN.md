@@ -13,9 +13,10 @@ email/password + VK login, 7-service architecture).
   authentication method. External providers (Telegram, GitHub, ...) are additional
   login methods and linked identities, never passwords.
 - **Agent-friendly.** A user signs in with a passkey and can delegate scoped,
-  revocable, auditable access to an agent that has its own identity. A linked
-  Telegram account is the channel through which an agent's request reaches the
-  user for approval.
+  revocable, auditable access to an agent that has its own identity. An
+  agent's request reaches the user for approval through one of the user's
+  linked channels; a linked Telegram account is the first such channel, not
+  the only one.
 - **Stack:** Rust (axum), PostgreSQL, S3 for files (filesystem backend in dev).
 - **Process: "lit factory"** — the agent writes the code, the human understands
   every change. Small, reviewable increments.
@@ -66,11 +67,35 @@ email/password + VK login, 7-service architecture).
   returns the token triple; no CAS session, no UI. Tokens carry `amr: ["anon"]`
   / `account_type: "guest"`.
 - Upgrade: the application redirects the guest to `/authorize` with
-  `id_token_hint` (the guest's ID token). CAS establishes a session for that
-  guest and continues to create-account; the passkey registered there attaches
-  to the same account, `sub` unchanged, app data survives (fixes the legacy
-  behavior where the temporary identity was lost). A guest that signs in to an
-  existing account instead stays a guest; its data is lost, by design.
+  `id_token_hint`, a fresh guest ID token (the confidential client refreshes
+  before building the link; an expired hint is refused, the hint opens a
+  session and is therefore a bearer credential in a URL). CAS opens an
+  _upgrade_ session for that guest and continues to create-account; the passkey
+  registered there attaches to the same account, `sub` unchanged, app data
+  survives (fixes the legacy behavior where the temporary identity was lost).
+  A guest that signs in to an existing account instead stays a guest; its data
+  is lost, by design.
+- The upgrade is a privilege change and is guarded like one. The threat is
+  session fixation: an attacker opens an upgrade session for a guest, hands the
+  upgrade link to a victim, the victim registers a passkey, and the attacker's
+  session now names a full account. Therefore:
+  - An upgrade session is restricted, and the backend enforces it, not the UI:
+    it can only run the account-registration ceremony for its own `sub` and
+    continue `/authorize`. No passkey addition or listing, no email changes.
+  - Finishing that ceremony is one transaction with the account row locked:
+    store the passkey, `type = full`, delete every other session of the
+    account, revoke every grant of the account (and with it every refresh
+    token), drop the account's other pending ceremonies, and rotate the current
+    session into a full one. Only the browser that completed the ceremony holds
+    a live session; `/authorize` then issues a code and the application
+    receives fresh tokens. Nothing legitimate is lost: a guest lives in one
+    browser by construction. A second browser racing the same upgrade fails on
+    the lock (`type` is already `full`, its session is gone).
+  - Access tokens already issued stay valid until `exp` (≈10 min) and still
+    carry `account_type: "guest"`; resource servers keep trusting the claim.
+    An accepted window, not extra work.
+  - Accepted loss: a leaked hint lets a stranger upgrade and take over the
+    guest, and the owner loses that guest's data. Guest data is cheap.
 - GC of inactive guests is deferred; every first visit in a new browser mints a
   guest, so it will be needed before the base grows. The guest grant is
   rate-limited per client meanwhile.
@@ -97,13 +122,21 @@ email/password + VK login, 7-service architecture).
   clients arrives with agent delegation.
 - Refresh tokens are not bound to the CAS cookie session: signing out of CAS
   does not sign the user out of ligretto on their phone.
+- Refresh tokens are opaque, stored as a hash under a `grants` row (account ×
+  client, scopes, `revoked_at`). Rotation inserts the successor and marks the
+  presented token used; used rows stay until the absolute expiry so a replayed
+  token is recognised, which revokes the whole grant. That is the only
+  revocation state: `revoked_at` on the grant, no separate list. Access tokens
+  are never revoked, they expire. Expired rows go with the scheduled cleanup
+  (ADR 0002), never on the request path.
 
 **External providers**
 
 - Telegram is an OIDC provider (`oauth.telegram.org`, code + PKCE, ID token only,
   no userinfo, no refresh); the client is a bot registered with BotFather. Its
   `telegram:bot_access` scope lets our bot message the user afterwards, which
-  makes a linked Telegram the approval channel for agents (a CIBA-like flow).
+  makes a linked Telegram one of the approval channels for agents (a
+  CIBA-like flow).
   GitHub is plain OAuth 2 and fits the same provider trait. See the External
   providers milestone.
 - One external identity belongs to exactly one account; there is no account
@@ -157,7 +190,8 @@ Next, in order:
   filesystem backend for dev.
 - **Email:** verification + magic-link recovery.
 - **Agent delegation:** agent identities, scoped/expiring/revocable delegation
-  grants, consent screen, approval through Telegram, audit UI, token exchange
+  grants, consent screen, approval through a linked channel (Telegram first),
+  audit UI, token exchange
   (RFC 8693), dynamic client registration (RFC 7591) for MCP-style clients.
 - **Admin panel:** users, OIDC clients, delegations, audit.
 
