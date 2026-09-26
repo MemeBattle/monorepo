@@ -30,6 +30,7 @@ use webauthn_rs_proto::{
 use crate::accounts::{AccountManagement, DisplayName};
 use crate::config::{Config, SigningKeyPem};
 use crate::http::ApiState;
+use crate::oidc::AuthorizationService;
 use crate::sessions::http::CookieSettings;
 use crate::sessions::{SessionService, SessionToken};
 use crate::webauthn::addition::AdditionService;
@@ -55,8 +56,10 @@ pub fn test_state_with_cookies(pool: PgPool, cookies: CookieSettings) -> ApiStat
         addition: AdditionService::new(test_webauthn(), pool.clone()),
         passkeys: PasskeyManagement::new(pool.clone()),
         accounts: AccountManagement::new(pool.clone()),
-        sessions: SessionService::new(pool),
+        sessions: SessionService::new(pool.clone()),
         cookies,
+        authorization: AuthorizationService::new(pool),
+        frontend_origin: test_origin(),
     }
 }
 

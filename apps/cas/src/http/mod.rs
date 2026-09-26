@@ -24,6 +24,7 @@ use tower_http::{
     trace::{self, TraceLayer},
 };
 use tracing::Level;
+use url::Url;
 
 use crate::accounts::AccountManagement;
 use crate::accounts::http as accounts_http;
@@ -31,7 +32,7 @@ use crate::config::Config;
 use crate::http::error::ApiError;
 use crate::http::fetch_metadata::AllowedOrigins;
 use crate::oidc::http::{self as oidc_http, Documents};
-use crate::oidc::{Discovery, SigningKeyError, SigningKeys};
+use crate::oidc::{AuthorizationService, Discovery, SigningKeyError, SigningKeys};
 use crate::sessions::SessionService;
 use crate::sessions::http as sessions_http;
 use crate::sessions::http::CookieSettings;
@@ -73,6 +74,10 @@ pub struct ApiState {
     pub accounts: AccountManagement,
     pub sessions: SessionService,
     pub cookies: CookieSettings,
+    pub authorization: AuthorizationService,
+    /// The frontend's origin (`CAS_ORIGIN`): where the sign-in screen is,
+    /// for `/authorize` to send an anonymous request to.
+    pub frontend_origin: Url,
 }
 
 /// The whole service: the routers behind their middleware, with trailing
@@ -121,11 +126,14 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
         accounts: AccountManagement::new(pool.clone()),
         sessions: SessionService::new(pool.clone()),
         cookies: CookieSettings::for_origin(&config.origin),
+        authorization: AuthorizationService::new(pool.clone()),
+        frontend_origin: config.origin.clone(),
     };
 
     let router = Router::new()
         .merge(health::router(pool))
         .merge(oidc_http::router(documents))
+        .merge(oidc_http::authorize_router(api_state.clone()))
         .nest(
             "/api",
             api_router(api_state, AllowedOrigins::new(config.cors_origins.clone())),

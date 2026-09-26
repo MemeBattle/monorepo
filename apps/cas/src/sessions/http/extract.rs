@@ -14,6 +14,7 @@
 
 use axum::extract::{FromRef, FromRequestParts};
 use axum::http::request::Parts;
+use axum::http::{Extensions, HeaderMap};
 
 use crate::http::ApiState;
 use crate::http::error::ApiError;
@@ -38,43 +39,58 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let state = ApiState::from_ref(state);
+        let path = original_path(&parts.extensions, &parts.uri);
 
-        // No cookie is the ordinary state of a browser that has not signed
-        // in, and of every request to a protected route from one: nothing
-        // happened, so nothing is logged. The name is matched on the wire,
-        // undecoded (see `CookieSettings::presented`).
-        let Some(value) = state.cookies.presented(&parts.headers) else {
-            return Err(unauthenticated());
-        };
-
-        // A value that is not even shaped like a token is junk rather than a
-        // session — a truncated cookie, another service's cookie under the
-        // same name — and says nothing about this service's sessions, so it
-        // is only worth a `debug`.
-        let Some(token) = SessionToken::parse(&value) else {
-            tracing::debug!(
-                path = original_path(&parts.extensions, &parts.uri),
-                "session cookie is not a well-formed token"
-            );
-            return Err(unauthenticated());
-        };
-
-        let Some((authenticated, renewal)) = state.sessions.authenticate(&token).await? else {
-            tracing::warn!(
-                path = original_path(&parts.extensions, &parts.uri),
-                "session cookie names no live session"
-            );
-            return Err(unauthenticated());
-        };
-
-        if renewal == Renewal::Renewed
-            && let Some(slot) = parts.extensions.get::<RenewalSlot>()
-        {
-            renewal::offer(slot, state.cookies.session(&token, &authenticated.session));
-        }
-
-        Ok(authenticated)
+        resolve_session(&state, &parts.headers, &parts.extensions, path)
+            .await?
+            .ok_or_else(unauthenticated)
     }
+}
+
+/// The session a request's cookie names, if it names a live one: the body
+/// of the extractor, for a handler that must decide for itself what a
+/// missing session or a database failure means. `/authorize` is one: it
+/// validates the request first and answers a failure through its own
+/// channels (ADR 0010 (g)).
+///
+/// Renews the session when due, exactly as the extractor does, and leaves
+/// the fresh cookie in the request's [`RenewalSlot`] when the router carries
+/// one. `path` is the path the client sent, for the log lines.
+pub(crate) async fn resolve_session(
+    state: &ApiState,
+    headers: &HeaderMap,
+    extensions: &Extensions,
+    path: &str,
+) -> Result<Option<Authenticated>, sqlx::Error> {
+    // No cookie is the ordinary state of a browser that has not signed
+    // in, and of every request to a protected route from one: nothing
+    // happened, so nothing is logged. The name is matched on the wire,
+    // undecoded (see `CookieSettings::presented`).
+    let Some(value) = state.cookies.presented(headers) else {
+        return Ok(None);
+    };
+
+    // A value that is not even shaped like a token is junk rather than a
+    // session — a truncated cookie, another service's cookie under the
+    // same name — and says nothing about this service's sessions, so it
+    // is only worth a `debug`.
+    let Some(token) = SessionToken::parse(&value) else {
+        tracing::debug!(path, "session cookie is not a well-formed token");
+        return Ok(None);
+    };
+
+    let Some((authenticated, renewal)) = state.sessions.authenticate(&token).await? else {
+        tracing::warn!(path, "session cookie names no live session");
+        return Ok(None);
+    };
+
+    if renewal == Renewal::Renewed
+        && let Some(slot) = extensions.get::<RenewalSlot>()
+    {
+        renewal::offer(slot, state.cookies.session(&token, &authenticated.session));
+    }
+
+    Ok(Some(authenticated))
 }
 
 #[cfg(test)]
@@ -207,5 +223,64 @@ mod tests {
             "{:?}",
             events.all()
         );
+    }
+
+    fn cookie_headers(cookie: Option<&str>) -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        if let Some(cookie) = cookie {
+            headers.insert(header::COOKIE, cookie.parse().unwrap());
+        }
+        headers
+    }
+
+    /// `resolve_session` is the extractor without its rejection: every way
+    /// of not being signed in is `None`, and a live session is the session.
+    #[sqlx::test]
+    async fn resolve_session_answers_none_or_the_live_session(pool: PgPool) {
+        let account = AccountRepository::new(pool.clone())
+            .create(NewAccount::full(display_name("Ada")))
+            .await
+            .unwrap();
+        let service = SessionService::new(pool.clone());
+        let live = service
+            .create(account.id, SessionOrigin::Login)
+            .await
+            .unwrap();
+        let revoked = service
+            .create(account.id, SessionOrigin::Login)
+            .await
+            .unwrap();
+        service.revoke(&revoked.token).await.unwrap();
+        let state = test_state(pool);
+        let name = test_cookies().name();
+        let extensions = Extensions::new();
+
+        for cookie in [
+            None,
+            Some(format!("{name}=junk")),
+            Some(format!("{name}={}", revoked.token.expose())),
+        ] {
+            let resolved = resolve_session(
+                &state,
+                &cookie_headers(cookie.as_deref()),
+                &extensions,
+                "/authorize",
+            )
+            .await
+            .unwrap();
+            assert_eq!(resolved, None, "{cookie:?}");
+        }
+
+        let resolved = resolve_session(
+            &state,
+            &cookie_headers(Some(&format!("{name}={}", live.token.expose()))),
+            &extensions,
+            "/authorize",
+        )
+        .await
+        .unwrap()
+        .expect("a live session");
+        assert_eq!(resolved.session.id, live.session.id);
+        assert_eq!(resolved.account.id, account.id);
     }
 }

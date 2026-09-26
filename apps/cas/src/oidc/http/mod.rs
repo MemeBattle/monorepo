@@ -1,5 +1,9 @@
-//! The OIDC context's wire surface: the two static documents, served from
-//! the router root outside `/api` (ADR 0009 (e)).
+//! The OIDC context's wire surface: the two static documents (ADR 0009
+//! (e)) and the authorization endpoint (ADR 0010), all served from the
+//! router root outside `/api`. The two have different state, so two
+//! routers.
+
+pub mod authorize;
 
 use axum::{
     Json, Router,
@@ -10,6 +14,8 @@ use axum::{
 use tower_http::set_header::SetResponseHeaderLayer;
 
 use crate::oidc::{Discovery, Jwks};
+
+pub use authorize::authorize_router;
 
 /// Both documents, built once at startup: they change only when the process
 /// is restarted with another issuer or another key list.
