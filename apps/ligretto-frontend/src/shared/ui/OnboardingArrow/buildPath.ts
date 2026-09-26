@@ -1,6 +1,6 @@
 import type { Point } from './useElementAnchorPoints'
 
-export interface PathBuilderArgs {
+interface PathBuilderArgs {
   from: Point
   to: Point
   chord: number
@@ -11,8 +11,6 @@ export interface PathBuilderArgs {
 }
 
 export type OnboardingArrowPathBuilder = (args: PathBuilderArgs) => string
-
-export const linePath: OnboardingArrowPathBuilder = ({ from, to }) => `M ${from.x} ${from.y} L ${to.x} ${to.y}`
 
 export const arcPath: OnboardingArrowPathBuilder = ({ from, to, chord, normal, curvature, twist }) => {
   const k = chord * curvature * twist

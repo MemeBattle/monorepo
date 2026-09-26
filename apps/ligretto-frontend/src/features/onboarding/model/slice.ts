@@ -12,7 +12,7 @@ export type OnboardingState = {
   results?: GameResults
 }
 
-export const initialState: OnboardingState = {
+const initialState: OnboardingState = {
   step: OnboardingStep.Opponents,
   game: createOnboardingGame(),
   allowedEvents: [OnboardingEvent.NextStep],
