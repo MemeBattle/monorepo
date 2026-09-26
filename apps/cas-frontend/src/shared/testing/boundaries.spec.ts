@@ -22,10 +22,29 @@ const cases = [
   ['apps/cas-frontend/src/entities/passkey/lint-fixture.spec.ts', '../session/testing/stages.ts', false],
   ['apps/cas-frontend/src/entities/session/lint-fixture.ts', './testing', false],
 ] as const
+
+it.each([
+  ['imports', "import { expect, it } from 'vitest'\nit('first', () => expect(true).toBe(true))\n"],
+  ['tests', "import { expect, it } from 'vitest'\n\nit('first', () => expect(true).toBe(true))\nit.each([1])('next %s', n => expect(n).toBe(1))\n"],
+])('enforces blank lines around %s', (_name, source) => {
+  const file = 'apps/cas-frontend/src/pages/spacing-fixture.spec.ts'
+  const path = `${root}/${file}`
+  try {
+    writeFileSync(path, source)
+    const result = spawnSync(`${root}/node_modules/.bin/oxlint`, [file], { cwd: root, encoding: 'utf8' })
+    expect(result.status, result.stdout + result.stderr).toBe(1)
+    spawnSync(`${root}/node_modules/.bin/oxlint`, ['--fix', file], { cwd: root, encoding: 'utf8' })
+    const fixed = spawnSync(`${root}/node_modules/.bin/oxlint`, [file], { cwd: root, encoding: 'utf8' })
+    expect(fixed.status, fixed.stdout + fixed.stderr).toBe(0)
+  } finally {
+    unlinkSync(path)
+  }
+})
+
 it.each(cases)('enforces %s importing %s (allowed: %s)', (file, source, allowed) => {
   const path = `${root}/${file}`
   try {
-    writeFileSync(path, `import { fixture } from '${source}'\nexport { fixture }\n`)
+    writeFileSync(path, `import { fixture } from '${source}'\n\nexport { fixture }\n`)
     const result = spawnSync(`${root}/node_modules/.bin/oxlint`, [file], { cwd: root, encoding: 'utf8' })
     expect(result.status, result.stdout + result.stderr).toBe(allowed ? 0 : 1)
     if (!allowed) {

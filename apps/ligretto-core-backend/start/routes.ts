@@ -19,6 +19,7 @@
 */
 
 import router from '@adonisjs/core/services/router'
+
 const HealthChecksController = () => import('#controllers/HealthChecksController')
 
 const UsersController = () => import('#controllers/Http/UsersController')

@@ -2,7 +2,9 @@ import { expect, it, vi } from 'vitest'
 import { listPasskeys, renamePasskey, deletePasskey, addPasskey } from '../index'
 import { aPasskey, mockListPasskeys, mockRenamePasskey, mockDeletePasskey, mockAddPasskey } from './index'
 import { startRegistration } from '@simplewebauthn/browser'
+
 vi.mock('@simplewebauthn/browser', () => ({ startRegistration: vi.fn() }))
+
 it('unwraps passkeys, merges defaults and flattens parsed arguments', async () => {
   const phone = aPasskey({ id: 'pk_2', name: 'iPhone' })
   expect(aPasskey()).not.toBe(aPasskey())
@@ -15,6 +17,7 @@ it('unwraps passkeys, merges defaults and flattens parsed arguments', async () =
   await expect(deletePasskey('pk_2')).resolves.toBeUndefined()
   expect(remove).toHaveBeenCalledExactlyOnceWith({ id: 'pk_2' })
 })
+
 it.each([
   ['last_passkey', 409],
   ['passkey_not_found', 404],
@@ -23,6 +26,7 @@ it.each([
   mockDeletePasskey.error(code)
   await expect(deletePasskey('pk_2')).rejects.toMatchObject({ code, status })
 })
+
 it('returns 201 with the created passkey from composite verification, keeping options at 200', async () => {
   const passkey = aPasskey({ id: 'pk_new', name: 'Phone' })
   mockAddPasskey(passkey)
@@ -37,6 +41,7 @@ it('returns 201 with the created passkey from composite verification, keeping op
   expect(response.status).toBe(201)
   expect(await response.json()).toEqual(passkey)
 })
+
 it('fails add options without invoking the authenticator for an expired session', async () => {
   mockAddPasskey.error('unauthenticated')
   await expect(addPasskey()).rejects.toMatchObject({ code: 'unauthenticated', status: 401 })

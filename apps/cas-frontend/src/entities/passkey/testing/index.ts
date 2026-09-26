@@ -2,6 +2,7 @@ import { ceremonyMock, domainMock } from '#shared/testing/domainMock'
 import type { Passkey } from '../index'
 import { aPasskey } from './builders'
 import { registrationOptions } from '#shared/testing/webauthn'
+
 export { aPasskey } from './builders'
 
 const commonErrors = { unauthenticated: 401, database_unavailable: 503, database_busy: 503, cross_site_request: 403, internal_error: 500 } as const

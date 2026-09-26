@@ -2,6 +2,7 @@ import { expect, it, vi } from 'vitest'
 import { getMe, logout, updateEmail, registerWithPasskey, signInWithPasskey } from '../index'
 import { aMe, mockGetMe, mockLogout, mockUpdateEmail, mockRegisterWithPasskey, mockSignInWithPasskey } from './index'
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser'
+
 vi.mock('@simplewebauthn/browser', () => ({ startRegistration: vi.fn(), startAuthentication: vi.fn() }))
 
 it('builds fresh complete accounts and preserves explicit null', async () => {
@@ -11,6 +12,7 @@ it('builds fresh complete accounts and preserves explicit null', async () => {
   mockGetMe({ email: 'ada@mems.fun' })
   await expect(getMe()).resolves.toEqual(aMe({ email: 'ada@mems.fun' }))
 })
+
 it('records email and logout through bodyless responses', async () => {
   const email = mockUpdateEmail()
   const logoutCall = mockLogout()
@@ -19,6 +21,7 @@ it('records email and logout through bodyless responses', async () => {
   expect(email).toHaveBeenCalledExactlyOnceWith({ email: null })
   expect(logoutCall).toHaveBeenCalledExactlyOnceWith({})
 })
+
 it('maps documented errors and supports per-request deferred answers', async () => {
   mockUpdateEmail.error('invalid_email')
   await expect(updateEmail('invalid')).rejects.toMatchObject({ status: 400, code: 'invalid_email' })
@@ -32,6 +35,7 @@ it('maps documented errors and supports per-request deferred answers', async () 
   resolve()
   await expect(pending).resolves.toBeUndefined()
 })
+
 it('runs composite ceremonies and records only domain input', async () => {
   vi.mocked(startRegistration).mockResolvedValue({ id: 'credential' } as Awaited<ReturnType<typeof startRegistration>>)
   vi.mocked(startAuthentication).mockResolvedValue({ id: 'credential' } as Awaited<ReturnType<typeof startAuthentication>>)
@@ -42,6 +46,7 @@ it('runs composite ceremonies and records only domain input', async () => {
   await expect(signInWithPasskey()).resolves.toEqual({ accountId: 'acc', credentialId: 'cred' })
   expect(login).toHaveBeenCalledExactlyOnceWith({})
 })
+
 it('selects registration error stage from the code', async () => {
   vi.mocked(startRegistration).mockClear()
   mockRegisterWithPasskey.error('invalid_display_name')
@@ -51,6 +56,7 @@ it('selects registration error stage from the code', async () => {
   await expect(registerWithPasskey('Ada')).rejects.toMatchObject({ status: 404, code: 'registration_not_found' })
   expect(startRegistration).toHaveBeenCalledOnce()
 })
+
 it.each([
   ['internal_error', 500],
   ['database_busy', 503],

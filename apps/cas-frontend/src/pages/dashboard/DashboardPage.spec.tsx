@@ -9,6 +9,7 @@ import { loadDashboard } from './loadDashboard'
 
 import { aMe, mockGetMe, mockLogout, mockUpdateEmail } from '#entities/session/testing'
 import { aPasskey, mockListPasskeys, mockRenamePasskey, mockDeletePasskey, mockAddPasskey } from '#entities/passkey/testing'
+
 const { startRegistration } = vi.hoisted(() => ({ startRegistration: vi.fn() }))
 vi.mock('@simplewebauthn/browser', async importOriginal => ({
   ...(await importOriginal<typeof import('@simplewebauthn/browser')>()),

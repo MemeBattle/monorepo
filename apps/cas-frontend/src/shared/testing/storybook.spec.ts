@@ -12,6 +12,7 @@ afterEach(async () => {
   activateRuntime(server, () => vi.fn<(args: Record<string, unknown>) => unknown>())
   vi.clearAllMocks()
 })
+
 it('awaits readiness, then resets and registers before render; reruns discard spies', async () => {
   let ready = () => {}
   worker.start.mockImplementationOnce(
@@ -33,6 +34,7 @@ it('awaits readiness, then resets and registers before render; reruns discard sp
   expect(scenario).toHaveBeenCalledTimes(2)
   expect(worker.resetHandlers.mock.invocationCallOrder.at(-1)).toBeLessThan(worker.use.mock.invocationCallOrder.at(-1)!)
 })
+
 it('stops on non-CAS, rejects out-of-scenario registration, and restarts for CAS', async () => {
   await prepareStory(true)
   await prepareStory(false)
@@ -41,6 +43,7 @@ it('stops on non-CAS, rejects out-of-scenario registration, and restarts for CAS
   await prepareStory(true)
   expect(worker.start).toHaveBeenCalledTimes(2)
 })
+
 it('serializes rapid CAS → non-CAS navigation while worker startup is pending', async () => {
   let ready = () => {}
   worker.start.mockImplementationOnce(
@@ -56,6 +59,7 @@ it('serializes rapid CAS → non-CAS navigation while worker startup is pending'
   await Promise.all([first, second])
   expect(() => mockRequest('GET', '/api/me').empty()).toThrow('No testing runtime active')
 })
+
 it.each([true, false])('clears multiple unanswered request diagnostics when navigating (CAS: %s)', async isCas => {
   await prepareStory(true)
   const { onUnhandledRequest } = worker.start.mock.calls[0][0]

@@ -2,6 +2,7 @@ import { ceremonyMock, domainMock } from '#shared/testing/domainMock'
 import type { Me, Registered, SignedIn } from '../index'
 import { aMe, aRegistration } from './builders'
 import { loginOptions, registrationOptions } from '#shared/testing/webauthn'
+
 export { aMe, aRegistration } from './builders'
 
 const commonErrors = { database_unavailable: 503, database_busy: 503, cross_site_request: 403, internal_error: 500 } as const

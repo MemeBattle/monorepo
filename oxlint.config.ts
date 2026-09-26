@@ -25,7 +25,7 @@ const testingDirectories = ['apps/cas-frontend/src/shared/testing/**', 'apps/cas
 const specsAndStories = ['**/*.spec.*', '**/*.stories.*']
 
 export default defineConfig({
-  plugins: ['typescript', 'react'],
+  plugins: ['typescript', 'react', 'import', 'vitest'],
   categories: {
     correctness: 'off',
   },
@@ -39,6 +39,10 @@ export default defineConfig({
     },
   },
   overrides: [
+    {
+      files: ['**/*.spec.*', '**/*.test.*', '**/*.e2e.*'],
+      rules: { 'vitest/padding-around-test-blocks': 'error' },
+    },
     {
       files: ['**/*'],
       rules: { 'no-restricted-imports': ['error', { patterns: [mswImports, entityTestingImports, privateTestingImports] }] },
@@ -92,6 +96,7 @@ export default defineConfig({
     },
   ],
   rules: {
+    'import/newline-after-import': 'error',
     'typescript/adjacent-overload-signatures': 'error',
     'typescript/ban-types': 'error',
     'typescript/no-empty-interface': 'error',
