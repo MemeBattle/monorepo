@@ -30,6 +30,8 @@ use crate::accounts::http as accounts_http;
 use crate::config::Config;
 use crate::http::error::ApiError;
 use crate::http::fetch_metadata::AllowedOrigins;
+use crate::oidc::http::{self as oidc_http, Documents};
+use crate::oidc::{Discovery, SigningKeyError, SigningKeys};
 use crate::sessions::SessionService;
 use crate::sessions::http as sessions_http;
 use crate::sessions::http::CookieSettings;
@@ -51,6 +53,14 @@ pub enum AppError {
     #[error("Failed to create the database pool: {0}")]
     #[diagnostic(code(cas::db_pool_error))]
     DbPool(sqlx::Error),
+
+    #[error("CAS_SIGNING_KEY is not set and a release build has no development default")]
+    #[diagnostic(code(cas::signing_key_error))]
+    MissingSigningKey,
+
+    #[error("CAS_SIGNING_KEY: {0}")]
+    #[diagnostic(code(cas::signing_key_error))]
+    SigningKey(#[source] SigningKeyError),
 }
 
 /// The services the API handlers share.
@@ -84,6 +94,25 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
 
     let webauthn = build_webauthn(&config.rp_id, &config.origin).map_err(AppError::WebauthnInit)?;
 
+    // Only the server signs, so only the server refuses to start without a
+    // key; the tools that share `Config` do not need one.
+    let pem = config
+        .signing_key
+        .as_ref()
+        .ok_or(AppError::MissingSigningKey)?;
+    let signing_keys = SigningKeys::from_pem(pem.expose()).map_err(AppError::SigningKey)?;
+    // The kid is public; this line is what an operator checks after a
+    // rotation.
+    tracing::info!(
+        kid = signing_keys.active().kid(),
+        published = signing_keys.published().len(),
+        "signing key loaded"
+    );
+    let documents = Documents {
+        discovery: Discovery::for_issuer(&config.issuer),
+        jwks: signing_keys.jwks(),
+    };
+
     let api_state = ApiState {
         registration: RegistrationService::new(webauthn.clone(), pool.clone()),
         login: LoginService::new(webauthn.clone(), pool.clone()),
@@ -94,10 +123,13 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
         cookies: CookieSettings::for_origin(&config.origin),
     };
 
-    let router = Router::new().merge(health::router(pool)).nest(
-        "/api",
-        api_router(api_state, AllowedOrigins::new(config.cors_origins.clone())),
-    );
+    let router = Router::new()
+        .merge(health::router(pool))
+        .merge(oidc_http::router(documents))
+        .nest(
+            "/api",
+            api_router(api_state, AllowedOrigins::new(config.cors_origins.clone())),
+        );
 
     Ok(NormalizePathLayer::trim_trailing_slash()
         .layer(with_middleware(router, config.cors_origins)))
@@ -211,23 +243,52 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::accounts::{AccountRepository, NewAccount};
+    use crate::config::SigningKeyPem;
     use crate::sessions::{SessionOrigin, SessionService};
     use crate::testing::{
-        capture_tracing, display_name, session_cookie, soft_passkey_registration, test_cookies,
-        test_state,
+        DEV_SIGNING_KEY_KID, capture_tracing, display_name, session_cookie,
+        soft_passkey_registration, test_config, test_cookies, test_state,
     };
 
     const ALLOWED_ORIGIN: &str = "http://localhost:5173";
     const OTHER_ORIGIN: &str = "https://evil.example";
 
-    fn test_config() -> Config {
-        Config {
-            port: 0,
-            rp_id: "localhost".to_string(),
-            origin: ALLOWED_ORIGIN.parse().unwrap(),
-            cors_origins: vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
-            database_url: "postgres://cas:cas@localhost:5434/cas".to_string(),
-        }
+    /// A key the server cannot use is a startup error that names the
+    /// variable and quotes nothing of its value.
+    #[tokio::test]
+    async fn an_invalid_signing_key_fails_startup_without_echoing_it() {
+        let mut config = test_config();
+        config.signing_key = Some(SigningKeyPem::new("not a key"));
+
+        let error = app(config).unwrap_err();
+
+        assert!(matches!(error, AppError::SigningKey(_)), "{error:?}");
+        let message = error.to_string();
+        assert!(message.starts_with("CAS_SIGNING_KEY:"), "{message}");
+        assert!(!message.contains("not a key"), "{message}");
+    }
+
+    /// What a release build without `CAS_SIGNING_KEY` meets.
+    #[tokio::test]
+    async fn a_missing_signing_key_fails_startup() {
+        let mut config = test_config();
+        config.signing_key = None;
+
+        assert!(matches!(
+            app(config).unwrap_err(),
+            AppError::MissingSigningKey
+        ));
+    }
+
+    #[tokio::test]
+    async fn startup_logs_the_active_kid() {
+        let (events, _guard) = capture_tracing();
+
+        app(test_config()).unwrap();
+
+        let loaded = events.mentioning("signing key loaded");
+        assert_eq!(loaded.len(), 1, "{:?}", events.all());
+        assert!(loaded[0].contains(DEV_SIGNING_KEY_KID), "{loaded:?}");
     }
 
     #[tokio::test]

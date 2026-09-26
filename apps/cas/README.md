@@ -6,13 +6,15 @@ CAS (Central Authentication Service) is a centralized authentication and user ma
 
 Configuration is read from environment variables at startup. Every variable has a dev-friendly default, so `bacon run` works with no environment set. An invalid value fails startup with an error.
 
-| Variable           | Default                                 | Description                                                                                  |
-| ------------------ | --------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `CAS_PORT`         | `3000`                                  | TCP port the server listens on.                                                              |
-| `CAS_RP_ID`        | `localhost`                             | WebAuthn relying party ID.                                                                   |
-| `CAS_ORIGIN`       | `http://localhost:5173`                 | WebAuthn relying party origin URL. An `https` origin also marks the session cookie `Secure`. |
-| `CAS_CORS_ORIGINS` | `http://localhost:5173`                 | Comma-separated list of allowed CORS origins.                                                |
-| `DATABASE_URL`     | `postgres://cas:cas@localhost:5434/cas` | Postgres connection URL. The default matches `docker-compose.yml`.                           |
+| Variable           | Default                                                                | Description                                                                                                                                                                                                                                                |
+| ------------------ | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CAS_PORT`         | `3000`                                                                 | TCP port the server listens on.                                                                                                                                                                                                                            |
+| `CAS_RP_ID`        | `localhost`                                                            | WebAuthn relying party ID.                                                                                                                                                                                                                                 |
+| `CAS_ORIGIN`       | `http://localhost:5173`                                                | WebAuthn relying party origin URL. An `https` origin also marks the session cookie `Secure`.                                                                                                                                                               |
+| `CAS_CORS_ORIGINS` | `http://localhost:5173`                                                | Comma-separated list of allowed CORS origins.                                                                                                                                                                                                              |
+| `DATABASE_URL`     | `postgres://cas:cas@localhost:5434/cas`                                | Postgres connection URL. The default matches `docker-compose.yml`.                                                                                                                                                                                         |
+| `CAS_ISSUER`       | `http://localhost:3000`                                                | The public base URL of CAS, published verbatim as the discovery document's `issuer` and used as the base of every advertised endpoint. `http`/`https`, no query, no fragment, no trailing slash — a value that needs repair is rejected, never normalised. |
+| `CAS_SIGNING_KEY`  | the checked-in development key in debug builds, none in release builds | One or more PEM-encoded P-256 private keys, PKCS#8 or SEC1, concatenated; the first signs, all are published in `/jwks.json`. A release server refuses to start without it.                                                                                |
 
 At startup the service also loads the monorepo root `.env` files. `APP_ENV` selects the environment and defaults to `development`; missing files are skipped. Priority, highest first:
 
@@ -21,6 +23,29 @@ At startup the service also loads the monorepo root `.env` files. `APP_ENV` sele
 3. `.env.{APP_ENV}`
 4. `.env.local`
 5. `.env`
+
+## Signing key and rotation
+
+Tokens are signed with ES256. A key is generated with:
+
+```
+openssl ecparam -name prime256v1 -genkey -noout | openssl pkcs8 -topk8 -nocrypt
+```
+
+`apps/cas/dev/signing-key.pem` is the development default. It is public because it is in git, and it is compiled only into debug builds: never set it in production. In a `.env` file a multi-line PEM is written as one double-quoted value with `\n` escapes.
+
+Rotation, one deploy per step:
+
+1. Append the new key after the current one: it is published, not yet signing.
+2. Wait for caches — the discovery document and the JWKS are cached for an hour, and resource servers keep their own JWKS cache.
+3. Move the new key first: it signs from now on, the old one stays published.
+4. Once every token the old key signed has expired, drop the old key.
+
+The active `kid` and the number of published keys are logged at startup.
+
+## OIDC discovery
+
+`GET /.well-known/openid-configuration` and `GET /jwks.json` are served at the root, outside `/api`. The discovery document already lists the endpoints later tickets add; until they land, those paths answer 404. See [docs/adr/0009-signing-key-and-discovery.md](./docs/adr/0009-signing-key-and-discovery.md).
 
 ## Database (local dev)
 

@@ -28,6 +28,7 @@ use webauthn_rs_proto::{
 };
 
 use crate::accounts::{AccountManagement, DisplayName};
+use crate::config::{Config, SigningKeyPem};
 use crate::http::ApiState;
 use crate::sessions::http::CookieSettings;
 use crate::sessions::{SessionService, SessionToken};
@@ -296,6 +297,35 @@ pub const TEST_ORIGIN: &str = "http://localhost:5173";
 
 pub fn test_origin() -> Url {
     TEST_ORIGIN.parse().expect("the test origin is a valid URL")
+}
+
+/// The checked-in development signing key, the one debug builds default to.
+pub const DEV_SIGNING_KEY: &str = include_str!("../dev/signing-key.pem");
+
+/// The RFC 7638 thumbprint of [`DEV_SIGNING_KEY`], computed outside the code
+/// under test with the openssl CLI:
+///
+/// ```sh
+/// b64u() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+/// openssl pkey -in dev/signing-key.pem -pubout -outform DER | tail -c 64 > xy.bin
+/// X=$(head -c 32 xy.bin | b64u); Y=$(tail -c 32 xy.bin | b64u)
+/// printf '{"crv":"P-256","kty":"EC","x":"%s","y":"%s"}' "$X" "$Y" \
+///   | openssl dgst -sha256 -binary | b64u
+/// ```
+pub const DEV_SIGNING_KEY_KID: &str = "GWP1_U9wKE9l7YVj1GY9QsuFjPhD7zuSgyzfGFhDj6o";
+
+/// The configuration the router tests build `http::app` from: the
+/// development defaults, with the checked-in development signing key.
+pub fn test_config() -> Config {
+    Config {
+        port: 0,
+        rp_id: TEST_RP_ID.to_string(),
+        origin: test_origin(),
+        cors_origins: vec![axum::http::HeaderValue::from_static(TEST_ORIGIN)],
+        database_url: "postgres://cas:cas@localhost:5434/cas".to_string(),
+        issuer: "http://localhost:3000".to_string(),
+        signing_key: Some(SigningKeyPem::new(DEV_SIGNING_KEY)),
+    }
 }
 
 /// The relying party the tests register against, built the way the server
