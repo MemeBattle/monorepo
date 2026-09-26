@@ -18,6 +18,11 @@
 # The redirect URIs are placeholders: ligretto-frontend runs on Vite's default
 # port, and the real callback path is decided by the "Ligretto on CAS"
 # milestone of the SSO epic (#548). Changing them means re-registering.
+#
+# The audience is what ligretto's backends expect in the `aud` of an access
+# token. It equals the id, and is spelled out because it is a contract with
+# those backends rather than a consequence of the client's name
+# (docs/adr/0011-token-endpoint-and-access-tokens.md).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -31,4 +36,5 @@ cargo run -p cas --bin cas-client -- register \
   --guest-login-allowed \
   --scope openid \
   --scope profile \
-  --scope email
+  --scope email \
+  --audience ligretto

@@ -1,6 +1,9 @@
-//! Data access for `authorization_codes`. Every query of the context is
-//! here; the functions take an executor so a service can compose a
+//! Data access for `authorization_codes`, and through [`grants`] for
+//! `grants` and `refresh_tokens`. Every query of the context is under this
+//! directory; the functions take an executor so a service can compose a
 //! transaction out of them.
+
+mod grants;
 
 use std::time::Duration;
 
@@ -8,6 +11,8 @@ use uuid::Uuid;
 
 use super::codes::{CodeChallenge, CodeHash};
 use crate::clients::{ClientId, Scope};
+
+pub(super) use grants::{NewGrant, insert_grant, insert_refresh_token, revoke_grants_by_code};
 
 /// What an insert binds a code to. The hash, never the code.
 #[derive(Debug)]
@@ -46,8 +51,9 @@ pub(super) enum Redemption {
     Unknown,
     /// The row exists, was never redeemed, and is past its expiry.
     Expired,
-    /// The row was redeemed before: a replay.
-    AlreadyRedeemed,
+    /// The row was redeemed before: a replay. Carries the row's id, which
+    /// is how the grant the first redemption produced is found.
+    AlreadyRedeemed(Uuid),
 }
 
 /// Inserts a code and returns the row id. `expires_at` is measured by the
@@ -127,7 +133,7 @@ where
     }
 
     let found = sqlx::query!(
-        r#"SELECT redeemed_at FROM authorization_codes WHERE code_hash = $1"#,
+        r#"SELECT id, redeemed_at FROM authorization_codes WHERE code_hash = $1"#,
         code_hash.as_bytes(),
     )
     .fetch_optional(executor)
@@ -136,7 +142,7 @@ where
     Ok(match found {
         None => Redemption::Unknown,
         Some(row) => match row.redeemed_at {
-            Some(_) => Redemption::AlreadyRedeemed,
+            Some(_) => Redemption::AlreadyRedeemed(row.id),
             None => Redemption::Expired,
         },
     })
@@ -217,13 +223,13 @@ pub(crate) mod tests {
         }
     }
 
-    fn scope_list() -> Vec<Scope> {
+    pub(crate) fn scope_list() -> Vec<Scope> {
         ["openid", "profile"]
             .map(|scope| Scope::try_new(scope).unwrap())
             .to_vec()
     }
 
-    async fn insert_code(pool: &PgPool, fixture: &Fixture, hash: &CodeHash) -> Uuid {
+    pub(crate) async fn insert_code(pool: &PgPool, fixture: &Fixture, hash: &CodeHash) -> Uuid {
         insert(
             pool,
             NewCode {
@@ -268,7 +274,7 @@ pub(crate) mod tests {
         }
     }
 
-    fn hash() -> CodeHash {
+    pub(crate) fn hash() -> CodeHash {
         AuthorizationCode::generate().unwrap().hash()
     }
 
@@ -307,7 +313,7 @@ pub(crate) mod tests {
     async fn a_second_redemption_is_a_replay(pool: PgPool) {
         let fixture = fixture(&pool).await;
         let hash = hash();
-        insert_code(&pool, &fixture, &hash).await;
+        let id = insert_code(&pool, &fixture, &hash).await;
 
         assert!(matches!(
             redeem(&pool, &hash).await.unwrap(),
@@ -315,7 +321,7 @@ pub(crate) mod tests {
         ));
         assert_eq!(
             redeem(&pool, &hash).await.unwrap(),
-            Redemption::AlreadyRedeemed
+            Redemption::AlreadyRedeemed(id)
         );
     }
 
@@ -437,8 +443,8 @@ pub(crate) mod tests {
         // A client row whose id the domain refuses, so the foreign key holds.
         // Unchecked queries: see docs/TESTS.md.
         sqlx::query(
-            "INSERT INTO clients (id, name, kind, redirect_uris, scopes)
-             VALUES ('Not A Slug', 'Bad', 'public', ARRAY['https://x.example/cb'], ARRAY['openid'])",
+            "INSERT INTO clients (id, name, kind, redirect_uris, scopes, audience)
+             VALUES ('Not A Slug', 'Bad', 'public', ARRAY['https://x.example/cb'], ARRAY['openid'], 'bad')",
         )
         .execute(&pool)
         .await

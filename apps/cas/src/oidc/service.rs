@@ -52,7 +52,7 @@ pub struct RedeemedCode {
 
 /// Why a code was not redeemed. `/token` answers every variant but `Db`
 /// with `invalid_grant`; they are kept apart so that a replay can revoke
-/// what the first redemption produced (RFC 6749 §4.1.2, #743/#744).
+/// what the first redemption produced (RFC 6749 §4.1.2, ADR 0011).
 #[derive(Debug, thiserror::Error)]
 pub enum RedeemError {
     #[error("no such code")]
@@ -61,8 +61,10 @@ pub enum RedeemError {
     #[error("the code has expired")]
     Expired,
 
+    /// A replay. `code_id` names the row, so that `/token` can revoke the
+    /// grant the first redemption produced.
     #[error("the code was already redeemed")]
-    AlreadyRedeemed,
+    AlreadyRedeemed { code_id: Uuid },
 
     /// Presented by another client or with another redirect URI. The code is
     /// consumed all the same.
@@ -149,9 +151,13 @@ impl AuthorizationService {
             Redemption::Redeemed(row) => row,
             Redemption::Unknown => return Err(RedeemError::Unknown),
             Redemption::Expired => return Err(RedeemError::Expired),
-            Redemption::AlreadyRedeemed => {
-                tracing::warn!(client_id = %client_id, "authorization code presented again");
-                return Err(RedeemError::AlreadyRedeemed);
+            Redemption::AlreadyRedeemed(code_id) => {
+                tracing::warn!(
+                    code_id = %code_id,
+                    client_id = %client_id,
+                    "authorization code presented again"
+                );
+                return Err(RedeemError::AlreadyRedeemed { code_id });
             }
         };
 
@@ -221,6 +227,7 @@ mod tests {
             scopes: ["openid", "profile"]
                 .map(|scope| Scope::try_new(scope).unwrap())
                 .to_vec(),
+            audience: crate::clients::Audience::try_new(id).unwrap(),
             created_at: time::OffsetDateTime::UNIX_EPOCH,
         }
     }
@@ -328,7 +335,10 @@ mod tests {
             .redeem(&issued.code, &client_id, CALLBACK)
             .await
             .unwrap_err();
-        assert!(matches!(again, RedeemError::AlreadyRedeemed), "{again:?}");
+        assert!(
+            matches!(again, RedeemError::AlreadyRedeemed { code_id } if code_id == issued.id),
+            "{again:?}"
+        );
     }
 
     /// Another client presenting the code is refused, and the code is burnt:
@@ -363,7 +373,7 @@ mod tests {
             .await
             .unwrap_err();
         assert!(
-            matches!(rightful, RedeemError::AlreadyRedeemed),
+            matches!(rightful, RedeemError::AlreadyRedeemed { .. }),
             "{rightful:?}"
         );
     }

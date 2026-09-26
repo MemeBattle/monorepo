@@ -12,8 +12,8 @@ use sqlx::PgPool;
 use thiserror::Error;
 
 use super::{
-    Client, ClientId, ClientKind, ClientName, ClientSecret, InsertError, NewClient, NewClientError,
-    RedirectUri, Scope, default_scope, repository,
+    Audience, Client, ClientId, ClientKind, ClientName, ClientSecret, InsertError, NewClient,
+    NewClientError, RedirectUri, Scope, default_scope, repository,
 };
 
 /// What an operator asked for. A confidential client's secret is not part of
@@ -30,6 +30,8 @@ pub struct Registration {
     pub guest_login_allowed: bool,
     /// Empty means the default, `openid` alone.
     pub scopes: Vec<Scope>,
+    /// `None` means the default, the client's own id.
+    pub audience: Option<Audience>,
 }
 
 /// The registered client and, for a confidential one, the secret. This is the
@@ -68,6 +70,9 @@ pub async fn register(
     registration: Registration,
 ) -> Result<Registered, RegisterError> {
     let id = registration.id.clone();
+    let audience = registration
+        .audience
+        .unwrap_or_else(|| Audience::from(&registration.id));
     let secret = match registration.kind {
         ClientKind::Public => None,
         ClientKind::Confidential => Some(ClientSecret::generate()?),
@@ -93,7 +98,8 @@ pub async fn register(
         vec![default_scope()]
     } else {
         registration.scopes
-    });
+    })
+    .with_audience(audience);
 
     let client = repository::insert(pool, new_client)
         .await
@@ -105,6 +111,7 @@ pub async fn register(
     tracing::info!(
         client_id = %client.id,
         kind = client.kind.as_str(),
+        audience = %client.audience,
         first_party = client.first_party,
         guest_login_allowed = client.guest_login_allowed,
         "client registered"
@@ -130,6 +137,7 @@ mod tests {
             first_party: true,
             guest_login_allowed: true,
             scopes: vec![scope("openid"), scope("profile")],
+            audience: None,
         }
     }
 
@@ -171,6 +179,25 @@ mod tests {
         let registered = register(&pool, registration).await.unwrap();
 
         assert_eq!(registered.client.scopes, vec![scope("openid")]);
+    }
+
+    #[sqlx::test]
+    async fn the_audience_defaults_to_the_client_id(pool: PgPool) {
+        let registered = register(&pool, registration(ClientKind::Public))
+            .await
+            .unwrap();
+
+        assert_eq!(registered.client.audience.as_str(), "ligretto");
+    }
+
+    #[sqlx::test]
+    async fn a_named_audience_is_stored(pool: PgPool) {
+        let mut registration = registration(ClientKind::Confidential);
+        registration.audience = Some(Audience::try_new("games").unwrap());
+
+        let registered = register(&pool, registration).await.unwrap();
+
+        assert_eq!(registered.client.audience.as_str(), "games");
     }
 
     #[sqlx::test]
