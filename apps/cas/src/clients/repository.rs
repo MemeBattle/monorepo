@@ -4,14 +4,17 @@ use sqlx::PgPool;
 use thiserror::Error;
 use time::OffsetDateTime;
 
-use super::{Client, ClientId, ClientKind, ClientName, NewClient, RedirectUri, Scope, SecretHash};
+use super::{
+    Audience, Client, ClientId, ClientKind, ClientName, NewClient, RedirectUri, Scope, SecretHash,
+};
 
 // `nutype` cannot derive the sqlx traits, so the ones that let a `ClientId`
 // and a `ClientName` cross the database boundary are written by hand here,
 // next to the queries that use them. `RedirectUri` and `Scope` live in
 // `text[]` columns and are converted element by element in the row mapping
 // below, which is why they need no impls of their own — and no
-// `PgHasArrayType`.
+// `PgHasArrayType`. `Audience` is converted in the same mapping, like a
+// single element: one column read by one query shape needs no impls either.
 
 /// A `ClientId` is a Postgres text value, exactly like the `String` it wraps.
 impl sqlx::Type<sqlx::Postgres> for ClientId {
@@ -105,8 +108,8 @@ impl From<sqlx::Error> for InsertError {
     }
 }
 
-/// The row as the queries return it: the two `text[]` columns still as
-/// strings, the hash still as bytes.
+/// The row as the queries return it: the `text[]` columns and the audience
+/// still as strings, the hash still as bytes.
 struct ClientRow {
     id: ClientId,
     name: ClientName,
@@ -117,6 +120,7 @@ struct ClientRow {
     first_party: bool,
     guest_login_allowed: bool,
     scopes: Vec<String>,
+    audience: String,
     created_at: OffsetDateTime,
 }
 
@@ -138,6 +142,8 @@ fn to_client(row: ClientRow) -> Result<Client, sqlx::Error> {
         first_party: row.first_party,
         guest_login_allowed: row.guest_login_allowed,
         scopes: scopes(row.scopes)?,
+        audience: Audience::try_new(row.audience)
+            .map_err(|error| column_decode("audience", error))?,
         created_at: row.created_at,
     })
 }
@@ -183,14 +189,16 @@ where
         .map(Into::into)
         .collect();
     let scopes: Vec<String> = client.scopes.into_iter().map(Into::into).collect();
+    let audience: String = client.audience.into();
 
     let row = sqlx::query_as!(
         ClientRow,
         r#"INSERT INTO clients (
                id, name, kind, secret_hash, redirect_uris,
-               post_logout_redirect_uris, first_party, guest_login_allowed, scopes
+               post_logout_redirect_uris, first_party, guest_login_allowed, scopes,
+               audience
            )
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
            RETURNING
                id AS "id: ClientId",
                name AS "name: ClientName",
@@ -201,6 +209,7 @@ where
                first_party,
                guest_login_allowed,
                scopes,
+               audience,
                created_at"#,
         client.id as _,
         client.name as _,
@@ -211,6 +220,7 @@ where
         client.first_party,
         client.guest_login_allowed,
         &scopes,
+        audience,
     )
     .fetch_one(executor)
     .await?;
@@ -236,6 +246,7 @@ where
                first_party,
                guest_login_allowed,
                scopes,
+               audience,
                created_at
            FROM clients
            WHERE id = $1"#,
@@ -291,6 +302,7 @@ mod tests {
         .first_party(true)
         .guest_login_allowed(true)
         .with_scopes(vec![scope("openid"), scope("profile"), scope("email")])
+        .with_audience(Audience::try_new("games").unwrap())
     }
 
     fn public() -> NewClient {
@@ -330,6 +342,7 @@ mod tests {
             created.scopes,
             vec![scope("openid"), scope("profile"), scope("email")]
         );
+        assert_eq!(created.audience.as_str(), "games");
 
         let found = repository.get(&client_id("ligretto")).await.unwrap();
 
@@ -349,6 +362,7 @@ mod tests {
         assert!(!created.first_party);
         assert!(!created.guest_login_allowed);
         assert_eq!(created.scopes, vec![scope("openid")]);
+        assert_eq!(created.audience.as_str(), "cli", "its own id");
 
         assert_eq!(
             repository.get(&client_id("cli")).await.unwrap(),
@@ -411,8 +425,8 @@ mod tests {
         for (kind, hash) in [("confidential", None), ("public", Some(vec![0u8; 32]))] {
             // Unchecked query: see docs/TESTS.md.
             let error = sqlx::query(
-                "INSERT INTO clients (id, name, kind, secret_hash, redirect_uris, scopes)
-                 VALUES ($1, 'X', $2::client_kind, $3, ARRAY['https://app.example/cb'], ARRAY['openid'])",
+                "INSERT INTO clients (id, name, kind, secret_hash, redirect_uris, scopes, audience)
+                 VALUES ($1, 'X', $2::client_kind, $3, ARRAY['https://app.example/cb'], ARRAY['openid'], $1)",
             )
             .bind(format!("bad-{kind}"))
             .bind(kind)
@@ -487,6 +501,25 @@ mod tests {
         );
     }
 
+    #[sqlx::test]
+    async fn a_bad_stored_audience_is_a_decode_error(pool: PgPool) {
+        let repository = ClientRepository::new(pool.clone());
+        repository.create(public()).await.unwrap();
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("UPDATE clients SET audience = 'Not A Slug' WHERE id = $1")
+            .bind("cli")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let error = repository.get(&client_id("cli")).await.unwrap_err();
+
+        assert!(
+            matches!(error, sqlx::Error::ColumnDecode { ref index, .. } if index == "audience"),
+            "{error:?}"
+        );
+    }
+
     /// The same guard for the id. `get` cannot reach it — `ClientId::try_new`
     /// refuses the value before a query is sent — so the decode is exercised
     /// directly.
@@ -494,8 +527,8 @@ mod tests {
     async fn a_bad_stored_id_is_a_decode_error(pool: PgPool) {
         // Unchecked query: see docs/TESTS.md.
         sqlx::query(
-            "INSERT INTO clients (id, name, kind, redirect_uris, scopes)
-             VALUES ('Bad', 'Bad', 'public', ARRAY['https://app.example/cb'], ARRAY['openid'])",
+            "INSERT INTO clients (id, name, kind, redirect_uris, scopes, audience)
+             VALUES ('Bad', 'Bad', 'public', ARRAY['https://app.example/cb'], ARRAY['openid'], 'bad')",
         )
         .execute(&pool)
         .await

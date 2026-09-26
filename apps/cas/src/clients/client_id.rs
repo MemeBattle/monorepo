@@ -22,7 +22,8 @@ pub enum ClientIdError {
     DisallowedCharacter,
 }
 
-fn validate_client_id(value: &str) -> Result<(), ClientIdError> {
+/// The slug rules. [`super::Audience`] is held to them too.
+pub(super) fn validate_client_id(value: &str) -> Result<(), ClientIdError> {
     if value.is_empty() {
         return Err(ClientIdError::Empty);
     }

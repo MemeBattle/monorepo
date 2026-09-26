@@ -3,7 +3,7 @@
 //! once, for the token endpoint (#743). See
 //! `docs/adr/0010-authorization-endpoint.md`.
 
-use sqlx::PgPool;
+use sqlx::{PgConnection, PgPool};
 use uuid::Uuid;
 
 use super::AUTHORIZATION_CODE_LIFETIME;
@@ -52,7 +52,7 @@ pub struct RedeemedCode {
 
 /// Why a code was not redeemed. `/token` answers every variant but `Db`
 /// with `invalid_grant`; they are kept apart so that a replay can revoke
-/// what the first redemption produced (RFC 6749 §4.1.2, #743/#744).
+/// what the first redemption produced (RFC 6749 §4.1.2, ADR 0011).
 #[derive(Debug, thiserror::Error)]
 pub enum RedeemError {
     #[error("no such code")]
@@ -61,8 +61,15 @@ pub enum RedeemError {
     #[error("the code has expired")]
     Expired,
 
+    /// Never redeemed, and the session that authorized it has ended since:
+    /// logout voids the codes it issued (ADR 0011 (d)).
+    #[error("the session that authorized the code has ended")]
+    SessionEnded,
+
+    /// A replay. `code_id` names the row, so that `/token` can revoke the
+    /// grant the first redemption produced.
     #[error("the code was already redeemed")]
-    AlreadyRedeemed,
+    AlreadyRedeemed { code_id: Uuid },
 
     /// Presented by another client or with another redirect URI. The code is
     /// consumed all the same.
@@ -135,23 +142,32 @@ impl AuthorizationService {
         Ok(IssuedCode { code, id })
     }
 
-    /// Consumes a code presented by `client_id` with `redirect_uri`. The
-    /// binding is checked after the code is consumed, so a code presented
-    /// with the wrong client or redirect URI is burnt: whoever guessed wrong
-    /// has spent it (RFC 6749 §4.1.3).
+    /// Consumes a code presented by `client_id` with `redirect_uri`, on
+    /// `conn`: the caller owns the transaction, holds the code's row lock
+    /// until it ends, and decides whether what it did with the code commits
+    /// (ADR 0011 (f)). The binding is checked after the code is consumed, so
+    /// a code presented with the wrong client or redirect URI is burnt once
+    /// the caller commits: whoever guessed wrong has spent it (RFC 6749
+    /// §4.1.3).
     pub async fn redeem(
         &self,
+        conn: &mut PgConnection,
         code: &AuthorizationCode,
         client_id: &ClientId,
         redirect_uri: &str,
     ) -> Result<RedeemedCode, RedeemError> {
-        let row = match repository::redeem(&self.pool, &code.hash()).await? {
+        let row = match repository::redeem(conn, &code.hash()).await? {
             Redemption::Redeemed(row) => row,
             Redemption::Unknown => return Err(RedeemError::Unknown),
             Redemption::Expired => return Err(RedeemError::Expired),
-            Redemption::AlreadyRedeemed => {
-                tracing::warn!(client_id = %client_id, "authorization code presented again");
-                return Err(RedeemError::AlreadyRedeemed);
+            Redemption::SessionEnded => return Err(RedeemError::SessionEnded),
+            Redemption::AlreadyRedeemed(code_id) => {
+                tracing::warn!(
+                    code_id = %code_id,
+                    client_id = %client_id,
+                    "authorization code presented again"
+                );
+                return Err(RedeemError::AlreadyRedeemed { code_id });
             }
         };
 
@@ -221,6 +237,7 @@ mod tests {
             scopes: ["openid", "profile"]
                 .map(|scope| Scope::try_new(scope).unwrap())
                 .to_vec(),
+            audience: crate::clients::Audience::try_new(id).unwrap(),
             created_at: time::OffsetDateTime::UNIX_EPOCH,
         }
     }
@@ -308,7 +325,12 @@ mod tests {
         } = issue(&pool).await;
 
         let redeemed = service
-            .redeem(&issued.code, &client_id, CALLBACK)
+            .redeem(
+                &mut pool.acquire().await.unwrap(),
+                &issued.code,
+                &client_id,
+                CALLBACK,
+            )
             .await
             .unwrap();
 
@@ -325,10 +347,18 @@ mod tests {
         );
 
         let again = service
-            .redeem(&issued.code, &client_id, CALLBACK)
+            .redeem(
+                &mut pool.acquire().await.unwrap(),
+                &issued.code,
+                &client_id,
+                CALLBACK,
+            )
             .await
             .unwrap_err();
-        assert!(matches!(again, RedeemError::AlreadyRedeemed), "{again:?}");
+        assert!(
+            matches!(again, RedeemError::AlreadyRedeemed { code_id } if code_id == issued.id),
+            "{again:?}"
+        );
     }
 
     /// Another client presenting the code is refused, and the code is burnt:
@@ -353,17 +383,27 @@ mod tests {
             .unwrap();
 
         let error = service
-            .redeem(&issued.code, &ClientId::try_new("other").unwrap(), CALLBACK)
+            .redeem(
+                &mut pool.acquire().await.unwrap(),
+                &issued.code,
+                &ClientId::try_new("other").unwrap(),
+                CALLBACK,
+            )
             .await
             .unwrap_err();
         assert!(matches!(error, RedeemError::Mismatch), "{error:?}");
 
         let rightful = service
-            .redeem(&issued.code, &client_id, CALLBACK)
+            .redeem(
+                &mut pool.acquire().await.unwrap(),
+                &issued.code,
+                &client_id,
+                CALLBACK,
+            )
             .await
             .unwrap_err();
         assert!(
-            matches!(rightful, RedeemError::AlreadyRedeemed),
+            matches!(rightful, RedeemError::AlreadyRedeemed { .. }),
             "{rightful:?}"
         );
     }
@@ -377,7 +417,12 @@ mod tests {
         } = issue(&pool).await;
 
         let error = service
-            .redeem(&issued.code, &client_id, &format!("{CALLBACK}/"))
+            .redeem(
+                &mut pool.acquire().await.unwrap(),
+                &issued.code,
+                &client_id,
+                &format!("{CALLBACK}/"),
+            )
             .await
             .unwrap_err();
 
@@ -398,7 +443,12 @@ mod tests {
             .unwrap();
 
         let error = service
-            .redeem(&issued.code, &client_id, CALLBACK)
+            .redeem(
+                &mut pool.acquire().await.unwrap(),
+                &issued.code,
+                &client_id,
+                CALLBACK,
+            )
             .await
             .unwrap_err();
 
@@ -407,10 +457,11 @@ mod tests {
 
     #[sqlx::test]
     async fn a_made_up_code_is_unknown(pool: PgPool) {
-        let service = AuthorizationService::new(pool);
+        let service = AuthorizationService::new(pool.clone());
 
         let error = service
             .redeem(
+                &mut pool.acquire().await.unwrap(),
                 &AuthorizationCode::generate().unwrap(),
                 &ClientId::try_new("ligretto").unwrap(),
                 CALLBACK,

@@ -23,6 +23,8 @@ pub struct Discovery {
     subject_types_supported: &'static [&'static str],
     id_token_signing_alg_values_supported: &'static [&'static str],
     scopes_supported: &'static [&'static str],
+    /// `none` is a public client, which authenticates with its `client_id`
+    /// and proves itself with PKCE (OpenID Connect Core §9, ADR 0011).
     token_endpoint_auth_methods_supported: &'static [&'static str],
     code_challenge_methods_supported: &'static [&'static str],
     /// Discovery §3 defaults this to `true`, and `/authorize` refuses
@@ -48,7 +50,11 @@ impl Discovery {
             subject_types_supported: &["public"],
             id_token_signing_alg_values_supported: &[SIGNING_ALGORITHM],
             scopes_supported: &["openid", "profile", "email"],
-            token_endpoint_auth_methods_supported: &["client_secret_basic", "client_secret_post"],
+            token_endpoint_auth_methods_supported: &[
+                "client_secret_basic",
+                "client_secret_post",
+                "none",
+            ],
             code_challenge_methods_supported: &["S256"],
             request_uri_parameter_supported: false,
         }
@@ -89,6 +95,7 @@ mod tests {
                 "token_endpoint_auth_methods_supported": [
                     "client_secret_basic",
                     "client_secret_post",
+                    "none",
                 ],
                 "code_challenge_methods_supported": ["S256"],
                 "request_uri_parameter_supported": false,
