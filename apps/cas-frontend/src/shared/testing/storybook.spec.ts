@@ -1,19 +1,32 @@
 import { afterEach, expect, it, vi } from 'vitest'
+import type { RequestHandler } from 'msw'
 import { mockRequest } from './mockRequest'
-import { prepareStory } from './storybook'
-import { activateRuntime, assertNoUnhandledRequests } from './runtime'
+import { setupStoryMocks } from './storybook'
+import { activateRuntime, assertNoUnhandledRequests, deactivateRuntime } from './runtime'
 import { server } from './server'
 
 const worker = vi.hoisted(() => ({ start: vi.fn(), stop: vi.fn(), use: vi.fn(), resetHandlers: vi.fn() }))
-vi.mock('msw/browser', () => ({ setupWorker: () => worker }))
+vi.mock('msw/browser', () => ({
+  setupWorker: (...handlers: RequestHandler[]) => {
+    server.use(...handlers)
+    return worker
+  },
+}))
 vi.mock('storybook/test', () => ({ fn: vi.fn }))
-afterEach(async () => {
-  await prepareStory(false)
+let cleanup: (() => void) | undefined
+const setup = async () => {
+  cleanup = await setupStoryMocks(true, new AbortController().signal)
+}
+
+afterEach(() => {
+  cleanup?.()
+  cleanup = undefined
   activateRuntime(server, () => vi.fn<(args: Record<string, unknown>) => unknown>())
   vi.clearAllMocks()
 })
 
-it('awaits readiness, then resets and registers before render; reruns discard spies', async () => {
+it('awaits worker readiness before activating helpers, then cleans handlers and spies on unmount', async () => {
+  deactivateRuntime()
   let ready = () => {}
   worker.start.mockImplementationOnce(
     () =>
@@ -21,30 +34,33 @@ it('awaits readiness, then resets and registers before render; reruns discard sp
         ready = resolve
       }),
   )
-  const scenario = vi.fn(() => mockRequest('GET', '/api/me').json({ name: 'Ada' }))
-  const loading = prepareStory(true, scenario)
-  await vi.waitFor(() => expect(worker.start).toHaveBeenCalledOnce())
-  expect(scenario).not.toHaveBeenCalled()
+  const loading = setup()
+  expect(() => mockRequest('GET', '/api/me').empty()).toThrow('No testing runtime active')
   ready()
   await loading
-  const first = scenario.mock.results[0].value
+  const first = mockRequest('GET', '/api/me').empty()
   first({})
-  await prepareStory(true, scenario)
+  cleanup?.()
   expect(first).not.toHaveBeenCalled()
-  expect(scenario).toHaveBeenCalledTimes(2)
-  expect(worker.resetHandlers.mock.invocationCallOrder.at(-1)).toBeLessThan(worker.use.mock.invocationCallOrder.at(-1)!)
-})
-
-it('stops on non-CAS, rejects out-of-scenario registration, and restarts for CAS', async () => {
-  await prepareStory(true)
-  await prepareStory(false)
-  expect(worker.stop).toHaveBeenCalled()
+  expect(worker.resetHandlers).toHaveBeenCalledOnce()
+  expect(worker.stop).toHaveBeenCalledOnce()
   expect(() => mockRequest('GET', '/api/me').empty()).toThrow('No testing runtime active')
-  await prepareStory(true)
+  await setup()
+  mockRequest('GET', '/api/me').empty()
   expect(worker.start).toHaveBeenCalledTimes(2)
+  expect(worker.resetHandlers.mock.invocationCallOrder[0]).toBeLessThan(worker.use.mock.invocationCallOrder.at(-1)!)
 })
 
-it('serializes rapid CAS → non-CAS navigation while worker startup is pending', async () => {
+it('does not start interception for non-CAS stories', async () => {
+  deactivateRuntime()
+  expect(await setupStoryMocks(false, new AbortController().signal)).toBeUndefined()
+  expect(worker.start).not.toHaveBeenCalled()
+  expect(() => mockRequest('GET', '/api/me').empty()).toThrow('No testing runtime active')
+})
+
+it('stops a cancelled startup without activating a stale runtime', async () => {
+  deactivateRuntime()
+  const controller = new AbortController()
   let ready = () => {}
   worker.start.mockImplementationOnce(
     () =>
@@ -52,29 +68,31 @@ it('serializes rapid CAS → non-CAS navigation while worker startup is pending'
         ready = resolve
       }),
   )
-  const first = prepareStory(true)
-  const second = prepareStory(false)
-  await vi.waitFor(() => expect(worker.start).toHaveBeenCalledOnce())
+  const loading = setupStoryMocks(true, controller.signal)
+  controller.abort()
   ready()
-  await Promise.all([first, second])
+  expect(await loading).toBeUndefined()
+  expect(worker.stop).toHaveBeenCalledOnce()
   expect(() => mockRequest('GET', '/api/me').empty()).toThrow('No testing runtime active')
 })
 
-it.each([true, false])('clears multiple unanswered request diagnostics when navigating (CAS: %s)', async isCas => {
-  await prepareStory(true)
-  const { onUnhandledRequest } = worker.start.mock.calls[0][0]
-  const print = {
-    error: vi.fn(() => {
-      throw new Error('MSW blocked')
-    }),
-  }
-  onUnhandledRequest(new Request('http://localhost:6006/assets/story.js'), print)
-  expect(print.error).not.toHaveBeenCalled()
-  expect(() => onUnhandledRequest(new Request('http://localhost:6006/api/missing'), print)).toThrow('MSW blocked')
+it('cleans up failed startup and allows the next story to start', async () => {
+  worker.start.mockRejectedValueOnce(new Error('startup failed'))
+  await expect(setup()).rejects.toThrow('startup failed')
+  expect(worker.stop).toHaveBeenCalledOnce()
+  await setup()
+  expect(() => mockRequest('GET', '/api/me').empty()).not.toThrow()
+})
+
+it('rejects missing API mocks even when their URLs look like assets, and clears diagnostics on cleanup', async () => {
+  deactivateRuntime()
+  await setup()
+  await expect(fetch('/api/missing')).rejects.toThrow()
   expect(document.querySelector('[data-cas-mock-error]')?.textContent).toContain('Unhandled CAS request: GET')
-  expect(() => onUnhandledRequest(new Request('http://localhost:6006/api/also-missing'), print)).toThrow('MSW blocked')
-  expect(print.error).toHaveBeenCalledTimes(2)
-  await prepareStory(isCas)
+  await expect(fetch('/api/missing.js')).rejects.toThrow()
+  expect(document.querySelectorAll('[data-cas-mock-error]')).toHaveLength(2)
+  cleanup?.()
+  cleanup = undefined
   expect(() => assertNoUnhandledRequests()).not.toThrow()
   expect(document.querySelectorAll('[data-cas-mock-error]')).toHaveLength(0)
 })

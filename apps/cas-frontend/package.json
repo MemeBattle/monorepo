@@ -19,7 +19,7 @@
     "test": "vitest",
     "test:ci": "vitest run",
     "test:e2e": "playwright test",
-    "test:storybook": "node scripts/storybook-smoke.mjs"
+    "test:storybook": "playwright test --config playwright.storybook.config.ts"
   },
   "dependencies": {
     "@simplewebauthn/browser": "catalog:",
@@ -38,7 +38,6 @@
     "@vitejs/plugin-react": "catalog:",
     "jsdom": "catalog:",
     "msw": "catalog:",
-    "msw-storybook-addon": "catalog:",
     "oxc-transform-react": "catalog:",
     "storybook": "catalog:",
     "tailwindcss": "catalog:",

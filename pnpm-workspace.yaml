@@ -114,7 +114,6 @@ catalog:
   lodash: 4.18.1
   luxon: 3.7.2
   msw: 2.15.0
-  msw-storybook-addon: 3.0.0
   mock-socket: ^9.3.1
   nanoid: ^6.0.0
   negotiator: ^1.0.0

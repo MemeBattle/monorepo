@@ -99,20 +99,27 @@ the repo root), Chromatic on the PR gives the visual review, and the a11y
 addon runs axe on every story: a story with a violation is a bug in the
 primitive, not in the story.
 
-Stories making requests declare `parameters.casScenario: () => mockUpdateEmail()`
-(or the appropriate domain helpers), never register at module scope or in
-parallel loaders. The root preview awaits worker startup, the Storybook addon's
-reset, and the scenario, in order, before rendering. Reruns clear the old spies
-and handlers; leaving CAS stops interception, returning starts it again. An
-unanswered request displays a blocking diagnostic even if the component catches
-fetch rejection. Storybook assets can still load.
+Stories making requests use a meta or story `beforeEach` hook, for example
+`beforeEach: () => { mockUpdateEmail() }`. Do not return the spy: Storybook
+interprets a returned function as cleanup. The project `beforeEach` awaits MSW
+startup and activates the runtime before these hooks run. Its returned cleanup
+resets handlers and spies, stops interception, and clears diagnostics on unmount
+or rerun. Storybook owns hook ordering; no MSW addon or scenario parameter is
+needed. An unanswered request displays a blocking diagnostic even if the
+component catches fetch rejection. Storybook assets can still load.
 
-After building and serving root Storybook on :6006, run
-`pnpm test:storybook` from this app for the Chromium runtime smoke test.
-`STORYBOOK_URL` changes the URL; `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` can select
-an existing compatible Chromium installation. This check drives the existing
-Email stories, navigates out of CAS and back, and deliberately issues one
-unanswered request to verify the visible diagnostic.
+Run `pnpm build-storybook` from the root, then `pnpm test:storybook` from this
+app. The separate `playwright.storybook.config.ts` serves the built Storybook
+on :6006 and runs Chromium tests; it needs neither CAS nor Postgres. Set
+`STORYBOOK_URL` to use an already running server, or
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to use an existing compatible Chromium.
+`STORYBOOK_TEST_OUTPUT` overrides the report/artifact directory (default:
+`test-results/storybook`). The tests exercise Email success and failures,
+CAS/non-CAS navigation, reruns, and caught unanswered requests. Navigation
+awaits Storybook's completion event instead of unrelated component markup.
+The `storybook` job in `storybook-pr.yml` builds and runs this lane and uploads
+the Playwright report, traces and screenshots on failure, independently of the
+real-CAS `e2e` job.
 
 Only the existing Email stories exercise network saving. The worker lives in
 root `.storybook/public/mockServiceWorker.js`, served by Storybook's `staticDirs`;

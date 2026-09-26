@@ -5,7 +5,10 @@ import { mockUpdateEmail } from '#entities/session/testing'
 import { EmailSection } from './EmailSection'
 
 const meta: Meta<typeof EmailSection> = {
-  parameters: { layout: 'padded', casScenario: () => mockUpdateEmail() },
+  parameters: { layout: 'padded' },
+  beforeEach: () => {
+    mockUpdateEmail()
+  },
   title: 'CAS / Email',
   component: EmailSection,
   decorators: [Story => <div className="max-w-[380px]">{Story()}</div>],
@@ -40,7 +43,9 @@ export const Adding: Story = {
 
 /** The server refused the address (`invalid_email`): the field keeps it and says why. */
 export const Invalid: Story = {
-  parameters: { casScenario: () => mockUpdateEmail.error('invalid_email') },
+  beforeEach: () => {
+    mockUpdateEmail.error('invalid_email')
+  },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Добавить почту' }))
     await userEvent.type(canvas.getByLabelText('Почта'), 'ada@mems.fun')
@@ -51,7 +56,9 @@ export const Invalid: Story = {
 /** The request did not go through for another reason: the form stays with its own words. */
 export const Failed: Story = {
   args: { email: 'ada@mems.fun' },
-  parameters: { casScenario: () => mockUpdateEmail.networkError() },
+  beforeEach: () => {
+    mockUpdateEmail.networkError()
+  },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Изменить почту' }))
     await userEvent.click(canvas.getByRole('button', { name: 'Удалить' }))
