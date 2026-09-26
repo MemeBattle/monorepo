@@ -1,12 +1,12 @@
 import { GameGrid } from './GameGrid'
 import { Opponent, CardsPanelContainer } from '#features/player'
-import { PlaygroundContainer } from '#features/playground'
+import { Playground } from '#features/playground'
 import { createSelector } from '@reduxjs/toolkit'
 import { useSelector } from 'react-redux'
 import { gameStatusSelector, isPlayerSpectatorSelector, opponentsSelector, startingDelayInSecSelector } from '#ducks/game'
 import { GameStatus } from '@memebattle/ligretto-shared'
 import { ScreenCountdown } from './ScreenCountdown'
-import { CardFocusProvider } from '#features/cardFocus'
+import { CardInteractionProvider } from '#features/cardInteraction'
 
 const gamePageContainerSelector = createSelector(
   [gameStatusSelector, isPlayerSpectatorSelector, startingDelayInSecSelector, opponentsSelector],
@@ -20,11 +20,12 @@ const gamePageContainerSelector = createSelector(
 
 export const GameContainer = () => {
   const { isPlayerSpectator, opponents, startingDelayInSec, gameStatus } = useSelector(gamePageContainerSelector)
+  const isInteractionEnabled = !isPlayerSpectator && gameStatus === GameStatus.InGame
 
   return (
-    <CardFocusProvider enabled={!isPlayerSpectator && gameStatus === GameStatus.InGame}>
+    <CardInteractionProvider enabled={isInteractionEnabled}>
       {gameStatus === GameStatus.Starting && <ScreenCountdown timeToGo={startingDelayInSec} />}
-      <GameGrid centerElement={<PlaygroundContainer />} bottomElement={isPlayerSpectator ? null : <CardsPanelContainer />}>
+      <GameGrid centerElement={<Playground />} bottomElement={isPlayerSpectator ? null : <CardsPanelContainer />}>
         {opponents.map(opponent => (
           <Opponent
             id={opponent.id}
@@ -37,6 +38,6 @@ export const GameContainer = () => {
           />
         ))}
       </GameGrid>
-    </CardFocusProvider>
+    </CardInteractionProvider>
   )
 }

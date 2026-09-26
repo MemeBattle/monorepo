@@ -19,38 +19,35 @@ export class Gameplay {
     }
   }
 
-  playerPutCard(gameId: UUID, playerId: UUID, cardPosition: number, deckPosition?: number) {
+  playerPutCard(gameId: UUID, playerId: UUID, cardPosition: number, deckPosition: number) {
     try {
       const card = this.playerService.getCard(gameId, playerId, cardPosition)
       if (!card) {
         return
       }
 
-      const finalDeckPosition = this.playgroundService.getAvailableDeckPosition(gameId, card, deckPosition)
-      if (finalDeckPosition === undefined || finalDeckPosition === -1) {
+      if (!this.playgroundService.checkIsDeckAvailable(gameId, card, deckPosition)) {
         return
       }
 
-      this.playgroundService.putCard(gameId, card, finalDeckPosition)
+      this.playgroundService.putCard(gameId, card, deckPosition)
       this.playerService.removeCard(gameId, playerId, cardPosition)
     } catch (e) {
       console.log(e)
     }
   }
 
-  playerPutFromStackOpenDeck(gameId: UUID, playerId: UUID, deckPosition?: number) {
+  playerPutFromStackOpenDeck(gameId: UUID, playerId: UUID, deckPosition: number) {
     try {
       const card = this.playerService.getCardFromStackOpenDeck(gameId, playerId)
       if (!card) {
         return
       }
-      const finalDeckPosition = this.playgroundService.getAvailableDeckPosition(gameId, card, deckPosition)
-
-      if (finalDeckPosition === -1 || finalDeckPosition === undefined) {
+      if (!this.playgroundService.checkIsDeckAvailable(gameId, card, deckPosition)) {
         return
       }
 
-      this.playgroundService.putCard(gameId, card, finalDeckPosition)
+      this.playgroundService.putCard(gameId, card, deckPosition)
       this.playerService.removeCardFromStackOpenDeck(gameId, playerId)
     } catch (e) {
       console.log(e)

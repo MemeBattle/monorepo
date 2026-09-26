@@ -1,20 +1,23 @@
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Hotkey, tapLigrettoDeckCardAction, playerLigrettoDeckCardsSelector, playerLigrettoDeckHiddenSelector } from '#ducks/game'
+import { useCardHotkey, useCardInteraction } from '#features/cardInteraction'
 import { LigrettoPack } from './LigrettoPack'
-import { useCardHotkey } from '../lib/useCardHotkey'
 
 export const LigrettoDeckContainer = () => {
   const dispatch = useDispatch()
   const ligrettoDeckCards = useSelector(playerLigrettoDeckCardsSelector)
   const isDeckHidden = useSelector(playerLigrettoDeckHiddenSelector)
   const isLigrettoDeckEnabled = !!ligrettoDeckCards?.length
+  const { clearActiveTarget } = useCardInteraction()
 
+  // Taking a Ligretto card is a command, not a selection: it drops whatever card was picked.
   const onLigrettoDeckCardClick = useCallback(() => {
     if (isLigrettoDeckEnabled) {
+      clearActiveTarget()
       dispatch(tapLigrettoDeckCardAction())
     }
-  }, [dispatch, isLigrettoDeckEnabled])
+  }, [clearActiveTarget, dispatch, isLigrettoDeckEnabled])
 
   useCardHotkey(isLigrettoDeckEnabled ? Hotkey.l : undefined, onLigrettoDeckCardClick)
 
@@ -29,7 +32,7 @@ export const LigrettoDeckContainer = () => {
       hotkey={isLigrettoDeckEnabled ? Hotkey.l : undefined}
       ligrettoDeckCards={ligrettoDeckCards}
       isDeckHidden={isDeckHidden ?? true}
-      onLigrettoDeckCardClick={onLigrettoDeckCardClick}
+      onLigrettoDeckCardClick={isLigrettoDeckEnabled ? onLigrettoDeckCardClick : undefined}
     />
   )
 }

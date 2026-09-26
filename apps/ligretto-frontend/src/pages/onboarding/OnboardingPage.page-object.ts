@@ -29,7 +29,7 @@ export class OnboardingPage {
   }
 
   getPlaygroundDeck(index: number) {
-    return this.page.getByTestId(`Playground-Deck-${index}`).getByRole('button')
+    return this.page.getByTestId(`Playground-Deck-${index}`).locator('[data-card-drop-target]')
   }
 
   getLigrettoDeckCard() {
