@@ -315,10 +315,14 @@ mod tests {
         );
         assert_eq!(config.database_url, "postgres://cas:cas@localhost:5434/cas");
         assert_eq!(config.issuer, "http://localhost:3000");
-        assert_eq!(
-            config.signing_key.unwrap().expose(),
-            include_str!("../dev/signing-key.pem")
-        );
+        // The development key is the default in debug builds only; a release
+        // build has none, and the server refuses to start without one.
+        let signing_key = config.signing_key.as_ref().map(SigningKeyPem::expose);
+        if cfg!(debug_assertions) {
+            assert_eq!(signing_key, Some(include_str!("../dev/signing-key.pem")));
+        } else {
+            assert_eq!(signing_key, None);
+        }
     }
 
     #[test]
@@ -479,7 +483,17 @@ mod tests {
 
     #[test]
     fn debug_of_the_config_redacts_the_signing_key() {
-        let config = Config::from_values(None, None, None, None, None, None, None).unwrap();
+        let config = Config::from_values(
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(include_str!("../dev/signing-key.pem").to_string()),
+        )
+        .unwrap();
+        assert!(config.signing_key.is_some());
 
         let debug = format!("{config:?}");
         assert!(!debug.contains("PRIVATE KEY"), "{debug}");
