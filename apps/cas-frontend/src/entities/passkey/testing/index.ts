@@ -1,4 +1,7 @@
-import { ceremonyMock, domainMock } from '#shared/testing/domainMock'
+import { domainMock, failureResponse, isFailure, successResponse } from '#shared/testing/domainMock'
+import type { Answer, Failure, Resolver } from '#shared/testing/domainMock'
+import { mockRequest } from '#shared/testing/mockRequest'
+import type { Spy } from '#shared/testing/runtime'
 import type { Passkey } from '../index'
 import { aPasskey } from './builders'
 import { registrationOptions } from '#shared/testing/webauthn'
@@ -35,13 +38,36 @@ const registrationErrors = {
   discoverable_credential_required: 400,
   credential_already_registered: 409,
 } as const
-export const mockAddPasskey = ceremonyMock<Record<string, never>, Partial<Passkey>, Passkey, keyof typeof registrationErrors>(
-  '/api/passkeys/register-options',
-  '/api/passkeys/verify-registration',
-  registrationOptions,
-  'registrationId',
-  aPasskey,
-  registrationErrors,
-  ['unauthenticated', 'database_unavailable', 'database_busy', 'cross_site_request', 'internal_error'],
-  201,
-)
+type RegistrationError = keyof typeof registrationErrors
+const registrationFailure = (failure: Failure<RegistrationError>) =>
+  failureResponse('error' in failure && failure.error === 'registration_expired' ? { error: 'registration_not_found' } : failure, registrationErrors)
+
+const respondAddPasskey = (resolver: Resolver<Record<string, never>, Passkey, RegistrationError>) => {
+  let sequence = 0
+  const registrations = new Map<string, Answer<Passkey, RegistrationError>>()
+  const spy = mockRequest('POST', '/api/passkeys/register-options').respond(async args => {
+    const answer = await resolver(args as Record<string, never>)
+    if (isFailure<RegistrationError>(answer) && ('networkError' in answer || answer.error in commonErrors)) {
+      return registrationFailure(answer)
+    }
+    const registrationId = `ceremony-${++sequence}`
+    registrations.set(registrationId, answer)
+    return successResponse(registrationOptions(registrationId))
+  }) as Spy<Record<string, never>>
+  mockRequest('POST', '/api/passkeys/verify-registration').respond(args => {
+    const registrationId = String(args.registrationId)
+    const answer = registrations.get(registrationId)
+    if (!answer) {
+      throw new Error(`Verification does not match an issued ceremony: ${registrationId}`)
+    }
+    registrations.delete(registrationId)
+    return isFailure<RegistrationError>(answer) ? registrationFailure(answer) : successResponse(answer, 201)
+  })
+  return spy
+}
+
+export const mockAddPasskey = Object.assign((input?: Partial<Passkey>) => respondAddPasskey(() => aPasskey(input)), {
+  respond: respondAddPasskey,
+  error: (code: RegistrationError) => respondAddPasskey(() => ({ error: code })),
+  networkError: () => respondAddPasskey(() => ({ networkError: true })),
+})

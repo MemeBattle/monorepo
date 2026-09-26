@@ -64,3 +64,44 @@ it.each([
   mockGetMe.error(code)
   await expect(getMe()).rejects.toMatchObject({ code, status })
 })
+
+it.each([
+  ['database_unavailable', 503, false],
+  ['invalid_credential', 401, true],
+  ['login_not_found', 404, true],
+] as const)('fails sign-in at the expected stage for %s', async (code, status, verifies) => {
+  vi.mocked(startAuthentication).mockClear()
+  mockSignInWithPasskey.error(code)
+  await expect(signInWithPasskey()).rejects.toMatchObject({ code, status })
+  expect(startAuthentication).toHaveBeenCalledTimes(verifies ? 1 : 0)
+})
+
+it('correlates deferred registration answers when authenticators finish out of order', async () => {
+  let finishFirst!: (value: Awaited<ReturnType<typeof startRegistration>>) => void
+  vi.mocked(startRegistration)
+    .mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          finishFirst = resolve
+        }),
+    )
+    .mockResolvedValueOnce({ id: 'second' } as Awaited<ReturnType<typeof startRegistration>>)
+  const register = mockRegisterWithPasskey.respond(async ({ displayName }) => ({ accountId: displayName, credentialId: displayName }))
+  const first = registerWithPasskey('First')
+  await vi.waitFor(() => expect(finishFirst).toBeTypeOf('function'))
+  await expect(registerWithPasskey('Second')).resolves.toEqual({ accountId: 'Second', credentialId: 'Second' })
+  finishFirst({ id: 'first' } as Awaited<ReturnType<typeof startRegistration>>)
+  await expect(first).resolves.toEqual({ accountId: 'First', credentialId: 'First' })
+  expect(register.mock.calls).toEqual([[{ displayName: 'First' }], [{ displayName: 'Second' }]])
+})
+
+it('rejects composite network failures before invoking authenticators', async () => {
+  vi.mocked(startRegistration).mockClear()
+  vi.mocked(startAuthentication).mockClear()
+  mockRegisterWithPasskey.networkError()
+  mockSignInWithPasskey.networkError()
+  await expect(registerWithPasskey('Ada')).rejects.toThrow()
+  await expect(signInWithPasskey()).rejects.toThrow()
+  expect(startRegistration).not.toHaveBeenCalled()
+  expect(startAuthentication).not.toHaveBeenCalled()
+})

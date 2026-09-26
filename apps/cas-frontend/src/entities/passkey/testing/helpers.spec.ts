@@ -47,3 +47,39 @@ it('fails add options without invoking the authenticator for an expired session'
   await expect(addPasskey()).rejects.toMatchObject({ code: 'unauthenticated', status: 401 })
   expect(startRegistration).not.toHaveBeenCalled()
 })
+
+it.each([
+  ['registration_expired', 'registration_not_found', 404],
+  ['credential_already_registered', 'credential_already_registered', 409],
+] as const)('fails add verification for %s', async (error, code, status) => {
+  vi.mocked(startRegistration)
+    .mockReset()
+    .mockResolvedValue({ id: 'credential' } as Awaited<ReturnType<typeof startRegistration>>)
+  const add = mockAddPasskey.error(error)
+  await expect(addPasskey()).rejects.toMatchObject({ code, status })
+  expect(startRegistration).toHaveBeenCalledOnce()
+  expect(add).toHaveBeenCalledExactlyOnceWith({})
+})
+
+it('supports deferred add answers and records one domain call', async () => {
+  vi.mocked(startRegistration).mockResolvedValue({ id: 'credential' } as Awaited<ReturnType<typeof startRegistration>>)
+  const passkey = aPasskey({ name: 'Phone' })
+  let finish!: (value: typeof passkey) => void
+  const add = mockAddPasskey.respond(
+    () =>
+      new Promise(resolve => {
+        finish = resolve
+      }),
+  )
+  const pending = addPasskey()
+  await vi.waitFor(() => expect(add).toHaveBeenCalledExactlyOnceWith({}))
+  finish(passkey)
+  await expect(pending).resolves.toEqual(passkey)
+})
+
+it('rejects add network failures before invoking the authenticator', async () => {
+  vi.mocked(startRegistration).mockClear()
+  mockAddPasskey.networkError()
+  await expect(addPasskey()).rejects.toThrow()
+  expect(startRegistration).not.toHaveBeenCalled()
+})
