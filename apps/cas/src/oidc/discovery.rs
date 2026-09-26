@@ -25,6 +25,10 @@ pub struct Discovery {
     scopes_supported: &'static [&'static str],
     token_endpoint_auth_methods_supported: &'static [&'static str],
     code_challenge_methods_supported: &'static [&'static str],
+    /// Discovery §3 defaults this to `true`, and `/authorize` refuses
+    /// `request_uri` (ADR 0010 (b)), so it is stated. The sibling
+    /// `request_parameter_supported` defaults to `false` and stays implicit.
+    request_uri_parameter_supported: bool,
 }
 
 impl Discovery {
@@ -46,6 +50,7 @@ impl Discovery {
             scopes_supported: &["openid", "profile", "email"],
             token_endpoint_auth_methods_supported: &["client_secret_basic", "client_secret_post"],
             code_challenge_methods_supported: &["S256"],
+            request_uri_parameter_supported: false,
         }
     }
 
@@ -86,6 +91,7 @@ mod tests {
                     "client_secret_post",
                 ],
                 "code_challenge_methods_supported": ["S256"],
+                "request_uri_parameter_supported": false,
             })
         );
     }

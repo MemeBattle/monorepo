@@ -47,6 +47,10 @@ The active `kid` and the number of published keys are logged at startup.
 
 `GET /.well-known/openid-configuration` and `GET /jwks.json` are served at the root, outside `/api`. The discovery document already lists the endpoints later tickets add; until they land, those paths answer 404. See [docs/adr/0009-signing-key-and-discovery.md](./docs/adr/0009-signing-key-and-discovery.md).
 
+## Authorization endpoint
+
+`GET /authorize` (at the root, e.g. `http://localhost:3000/authorize`) starts the authorization code flow. A client sends `client_id`, a registered `redirect_uri` (exact match), `response_type=code`, a `scope` that includes `openid`, `state`, and a PKCE `code_challenge` with `code_challenge_method=S256`; `nonce` is optional. An unknown client or an unregistered redirect URI gets an HTML error page from CAS; every other error is redirected back to the client with `error`, `error_description` and `state`. Without a session the browser is sent to `{CAS_ORIGIN}/sign-in?return_to=<the /authorize path and query>`, a relative path the frontend navigates back to after sign-in (the frontend half is #748; in development the Vite server does not proxy `/authorize` yet). With a session, a first-party client gets a one-time code valid for 60 seconds; other clients are refused with `unauthorized_client` until consent exists. See [docs/adr/0010-authorization-endpoint.md](./docs/adr/0010-authorization-endpoint.md).
+
 ## Database (local dev)
 
 Postgres runs in Docker; `docker-compose.yml` in this directory provides it with dev-only credentials (user/password/db `cas`) on host port `5434`:
