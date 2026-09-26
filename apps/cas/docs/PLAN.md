@@ -269,7 +269,7 @@ mock provider [#760](https://github.com/MemeBattle/monorepo/issues/760).
       through a passkey-backed page.
 - [ ] Deployment/infra (Production milestone): where it runs, TLS/domain
       (WebAuthn requires a stable rp_id), secrets, signing-key rotation
-      procedure.
+      procedure (rotation: ADR 0009).
 - [ ] Local development against real Telegram/GitHub: tunnel + registered
       redirect URL, or the mock provider only (#760).
 

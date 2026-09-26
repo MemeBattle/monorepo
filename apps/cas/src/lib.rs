@@ -6,6 +6,7 @@ pub mod config;
 pub mod db;
 pub mod http;
 pub mod migrations;
+pub mod oidc;
 pub mod sessions;
 pub mod shared;
 #[cfg(test)]
