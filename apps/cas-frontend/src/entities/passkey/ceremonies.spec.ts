@@ -1,14 +1,12 @@
 import { WebAuthnError } from '@simplewebauthn/browser'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { ApiError } from '#shared/api/request'
+import { mockAddOptions, mockAddVerification } from './testing/stages'
 import { addPasskey } from './ceremonies'
 
-const { request, startRegistration } = vi.hoisted(() => ({
-  request: vi.fn(),
+const { startRegistration } = vi.hoisted(() => ({
   startRegistration: vi.fn(),
 }))
-vi.mock('#shared/api/request', async importOriginal => ({ ...(await importOriginal<typeof import('#shared/api/request')>()), request }))
 vi.mock('@simplewebauthn/browser', async importOriginal => ({
   ...(await importOriginal<typeof import('@simplewebauthn/browser')>()),
   startRegistration,
@@ -20,38 +18,52 @@ describe('addPasskey', () => {
   const passkey = { id: 'p2', name: 'Пасскей', createdAt: '2026-09-19T10:00:00Z', lastUsedAt: null }
 
   afterEach(() => {
-    request.mockReset()
     startRegistration.mockReset()
   })
 
   it('asks for a challenge without a body, hands it to the authenticator and finishes with the answer', async () => {
-    request.mockResolvedValueOnce(options).mockResolvedValueOnce(passkey)
+    const requested = mockAddOptions(options)
+    const verified = mockAddVerification(passkey)
     startRegistration.mockResolvedValue(made)
 
     await expect(addPasskey()).resolves.toEqual(passkey)
 
-    expect(request).toHaveBeenNthCalledWith(1, '/api/passkeys/register-options', { method: 'POST' })
+    expect(requested).toHaveBeenCalledExactlyOnceWith({})
     expect(startRegistration).toHaveBeenCalledWith({ optionsJSON: options.ccr.publicKey })
-    expect(request).toHaveBeenNthCalledWith(2, '/api/passkeys/verify-registration', {
+    expect(verified).toHaveBeenCalledExactlyOnceWith({ registrationId: 'r1', response: made })
+  })
+
+  it('returns 201 with the created passkey from private verification, keeping options at 200', async () => {
+    mockAddOptions(options)
+    mockAddVerification(passkey)
+    const challenge = await fetch('/api/passkeys/register-options', { method: 'POST' })
+    expect(challenge.status).toBe(200)
+    const { registrationId } = await challenge.json()
+    const response = await fetch('/api/passkeys/verify-registration', {
       method: 'POST',
-      body: { registrationId: 'r1', response: made },
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ registrationId, response: made }),
     })
+    expect(response.status).toBe(201)
+    expect(await response.json()).toEqual(passkey)
   })
 
   it('lets the authenticator’s verdict through as it is and finishes nothing', async () => {
-    request.mockResolvedValueOnce(options)
+    const requested = mockAddOptions(options)
+    const verified = mockAddVerification()
     const cause = new DOMException('already registered', 'InvalidStateError')
     startRegistration.mockRejectedValue(new WebAuthnError({ message: cause.message, code: 'ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED', cause }))
 
     await expect(addPasskey()).rejects.toSatisfy(error => error instanceof WebAuthnError && error.name === 'InvalidStateError')
 
-    expect(request).toHaveBeenCalledOnce()
+    expect(requested).toHaveBeenCalledOnce()
+    expect(verified).not.toHaveBeenCalled()
   })
 
   it('asks the authenticator for nothing without a session', async () => {
-    request.mockRejectedValueOnce(new ApiError(401, 'unauthenticated', 'No live session'))
+    mockAddOptions.error('unauthenticated')
 
-    await expect(addPasskey()).rejects.toSatisfy(error => error instanceof ApiError && error.code === 'unauthenticated')
+    await expect(addPasskey()).rejects.toSatisfy(error => error.code === 'unauthenticated')
 
     expect(startRegistration).not.toHaveBeenCalled()
   })

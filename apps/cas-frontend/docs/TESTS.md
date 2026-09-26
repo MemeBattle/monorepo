@@ -17,11 +17,78 @@ Rendering a placeholder or a static route table does not; that is what the
 type checker and the build are for.
 
 Component tests render with `@testing-library/react` and drive the page with
-`@testing-library/user-event`; vitest runs every spec in the `jsdom`
-environment. There are no vitest globals, so a spec that renders calls
-`cleanup()` in its `afterEach`. A screen that needs the router renders inside
-`createMemoryRouter`, and the entity it calls is mocked with `vi.mock`, so the
-spec exercises the form action and what it shows, not the network.
+`@testing-library/user-event`; vitest runs every spec in `jsdom`. The shared
+setup starts MSW with `onUnhandledRequest: 'error'`, unmounts components before
+resetting handlers and spies after every test, and closes the server after the
+suite. An independent request ledger fails teardown even if application code
+catches an unanswered request (including silent autofill failures).
+
+## The network boundary
+
+A spec never mocks an entity module and never imports `msw` itself. Keep
+`request()` and the CAS wire contract running. Only the entity testing modules
+and `shared/testing/` import MSW. The focused `shared/api/request.spec.ts` may
+stub fetch to test parsing; `vi.unstubAllGlobals()` restores the intercepted
+fetch. Mock `@simplewebauthn/browser` for unit tests; real ceremonies belong in
+the separate E2E lane below.
+
+Every requesting entity has two entry points: `#entities/session` (production
+calls and types) and `#entities/session/testing` (helpers and builders), likewise
+for passkey. Production entry points export nothing test-only. Oxlint limits
+testing imports to specs and stories and prevents direct MSW imports there.
+
+Helpers are named `mock` + the API function: `mockGetMe`, `mockLogout`,
+`mockUpdateEmail`, `mockListPasskeys`, `mockRenamePasskey`, `mockDeletePasskey`,
+`mockRegisterWithPasskey`, `mockSignInWithPasskey`, and `mockAddPasskey`.
+Success accepts a partial payload merged onto fresh defaults, preserving
+explicit `null`. Lists accept builders such as `mockListPasskeys([aPasskey({
+name: 'iPhone' })])`; `aMe()` builds a complete account.
+
+```ts
+const rename = mockRenamePasskey({ name: 'iPhone' })
+// Drive the page, which calls the real renamePasskey().
+await waitFor(() => expect(rename).toHaveBeenCalledWith({ id: 'pk_2', name: 'iPhone' }))
+expect(rename).toHaveBeenCalledTimes(1)
+
+mockDeletePasskey.error('last_passkey') // entity owns the status and envelope
+mockUpdateEmail.networkError() // real fetch rejection
+mockGetMe({ email: 'ada@mems.fun' })
+```
+
+Every registration returns a real injected `vi.fn()` in specs and
+`storybook/test`'s `fn()` in stories. The spy records flattened parsed path
+params and body, or `{}` for a bodyless call. Registering the same endpoint
+again replaces its answer and returns a new spy; retain the old spy if asserting
+calls made before replacement. Mutating the spy does not change the response.
+
+For delayed or per-request outcomes, `.respond()` takes a typed callback. Return
+a payload, `{ error: 'last_passkey' }`, or `{ networkError: true }`, directly or
+through a promise. Resolve deferred responses; do not throw API errors from a
+responder. This keeps concurrent tests explicit without a fake stateful backend.
+
+```ts
+let confirm = () => {}
+const save = mockUpdateEmail.respond(
+  () =>
+    new Promise<void>(resolve => {
+      confirm = resolve
+    }),
+)
+// Submit and inspect the optimistic state before confirming.
+await waitFor(() => expect(save).toHaveBeenCalledOnce())
+mockGetMe({ email: 'ada@mems.fun' }) // answer the coming revalidation
+confirm()
+```
+
+Ceremony helpers are public composites with no options/verification knobs.
+`mockRegisterWithPasskey.error('registration_expired')` fails verification with
+CAS's `registration_not_found`; `mockAddPasskey.error('unauthenticated')` fails
+before the authenticator. `mockSignInWithPasskey` serves both the button and
+autofill. Ceremony spies record the domain input once when options are requested.
+Private stage helpers in `testing/stages.ts` exist only for the owning entity's
+ceremony specs (for example, challenge refresh), never page specs or stories;
+they are not re-exported by the testing entry point. Import the public builders
+through the entry point too.
 
 ## Stories
 
@@ -31,6 +98,34 @@ root Storybook picks them up (`pnpm storybook` / `pnpm build-storybook` from
 the repo root), Chromatic on the PR gives the visual review, and the a11y
 addon runs axe on every story: a story with a violation is a bug in the
 primitive, not in the story.
+
+Stories making requests use a meta or story `beforeEach` hook, for example
+`beforeEach: () => { mockUpdateEmail() }`. Do not return the spy: Storybook
+interprets a returned function as cleanup. The project `beforeEach` awaits MSW
+startup and activates the runtime before these hooks run. Its returned cleanup
+resets handlers and spies, stops interception, and clears diagnostics on unmount
+or rerun. Storybook owns hook ordering; no MSW addon or scenario parameter is
+needed. An unanswered request displays a blocking diagnostic even if the
+component catches fetch rejection. Storybook assets can still load.
+
+Run `pnpm build-storybook` from the root, then `pnpm test:storybook` from this
+app. The separate `playwright.storybook.config.ts` serves the built Storybook
+on :6006 and runs Chromium tests; it needs neither CAS nor Postgres. Set
+`STORYBOOK_URL` to use an already running server, or
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to use an existing compatible Chromium.
+`STORYBOOK_TEST_OUTPUT` overrides the report/artifact directory (default:
+`test-results/storybook`). The tests exercise Email success and failures,
+CAS/non-CAS navigation, reruns, and caught unanswered requests. Navigation
+awaits Storybook's completion event instead of unrelated component markup.
+The `storybook` job in `storybook-pr.yml` builds and runs this lane and uploads
+the Playwright report, traces and screenshots on failure, independently of the
+real-CAS `e2e` job.
+
+Only the existing Email stories exercise network saving. The worker lives in
+root `.storybook/public/mockServiceWorker.js`, served by Storybook's `staticDirs`;
+it must never be placed in the production SPA public directory. After upgrading
+MSW, regenerate it with `pnpm --filter @memebattle/cas-frontend exec msw init
+../../.storybook/public --no-save`. The SPA never imports testing modules.
 
 ## End-to-end
 

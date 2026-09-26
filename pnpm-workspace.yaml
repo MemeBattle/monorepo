@@ -25,6 +25,8 @@ overrides:
 # The `false` entries were already being ignored under pnpm 10 — they ship prebuilt
 # binaries or optional native addons and the repo has never needed their scripts.
 allowBuilds:
+  # The worker is generated explicitly into Storybook, never production public/.
+  msw: false
   '@swc/core': true
   contentlayer: true
   esbuild: true
@@ -111,6 +113,7 @@ catalog:
   jsonwebtoken: ^9.0.0
   lodash: 4.18.1
   luxon: 3.7.2
+  msw: 2.15.0
   mock-socket: ^9.3.1
   nanoid: ^6.0.0
   negotiator: ^1.0.0

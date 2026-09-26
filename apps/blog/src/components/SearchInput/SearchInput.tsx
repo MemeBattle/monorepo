@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { ChangeEventHandler } from 'react'
 import { useCallback } from 'react'
+
 interface SearchInputProps {
   placeholder: string
 }

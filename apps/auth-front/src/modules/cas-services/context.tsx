@@ -1,5 +1,6 @@
 import { createContext } from 'react'
 import { createFrontServices, type FrontServices } from '@memebattle/cas-services/createFrontServices'
+
 export type CasServicesContextValue = FrontServices & {
   getAbsoluteUrl: (relativePath: string) => string
 }

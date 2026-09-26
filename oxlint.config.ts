@@ -1,11 +1,35 @@
 import { defineConfig } from 'oxlint'
 
+const mswImports = {
+  group: ['msw', 'msw/*'],
+  message: 'MSW belongs in shared/testing or entities/*/testing. Use domain helpers in specs and stories.',
+}
+const entityTestingImports = {
+  group: [
+    '#entities/*/testing',
+    '#entities/*/testing/**',
+    '**/entities/*/testing',
+    '**/entities/*/testing/**',
+    './testing',
+    './testing/**',
+    '../*/testing',
+    '../*/testing/**',
+  ],
+  message: 'Entity testing entry points belong only in specs and stories.',
+}
+const privateTestingImports = {
+  group: ['#entities/*/testing/*', '**/entities/*/testing/*', '**/testing/stages*', '**/testing/options*'],
+  message: 'Use the public composite helper. Private stages belong only to the owning entity specs.',
+}
+const testingDirectories = ['apps/cas-frontend/src/shared/testing/**', 'apps/cas-frontend/src/entities/*/testing/**']
+const specsAndStories = ['**/*.spec.*', '**/*.stories.*']
+
 export default defineConfig({
-  plugins: ['typescript', 'react'],
+  plugins: ['typescript', 'react', 'import', 'vitest'],
   categories: {
     correctness: 'off',
   },
-  ignorePatterns: ['**/.adonisjs/**'],
+  ignorePatterns: ['**/.adonisjs/**', '.storybook/public/mockServiceWorker.js'],
   settings: {
     react: {
       version: '19.2.4',
@@ -15,6 +39,44 @@ export default defineConfig({
     },
   },
   overrides: [
+    {
+      files: ['**/*.spec.*', '**/*.test.*', '**/*.e2e.*'],
+      rules: { 'vitest/padding-around-test-blocks': 'error' },
+    },
+    {
+      files: ['**/*'],
+      rules: { 'no-restricted-imports': ['error', { patterns: [mswImports, entityTestingImports, privateTestingImports] }] },
+    },
+    {
+      files: specsAndStories,
+      rules: { 'no-restricted-imports': ['error', { patterns: [mswImports, privateTestingImports] }] },
+    },
+    {
+      files: testingDirectories,
+      excludeFiles: specsAndStories,
+      rules: { 'no-restricted-imports': ['error', { patterns: [entityTestingImports] }] },
+    },
+    {
+      files: ['apps/cas-frontend/src/shared/testing/**/*.spec.*', 'apps/cas-frontend/src/entities/*/testing/**/*.spec.*'],
+      rules: { 'no-restricted-imports': ['error', { patterns: [privateTestingImports] }] },
+    },
+    {
+      files: ['apps/cas-frontend/src/entities/*/*.spec.*'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              mswImports,
+              {
+                ...privateTestingImports,
+                group: [...privateTestingImports.group, '!./testing/stages*', '!./testing/options*'],
+              },
+            ],
+          },
+        ],
+      },
+    },
     {
       // Next.js App Router RSC: useTranslation from @/i18n is a server-side utility,
       // not a React hook, but its `use` prefix triggers rules-of-hooks incorrectly.
@@ -34,6 +96,7 @@ export default defineConfig({
     },
   ],
   rules: {
+    'import/newline-after-import': 'error',
     'typescript/adjacent-overload-signatures': 'error',
     'typescript/ban-types': 'error',
     'typescript/no-empty-interface': 'error',
