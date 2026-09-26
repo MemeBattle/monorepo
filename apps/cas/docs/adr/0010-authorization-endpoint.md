@@ -3,6 +3,11 @@
 ## Status
 
 Accepted (2026-09-26), with [#742](https://github.com/MemeBattle/monorepo/issues/742).
+Amended (2026-09-26) by ADR 0011 (d), with [#743](https://github.com/MemeBattle/monorepo/issues/743):
+the session binding of a code is `ON DELETE SET NULL`, so a redeemed row
+outlives its session and a replay after logout is still recognised; a
+pending code is voided by logout through the redemption's
+`session_id IS NOT NULL` instead of the cascade described in (d).
 
 ## Context
 

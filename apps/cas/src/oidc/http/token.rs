@@ -260,7 +260,7 @@ mod tests {
     use crate::oidc::http::tests::discover;
     use crate::oidc::http::{Documents, authorize_router, router as documents_router};
     use crate::oidc::{Discovery, RefreshToken, SigningKeys};
-    use crate::sessions::{SessionOrigin, SessionService};
+    use crate::sessions::{SessionOrigin, SessionService, SessionToken};
     use crate::testing::{
         DEV_SIGNING_KEY, DEV_SIGNING_KEY_KID, capture_tracing, display_name, test_config,
         test_cookies, test_state,
@@ -304,6 +304,8 @@ mod tests {
         secret: ClientSecret,
         account_id: Uuid,
         cookie: String,
+        /// The session's token, for a test that signs the account out.
+        session: SessionToken,
     }
 
     async fn fixture(pool: &PgPool) -> Fixture {
@@ -352,6 +354,7 @@ mod tests {
             secret,
             account_id: account.id,
             cookie: format!("{}={}", test_cookies().name(), session.token.expose()),
+            session: session.token,
         }
     }
 
@@ -1007,6 +1010,117 @@ mod tests {
         };
         assert!(warning.starts_with("WARN"), "{warning}");
         assert!(warning.contains("revoked=1"), "{warning}");
+    }
+
+    /// Logout does not erase the replay signal: the redeemed code outlives
+    /// the session that authorized it, so presenting it again after the
+    /// account signed out of CAS still revokes the grant it produced.
+    #[sqlx::test]
+    async fn a_code_replayed_after_logout_still_revokes_the_grant(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let code = fixture.code(CONFIDENTIAL, "openid").await;
+        assert_eq!(fixture.exchange(&code).await.status(), StatusCode::OK);
+
+        let revoked = SessionService::new(pool.clone())
+            .revoke(&fixture.session)
+            .await
+            .unwrap();
+        assert!(revoked.is_some(), "the session was live");
+
+        assert_invalid_grant(fixture.exchange(&code).await).await;
+        let grants = grants(&pool).await;
+        assert_eq!(grants.len(), 1);
+        assert!(grants[0].1.is_some(), "the grant is revoked: {grants:?}");
+    }
+
+    /// Logout still voids a code nobody has redeemed yet.
+    #[sqlx::test]
+    async fn a_pending_code_is_void_after_logout(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let code = fixture.code(CONFIDENTIAL, "openid").await;
+        SessionService::new(pool.clone())
+            .revoke(&fixture.session)
+            .await
+            .unwrap();
+
+        assert_invalid_grant(fixture.exchange(&code).await).await;
+        assert!(grants(&pool).await.is_empty());
+    }
+
+    /// Waits until a backend of this test's database is blocked on a lock
+    /// while running a statement that contains `statement`, or until
+    /// `finished` says there is nothing left to wait for. Bounded, so a
+    /// broken assumption fails the test instead of hanging it.
+    async fn wait_for_lock_wait(pool: &PgPool, statement: &str, finished: impl Fn() -> bool) {
+        for _ in 0..200 {
+            if finished() {
+                return;
+            }
+            // Unchecked query: see docs/TESTS.md.
+            let waiting: i64 = sqlx::query_scalar(
+                "SELECT count(*) FROM pg_stat_activity
+                 WHERE datname = current_database()
+                   AND state = 'active'
+                   AND wait_event_type = 'Lock'
+                   AND position($1 in query) > 0",
+            )
+            .bind(statement)
+            .fetch_one(pool)
+            .await
+            .unwrap();
+            if waiting > 0 {
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(25)).await;
+        }
+        panic!("no backend waited on a lock in {statement:?} within 5 seconds");
+    }
+
+    /// The race a replay used to win: the first exchange has consumed the
+    /// code but not yet written its grant when the replay arrives. Holding
+    /// the account's row lock pauses the first exchange exactly there — the
+    /// grant's foreign key check waits for it — and the replay is sent
+    /// while it is paused. The replay waits on the code's row lock until the
+    /// first exchange commits, and then revokes the grant it finds.
+    #[sqlx::test]
+    async fn a_replay_racing_the_exchange_still_revokes_its_grant(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let code = fixture.code(CONFIDENTIAL, "openid").await;
+        let exchange = |router: Router, body: String, basic: String| {
+            tokio::spawn(
+                async move { send(&router, Some(FORM_CONTENT_TYPE), Some(&basic), body).await },
+            )
+        };
+        let body = form(&grant(&code));
+
+        let mut blocker = pool.begin().await.unwrap();
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("SELECT id FROM accounts WHERE id = $1 FOR UPDATE")
+            .bind(fixture.account_id)
+            .execute(&mut *blocker)
+            .await
+            .unwrap();
+
+        let first = exchange(fixture.router.clone(), body.clone(), fixture.basic());
+        wait_for_lock_wait(&pool, "INSERT INTO grants", || first.is_finished()).await;
+        assert!(
+            !first.is_finished(),
+            "the first exchange waits for the account"
+        );
+        let replay = exchange(fixture.router.clone(), body, fixture.basic());
+        // A replay that does not wait for the first exchange — what this
+        // test guards against — finishes here instead, and the assertions
+        // below catch it.
+        wait_for_lock_wait(&pool, "UPDATE authorization_codes", || replay.is_finished()).await;
+        blocker.rollback().await.unwrap();
+
+        let first = first.await.unwrap();
+        let replay = replay.await.unwrap();
+        assert_eq!(first.status(), StatusCode::OK);
+        assert_invalid_grant(replay).await;
+        let grants = grants(&pool).await;
+        assert_eq!(grants.len(), 1, "the replay created nothing");
+        assert!(grants[0].1.is_some(), "the grant is revoked: {grants:?}");
     }
 
     /// The code goes with the account, so a deleted account leaves nothing

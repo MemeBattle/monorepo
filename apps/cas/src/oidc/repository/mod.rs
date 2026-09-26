@@ -1,7 +1,8 @@
 //! Data access for `authorization_codes`, and through [`grants`] for
 //! `grants` and `refresh_tokens`. Every query of the context is under this
-//! directory; the functions take an executor so a service can compose a
-//! transaction out of them.
+//! directory; the functions take an executor — `redeem`, which runs two
+//! statements, a connection — so a service can compose a transaction out of
+//! them.
 
 mod grants;
 
@@ -54,6 +55,10 @@ pub(super) enum Redemption {
     /// The row was redeemed before: a replay. Carries the row's id, which
     /// is how the grant the first redemption produced is found.
     AlreadyRedeemed(Uuid),
+    /// The row was never redeemed and has not expired, but the session that
+    /// authorized it is gone: logout voids the codes it had not yet seen
+    /// used (ADR 0011 (d)).
+    SessionEnded,
 }
 
 /// Inserts a code and returns the row id. `expires_at` is measured by the
@@ -85,37 +90,43 @@ where
     .await
 }
 
-/// Consumes the code with this hash if it is live. The consuming statement
-/// is one atomic `UPDATE`: two concurrent redemptions take the row lock in
-/// turn, and the second re-evaluates `redeemed_at IS NULL` on the row the
-/// first just wrote and matches nothing. The row is kept, so a second
-/// presentation is recognised as a replay (ADR 0010 (e)).
+/// Consumes the code with this hash if it is live: not redeemed, not
+/// expired, and its session not ended. The consuming statement is one atomic
+/// `UPDATE`, and the row lock it takes is held until the caller's
+/// transaction ends: a concurrent redemption waits for it, re-evaluates
+/// `redeemed_at IS NULL` on the row the first one wrote, and matches
+/// nothing. The row is kept, so a second presentation is recognised as a
+/// replay (ADR 0010 (e)) — after the first redemption's transaction, and
+/// what it wrote, has committed (ADR 0011 (f)).
 ///
 /// Only when nothing was consumed does a second query ask why, so the happy
-/// path is one statement.
-pub(super) async fn redeem<'e, E>(
-    executor: E,
+/// path is one statement. Both run on `conn`, the caller's transaction.
+pub(super) async fn redeem(
+    conn: &mut sqlx::PgConnection,
     code_hash: &CodeHash,
-) -> Result<Redemption, sqlx::Error>
-where
-    E: sqlx::PgExecutor<'e> + Copy,
-{
+) -> Result<Redemption, sqlx::Error> {
+    // `session_id!`: the column is nullable (logout unlinks a code rather
+    // than deleting it), but the predicate only consumes a row that still
+    // has its session.
     let row = sqlx::query!(
         r#"UPDATE authorization_codes
            SET redeemed_at = now()
-           WHERE code_hash = $1 AND redeemed_at IS NULL AND expires_at > now()
+           WHERE code_hash = $1
+             AND redeemed_at IS NULL
+             AND expires_at > now()
+             AND session_id IS NOT NULL
            RETURNING
                id,
                client_id AS "client_id: ClientId",
                account_id,
-               session_id,
+               session_id AS "session_id!",
                redirect_uri,
                scopes,
                code_challenge,
                nonce"#,
         code_hash.as_bytes(),
     )
-    .fetch_optional(executor)
+    .fetch_optional(&mut *conn)
     .await?;
 
     if let Some(row) = row {
@@ -133,18 +144,25 @@ where
     }
 
     let found = sqlx::query!(
-        r#"SELECT id, redeemed_at FROM authorization_codes WHERE code_hash = $1"#,
+        r#"SELECT
+               id,
+               redeemed_at IS NOT NULL AS "redeemed!",
+               expires_at <= now() AS "expired!"
+           FROM authorization_codes
+           WHERE code_hash = $1"#,
         code_hash.as_bytes(),
     )
-    .fetch_optional(executor)
+    .fetch_optional(&mut *conn)
     .await?;
 
+    // The `UPDATE` matched nothing, and each of its conditions can only turn
+    // false over time, never back: a row that is neither redeemed nor
+    // expired is one whose session has ended.
     Ok(match found {
         None => Redemption::Unknown,
-        Some(row) => match row.redeemed_at {
-            Some(_) => Redemption::AlreadyRedeemed(row.id),
-            None => Redemption::Expired,
-        },
+        Some(row) if row.redeemed => Redemption::AlreadyRedeemed(row.id),
+        Some(row) if row.expired => Redemption::Expired,
+        Some(_) => Redemption::SessionEnded,
     })
 }
 
@@ -274,6 +292,12 @@ pub(crate) mod tests {
         }
     }
 
+    /// [`redeem`] on a connection of its own, committed as it goes, as the
+    /// repository tests need no transaction around it.
+    async fn redeem_on(pool: &PgPool, hash: &CodeHash) -> Result<Redemption, sqlx::Error> {
+        redeem(&mut pool.acquire().await.unwrap(), hash).await
+    }
+
     pub(crate) fn hash() -> CodeHash {
         AuthorizationCode::generate().unwrap().hash()
     }
@@ -291,7 +315,7 @@ pub(crate) mod tests {
         );
         assert_eq!(before.redeemed_at, None);
 
-        let redeemed = redeem(&pool, &hash).await.unwrap();
+        let redeemed = redeem_on(&pool, &hash).await.unwrap();
 
         assert_eq!(
             redeemed,
@@ -316,11 +340,11 @@ pub(crate) mod tests {
         let id = insert_code(&pool, &fixture, &hash).await;
 
         assert!(matches!(
-            redeem(&pool, &hash).await.unwrap(),
+            redeem_on(&pool, &hash).await.unwrap(),
             Redemption::Redeemed(_)
         ));
         assert_eq!(
-            redeem(&pool, &hash).await.unwrap(),
+            redeem_on(&pool, &hash).await.unwrap(),
             Redemption::AlreadyRedeemed(id)
         );
     }
@@ -339,13 +363,16 @@ pub(crate) mod tests {
         .await
         .unwrap();
 
-        assert_eq!(redeem(&pool, &hash).await.unwrap(), Redemption::Expired);
+        assert_eq!(redeem_on(&pool, &hash).await.unwrap(), Redemption::Expired);
         assert_eq!(times(&pool, id).await.redeemed_at, None);
     }
 
     #[sqlx::test]
     async fn an_unknown_hash_is_unknown(pool: PgPool) {
-        assert_eq!(redeem(&pool, &hash()).await.unwrap(), Redemption::Unknown);
+        assert_eq!(
+            redeem_on(&pool, &hash()).await.unwrap(),
+            Redemption::Unknown
+        );
     }
 
     async fn count(pool: &PgPool) -> i64 {
@@ -356,19 +383,64 @@ pub(crate) mod tests {
             .unwrap()
     }
 
+    /// Logout unlinks the session's codes rather than deleting them: a
+    /// pending one can no longer be redeemed, and a redeemed one stays to
+    /// recognise a replay.
     #[sqlx::test]
-    async fn deleting_the_session_deletes_its_codes(pool: PgPool) {
+    async fn deleting_the_session_voids_a_pending_code_and_keeps_a_redeemed_one(pool: PgPool) {
         let fixture = fixture(&pool).await;
-        insert_code(&pool, &fixture, &hash()).await;
+        let pending = hash();
+        insert_code(&pool, &fixture, &pending).await;
+        let redeemed = hash();
+        let redeemed_id = insert_code(&pool, &fixture, &redeemed).await;
+        assert!(matches!(
+            redeem_on(&pool, &redeemed).await.unwrap(),
+            Redemption::Redeemed(_)
+        ));
 
-        // Unchecked query: see docs/TESTS.md.
+        // Unchecked queries: see docs/TESTS.md.
         sqlx::query("DELETE FROM sessions WHERE id = $1")
             .bind(fixture.session_id)
             .execute(&pool)
             .await
             .unwrap();
+        let linked: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM authorization_codes WHERE session_id IS NOT NULL",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
 
-        assert_eq!(count(&pool).await, 0);
+        assert_eq!(count(&pool).await, 2);
+        assert_eq!(linked, 0);
+        assert_eq!(
+            redeem_on(&pool, &pending).await.unwrap(),
+            Redemption::SessionEnded
+        );
+        assert_eq!(
+            redeem_on(&pool, &redeemed).await.unwrap(),
+            Redemption::AlreadyRedeemed(redeemed_id)
+        );
+    }
+
+    /// Expiry is reported before the ended session: either way the code is
+    /// dead, and the clock is the plainer reason.
+    #[sqlx::test]
+    async fn an_expired_code_of_an_ended_session_is_expired(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let hash = hash();
+        insert_code(&pool, &fixture, &hash).await;
+        // Unchecked queries: see docs/TESTS.md.
+        sqlx::query("UPDATE authorization_codes SET expires_at = now() - interval '1 second'")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sqlx::query("DELETE FROM sessions")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        assert_eq!(redeem_on(&pool, &hash).await.unwrap(), Redemption::Expired);
     }
 
     #[sqlx::test]
@@ -427,7 +499,7 @@ pub(crate) mod tests {
             .await
             .unwrap();
 
-        let error = redeem(&pool, &hash).await.unwrap_err();
+        let error = redeem_on(&pool, &hash).await.unwrap_err();
 
         assert!(
             matches!(&error, sqlx::Error::ColumnDecode { index, .. } if index == "scopes"),
@@ -454,7 +526,7 @@ pub(crate) mod tests {
             .await
             .unwrap();
 
-        let error = redeem(&pool, &hash).await.unwrap_err();
+        let error = redeem_on(&pool, &hash).await.unwrap_err();
 
         assert!(
             matches!(&error, sqlx::Error::ColumnDecode { .. }),

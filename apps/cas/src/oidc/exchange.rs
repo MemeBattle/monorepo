@@ -2,10 +2,11 @@
 //! access token, an ID token and a refresh token, the refresh token under a
 //! new grant. The rules are [`super::token_request`]'s; this is where they
 //! meet the database, in the order ADR 0011 fixes: the client first, then
-//! the grant, then the code, then its verifier. See
+//! the grant, then the code, then its verifier, the last two and the new
+//! grant in one transaction. See
 //! `docs/adr/0011-token-endpoint-and-access-tokens.md`.
 
-use sqlx::PgPool;
+use sqlx::{PgConnection, PgPool};
 use time::OffsetDateTime;
 use uuid::Uuid;
 
@@ -18,7 +19,7 @@ use super::tokens::{
     ACCESS_TOKEN_TYPE, AccessTokenClaims, ID_TOKEN_TYPE, IdTokenClaims, RefreshToken, scope_string,
 };
 use super::{ACCESS_TOKEN_LIFETIME, REFRESH_TOKEN_LIFETIME};
-use crate::accounts::{Account, AccountRepository};
+use crate::accounts::{self, Account};
 use crate::clients::{Client, ClientKind, Scope};
 
 /// What a successful exchange hands the client: the body of RFC 6749 §5.1.
@@ -46,7 +47,6 @@ impl std::fmt::Debug for IssuedTokens {
 #[derive(Debug, Clone)]
 pub struct TokenService {
     authorization: AuthorizationService,
-    accounts: AccountRepository,
     pool: PgPool,
     /// The active key of the set `http::app` loaded (ADR 0009 (d)).
     signing_key: SigningKey,
@@ -58,7 +58,6 @@ impl TokenService {
     pub fn new(pool: PgPool, signing_key: SigningKey, issuer: impl Into<String>) -> Self {
         Self {
             authorization: AuthorizationService::new(pool.clone()),
-            accounts: AccountRepository::new(pool.clone()),
             pool,
             signing_key,
             issuer: issuer.into(),
@@ -103,28 +102,83 @@ impl TokenService {
     }
 
     /// Redeems the code for `client`, checks the verifier, and issues the
-    /// tokens under a new grant.
+    /// tokens under a new grant: one transaction from the redemption to the
+    /// grant, holding the code's row lock throughout (ADR 0011 (f)).
     ///
-    /// The code is consumed before the verifier is checked, so a wrong
-    /// verifier burns it (RFC 7636 §4.6): whoever guessed wrong does not get
-    /// a second try. A code presented again revokes whatever its first
-    /// redemption produced (RFC 6749 §4.1.2).
+    /// The transaction commits whenever the database did not fail, refusals
+    /// included. A code presented with the wrong verifier, client or redirect
+    /// URI stays consumed (RFC 7636 §4.6, RFC 6749 §4.1.3): whoever guessed
+    /// wrong does not get a second try. A code presented again commits the
+    /// revocation of what its first redemption produced (RFC 6749 §4.1.2).
+    /// A database failure rolls everything back, and the code is as it was.
+    ///
+    /// Because the lock is held until the grant is committed, a replay that
+    /// races this exchange waits for it and then finds its grant: the
+    /// revocation cannot run before there is something to revoke.
     async fn exchange_code(
         &self,
         client: &Client,
         grant: CodeGrant,
     ) -> Result<IssuedTokens, TokenError> {
+        // Drawn before the transaction, so that a failure here consumes
+        // nothing.
+        let refresh_token = RefreshToken::generate().map_err(TokenError::Random)?;
+
+        let mut tx = self.pool.begin().await?;
+        let granted = match self
+            .redeem_into_grant(&mut tx, client, &grant, &refresh_token)
+            .await
+        {
+            // Returning drops the transaction, which rolls it back.
+            Err(error @ TokenError::Db(_)) => return Err(error),
+            outcome => {
+                tx.commit().await?;
+                outcome?
+            }
+        };
+        let Granted {
+            code,
+            account,
+            grant_id,
+        } = granted;
+
+        tracing::info!(
+            grant_id = %grant_id,
+            code_id = %code.id,
+            client_id = %client.id,
+            account_id = %account.id,
+            "tokens issued"
+        );
+
+        Ok(self.issue(client, &account, &code.scopes, code.nonce, refresh_token))
+    }
+
+    /// Everything [`Self::exchange_code`] does on its transaction: the
+    /// redemption, the checks after it, and the grant with its first refresh
+    /// token, or the revocation a replay calls for.
+    async fn redeem_into_grant(
+        &self,
+        conn: &mut PgConnection,
+        client: &Client,
+        grant: &CodeGrant,
+        refresh_token: &RefreshToken,
+    ) -> Result<Granted, TokenError> {
         let code = match self
             .authorization
-            .redeem(&grant.code, &client.id, &grant.redirect_uri)
+            .redeem(&mut *conn, &grant.code, &client.id, &grant.redirect_uri)
             .await
         {
             Ok(code) => code,
             Err(RedeemError::AlreadyRedeemed { code_id }) => {
-                self.revoke_replayed(code_id).await?;
+                revoke_replayed(conn, code_id).await?;
                 return Err(TokenError::InvalidGrant(INVALID_CODE));
             }
-            Err(RedeemError::Unknown | RedeemError::Expired | RedeemError::Mismatch) => {
+            Err(
+                RedeemError::Unknown
+                | RedeemError::Expired
+                | RedeemError::SessionEnded
+                | RedeemError::Mismatch,
+            ) => {
                 return Err(TokenError::InvalidGrant(INVALID_CODE));
             }
             Err(RedeemError::Db(error)) => return Err(error.into()),
@@ -141,62 +195,19 @@ impl TokenService {
             ));
         }
 
-        // The code's row goes with its account (ON DELETE CASCADE), so a
-        // missing account here lost a race with that delete.
-        let Some(account) = self.accounts.get(code.account_id).await? else {
+        // The code's row goes with its account (ON DELETE CASCADE), and this
+        // transaction holds its lock, so the account cannot vanish in
+        // between; the check keeps that an invariant rather than an unwrap.
+        let Some(account) = accounts::get(&mut *conn, code.account_id).await? else {
             return Err(TokenError::InvalidGrant("the account no longer exists"));
         };
 
-        let refresh_token = RefreshToken::generate().map_err(TokenError::Random)?;
-        let grant_id = self.store_grant(&code, &refresh_token).await?;
-
-        tracing::info!(
-            grant_id = %grant_id,
-            code_id = %code.id,
-            client_id = %client.id,
-            account_id = %account.id,
-            "tokens issued"
-        );
-
-        Ok(self.issue(client, &account, &code.scopes, code.nonce, refresh_token))
-    }
-
-    /// The grant and its first refresh token, in one transaction: a grant
-    /// without a token, or a token without its grant, is never visible.
-    async fn store_grant(
-        &self,
-        code: &RedeemedCode,
-        refresh_token: &RefreshToken,
-    ) -> Result<Uuid, sqlx::Error> {
-        let mut tx = self.pool.begin().await?;
-        let grant_id = repository::insert_grant(
-            &mut *tx,
-            NewGrant {
-                account_id: code.account_id,
-                client_id: &code.client_id,
-                scopes: &code.scopes,
-                authorization_code_id: Some(code.id),
-                lifetime: REFRESH_TOKEN_LIFETIME,
-            },
-        )
-        .await?;
-        repository::insert_refresh_token(&mut *tx, grant_id, &refresh_token.hash()).await?;
-        tx.commit().await?;
-        Ok(grant_id)
-    }
-
-    /// A replayed code means it leaked, so the grant its first redemption
-    /// created may be in the wrong hands: revoke it, and with it every
-    /// refresh token it holds. Access tokens already issued run out on their
-    /// own, within [`ACCESS_TOKEN_LIFETIME`].
-    async fn revoke_replayed(&self, code_id: Uuid) -> Result<(), sqlx::Error> {
-        let revoked = repository::revoke_grants_by_code(&self.pool, code_id).await?;
-        tracing::warn!(
-            code_id = %code_id,
-            revoked,
-            "grants revoked after an authorization code was replayed"
-        );
-        Ok(())
+        let grant_id = store_grant(conn, &code, refresh_token).await?;
+        Ok(Granted {
+            code,
+            account,
+            grant_id,
+        })
     }
 
     /// Signs the two JWTs. Their times are the process clock, unlike the
@@ -221,6 +232,52 @@ impl TokenService {
             scope: scope_string(scopes),
         }
     }
+}
+
+/// What a successful redemption produced, for the tokens to be signed
+/// once it has committed.
+struct Granted {
+    code: RedeemedCode,
+    account: Account,
+    grant_id: Uuid,
+}
+
+/// The grant and its first refresh token, on the exchange's transaction: a
+/// grant without a token, or a token without its grant, is never visible.
+async fn store_grant(
+    conn: &mut PgConnection,
+    code: &RedeemedCode,
+    refresh_token: &RefreshToken,
+) -> Result<Uuid, sqlx::Error> {
+    let grant_id = repository::insert_grant(
+        &mut *conn,
+        NewGrant {
+            account_id: code.account_id,
+            client_id: &code.client_id,
+            scopes: &code.scopes,
+            authorization_code_id: Some(code.id),
+            lifetime: REFRESH_TOKEN_LIFETIME,
+        },
+    )
+    .await?;
+    repository::insert_refresh_token(&mut *conn, grant_id, &refresh_token.hash()).await?;
+    Ok(grant_id)
+}
+
+/// A replayed code means it leaked, so the grant its first redemption
+/// created may be in the wrong hands: revoke it, and with it every refresh
+/// token it holds. Access tokens already issued run out on their own, within
+/// [`ACCESS_TOKEN_LIFETIME`]. The first redemption has committed by the time
+/// this runs (its row lock is what the replay waited on), so its grant is
+/// there to be found.
+async fn revoke_replayed(conn: &mut PgConnection, code_id: Uuid) -> Result<(), sqlx::Error> {
+    let revoked = repository::revoke_grants_by_code(conn, code_id).await?;
+    tracing::warn!(
+        code_id = %code_id,
+        revoked,
+        "grants revoked after an authorization code was replayed"
+    );
+    Ok(())
 }
 
 /// The claims as JSON. Strings, numbers and uuids always serialise.
