@@ -30,7 +30,9 @@ use webauthn_rs_proto::{
 use crate::accounts::{AccountManagement, DisplayName};
 use crate::config::{Config, SigningKeyPem};
 use crate::http::ApiState;
-use crate::oidc::{AuthorizationService, SigningKeys, TokenService};
+use crate::oidc::{
+    AuthorizationService, EndSessionService, SigningKeys, TokenService, UserInfoService,
+};
 use crate::sessions::http::CookieSettings;
 use crate::sessions::{SessionService, SessionToken};
 use crate::webauthn::addition::AdditionService;
@@ -59,7 +61,17 @@ pub fn test_state_with_cookies(pool: PgPool, cookies: CookieSettings) -> ApiStat
         sessions: SessionService::new(pool.clone()),
         cookies,
         authorization: AuthorizationService::new(pool.clone()),
-        tokens: TokenService::new(pool, test_signing_key(), test_config().issuer),
+        tokens: TokenService::new(pool.clone(), test_signing_key(), test_config().issuer),
+        userinfo: UserInfoService::new(
+            pool.clone(),
+            test_signing_keys().verifying_keys(),
+            test_config().issuer,
+        ),
+        end_session: EndSessionService::new(
+            AuthorizationService::new(pool),
+            test_signing_keys().verifying_keys(),
+            test_config().issuer,
+        ),
         frontend_origin: test_origin(),
     }
 }
@@ -318,12 +330,28 @@ pub const DEV_SIGNING_KEY: &str = include_str!("../dev/signing-key.pem");
 /// ```
 pub const DEV_SIGNING_KEY_KID: &str = "GWP1_U9wKE9l7YVj1GY9QsuFjPhD7zuSgyzfGFhDj6o";
 
+/// The development key set, as `http::app` loads it by default.
+pub fn test_signing_keys() -> SigningKeys {
+    SigningKeys::from_pem(DEV_SIGNING_KEY).expect("the development key is valid")
+}
+
 /// The key the development default signs with, as `http::app` loads it.
 pub fn test_signing_key() -> crate::oidc::SigningKey {
-    SigningKeys::from_pem(DEV_SIGNING_KEY)
-        .expect("the development key is valid")
-        .active()
-        .clone()
+    test_signing_keys().active().clone()
+}
+
+/// A freshly generated P-256 key as PKCS#8 PEM: a key CAS does not
+/// publish, for a token a forger — or a retired key — signed.
+pub fn fresh_signing_key_pem() -> String {
+    use openssl::ec::{EcGroup, EcKey};
+    use openssl::nid::Nid;
+    use openssl::pkey::PKey;
+
+    let group = EcGroup::from_curve_name(Nid::X9_62_PRIME256V1).expect("P-256 is available");
+    let key = PKey::from_ec_key(EcKey::generate(&group).expect("a P-256 key generates"))
+        .expect("an EC key is a PKey");
+    String::from_utf8(key.private_key_to_pem_pkcs8().expect("the key serialises"))
+        .expect("PEM is ASCII")
 }
 
 /// The configuration the router tests build `http::app` from: the

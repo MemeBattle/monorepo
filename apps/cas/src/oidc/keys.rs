@@ -1,14 +1,17 @@
 //! The signing key set: the ES256 keys read from `CAS_SIGNING_KEY`, their
-//! public halves as JWKs, and the compact JWS the active one produces. See
-//! `docs/adr/0009-signing-key-and-discovery.md`.
+//! public halves as JWKs, the compact JWS the active one produces, and the
+//! strict verification of a JWS CAS itself issued. See
+//! `docs/adr/0009-signing-key-and-discovery.md` and
+//! `docs/adr/0013-userinfo-and-rp-initiated-logout.md`.
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use openssl::bn::{BigNum, BigNumContext};
+use openssl::ec::EcKey;
 use openssl::ecdsa::EcdsaSig;
 use openssl::hash::MessageDigest;
 use openssl::nid::Nid;
-use openssl::pkey::{PKey, Private};
-use openssl::sign::Signer;
+use openssl::pkey::{PKey, Private, Public};
+use openssl::sign::{Signer, Verifier};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
@@ -71,6 +74,9 @@ pub struct Jwks {
 pub struct SigningKey {
     kid: String,
     pkey: PKey<Private>,
+    /// The public half, for [`VerifyingKeys`]; derived once when the key is
+    /// read, so the PEM is never parsed twice.
+    public: PKey<Public>,
     jwk: PublicJwk,
 }
 
@@ -141,6 +147,7 @@ impl SigningKey {
 pub struct SigningKeys {
     active: SigningKey,
     published: Vec<PublicJwk>,
+    verifying: VerifyingKeys,
 }
 
 impl SigningKeys {
@@ -152,19 +159,26 @@ impl SigningKeys {
     pub fn from_pem(pem: &str) -> Result<Self, SigningKeyError> {
         let blocks = pem_blocks(pem)?;
 
-        let mut keys = blocks
+        let keys = blocks
             .iter()
             .enumerate()
             .map(|(position, block)| read_key(position + 1, block))
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter();
+            .collect::<Result<Vec<_>, _>>()?;
 
-        let active = keys.next().ok_or(SigningKeyError::NoKey)?;
-        let published = std::iter::once(active.jwk.clone())
-            .chain(keys.map(|key| key.jwk))
-            .collect();
+        let published = keys.iter().map(|key| key.jwk.clone()).collect();
+        let verifying = VerifyingKeys {
+            keys: keys
+                .iter()
+                .map(|key| (key.kid.clone(), key.public.clone()))
+                .collect(),
+        };
+        let active = keys.into_iter().next().ok_or(SigningKeyError::NoKey)?;
 
-        Ok(Self { active, published })
+        Ok(Self {
+            active,
+            published,
+            verifying,
+        })
     }
 
     /// The key that signs.
@@ -181,6 +195,149 @@ impl SigningKeys {
         Jwks {
             keys: self.published.clone(),
         }
+    }
+
+    /// The public halves of every published key, for CAS to verify the
+    /// tokens it issued: a token signed by a key that is still published
+    /// verifies, so a rotation does not invalidate what the old key signed
+    /// (ADR 0013 (a)).
+    pub fn verifying_keys(&self) -> VerifyingKeys {
+        self.verifying.clone()
+    }
+}
+
+/// Why a compact JWS was not accepted. The variants tell a test and a log
+/// line what failed; a caller answers all of them the same way, and none of
+/// them carries anything of the token.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum JwsError {
+    /// Not three non-empty base64url segments, or a header that is not a
+    /// JSON object.
+    #[error("the token is not a compact JWS")]
+    Malformed,
+
+    /// `alg` is not ES256, `none` included.
+    #[error("the token is not signed with ES256")]
+    Algorithm,
+
+    /// `typ` is not the one expected here: an ID token presented as an
+    /// access token, or the other way round.
+    #[error("the token is of another type")]
+    Type,
+
+    /// A header member that points at another key or asks for an
+    /// extension CAS does not implement.
+    #[error("the token header carries a member CAS does not honour")]
+    ForbiddenHeader,
+
+    /// `kid` missing or not a published key.
+    #[error("the token names no published key")]
+    UnknownKey,
+
+    /// The signature is not 64 bytes, or does not verify.
+    #[error("the token signature does not verify")]
+    Signature,
+}
+
+/// Header members that are refused rather than ignored. `jku`, `jwk`,
+/// `x5u` and `x5c` name or carry a key other than the published ones (RFC
+/// 8725 §3.10); `crit` lists extensions the recipient must understand, and
+/// CAS understands none (RFC 7515 §4.1.11).
+const FORBIDDEN_HEADER_MEMBERS: [&str; 5] = ["crit", "jku", "jwk", "x5u", "x5c"];
+
+/// The public half of every published key, by `kid`, the active key first.
+/// What CAS verifies its own tokens with: the userinfo access token and the
+/// logout hint. `Debug` prints the `kid`s only.
+#[derive(Clone)]
+pub struct VerifyingKeys {
+    keys: Vec<(String, PKey<Public>)>,
+}
+
+impl std::fmt::Debug for VerifyingKeys {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list()
+            .entries(self.keys.iter().map(|(kid, _)| kid))
+            .finish()
+    }
+}
+
+impl VerifyingKeys {
+    /// Verifies a compact JWS CAS signed and returns its payload, the bytes
+    /// as signed. Strict, because the only tokens it has to accept are the
+    /// ones [`SigningKey::sign`] writes: three non-empty base64url segments
+    /// without padding, a header object whose `alg` is ES256 and whose
+    /// `typ` is exactly `typ`, a `kid` that is published, none of
+    /// [`FORBIDDEN_HEADER_MEMBERS`], and a 64-byte `r || s` signature that
+    /// verifies under that key. The payload is not interpreted here.
+    pub fn verify(&self, jws: &str, typ: &str) -> Result<Vec<u8>, JwsError> {
+        let mut segments = jws.split('.');
+        let (Some(header), Some(payload), Some(signature), None) = (
+            segments.next(),
+            segments.next(),
+            segments.next(),
+            segments.next(),
+        ) else {
+            return Err(JwsError::Malformed);
+        };
+        if header.is_empty() || payload.is_empty() || signature.is_empty() {
+            return Err(JwsError::Malformed);
+        }
+
+        let header_bytes = URL_SAFE_NO_PAD
+            .decode(header)
+            .map_err(|_| JwsError::Malformed)?;
+        let serde_json::Value::Object(members) =
+            serde_json::from_slice(&header_bytes).map_err(|_| JwsError::Malformed)?
+        else {
+            return Err(JwsError::Malformed);
+        };
+        if members.get("alg").and_then(|alg| alg.as_str()) != Some(SIGNING_ALGORITHM) {
+            return Err(JwsError::Algorithm);
+        }
+        if members.get("typ").and_then(|value| value.as_str()) != Some(typ) {
+            return Err(JwsError::Type);
+        }
+        if FORBIDDEN_HEADER_MEMBERS
+            .iter()
+            .any(|name| members.contains_key(*name))
+        {
+            return Err(JwsError::ForbiddenHeader);
+        }
+        let kid = members.get("kid").and_then(|kid| kid.as_str());
+        let (_, key) = self
+            .keys
+            .iter()
+            .find(|(candidate, _)| Some(candidate.as_str()) == kid)
+            .ok_or(JwsError::UnknownKey)?;
+
+        let payload_bytes = URL_SAFE_NO_PAD
+            .decode(payload)
+            .map_err(|_| JwsError::Malformed)?;
+        let raw = URL_SAFE_NO_PAD
+            .decode(signature)
+            .map_err(|_| JwsError::Malformed)?;
+        let field = P256_FIELD_BYTES as usize;
+        if raw.len() != 2 * field {
+            return Err(JwsError::Signature);
+        }
+
+        // JWS `r || s` back to the DER `ECDSA-Sig-Value` OpenSSL verifies
+        // (JWA §3.4), the inverse of what `sign` does.
+        let der = BigNum::from_slice(&raw[..field])
+            .and_then(|r| Ok((r, BigNum::from_slice(&raw[field..])?)))
+            .and_then(|(r, s)| EcdsaSig::from_private_components(r, s))
+            .and_then(|signature| signature.to_der())
+            .map_err(|_| JwsError::Signature)?;
+        let signing_input_length = header.len() + 1 + payload.len();
+        let signing_input = &jws.as_bytes()[..signing_input_length];
+        let verified = Verifier::new(MessageDigest::sha256(), key)
+            .and_then(|mut verifier| verifier.verify_oneshot(&der, signing_input))
+            .unwrap_or(false);
+        if !verified {
+            return Err(JwsError::Signature);
+        }
+
+        Ok(payload_bytes)
     }
 }
 
@@ -283,6 +440,9 @@ fn read_key(index: usize, block: &PemBlock<'_>) -> Result<SigningKey, SigningKey
 
     let (x, y) = affine_coordinates(&ec_key).ok_or(SigningKeyError::Inconsistent { index })?;
     let kid = thumbprint(&x, &y);
+    let public = EcKey::from_public_key(group, ec_key.public_key())
+        .and_then(PKey::from_ec_key)
+        .map_err(|_| SigningKeyError::Inconsistent { index })?;
     let jwk = PublicJwk {
         kty: "EC",
         crv: "P-256",
@@ -293,7 +453,12 @@ fn read_key(index: usize, block: &PemBlock<'_>) -> Result<SigningKey, SigningKey
         alg: SIGNING_ALGORITHM,
     };
 
-    Ok(SigningKey { kid, pkey, jwk })
+    Ok(SigningKey {
+        kid,
+        pkey,
+        public,
+        jwk,
+    })
 }
 
 /// The public point's coordinates, each 32 bytes, base64url without padding.
@@ -323,9 +488,8 @@ fn thumbprint(x: &str, y: &str) -> String {
 mod tests {
     use super::*;
     use crate::testing::{DEV_SIGNING_KEY as DEV_KEY, DEV_SIGNING_KEY_KID as DEV_KEY_KID};
-    use openssl::ec::{EcGroup, EcKey};
+    use openssl::ec::EcGroup;
     use openssl::rsa::Rsa;
-    use openssl::sign::Verifier;
     use openssl::symm::Cipher;
 
     fn p256() -> EcGroup {
@@ -592,6 +756,260 @@ mod tests {
                 .verify_oneshot(&der, signing_input.as_bytes())
                 .unwrap()
         );
+    }
+
+    fn dev_keys() -> SigningKeys {
+        SigningKeys::from_pem(DEV_KEY).unwrap()
+    }
+
+    /// A compact JWS with a header of the test's choosing, signed by `key`
+    /// as `sign` would sign it: what a forger with a key of their own, or a
+    /// buggy issuer, would produce.
+    fn forge(key: &SigningKey, header: serde_json::Value, payload: &[u8]) -> String {
+        let signing_input = format!(
+            "{}.{}",
+            URL_SAFE_NO_PAD.encode(header.to_string()),
+            URL_SAFE_NO_PAD.encode(payload)
+        );
+        let mut signer = Signer::new(MessageDigest::sha256(), &key.pkey).unwrap();
+        let der = signer
+            .sign_oneshot_to_vec(signing_input.as_bytes())
+            .unwrap();
+        let signature = EcdsaSig::from_der(&der).unwrap();
+        let mut raw = signature.r().to_vec_padded(P256_FIELD_BYTES).unwrap();
+        raw.extend(signature.s().to_vec_padded(P256_FIELD_BYTES).unwrap());
+        format!("{signing_input}.{}", URL_SAFE_NO_PAD.encode(raw))
+    }
+
+    fn header(typ: &str, kid: &str) -> serde_json::Value {
+        serde_json::json!({"alg": "ES256", "typ": typ, "kid": kid})
+    }
+
+    #[test]
+    fn a_token_signed_by_the_active_key_verifies_back_to_its_payload() {
+        let keys = dev_keys();
+        let jws = keys.active().sign("at+jwt", br#"{"sub":"ada"}"#);
+
+        assert_eq!(
+            keys.verifying_keys().verify(&jws, "at+jwt"),
+            Ok(br#"{"sub":"ada"}"#.to_vec())
+        );
+    }
+
+    /// `typ` is what keeps an ID token from passing as an access token and
+    /// the other way round, so it is compared exactly.
+    #[test]
+    fn a_token_of_another_type_is_refused() {
+        let keys = dev_keys();
+        let verifying = keys.verifying_keys();
+
+        let id_token = keys.active().sign("JWT", b"{}");
+        assert_eq!(verifying.verify(&id_token, "at+jwt"), Err(JwsError::Type));
+        let access_token = keys.active().sign("at+jwt", b"{}");
+        assert_eq!(verifying.verify(&access_token, "JWT"), Err(JwsError::Type));
+        let upper = keys.active().sign("AT+JWT", b"{}");
+        assert_eq!(verifying.verify(&upper, "at+jwt"), Err(JwsError::Type));
+
+        let untyped = forge(
+            keys.active(),
+            serde_json::json!({"alg": "ES256", "kid": DEV_KEY_KID}),
+            b"{}",
+        );
+        assert_eq!(verifying.verify(&untyped, "JWT"), Err(JwsError::Type));
+    }
+
+    #[test]
+    fn another_algorithm_is_refused_none_included() {
+        let keys = dev_keys();
+        let verifying = keys.verifying_keys();
+        let payload = URL_SAFE_NO_PAD.encode(b"{}");
+
+        for alg in ["none", "HS256", "RS256", "ES384", "es256"] {
+            let header = URL_SAFE_NO_PAD.encode(
+                serde_json::json!({"alg": alg, "typ": "JWT", "kid": DEV_KEY_KID}).to_string(),
+            );
+            // An unsigned token, as `alg: none` would carry, and one with a
+            // signature of the right size.
+            for signature in ["", &URL_SAFE_NO_PAD.encode([7u8; 64])] {
+                let jws = format!("{header}.{payload}.{signature}");
+                assert!(verifying.verify(&jws, "JWT").is_err(), "{alg} {jws}");
+            }
+            let jws = format!("{header}.{payload}.{}", URL_SAFE_NO_PAD.encode([7u8; 64]));
+            assert_eq!(
+                verifying.verify(&jws, "JWT"),
+                Err(JwsError::Algorithm),
+                "{alg}"
+            );
+        }
+
+        let signed_as_hs256 = forge(
+            keys.active(),
+            serde_json::json!({"alg": "HS256", "typ": "JWT", "kid": DEV_KEY_KID}),
+            b"{}",
+        );
+        assert_eq!(
+            verifying.verify(&signed_as_hs256, "JWT"),
+            Err(JwsError::Algorithm)
+        );
+    }
+
+    #[test]
+    fn a_key_that_is_not_published_is_refused() {
+        let verifying = dev_keys().verifying_keys();
+        let other = SigningKeys::from_pem(&fresh_p256_pem()).unwrap();
+
+        let jws = other.active().sign("JWT", b"{}");
+        assert_eq!(verifying.verify(&jws, "JWT"), Err(JwsError::UnknownKey));
+
+        let without_kid = forge(
+            dev_keys().active(),
+            serde_json::json!({"alg": "ES256", "typ": "JWT"}),
+            b"{}",
+        );
+        assert_eq!(
+            verifying.verify(&without_kid, "JWT"),
+            Err(JwsError::UnknownKey)
+        );
+    }
+
+    /// A forger who copies the published `kid` into a token signed with
+    /// their own key gains nothing: the signature is checked under the key
+    /// the `kid` names.
+    #[test]
+    fn a_token_signed_by_another_key_under_a_published_kid_is_refused() {
+        let verifying = dev_keys().verifying_keys();
+        let other = SigningKeys::from_pem(&fresh_p256_pem()).unwrap();
+
+        let jws = forge(other.active(), header("JWT", DEV_KEY_KID), b"{}");
+
+        assert_eq!(verifying.verify(&jws, "JWT"), Err(JwsError::Signature));
+    }
+
+    #[test]
+    fn a_tampered_payload_or_signature_is_refused() {
+        let keys = dev_keys();
+        let verifying = keys.verifying_keys();
+        let jws = keys.active().sign("JWT", br#"{"sub":"ada"}"#);
+        let [header, _, signature] = jws.split('.').collect::<Vec<_>>()[..] else {
+            unreachable!()
+        };
+
+        let other_payload = URL_SAFE_NO_PAD.encode(br#"{"sub":"eve"}"#);
+        let tampered = format!("{header}.{other_payload}.{signature}");
+        assert_eq!(verifying.verify(&tampered, "JWT"), Err(JwsError::Signature));
+
+        let mut raw = URL_SAFE_NO_PAD.decode(signature).unwrap();
+        raw[10] ^= 0x01;
+        let flipped =
+            jws.rsplit_once('.').unwrap().0.to_owned() + "." + &URL_SAFE_NO_PAD.encode(&raw);
+        assert_eq!(verifying.verify(&flipped, "JWT"), Err(JwsError::Signature));
+    }
+
+    #[test]
+    fn a_signature_of_the_wrong_length_is_refused() {
+        let keys = dev_keys();
+        let verifying = keys.verifying_keys();
+        let jws = keys.active().sign("JWT", b"{}");
+        let (signing_input, signature) = jws.rsplit_once('.').unwrap();
+        let raw = URL_SAFE_NO_PAD.decode(signature).unwrap();
+
+        let short = format!("{signing_input}.{}", URL_SAFE_NO_PAD.encode(&raw[..63]));
+        assert_eq!(verifying.verify(&short, "JWT"), Err(JwsError::Signature));
+
+        let mut longer = raw.clone();
+        longer.push(0);
+        let long = format!("{signing_input}.{}", URL_SAFE_NO_PAD.encode(&longer));
+        assert_eq!(verifying.verify(&long, "JWT"), Err(JwsError::Signature));
+    }
+
+    #[test]
+    fn anything_but_three_non_empty_base64url_segments_is_malformed() {
+        let keys = dev_keys();
+        let verifying = keys.verifying_keys();
+        let jws = keys.active().sign("JWT", b"{}");
+        let (header, rest) = jws.split_once('.').unwrap();
+        let (payload, signature) = rest.split_once('.').unwrap();
+
+        for candidate in [
+            String::new(),
+            format!("{header}.{payload}"),
+            format!("{jws}.{signature}"),
+            format!("{header}..{signature}"),
+            format!(".{payload}.{signature}"),
+            format!("{header}.{payload}="),
+            format!("{header}=.{payload}.{signature}"),
+            format!("{header}.{payload}.{signature}="),
+            format!("{}.{payload}.{signature}", URL_SAFE_NO_PAD.encode("[1]")),
+            format!(
+                "{}.{payload}.{signature}",
+                URL_SAFE_NO_PAD.encode("not json")
+            ),
+        ] {
+            assert_eq!(
+                verifying.verify(&candidate, "JWT"),
+                Err(JwsError::Malformed),
+                "{candidate}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_header_that_points_at_another_key_is_refused() {
+        let keys = dev_keys();
+        let verifying = keys.verifying_keys();
+
+        for (name, value) in [
+            ("crit", serde_json::json!(["exp"])),
+            ("jku", serde_json::json!("https://evil.example/jwks.json")),
+            ("jwk", serde_json::to_value(keys.active().jwk()).unwrap()),
+            ("x5u", serde_json::json!("https://evil.example/cert.pem")),
+            ("x5c", serde_json::json!(["MIIB"])),
+        ] {
+            let mut header = header("JWT", DEV_KEY_KID);
+            header[name] = value;
+            let jws = forge(keys.active(), header, b"{}");
+
+            assert_eq!(
+                verifying.verify(&jws, "JWT"),
+                Err(JwsError::ForbiddenHeader),
+                "{name}"
+            );
+        }
+    }
+
+    /// Rotation: a token signed by the key that used to be active verifies
+    /// for as long as that key is still published, second in the list.
+    #[test]
+    fn a_token_of_a_key_published_second_verifies() {
+        let new = fresh_p256_pem();
+        let before = dev_keys();
+        let after = SigningKeys::from_pem(&format!("{new}{DEV_KEY}")).unwrap();
+        let jws = before.active().sign("JWT", b"{}");
+
+        assert_ne!(after.active().kid(), DEV_KEY_KID);
+        assert_eq!(
+            after.verifying_keys().verify(&jws, "JWT"),
+            Ok(b"{}".to_vec())
+        );
+        let fresh = after.active().sign("JWT", b"{}");
+        assert_eq!(
+            after.verifying_keys().verify(&fresh, "JWT"),
+            Ok(b"{}".to_vec())
+        );
+    }
+
+    #[test]
+    fn no_verification_error_quotes_the_token() {
+        let keys = dev_keys();
+        let jws = keys.active().sign("JWT", br#"{"email":"ada@example.com"}"#);
+
+        let error = keys.verifying_keys().verify(&jws, "at+jwt").unwrap_err();
+
+        let text = format!("{error} {error:?}");
+        assert!(!text.contains("ada"), "{text}");
+        for segment in jws.split('.') {
+            assert!(!text.contains(segment), "{text}");
+        }
     }
 
     #[test]

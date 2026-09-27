@@ -66,6 +66,11 @@ impl Params {
         Ok(first.filter(|value| !value.is_empty()))
     }
 
+    /// Whether the request carried no parameters at all.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     /// The first value of `name` as sent, empty or repeated, for a log line
     /// about a request that is being refused.
     pub fn first_raw(&self, name: &str) -> Option<&str> {

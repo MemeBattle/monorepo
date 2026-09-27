@@ -3,6 +3,11 @@
 ## Status
 
 Accepted (2026-09-26), with [#741](https://github.com/MemeBattle/monorepo/issues/741).
+Amended (2026-09-27) by ADR 0013, with [#745](https://github.com/MemeBattle/monorepo/issues/745):
+CAS now verifies its own tokens against every published key, and an
+expired ID token stays a valid logout hint, so step 4 of the rotation in
+(d) drops the old key only once every token it signed has expired and
+thirty days — the session cap — have passed since it stopped signing.
 
 ## Context
 

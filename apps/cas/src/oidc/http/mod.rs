@@ -1,11 +1,15 @@
 //! The OIDC context's wire surface: the two static documents (ADR 0009
-//! (e)), the authorization endpoint (ADR 0010) and the token endpoint
-//! (ADR 0011), all served from the router root outside `/api`. The
-//! documents have state of their own, the endpoints `ApiState`, so each
-//! has its own router.
+//! (e)), the authorization endpoint (ADR 0010), the token endpoint (ADR
+//! 0011), and userinfo and RP-initiated logout (ADR 0013), all served from
+//! the router root outside `/api`. The documents have state of their own,
+//! the endpoints `ApiState`, so each has its own router. `/userinfo` also
+//! has a CORS policy of its own, which the transport root applies.
 
 pub mod authorize;
+pub mod end_session;
+mod page;
 pub mod token;
+pub mod userinfo;
 
 use axum::{
     Json, Router,
@@ -18,7 +22,9 @@ use tower_http::set_header::SetResponseHeaderLayer;
 use crate::oidc::{Discovery, Jwks};
 
 pub use authorize::authorize_router;
+pub use end_session::end_session_router;
 pub use token::token_router;
+pub use userinfo::{userinfo_cors, userinfo_router};
 
 /// Both documents, built once at startup: they change only when the process
 /// is restarted with another issuer or another key list.

@@ -18,8 +18,9 @@ use axum::{
     routing::get,
 };
 use tower_http::set_header::SetResponseHeaderLayer;
-use url::{Url, form_urlencoded};
+use url::Url;
 
+use super::page::{ErrorPage, found, redirect_with};
 use crate::db::Failure;
 use crate::http::ApiState;
 use crate::oidc::authorization::{self, AuthorizeRequest, OAuthError, PageError, Params};
@@ -177,15 +178,7 @@ impl Back<'_> {
     /// `&` when the registered URI already has one, `?` otherwise (RFC 6749
     /// §4.1.2).
     fn redirect(&self, pairs: &[(&str, &str)]) -> Response {
-        let query = form_urlencoded::Serializer::new(String::new())
-            .extend_pairs(pairs)
-            .finish();
-        let separator = if self.redirect_uri.contains('?') {
-            '&'
-        } else {
-            '?'
-        };
-        found(&format!("{}{separator}{query}", self.redirect_uri))
+        redirect_with(self.redirect_uri, pairs)
     }
 }
 
@@ -207,30 +200,10 @@ fn sign_in(frontend_origin: &Url, uri: &axum::http::Uri) -> Response {
     found(location.as_str())
 }
 
-fn found(location: &str) -> Response {
-    match HeaderValue::from_str(location) {
-        Ok(location) => (StatusCode::FOUND, [(header::LOCATION, location)]).into_response(),
-        // A registered redirect URI is validated ASCII and every appended
-        // value is percent-encoded, so this is a bug, not a request to
-        // name.
-        Err(error) => {
-            tracing::error!(error = %error, "a redirect location is not a header value");
-            ErrorPage::INTERNAL.into_response()
-        }
-    }
-}
-
 /// A pre-redirect failure, logged and rendered. `client_id` is the value as
 /// sent, if any.
 fn page(error: PageError, client_id: Option<&str>) -> Response {
-    let page = match error {
-        PageError::UnknownClient => ErrorPage::UNKNOWN_CLIENT,
-        PageError::InvalidRedirectUri => ErrorPage::INVALID_REDIRECT_URI,
-        PageError::MalformedRequest(description) => ErrorPage {
-            description,
-            ..ErrorPage::INVALID_REQUEST
-        },
-    };
+    let page = ErrorPage::for_error(error);
     let client_id = client_id.map(|value| {
         value
             .chars()
@@ -251,95 +224,9 @@ fn page(error: PageError, client_id: Option<&str>) -> Response {
 /// A database failure while the client is looked up: before the redirect
 /// URI is trusted, so a page, like every other failure there.
 fn database_page(error: sqlx::Error) -> Response {
-    let page = match crate::db::classify(&error) {
-        Some(Failure::Unavailable | Failure::Busy) => ErrorPage::SERVICE_UNAVAILABLE,
-        None => ErrorPage::INTERNAL,
-    };
+    let page = ErrorPage::for_database(&error);
     tracing::error!(code = page.code, source = ?error, "authorization request failed");
     page.into_response()
-}
-
-/// CAS's own answer to a request it cannot send back to the client: a
-/// minimal document of fixed strings. Nothing from the request is rendered,
-/// so no escaping question arises.
-#[derive(Debug, Clone, Copy)]
-struct ErrorPage {
-    status: StatusCode,
-    code: &'static str,
-    title: &'static str,
-    description: &'static str,
-}
-
-impl ErrorPage {
-    const UNKNOWN_CLIENT: Self = Self {
-        status: StatusCode::BAD_REQUEST,
-        code: "unknown_client",
-        title: "Unknown application",
-        description: "The application that sent you here is not registered with this service.",
-    };
-
-    const INVALID_REDIRECT_URI: Self = Self {
-        status: StatusCode::BAD_REQUEST,
-        code: "invalid_redirect_uri",
-        title: "Invalid return address",
-        description: "The application that sent you here asked to return to an address it has not registered.",
-    };
-
-    const INVALID_REQUEST: Self = Self {
-        status: StatusCode::BAD_REQUEST,
-        code: "invalid_request",
-        title: "Invalid request",
-        description: "The request is malformed.",
-    };
-
-    const SERVICE_UNAVAILABLE: Self = Self {
-        status: StatusCode::SERVICE_UNAVAILABLE,
-        code: "service_unavailable",
-        title: "Service unavailable",
-        description: "The service is temporarily unavailable. Try again later.",
-    };
-
-    const INTERNAL: Self = Self {
-        status: StatusCode::INTERNAL_SERVER_ERROR,
-        code: "internal",
-        title: "Something went wrong",
-        description: "The service could not handle the request.",
-    };
-}
-
-impl IntoResponse for ErrorPage {
-    fn into_response(self) -> Response {
-        let Self {
-            status,
-            code,
-            title,
-            description,
-        } = self;
-        let body = format!(
-            "<!doctype html>\n\
-             <html lang=\"en\">\n\
-             <head>\n\
-             <meta charset=\"utf-8\">\n\
-             <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
-             <title>{title}</title>\n\
-             </head>\n\
-             <body>\n\
-             <h1>{title}</h1>\n\
-             <p>{description}</p>\n\
-             <p>Error code: <code>{code}</code></p>\n\
-             </body>\n\
-             </html>\n"
-        );
-        (
-            status,
-            [(
-                header::CONTENT_TYPE,
-                HeaderValue::from_static("text/html; charset=utf-8"),
-            )],
-            body,
-        )
-            .into_response()
-    }
 }
 
 #[cfg(test)]
@@ -351,6 +238,7 @@ mod tests {
     use sqlx::PgPool;
     use sqlx::postgres::PgPoolOptions;
     use tower::ServiceExt;
+    use url::form_urlencoded;
     use uuid::Uuid;
 
     use super::*;

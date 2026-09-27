@@ -28,11 +28,12 @@ use crate::oidc::{IssuedTokens, Params, TokenError};
 /// The largest body a token request may have. The longest legitimate one —
 /// a code, a verifier of 128 characters, a redirect URI and a client's
 /// credentials — is well under a kilobyte; the bound is what stops a
-/// client from making CAS buffer anything larger.
-const MAX_BODY_BYTES: usize = 8 * 1024;
+/// client from making CAS buffer anything larger. `POST /end_session` reads
+/// its form within the same bound.
+pub(super) const MAX_BODY_BYTES: usize = 8 * 1024;
 
 /// RFC 6749 §3.2: the token endpoint takes a form.
-const FORM_CONTENT_TYPE: &str = "application/x-www-form-urlencoded";
+pub(super) const FORM_CONTENT_TYPE: &str = "application/x-www-form-urlencoded";
 
 /// What a client that tried the `Basic` scheme is told (RFC 6749 §5.2,
 /// RFC 7617 §2).
@@ -90,7 +91,7 @@ async fn exchange(
 
 /// Whether the media type is a form, whatever its parameters (a `charset`
 /// is common and harmless).
-fn is_form(headers: &HeaderMap) -> bool {
+pub(super) fn is_form(headers: &HeaderMap) -> bool {
     headers
         .get(header::CONTENT_TYPE)
         .and_then(|value| value.to_str().ok())

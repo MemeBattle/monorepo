@@ -39,13 +39,13 @@ Rotation, one deploy per step:
 1. Append the new key after the current one: it is published, not yet signing.
 2. Wait for caches — the discovery document and the JWKS are cached for an hour, and resource servers keep their own JWKS cache.
 3. Move the new key first: it signs from now on, the old one stays published.
-4. Once every token the old key signed has expired, drop the old key.
+4. Once every token the old key signed has expired **and 30 days have passed since it stopped signing**, drop the old key. An ID token stays a valid logout hint for as long as the session it names can live, so CAS keeps verifying it with the old key until then (see [docs/adr/0013-userinfo-and-rp-initiated-logout.md](./docs/adr/0013-userinfo-and-rp-initiated-logout.md)).
 
 The active `kid` and the number of published keys are logged at startup.
 
 ## OIDC discovery
 
-`GET /.well-known/openid-configuration` and `GET /jwks.json` are served at the root, outside `/api`. The discovery document already lists the endpoints later tickets add; until they land, those paths answer 404. See [docs/adr/0009-signing-key-and-discovery.md](./docs/adr/0009-signing-key-and-discovery.md).
+`GET /.well-known/openid-configuration` and `GET /jwks.json` are served at the root, outside `/api`. The discovery document already lists what later tickets add: the guest grant, which `/token` refuses until it lands. See [docs/adr/0009-signing-key-and-discovery.md](./docs/adr/0009-signing-key-and-discovery.md).
 
 ## Authorization endpoint
 
@@ -62,6 +62,21 @@ The active `kid` and the number of published keys are logged at startup.
 A refresh is `grant_type=refresh_token` with the `refresh_token` and an optional `scope`, with the same client authentication. The answer is the same set — a new access token, a new ID token (without `nonce`) and a **new** refresh token — for the grant's full scopes: a `scope` may repeat or narrow the grant's (it is then ignored) but not widen it. Every refresh retires the token it presents; presenting a retired token again is treated as theft and revokes the grant, so the token the rotation issued stops working too and the user signs in again. A client must therefore never refresh the same token twice concurrently. Signing out of CAS does not end a grant, and no refresh moves its 30-day cap. See [docs/adr/0012-refresh-token-rotation.md](./docs/adr/0012-refresh-token-rotation.md).
 
 Errors are RFC 6749 JSON, `{"error": "...", "error_description": "..."}`: `invalid_client` (401) for a client that fails to authenticate, `invalid_grant` for a code that is unknown, expired, already used, voided by signing out of CAS before it was redeemed, issued to another client or redirect URI, or presented with the wrong verifier — the first presentation that gets past client authentication spends the code, and presenting it again revokes the grant it produced, even after the account has signed out — and for a refresh token that is unknown, expired, revoked, already used or issued to another client, `invalid_scope` for a refresh that asks for more than its grant, and `invalid_request` or `unsupported_grant_type` for a malformed request. See [docs/adr/0011-token-endpoint-and-access-tokens.md](./docs/adr/0011-token-endpoint-and-access-tokens.md).
+
+## Userinfo endpoint
+
+`GET` or `POST /userinfo` (at the root, e.g. `http://localhost:3000/userinfo`) answers the claims of the account an access token was issued for, as they are now: `sub` and `account_type` always, `name` with the `profile` scope, and `email` with `email_verified: false` with the `email` scope when the account has an address. The token goes in an `Authorization: Bearer <access token>` header, never in the query or the body. Any unexpired access token CAS issued with the `openid` scope is accepted, whatever its `aud`; a revoked grant's token still reads userinfo until it expires. Errors follow RFC 6750: no Bearer header is `401` with a bare `WWW-Authenticate: Bearer`, a malformed header `400 invalid_request`, an invalid or expired token `401 invalid_token`, a token without `openid` `403 insufficient_scope`, each with the code in the challenge and in a JSON body. Answers are `Cache-Control: no-store`. `/userinfo` is the one route open to any origin through CORS (no credentials, the `Authorization` header allowed), so a browser application can call it with a token it holds; `/token` stays backend-to-backend. See [docs/adr/0013-userinfo-and-rp-initiated-logout.md](./docs/adr/0013-userinfo-and-rp-initiated-logout.md).
+
+## End session (RP-initiated logout)
+
+`GET /end_session` (or `POST` with an `application/x-www-form-urlencoded` body) signs the browser out of CAS and sends it back to the application. Parameters:
+
+- `id_token_hint` — **required**: an ID token CAS issued to the client, expired or not.
+- `client_id` — optional; if sent, it must be the hint's `aud`.
+- `post_logout_redirect_uri` — optional; must be one the client registered (`cas-client register --post-logout-redirect-uri`), exact match. Without it the browser goes to the CAS frontend's root.
+- `state` — optional; appended to `post_logout_redirect_uri`.
+
+A request that fails any check — missing or invalid hint, mismatched `client_id`, unknown client, unregistered `post_logout_redirect_uri`, a repeated parameter — gets an HTML error page from CAS, never a redirect, and ends nothing. A valid request ends the CAS session the cookie names only if it belongs to the hint's account; a session of another account is left alone, and the browser is redirected either way. The response clears the cookie and sends `Clear-Site-Data: "cache", "storage"` when a session was ended. Grants and refresh tokens are untouched: the application drops its own tokens. The session cookie is `SameSite=Lax`, so an application on another site must use `GET` (a top-level navigation): a cross-site form `POST` reaches CAS without the cookie and ends nothing. See [docs/adr/0013-userinfo-and-rp-initiated-logout.md](./docs/adr/0013-userinfo-and-rp-initiated-logout.md).
 
 ## Database (local dev)
 
