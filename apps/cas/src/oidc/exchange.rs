@@ -1,10 +1,14 @@
-//! The token endpoint's use case: exchanging an authorization code for an
+//! The token endpoint's use cases: exchanging an authorization code for an
 //! access token, an ID token and a refresh token, the refresh token under a
-//! new grant. The rules are [`super::token_request`]'s; this is where they
-//! meet the database, in the order ADR 0011 fixes: the client first, then
-//! the grant, then the code, then its verifier, the last two and the new
-//! grant in one transaction. See
-//! `docs/adr/0011-token-endpoint-and-access-tokens.md`.
+//! new grant; and refreshing, which retires the presented refresh token and
+//! issues the set again with its successor under the same grant. The rules
+//! are [`super::token_request`]'s; this is where they meet the database, in
+//! the order ADR 0011 fixes: the client first, then the grant, then the code,
+//! then its verifier, the last two and the new grant in one transaction. A
+//! refresh locks the grant and its token, checks them, and rotates in one
+//! transaction (ADR 0012). See
+//! `docs/adr/0011-token-endpoint-and-access-tokens.md` and
+//! `docs/adr/0012-refresh-token-rotation.md`.
 
 use sqlx::{PgConnection, PgPool};
 use time::OffsetDateTime;
@@ -12,9 +16,12 @@ use uuid::Uuid;
 
 use super::authorization::Params;
 use super::keys::SigningKey;
-use super::repository::{self, NewGrant};
+use super::repository::{self, NewGrant, Presented};
 use super::service::{AuthorizationService, RedeemError, RedeemedCode};
-use super::token_request::{self, ClientCredentials, CodeGrant, INVALID_CODE, TokenError};
+use super::token_request::{
+    self, ClientCredentials, CodeGrant, Grant, INVALID_CODE, INVALID_REFRESH_TOKEN, RefreshGrant,
+    TokenError,
+};
 use super::tokens::{
     ACCESS_TOKEN_TYPE, AccessTokenClaims, ID_TOKEN_TYPE, IdTokenClaims, RefreshToken, scope_string,
 };
@@ -74,8 +81,10 @@ impl TokenService {
         token_request::refuse_repeated(params)?;
         let credentials = token_request::client_credentials(params, authorization)?;
         let client = self.authenticate(&credentials).await?;
-        let grant = token_request::code_grant(params)?;
-        self.exchange_code(&client, grant).await
+        match token_request::grant(params)? {
+            Grant::Code(grant) => self.exchange_code(&client, grant).await,
+            Grant::Refresh(grant) => self.refresh(&client, grant).await,
+        }
     }
 
     /// The client the credentials prove (RFC 6749 §2.3). A confidential
@@ -210,6 +219,50 @@ impl TokenService {
         })
     }
 
+    /// Rotates the presented refresh token of `client` and issues a new set:
+    /// one transaction that locks the grant and the token, checks them,
+    /// retires the token and inserts its successor under the same grant,
+    /// with the grant's unchanged expiry (ADR 0012 (b)).
+    ///
+    /// The transaction commits whenever the database did not fail, refusals
+    /// included, so that the revocation a reused token calls for is kept. A
+    /// database failure rolls everything back, and the token is as it was.
+    async fn refresh(
+        &self,
+        client: &Client,
+        grant: RefreshGrant,
+    ) -> Result<IssuedTokens, TokenError> {
+        // Drawn before the transaction, so that a failure here spends
+        // nothing.
+        let successor = RefreshToken::generate().map_err(TokenError::Random)?;
+
+        let mut tx = self.pool.begin().await?;
+        let rotated = match rotate(&mut tx, client, &grant, &successor).await {
+            // Returning drops the transaction, which rolls it back.
+            Err(error @ TokenError::Db(_)) => return Err(error),
+            outcome => {
+                tx.commit().await?;
+                outcome?
+            }
+        };
+        let Rotated {
+            account,
+            scopes,
+            grant_id,
+        } = rotated;
+
+        tracing::info!(
+            grant_id = %grant_id,
+            client_id = %client.id,
+            account_id = %account.id,
+            "tokens refreshed"
+        );
+
+        // A refresh has no authorization request, so no nonce (OpenID
+        // Connect Core §12.2); the account's claims are read afresh.
+        Ok(self.issue(client, &account, &scopes, None, successor))
+    }
+
     /// Signs the two JWTs. Their times are the process clock, unlike the
     /// rows' (ADR 0011 (e)): they are read by other machines against their
     /// own clocks, and the database has no say in that.
@@ -240,6 +293,82 @@ struct Granted {
     code: RedeemedCode,
     account: Account,
     grant_id: Uuid,
+}
+
+/// What a successful rotation produced, for the tokens to be signed once it
+/// has committed.
+struct Rotated {
+    account: Account,
+    /// The grant's scopes, all of them, whatever the request asked for
+    /// (ADR 0012 (c)).
+    scopes: Vec<Scope>,
+    grant_id: Uuid,
+}
+
+/// Everything [`TokenService::refresh`] does on its transaction: the lookup
+/// that locks the grant and the token, the checks, and the rotation, or the
+/// revocation a reused token calls for.
+///
+/// The checks run before anything is written: a token presented by another
+/// client, or with a scope the grant does not hold, is refused and left as
+/// it was (ADR 0012 (c), (d)). A retired token revokes its grant whoever
+/// presents it, since it has leaked either way.
+async fn rotate(
+    conn: &mut PgConnection,
+    client: &Client,
+    grant: &RefreshGrant,
+    successor: &RefreshToken,
+) -> Result<Rotated, TokenError> {
+    let token =
+        match repository::lock_refresh_token(&mut *conn, &grant.refresh_token.hash()).await? {
+            Presented::Live(token) => token,
+            Presented::Unknown | Presented::Expired | Presented::Revoked { .. } => {
+                return Err(TokenError::InvalidGrant(INVALID_REFRESH_TOKEN));
+            }
+            Presented::AlreadyUsed { grant_id } => {
+                let revoked = repository::revoke_grant(&mut *conn, grant_id).await?;
+                tracing::warn!(
+                    grant_id = %grant_id,
+                    client_id = %client.id,
+                    revoked,
+                    "refresh token reused, grant revoked"
+                );
+                return Err(TokenError::InvalidGrant(INVALID_REFRESH_TOKEN));
+            }
+        };
+
+    if token.client_id != client.id {
+        tracing::warn!(
+            grant_id = %token.grant_id,
+            client_id = %client.id,
+            "refresh token presented by another client"
+        );
+        return Err(TokenError::InvalidGrant(INVALID_REFRESH_TOKEN));
+    }
+
+    let exceeds = |requested: &Vec<Scope>| !requested.iter().all(|s| token.scopes.contains(s));
+    if grant.scope.as_ref().is_some_and(exceeds) {
+        return Err(TokenError::InvalidScope(
+            "the requested scope exceeds the scope of the grant",
+        ));
+    }
+
+    // The grant goes with its account (ON DELETE CASCADE), and this
+    // transaction holds the grant's lock, so the account cannot vanish in
+    // between; the check keeps that an invariant rather than an unwrap.
+    let Some(account) = accounts::get(&mut *conn, token.account_id).await? else {
+        return Err(TokenError::InvalidGrant(INVALID_REFRESH_TOKEN));
+    };
+
+    repository::retire_refresh_token(&mut *conn, token.token_id).await?;
+    repository::touch_grant(&mut *conn, token.grant_id).await?;
+    repository::insert_refresh_token(&mut *conn, token.grant_id, &successor.hash()).await?;
+
+    Ok(Rotated {
+        account,
+        scopes: token.scopes,
+        grant_id: token.grant_id,
+    })
 }
 
 /// The grant and its first refresh token, on the exchange's transaction: a

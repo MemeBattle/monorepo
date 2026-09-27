@@ -1,4 +1,5 @@
-//! `POST /token`: the authorization code exchange (ADR 0011). Served at the
+//! `POST /token`: the authorization code exchange and the refresh (ADR 0011,
+//! ADR 0012). Served at the
 //! root with `ApiState`, outside `/api`: it is called by a client's backend
 //! or by a public client, never with CAS's cookie, so neither the session
 //! nor the Fetch Metadata line (ADR 0005) has anything to say about it.
@@ -177,9 +178,12 @@ impl From<TokenError> for OAuthErrorResponse {
             TokenError::InvalidGrant(description) => {
                 Self::bad_request("invalid_grant", description)
             }
+            TokenError::InvalidScope(description) => {
+                Self::bad_request("invalid_scope", description)
+            }
             TokenError::UnsupportedGrantType => Self::bad_request(
                 "unsupported_grant_type",
-                "only grant_type=authorization_code is supported",
+                "only grant_type=authorization_code and refresh_token are supported",
             ),
             TokenError::Db(error) => database_error(&error),
             TokenError::Random(error) => {
@@ -259,6 +263,7 @@ mod tests {
     use crate::oidc::authorization::tests::{CALLBACK, CHALLENGE};
     use crate::oidc::http::tests::discover;
     use crate::oidc::http::{Documents, authorize_router, router as documents_router};
+    use crate::oidc::token_request::INVALID_REFRESH_TOKEN;
     use crate::oidc::{Discovery, RefreshToken, SigningKeys};
     use crate::sessions::{SessionOrigin, SessionService, SessionToken};
     use crate::testing::{
@@ -416,6 +421,33 @@ mod tests {
             self.token(&grant(code), Some(&self.basic())).await
         }
 
+        /// A refresh token of the confidential client, from a fresh code
+        /// for `scope`.
+        async fn refresh_token(&self, scope: &str) -> String {
+            let code = self.code(CONFIDENTIAL, scope).await;
+            let response = self.exchange(&code).await;
+            assert_eq!(response.status(), StatusCode::OK);
+            json(response).await["refresh_token"]
+                .as_str()
+                .unwrap()
+                .to_owned()
+        }
+
+        /// The confidential client refreshing `token` with Basic, with
+        /// `extra` pairs after the grant's.
+        async fn refresh(&self, token: &str, extra: &[(&str, &str)]) -> Response {
+            let mut pairs = refresh(token);
+            pairs.extend_from_slice(extra);
+            self.token(&pairs, Some(&self.basic())).await
+        }
+
+        /// [`Self::refresh`] that must succeed: the body.
+        async fn refreshed(&self, token: &str) -> serde_json::Value {
+            let response = self.refresh(token, &[]).await;
+            assert_eq!(response.status(), StatusCode::OK);
+            json(response).await
+        }
+
         async fn jwks(&self) -> CoreJsonWebKeySet {
             discover(self.router.clone()).await.jwks().clone()
         }
@@ -466,6 +498,11 @@ mod tests {
             ("redirect_uri", CALLBACK),
             ("code_verifier", VERIFIER),
         ]
+    }
+
+    /// A refresh token grant, without the client's credentials.
+    fn refresh(token: &str) -> Pairs<'_> {
+        vec![("grant_type", "refresh_token"), ("refresh_token", token)]
     }
 
     fn plus<'a>(mut pairs: Pairs<'a>, name: &'a str, value: &'a str) -> Pairs<'a> {
@@ -887,12 +924,11 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn only_the_authorization_code_grant_is_supported(pool: PgPool) {
+    async fn other_grant_types_are_unsupported(pool: PgPool) {
         let fixture = fixture(&pool).await;
         let code = fixture.code(CONFIDENTIAL, "openid").await;
 
         for grant_type in [
-            "refresh_token",
             crate::oidc::GUEST_GRANT_TYPE,
             "client_credentials",
             "password",
@@ -904,7 +940,12 @@ mod tests {
                 )
                 .await;
 
-            assert_error(response, StatusCode::BAD_REQUEST, "unsupported_grant_type").await;
+            let body =
+                assert_error(response, StatusCode::BAD_REQUEST, "unsupported_grant_type").await;
+            assert_eq!(
+                body["error_description"],
+                "only grant_type=authorization_code and refresh_token are supported"
+            );
         }
     }
 
@@ -1298,6 +1339,522 @@ mod tests {
             OTHER_VERIFIER,
             fixture.secret.expose(),
             "wrong-secret",
+            body["access_token"].as_str().unwrap(),
+            body["id_token"].as_str().unwrap(),
+            body["refresh_token"].as_str().unwrap(),
+        ];
+        for event in events.all() {
+            for secret in secrets {
+                assert!(!event.contains(secret), "{secret} logged: {event}");
+            }
+        }
+    }
+
+    /// A refresh token's row: its grant, when it was used, its expiry.
+    async fn token_row(
+        pool: &PgPool,
+        token: &str,
+    ) -> (Uuid, Option<time::OffsetDateTime>, time::OffsetDateTime) {
+        let hash = RefreshToken::parse(token).unwrap().hash();
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query_as(
+            "SELECT grant_id, used_at, expires_at FROM refresh_tokens WHERE token_hash = $1",
+        )
+        .bind(hash.as_bytes())
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn refresh_token_count(pool: &PgPool) -> i64 {
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query_scalar("SELECT count(*) FROM refresh_tokens")
+            .fetch_one(pool)
+            .await
+            .unwrap()
+    }
+
+    /// The only grant of the test.
+    async fn the_grant(pool: &PgPool) -> Uuid {
+        let grants = grants(pool).await;
+        let [(id, _)] = grants[..] else {
+            panic!("one grant: {grants:?}");
+        };
+        id
+    }
+
+    /// The first acceptance criterion: a refresh answers a new set — a new
+    /// refresh token among it — and retires the one presented; the
+    /// successor is under the same grant, with the same fixed expiry.
+    #[sqlx::test]
+    async fn a_refresh_rotates_the_token_and_issues_a_new_set(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let presented = fixture.refresh_token("openid profile email").await;
+        let grant_id = the_grant(&pool).await;
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("UPDATE grants SET last_used_at = created_at - interval '1 hour'")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let response = fixture.refresh(&presented, &[]).await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            header_str(&response, header::CACHE_CONTROL),
+            Some("no-store")
+        );
+        assert_eq!(header_str(&response, header::PRAGMA), Some("no-cache"));
+        let body = json(response).await;
+        assert_eq!(body.as_object().unwrap().len(), 6, "{body}");
+        assert_eq!(body["token_type"], "Bearer");
+        assert_eq!(body["expires_in"], 600);
+        assert_eq!(body["scope"], "openid profile email");
+        let successor = body["refresh_token"].as_str().unwrap();
+        assert_ne!(successor, presented);
+        assert!(RefreshToken::parse(successor).is_some());
+
+        let jwks = fixture.jwks().await;
+        let (header, claims) = decode(body["access_token"].as_str().unwrap(), &jwks);
+        assert_eq!(header["typ"], "at+jwt");
+        assert_eq!(claims["sub"], fixture.account_id.to_string());
+        assert_eq!(claims["aud"], AUDIENCE);
+        assert_eq!(claims["client_id"], CONFIDENTIAL);
+        assert_eq!(claims["scope"], "openid profile email");
+
+        // The ID token verifies as any other, and carries no nonce: there
+        // was no authorization request to take one from.
+        let id_token: CoreIdToken = body["id_token"].as_str().unwrap().parse().unwrap();
+        let verifier = fixture
+            .id_token_verifier(CONFIDENTIAL, Some(fixture.secret.expose()))
+            .await;
+        let verified = id_token
+            .claims(&verifier, |nonce: Option<&Nonce>| match nonce {
+                None => Ok(()),
+                Some(_) => Err("a refreshed ID token has no nonce".to_owned()),
+            })
+            .expect("the ID token verifies");
+        assert_eq!(verified.subject().as_str(), fixture.account_id.to_string());
+        assert_eq!(
+            verified.email().map(|email| email.as_str()),
+            Some("ada@example.com")
+        );
+        let (_, id_claims) = decode(body["id_token"].as_str().unwrap(), &jwks);
+        assert!(id_claims.get("nonce").is_none(), "{id_claims}");
+
+        let (presented_grant, used_at, _) = token_row(&pool, &presented).await;
+        assert_eq!(presented_grant, grant_id);
+        assert!(used_at.is_some(), "the presented token is retired");
+        let (successor_grant, successor_used, successor_expiry) = token_row(&pool, successor).await;
+        assert_eq!(successor_grant, grant_id);
+        assert_eq!(successor_used, None);
+        // Unchecked query: see docs/TESTS.md.
+        let (expires_at, created_at, last_used_at): (
+            time::OffsetDateTime,
+            time::OffsetDateTime,
+            time::OffsetDateTime,
+        ) = sqlx::query_as("SELECT expires_at, created_at, last_used_at FROM grants")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(successor_expiry, expires_at, "rotation never moves the cap");
+        assert_eq!(expires_at - created_at, time::Duration::days(30));
+        assert!(last_used_at >= created_at, "last_used_at moved");
+    }
+
+    /// The chain continues from the successor, and the presented token is
+    /// dead.
+    #[sqlx::test]
+    async fn the_old_refresh_token_no_longer_works(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let first = fixture.refresh_token("openid").await;
+
+        let second = fixture.refreshed(&first).await["refresh_token"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let third = fixture.refreshed(&second).await["refresh_token"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+
+        assert_eq!(refresh_token_count(&pool).await, 3);
+        assert_eq!(token_row(&pool, &third).await.0, the_grant(&pool).await);
+        let body = assert_error(
+            fixture.refresh(&first, &[]).await,
+            StatusCode::BAD_REQUEST,
+            "invalid_grant",
+        )
+        .await;
+        assert_eq!(body["error_description"], INVALID_REFRESH_TOKEN);
+    }
+
+    /// The second acceptance criterion: a retired token presented again
+    /// revokes the grant, and the token its rotation issued dies with it.
+    #[sqlx::test]
+    async fn a_reused_refresh_token_revokes_the_grant(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let first = fixture.refresh_token("openid").await;
+        let second = fixture.refreshed(&first).await["refresh_token"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let grant_id = the_grant(&pool).await;
+        let (events, _guard) = capture_tracing();
+
+        assert_invalid_grant(fixture.refresh(&first, &[]).await).await;
+
+        assert!(grants(&pool).await[0].1.is_some(), "the grant is revoked");
+        let [warning] = &events.mentioning("refresh token reused")[..] else {
+            panic!("one line: {:?}", events.all());
+        };
+        assert!(warning.starts_with("WARN"), "{warning}");
+        assert!(warning.contains(&grant_id.to_string()), "{warning}");
+        assert!(warning.contains("revoked=true"), "{warning}");
+
+        assert_invalid_grant(fixture.refresh(&second, &[]).await).await;
+        assert_eq!(token_row(&pool, &second).await.1, None);
+        assert_eq!(refresh_token_count(&pool).await, 2, "nothing was issued");
+    }
+
+    /// A grant has no session: signing out of CAS leaves it alive.
+    #[sqlx::test]
+    async fn a_refresh_survives_signing_out_of_cas(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let token = fixture.refresh_token("openid").await;
+        let revoked = SessionService::new(pool.clone())
+            .revoke(&fixture.session)
+            .await
+            .unwrap();
+        assert!(revoked.is_some(), "the session was live");
+
+        assert_eq!(fixture.refresh(&token, &[]).await.status(), StatusCode::OK);
+    }
+
+    /// The grant's expiry, or the token's, ends the chain; nothing is
+    /// written.
+    #[sqlx::test]
+    async fn an_expired_grant_cannot_be_refreshed(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let token = fixture.refresh_token("openid").await;
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("UPDATE grants SET expires_at = now() - interval '1 second'")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        assert_invalid_grant(fixture.refresh(&token, &[]).await).await;
+        assert_eq!(token_row(&pool, &token).await.1, None);
+        assert_eq!(refresh_token_count(&pool).await, 1);
+
+        let other = fixture.refresh_token("openid").await;
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("UPDATE refresh_tokens SET expires_at = now() - interval '1 second'")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert_invalid_grant(fixture.refresh(&other, &[]).await).await;
+        assert_eq!(token_row(&pool, &other).await.1, None);
+        assert_eq!(refresh_token_count(&pool).await, 2);
+    }
+
+    #[sqlx::test]
+    async fn a_revoked_grant_cannot_be_refreshed(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let token = fixture.refresh_token("openid").await;
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("UPDATE grants SET revoked_at = now()")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        assert_invalid_grant(fixture.refresh(&token, &[]).await).await;
+        assert_eq!(token_row(&pool, &token).await.1, None);
+        assert_eq!(refresh_token_count(&pool).await, 1);
+    }
+
+    /// Another client, however well it authenticates, cannot refresh this
+    /// one's token, and the attempt costs the rightful client nothing.
+    #[sqlx::test]
+    async fn a_refresh_token_of_another_client_is_invalid_grant_and_changes_nothing(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let token = fixture.refresh_token("openid").await;
+        let (events, _guard) = capture_tracing();
+
+        let response = fixture
+            .token(&plus(refresh(&token), "client_id", PUBLIC), None)
+            .await;
+
+        let body = assert_error(response, StatusCode::BAD_REQUEST, "invalid_grant").await;
+        assert_eq!(body["error_description"], INVALID_REFRESH_TOKEN);
+        assert!(events.contains("refresh token presented by another client"));
+        assert_eq!(token_row(&pool, &token).await.1, None);
+        assert_eq!(grants(&pool).await[0].1, None, "the grant is not revoked");
+        assert_eq!(fixture.refresh(&token, &[]).await.status(), StatusCode::OK);
+    }
+
+    /// A refresh may name the grant's scopes, or fewer, and gets them all
+    /// back; it may not name more (ADR 0012 (c)).
+    #[sqlx::test]
+    async fn the_refresh_scope_may_repeat_or_narrow_but_not_widen(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let token = fixture.refresh_token("openid profile").await;
+
+        let response = fixture
+            .refresh(&token, &[("scope", "profile openid")])
+            .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = json(response).await;
+        assert_eq!(body["scope"], "openid profile");
+        let token = body["refresh_token"].as_str().unwrap().to_owned();
+
+        let response = fixture.refresh(&token, &[("scope", "openid")]).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = json(response).await;
+        assert_eq!(body["scope"], "openid profile");
+        let (_, claims) = decode(
+            body["access_token"].as_str().unwrap(),
+            &fixture.jwks().await,
+        );
+        assert_eq!(claims["scope"], "openid profile");
+        let token = body["refresh_token"].as_str().unwrap().to_owned();
+
+        for (scope, description) in [
+            (
+                "openid email",
+                "the requested scope exceeds the scope of the grant",
+            ),
+            ("open\"id", "scope is malformed"),
+        ] {
+            let response = fixture.refresh(&token, &[("scope", scope)]).await;
+
+            let body = assert_error(response, StatusCode::BAD_REQUEST, "invalid_scope").await;
+            assert_eq!(body["error_description"], description, "{scope}");
+        }
+        assert_eq!(token_row(&pool, &token).await.1, None, "not retired");
+        assert_eq!(fixture.refresh(&token, &[]).await.status(), StatusCode::OK);
+    }
+
+    #[sqlx::test]
+    async fn refresh_request_errors(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let token = fixture.refresh_token("openid").await;
+        let authorization = fixture.basic();
+
+        for (pairs, description) in [
+            (
+                without(refresh(&token), "refresh_token"),
+                "refresh_token is required",
+            ),
+            (
+                plus(refresh(&token), "refresh_token", &token),
+                "parameter refresh_token is repeated",
+            ),
+            (
+                plus(plus(refresh(&token), "scope", "openid"), "scope", "openid"),
+                "parameter scope is repeated",
+            ),
+        ] {
+            let response = fixture.token(&pairs, Some(&authorization)).await;
+
+            let body = assert_error(response, StatusCode::BAD_REQUEST, "invalid_request").await;
+            assert_eq!(body["error_description"], description, "{pairs:?}");
+        }
+
+        let unknown = RefreshToken::generate().unwrap();
+        for presented in ["not-a-token", unknown.expose()] {
+            let body = assert_error(
+                fixture.refresh(presented, &[]).await,
+                StatusCode::BAD_REQUEST,
+                "invalid_grant",
+            )
+            .await;
+            assert_eq!(body["error_description"], INVALID_REFRESH_TOKEN);
+        }
+
+        // Authentication precedes the grant.
+        let response = fixture.token(&refresh(&token), None).await;
+        assert_error(response, StatusCode::UNAUTHORIZED, "invalid_client").await;
+        let wrong = basic(CONFIDENTIAL, "wrong");
+        let response = fixture.token(&refresh(&token), Some(&wrong)).await;
+        assert_error(response, StatusCode::UNAUTHORIZED, "invalid_client").await;
+
+        // Nothing above reached the token.
+        assert_eq!(token_row(&pool, &token).await.1, None);
+        assert_eq!(fixture.refresh(&token, &[]).await.status(), StatusCode::OK);
+    }
+
+    #[sqlx::test]
+    async fn a_public_client_refreshes_with_its_id_alone(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let code = fixture.code(PUBLIC, "openid").await;
+        let response = fixture
+            .token(&plus(grant(&code), "client_id", PUBLIC), None)
+            .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let token = json(response).await["refresh_token"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+
+        let response = fixture
+            .token(&plus(refresh(&token), "client_id", PUBLIC), None)
+            .await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = json(response).await;
+        let (_, access) = decode(
+            body["access_token"].as_str().unwrap(),
+            &fixture.jwks().await,
+        );
+        assert_eq!(access["aud"], PUBLIC);
+        assert_eq!(access["client_id"], PUBLIC);
+    }
+
+    /// The path the guest upgrade (#747) takes: every grant of the account
+    /// revoked on the caller's transaction, and its refresh tokens dead once
+    /// it commits.
+    #[sqlx::test]
+    async fn revoking_the_accounts_grants_stops_its_refreshes(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let first = fixture.refresh_token("openid").await;
+        let second = fixture.refresh_token("openid").await;
+
+        let mut tx = pool.begin().await.unwrap();
+        let revoked = crate::oidc::revoke_account_grants(&mut *tx, fixture.account_id)
+            .await
+            .unwrap();
+        tx.commit().await.unwrap();
+
+        assert_eq!(revoked, 2);
+        assert_invalid_grant(fixture.refresh(&first, &[]).await).await;
+        assert_invalid_grant(fixture.refresh(&second, &[]).await).await;
+    }
+
+    /// Two refreshes with one token, at once: the row lock serialises them
+    /// and the second is a reuse, which revokes the grant (ADR 0012 (b)).
+    #[sqlx::test]
+    async fn concurrent_refreshes_with_one_token_let_one_win(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let token = fixture.refresh_token("openid").await;
+
+        let (first, second) =
+            tokio::join!(fixture.refresh(&token, &[]), fixture.refresh(&token, &[]));
+
+        let mut statuses = [first.status(), second.status()];
+        statuses.sort();
+        assert_eq!(statuses, [StatusCode::OK, StatusCode::BAD_REQUEST]);
+        let refused = if first.status() == StatusCode::OK {
+            second
+        } else {
+            first
+        };
+        assert_invalid_grant(refused).await;
+        assert!(grants(&pool).await[0].1.is_some(), "the grant is revoked");
+    }
+
+    /// Spawns a refresh of `token` by the confidential client.
+    fn spawn_refresh(fixture: &Fixture, token: &str) -> tokio::task::JoinHandle<Response> {
+        let router = fixture.router.clone();
+        let basic = fixture.basic();
+        let body = form(&refresh(token));
+        tokio::spawn(
+            async move { send(&router, Some(FORM_CONTENT_TYPE), Some(&basic), body).await },
+        )
+    }
+
+    /// Opens a transaction that holds the grant's row lock.
+    async fn hold_grant(
+        pool: &PgPool,
+        grant_id: Uuid,
+    ) -> sqlx::Transaction<'static, sqlx::Postgres> {
+        let mut blocker = pool.begin().await.unwrap();
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("SELECT id FROM grants WHERE id = $1 FOR UPDATE")
+            .bind(grant_id)
+            .execute(&mut *blocker)
+            .await
+            .unwrap();
+        blocker
+    }
+
+    /// A text only the refresh's locking read of the grant contains.
+    const GRANT_LOCK_STATEMENT: &str = "revoked_at IS NOT NULL AS";
+
+    /// A revocation that holds the grant while a refresh arrives: the
+    /// refresh waits for it and then sees the grant revoked, so it issues
+    /// nothing.
+    #[sqlx::test]
+    async fn a_refresh_waiting_on_a_revocation_sees_it(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let token = fixture.refresh_token("openid").await;
+        let grant_id = the_grant(&pool).await;
+        let mut blocker = hold_grant(&pool, grant_id).await;
+
+        let refreshing = spawn_refresh(&fixture, &token);
+        wait_for_lock_wait(&pool, GRANT_LOCK_STATEMENT, || refreshing.is_finished()).await;
+        assert!(!refreshing.is_finished(), "the refresh waits for the grant");
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("UPDATE grants SET revoked_at = now() WHERE id = $1")
+            .bind(grant_id)
+            .execute(&mut *blocker)
+            .await
+            .unwrap();
+        blocker.commit().await.unwrap();
+
+        assert_invalid_grant(refreshing.await.unwrap()).await;
+        assert_eq!(refresh_token_count(&pool).await, 1, "no successor");
+        assert_eq!(token_row(&pool, &token).await.1, None);
+    }
+
+    /// A delete of the grant — the cascade an account deletion takes —
+    /// racing a refresh: both lock the grant first, so the refresh waits,
+    /// finds nothing, and answers `invalid_grant` rather than a deadlock.
+    #[sqlx::test]
+    async fn a_refresh_racing_a_grant_delete_does_not_deadlock(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let token = fixture.refresh_token("openid").await;
+        let grant_id = the_grant(&pool).await;
+        let mut blocker = hold_grant(&pool, grant_id).await;
+
+        let refreshing = spawn_refresh(&fixture, &token);
+        wait_for_lock_wait(&pool, GRANT_LOCK_STATEMENT, || refreshing.is_finished()).await;
+        assert!(!refreshing.is_finished(), "the refresh waits for the grant");
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("DELETE FROM grants WHERE id = $1")
+            .bind(grant_id)
+            .execute(&mut *blocker)
+            .await
+            .unwrap();
+        blocker.commit().await.unwrap();
+
+        assert_invalid_grant(refreshing.await.unwrap()).await;
+        assert_eq!(refresh_token_count(&pool).await, 0);
+    }
+
+    /// No refresh token, presented or issued, reaches a log line, on
+    /// success or on reuse.
+    #[sqlx::test]
+    async fn no_refresh_token_is_logged(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let (events, _guard) = capture_tracing();
+        let first = fixture.refresh_token("openid profile email").await;
+
+        let body = fixture.refreshed(&first).await;
+        fixture.refresh(&first, &[]).await;
+
+        let [refreshed] = &events.mentioning("tokens refreshed")[..] else {
+            panic!("one line: {:?}", events.all());
+        };
+        assert!(refreshed.contains(CONFIDENTIAL), "{refreshed}");
+        assert!(
+            refreshed.contains(&fixture.account_id.to_string()),
+            "{refreshed}"
+        );
+        assert!(events.contains("refresh token reused"));
+        let secrets = [
+            first.as_str(),
+            fixture.secret.expose(),
             body["access_token"].as_str().unwrap(),
             body["id_token"].as_str().unwrap(),
             body["refresh_token"].as_str().unwrap(),

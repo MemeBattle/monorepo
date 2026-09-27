@@ -3,6 +3,9 @@
 ## Status
 
 Accepted (2026-09-26), with [#743](https://github.com/MemeBattle/monorepo/issues/743).
+Amended (2026-09-27) by ADR 0012, with [#744](https://github.com/MemeBattle/monorepo/issues/744):
+the refresh_token grant is served; "unsupported until #744" in (c) and (f)
+no longer holds.
 
 ## Context
 
