@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE grants SET revoked_at = now()\n           WHERE authorization_code_id = $1 AND revoked_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e17f5da5b41f5d42f54e5ea7534343e93f0aaad5e717274a73dee3d0a6bfa888"
+}

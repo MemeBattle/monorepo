@@ -1,9 +1,11 @@
 //! The OIDC context's wire surface: the two static documents (ADR 0009
-//! (e)) and the authorization endpoint (ADR 0010), all served from the
-//! router root outside `/api`. The two have different state, so two
-//! routers.
+//! (e)), the authorization endpoint (ADR 0010) and the token endpoint
+//! (ADR 0011), all served from the router root outside `/api`. The
+//! documents have state of their own, the endpoints `ApiState`, so each
+//! has its own router.
 
 pub mod authorize;
+pub mod token;
 
 use axum::{
     Json, Router,
@@ -16,6 +18,7 @@ use tower_http::set_header::SetResponseHeaderLayer;
 use crate::oidc::{Discovery, Jwks};
 
 pub use authorize::authorize_router;
+pub use token::token_router;
 
 /// Both documents, built once at startup: they change only when the process
 /// is restarted with another issuer or another key list.
@@ -50,7 +53,7 @@ async fn jwks(State(documents): State<Documents>) -> Json<Jwks> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use std::convert::Infallible;
 
     use axum::body::{Body, to_bytes};
@@ -126,14 +129,17 @@ mod tests {
         }
     }
 
-    /// The acceptance criterion, checked by an independent implementation:
-    /// `openidconnect` runs its own discovery against the router — the
-    /// well-known URL derivation, the Discovery §4.3 issuer comparison and
-    /// the `jwks_uri` fetch — and then verifies a JWS CAS produced against
-    /// the key it found there.
-    #[tokio::test]
-    async fn a_standard_oidc_library_discovers_cas_and_verifies_its_signature() {
-        let router = app(test_config()).unwrap();
+    /// `openidconnect`'s own discovery, run against `router` as its HTTP
+    /// client: the well-known URL derivation, the Discovery §4.3 issuer
+    /// comparison and the `jwks_uri` fetch.
+    pub(crate) async fn discover<S>(router: S) -> CoreProviderMetadata
+    where
+        S: tower::Service<Request<Body>, Response = Response<Body>, Error = Infallible>
+            + Clone
+            + Send
+            + 'static,
+        S::Future: Send,
+    {
         let client = move |request: openidconnect::HttpRequest| {
             let router = router.clone();
             async move {
@@ -152,12 +158,17 @@ mod tests {
             }
         };
 
-        let metadata = CoreProviderMetadata::discover_async(
-            IssuerUrl::new(test_config().issuer).unwrap(),
-            &client,
-        )
-        .await
-        .expect("discovery succeeds");
+        CoreProviderMetadata::discover_async(IssuerUrl::new(test_config().issuer).unwrap(), &client)
+            .await
+            .expect("discovery succeeds")
+    }
+
+    /// The acceptance criterion, checked by an independent implementation:
+    /// `openidconnect` runs its own discovery against the router and then
+    /// verifies a JWS CAS produced against the key it found there.
+    #[tokio::test]
+    async fn a_standard_oidc_library_discovers_cas_and_verifies_its_signature() {
+        let metadata = discover(app(test_config()).unwrap()).await;
 
         let kid = JsonWebKeyId::new(DEV_KEY_KID.to_string());
         let key: &CoreJsonWebKey = metadata

@@ -12,6 +12,7 @@
 //! newtypes are the files beside it, the SQL is `repository`, the one use
 //! case is [`registration`].
 
+mod audience;
 mod client_id;
 mod client_name;
 mod redirect_uri;
@@ -22,6 +23,7 @@ mod secret;
 
 use time::OffsetDateTime;
 
+pub use audience::Audience;
 pub use client_id::{ClientId, ClientIdError, MAX_CLIENT_ID_LENGTH};
 pub use client_name::{ClientName, ClientNameError};
 pub use redirect_uri::{RedirectUri, RedirectUriError};
@@ -104,6 +106,8 @@ pub struct Client {
     pub guest_login_allowed: bool,
     /// The allow-list of scopes this client may request.
     pub scopes: Vec<Scope>,
+    /// The `aud` of the access tokens `/token` issues to this client.
+    pub audience: Audience,
     pub created_at: OffsetDateTime,
 }
 
@@ -166,6 +170,7 @@ pub struct NewClient {
     pub(crate) first_party: bool,
     pub(crate) guest_login_allowed: bool,
     pub(crate) scopes: Vec<Scope>,
+    pub(crate) audience: Audience,
 }
 
 impl NewClient {
@@ -207,6 +212,7 @@ impl NewClient {
         }
 
         Ok(Self {
+            audience: Audience::from(&id),
             id,
             name,
             kind,
@@ -243,6 +249,14 @@ impl NewClient {
     #[must_use]
     pub fn with_scopes(mut self, scopes: Vec<Scope>) -> Self {
         self.scopes = scopes;
+        self
+    }
+
+    /// Replaces the default audience, the client's own id, for a client
+    /// whose access tokens are meant for a resource server it shares.
+    #[must_use]
+    pub fn with_audience(mut self, audience: Audience) -> Self {
+        self.audience = audience;
         self
     }
 }
@@ -285,6 +299,7 @@ mod tests {
             first_party: true,
             guest_login_allowed: false,
             scopes: vec![scope("openid"), scope("profile")],
+            audience: Audience::try_new("ligretto").unwrap(),
             created_at: OffsetDateTime::UNIX_EPOCH,
         }
     }
@@ -404,6 +419,7 @@ mod tests {
         assert!(public.post_logout_redirect_uris.is_empty());
         assert!(!public.first_party);
         assert!(!public.guest_login_allowed);
+        assert_eq!(public.audience.as_str(), "ligretto", "its own id");
 
         let secret = ClientSecret::generate().unwrap();
         let confidential = NewClient::confidential(
@@ -429,7 +445,8 @@ mod tests {
         .with_post_logout_redirect_uris(vec![redirect_uri("https://app.example/")])
         .first_party(true)
         .guest_login_allowed(true)
-        .with_scopes(vec![scope("openid"), scope("email")]);
+        .with_scopes(vec![scope("openid"), scope("email")])
+        .with_audience(Audience::try_new("games").unwrap());
 
         assert_eq!(
             new_client.post_logout_redirect_uris,
@@ -438,6 +455,7 @@ mod tests {
         assert!(new_client.first_party);
         assert!(new_client.guest_login_allowed);
         assert_eq!(new_client.scopes, vec![scope("openid"), scope("email")]);
+        assert_eq!(new_client.audience.as_str(), "games");
     }
 
     #[test]

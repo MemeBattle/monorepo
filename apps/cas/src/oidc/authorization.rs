@@ -23,7 +23,11 @@ pub const MAX_NONCE_LENGTH: usize = 512;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Duplicate(pub &'static str);
 
-/// The query of an authorization request, decoded, in the order it came.
+/// The parameters of an OAuth request, decoded, in the order they came: the
+/// query of an authorization request, or the form body of a token request.
+///
+/// `Debug` is derived, and a token request's parameters hold a code, a
+/// verifier and possibly a client secret: never log one.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Params(Vec<(String, String)>);
 
@@ -32,8 +36,14 @@ impl Params {
     /// fails: a malformed escape is kept as it was, and the rules below
     /// judge the result.
     pub fn from_query(query: &str) -> Self {
+        Self::from_form(query.as_bytes())
+    }
+
+    /// Decodes an `application/x-www-form-urlencoded` body (RFC 6749 §3.2),
+    /// the same way as a query.
+    pub fn from_form(body: &[u8]) -> Self {
         Self(
-            form_urlencoded::parse(query.as_bytes())
+            form_urlencoded::parse(body)
                 .map(|(name, value)| (name.into_owned(), value.into_owned()))
                 .collect(),
         )
@@ -379,7 +389,7 @@ pub(crate) mod tests {
     use time::OffsetDateTime;
 
     use super::*;
-    use crate::clients::{ClientKind, ClientName, RedirectUri};
+    use crate::clients::{Audience, ClientKind, ClientName, RedirectUri};
 
     pub(crate) const CALLBACK: &str = "http://localhost:5173/oidc/callback";
     pub(crate) const CHALLENGE: &str = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
@@ -398,6 +408,7 @@ pub(crate) mod tests {
                 .into_iter()
                 .map(|scope| Scope::try_new(scope).unwrap())
                 .collect(),
+            audience: Audience::try_new("ligretto").unwrap(),
             created_at: OffsetDateTime::UNIX_EPOCH,
         }
     }

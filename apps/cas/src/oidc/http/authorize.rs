@@ -584,7 +584,7 @@ mod tests {
     async fn a_signed_in_request_gets_a_code_and_its_state(pool: PgPool) {
         register_ligretto(&pool).await;
         let session = signed_in(&pool).await;
-        let state = test_state(pool);
+        let state = test_state(pool.clone());
         let router = authorize_router(state.clone());
         let original = uri(&valid());
 
@@ -608,6 +608,7 @@ mod tests {
         let redeemed = state
             .authorization
             .redeem(
+                &mut pool.acquire().await.unwrap(),
                 &AuthorizationCode::parse(&code).unwrap(),
                 &ClientId::try_new("ligretto").unwrap(),
                 CALLBACK,

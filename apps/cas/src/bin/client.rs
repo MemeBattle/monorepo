@@ -18,7 +18,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use cas::clients::registration::register;
 use cas::clients::{
-    ClientId, ClientIdError, ClientKindError, ClientName, ClientNameError, RedirectUri,
+    Audience, ClientId, ClientIdError, ClientKindError, ClientName, ClientNameError, RedirectUri,
     RedirectUriError, RegisterError, Registration, Scope, ScopeError,
 };
 use cas::config::{Config, ConfigError, load_env_files};
@@ -28,10 +28,11 @@ cas-client register --id <client_id> --name <name> --kind <public|confidential>
                     --redirect-uri <uri> [--redirect-uri <uri>]...
                     [--post-logout-redirect-uri <uri>]...
                     [--first-party] [--guest-login-allowed]
-                    [--scope <scope>]...
+                    [--scope <scope>]... [--audience <resource>]
 
-Registers an OIDC client. --scope defaults to 'openid'. A confidential
-client's secret is printed once and cannot be shown again.";
+Registers an OIDC client. --scope defaults to 'openid', --audience to the
+client id. A confidential client's secret is printed once and cannot be
+shown again.";
 
 /// Exit code for a command line that could not be understood, so a script can
 /// tell it apart from a registration that was refused.
@@ -81,9 +82,12 @@ enum UsageError {
 
     #[error("--scope {value:?}: {source}")]
     InvalidScope { value: String, source: ScopeError },
+
+    #[error("--audience: {0}")]
+    InvalidAudience(ClientIdError),
 }
 
-/// Parses the command line by hand: one subcommand and nine flags is less
+/// Parses the command line by hand: one subcommand and ten flags is less
 /// code than a dependency, and keeps this binary the size of `migrate.rs`.
 fn parse(args: impl Iterator<Item = String>) -> Result<Command, UsageError> {
     let mut args = args;
@@ -101,6 +105,7 @@ fn parse(args: impl Iterator<Item = String>) -> Result<Command, UsageError> {
     let mut first_party = false;
     let mut guest_login_allowed = false;
     let mut scopes = Vec::new();
+    let mut audience = None;
 
     while let Some(flag) = args.next() {
         match flag.as_str() {
@@ -131,6 +136,10 @@ fn parse(args: impl Iterator<Item = String>) -> Result<Command, UsageError> {
                     .map_err(|source| UsageError::InvalidScope { value, source })?;
                 scopes.push(scope);
             }
+            "--audience" => {
+                let value = value(&mut args, "--audience")?;
+                audience = Some(Audience::try_new(value).map_err(UsageError::InvalidAudience)?);
+            }
             other => return Err(UsageError::UnknownFlag(other.to_owned())),
         }
     }
@@ -148,6 +157,7 @@ fn parse(args: impl Iterator<Item = String>) -> Result<Command, UsageError> {
         first_party,
         guest_login_allowed,
         scopes,
+        audience,
     })))
 }
 
@@ -242,6 +252,7 @@ async fn run(command: Command) -> Result<(), ClientCliError> {
 
     println!("client_id: {}", registered.client.id);
     println!("kind: {}", registered.client.kind.as_str());
+    println!("audience: {}", registered.client.audience);
     if let Some(secret) = registered.secret {
         println!("client_secret: {}", secret.expose());
         println!("Store it now: it is not kept and cannot be shown again.");
@@ -304,6 +315,8 @@ mod tests {
             "openid",
             "--scope",
             "profile",
+            "--audience",
+            "games",
         ])
         .unwrap();
 
@@ -339,11 +352,13 @@ mod tests {
                 .collect::<Vec<_>>(),
             ["openid", "profile"]
         );
+        assert_eq!(registration.audience.unwrap().as_str(), "games");
     }
 
     /// The flags that are not given are the defaults the service applies: no
     /// logout URI, not first party, no guest grant, and the default scope
-    /// (which `register` fills in, so the parsed list is empty).
+    /// (which `register` fills in, so the parsed list is empty), and the
+    /// client's own id as its audience (`None` here, filled in likewise).
     #[test]
     fn omitted_flags_leave_the_defaults() {
         let registration = parse_args(&minimal()).unwrap();
@@ -352,6 +367,7 @@ mod tests {
         assert!(!registration.first_party);
         assert!(!registration.guest_login_allowed);
         assert!(registration.scopes.is_empty());
+        assert!(registration.audience.is_none());
     }
 
     #[test]
@@ -393,6 +409,7 @@ mod tests {
             "--redirect-uri",
             "--post-logout-redirect-uri",
             "--scope",
+            "--audience",
         ] {
             assert_eq!(
                 parse_error(&["register", flag]),
@@ -456,6 +473,13 @@ mod tests {
                 value: "open id".to_owned(),
                 source: ScopeError::DisallowedCharacter,
             }
+        );
+
+        let mut args = minimal();
+        args.extend(["--audience", "https://api.example"]);
+        assert_eq!(
+            parse_error(&args),
+            UsageError::InvalidAudience(ClientIdError::DisallowedCharacter)
         );
 
         let mut args = minimal();

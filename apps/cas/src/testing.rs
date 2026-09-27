@@ -30,7 +30,7 @@ use webauthn_rs_proto::{
 use crate::accounts::{AccountManagement, DisplayName};
 use crate::config::{Config, SigningKeyPem};
 use crate::http::ApiState;
-use crate::oidc::AuthorizationService;
+use crate::oidc::{AuthorizationService, SigningKeys, TokenService};
 use crate::sessions::http::CookieSettings;
 use crate::sessions::{SessionService, SessionToken};
 use crate::webauthn::addition::AdditionService;
@@ -58,7 +58,8 @@ pub fn test_state_with_cookies(pool: PgPool, cookies: CookieSettings) -> ApiStat
         accounts: AccountManagement::new(pool.clone()),
         sessions: SessionService::new(pool.clone()),
         cookies,
-        authorization: AuthorizationService::new(pool),
+        authorization: AuthorizationService::new(pool.clone()),
+        tokens: TokenService::new(pool, test_signing_key(), test_config().issuer),
         frontend_origin: test_origin(),
     }
 }
@@ -316,6 +317,14 @@ pub const DEV_SIGNING_KEY: &str = include_str!("../dev/signing-key.pem");
 ///   | openssl dgst -sha256 -binary | b64u
 /// ```
 pub const DEV_SIGNING_KEY_KID: &str = "GWP1_U9wKE9l7YVj1GY9QsuFjPhD7zuSgyzfGFhDj6o";
+
+/// The key the development default signs with, as `http::app` loads it.
+pub fn test_signing_key() -> crate::oidc::SigningKey {
+    SigningKeys::from_pem(DEV_SIGNING_KEY)
+        .expect("the development key is valid")
+        .active()
+        .clone()
+}
 
 /// The configuration the router tests build `http::app` from: the
 /// development defaults, with the checked-in development signing key.

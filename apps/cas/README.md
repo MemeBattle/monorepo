@@ -51,6 +51,16 @@ The active `kid` and the number of published keys are logged at startup.
 
 `GET /authorize` (at the root, e.g. `http://localhost:3000/authorize`) starts the authorization code flow. A client sends `client_id`, a registered `redirect_uri` (exact match), `response_type=code`, a `scope` that includes `openid`, `state`, and a PKCE `code_challenge` with `code_challenge_method=S256`; `nonce` is optional. An unknown client or an unregistered redirect URI gets an HTML error page from CAS; every other error is redirected back to the client with `error`, `error_description` and `state`. Without a session the browser is sent to `{CAS_ORIGIN}/sign-in?return_to=<the /authorize path and query>`, a relative path the frontend navigates back to after sign-in (the frontend half is #748; in development the Vite server does not proxy `/authorize` yet). With a session, a first-party client gets a one-time code valid for 60 seconds; other clients are refused with `unauthorized_client` until consent exists. See [docs/adr/0010-authorization-endpoint.md](./docs/adr/0010-authorization-endpoint.md).
 
+## Token endpoint
+
+`POST /token` (at the root, e.g. `http://localhost:3000/token`) exchanges a code for tokens. The body is `application/x-www-form-urlencoded` with `grant_type=authorization_code`, the `code`, the same `redirect_uri` as the authorization request and the PKCE `code_verifier`. A confidential client authenticates with `Authorization: Basic` (`client_secret_basic`) or with `client_id` and `client_secret` in the body (`client_secret_post`), never both; a public client sends `client_id` alone. The answer is `access_token`, `token_type: Bearer`, `expires_in: 600`, `refresh_token`, `id_token` and `scope`, with `Cache-Control: no-store`.
+
+- The access token is an ES256 JWT (RFC 9068, `typ: at+jwt`) that resource servers verify against `/jwks.json`. Its `aud` is the client's configured audience (`--audience`, see below), and it carries `sub` (the account id), `client_id`, `scope`, `jti`, `amr` (`["webauthn"]`, or `["anon"]` for a guest) and `account_type` (`full` or `guest`). It lives 10 minutes and cannot be revoked.
+- The ID token is for the client (`aud` = `client_id`), with the `nonce` of the authorization request, `name` with the `profile` scope, and `email` (always `email_verified: false`) with the `email` scope. It lives 10 minutes too.
+- The refresh token is opaque and stored only as its SHA-256, under a grant that expires 30 days after the exchange, whatever happens. Using it arrives with #744; until then `grant_type=refresh_token` answers `unsupported_grant_type`.
+
+Errors are RFC 6749 JSON, `{"error": "...", "error_description": "..."}`: `invalid_client` (401) for a client that fails to authenticate, `invalid_grant` for a code that is unknown, expired, already used, voided by signing out of CAS before it was redeemed, issued to another client or redirect URI, or presented with the wrong verifier — the first presentation that gets past client authentication spends the code, and presenting it again revokes the grant it produced, even after the account has signed out — and `invalid_request` or `unsupported_grant_type` for a malformed request. See [docs/adr/0011-token-endpoint-and-access-tokens.md](./docs/adr/0011-token-endpoint-and-access-tokens.md).
+
 ## Database (local dev)
 
 Postgres runs in Docker; `docker-compose.yml` in this directory provides it with dev-only credentials (user/password/db `cas`) on host port `5434`:
@@ -81,7 +91,7 @@ cargo run -p cas --bin cas-client -- register \
   --redirect-uri <uri> [--redirect-uri <uri>]... \
   [--post-logout-redirect-uri <uri>]... \
   [--first-party] [--guest-login-allowed] \
-  [--scope <scope>]...
+  [--scope <scope>]... [--audience <resource>]
 ```
 
 | Flag                         | Meaning                                                                              |
@@ -94,6 +104,7 @@ cargo run -p cas --bin cas-client -- register \
 | `--first-party`              | The client skips the consent screen.                                                 |
 | `--guest-login-allowed`      | The client may mint guest accounts through the guest grant.                          |
 | `--scope`                    | Repeatable allow-list of what the client may request. Defaults to `openid`.          |
+| `--audience`                 | The `aud` of its access tokens, naming the resource server. Defaults to the id.      |
 
 A redirect URI is matched by exact string comparison, so it must be registered exactly as the client will send it: `https://app.example` and `https://app.example/` are two different registrations.
 

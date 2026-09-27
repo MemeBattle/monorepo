@@ -109,9 +109,9 @@ email/password + VK login, 7-service architecture).
   resource servers verify locally against JWKS, CAS is not on the request path
   of the applications. Revocation is short access TTL plus refresh rotation.
   Introspection can be added later if agents need instant revocation; the
-  reverse migration would touch every resource server.
+  reverse migration would touch every resource server. See ADR 0011.
 - `aud` is a resource identifier configured per client (`ligretto` for both
-  ligretto backends), not the `client_id`.
+  ligretto backends), not the `client_id`: `clients.audience`, ADR 0011.
 - Clients are the only application entity: `clients` with `first_party`,
   `guest_login_allowed`, kind public/confidential, redirect URIs. There is no
   "app" grouping and no user-belongs-to-client; the account ↔ client relation is
@@ -128,7 +128,9 @@ email/password + VK login, 7-service architecture).
   token is recognised, which revokes the whole grant. That is the only
   revocation state: `revoked_at` on the grant, no separate list. Access tokens
   are never revoked, they expire. Expired rows go with the scheduled cleanup
-  (ADR 0002), never on the request path.
+  (ADR 0002), never on the request path. A grant is created per code
+  exchange, so each device has its own; a replayed code revokes the grant it
+  produced (ADR 0011).
 
 **External providers**
 
@@ -176,7 +178,8 @@ Next, in order:
   reference-client integration test, OpenAPI, the integration guide. No
   production, no ligretto changes.
 - **Production:** deploy CAS + cas-frontend, domain and stable `rp_id`, secrets,
-  the periodic cleanup of expired ceremonies and sessions (ADR 0002, 0004),
+  the periodic cleanup of expired ceremonies, sessions, authorization codes,
+  grants and refresh tokens (ADR 0002, 0004, 0010, 0011),
   monitoring. Tickets cut when SSO nears completion.
 - **Ligretto on CAS:** ligretto-frontend on an OIDC client (redirect to
   `/authorize`, code handed to core-backend), core-backend as the confidential
@@ -258,8 +261,10 @@ mock provider [#760](https://github.com/MemeBattle/monorepo/issues/760).
 
 ## Open questions
 
-- [ ] Token lifetimes: access (≈10 min), refresh absolute (≈30 days), guest
-      grant lifetime — confirm the numbers in #743/#744/#746.
+- [x] Token lifetimes: access and ID token 10 minutes; refresh tokens an
+      absolute 30 days from the grant's creation, never extended by rotation.
+      Checked against OWASP ASVS 5.0 ch. 10 and RFC 9700 (ADR 0011 (c)).
+- [ ] Guest grant lifetime — confirm in #746.
 - [ ] Guest GC policy (deferred): inactivity threshold, whether a guest with a
       live refresh token is ever collected.
 - [ ] When to request `telegram:bot_access`: on every Telegram sign-in, or as a

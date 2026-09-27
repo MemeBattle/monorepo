@@ -1,10 +1,11 @@
-//! The two values an authorization code flow carries through `/authorize`:
-//! the code CAS hands the client, and the PKCE challenge the client hands
-//! CAS. How either crosses the database boundary is the repository's
-//! business (`repository.rs`).
+//! The values an authorization code flow carries: the code CAS hands the
+//! client, the PKCE challenge the client hands `/authorize`, and the
+//! verifier it later proves itself with at `/token`. How any of them crosses
+//! the database boundary is the repository's business (`repository.rs`).
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use sha2::{Digest, Sha256};
+use subtle::ConstantTimeEq;
 
 /// Bytes of entropy in a code. 256 bits, as a session token: not guessable
 /// within the minute a code lives, nor in any other span of time.
@@ -61,11 +62,17 @@ impl CodeHash {
 }
 
 /// The shortest challenge RFC 7636 §4.2 allows; an S256 challenge is always
-/// exactly this long.
+/// exactly this long. The verifier (§4.1) has the same bounds.
 const MIN_CHALLENGE_LENGTH: usize = 43;
 
-/// The longest challenge RFC 7636 §4.2 allows.
+/// The longest challenge RFC 7636 §4.2 allows, and the longest verifier.
 const MAX_CHALLENGE_LENGTH: usize = 128;
+
+/// RFC 7636 `unreserved`: `[A-Za-z0-9-._~]`, the alphabet of a challenge and
+/// of a verifier alike.
+fn is_unreserved(b: u8) -> bool {
+    b.is_ascii_alphanumeric() || matches!(b, b'-' | b'.' | b'_' | b'~')
+}
 
 /// Why a string is not a [`CodeChallenge`]: one variant per rule.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
@@ -89,10 +96,7 @@ impl CodeChallenge {
         if !(MIN_CHALLENGE_LENGTH..=MAX_CHALLENGE_LENGTH).contains(&value.len()) {
             return Err(CodeChallengeError::Length);
         }
-        if !value
-            .bytes()
-            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'.' | b'_' | b'~'))
-        {
+        if !value.bytes().all(is_unreserved) {
             return Err(CodeChallengeError::DisallowedCharacter);
         }
         Ok(Self(value))
@@ -100,6 +104,51 @@ impl CodeChallenge {
 
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+
+    /// Whether `verifier` is the one this challenge was derived from:
+    /// `BASE64URL(SHA256(verifier)) == challenge`, the S256 transformation
+    /// (RFC 7636 §4.6), the only one CAS accepts. Compared in constant time,
+    /// like a client secret: both sides are short, but one of them is the
+    /// caller's to vary, and a comparison that returns at the first
+    /// difference would tell it how far it got.
+    pub fn matches(&self, verifier: &CodeVerifier) -> bool {
+        let transformed = URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.0.as_bytes()));
+        transformed.as_bytes().ct_eq(self.0.as_bytes()).into()
+    }
+}
+
+/// Why a string is not a [`CodeVerifier`]. There is one answer for every
+/// rule, `invalid_request`, so one variant.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[error(
+    "must be {MIN_CHALLENGE_LENGTH} to {MAX_CHALLENGE_LENGTH} characters of ASCII letters, digits, '-', '.', '_' and '~'"
+)]
+pub struct CodeVerifierError;
+
+/// A PKCE `code_verifier` (RFC 7636 §4.1): 43 to 128 characters of the
+/// unreserved set, the secret whose S256 hash the client sent to
+/// `/authorize`. It proves that whoever redeems a code is whoever asked for
+/// it, so it is a secret for as long as the code lives: `Debug` is redacted
+/// and nothing exposes it.
+#[derive(Clone, PartialEq, Eq)]
+pub struct CodeVerifier(String);
+
+impl CodeVerifier {
+    pub fn try_new(value: impl Into<String>) -> Result<Self, CodeVerifierError> {
+        let value = value.into();
+        if !(MIN_CHALLENGE_LENGTH..=MAX_CHALLENGE_LENGTH).contains(&value.len())
+            || !value.bytes().all(is_unreserved)
+        {
+            return Err(CodeVerifierError);
+        }
+        Ok(Self(value))
+    }
+}
+
+impl std::fmt::Debug for CodeVerifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("CodeVerifier(<redacted>)")
     }
 }
 
@@ -198,6 +247,73 @@ mod tests {
                 "{value:?}"
             );
         }
+    }
+
+    /// RFC 7636 Appendix B, both values copied from the RFC.
+    const APPENDIX_B_VERIFIER: &str = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
+    const APPENDIX_B_CHALLENGE: &str = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+
+    #[test]
+    fn the_appendix_b_verifier_matches_its_challenge() {
+        let challenge = CodeChallenge::try_new(APPENDIX_B_CHALLENGE).unwrap();
+
+        assert!(challenge.matches(&CodeVerifier::try_new(APPENDIX_B_VERIFIER).unwrap()));
+    }
+
+    #[test]
+    fn any_other_verifier_does_not_match() {
+        let challenge = CodeChallenge::try_new(APPENDIX_B_CHALLENGE).unwrap();
+        // The verifier with its last character changed, and the challenge
+        // itself presented as a verifier (the `plain` method, refused).
+        for verifier in [
+            "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXl",
+            APPENDIX_B_CHALLENGE,
+            &"a".repeat(43),
+        ] {
+            assert!(
+                !challenge.matches(&CodeVerifier::try_new(verifier).unwrap()),
+                "{verifier}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_verifier_of_43_to_128_unreserved_characters_is_accepted() {
+        for value in [
+            APPENDIX_B_VERIFIER.to_owned(),
+            "a".repeat(43),
+            "a".repeat(128),
+            format!("{}-._~", "Z9".repeat(20)),
+        ] {
+            assert!(CodeVerifier::try_new(value.clone()).is_ok(), "{value:?}");
+        }
+    }
+
+    #[test]
+    fn a_verifier_outside_the_grammar_is_refused() {
+        for value in [
+            String::new(),
+            "a".repeat(42),
+            "a".repeat(129),
+            format!("{}+", "a".repeat(42)),
+            format!("{}/", "a".repeat(42)),
+            format!("{}=", "a".repeat(42)),
+            format!("{} ", "a".repeat(42)),
+            format!("{}é", "a".repeat(42)),
+        ] {
+            assert_eq!(
+                CodeVerifier::try_new(value.clone()),
+                Err(CodeVerifierError),
+                "{value:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn debug_never_prints_the_verifier() {
+        let verifier = CodeVerifier::try_new(APPENDIX_B_VERIFIER).unwrap();
+
+        assert_eq!(format!("{verifier:?}"), "CodeVerifier(<redacted>)");
     }
 
     #[test]
