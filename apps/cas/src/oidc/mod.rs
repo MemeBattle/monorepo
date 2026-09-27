@@ -2,16 +2,19 @@
 //! set, the discovery document and the JWKS (ADR 0009), the authorization
 //! endpoint with the codes it issues (ADR 0010), and the token endpoint
 //! that exchanges a code for an access token, an ID token and a refresh
-//! token under a grant (ADR 0011). Refresh, userinfo, logout and the guest
-//! grant arrive with their own tickets and build on what is here. See
+//! token under a grant (ADR 0011) and refreshes them with rotation and reuse
+//! detection (ADR 0012). Userinfo, logout and the guest grant arrive with
+//! their own tickets and build on what is here. See
 //! `docs/adr/0009-signing-key-and-discovery.md`,
-//! `docs/adr/0010-authorization-endpoint.md` and
-//! `docs/adr/0011-token-endpoint-and-access-tokens.md`.
+//! `docs/adr/0010-authorization-endpoint.md`,
+//! `docs/adr/0011-token-endpoint-and-access-tokens.md` and
+//! `docs/adr/0012-refresh-token-rotation.md`.
 
 pub mod authorization;
 mod codes;
 mod discovery;
 mod exchange;
+mod grants;
 pub mod http;
 mod keys;
 mod repository;
@@ -27,6 +30,7 @@ pub use codes::{
 };
 pub use discovery::Discovery;
 pub use exchange::{IssuedTokens, TokenService};
+pub use grants::revoke_account_grants;
 pub use keys::{Jwks, PublicJwk, SIGNING_ALGORITHM, SigningKey, SigningKeyError, SigningKeys};
 pub use service::{AuthorizationService, IssueError, IssuedCode, RedeemError, RedeemedCode};
 pub use token_request::TokenError;
@@ -51,8 +55,8 @@ pub const AUTHORIZATION_CODE_LIFETIME: Duration = Duration::from_secs(60);
 pub const ACCESS_TOKEN_LIFETIME: Duration = Duration::from_secs(10 * 60);
 
 /// How long a grant, and every refresh token under it, lives: measured from
-/// the grant's creation and absolute, so rotation (#744) never extends it
-/// (OWASP ASVS 5.0 10.4.8). Thirty days is the session cap (ADR 0004 (c)):
+/// the grant's creation and absolute, so rotation never extends it (OWASP
+/// ASVS 5.0 10.4.8, ADR 0012 (g)). Thirty days is the session cap (ADR 0004 (c)):
 /// signing in again once a month is one passkey touch.
 pub const REFRESH_TOKEN_LIFETIME: Duration = Duration::from_secs(30 * 24 * 60 * 60);
 

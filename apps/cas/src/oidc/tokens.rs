@@ -48,7 +48,7 @@ impl RefreshToken {
     }
 
     /// Accepts a presented value only if it has the shape of a token this
-    /// service issued, so junk is refused before it costs a query (#744).
+    /// service issued, so junk is refused before it costs a query.
     pub fn parse(value: &str) -> Option<Self> {
         let bytes = URL_SAFE_NO_PAD.decode(value).ok()?;
         (bytes.len() == REFRESH_TOKEN_BYTES).then(|| Self(value.to_owned()))

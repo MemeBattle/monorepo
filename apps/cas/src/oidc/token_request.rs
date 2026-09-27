@@ -2,28 +2,35 @@
 //! and its `Authorization` header (ADR 0011). Pure domain: no axum, no SQL.
 //! The service applies them in order, with the lookups between them — the
 //! client is authenticated before the grant is looked at, and the code is
-//! redeemed before its verifier is checked.
+//! redeemed before its verifier is checked (ADR 0011); a refresh token is
+//! checked against its grant before it is spent (ADR 0012).
 
 use base64::{Engine, engine::general_purpose::STANDARD};
 
 use super::authorization::{Duplicate, Params};
 use super::codes::{AuthorizationCode, CodeVerifier};
-use crate::clients::ClientId;
+use super::tokens::RefreshToken;
+use crate::clients::{ClientId, Scope};
 
 /// Every parameter a token request is read for. A repetition of any of them
 /// is refused before any other rule is looked at, as at `/authorize` (RFC
 /// 6749 §3.2: parameters MUST NOT be included more than once).
-const READ_PARAMETERS: [&str; 6] = [
+const READ_PARAMETERS: [&str; 8] = [
     "grant_type",
     "code",
     "redirect_uri",
     "code_verifier",
+    "refresh_token",
+    "scope",
     "client_id",
     "client_secret",
 ];
 
-/// The one `grant_type` served so far.
+/// The code exchange (RFC 6749 §4.1.3, ADR 0011).
 const AUTHORIZATION_CODE_GRANT_TYPE: &str = "authorization_code";
+
+/// The refresh with rotation (RFC 6749 §6, ADR 0012).
+const REFRESH_TOKEN_GRANT_TYPE: &str = "refresh_token";
 
 /// Why a token request was refused, or failed. Every variant but the last
 /// two is an RFC 6749 §5.2 error the client gets back as is, with a fixed
@@ -48,6 +55,11 @@ pub enum TokenError {
     #[error("invalid grant: {0}")]
     InvalidGrant(&'static str),
 
+    /// The `scope` of a refresh is malformed or asks for more than the
+    /// grant holds (RFC 6749 §6).
+    #[error("invalid scope: {0}")]
+    InvalidScope(&'static str),
+
     #[error("unsupported grant type")]
     UnsupportedGrantType,
 
@@ -70,6 +82,13 @@ impl From<Duplicate> for TokenError {
 /// request, and a finer answer would help only someone probing codes.
 pub const INVALID_CODE: &str =
     "the authorization code is invalid, expired, already used or issued for another request";
+
+/// The `invalid_grant` description for a refresh token that does not
+/// refresh, however it failed: unknown, expired, revoked, already used, or
+/// issued to another client (ADR 0012 (e)). The client's remedy is the same,
+/// a new sign-in, and the logs keep the reasons apart.
+pub const INVALID_REFRESH_TOKEN: &str =
+    "the refresh token is invalid, expired, revoked or already used";
 
 /// Refuses a request that repeats a parameter the endpoint reads, before any
 /// other rule.
@@ -205,21 +224,40 @@ pub struct CodeGrant {
     pub verifier: CodeVerifier,
 }
 
-/// The grant a request asks for, after the client is authenticated. Only
-/// `authorization_code` is served; the rules are applied in order, and the
-/// first that fails is the answer. A code that does not have the shape CAS
-/// issues is `invalid_grant` at once: it cannot be a code, and asking the
-/// database would only cost a query.
-pub fn code_grant(params: &Params) -> Result<CodeGrant, TokenError> {
-    match params.get("grant_type")? {
-        None => return Err(TokenError::InvalidRequest("grant_type is required")),
-        Some(AUTHORIZATION_CODE_GRANT_TYPE) => {}
-        // `refresh_token` arrives with #744 and the guest grant with #746,
-        // both advertised by discovery already; until then they are as
-        // unsupported as any other value.
-        Some(_) => return Err(TokenError::UnsupportedGrantType),
-    }
+/// A refresh token grant, read and shaped but not yet looked up. `Debug` is
+/// safe: the token's own is redacted.
+#[derive(Debug)]
+pub struct RefreshGrant {
+    pub refresh_token: RefreshToken,
+    /// The scopes the request names, deduplicated in request order; `None`
+    /// when it names none, which asks for the grant's scopes (RFC 6749 §6).
+    pub scope: Option<Vec<Scope>>,
+}
 
+/// The grants `POST /token` serves.
+#[derive(Debug)]
+pub enum Grant {
+    Code(CodeGrant),
+    Refresh(RefreshGrant),
+}
+
+/// The grant a request asks for, after the client is authenticated. The
+/// rules are applied in order, and the first that fails is the answer.
+pub fn grant(params: &Params) -> Result<Grant, TokenError> {
+    match params.get("grant_type")? {
+        None => Err(TokenError::InvalidRequest("grant_type is required")),
+        Some(AUTHORIZATION_CODE_GRANT_TYPE) => code_grant(params).map(Grant::Code),
+        Some(REFRESH_TOKEN_GRANT_TYPE) => refresh_grant(params).map(Grant::Refresh),
+        // The guest grant arrives with #746, advertised by discovery
+        // already; until then it is as unsupported as any other value.
+        Some(_) => Err(TokenError::UnsupportedGrantType),
+    }
+}
+
+/// The rest of an `authorization_code` request. A code that does not have
+/// the shape CAS issues is `invalid_grant` at once: it cannot be a code, and
+/// asking the database would only cost a query.
+fn code_grant(params: &Params) -> Result<CodeGrant, TokenError> {
     let code = params
         .get("code")?
         .ok_or(TokenError::InvalidRequest("code is required"))?;
@@ -239,6 +277,38 @@ pub fn code_grant(params: &Params) -> Result<CodeGrant, TokenError> {
         redirect_uri: redirect_uri.to_owned(),
         verifier,
     })
+}
+
+/// The rest of a `refresh_token` request. `scope` is split and checked as
+/// `/authorize` checks it, and a malformed one is the same `invalid_scope`;
+/// whether it fits the grant is for the service to say, once the grant is
+/// found. A token that does not have the shape CAS issues is `invalid_grant`
+/// without a query, as a code is.
+fn refresh_grant(params: &Params) -> Result<RefreshGrant, TokenError> {
+    let refresh_token = params
+        .get("refresh_token")?
+        .ok_or(TokenError::InvalidRequest("refresh_token is required"))?;
+    let scope = params.get("scope")?.map(requested_scopes).transpose()?;
+    let refresh_token = RefreshToken::parse(refresh_token)
+        .ok_or(TokenError::InvalidGrant(INVALID_REFRESH_TOKEN))?;
+
+    Ok(RefreshGrant {
+        refresh_token,
+        scope,
+    })
+}
+
+/// A space-separated scope list, deduplicated in request order.
+fn requested_scopes(value: &str) -> Result<Vec<Scope>, TokenError> {
+    let mut scopes: Vec<Scope> = Vec::new();
+    for token in value.split(' ') {
+        let scope =
+            Scope::try_new(token).map_err(|_| TokenError::InvalidScope("scope is malformed"))?;
+        if !scopes.contains(&scope) {
+            scopes.push(scope);
+        }
+    }
+    Ok(scopes)
 }
 
 #[cfg(test)]
@@ -274,7 +344,7 @@ mod tests {
 
     fn grant_error(pairs: &[(&'static str, String)]) -> TokenError {
         let pairs: Vec<(&str, &str)> = pairs.iter().map(|(n, v)| (*n, v.as_str())).collect();
-        code_grant(&params(&pairs)).expect_err("the grant must be refused")
+        grant(&params(&pairs)).expect_err("the grant must be refused")
     }
 
     fn without(name: &str, code: &str) -> Vec<(&'static str, String)> {
@@ -418,7 +488,7 @@ mod tests {
                 "{name}"
             );
         }
-        assert!(refuse_repeated(&params(&[("scope", "a"), ("scope", "b")])).is_ok());
+        assert!(refuse_repeated(&params(&[("state", "a"), ("state", "b")])).is_ok());
     }
 
     #[test]
@@ -427,7 +497,9 @@ mod tests {
         let pairs: Vec<(&str, String)> = valid_grant(&code);
         let pairs: Vec<(&str, &str)> = pairs.iter().map(|(n, v)| (*n, v.as_str())).collect();
 
-        let grant = code_grant(&params(&pairs)).unwrap();
+        let Grant::Code(grant) = grant(&params(&pairs)).unwrap() else {
+            panic!("a code grant");
+        };
 
         assert_eq!(grant.code.expose(), code);
         assert_eq!(grant.redirect_uri, "https://app.example/cb");
@@ -435,19 +507,13 @@ mod tests {
     }
 
     #[test]
-    fn grant_type_must_be_authorization_code() {
+    fn grant_type_must_be_a_served_one() {
         let code = code();
         assert!(matches!(
             grant_error(&without("grant_type", &code)),
             TokenError::InvalidRequest("grant_type is required")
         ));
-        for other in [
-            "refresh_token",
-            GUEST_GRANT_TYPE,
-            "password",
-            "client_credentials",
-            "CODE",
-        ] {
+        for other in [GUEST_GRANT_TYPE, "password", "client_credentials", "CODE"] {
             assert!(
                 matches!(
                     grant_error(&with("grant_type", other, &code)),
@@ -517,5 +583,103 @@ mod tests {
 
         assert!(!debug.contains("hunter2"), "{debug}");
         assert!(debug.contains("ligretto"), "{debug}");
+    }
+
+    fn refresh_token() -> String {
+        RefreshToken::generate().unwrap().expose().to_owned()
+    }
+
+    fn refresh(pairs: &[(&str, &str)]) -> Result<RefreshGrant, TokenError> {
+        let mut all = vec![("grant_type", "refresh_token")];
+        all.extend_from_slice(pairs);
+        grant(&params(&all)).map(|grant| match grant {
+            Grant::Refresh(grant) => grant,
+            Grant::Code(_) => panic!("a refresh grant"),
+        })
+    }
+
+    #[test]
+    fn a_refresh_grant_is_read() {
+        let token = refresh_token();
+
+        let grant = refresh(&[("refresh_token", &token)]).unwrap();
+
+        assert_eq!(grant.refresh_token.expose(), token);
+        assert_eq!(grant.scope, None);
+    }
+
+    #[test]
+    fn a_refresh_scope_is_split_and_deduplicated_in_request_order() {
+        let token = refresh_token();
+
+        let grant = refresh(&[
+            ("refresh_token", &token),
+            ("scope", "profile openid profile"),
+        ])
+        .unwrap();
+
+        assert_eq!(
+            grant.scope,
+            Some(
+                ["profile", "openid"]
+                    .map(|scope| Scope::try_new(scope).unwrap())
+                    .to_vec()
+            )
+        );
+    }
+
+    #[test]
+    fn a_refresh_token_is_required() {
+        for pairs in [vec![], vec![("refresh_token", "")]] {
+            let error = refresh(&pairs).unwrap_err();
+
+            assert!(
+                matches!(
+                    error,
+                    TokenError::InvalidRequest("refresh_token is required")
+                ),
+                "{pairs:?}: {error:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_malformed_refresh_scope_is_invalid_scope() {
+        let token = refresh_token();
+        for scope in ["openid  profile", "openid\tprofile", "open\"id", " openid"] {
+            let error = refresh(&[("refresh_token", &token), ("scope", scope)]).unwrap_err();
+
+            assert!(
+                matches!(error, TokenError::InvalidScope("scope is malformed")),
+                "{scope:?}: {error:?}"
+            );
+        }
+    }
+
+    /// Checked after the other rules, and before any query.
+    #[test]
+    fn a_refresh_token_of_the_wrong_shape_is_invalid_grant() {
+        for token in ["not-a-token", &"A".repeat(42), &"A".repeat(44)] {
+            let error = refresh(&[("refresh_token", token)]).unwrap_err();
+
+            assert!(
+                matches!(error, TokenError::InvalidGrant(INVALID_REFRESH_TOKEN)),
+                "{token}: {error:?}"
+            );
+        }
+        let error = refresh(&[("refresh_token", "not-a-token"), ("scope", "open\"id")]);
+        assert!(matches!(
+            error,
+            Err(TokenError::InvalidScope("scope is malformed"))
+        ));
+    }
+
+    #[test]
+    fn debug_of_a_refresh_grant_hides_the_token() {
+        let token = refresh_token();
+
+        let debug = format!("{:?}", refresh(&[("refresh_token", &token)]).unwrap());
+
+        assert!(!debug.contains(&token), "{debug}");
     }
 }

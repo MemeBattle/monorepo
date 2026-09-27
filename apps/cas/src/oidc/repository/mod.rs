@@ -13,7 +13,11 @@ use uuid::Uuid;
 use super::codes::{CodeChallenge, CodeHash};
 use crate::clients::{ClientId, Scope};
 
-pub(super) use grants::{NewGrant, insert_grant, insert_refresh_token, revoke_grants_by_code};
+pub(super) use grants::{
+    NewGrant, Presented, insert_grant, insert_refresh_token, lock_refresh_token,
+    retire_refresh_token, revoke_grant, revoke_grants_by_code, revoke_grants_of_account,
+    touch_grant,
+};
 
 /// What an insert binds a code to. The hash, never the code.
 #[derive(Debug)]

@@ -1,9 +1,11 @@
 //! Data access for `grants` and `refresh_tokens`: what a code exchange
-//! writes, and the revocation a replayed code triggers. Refresh (#744) will
-//! read what is written here.
+//! writes, what a refresh reads, retires and writes (ADR 0012), and the
+//! revocations: of a replayed code's grants, of a reused token's grant, and
+//! of every grant of an account.
 
 use std::time::Duration;
 
+use sqlx::PgConnection;
 use uuid::Uuid;
 
 use crate::clients::{ClientId, Scope};
@@ -83,6 +85,196 @@ where
         r#"UPDATE grants SET revoked_at = now()
            WHERE authorization_code_id = $1 AND revoked_at IS NULL"#,
         authorization_code_id,
+    )
+    .execute(executor)
+    .await?;
+
+    Ok(result.rows_affected())
+}
+
+/// A refresh token that is live, with what its grant holds, both rows
+/// locked by the caller's transaction.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(in crate::oidc) struct LiveToken {
+    pub token_id: Uuid,
+    pub grant_id: Uuid,
+    pub account_id: Uuid,
+    pub client_id: ClientId,
+    pub scopes: Vec<Scope>,
+}
+
+/// What a presented refresh token turned out to be.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(in crate::oidc) enum Presented {
+    /// Not used, not expired, its grant neither revoked nor expired.
+    Live(LiveToken),
+    /// No token has this hash, or its grant was deleted while the lookup ran.
+    Unknown,
+    /// The token or its grant is past its expiry.
+    Expired,
+    /// The grant was revoked; the token was never used.
+    Revoked { grant_id: Uuid },
+    /// The token was retired by an earlier rotation: presenting it again is
+    /// a theft signal, whatever else is true of it (ADR 0012 (b)).
+    AlreadyUsed { grant_id: Uuid },
+}
+
+/// Finds the refresh token with this hash and locks its grant, then the
+/// token, on the caller's transaction, and says what it found. Three
+/// statements, in this order:
+///
+/// 1. the token's grant id, unlocked: a token never moves to another grant,
+///    so the value cannot be stale;
+/// 2. the grant, `FOR UPDATE`;
+/// 3. the token, `FOR UPDATE`, read after the grant lock, so it sees the
+///    `used_at` of a rotation that held the lock before.
+///
+/// The grant first, because that is the order every cascade takes: deleting
+/// an account or a grant locks the grant and then deletes its tokens. Taking
+/// the token first would let a rotation and a delete each hold what the
+/// other waits for. Every writer of a grant's tokens holds the grant row
+/// first, so the grant lock alone orders a rotation against a concurrent
+/// revocation or rotation; the token lock keeps the order explicit (ADR
+/// 0012 (b)).
+///
+/// Nothing is written: the caller decides, once it has checked the client,
+/// whether the token is spent.
+pub(in crate::oidc) async fn lock_refresh_token(
+    conn: &mut PgConnection,
+    hash: &RefreshTokenHash,
+) -> Result<Presented, sqlx::Error> {
+    let Some(found) = sqlx::query!(
+        r#"SELECT id, grant_id FROM refresh_tokens WHERE token_hash = $1"#,
+        hash.as_bytes(),
+    )
+    .fetch_optional(&mut *conn)
+    .await?
+    else {
+        return Ok(Presented::Unknown);
+    };
+    let grant_id = found.grant_id;
+
+    let Some(grant) = sqlx::query!(
+        r#"SELECT
+               account_id,
+               client_id AS "client_id: ClientId",
+               scopes,
+               revoked_at IS NOT NULL AS "revoked!",
+               expires_at <= now() AS "expired!"
+           FROM grants
+           WHERE id = $1
+           FOR UPDATE"#,
+        grant_id,
+    )
+    .fetch_optional(&mut *conn)
+    .await?
+    else {
+        return Ok(Presented::Unknown);
+    };
+
+    let Some(token) = sqlx::query!(
+        r#"SELECT
+               used_at IS NOT NULL AS "used!",
+               expires_at <= now() AS "expired!"
+           FROM refresh_tokens
+           WHERE id = $1
+           FOR UPDATE"#,
+        found.id,
+    )
+    .fetch_optional(&mut *conn)
+    .await?
+    else {
+        return Ok(Presented::Unknown);
+    };
+
+    Ok(if token.used {
+        Presented::AlreadyUsed { grant_id }
+    } else if grant.revoked {
+        Presented::Revoked { grant_id }
+    } else if token.expired || grant.expired {
+        Presented::Expired
+    } else {
+        Presented::Live(LiveToken {
+            token_id: found.id,
+            grant_id,
+            account_id: grant.account_id,
+            client_id: grant.client_id,
+            scopes: super::scopes(grant.scopes)?,
+        })
+    })
+}
+
+/// Marks a refresh token used. The row stays until its expiry, so that a
+/// second presentation is recognised as a reuse (ADR 0011 (d)).
+pub(in crate::oidc) async fn retire_refresh_token<'e, E>(
+    executor: E,
+    token_id: Uuid,
+) -> Result<(), sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    sqlx::query!(
+        r#"UPDATE refresh_tokens SET used_at = now() WHERE id = $1"#,
+        token_id,
+    )
+    .execute(executor)
+    .await?;
+    Ok(())
+}
+
+/// Records that a grant was just used. Informational: the grant's expiry is
+/// absolute and does not move (ADR 0012 (g)).
+pub(in crate::oidc) async fn touch_grant<'e, E>(
+    executor: E,
+    grant_id: Uuid,
+) -> Result<(), sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    sqlx::query!(
+        r#"UPDATE grants SET last_used_at = now() WHERE id = $1"#,
+        grant_id,
+    )
+    .execute(executor)
+    .await?;
+    Ok(())
+}
+
+/// Revokes one grant, and with it every refresh token under it. Returns
+/// whether this call revoked it; a grant revoked before keeps the moment it
+/// was first revoked.
+pub(in crate::oidc) async fn revoke_grant<'e, E>(
+    executor: E,
+    grant_id: Uuid,
+) -> Result<bool, sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    let result = sqlx::query!(
+        r#"UPDATE grants SET revoked_at = now()
+           WHERE id = $1 AND revoked_at IS NULL"#,
+        grant_id,
+    )
+    .execute(executor)
+    .await?;
+
+    Ok(result.rows_affected() > 0)
+}
+
+/// Revokes every live grant of an account in one statement, and returns how
+/// many there were (ADR 0012 (h)). A grant revoked before keeps the moment it
+/// was first revoked.
+pub(in crate::oidc) async fn revoke_grants_of_account<'e, E>(
+    executor: E,
+    account_id: Uuid,
+) -> Result<u64, sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    let result = sqlx::query!(
+        r#"UPDATE grants SET revoked_at = now()
+           WHERE account_id = $1 AND revoked_at IS NULL"#,
+        account_id,
     )
     .execute(executor)
     .await?;
@@ -333,5 +525,213 @@ mod tests {
 
         assert_eq!(link, None);
         assert_eq!(count(&pool, "refresh_tokens").await, 1);
+    }
+
+    /// A granted fixture with one refresh token, and that token.
+    async fn with_token(pool: &PgPool) -> (Granted, RefreshToken, Uuid) {
+        let granted = granted(pool).await;
+        let token = RefreshToken::generate().unwrap();
+        let token_id = insert_refresh_token(pool, granted.grant_id, &token.hash())
+            .await
+            .unwrap();
+        (granted, token, token_id)
+    }
+
+    /// [`lock_refresh_token`] on a connection of its own, as the repository
+    /// tests need no transaction around it.
+    async fn lock_on(pool: &PgPool, token: &RefreshToken) -> Presented {
+        lock_refresh_token(&mut pool.acquire().await.unwrap(), &token.hash())
+            .await
+            .unwrap()
+    }
+
+    async fn execute(pool: &PgPool, sql: &'static str, id: Uuid) {
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query(sql).bind(id).execute(pool).await.unwrap();
+    }
+
+    #[sqlx::test]
+    async fn a_live_token_is_found_with_its_grant(pool: PgPool) {
+        let (granted, token, token_id) = with_token(&pool).await;
+
+        assert_eq!(
+            lock_on(&pool, &token).await,
+            Presented::Live(LiveToken {
+                token_id,
+                grant_id: granted.grant_id,
+                account_id: granted.fixture.account_id,
+                client_id: granted.fixture.client_id.clone(),
+                scopes: scope_list(),
+            })
+        );
+    }
+
+    #[sqlx::test]
+    async fn an_unknown_token_is_unknown(pool: PgPool) {
+        with_token(&pool).await;
+
+        assert_eq!(
+            lock_on(&pool, &RefreshToken::generate().unwrap()).await,
+            Presented::Unknown
+        );
+    }
+
+    #[sqlx::test]
+    async fn an_expired_token_or_grant_is_expired(pool: PgPool) {
+        let (granted, token, token_id) = with_token(&pool).await;
+        execute(
+            &pool,
+            "UPDATE refresh_tokens SET expires_at = now() - interval '1 second' WHERE id = $1",
+            token_id,
+        )
+        .await;
+        assert_eq!(lock_on(&pool, &token).await, Presented::Expired);
+
+        let other_grant = grant(&pool, &granted.fixture, None).await;
+        let other = RefreshToken::generate().unwrap();
+        insert_refresh_token(&pool, other_grant, &other.hash())
+            .await
+            .unwrap();
+        execute(
+            &pool,
+            "UPDATE grants SET expires_at = now() - interval '1 second' WHERE id = $1",
+            other_grant,
+        )
+        .await;
+        assert_eq!(lock_on(&pool, &other).await, Presented::Expired);
+    }
+
+    #[sqlx::test]
+    async fn a_token_of_a_revoked_grant_is_revoked(pool: PgPool) {
+        let (granted, token, _) = with_token(&pool).await;
+        assert!(revoke_grant(&pool, granted.grant_id).await.unwrap());
+
+        assert_eq!(
+            lock_on(&pool, &token).await,
+            Presented::Revoked {
+                grant_id: granted.grant_id
+            }
+        );
+    }
+
+    /// A retired token is a reuse whatever else is true of it: its grant
+    /// revoked or expired changes nothing, so a second reuse is reported
+    /// (and revokes, idempotently) like the first.
+    #[sqlx::test]
+    async fn a_retired_token_is_already_used_before_anything_else(pool: PgPool) {
+        let (granted, token, token_id) = with_token(&pool).await;
+        let grant_id = granted.grant_id;
+        retire_refresh_token(&pool, token_id).await.unwrap();
+        assert_eq!(
+            lock_on(&pool, &token).await,
+            Presented::AlreadyUsed { grant_id }
+        );
+
+        revoke_grant(&pool, grant_id).await.unwrap();
+        execute(
+            &pool,
+            "UPDATE grants SET expires_at = now() - interval '1 second' WHERE id = $1",
+            grant_id,
+        )
+        .await;
+        assert_eq!(
+            lock_on(&pool, &token).await,
+            Presented::AlreadyUsed { grant_id }
+        );
+    }
+
+    #[sqlx::test]
+    async fn retiring_a_token_and_touching_the_grant_record_the_moment(pool: PgPool) {
+        let (granted, _, token_id) = with_token(&pool).await;
+        execute(
+            &pool,
+            "UPDATE grants SET last_used_at = created_at - interval '1 hour' WHERE id = $1",
+            granted.grant_id,
+        )
+        .await;
+
+        retire_refresh_token(&pool, token_id).await.unwrap();
+        touch_grant(&pool, granted.grant_id).await.unwrap();
+
+        // Unchecked queries: see docs/TESTS.md.
+        let used_at: Option<OffsetDateTime> =
+            sqlx::query_scalar("SELECT used_at FROM refresh_tokens WHERE id = $1")
+                .bind(token_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        let (created_at, last_used_at): (OffsetDateTime, OffsetDateTime) =
+            sqlx::query_as("SELECT created_at, last_used_at FROM grants WHERE id = $1")
+                .bind(granted.grant_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert!(used_at.is_some());
+        assert!(last_used_at >= created_at, "{last_used_at} {created_at}");
+    }
+
+    #[sqlx::test]
+    async fn revoking_a_grant_revokes_it_once(pool: PgPool) {
+        let Granted {
+            fixture, grant_id, ..
+        } = granted(&pool).await;
+        let other = grant(&pool, &fixture, None).await;
+
+        assert!(revoke_grant(&pool, grant_id).await.unwrap());
+        let first = revoked_at(&pool, grant_id).await.expect("revoked");
+        assert_eq!(revoked_at(&pool, other).await, None);
+
+        assert!(!revoke_grant(&pool, grant_id).await.unwrap());
+        assert_eq!(revoked_at(&pool, grant_id).await, Some(first));
+    }
+
+    /// The acceptance criterion: one call revokes every grant of the
+    /// account, and nobody else's.
+    #[sqlx::test]
+    async fn revoking_the_account_revokes_every_grant_of_it_only(pool: PgPool) {
+        let Granted {
+            fixture, grant_id, ..
+        } = granted(&pool).await;
+        let second = grant(&pool, &fixture, None).await;
+        let someone = crate::accounts::AccountRepository::new(pool.clone())
+            .create(crate::accounts::NewAccount::full(
+                crate::testing::display_name("Bob"),
+            ))
+            .await
+            .unwrap();
+        let theirs = grant(
+            &pool,
+            &Fixture {
+                account_id: someone.id,
+                ..fixture
+            },
+            None,
+        )
+        .await;
+        let account_id = granted_account(&pool, grant_id).await;
+
+        assert_eq!(
+            revoke_grants_of_account(&pool, account_id).await.unwrap(),
+            2
+        );
+
+        let first = revoked_at(&pool, grant_id).await.expect("revoked");
+        assert!(revoked_at(&pool, second).await.is_some());
+        assert_eq!(revoked_at(&pool, theirs).await, None);
+
+        assert_eq!(
+            revoke_grants_of_account(&pool, account_id).await.unwrap(),
+            0
+        );
+        assert_eq!(revoked_at(&pool, grant_id).await, Some(first));
+    }
+
+    async fn granted_account(pool: &PgPool, grant_id: Uuid) -> Uuid {
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query_scalar("SELECT account_id FROM grants WHERE id = $1")
+            .bind(grant_id)
+            .fetch_one(pool)
+            .await
+            .unwrap()
     }
 }

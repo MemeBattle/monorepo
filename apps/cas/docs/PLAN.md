@@ -125,7 +125,7 @@ email/password + VK login, 7-service architecture).
 - Refresh tokens are opaque, stored as a hash under a `grants` row (account ×
   client, scopes, `revoked_at`). Rotation inserts the successor and marks the
   presented token used; used rows stay until the absolute expiry so a replayed
-  token is recognised, which revokes the whole grant. That is the only
+  token is recognised, which revokes the whole grant (ADR 0012). That is the only
   revocation state: `revoked_at` on the grant, no separate list. Access tokens
   are never revoked, they expire. Expired rows go with the scheduled cleanup
   (ADR 0002), never on the request path. A grant is created per code
