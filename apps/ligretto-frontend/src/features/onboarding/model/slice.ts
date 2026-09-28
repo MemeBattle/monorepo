@@ -9,6 +9,8 @@ export type OnboardingState = {
   game: OnboardingGame
   /** Events the FSM accepts on this step — drives which cards/decks are clickable. */
   allowedEvents: Array<OnboardingEvent>
+  /** The deck the scripted opponent plays its green run into, once it has opened it. */
+  opponentPileIndex?: number
   results?: GameResults
 }
 
@@ -20,11 +22,16 @@ export const initialState: OnboardingState = {
 }
 
 export const nextStepOnboardingAction = createAction('features/onboarding/next')
-export const putStackCardAction = createAction('features/onboarding/putStackCard')
+/** Where the player put a card; the scripted transitions fall back to their own deck without it. */
+export interface OnboardingPlacementPayload {
+  playgroundDeckIndex: number
+}
+
+export const putStackCardAction = createAction<OnboardingPlacementPayload>('features/onboarding/putStackCard')
 export const nextStackCardAction = createAction('features/onboarding/nextStackCard')
-export const putFirstCardAction = createAction('features/onboarding/putFirstCard')
-export const putSecondCardAction = createAction('features/onboarding/putSecondCard')
-export const putThirdCardAction = createAction('features/onboarding/putThirdCard')
+export const putFirstCardAction = createAction<OnboardingPlacementPayload>('features/onboarding/putFirstCard')
+export const putSecondCardAction = createAction<OnboardingPlacementPayload>('features/onboarding/putSecondCard')
+export const putThirdCardAction = createAction<OnboardingPlacementPayload>('features/onboarding/putThirdCard')
 export const putLigrettoCardAction = createAction('features/onboarding/putLigrettoCard')
 
 const onboardingSlice = createSlice({
@@ -48,6 +55,9 @@ const onboardingSlice = createSlice({
     allowedEvents(state) {
       return state.allowedEvents
     },
+    opponentPileIndex(state) {
+      return state.opponentPileIndex
+    },
   },
 })
 
@@ -57,5 +67,6 @@ export const {
   step: onboardingStepSelector,
   results: onboardingResultsSelector,
   allowedEvents: onboardingAllowedEventsSelector,
+  opponentPileIndex: onboardingOpponentPileIndexSelector,
 } = onboardingSlice.getSelectors((root: { onboarding: OnboardingState }) => root.onboarding)
 export const onboardingReducer = onboardingSlice.reducer

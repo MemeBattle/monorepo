@@ -26,9 +26,6 @@ export type OnboardingGame = {
   }
 }
 
-/** Playground deck the scripted opponent plays the green sequence into. */
-export const OPPONENT_DECK_INDEX = 2
-
 /** Display names of the scripted players: the trainee and the three bots. */
 export const ONBOARDING_PLAYER_NAMES: Record<'id0' | 'id1' | 'id2' | 'id3', string> = {
   id0: 'Ты',
@@ -159,6 +156,10 @@ export const createOnboardingGame = (): OnboardingGame => ({
 
 type OnboardingContext = FsmContext<{
   isCycledInfoShown: boolean
+  /** The deck the player opened with the blue one — the blue cards that follow go on it. */
+  bluePileIndex: number
+  /** The deck the scripted opponent opened with its green one — the first one free when it moved. */
+  opponentPileIndex?: number
   game: OnboardingGame
   results?: GameResults
 }>
@@ -203,23 +204,30 @@ const cycledInfoHooks = {
   },
 }
 
+const PLAYGROUND_DECK_COUNT = 12
+
 /** The player puts the second row card on the playground and the opponent answers with the green one. */
-const putSecondCardAndOpponentMove = (ctx: OnboardingContext) => {
+const putSecondCardAndOpponentMove = (ctx: OnboardingContext, playgroundDeckIndex = 1) => {
+  const { decks } = ctx.data.game.playground
   const playerCard = ctx.data.game.players.id0.cards[1]
   if (playerCard) {
-    ctx.data.game.playground.decks[1] = { cards: [playerCard], isHidden: false }
+    decks[playgroundDeckIndex] = { cards: [playerCard], isHidden: false }
     ctx.data.game.players.id0.cards[1] = null
   }
-  ctx.data.game.playground.decks[OPPONENT_DECK_INDEX] = {
-    cards: [{ value: 1, color: CardColors.green }],
-    isHidden: false,
+  const opponentPileIndex = Array.from({ length: PLAYGROUND_DECK_COUNT }, (_, index) => index).find(index => !decks[index]?.cards.length)
+  if (opponentPileIndex !== undefined) {
+    ctx.data.opponentPileIndex = opponentPileIndex
+    decks[opponentPileIndex] = { cards: [{ value: 1, color: CardColors.green }], isHidden: false }
   }
 }
+
+const opponentPile = (ctx: OnboardingContext) =>
+  ctx.data.opponentPileIndex === undefined ? undefined : ctx.data.game.playground.decks[ctx.data.opponentPileIndex]
 
 /** The player puts the green three from the row on top of the opponent's green two. */
 const putGreenThree = (ctx: OnboardingContext) => {
   ctx.data.game.players.id0.cards[2] = null
-  ctx.data.game.playground.decks[OPPONENT_DECK_INDEX]?.cards.push({ value: 3, color: CardColors.green })
+  opponentPile(ctx)?.cards.push({ value: 3, color: CardColors.green })
 }
 
 /** Put the top ligretto card into the first free row slot. */
@@ -256,6 +264,7 @@ export class OnboardingStateMachine extends StateMachine<OnboardingStep, Onboard
       data() {
         return {
           isCycledInfoShown: false,
+          bluePileIndex: 0,
           game: createOnboardingGame(),
         }
       },
@@ -269,15 +278,10 @@ export class OnboardingStateMachine extends StateMachine<OnboardingStep, Onboard
         t(OnboardingStep.Ligretto, OnboardingEvent.NextStep, OnboardingStep.FirstCard),
 
         t(OnboardingStep.FirstCard, OnboardingEvent.PutFirstCard, OnboardingStep.LigrettoCard, {
-          onEnter(ctx) {
+          onEnter(ctx, playgroundDeckIndex = 0) {
             ctx.data.game.players.id0.cards[0] = null
-            if (!ctx.data.game.playground.decks[0]) {
-              ctx.data.game.playground.decks[0] = {
-                cards: [],
-                isHidden: false,
-              }
-            }
-            ctx.data.game.playground.decks[0].cards = [{ value: 1, color: CardColors.blue }]
+            ctx.data.bluePileIndex = playgroundDeckIndex
+            ctx.data.game.playground.decks[playgroundDeckIndex] = { cards: [{ value: 1, color: CardColors.blue }], isHidden: false }
           },
         }),
         t(OnboardingStep.LigrettoCard, OnboardingEvent.PutLigretto, OnboardingStep.StackCard, {
@@ -295,13 +299,13 @@ export class OnboardingStateMachine extends StateMachine<OnboardingStep, Onboard
         t(OnboardingStep.StackAvailableCard, OnboardingEvent.PutStackCard, OnboardingStep.RowAvailableCard, {
           onEnter(ctx) {
             stackOpenDeck(ctx).cards.splice(0, 1)
-            ctx.data.game.playground.decks[0]?.cards.push({ value: 2, color: CardColors.blue })
+            ctx.data.game.playground.decks[ctx.data.bluePileIndex]?.cards.push({ value: 2, color: CardColors.blue })
           },
         }),
         t(OnboardingStep.RowAvailableCard, OnboardingEvent.PutSecondCard, OnboardingStep.LigrettoAvailableCard, {
           onEnter(ctx) {
             ctx.data.game.players.id0.cards[1] = null
-            ctx.data.game.playground.decks[0]?.cards.push({ value: 3, color: CardColors.blue })
+            ctx.data.game.playground.decks[ctx.data.bluePileIndex]?.cards.push({ value: 3, color: CardColors.blue })
           },
         }),
         t(OnboardingStep.LigrettoAvailableCard, OnboardingEvent.PutLigretto, OnboardingStep.GameStarted, {
@@ -330,7 +334,7 @@ export class OnboardingStateMachine extends StateMachine<OnboardingStep, Onboard
         t(OnboardingStep.OpponentTurn, OnboardingEvent.NextStackCard, OnboardingStep.OpponentTurnSecondCard, {
           onEnter(ctx) {
             flipOrReshuffleStack(ctx)
-            ctx.data.game.playground.decks[OPPONENT_DECK_INDEX]?.cards.push({ value: 2, color: CardColors.green })
+            opponentPile(ctx)?.cards.push({ value: 2, color: CardColors.green })
           },
         }),
 

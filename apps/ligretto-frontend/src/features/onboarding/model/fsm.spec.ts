@@ -41,6 +41,29 @@ describe('OnboardingStateMachine', () => {
     expect(game.players.id0.cards[1]).toBeNull()
   })
 
+  it('builds the blue pile and the red one on the decks the player picked', async () => {
+    const fsm = new OnboardingStateMachine()
+    for (const { event, step } of ONBOARDING_SCRIPT) {
+      const playgroundDeckIndex = event === OnboardingEvent.PutFirstCard ? 5 : event === OnboardingEvent.PutSecondCard ? 7 : undefined
+      await fsm.transition(event, ...(playgroundDeckIndex === undefined ? [] : [playgroundDeckIndex]))
+      if (step === OnboardingStep.OpponentTurn) {
+        break
+      }
+    }
+
+    const { decks } = fsm.context.data.game.playground
+    expect(decks[5]?.cards).toEqual([
+      { value: 1, color: CardColors.blue },
+      { value: 2, color: CardColors.blue },
+      { value: 3, color: CardColors.blue },
+    ])
+    expect(decks[7]?.cards).toEqual([{ value: 1, color: CardColors.red }])
+    // The opponent opens its green pile on the first deck still free.
+    expect(fsm.context.data.opponentPileIndex).toBe(0)
+    expect(decks[0]?.cards).toEqual([{ value: 1, color: CardColors.green }])
+    expect(decks[1]).toBeUndefined()
+  })
+
   it('flips cards from the closed deck onto the open pile', async () => {
     const fsm = new OnboardingStateMachine()
     await walkTo(fsm, OnboardingStep.GameStarted)

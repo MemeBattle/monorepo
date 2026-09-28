@@ -33,8 +33,8 @@ export const LigrettoPack = ({
 }: LigrettoPackProps) => (
   <div ref={ref} data-test-id={dataTestId} className={styles.ligrettoPack}>
     <div className={styles.cardWrapper}>
-      <CardHotkeyBadge hotkey={hotkey}>
-        <CardPlace>
+      <CardPlace>
+        <CardHotkeyBadge hotkey={hotkey}>
           <Card
             {...ligrettoDeckCards[0]}
             isHidden={isDeckHidden && ligrettoDeckCards.length > 0}
@@ -42,8 +42,8 @@ export const LigrettoPack = ({
             isHighlighted={isHighlighted}
             isDisabled={isDisabled}
           />
-        </CardPlace>
-      </CardHotkeyBadge>
+        </CardHotkeyBadge>
+      </CardPlace>
     </div>
     <Typography sx={{ fontSize: { xs: '0.625rem', sm: '1rem' } }}>В колоде: {count}</Typography>
   </div>

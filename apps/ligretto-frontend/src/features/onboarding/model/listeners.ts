@@ -1,5 +1,5 @@
 import type { UnknownAction } from '@reduxjs/toolkit'
-import { type TypedStartListening } from '@reduxjs/toolkit'
+import { isAnyOf, type TypedStartListening } from '@reduxjs/toolkit'
 import { OnboardingEvent, getAllowedEvents } from './fsm'
 import { OnboardingStateMachine, OnboardingStep } from './fsm'
 import {
@@ -23,11 +23,14 @@ const toOnboardingState = async (fsm: OnboardingStateMachine) => ({
   step: fsm.current,
   game: structuredClone(fsm.context.data.game),
   results: fsm.context.data.results,
+  opponentPileIndex: fsm.context.data.opponentPileIndex,
   allowedEvents: await getAllowedEvents(fsm),
 })
 
 const isLocationChangeAction = (action: UnknownAction): action is Extract<RouterActions, { type: typeof LOCATION_CHANGE }> =>
   action.type === LOCATION_CHANGE
+
+const isPlacementAction = isAnyOf(putFirstCardAction, putSecondCardAction, putThirdCardAction, putStackCardAction)
 
 const mapActionTypeToEvent: Record<string, OnboardingEvent> = {
   [nextStepOnboardingAction.type]: OnboardingEvent.NextStep,
@@ -71,7 +74,8 @@ export function addListeners(startListener: TypedStartListening<unknown>) {
         }
 
         const event = mapActionTypeToEvent[action.type]
-        await fsm.tryTransition(event)
+        // A placement tells the script which deck the card went to.
+        await fsm.tryTransition(event, ...(isPlacementAction(action) ? [action.payload.playgroundDeckIndex] : []))
 
         if (fsm.current === OnboardingStep.Result) {
           break
