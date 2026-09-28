@@ -210,7 +210,7 @@ describe('card-owned hotkeys', () => {
     expect(mocks.dispatch).toHaveBeenCalledWith(tapStackDeckCardAction())
   })
 
-  it('does not handle L when the Ligretto deck is empty', () => {
+  it('dispatches Ligretto commands while enabled even when the deck is empty', () => {
     mocks.ligrettoCards = []
     render(
       <CardInteractionProvider enabled>
@@ -218,28 +218,39 @@ describe('card-owned hotkeys', () => {
       </CardInteractionProvider>,
     )
 
-    expect(screen.queryByText('L')).toBeNull()
+    expect(screen.getByText('L')).toBeTruthy()
     press('l', 'KeyL')
     activatePointer(screen.getByRole('button'))
 
-    expect(mocks.dispatch).not.toHaveBeenCalled()
+    expect(mocks.dispatch).toHaveBeenCalledTimes(2)
+    expect(mocks.dispatch).toHaveBeenNthCalledWith(1, tapLigrettoDeckCardAction())
+    expect(mocks.dispatch).toHaveBeenNthCalledWith(2, tapLigrettoDeckCardAction())
   })
 
   it('dispatches the Ligretto command exactly once from L only while mounted and enabled', () => {
     mocks.ligrettoCards = [card(4)]
-    const tree = () => (
-      <CardInteractionProvider enabled>
+    const tree = (enabled: boolean) => (
+      <CardInteractionProvider enabled={enabled}>
         <LigrettoDeckContainer />
       </CardInteractionProvider>
     )
-    const view = render(tree())
+    const view = render(tree(true))
     press('l', 'KeyL')
     expect(mocks.dispatch).toHaveBeenCalledOnce()
     expect(mocks.dispatch).toHaveBeenCalledWith(tapLigrettoDeckCardAction())
 
     mocks.dispatch.mockClear()
-    mocks.ligrettoCards = undefined
-    view.rerender(tree())
+    view.rerender(tree(false))
+    press('l', 'KeyL')
+    expect(mocks.dispatch).not.toHaveBeenCalled()
+
+    view.rerender(tree(true))
+    press('l', 'KeyL')
+    expect(mocks.dispatch).toHaveBeenCalledOnce()
+    expect(mocks.dispatch).toHaveBeenCalledWith(tapLigrettoDeckCardAction())
+
+    mocks.dispatch.mockClear()
+    view.unmount()
     press('l', 'KeyL')
     expect(mocks.dispatch).not.toHaveBeenCalled()
   })
