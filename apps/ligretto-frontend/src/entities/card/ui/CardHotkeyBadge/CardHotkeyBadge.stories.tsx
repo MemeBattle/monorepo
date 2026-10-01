@@ -17,21 +17,21 @@ type Story = StoryObj<typeof CardHotkeyBadge>
 export const DefaultView: Story = {
   render: () => (
     <CardsRow>
-      <CardHotkeyBadge hotkey={Hotkey.x}>
-        <CardPlace>
+      <CardPlace>
+        <CardHotkeyBadge hotkey={Hotkey.x}>
           <Card color={CardColors.blue} value={1} />
-        </CardPlace>
-      </CardHotkeyBadge>
-      <CardHotkeyBadge hotkey={Hotkey.space}>
-        <CardPlace>
+        </CardHotkeyBadge>
+      </CardPlace>
+      <CardPlace>
+        <CardHotkeyBadge hotkey={Hotkey.space}>
           <Card color={CardColors.red} value={5} />
-        </CardPlace>
-      </CardHotkeyBadge>
-      <CardHotkeyBadge hotkey={Hotkey.q}>
-        <CardPlace>
+        </CardHotkeyBadge>
+      </CardPlace>
+      <CardPlace>
+        <CardHotkeyBadge hotkey={Hotkey.q}>
           <Card color={CardColors.yellow} value={7} />
-        </CardPlace>
-      </CardHotkeyBadge>
+        </CardHotkeyBadge>
+      </CardPlace>
     </CardsRow>
   ),
 }

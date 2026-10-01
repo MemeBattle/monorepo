@@ -5,15 +5,14 @@ import CachedIcon from '@mui/icons-material/Cached'
 
 import { GameLayout } from '#shared/ui/layouts/game/GameLayout'
 import { GameGrid } from '#widgets/game/ui/GameGrid/GameGrid'
-import { Playground } from '#features/playground/ui/Playground'
 import { LigrettoPack, Opponent } from '#features/player'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { CardsPanel } from '#features/player/ui/CardsPanel/CardsPanel'
 import {
   OnboardingEvent,
-  OPPONENT_DECK_INDEX,
   ONBOARDING_PLAYER_NAMES,
   onboardingAllowedEventsSelector,
+  onboardingOpponentPileIndexSelector,
   onboardingGameSelector,
   putLigrettoCardAction,
   nextStepOnboardingAction,
@@ -35,9 +34,10 @@ import { OnboardingTargetsProvider, useOnboardingCardsPanelRef, useOnboardingCon
 import { ResultScreen } from './ResultScreen'
 import { OpponentsDescription } from './descriptions/OpponentsDescription'
 import { AnchoredDescription, type DescriptionTargets } from './descriptions/AnchoredDescription'
-import { CardFocusProvider, useCardFocus } from '#features/cardFocus'
-import { getOnboardingPlacementAction } from './onboardingPlacement'
+import { CardInteractionProvider, type CardDragTarget } from '#features/cardInteraction'
+import { getOnboardingPlacement, getOnboardingPlacementAction } from './onboardingPlacement'
 import { OnboardingOpenStackCard } from './OnboardingOpenStackCard'
+import { OnboardingPlayground } from './OnboardingPlayground'
 
 interface OnboardingCardPanelProps {
   stackRef: RefObject<HTMLDivElement | null>
@@ -66,31 +66,31 @@ const OnboardingCardPanel = ({ stackRef, playerRowRef, ligrettoRef, cardRefs }: 
         stack={
           <CardsRow ref={stackRef} dataTestId="OnboardingPage-Stack">
             <OnboardingOpenStackCard card={current?.stackOpenDeck.cards[0]} isActive={allowedEvents.includes(OnboardingEvent.PutStackCard)} />
-            <CardHotkeyBadge>
-              <CardPlace dataTestId="OnboardingPage-Stack-Deck">
+            <CardPlace dataTestId="OnboardingPage-Stack-Deck">
+              <CardHotkeyBadge>
                 <Card
                   {...current?.stackDeck.cards[0]}
                   isHidden={(current?.stackDeck.isHidden ?? true) && (current?.stackDeck.cards.length ?? 0) > 0}
                   isHighlighted={config.isStackDeckHighlighted}
                   onClick={() => dispatch(nextStackCardAction())}
                 />
-                {current?.stackDeck.cards.length === 0 && current.stackOpenDeck.cards[0] ? (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      inset: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    <CachedIcon fontSize="large" />
-                  </Box>
-                ) : null}
-              </CardPlace>
-            </CardHotkeyBadge>
+              </CardHotkeyBadge>
+              {current?.stackDeck.cards.length === 0 && current.stackOpenDeck.cards[0] ? (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <CachedIcon fontSize="large" />
+                </Box>
+              ) : null}
+            </CardPlace>
           </CardsRow>
         }
         rowCards={<PlayerRowCards ref={playerRowRef} cardRefs={cardRefs} />}
@@ -118,7 +118,7 @@ function OnboardingPageBody() {
   const game = useSelector(onboardingGameSelector)
   const step = useSelector(onboardingStepSelector)
   const allowedEvents = useSelector(onboardingAllowedEventsSelector)
-  const { focusedCard } = useCardFocus()
+  const placement = getOnboardingPlacement(step, allowedEvents)
   const config = STEP_CONFIGS[step]
   const containerRef = useOnboardingContainerRef()
 
@@ -137,12 +137,15 @@ function OnboardingPageBody() {
   const opponent1Ref = useRef<HTMLDivElement | null>(null)
   const opponent2Ref = useRef<HTMLDivElement | null>(null)
   const opponentDeckRef = useRef<HTMLDivElement | null>(null)
-  // The only playground deck a hint ever points at is the opponent's green one.
+  const opponentPileIndex = useSelector(onboardingOpponentPileIndexSelector)
+  // The only playground deck a hint ever points at is the opponent's green one, wherever it opened it.
   const playgroundDeckRefs = useMemo<Array<RefObject<HTMLDivElement | null> | undefined>>(() => {
     const refs: Array<RefObject<HTMLDivElement | null> | undefined> = []
-    refs[OPPONENT_DECK_INDEX] = opponentDeckRef
+    if (opponentPileIndex !== undefined) {
+      refs[opponentPileIndex] = opponentDeckRef
+    }
     return refs
-  }, [])
+  }, [opponentPileIndex])
 
   const opponentsRefs = [opponent0Ref, opponent1Ref, opponent2Ref] as const
 
@@ -180,14 +183,14 @@ function OnboardingPageBody() {
   const handleNextButtonClick = useCallback(() => {
     dispatch(nextStepOnboardingAction())
   }, [dispatch])
-  const handlePlaygroundDeckClick = useCallback(
-    (playgroundDeckIndex: number) => {
-      const action = getOnboardingPlacementAction(focusedCard, allowedEvents, playgroundDeckIndex)
+  const handlePlace = useCallback(
+    (source: CardDragTarget, playgroundDeckIndex: number) => {
+      const action = getOnboardingPlacementAction(placement, game, source, playgroundDeckIndex)
       if (action) {
         dispatch(action)
       }
     },
-    [allowedEvents, dispatch, focusedCard],
+    [dispatch, game, placement],
   )
 
   const description = config.description
@@ -207,12 +210,7 @@ function OnboardingPageBody() {
             // the slack between them and the playground is where the hints go.
             <Box sx={{ marginTop: { xs: '1.5rem', md: 0 } }}>
               <Layer id="playgroundCards">
-                <Playground
-                  ref={playgroundRef}
-                  cardsDecks={game.playground.decks}
-                  onDeckClick={handlePlaygroundDeckClick}
-                  deckRefs={playgroundDeckRefs}
-                />
+                <OnboardingPlayground ref={playgroundRef} game={game} placement={placement} onPlace={handlePlace} deckRefs={playgroundDeckRefs} />
               </Layer>
             </Box>
           }
@@ -256,9 +254,9 @@ function OnboardingPageBody() {
 export function OnboardingPage() {
   return (
     <OnboardingTargetsProvider>
-      <CardFocusProvider enabled>
+      <CardInteractionProvider enabled>
         <OnboardingPageBody />
-      </CardFocusProvider>
+      </CardInteractionProvider>
     </OnboardingTargetsProvider>
   )
 }

@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 
 export class OnboardingPage {
   private readonly page: Page
@@ -29,7 +29,25 @@ export class OnboardingPage {
   }
 
   getPlaygroundDeck(index: number) {
-    return this.page.getByTestId(`Playground-Deck-${index}`).getByRole('button')
+    return this.page.getByTestId(`Playground-Deck-${index}`)
+  }
+
+  /** The deck the onboarding points at once the card the step expects is picked */
+  getHighlightedPlaygroundDeck() {
+    return this.page.locator('[data-test-id^="Playground-Deck-"][data-drop-valid]')
+  }
+
+  /** Presses on the card, moves past the drag threshold in small steps and releases over the target */
+  async dragCard(card: Locator, target: Locator) {
+    const from = await card.boundingBox()
+    const to = await target.boundingBox()
+    if (!from || !to) {
+      throw new Error('Drag source or target is not rendered')
+    }
+    await this.page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
+    await this.page.mouse.down()
+    await this.page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 10 })
+    await this.page.mouse.up()
   }
 
   getLigrettoDeckCard() {
