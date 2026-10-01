@@ -32,6 +32,8 @@ use crate::accounts::DisplayName;
 pub enum CeremonyKind {
     Registration,
     Authentication,
+    /// Another passkey for an account that is already signed in.
+    Addition,
 }
 
 /// State that can be parked in the ceremony table. The kind belongs to the
@@ -77,6 +79,21 @@ pub struct PendingRegistration {
 
 impl Ceremony for PendingRegistration {
     const KIND: CeremonyKind = CeremonyKind::Registration;
+}
+
+/// A passkey addition in flight: another credential for an account that is
+/// already signed in. The account id is the one the session named when the
+/// challenge was issued; the finish checks that the session still names it,
+/// because the id has gone to the authenticator as the WebAuthn user handle
+/// and the credential can only ever sign that account in (ADR 0003 (a)).
+#[derive(Debug, Serialize, serde::Deserialize)]
+pub struct PendingAddition {
+    pub account_id: Uuid,
+    pub state: DiscoverableRegistration,
+}
+
+impl Ceremony for PendingAddition {
+    const KIND: CeremonyKind = CeremonyKind::Addition;
 }
 
 /// A login in flight. It carries no account: the challenge goes out without

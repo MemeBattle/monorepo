@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO authorization_codes (\n               code_hash, client_id, account_id, session_id, redirect_uri,\n               scopes, code_challenge, nonce, expires_at\n           )\n           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now() + make_interval(secs => $9))\n           RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "authorization_codes",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "TextArray",
+        "Text",
+        "Text",
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e12cebf8e48c66b0553f1246e3168b7d892f4a5a3a7f1c6f4c7f64d03bdf38b6"
+}

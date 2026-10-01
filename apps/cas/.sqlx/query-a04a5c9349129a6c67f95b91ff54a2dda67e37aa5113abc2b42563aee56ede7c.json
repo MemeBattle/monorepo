@@ -24,7 +24,8 @@
             "kind": {
               "Enum": [
                 "registration",
-                "authentication"
+                "authentication",
+                "addition"
               ]
             }
           }

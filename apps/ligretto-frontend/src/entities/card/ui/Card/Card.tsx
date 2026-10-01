@@ -24,9 +24,16 @@ interface CardProps {
   isHighlighted?: boolean
   /** The card lies face down — the uniform back is drawn instead of the face **/
   isHidden?: boolean
+  /** The card keeps its place in the layout but is not drawn (it is being dragged or placed) **/
+  isInvisible?: boolean
   onClick?: () => void
   /** Size of card **/
   size?: CardSize
+  ref?: React.Ref<HTMLButtonElement>
+  onKeyDown?: React.KeyboardEventHandler<HTMLButtonElement>
+  onMouseDown?: React.MouseEventHandler<HTMLButtonElement>
+  onPointerDown?: React.PointerEventHandler<HTMLButtonElement>
+  onTouchStart?: React.TouchEventHandler<HTMLButtonElement>
 }
 
 export const widthByCardSize: Record<CardSize, string> = {
@@ -91,7 +98,15 @@ const colorByCardColors: Record<CardColors, string> = {
   [CardColors.empty]: 'transparent',
 }
 
-const StyledCardNotForwardedPropsSet = new Set<PropertyKey>(['isDarkened', 'isDisabled', 'isHidden', 'isHighlighted', 'isSelected', 'size'])
+const StyledCardNotForwardedPropsSet = new Set<PropertyKey>([
+  'isDarkened',
+  'isDisabled',
+  'isHidden',
+  'isHighlighted',
+  'isInvisible',
+  'isSelected',
+  'size',
+])
 
 const StyledCard = styled(ButtonBase, { shouldForwardProp: prop => !StyledCardNotForwardedPropsSet.has(prop) })<{
   color: CardColors
@@ -100,12 +115,13 @@ const StyledCard = styled(ButtonBase, { shouldForwardProp: prop => !StyledCardNo
   isDarkened?: boolean
   isHidden?: boolean
   isHighlighted?: boolean
+  isInvisible?: boolean
   size: CardSize
-}>(({ color, isDisabled, isSelected, isDarkened, isHidden, isHighlighted, size, theme }) => ({
+}>(({ color, isDisabled, isSelected, isDarkened, isHidden, isHighlighted, isInvisible, size, theme }) => ({
   height: heightByCardSize[size],
   width: widthByCardSize[size],
   // A face-down card is visible regardless of its (unknown to the viewer) color.
-  opacity: color === CardColors.empty && !isHidden ? 0 : 1,
+  opacity: isInvisible || (color === CardColors.empty && !isHidden) ? 0 : 1,
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
@@ -116,6 +132,9 @@ const StyledCard = styled(ButtonBase, { shouldForwardProp: prop => !StyledCardNo
   fontSize: fontSizeByCardSize[size],
   filter: isDarkened ? 'grayscale(50%) brightness(0.95)' : 'none',
   cursor: isDisabled ? 'default' : 'pointer',
+  // The board never scrolls, so the browser has no claim on a touch that starts on a card: dragging
+  // reaches the sensor instead of being cancelled as a pan, and fast tapping does not zoom.
+  touchAction: 'none',
   transition: 'box-shadow 100ms',
   ':hover': {
     boxShadow: isDisabled ? undefined : `0.1rem 0.1rem 0.8rem ${isSelected || isHighlighted ? 'rgba(255,255,255,0.7)' : 'rgba(0, 0, 0, 0.5)'} `,
@@ -141,7 +160,9 @@ export const Card: React.FC<CardProps> = ({
   isDarkened,
   isHidden,
   isHighlighted,
+  isInvisible,
   onClick,
+  onMouseDown,
 
   color = CardColors.empty,
   size = 'medium',
@@ -153,10 +174,16 @@ export const Card: React.FC<CardProps> = ({
     isHighlighted={isHighlighted}
     disableRipple={isDisabled}
     size={size}
-    onMouseDown={onClick}
+    // Ligretto is a speed game: a card reacts on press, not on release. The drag sensor listens on
+    // the same event, so both handlers run instead of one replacing the other.
+    onMouseDown={event => {
+      onMouseDown?.(event)
+      onClick?.()
+    }}
     isDisabled={isDisabled}
     isSelected={isSelected}
     isHidden={isHidden}
+    isInvisible={isInvisible}
     color={color}
   >
     {isHidden ? (

@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -80,14 +80,68 @@ describe('CreateAccountPage', () => {
     expect(screen.getByRole('button', { name: 'Создать пасскей' })).toBeDefined()
   })
 
-  it('shows a failure it cannot name as the generic alert, never the raw message', async () => {
-    registerWithPasskey.mockRejectedValue(new TypeError('Failed to fetch'))
+  it.each([
+    ['a network failure', new TypeError('Failed to fetch'), 'Failed to fetch'],
+    ['an outage', new ApiError(503, 'database_unavailable', 'Database unavailable'), 'Database unavailable'],
+    ['a refused cross-site request', new ApiError(403, 'cross_site_request', 'Cross-site request refused'), 'Cross-site'],
+    ['a verification the server could not do', new ApiError(400, 'registration_verification_failed', 'Attestation invalid'), 'Attestation'],
+  ])('shows %s as the generic alert, never the raw message', async (_, error, raw) => {
+    registerWithPasskey.mockRejectedValue(error)
 
     await submit('Ада')
 
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toContain('Что-то пошло не так')
-    expect(alert.textContent).not.toContain('Failed to fetch')
+    expect(alert.textContent).not.toContain(raw)
+  })
+
+  it('shows a challenge the server no longer has as a cancelled ceremony', async () => {
+    registerWithPasskey.mockRejectedValue(new ApiError(404, 'registration_not_found', 'registration not found: expired'))
+
+    await submit('Ада')
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toContain('Создание отменено')
+    expect(alert.textContent).not.toContain('expired')
+  })
+
+  it.each([
+    ['NotSupportedError', new DOMException('not supported', 'NotSupportedError')],
+    ['ConstraintError', new DOMException('constraint', 'ConstraintError')],
+    ['the server refusing a non-discoverable credential', new ApiError(400, 'discoverable_credential_required', 'Credential must be discoverable')],
+  ])('explains an authenticator that cannot make a passkey (%s)', async (_, error) => {
+    registerWithPasskey.mockRejectedValue(error)
+
+    await submit('Ада')
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toContain('Не получилось создать пасскей')
+    expect(alert.textContent).toContain('Touch ID')
+    expect(screen.getByRole('button', { name: 'Попробовать ещё раз' })).toBeDefined()
+  })
+
+  it.each([
+    ['InvalidStateError', new DOMException('already registered', 'InvalidStateError')],
+    ['the server knowing the credential', new ApiError(409, 'credential_already_registered', 'Credential already registered')],
+  ])('points a passkey that already exists here to sign-in (%s)', async (_, error) => {
+    registerWithPasskey.mockRejectedValue(error)
+
+    await submit('Ада')
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toContain('Такой пасскей уже есть')
+    expect(alert.textContent).not.toContain('already registered')
+    expect(within(alert).getByRole('link', { name: 'Войти' }).getAttribute('href')).toBe(routes.SIGN_IN)
+  })
+
+  it('tells a page served from the wrong origin which address to open', async () => {
+    registerWithPasskey.mockRejectedValue(new DOMException('The operation is insecure.', 'SecurityError'))
+
+    await submit('Ада')
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toContain('Этот адрес не подходит для входа')
+    expect(alert.textContent).not.toContain('insecure')
   })
 
   it('shows a cancelled ceremony as an alert above a still usable form', async () => {

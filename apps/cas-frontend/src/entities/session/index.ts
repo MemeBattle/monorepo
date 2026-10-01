@@ -1,4 +1,12 @@
-export { getMe, logout } from './api'
+export { getMe, logout, updateEmail } from './api'
 export type { Me } from './api'
-export { isCeremonyCancelled, registerWithPasskey, signInWithPasskey } from './ceremonies'
+export {
+  isAuthenticatorUnsupported,
+  isCeremonyCancelled,
+  isPasskeyAlreadyRegistered,
+  isWrongOrigin,
+  registerWithPasskey,
+  signInWithPasskey,
+  signInWithPasskeyFromAutofill,
+} from './ceremonies'
 export type { Registered, SignedIn } from './ceremonies'

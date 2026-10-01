@@ -1,1 +1,1 @@
-export { PlaygroundContainer } from './ui/PlaygroundContainer'
+export { Playground } from './ui/Playground'

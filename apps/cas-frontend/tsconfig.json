@@ -17,6 +17,6 @@
     "jsx": "react-jsx",
     "noImplicitAny": true
   },
-  "include": ["./src", "env.d.ts"],
+  "include": ["./src", "./e2e", "playwright.config.ts", "env.d.ts"],
   "exclude": ["dist", "node_modules"]
 }

@@ -52,4 +52,7 @@ export const SubmitButton = (props: Omit<ButtonProps, 'pending' | 'type'>) => {
   return <Button type="submit" pending={pending} {...props} />
 }
 
-const Spinner = () => <span className="inline-block size-[18px] animate-spin rounded-full border-[3px] border-line border-t-ink" aria-hidden="true" />
+/** The 18px ring a control shows while it waits; it takes the place of the control's icon. */
+export const Spinner = () => (
+  <span className="inline-block size-[18px] animate-spin rounded-full border-[3px] border-line border-t-ink" aria-hidden="true" />
+)

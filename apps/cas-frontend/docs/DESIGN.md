@@ -100,9 +100,9 @@ States:
 - **Pending** (ceremony started): button shows a spinner and "Подтвердите
   пасскей…"; below it "Следуйте подсказке браузера или телефона. Окно можно
   закрыть, тогда вход отменится."
-- **Cancelled** (`NotAllowedError`, timeout): alert "Вход отменён" /
-  "Окно подтверждения закрылось или вышло время. Ничего не сломалось,
-  попробуйте ещё раз."
+- **Cancelled** (`NotAllowedError`, timeout, a challenge the server no
+  longer has: `login_not_found`): alert "Вход отменён" / "Окно подтверждения
+  закрылось или вышло время. Ничего не сломалось, попробуйте ещё раз."
 - **Unknown passkey** (`invalid_credential`): alert "Этот пасскей здесь не
   зарегистрирован" / "Возможно, он от другого сайта, или аккаунта ещё нет."
   with the link "Создать аккаунт"; the button reads "Выбрать другой пасскей".
@@ -129,7 +129,23 @@ States:
   проверкой владельца. Подойдут Touch ID, Face ID, Windows Hello или менеджер
   паролей на телефоне." The name stays filled; the button reads "Попробовать
   ещё раз".
-- **Cancelled**: same alert as on sign-in, titled "Создание отменено".
+- **Cancelled** (`NotAllowedError`, timeout, `registration_not_found`): same
+  alert as on sign-in, titled "Создание отменено".
+- **Already registered** (`InvalidStateError`, `credential_already_registered`):
+  alert "Такой пасскей уже есть" / "Этот пасскей уже зарегистрирован здесь."
+  with the link "Войти".
+
+### Failures every ceremony can have
+
+- **Wrong address** (`SecurityError`: the page is served from an origin the
+  relying party id does not cover): alert "Этот адрес не подходит для входа"
+  / "Сайт открыт не по тому адресу, для которого настроен вход. Откройте его
+  по основному адресу."
+- **Everything else** (an outage, `cross_site_request`, no network, a
+  verification the server could not do): alert "Что-то пошло не так" /
+  "Попробуйте ещё раз через минуту."
+- **No session** (`unauthenticated`) is not an alert: the route loaders send
+  the browser to `/sign-in`.
 
 ### Session check (route loaders)
 
@@ -145,15 +161,17 @@ Header: logo 44px, the uppercase label "Аккаунт" over the display name
 
 Sections, each a card with an uppercase title:
 
-- **"Пасскеи"**, with "Добавить" in the title row (after #720). A row per
+- **"Пасскеи"**, with "Добавить" (plus icon) in the title row. A row per
   passkey: key chip, name, meta "Создан 12 сентября · Использован сегодня"
   (relative dates; never used: "Не использовался"), rename and
   delete icon buttons at 44px. Inline rename replaces the row with an input
   and "Сохранить" / "Отмена".
-- **"Почта"**: empty state "Не указана" / "Понадобится для восстановления,
-  когда оно появится. Пока без подтверждения." with the link "Добавить";
-  set state shows the address, "Не подтверждена. Подтверждение появится
-  позже." and the rename icon.
+- **"Почта"**: mail chip and one row. Empty state "Не указана" /
+  "Понадобится для восстановления, когда оно появится. Пока без
+  подтверждения." with "Добавить" (plus icon) in the title row, where the
+  passkeys' "Добавить" is; set state shows the address, "Не подтверждена.
+  Подтверждение появится позже." and the pencil at 44px. The empty state is
+  the whole nudge for the email: there is no card for it.
 
 States:
 
@@ -167,10 +185,69 @@ States:
 - **Two or more passkeys**: no nudge, delete enabled on every row.
 - **Sign-out failed**: alert "Не получилось выйти" / "Попробуйте ещё раз
   через минуту." under the header; "Выйти" stays where it was.
+- **Rename**: the row becomes the field "Название" holding the current
+  name, with the secondary "Сохранить" and "Отмена"; Escape cancels. On
+  save the row shows the new name at once, with the spinner in place of
+  the pencil until the server has confirmed it. A rejected name brings the field
+  back with the rejected value still in it and the reason under it, and the
+  list keeps the old name: "Введите название.", "Слишком длинное название,
+  максимум 64 символа.", `invalid_passkey_name` "Название содержит
+  недопустимые символы.", anything else "Не получилось переименовать.
+  Попробуйте ещё раз через минуту." A passkey deleted in another tab
+  (`passkey_not_found`) leaves the list with no message.
 - **Delete**: a bottom sheet over a dimmed page, "Удалить пасскей «iPhone
   Ады»?" / "Вход с этого устройства перестанет работать. Открытые сессии
   останутся, из них можно выйти отдельно.", danger "Удалить" with the trash
-  icon, secondary "Отмена".
+  icon, secondary "Отмена"; Escape and a tap on the dimmed page cancel. On
+  confirm the sheet closes and the row leaves the list at once. A delete the
+  server refused brings the row back with the reason under its meta line:
+  `last_passkey` (the other passkey went in another tab) "Единственный
+  пасскей нельзя удалить: сначала добавьте второй." and the list reloads
+  so the delete is off; anything else "Не получилось удалить. Попробуйте
+  ещё раз через минуту." A passkey deleted in another tab
+  (`passkey_not_found`) leaves the list with no message.
+- **Add**: "Добавить пасскей" on the nudge and "Добавить" in the title row
+  run the same ceremony, so while it runs both wait: the nudge's button
+  shows the spinner and "Подтвердите пасскей…" with "Следуйте подсказке
+  браузера или телефона." under it, the title-row action shows the spinner
+  in place of the plus and is disabled. On success the list reloads with
+  the new passkey (default name, renamed like any other), the nudge goes
+  and delete comes on for every row. A failure is an alert above the
+  "Пасскеи" section, under the nudge when there is one; the buttons stay:
+  - **Cancelled** (`NotAllowedError`, timeout, `registration_not_found`):
+    "Добавление отменено" / "Окно подтверждения закрылось или вышло время.
+    Ничего не сломалось, попробуйте ещё раз."
+  - **Unsupported authenticator** (`NotSupportedError`, `ConstraintError`,
+    `discoverable_credential_required`): "Не получилось добавить пасскей" /
+    the same explanation as on create account.
+  - **Already on this device** (`InvalidStateError` from the browser's
+    `excludeCredentials` check, `credential_already_registered` from the
+    server): "На этом устройстве уже есть пасскей" / "Он уже привязан к
+    вашему аккаунту. Второй пасскей нужен на другом устройстве: телефоне,
+    ключе или в другом менеджере паролей."
+  - **Wrong address** and **everything else**: the alerts every ceremony
+    can have.
+  - **No session** (`unauthenticated`): no alert; the page reloads and the
+    loader sends the browser to `/sign-in`.
+- **Email**: "Добавить" in the title row and the pencil open the same form
+  in place of the row: the field "Почта" (`type="email"`; the browser's own
+  check is read on save, its words are never shown) holding the current
+  address, the secondary "Сохранить" and
+  "Отмена", and, when an address is set, the danger-coloured inline
+  "Удалить" with the trash icon on the right, which clears it; Escape
+  cancels. On save the row shows the new address at once (the empty state
+  after a clear), with the spinner in place of the pencil until the loader
+  has read back what the server stored: the domain lower-cased, so
+  "Ada@Mems.fun" comes back as "Ada@mems.fun". The address is not verified
+  in v1 and the row says so. A rejected address brings the field back with
+  the rejected value still in it and the reason under it, and the row keeps
+  what it had: "Введите адрес.", a shape the browser's `type="email"` check
+  rejects (no `@`, a comma in the name, a broken domain) "Похоже, это не
+  адрес почты.", `invalid_email` (invisible characters, over 254 bytes)
+  "Проверьте адрес: в нём ошибка или недопустимые символы.", anything else "Не получилось сохранить почту. Попробуйте ещё
+  раз через минуту." A clear that fails brings the form back with the
+  address and the same last sentence. No session (`unauthenticated`): no
+  message; the page reloads and the loader sends the browser to `/sign-in`.
 
 ## Flows
 

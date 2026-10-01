@@ -3,7 +3,7 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use super::{Account, AccountType, DisplayName, NewAccount};
+use super::{Account, AccountType, DisplayName, Email, NewAccount};
 
 // `nutype` cannot derive the sqlx traits, so the three that let a
 // `DisplayName` cross the database boundary are written by hand here, next to
@@ -106,6 +106,25 @@ where
         .await?;
 
     Ok(())
+}
+
+/// Sets or clears an account's email. `Ok(false)` means no such account.
+/// The column takes the address as text: the `Email` guards the write, and
+/// the reader does not re-validate (see [`Account::email`]).
+pub(crate) async fn set_email<'e, E>(
+    executor: E,
+    id: Uuid,
+    email: Option<&Email>,
+) -> Result<bool, sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    let email: Option<&str> = email.map(AsRef::as_ref);
+    let result = sqlx::query!("UPDATE accounts SET email = $1 WHERE id = $2", email, id)
+        .execute(executor)
+        .await?;
+
+    Ok(result.rows_affected() == 1)
 }
 
 /// Data access for `accounts`.
@@ -222,6 +241,51 @@ mod tests {
                 matches!(error, sqlx::Error::ColumnDecode { .. }),
                 "expected a column decode error for {invalid_name:?}, got {error:?}"
             );
+        }
+    }
+
+    #[sqlx::test]
+    async fn set_email_writes_the_address_and_none_clears_it(pool: PgPool) {
+        let repository = AccountRepository::new(pool.clone());
+        let account = repository
+            .create(NewAccount::full(display_name("Ada")))
+            .await
+            .unwrap();
+        let email = Email::try_new("ada@example.com").unwrap();
+
+        assert!(set_email(&pool, account.id, Some(&email)).await.unwrap());
+        let stored = repository.get(account.id).await.unwrap().unwrap();
+        assert_eq!(stored.email.as_deref(), Some("ada@example.com"));
+
+        assert!(set_email(&pool, account.id, None).await.unwrap());
+        let stored = repository.get(account.id).await.unwrap().unwrap();
+        assert_eq!(stored.email, None);
+    }
+
+    #[sqlx::test]
+    async fn set_email_reports_an_unknown_account(pool: PgPool) {
+        let email = Email::try_new("ada@example.com").unwrap();
+
+        assert!(
+            !set_email(&pool, Uuid::new_v4(), Some(&email))
+                .await
+                .unwrap()
+        );
+    }
+
+    /// The column is not unique in v1 (the migration says why): two accounts
+    /// may hold the same unverified address.
+    #[sqlx::test]
+    async fn emails_are_not_unique(pool: PgPool) {
+        let repository = AccountRepository::new(pool.clone());
+        let email = Email::try_new("ada@example.com").unwrap();
+
+        for _ in 0..2 {
+            let account = repository
+                .create(NewAccount::full(display_name("Ada")))
+                .await
+                .unwrap();
+            assert!(set_email(&pool, account.id, Some(&email)).await.unwrap());
         }
     }
 

@@ -4,7 +4,13 @@ import type { OnboardingState } from '#features/onboarding/model/slice'
 
 const toOnboardingState = async (fsm: OnboardingStateMachine): Promise<OnboardingState> => {
   const { current, data } = fsm.dehydrate()
-  return { step: current, game: structuredClone(data.game), results: structuredClone(data.results), allowedEvents: await getAllowedEvents(fsm) }
+  return {
+    step: current,
+    game: structuredClone(data.game),
+    results: structuredClone(data.results),
+    opponentPileIndex: data.opponentPileIndex,
+    allowedEvents: await getAllowedEvents(fsm),
+  }
 }
 
 const snapshots: Partial<Record<OnboardingStep, OnboardingState>> = {}

@@ -1,13 +1,14 @@
-//! `/api/passkeys` — the signed-in account's passkeys: list, rename, delete.
-//! Every handler takes `Authenticated`, so an anonymous request is a 401
-//! before anything here runs, and the account id comes from the session,
-//! never from the request.
+//! `/api/passkeys` — the signed-in account's passkeys: list, rename, delete,
+//! and the ceremony that adds one ([`addition`](super::addition)). Every
+//! handler takes `Authenticated`, so an anonymous request is a 401 before
+//! anything here runs, and the account id comes from the session, never from
+//! the request.
 
 use axum::{
     Json, Router,
     extract::State,
     http::StatusCode,
-    routing::{get, patch},
+    routing::{get, patch, post},
 };
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
@@ -47,6 +48,14 @@ impl From<ManagementError> for ApiError {
 pub fn router(state: ApiState) -> Router {
     Router::new()
         .route("/", get(list))
+        .route(
+            "/register-options",
+            post(super::addition::get_registration_options),
+        )
+        .route(
+            "/verify-registration",
+            post(super::addition::verify_registration),
+        )
         .route("/{id}", patch(rename).delete(delete))
         .with_state(state)
 }

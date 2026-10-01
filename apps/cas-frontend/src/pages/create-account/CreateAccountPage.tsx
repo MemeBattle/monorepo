@@ -1,16 +1,18 @@
 import { useActionState } from 'react'
+import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 
-import { isCeremonyCancelled, registerWithPasskey } from '#entities/session'
+import { isAuthenticatorUnsupported, isCeremonyCancelled, isPasskeyAlreadyRegistered, isWrongOrigin, registerWithPasskey } from '#entities/session'
 import { isApiError } from '#shared/api/request'
+import { MAX_LABEL_LENGTH, normalizeLabel } from '#shared/lib/label'
 import { Alert, Hero, Icon, Screen, SubmitButton, SwitchLink, TextField } from '#shared/ui'
 import { routes } from '#app/routes'
-import { MAX_DISPLAY_NAME_LENGTH, messages, normalizeDisplayName, validateDisplayName } from './validateDisplayName'
+import { messages, validateDisplayName } from './validateDisplayName'
 
 /** What the alert above the form says; never the raw `message` of an exception. */
 interface Failure {
   title: string
-  text: string
+  text: ReactNode
 }
 
 const failures = {
@@ -18,14 +20,63 @@ const failures = {
     title: 'Создание отменено',
     text: 'Окно подтверждения закрылось или вышло время. Ничего не сломалось, попробуйте ещё раз.',
   },
+  unsupported: {
+    title: 'Не получилось создать пасскей',
+    text: 'Этот ключ или браузер не умеет хранить пасскеи с проверкой владельца. Подойдут Touch ID, Face ID, Windows Hello или менеджер паролей на телефоне.',
+  },
+  alreadyRegistered: {
+    title: 'Такой пасскей уже есть',
+    text: (
+      <>
+        Этот пасскей уже зарегистрирован здесь. <Link to={routes.SIGN_IN}>Войти</Link>
+      </>
+    ),
+  },
+  wrongAddress: {
+    title: 'Этот адрес не подходит для входа',
+    text: 'Сайт открыт не по тому адресу, для которого настроен вход. Откройте его по основному адресу.',
+  },
   generic: {
     title: 'Что-то пошло не так',
     text: 'Попробуйте ещё раз через минуту.',
   },
 } satisfies Record<string, Failure>
 
-/** What this screen can say about a failed ceremony; the rest of what it can get is #715. */
-const toFailure = (error: unknown): Failure => (isCeremonyCancelled(error) ? failures.cancelled : failures.generic)
+/**
+ * Everything a failed ceremony can be, as this screen says it. A challenge
+ * the server no longer has (`registration_not_found`) is a ceremony that took
+ * too long, the same story as a closed prompt; a credential the server
+ * refuses as non-discoverable is the same story as an authenticator that
+ * cannot make one. Anything else (an outage, a refused cross-site request,
+ * no network, a verification the server could not do) is the generic alert.
+ */
+const toFailure = (error: unknown): Failure => {
+  if (isApiError(error)) {
+    switch (error.code) {
+      case 'registration_not_found':
+        return failures.cancelled
+      case 'discoverable_credential_required':
+        return failures.unsupported
+      case 'credential_already_registered':
+        return failures.alreadyRegistered
+      default:
+        return failures.generic
+    }
+  }
+  if (isCeremonyCancelled(error)) {
+    return failures.cancelled
+  }
+  if (isAuthenticatorUnsupported(error)) {
+    return failures.unsupported
+  }
+  if (isPasskeyAlreadyRegistered(error)) {
+    return failures.alreadyRegistered
+  }
+  if (isWrongOrigin(error)) {
+    return failures.wrongAddress
+  }
+  return failures.generic
+}
 
 interface FormState {
   /** What was submitted, so the field keeps it after a failure. */
@@ -43,7 +94,7 @@ export const CreateAccountPage = () => {
 
   const [state, createAccount, pending] = useActionState(async (_previous: FormState, form: FormData): Promise<FormState> => {
     // Normalised the way the server does it, so the length check and the sent value agree with it.
-    const displayName = normalizeDisplayName(String(form.get('displayName') ?? ''))
+    const displayName = normalizeLabel(String(form.get('displayName') ?? ''))
     const nameError = validateDisplayName(displayName)
     if (nameError) {
       return { displayName, nameError, failure: null }
@@ -73,7 +124,7 @@ export const CreateAccountPage = () => {
           defaultValue={state.displayName}
           autoComplete="nickname"
           // Twice the cap in UTF-16 units: the check counts code points, and a hard limit here would cut emoji names short.
-          maxLength={MAX_DISPLAY_NAME_LENGTH * 2}
+          maxLength={MAX_LABEL_LENGTH * 2}
           error={state.nameError}
           helper="Его увидят другие игроки, и оно же станет подписью пасскея в вашем менеджере."
         />

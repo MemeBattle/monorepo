@@ -267,7 +267,8 @@ mod tests {
     async fn an_unregistered_credential_returns_401(pool: PgPool) {
         let webauthn = test_webauthn();
         let mut authenticator = WebauthnAuthenticator::new(ResidentSoftPasskey::new());
-        let (ccr, _) = start_discoverable_registration(&webauthn, Uuid::new_v4(), "Ada").unwrap();
+        let (ccr, _) =
+            start_discoverable_registration(&webauthn, Uuid::new_v4(), "Ada", None).unwrap();
         authenticator.do_registration(test_origin(), ccr).unwrap();
         let app = test_app(pool);
         let options = start(&app).await;

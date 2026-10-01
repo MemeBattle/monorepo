@@ -3,6 +3,9 @@
 ## Status
 
 Accepted (2026-09-12), with [#668](https://github.com/MemeBattle/monorepo/issues/668).
+Amended (2026-09-19) by [#719](https://github.com/MemeBattle/monorepo/issues/719):
+decision (g) adds the ceremony that registers another passkey for a
+signed-in account and closes the gap the Consequences recorded.
 
 ## Context
 
@@ -63,19 +66,80 @@ carries on; a session opened on a lost device carries on too until it
 expires or is revoked. "Sign out everywhere" belongs with session listing,
 later.
 
+**(g) Adding a passkey is a registration ceremony run for the signed-in
+account, mounted with the resource: `POST /api/passkeys/register-options`
+and `POST /api/passkeys/verify-registration`.** Both take `Authenticated`,
+like every handler under `/api/passkeys`, and the account comes from the
+session, never from the request. The ceremony lives here rather than under
+`/api/webauthn` because its subject is the account's passkey collection:
+the ceremonies under `/api/webauthn` are for a browser that is nobody yet,
+and the dashboard addresses "add a passkey" together with the list it
+grows. (a)'s "not a ceremony" still holds for the resource's own verbs; the
+one ceremony that grows the collection is mounted with it. Added with #719.
+
+The challenge is registration's (ADR 0001 (d), (e)): a discoverable
+credential and user verification required, the session's account id as the
+WebAuthn user handle and its display name as the user name, so the new
+credential signs the same account in through discoverable login (ADR 0003
+(a)). What registration has no use for, this ceremony fills in: the
+account's existing credential ids go out in `excludeCredentials`, so a
+conforming client refuses an authenticator that already holds one of them
+(the browser's `InvalidStateError`) and no request reaches CAS. Only the
+account's own credentials are listed: the challenge says nothing about
+anyone else's, and an authenticator registered to another account is caught
+by the unique constraint on finish, with the same answer as below.
+
+`register-options` takes no body: the passkey gets the default name, and
+rename (a) is how it gets another. `verify-registration` takes
+`{ registrationId, response }`, the shape of the account registration's
+finish, and answers `201` with the passkey as `GET /api/passkeys` lists it.
+No account is created and no session is opened: the account was signed in
+already, and the response sets no cookie.
+
+The ceremony is its own kind, `addition`, in `webauthn_ceremonies`
+(ADR 0002): its state carries the account id from the session, and
+finishing looks rows up by kind, so an account registration id cannot be
+finished here, nor an addition as an account registration. The finish is
+the transaction ADR 0002 (c) describes — take the ceremony, verify, write
+the credential — with one check of its own: the session that finishes must
+name the account the ceremony was started for. A browser that signed out
+and in as someone else between the two requests holds a credential whose
+user handle names the first account; it is not stored, and the ceremony is
+consumed, because the challenge was answered.
+
+The error codes are the account registration's, because it is the same
+ceremony failing the same way and the client's remedy is the same:
+`404 registration_not_found` for an unknown, expired, consumed or another
+account's ceremony, `400 registration_verification_failed`,
+`400 discoverable_credential_required`, and `409 credential_already_registered`
+for a credential CAS already holds, this account's or anyone's. An
+anonymous request is `401 unauthenticated` from the extractor, before the
+body is read. A successful addition is logged at `info` with the passkey and
+account ids, as delete is: a new way into an account is worth a line.
+
 ## Consequences
 
 - A `DELETE` with no body is exactly the request ADR 0005 put the Fetch
   Metadata line in front of; it is covered by where it is mounted.
-- The API can remove a passkey but not add one to an existing account:
-  registration creates an account, and there is no ceremony yet for a
-  signed-in account to register another authenticator. The last-passkey
-  rule therefore holds every account at its one registration passkey until
-  that ceremony exists; it is the next ticket in this area, and the
-  dashboard (#671) needs it for the "add a second passkey" nudge.
-- The `insert_passkey` write that registration uses is what that ceremony
-  will call; it is already visible to the crate, and the tests build accounts
-  with two passkeys through it.
+- An account can add a passkey (g), so the last-passkey rule (c) no longer
+  holds every account at its one registration passkey. The dashboard
+  (#671) nudges an account with one passkey to add a second, which is the
+  v1 recovery story (`docs/PLAN.md`).
+- The `insert_passkey` write that registration uses is what the addition
+  ceremony calls. The challenge builder and the verification it pairs with
+  are shared with registration too, so the two ceremonies cannot drift
+  apart in what they ask of the authenticator.
+- Two more `POST`s under `/api/passkeys`, one of them body-less, are covered
+  by the Fetch Metadata line (ADR 0005) by where they are mounted.
+- `webauthn_ceremony_kind` gained a value by an additive migration; the
+  previous release never reads or writes it, so a rollout is safe in either
+  direction.
+- The software authenticator in the tests honours `excludeCredentials`
+  (`docs/TESTS.md`), so the test that an authenticator already registered on
+  the account refuses the challenge exercises the refusal a real one gives.
+  The server-side duplicate — a client that ignores the list — is produced
+  by storing the minted credential before the finish, and answers with the
+  stable code.
 - A path segment that is not a uuid answers `400 invalid_path` in the
   `ApiError` shape, through a `Path` extractor wrapper next to the `Json` one.
 - Rename is logged at `debug`, delete at `info`, with the passkey and account

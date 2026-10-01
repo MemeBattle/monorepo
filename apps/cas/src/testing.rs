@@ -14,7 +14,9 @@ use tracing_subscriber::Registry;
 use tracing_subscriber::layer::{Context, Layer, SubscriberExt};
 use uuid::Uuid;
 use webauthn_authenticator_rs::{
-    AuthenticatorBackend, WebauthnAuthenticator, error::WebauthnCError, softpasskey::SoftPasskey,
+    AuthenticatorBackend, WebauthnAuthenticator,
+    error::{CtapError, WebauthnCError},
+    softpasskey::SoftPasskey,
 };
 use webauthn_rs::prelude::{
     Base64UrlSafeData, CreationChallengeResponse, Passkey, PublicKeyCredential,
@@ -25,10 +27,13 @@ use webauthn_rs_proto::{
     PublicKeyCredentialRequestOptions, ResidentKeyRequirement,
 };
 
-use crate::accounts::DisplayName;
+use crate::accounts::{AccountManagement, DisplayName};
+use crate::config::{Config, SigningKeyPem};
 use crate::http::ApiState;
+use crate::oidc::{AuthorizationService, SigningKeys, TokenService};
 use crate::sessions::http::CookieSettings;
 use crate::sessions::{SessionService, SessionToken};
+use crate::webauthn::addition::AdditionService;
 use crate::webauthn::build_webauthn;
 use crate::webauthn::login::LoginService;
 use crate::webauthn::management::PasskeyManagement;
@@ -48,9 +53,14 @@ pub fn test_state_with_cookies(pool: PgPool, cookies: CookieSettings) -> ApiStat
     ApiState {
         registration: RegistrationService::new(test_webauthn(), pool.clone()),
         login: LoginService::new(test_webauthn(), pool.clone()),
+        addition: AdditionService::new(test_webauthn(), pool.clone()),
         passkeys: PasskeyManagement::new(pool.clone()),
-        sessions: SessionService::new(pool),
+        accounts: AccountManagement::new(pool.clone()),
+        sessions: SessionService::new(pool.clone()),
         cookies,
+        authorization: AuthorizationService::new(pool.clone()),
+        tokens: TokenService::new(pool, test_signing_key(), test_config().issuer),
+        frontend_origin: test_origin(),
     }
 }
 
@@ -197,6 +207,12 @@ struct ResidentCredential {
 /// Adds resident storage and RP-scoped discovery to SoftPasskey's real key
 /// generation and signing. Only this test adapter downgrades the options passed
 /// to SoftPasskey, which otherwise rejects every resident-key request.
+///
+/// It also honours `excludeCredentials`, which SoftPasskey ignores: asked to
+/// create a credential when it already holds one the relying party excluded,
+/// it refuses the way a CTAP2 authenticator does (`CREDENTIAL_EXCLUDED`), so
+/// a test can show that a registered authenticator never answers the
+/// challenge that adds a passkey.
 pub struct ResidentSoftPasskey {
     signer: SoftPasskey,
     credentials: Vec<ResidentCredential>,
@@ -229,6 +245,16 @@ impl AuthenticatorBackend for ResidentSoftPasskey {
         }
         let rp_id = options.rp.id.clone();
         let user_handle = options.user.id.clone();
+        if let Some(excluded) = &options.exclude_credentials
+            && self.credentials.iter().any(|credential| {
+                credential.rp_id == rp_id
+                    && excluded
+                        .iter()
+                        .any(|descriptor| descriptor.id == credential.descriptor.id)
+            })
+        {
+            return Err(WebauthnCError::Ctap(CtapError::Ctap2CredentialExcluded));
+        }
         selection.resident_key = Some(ResidentKeyRequirement::Discouraged);
         selection.require_resident_key = false;
         let mut response = self.signer.perform_register(origin, options, timeout_ms)?;
@@ -275,6 +301,43 @@ pub const TEST_ORIGIN: &str = "http://localhost:5173";
 
 pub fn test_origin() -> Url {
     TEST_ORIGIN.parse().expect("the test origin is a valid URL")
+}
+
+/// The checked-in development signing key, the one debug builds default to.
+pub const DEV_SIGNING_KEY: &str = include_str!("../dev/signing-key.pem");
+
+/// The RFC 7638 thumbprint of [`DEV_SIGNING_KEY`], computed outside the code
+/// under test with the openssl CLI:
+///
+/// ```sh
+/// b64u() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+/// openssl pkey -in dev/signing-key.pem -pubout -outform DER | tail -c 64 > xy.bin
+/// X=$(head -c 32 xy.bin | b64u); Y=$(tail -c 32 xy.bin | b64u)
+/// printf '{"crv":"P-256","kty":"EC","x":"%s","y":"%s"}' "$X" "$Y" \
+///   | openssl dgst -sha256 -binary | b64u
+/// ```
+pub const DEV_SIGNING_KEY_KID: &str = "GWP1_U9wKE9l7YVj1GY9QsuFjPhD7zuSgyzfGFhDj6o";
+
+/// The key the development default signs with, as `http::app` loads it.
+pub fn test_signing_key() -> crate::oidc::SigningKey {
+    SigningKeys::from_pem(DEV_SIGNING_KEY)
+        .expect("the development key is valid")
+        .active()
+        .clone()
+}
+
+/// The configuration the router tests build `http::app` from: the
+/// development defaults, with the checked-in development signing key.
+pub fn test_config() -> Config {
+    Config {
+        port: 0,
+        rp_id: TEST_RP_ID.to_string(),
+        origin: test_origin(),
+        cors_origins: vec![axum::http::HeaderValue::from_static(TEST_ORIGIN)],
+        database_url: "postgres://cas:cas@localhost:5434/cas".to_string(),
+        issuer: "http://localhost:3000".to_string(),
+        signing_key: Some(SigningKeyPem::new(DEV_SIGNING_KEY)),
+    }
 }
 
 /// The relying party the tests register against, built the way the server
@@ -335,7 +398,7 @@ pub fn soft_passkey_assertion(
 /// one would not prove that the library's own serde shape survives storage.
 pub fn test_passkey() -> Passkey {
     let webauthn = test_webauthn();
-    let (ccr, state) = start_discoverable_registration(&webauthn, Uuid::new_v4(), "test")
+    let (ccr, state) = start_discoverable_registration(&webauthn, Uuid::new_v4(), "test", None)
         .expect("a registration can be started");
     let response = soft_passkey_registration(ccr);
     webauthn

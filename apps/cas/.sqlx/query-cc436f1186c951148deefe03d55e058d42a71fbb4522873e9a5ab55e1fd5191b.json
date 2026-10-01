@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n               used_at IS NOT NULL AS \"used!\",\n               expires_at <= now() AS \"expired!\"\n           FROM refresh_tokens\n           WHERE id = $1\n           FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "used!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "expired!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "cc436f1186c951148deefe03d55e058d42a71fbb4522873e9a5ab55e1fd5191b"
+}

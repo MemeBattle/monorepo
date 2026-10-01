@@ -1,8 +1,8 @@
-import { useActionState } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 
-import { isCeremonyCancelled, signInWithPasskey } from '#entities/session'
+import { isCeremonyCancelled, isWrongOrigin, signInWithPasskey, signInWithPasskeyFromAutofill } from '#entities/session'
 import { isApiError } from '#shared/api/request'
 import { Alert, Hero, Icon, Screen, SubmitButton, SwitchLink, TextField } from '#shared/ui'
 import { routes } from '#app/routes'
@@ -30,6 +30,11 @@ const failures = {
     ),
     retry: 'Выбрать другой пасскей',
   },
+  wrongAddress: {
+    title: 'Этот адрес не подходит для входа',
+    text: 'Сайт открыт не по тому адресу, для которого настроен вход. Откройте его по основному адресу.',
+    retry: 'Попробовать ещё раз',
+  },
   generic: {
     title: 'Что-то пошло не так',
     text: 'Попробуйте ещё раз через минуту.',
@@ -37,19 +42,60 @@ const failures = {
   },
 } satisfies Record<string, Failure>
 
-/** What this screen can say about a failed ceremony; the rest of what it can get is #715. */
+/**
+ * Everything a failed sign-in can be, as this screen says it. A challenge
+ * the server no longer has (`login_not_found`) is a ceremony that took too
+ * long, the same story as a closed prompt. Anything else (an outage, a
+ * refused cross-site request, no network) is the generic alert.
+ */
 const toFailure = (error: unknown): Failure => {
-  if (isApiError(error) && error.code === 'invalid_credential') {
-    return failures.unknownPasskey
+  if (isApiError(error)) {
+    switch (error.code) {
+      case 'invalid_credential':
+        return failures.unknownPasskey
+      case 'login_not_found':
+        return failures.cancelled
+      default:
+        return failures.generic
+    }
   }
-  return isCeremonyCancelled(error) ? failures.cancelled : failures.generic
+  if (isCeremonyCancelled(error)) {
+    return failures.cancelled
+  }
+  if (isWrongOrigin(error)) {
+    return failures.wrongAddress
+  }
+  return failures.generic
 }
 
-/** The passkey button; conditional mediation on the field comes with #714. */
+/**
+ * Two ways in, one ceremony at a time: the browser's autofill offers a
+ * passkey under the field from the moment the screen is up, and the button
+ * withdraws that offer before starting its own prompt. Leaving the screen
+ * withdraws it too.
+ */
 export const SignInPage = () => {
   const navigate = useNavigate()
+  const autofill = useRef<AbortController | null>(null)
+  const [autofillFailure, setAutofillFailure] = useState<Failure | null>(null)
 
-  const [failure, signIn, pending] = useActionState(async (): Promise<Failure | null> => {
+  useEffect(() => {
+    const controller = new AbortController()
+    autofill.current = controller
+    signInWithPasskeyFromAutofill(controller.signal).then(
+      signedIn => (signedIn ? navigate(routes.DASHBOARD, { replace: true }) : undefined),
+      (error: unknown) => {
+        if (!controller.signal.aborted) {
+          setAutofillFailure(toFailure(error))
+        }
+      },
+    )
+    return () => controller.abort()
+  }, [navigate])
+
+  const [buttonFailure, signIn, pending] = useActionState(async (): Promise<Failure | null> => {
+    autofill.current?.abort()
+    setAutofillFailure(null)
     try {
       await signInWithPasskey()
     } catch (error) {
@@ -60,12 +106,15 @@ export const SignInPage = () => {
     return null
   }, null)
 
+  // The button resets the autofill's verdict when pressed, so whichever is set is the latest.
+  const failure = autofillFailure ?? buttonFailure
+
   return (
     <Screen>
       <Hero title="Вход в MemeBattle" subtitle="Без пароля. Один пасскей для всех игр." />
       <form action={signIn} className="flex flex-col gap-3.5">
         {failure && <Alert title={failure.title}>{failure.text}</Alert>}
-        {/* Nobody types here: the browser anchors its passkey autofill to this field (#714). */}
+        {/* Nobody types here: the browser anchors its passkey autofill to this field. */}
         <TextField
           label="Пасскей"
           name="passkey"

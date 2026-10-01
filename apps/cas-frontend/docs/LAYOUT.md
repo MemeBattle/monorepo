@@ -6,9 +6,12 @@ today; a new one is added when there is something to put in it, not before.
 ```
 apps/cas-frontend/
   AGENTS.md            one-screen card for agents, links into docs/
-  docs/                this file, TESTS.md, CODE.md, ADRs
+  docs/                this file, TESTS.md, CODE.md, PASSKEYS.md, ADRs
   index.html           the single page, lang="ru"
   vite.config.ts       React Compiler, Tailwind, the /api dev proxy, vitest
+  playwright.config.ts the e2e suite: Chromium, vite as its webServer
+  e2e/                 the e2e scenarios (*.e2e.ts) and fixtures.ts, the
+                       virtual authenticator over CDP (see TESTS.md)
   src/
     index.tsx          createRoot + RouterProvider, imports app/styles.css
     app/               the shell: router.tsx (routes and the root layout),
@@ -17,8 +20,10 @@ apps/cas-frontend/
     pages/<page>/      one directory per route, the screen and nothing else;
                        loading/ and error/ are the root route's fallbacks
     entities/<name>/   API calls and types of one domain concept: session
-                       (/api/me, /api/logout, the ceremonies); passkey comes with #716
+                       (/api/me, /api/logout, the ceremonies), passkey (/api/passkeys)
     shared/api/        request(), ApiError: the wire contract with CAS
+    shared/lib/        rules more than one screen applies: label (the name
+                       rules CAS applies to a display name and a passkey)
     shared/ui/         the primitives every screen is made of (Button, TextField,
                        Alert, Card, Screen, Icon, Logo), each with a *.stories.tsx
 ```

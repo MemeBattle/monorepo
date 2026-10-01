@@ -24,13 +24,19 @@ use tower_http::{
     trace::{self, TraceLayer},
 };
 use tracing::Level;
+use url::Url;
 
+use crate::accounts::AccountManagement;
+use crate::accounts::http as accounts_http;
 use crate::config::Config;
 use crate::http::error::ApiError;
 use crate::http::fetch_metadata::AllowedOrigins;
+use crate::oidc::http::{self as oidc_http, Documents};
+use crate::oidc::{AuthorizationService, Discovery, SigningKeyError, SigningKeys, TokenService};
 use crate::sessions::SessionService;
 use crate::sessions::http as sessions_http;
 use crate::sessions::http::CookieSettings;
+use crate::webauthn::addition::AdditionService;
 use crate::webauthn::build_webauthn;
 use crate::webauthn::http as webauthn_http;
 use crate::webauthn::login::LoginService;
@@ -48,6 +54,14 @@ pub enum AppError {
     #[error("Failed to create the database pool: {0}")]
     #[diagnostic(code(cas::db_pool_error))]
     DbPool(sqlx::Error),
+
+    #[error("CAS_SIGNING_KEY is not set and a release build has no development default")]
+    #[diagnostic(code(cas::signing_key_error))]
+    MissingSigningKey,
+
+    #[error("CAS_SIGNING_KEY: {0}")]
+    #[diagnostic(code(cas::signing_key_error))]
+    SigningKey(#[source] SigningKeyError),
 }
 
 /// The services the API handlers share.
@@ -55,9 +69,17 @@ pub enum AppError {
 pub struct ApiState {
     pub registration: RegistrationService,
     pub login: LoginService,
+    pub addition: AdditionService,
     pub passkeys: PasskeyManagement,
+    pub accounts: AccountManagement,
     pub sessions: SessionService,
     pub cookies: CookieSettings,
+    pub authorization: AuthorizationService,
+    /// `/token`, signing with the active key as `CAS_ISSUER`.
+    pub tokens: TokenService,
+    /// The frontend's origin (`CAS_ORIGIN`): where the sign-in screen is,
+    /// for `/authorize` to send an anonymous request to.
+    pub frontend_origin: Url,
 }
 
 /// The whole service: the routers behind their middleware, with trailing
@@ -79,18 +101,51 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
 
     let webauthn = build_webauthn(&config.rp_id, &config.origin).map_err(AppError::WebauthnInit)?;
 
-    let api_state = ApiState {
-        registration: RegistrationService::new(webauthn.clone(), pool.clone()),
-        login: LoginService::new(webauthn, pool.clone()),
-        passkeys: PasskeyManagement::new(pool.clone()),
-        sessions: SessionService::new(pool.clone()),
-        cookies: CookieSettings::for_origin(&config.origin),
+    // Only the server signs, so only the server refuses to start without a
+    // key; the tools that share `Config` do not need one.
+    let pem = config
+        .signing_key
+        .as_ref()
+        .ok_or(AppError::MissingSigningKey)?;
+    let signing_keys = SigningKeys::from_pem(pem.expose()).map_err(AppError::SigningKey)?;
+    // The kid is public; this line is what an operator checks after a
+    // rotation.
+    tracing::info!(
+        kid = signing_keys.active().kid(),
+        published = signing_keys.published().len(),
+        "signing key loaded"
+    );
+    let documents = Documents {
+        discovery: Discovery::for_issuer(&config.issuer),
+        jwks: signing_keys.jwks(),
     };
 
-    let router = Router::new().merge(health::router(pool)).nest(
-        "/api",
-        api_router(api_state, AllowedOrigins::new(config.cors_origins.clone())),
-    );
+    let api_state = ApiState {
+        registration: RegistrationService::new(webauthn.clone(), pool.clone()),
+        login: LoginService::new(webauthn.clone(), pool.clone()),
+        addition: AdditionService::new(webauthn, pool.clone()),
+        passkeys: PasskeyManagement::new(pool.clone()),
+        accounts: AccountManagement::new(pool.clone()),
+        sessions: SessionService::new(pool.clone()),
+        cookies: CookieSettings::for_origin(&config.origin),
+        authorization: AuthorizationService::new(pool.clone()),
+        tokens: TokenService::new(
+            pool.clone(),
+            signing_keys.active().clone(),
+            config.issuer.clone(),
+        ),
+        frontend_origin: config.origin.clone(),
+    };
+
+    let router = Router::new()
+        .merge(health::router(pool))
+        .merge(oidc_http::router(documents))
+        .merge(oidc_http::authorize_router(api_state.clone()))
+        .merge(oidc_http::token_router(api_state.clone()))
+        .nest(
+            "/api",
+            api_router(api_state, AllowedOrigins::new(config.cors_origins.clone())),
+        );
 
     Ok(NormalizePathLayer::trim_trailing_slash()
         .layer(with_middleware(router, config.cors_origins)))
@@ -109,10 +164,14 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
 /// is mounted. It wraps the CSRF line from the outside so that the layer's
 /// own refusals carry it too.
 fn api_router(state: ApiState, origins: AllowedOrigins) -> Router {
+    // `/me` is one path with two owners by verb: the sessions router answers
+    // `GET`, the accounts router `PATCH`, and axum merges the two method
+    // routers for the path (ADR 0007).
     let api = Router::new()
         .nest("/webauthn", webauthn_http::router(state.clone()))
         .nest("/passkeys", webauthn_http::passkeys::router(state.clone()))
-        .merge(sessions_http::router(state))
+        .merge(sessions_http::router(state.clone()))
+        .merge(accounts_http::router(state))
         .fallback(not_found);
 
     fetch_metadata::guard(sessions_http::with_cookie_renewal(api), origins).layer(
@@ -200,23 +259,52 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::accounts::{AccountRepository, NewAccount};
+    use crate::config::SigningKeyPem;
     use crate::sessions::{SessionOrigin, SessionService};
     use crate::testing::{
-        capture_tracing, display_name, session_cookie, soft_passkey_registration, test_cookies,
-        test_state,
+        DEV_SIGNING_KEY_KID, capture_tracing, display_name, session_cookie,
+        soft_passkey_registration, test_config, test_cookies, test_state,
     };
 
     const ALLOWED_ORIGIN: &str = "http://localhost:5173";
     const OTHER_ORIGIN: &str = "https://evil.example";
 
-    fn test_config() -> Config {
-        Config {
-            port: 0,
-            rp_id: "localhost".to_string(),
-            origin: ALLOWED_ORIGIN.parse().unwrap(),
-            cors_origins: vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
-            database_url: "postgres://cas:cas@localhost:5434/cas".to_string(),
-        }
+    /// A key the server cannot use is a startup error that names the
+    /// variable and quotes nothing of its value.
+    #[tokio::test]
+    async fn an_invalid_signing_key_fails_startup_without_echoing_it() {
+        let mut config = test_config();
+        config.signing_key = Some(SigningKeyPem::new("not a key"));
+
+        let error = app(config).unwrap_err();
+
+        assert!(matches!(error, AppError::SigningKey(_)), "{error:?}");
+        let message = error.to_string();
+        assert!(message.starts_with("CAS_SIGNING_KEY:"), "{message}");
+        assert!(!message.contains("not a key"), "{message}");
+    }
+
+    /// What a release build without `CAS_SIGNING_KEY` meets.
+    #[tokio::test]
+    async fn a_missing_signing_key_fails_startup() {
+        let mut config = test_config();
+        config.signing_key = None;
+
+        assert!(matches!(
+            app(config).unwrap_err(),
+            AppError::MissingSigningKey
+        ));
+    }
+
+    #[tokio::test]
+    async fn startup_logs_the_active_kid() {
+        let (events, _guard) = capture_tracing();
+
+        app(test_config()).unwrap();
+
+        let loaded = events.mentioning("signing key loaded");
+        assert_eq!(loaded.len(), 1, "{:?}", events.all());
+        assert!(loaded[0].contains(DEV_SIGNING_KEY_KID), "{loaded:?}");
     }
 
     #[tokio::test]
@@ -253,20 +341,35 @@ mod tests {
         );
     }
 
-    /// The sessions router is nested at `/api`, the webauthn and passkeys
-    /// ones inside that prefix; a request must reach the right one. All
-    /// requests fail before any query, so no database is needed.
+    /// The sessions and accounts routers are merged at `/api`, the webauthn
+    /// and passkeys ones nested inside that prefix; a request must reach the
+    /// right one. All requests fail before any query, so no database is
+    /// needed.
     #[tokio::test]
-    async fn both_contexts_are_reachable_under_the_api_prefix() {
+    async fn every_context_is_reachable_under_the_api_prefix() {
         let app = app(test_config()).unwrap();
 
-        for uri in ["/api/me", "/api/passkeys"] {
+        for (method, uri) in [
+            ("GET", "/api/me"),
+            ("PATCH", "/api/me"),
+            ("GET", "/api/passkeys"),
+        ] {
             let response = app
                 .clone()
-                .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+                .oneshot(
+                    Request::builder()
+                        .method(method)
+                        .uri(uri)
+                        .body(Body::empty())
+                        .unwrap(),
+                )
                 .await
                 .unwrap();
-            assert_eq!(response.status(), StatusCode::UNAUTHORIZED, "{uri}");
+            assert_eq!(
+                response.status(),
+                StatusCode::UNAUTHORIZED,
+                "{method} {uri}"
+            );
         }
 
         let login = app
@@ -369,7 +472,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::NO_CONTENT);
     }
 
-    /// Both nested routers sit behind the layer, and a `GET` is not its
+    /// Every context's router sits behind the layer, and a `GET` is not its
     /// business: `/api/me` from another site answers 401 for the missing
     /// session, not 403.
     #[tokio::test]
@@ -386,9 +489,14 @@ mod tests {
                 .unwrap()
         };
 
-        for uri in ["/api/logout", "/api/webauthn/verify-login"] {
-            let response = app.clone().oneshot(cross_site("POST", uri)).await.unwrap();
-            assert_eq!(response.status(), StatusCode::FORBIDDEN, "{uri}");
+        for (method, uri) in [
+            ("POST", "/api/logout"),
+            ("POST", "/api/webauthn/verify-login"),
+            ("POST", "/api/passkeys/register-options"),
+            ("PATCH", "/api/me"),
+        ] {
+            let response = app.clone().oneshot(cross_site(method, uri)).await.unwrap();
+            assert_eq!(response.status(), StatusCode::FORBIDDEN, "{method} {uri}");
         }
 
         let me = app

@@ -1,0 +1,66 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n               account_id,\n               client_id AS \"client_id: ClientId\",\n               scopes,\n               revoked_at IS NOT NULL AS \"revoked!\",\n               expires_at <= now() AS \"expired!\"\n           FROM grants\n           WHERE id = $1\n           FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "account_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "grants",
+            "name": "account_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "client_id: ClientId",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "grants",
+            "name": "client_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "scopes",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "grants",
+            "name": "scopes"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "revoked!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "expired!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "30d62d7e263ba46c02313501b209980b278c36860b3ee1f43fe88c75b3efe10c"
+}

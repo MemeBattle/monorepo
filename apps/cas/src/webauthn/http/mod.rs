@@ -1,8 +1,10 @@
-//! The context's endpoints: `/api/webauthn`, the passkey ceremonies, and
-//! `/api/passkeys`, the signed-in account's passkeys. Both mounted by the
+//! The context's endpoints: `/api/webauthn`, the passkey ceremonies for a
+//! browser that is nobody yet, and `/api/passkeys`, the signed-in account's
+//! passkeys — including the ceremony that adds one. Both mounted by the
 //! transport root in `crate::http`; the only part of the context that knows
 //! axum.
 
+pub mod addition;
 pub mod login;
 pub mod passkeys;
 pub mod registration;

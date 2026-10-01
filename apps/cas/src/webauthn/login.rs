@@ -363,7 +363,8 @@ mod tests {
     async fn an_unregistered_credential_is_rejected(pool: PgPool) {
         let webauthn = test_webauthn();
         let mut authenticator = WebauthnAuthenticator::new(ResidentSoftPasskey::new());
-        let (ccr, _) = start_discoverable_registration(&webauthn, Uuid::new_v4(), "Ada").unwrap();
+        let (ccr, _) =
+            start_discoverable_registration(&webauthn, Uuid::new_v4(), "Ada", None).unwrap();
         authenticator.do_registration(test_origin(), ccr).unwrap();
         let service = service(pool);
 

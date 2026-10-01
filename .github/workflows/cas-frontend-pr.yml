@@ -9,6 +9,10 @@ on:
       - 'pnpm-lock.yaml'
       - package.json
       - pnpm-workspace.yaml
+      # The e2e job drives the real CAS, so a backend change runs it too.
+      - 'apps/cas/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
 
 env:
   NODE_OPTIONS: --max-old-space-size=4096
@@ -52,3 +56,71 @@ jobs:
 
       - name: Build
         run: pnpm cas:front:build
+
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    # The suite runs the real ceremonies against the real CAS: Postgres as in
+    # cas-pr.yml, the migrations and the binary built here, vite started by
+    # Playwright's webServer (see apps/cas-frontend/docs/TESTS.md).
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: cas
+          POSTGRES_PASSWORD: cas
+          POSTGRES_DB: cas
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://cas:cas@localhost:5434/cas
+      SQLX_OFFLINE: 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Build CAS
+        run: cargo build -p cas --bins
+
+      - name: Apply migrations
+        run: ./target/debug/cas-migrate
+
+      # The defaults are the ones the suite needs: :3000, RP id `localhost`, origin http://localhost:5173.
+      - name: Start CAS
+        run: ./target/debug/cas > /tmp/cas.log 2>&1 &
+
+      - name: Install Playwright browsers
+        run: pnpm --filter=@memebattle/cas-frontend exec playwright install --with-deps chromium
+
+      - name: Wait for CAS
+        run: pnpm exec wait-on --timeout 60000 http-get://127.0.0.1:3000/health
+
+      - name: Run e2e tests
+        run: pnpm run --filter @memebattle/cas-frontend test:e2e
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: cas-frontend-e2e-report
+          path: |
+            apps/cas-frontend/playwright-report/
+            apps/cas-frontend/test-results/
+            /tmp/cas.log
+          retention-days: 7

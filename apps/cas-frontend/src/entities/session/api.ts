@@ -19,3 +19,15 @@ export const getMe = () => request<Me>('/api/me')
  * nothing about the account survives on this side.
  */
 export const logout = () => request<void>('/api/logout', { method: 'POST' })
+
+/**
+ * `PATCH /api/me`: sets the account's email, or clears it with `null`; a 204
+ * either way, and the same request twice leaves the same account. The server
+ * trims the address and lower-cases its domain but does not answer with what
+ * it stored, so the caller reads it back through `getMe`. The address is
+ * checked for shape only and stays unverified: an empty one, one over 254
+ * bytes, one with spaces or invisible characters, without a single `@` with
+ * something on both sides, or with a broken domain is `ApiError`
+ * `invalid_email`.
+ */
+export const updateEmail = (email: string | null): Promise<void> => request<void>('/api/me', { method: 'PATCH', body: { email } })
