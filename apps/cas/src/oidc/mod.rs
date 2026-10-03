@@ -1,18 +1,21 @@
 //! OIDC — CAS as an OpenID Provider seen from the outside: the signing key
 //! set, the discovery document and the JWKS (ADR 0009), the authorization
-//! endpoint with the codes it issues (ADR 0010), and the token endpoint
-//! that exchanges a code for an access token, an ID token and a refresh
-//! token under a grant (ADR 0011) and refreshes them with rotation and reuse
-//! detection (ADR 0012). Userinfo, logout and the guest grant arrive with
-//! their own tickets and build on what is here. See
-//! `docs/adr/0009-signing-key-and-discovery.md`,
+//! endpoint with the codes it issues (ADR 0010), the token endpoint that
+//! exchanges a code for an access token, an ID token and a refresh token
+//! under a grant (ADR 0011) and refreshes them with rotation and reuse
+//! detection (ADR 0012), and userinfo and RP-initiated logout, which verify
+//! the tokens CAS issued (ADR 0013). Every endpoint of the minimal profile
+//! is served; the guest grant arrives with its own ticket and builds on what
+//! is here. See `docs/adr/0009-signing-key-and-discovery.md`,
 //! `docs/adr/0010-authorization-endpoint.md`,
-//! `docs/adr/0011-token-endpoint-and-access-tokens.md` and
-//! `docs/adr/0012-refresh-token-rotation.md`.
+//! `docs/adr/0011-token-endpoint-and-access-tokens.md`,
+//! `docs/adr/0012-refresh-token-rotation.md` and
+//! `docs/adr/0013-userinfo-and-rp-initiated-logout.md`.
 
 pub mod authorization;
 mod codes;
 mod discovery;
+mod end_session;
 mod exchange;
 mod grants;
 pub mod http;
@@ -21,6 +24,7 @@ mod repository;
 pub mod service;
 mod token_request;
 mod tokens;
+mod userinfo;
 
 use std::time::Duration;
 
@@ -29,12 +33,19 @@ pub use codes::{
     AuthorizationCode, CodeChallenge, CodeChallengeError, CodeHash, CodeVerifier, CodeVerifierError,
 };
 pub use discovery::Discovery;
+pub use end_session::{EndSessionError, EndSessionService, ValidEndSession};
 pub use exchange::{IssuedTokens, TokenService};
 pub use grants::revoke_account_grants;
-pub use keys::{Jwks, PublicJwk, SIGNING_ALGORITHM, SigningKey, SigningKeyError, SigningKeys};
+pub use keys::{
+    Jwks, JwsError, PublicJwk, SIGNING_ALGORITHM, SigningKey, SigningKeyError, SigningKeys,
+    VerifyingKeys,
+};
 pub use service::{AuthorizationService, IssueError, IssuedCode, RedeemError, RedeemedCode};
 pub use token_request::TokenError;
-pub use tokens::{AccessTokenClaims, IdTokenClaims, RefreshToken, RefreshTokenHash};
+pub use tokens::{
+    AccessTokenClaims, IdTokenClaims, InvalidToken, RefreshToken, RefreshTokenHash, UserInfoClaims,
+};
+pub use userinfo::{UserInfoError, UserInfoService};
 
 /// The extension grant a confidential client uses to mint a guest account
 /// on `/token` (#746). Advertised by discovery already.

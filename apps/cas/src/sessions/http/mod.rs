@@ -43,7 +43,7 @@ impl From<CreateError> for ApiError {
 }
 
 /// `Clear-Site-Data`, which the `http` crate has no constant for.
-const CLEAR_SITE_DATA: HeaderName = HeaderName::from_static("clear-site-data");
+pub(crate) const CLEAR_SITE_DATA: HeaderName = HeaderName::from_static("clear-site-data");
 
 /// What logout asks the browser to throw away. The quotation marks are part
 /// of the value: the header carries a list of quoted directives.
@@ -57,7 +57,11 @@ const CLEAR_SITE_DATA: HeaderName = HeaderName::from_static("clear-site-data");
 /// CAS logout would sign the browser out of every other application on the
 /// site and drop their preferences with it. The session cookie is removed
 /// explicitly instead, by the removal cookie next to this header.
-const CLEAR_SITE_DATA_ON_LOGOUT: HeaderValue = HeaderValue::from_static(r#""cache", "storage""#);
+///
+/// RP-initiated logout (`/end_session`, ADR 0013 (i)) sends the same value
+/// when it ends a session.
+pub(crate) const CLEAR_SITE_DATA_ON_LOGOUT: HeaderValue =
+    HeaderValue::from_static(r#""cache", "storage""#);
 
 pub fn router(state: ApiState) -> Router {
     Router::new()

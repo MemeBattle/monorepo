@@ -27,12 +27,19 @@ use webauthn_rs_proto::{
     PublicKeyCredentialRequestOptions, ResidentKeyRequirement,
 };
 
-use crate::accounts::{AccountManagement, DisplayName};
+use crate::accounts::{Account, AccountManagement, AccountRepository, DisplayName, NewAccount};
+use crate::clients::{
+    Client, ClientId, ClientName, ClientRepository, NewClient, RedirectUri, Scope,
+};
 use crate::config::{Config, SigningKeyPem};
 use crate::http::ApiState;
-use crate::oidc::{AuthorizationService, SigningKeys, TokenService};
+use crate::oidc::authorization::tests::CALLBACK;
+use crate::oidc::{
+    AccessTokenClaims, AuthorizationService, EndSessionService, IdTokenClaims, SigningKey,
+    SigningKeys, TokenService, UserInfoService,
+};
 use crate::sessions::http::CookieSettings;
-use crate::sessions::{SessionService, SessionToken};
+use crate::sessions::{SessionOrigin, SessionService, SessionToken};
 use crate::webauthn::addition::AdditionService;
 use crate::webauthn::build_webauthn;
 use crate::webauthn::login::LoginService;
@@ -59,7 +66,17 @@ pub fn test_state_with_cookies(pool: PgPool, cookies: CookieSettings) -> ApiStat
         sessions: SessionService::new(pool.clone()),
         cookies,
         authorization: AuthorizationService::new(pool.clone()),
-        tokens: TokenService::new(pool, test_signing_key(), test_config().issuer),
+        tokens: TokenService::new(pool.clone(), test_signing_key(), test_config().issuer),
+        userinfo: UserInfoService::new(
+            pool.clone(),
+            test_signing_keys().verifying_keys(),
+            test_config().issuer,
+        ),
+        end_session: EndSessionService::new(
+            AuthorizationService::new(pool),
+            test_signing_keys().verifying_keys(),
+            test_config().issuer,
+        ),
         frontend_origin: test_origin(),
     }
 }
@@ -318,12 +335,28 @@ pub const DEV_SIGNING_KEY: &str = include_str!("../dev/signing-key.pem");
 /// ```
 pub const DEV_SIGNING_KEY_KID: &str = "GWP1_U9wKE9l7YVj1GY9QsuFjPhD7zuSgyzfGFhDj6o";
 
+/// The development key set, as `http::app` loads it by default.
+pub fn test_signing_keys() -> SigningKeys {
+    SigningKeys::from_pem(DEV_SIGNING_KEY).expect("the development key is valid")
+}
+
 /// The key the development default signs with, as `http::app` loads it.
-pub fn test_signing_key() -> crate::oidc::SigningKey {
-    SigningKeys::from_pem(DEV_SIGNING_KEY)
-        .expect("the development key is valid")
-        .active()
-        .clone()
+pub fn test_signing_key() -> SigningKey {
+    test_signing_keys().active().clone()
+}
+
+/// A freshly generated P-256 key as PKCS#8 PEM: a key CAS does not
+/// publish, for a token a forger — or a retired key — signed.
+pub fn fresh_signing_key_pem() -> String {
+    use openssl::ec::{EcGroup, EcKey};
+    use openssl::nid::Nid;
+    use openssl::pkey::PKey;
+
+    let group = EcGroup::from_curve_name(Nid::X9_62_PRIME256V1).expect("P-256 is available");
+    let key = PKey::from_ec_key(EcKey::generate(&group).expect("a P-256 key generates"))
+        .expect("an EC key is a PKey");
+    String::from_utf8(key.private_key_to_pem_pkcs8().expect("the key serialises"))
+        .expect("PEM is ASCII")
 }
 
 /// The configuration the router tests build `http::app` from: the
@@ -348,6 +381,125 @@ pub fn test_webauthn() -> Webauthn {
 
 pub fn display_name(value: &str) -> DisplayName {
     DisplayName::try_new(value).expect("a valid test display name")
+}
+
+pub fn scopes(values: &[&str]) -> Vec<Scope> {
+    values
+        .iter()
+        .map(|value| Scope::try_new(*value).expect("a valid test scope"))
+        .collect()
+}
+
+/// A response header as text, if the response carries it.
+pub fn header_str(
+    response: &axum::response::Response,
+    name: axum::http::header::HeaderName,
+) -> Option<&str> {
+    response
+        .headers()
+        .get(name)
+        .map(|value| value.to_str().expect("a header of visible ASCII"))
+}
+
+/// Registers a public first-party client that may ask for `openid`,
+/// `profile` and `email`, with [`CALLBACK`] as its redirect URI and the
+/// given post-logout addresses.
+pub async fn register_public_client(
+    pool: &PgPool,
+    id: &str,
+    post_logout_redirect_uris: &[&str],
+) -> Client {
+    ClientRepository::new(pool.clone())
+        .create(
+            NewClient::public(
+                ClientId::try_new(id).expect("a valid test client id"),
+                ClientName::try_new("Ligretto web").expect("a valid test client name"),
+                vec![RedirectUri::try_new(CALLBACK).expect("a valid redirect URI")],
+            )
+            .expect("a valid test client")
+            .first_party(true)
+            .with_scopes(scopes(&["openid", "profile", "email"]))
+            .with_post_logout_redirect_uris(
+                post_logout_redirect_uris
+                    .iter()
+                    .map(|uri| RedirectUri::try_new(*uri).expect("a valid post-logout URI"))
+                    .collect(),
+            ),
+        )
+        .await
+        .expect("the test client registers")
+}
+
+/// An account signed in to CAS: the account, the token its cookie carries,
+/// the session behind it, and that `Cookie` header.
+pub struct SignedIn {
+    pub account: Account,
+    pub token: SessionToken,
+    pub session_id: Uuid,
+    pub cookie: String,
+}
+
+/// A full account named `name`, with an address, and a live session of its
+/// own.
+pub async fn signed_in(pool: &PgPool, name: &str) -> SignedIn {
+    let account = AccountRepository::new(pool.clone())
+        .create(NewAccount::full(display_name(name)).with_email("ada@example.com"))
+        .await
+        .expect("the test account is created");
+    let issued = SessionService::new(pool.clone())
+        .create(account.id, SessionOrigin::Login)
+        .await
+        .expect("the test session is created");
+    SignedIn {
+        cookie: format!("{}={}", test_cookies().name(), issued.token.expose()),
+        account,
+        token: issued.token,
+        session_id: issued.session.id,
+    }
+}
+
+/// An ID token as `/token` issues it under the test issuer: to `client`,
+/// for `account`, signed by `key` at `issued_at`.
+pub fn signed_id_token(
+    key: &SigningKey,
+    client: &Client,
+    account: &Account,
+    granted: &[&str],
+    issued_at: time::OffsetDateTime,
+) -> String {
+    let claims = IdTokenClaims::new(
+        &test_config().issuer,
+        client,
+        account,
+        &scopes(granted),
+        None,
+        issued_at,
+    );
+    key.sign(
+        "JWT",
+        &serde_json::to_vec(&claims).expect("the claims serialise"),
+    )
+}
+
+/// An access token as `/token` issues it under the test issuer.
+pub fn signed_access_token(
+    key: &SigningKey,
+    client: &Client,
+    account: &Account,
+    granted: &[&str],
+    issued_at: time::OffsetDateTime,
+) -> String {
+    let claims = AccessTokenClaims::new(
+        &test_config().issuer,
+        client,
+        account,
+        &scopes(granted),
+        issued_at,
+    );
+    key.sign(
+        "at+jwt",
+        &serde_json::to_vec(&claims).expect("the claims serialise"),
+    )
 }
 
 /// Answers a registration challenge with a software authenticator, the way a

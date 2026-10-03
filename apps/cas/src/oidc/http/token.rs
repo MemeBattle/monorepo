@@ -28,11 +28,12 @@ use crate::oidc::{IssuedTokens, Params, TokenError};
 /// The largest body a token request may have. The longest legitimate one —
 /// a code, a verifier of 128 characters, a redirect URI and a client's
 /// credentials — is well under a kilobyte; the bound is what stops a
-/// client from making CAS buffer anything larger.
-const MAX_BODY_BYTES: usize = 8 * 1024;
+/// client from making CAS buffer anything larger. `POST /end_session` reads
+/// its form within the same bound.
+pub(super) const MAX_BODY_BYTES: usize = 8 * 1024;
 
 /// RFC 6749 §3.2: the token endpoint takes a form.
-const FORM_CONTENT_TYPE: &str = "application/x-www-form-urlencoded";
+pub(super) const FORM_CONTENT_TYPE: &str = "application/x-www-form-urlencoded";
 
 /// What a client that tried the `Basic` scheme is told (RFC 6749 §5.2,
 /// RFC 7617 §2).
@@ -90,7 +91,7 @@ async fn exchange(
 
 /// Whether the media type is a form, whatever its parameters (a `charset`
 /// is common and harmless).
-fn is_form(headers: &HeaderMap) -> bool {
+pub(super) fn is_form(headers: &HeaderMap) -> bool {
     headers
         .get(header::CONTENT_TYPE)
         .and_then(|value| value.to_str().ok())
@@ -127,9 +128,9 @@ fn success(tokens: IssuedTokens) -> Response {
 /// only variable part, if any, is a parameter name from the service's fixed
 /// list: nothing the request carried is reflected.
 #[derive(Debug)]
-struct OAuthErrorResponse {
+pub(super) struct OAuthErrorResponse {
     status: StatusCode,
-    error: &'static str,
+    pub(super) error: &'static str,
     description: Cow<'static, str>,
     /// `WWW-Authenticate: Basic`, for a client that tried the header.
     challenge: bool,
@@ -195,16 +196,23 @@ impl From<TokenError> for OAuthErrorResponse {
 }
 
 fn database_error(error: &sqlx::Error) -> OAuthErrorResponse {
-    let response = match crate::db::classify(error) {
+    let response = database_failure(error);
+    tracing::error!(error = response.error, source = ?error, "token request failed");
+    response
+}
+
+/// The answer to a database failure, which `/userinfo` gives too: "try
+/// again" when [`crate::db::classify`] names it retryable, "this is
+/// broken" otherwise.
+pub(super) fn database_failure(error: &sqlx::Error) -> OAuthErrorResponse {
+    match crate::db::classify(error) {
         Some(Failure::Unavailable | Failure::Busy) => OAuthErrorResponse::new(
             StatusCode::SERVICE_UNAVAILABLE,
             "temporarily_unavailable",
             "the service is unavailable, try again later",
         ),
         None => server_error(),
-    };
-    tracing::error!(error = response.error, source = ?error, "token request failed");
-    response
+    }
 }
 
 fn server_error() -> OAuthErrorResponse {
@@ -258,7 +266,6 @@ mod tests {
     use crate::accounts::{AccountRepository, NewAccount};
     use crate::clients::{
         Audience, ClientId, ClientName, ClientRepository, ClientSecret, NewClient, RedirectUri,
-        Scope,
     };
     use crate::oidc::authorization::tests::{CALLBACK, CHALLENGE};
     use crate::oidc::http::tests::discover;
@@ -267,8 +274,8 @@ mod tests {
     use crate::oidc::{Discovery, RefreshToken, SigningKeys};
     use crate::sessions::{SessionOrigin, SessionService, SessionToken};
     use crate::testing::{
-        DEV_SIGNING_KEY, DEV_SIGNING_KEY_KID, capture_tracing, display_name, test_config,
-        test_cookies, test_state,
+        DEV_SIGNING_KEY, DEV_SIGNING_KEY_KID, capture_tracing, display_name, header_str, scopes,
+        test_config, test_cookies, test_state,
     };
 
     /// RFC 7636 Appendix B: the verifier of [`CHALLENGE`].
@@ -292,13 +299,6 @@ mod tests {
             }))
             .merge(authorize_router(state.clone()))
             .merge(token_router(state))
-    }
-
-    fn scopes(values: &[&str]) -> Vec<Scope> {
-        values
-            .iter()
-            .map(|value| Scope::try_new(*value).unwrap())
-            .collect()
     }
 
     /// A signed-in account, a confidential and a public first-party client,
@@ -536,13 +536,6 @@ mod tests {
             .oneshot(request.body(Body::from(body)).unwrap())
             .await
             .unwrap()
-    }
-
-    fn header_str(response: &Response, name: header::HeaderName) -> Option<&str> {
-        response
-            .headers()
-            .get(name)
-            .map(|value| value.to_str().unwrap())
     }
 
     async fn json(response: Response) -> serde_json::Value {

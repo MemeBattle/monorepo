@@ -146,6 +146,18 @@ impl SessionService {
         Ok(Some((Authenticated { session, account }, renewal)))
     }
 
+    /// The live session a token names, read and nothing else: no renewal,
+    /// no `last_seen_at` moved on the session or on its account. For a
+    /// caller that has to know whose session a cookie is before deciding
+    /// whether to touch it — RP-initiated logout, which must leave another
+    /// account's session exactly as it found it (ADR 0013 (f)).
+    /// `Ok(None)` for a token that is unknown, idle for too long, past its
+    /// cap or revoked.
+    pub async fn find(&self, token: &SessionToken) -> Result<Option<Session>, sqlx::Error> {
+        let live = repository::find_live(&self.pool, &token.hash()).await?;
+        Ok(live.map(|live| live.session))
+    }
+
     /// Ends the session a token names and returns its id. `Ok(None)` when
     /// there was none: logging out of nothing is not an error.
     ///
@@ -515,5 +527,59 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(count, 0);
+    }
+
+    /// `find` reads and never writes: a session past the renewal window is
+    /// returned as it is, and neither its idle clock nor the account's
+    /// `last_seen_at` moves.
+    #[sqlx::test]
+    async fn find_does_not_renew(pool: PgPool) {
+        let account = account(&pool).await;
+        let service = SessionService::new(pool.clone());
+        let issued = service
+            .create(account.id, SessionOrigin::Login)
+            .await
+            .unwrap();
+        last_seen(&pool, issued.session.id, "2 hours").await;
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("UPDATE accounts SET last_seen_at = now() - interval '2 hours' WHERE id = $1")
+            .bind(account.id)
+            .execute(&pool)
+            .await
+            .unwrap();
+        // Unchecked query: see docs/TESTS.md.
+        let clocks = || async {
+            sqlx::query_as::<_, (time::OffsetDateTime, time::OffsetDateTime)>(
+                "SELECT s.last_seen_at, a.last_seen_at FROM sessions s \
+                 JOIN accounts a ON a.id = s.account_id WHERE s.id = $1",
+            )
+            .bind(issued.session.id)
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        };
+        let before = clocks().await;
+
+        let found = service.find(&issued.token).await.unwrap().expect("live");
+
+        assert_eq!(found.id, issued.session.id);
+        assert_eq!(found.account_id, account.id);
+        assert_eq!(found.last_seen_at, before.0);
+        assert_eq!(clocks().await, before, "nothing was written");
+    }
+
+    #[sqlx::test]
+    async fn find_does_not_see_a_dead_session(pool: PgPool) {
+        let account = account(&pool).await;
+        let service = SessionService::new(pool.clone());
+        let issued = service
+            .create(account.id, SessionOrigin::Login)
+            .await
+            .unwrap();
+        last_seen(&pool, issued.session.id, "8 days").await;
+
+        assert_eq!(service.find(&issued.token).await.unwrap(), None);
+        let unknown = SessionToken::generate().unwrap();
+        assert_eq!(service.find(&unknown).await.unwrap(), None);
     }
 }

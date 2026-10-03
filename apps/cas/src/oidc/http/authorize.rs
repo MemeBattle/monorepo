@@ -13,13 +13,14 @@
 use axum::{
     Router,
     extract::{OriginalUri, State},
-    http::{Extensions, HeaderMap, HeaderValue, StatusCode, header},
+    http::{Extensions, HeaderMap, HeaderValue, header},
     response::{IntoResponse, Response},
     routing::get,
 };
 use tower_http::set_header::SetResponseHeaderLayer;
-use url::{Url, form_urlencoded};
+use url::Url;
 
+use super::page::{ErrorPage, found, method_not_allowed, redirect_with};
 use crate::db::Failure;
 use crate::http::ApiState;
 use crate::oidc::authorization::{self, AuthorizeRequest, OAuthError, PageError, Params};
@@ -42,17 +43,16 @@ const LOGGED_CLIENT_ID_CHARS: usize = 64;
 pub fn authorize_router(state: ApiState) -> Router {
     with_cookie_renewal(
         Router::new()
-            .route("/authorize", get(authorize).head(method_not_allowed))
+            .route(
+                "/authorize",
+                get(authorize).head(|| async { method_not_allowed("GET") }),
+            )
             .route_layer(SetResponseHeaderLayer::overriding(
                 header::CACHE_CONTROL,
                 HeaderValue::from_static("no-store"),
             ))
             .with_state(state),
     )
-}
-
-async fn method_not_allowed() -> impl IntoResponse {
-    (StatusCode::METHOD_NOT_ALLOWED, [(header::ALLOW, "GET")])
 }
 
 async fn authorize(
@@ -177,15 +177,7 @@ impl Back<'_> {
     /// `&` when the registered URI already has one, `?` otherwise (RFC 6749
     /// §4.1.2).
     fn redirect(&self, pairs: &[(&str, &str)]) -> Response {
-        let query = form_urlencoded::Serializer::new(String::new())
-            .extend_pairs(pairs)
-            .finish();
-        let separator = if self.redirect_uri.contains('?') {
-            '&'
-        } else {
-            '?'
-        };
-        found(&format!("{}{separator}{query}", self.redirect_uri))
+        redirect_with(self.redirect_uri, pairs)
     }
 }
 
@@ -207,30 +199,10 @@ fn sign_in(frontend_origin: &Url, uri: &axum::http::Uri) -> Response {
     found(location.as_str())
 }
 
-fn found(location: &str) -> Response {
-    match HeaderValue::from_str(location) {
-        Ok(location) => (StatusCode::FOUND, [(header::LOCATION, location)]).into_response(),
-        // A registered redirect URI is validated ASCII and every appended
-        // value is percent-encoded, so this is a bug, not a request to
-        // name.
-        Err(error) => {
-            tracing::error!(error = %error, "a redirect location is not a header value");
-            ErrorPage::INTERNAL.into_response()
-        }
-    }
-}
-
 /// A pre-redirect failure, logged and rendered. `client_id` is the value as
 /// sent, if any.
 fn page(error: PageError, client_id: Option<&str>) -> Response {
-    let page = match error {
-        PageError::UnknownClient => ErrorPage::UNKNOWN_CLIENT,
-        PageError::InvalidRedirectUri => ErrorPage::INVALID_REDIRECT_URI,
-        PageError::MalformedRequest(description) => ErrorPage {
-            description,
-            ..ErrorPage::INVALID_REQUEST
-        },
-    };
+    let page = ErrorPage::for_error(error);
     let client_id = client_id.map(|value| {
         value
             .chars()
@@ -251,95 +223,9 @@ fn page(error: PageError, client_id: Option<&str>) -> Response {
 /// A database failure while the client is looked up: before the redirect
 /// URI is trusted, so a page, like every other failure there.
 fn database_page(error: sqlx::Error) -> Response {
-    let page = match crate::db::classify(&error) {
-        Some(Failure::Unavailable | Failure::Busy) => ErrorPage::SERVICE_UNAVAILABLE,
-        None => ErrorPage::INTERNAL,
-    };
+    let page = ErrorPage::for_database(&error);
     tracing::error!(code = page.code, source = ?error, "authorization request failed");
     page.into_response()
-}
-
-/// CAS's own answer to a request it cannot send back to the client: a
-/// minimal document of fixed strings. Nothing from the request is rendered,
-/// so no escaping question arises.
-#[derive(Debug, Clone, Copy)]
-struct ErrorPage {
-    status: StatusCode,
-    code: &'static str,
-    title: &'static str,
-    description: &'static str,
-}
-
-impl ErrorPage {
-    const UNKNOWN_CLIENT: Self = Self {
-        status: StatusCode::BAD_REQUEST,
-        code: "unknown_client",
-        title: "Unknown application",
-        description: "The application that sent you here is not registered with this service.",
-    };
-
-    const INVALID_REDIRECT_URI: Self = Self {
-        status: StatusCode::BAD_REQUEST,
-        code: "invalid_redirect_uri",
-        title: "Invalid return address",
-        description: "The application that sent you here asked to return to an address it has not registered.",
-    };
-
-    const INVALID_REQUEST: Self = Self {
-        status: StatusCode::BAD_REQUEST,
-        code: "invalid_request",
-        title: "Invalid request",
-        description: "The request is malformed.",
-    };
-
-    const SERVICE_UNAVAILABLE: Self = Self {
-        status: StatusCode::SERVICE_UNAVAILABLE,
-        code: "service_unavailable",
-        title: "Service unavailable",
-        description: "The service is temporarily unavailable. Try again later.",
-    };
-
-    const INTERNAL: Self = Self {
-        status: StatusCode::INTERNAL_SERVER_ERROR,
-        code: "internal",
-        title: "Something went wrong",
-        description: "The service could not handle the request.",
-    };
-}
-
-impl IntoResponse for ErrorPage {
-    fn into_response(self) -> Response {
-        let Self {
-            status,
-            code,
-            title,
-            description,
-        } = self;
-        let body = format!(
-            "<!doctype html>\n\
-             <html lang=\"en\">\n\
-             <head>\n\
-             <meta charset=\"utf-8\">\n\
-             <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
-             <title>{title}</title>\n\
-             </head>\n\
-             <body>\n\
-             <h1>{title}</h1>\n\
-             <p>{description}</p>\n\
-             <p>Error code: <code>{code}</code></p>\n\
-             </body>\n\
-             </html>\n"
-        );
-        (
-            status,
-            [(
-                header::CONTENT_TYPE,
-                HeaderValue::from_static("text/html; charset=utf-8"),
-            )],
-            body,
-        )
-            .into_response()
-    }
 }
 
 #[cfg(test)]
@@ -347,23 +233,22 @@ mod tests {
     use std::time::Duration;
 
     use axum::body::{Body, to_bytes};
-    use axum::http::Request;
+    use axum::http::{Request, StatusCode};
     use sqlx::PgPool;
     use sqlx::postgres::PgPoolOptions;
     use tower::ServiceExt;
-    use uuid::Uuid;
+    use url::form_urlencoded;
 
     use super::*;
-    use crate::accounts::{AccountRepository, NewAccount};
     use crate::clients::{
-        ClientId, ClientName, ClientRepository, ClientSecret, NewClient, RedirectUri, Scope,
+        ClientId, ClientName, ClientRepository, ClientSecret, NewClient, RedirectUri,
     };
     use crate::db::test_support::db_error;
     use crate::oidc::AuthorizationCode;
     use crate::oidc::authorization::tests::{CALLBACK, CHALLENGE};
-    use crate::sessions::{SessionOrigin, SessionService};
     use crate::testing::{
-        TEST_ORIGIN, capture_tracing, display_name, test_config, test_cookies, test_state,
+        TEST_ORIGIN, capture_tracing, header_str, scopes, signed_in, test_config, test_cookies,
+        test_state,
     };
 
     #[test]
@@ -390,13 +275,6 @@ mod tests {
                 "{error:?}"
             );
         }
-    }
-
-    fn scopes(values: &[&str]) -> Vec<Scope> {
-        values
-            .iter()
-            .map(|value| Scope::try_new(*value).unwrap())
-            .collect()
     }
 
     /// The `ligretto` client as `scripts/seed-dev.sh` registers it.
@@ -431,28 +309,6 @@ mod tests {
             )
             .await
             .unwrap();
-    }
-
-    struct SignedIn {
-        cookie: String,
-        account_id: Uuid,
-        session_id: Uuid,
-    }
-
-    async fn signed_in(pool: &PgPool) -> SignedIn {
-        let account = AccountRepository::new(pool.clone())
-            .create(NewAccount::full(display_name("Ada")))
-            .await
-            .unwrap();
-        let issued = SessionService::new(pool.clone())
-            .create(account.id, SessionOrigin::Login)
-            .await
-            .unwrap();
-        SignedIn {
-            cookie: format!("{}={}", test_cookies().name(), issued.token.expose()),
-            account_id: account.id,
-            session_id: issued.session.id,
-        }
     }
 
     fn valid() -> Vec<(&'static str, String)> {
@@ -500,13 +356,6 @@ mod tests {
             .oneshot(request.body(Body::empty()).unwrap())
             .await
             .unwrap()
-    }
-
-    fn header_str(response: &Response, name: header::HeaderName) -> Option<&str> {
-        response
-            .headers()
-            .get(name)
-            .map(|value| value.to_str().unwrap())
     }
 
     fn location(response: &Response) -> Url {
@@ -583,7 +432,7 @@ mod tests {
     #[sqlx::test]
     async fn a_signed_in_request_gets_a_code_and_its_state(pool: PgPool) {
         register_ligretto(&pool).await;
-        let session = signed_in(&pool).await;
+        let session = signed_in(&pool, "Ada").await;
         let state = test_state(pool.clone());
         let router = authorize_router(state.clone());
         let original = uri(&valid());
@@ -615,7 +464,7 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(redeemed.account_id, session.account_id);
+        assert_eq!(redeemed.account_id, session.account.id);
         assert_eq!(redeemed.session_id, session.session_id);
         assert_eq!(redeemed.scopes, scopes(&["openid", "profile"]));
 
@@ -629,7 +478,7 @@ mod tests {
     async fn a_redirect_uri_with_a_query_gets_the_parameters_appended(pool: PgPool) {
         let registered = "https://app.example/cb?x=1";
         register_public(&pool, "app", registered, true).await;
-        let session = signed_in(&pool).await;
+        let session = signed_in(&pool, "Ada").await;
         let router = authorize_router(test_state(pool));
         let mut pairs = with("client_id", "app");
         pairs.retain(|(name, _)| *name != "redirect_uri");
@@ -793,7 +642,7 @@ mod tests {
     #[sqlx::test]
     async fn a_public_first_party_client_with_pkce_gets_a_code(pool: PgPool) {
         register_public(&pool, "spa", CALLBACK, true).await;
-        let session = signed_in(&pool).await;
+        let session = signed_in(&pool, "Ada").await;
         let router = authorize_router(test_state(pool));
 
         let response = send(
@@ -813,7 +662,7 @@ mod tests {
     #[sqlx::test]
     async fn a_client_that_is_not_first_party_is_unauthorized(pool: PgPool) {
         register_public(&pool, "third", CALLBACK, false).await;
-        let session = signed_in(&pool).await;
+        let session = signed_in(&pool, "Ada").await;
         let router = authorize_router(test_state(pool.clone()));
 
         for prompt in [None, Some("none")] {
@@ -843,7 +692,7 @@ mod tests {
     #[sqlx::test]
     async fn prompt_none_is_honoured(pool: PgPool) {
         register_ligretto(&pool).await;
-        let session = signed_in(&pool).await;
+        let session = signed_in(&pool, "Ada").await;
         let router = authorize_router(test_state(pool));
         let request = uri(&plus("prompt", "none"));
 
@@ -865,7 +714,7 @@ mod tests {
     #[sqlx::test]
     async fn unsupported_requirements_are_refused_with_a_session(pool: PgPool) {
         register_ligretto(&pool).await;
-        let session = signed_in(&pool).await;
+        let session = signed_in(&pool, "Ada").await;
         let router = authorize_router(test_state(pool));
 
         for (name, value, error, description) in [
@@ -938,7 +787,7 @@ mod tests {
     #[sqlx::test]
     async fn hints_are_ignored(pool: PgPool) {
         register_ligretto(&pool).await;
-        let session = signed_in(&pool).await;
+        let session = signed_in(&pool, "Ada").await;
         let router = authorize_router(test_state(pool));
         let mut pairs = valid();
         pairs.extend([
@@ -958,7 +807,7 @@ mod tests {
     #[sqlx::test]
     async fn a_revoked_session_is_anonymous(pool: PgPool) {
         register_ligretto(&pool).await;
-        let session = signed_in(&pool).await;
+        let session = signed_in(&pool, "Ada").await;
         // Unchecked query: see docs/TESTS.md.
         sqlx::query("DELETE FROM sessions WHERE id = $1")
             .bind(session.session_id)
@@ -980,7 +829,7 @@ mod tests {
     /// with a valid cookie still gets the page, never JSON.
     #[sqlx::test]
     async fn a_malformed_request_with_a_session_gets_the_page(pool: PgPool) {
-        let session = signed_in(&pool).await;
+        let session = signed_in(&pool, "Ada").await;
         let router = authorize_router(test_state(pool));
 
         let response = send(
@@ -999,7 +848,7 @@ mod tests {
     #[sqlx::test]
     async fn a_session_due_for_renewal_is_renewed_on_the_redirect(pool: PgPool) {
         register_ligretto(&pool).await;
-        let session = signed_in(&pool).await;
+        let session = signed_in(&pool, "Ada").await;
         // Unchecked query: see docs/TESTS.md.
         sqlx::query("UPDATE sessions SET last_seen_at = now() - interval '2 hours' WHERE id = $1")
             .bind(session.session_id)
@@ -1053,7 +902,7 @@ mod tests {
     #[sqlx::test]
     async fn the_code_is_never_logged(pool: PgPool) {
         register_ligretto(&pool).await;
-        let session = signed_in(&pool).await;
+        let session = signed_in(&pool, "Ada").await;
         let router = authorize_router(test_state(pool));
         let (events, _guard) = capture_tracing();
 
@@ -1064,7 +913,7 @@ mod tests {
             panic!("one line: {:?}", events.all());
         };
         assert!(line.contains("ligretto"), "{line}");
-        assert!(line.contains(&session.account_id.to_string()), "{line}");
+        assert!(line.contains(&session.account.id.to_string()), "{line}");
         assert!(line.contains(&session.session_id.to_string()), "{line}");
         assert!(line.contains("code_id"), "{line}");
         for event in events.all() {

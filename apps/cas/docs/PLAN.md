@@ -205,7 +205,7 @@ Implemented in the SSO milestone:
 - Authorization Code flow with PKCE (S256) for all clients
 - `GET /.well-known/openid-configuration`, `GET /jwks.json`
 - `GET /authorize` (with `id_token_hint` for the guest upgrade), `POST /token`,
-  `GET /userinfo`, `GET /end_session`
+  `GET /userinfo`, `GET /end_session` (ADR 0013)
 - Refresh tokens with rotation and reuse detection
 - Guest extension grant for confidential clients
 - Statically registered clients (DB, managed by hand until the admin panel)

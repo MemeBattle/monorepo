@@ -9,13 +9,13 @@ mod health;
 
 use axum::{
     Router,
-    http::{HeaderValue, Method, header},
+    body::Body,
+    http::{HeaderValue, Method, Request, header},
     response::{IntoResponse, Response},
 };
 use sqlx::postgres::PgPoolOptions;
 use thiserror::Error;
 use tower::Layer;
-use tower::ServiceBuilder;
 use tower_http::{
     catch_panic::CatchPanicLayer,
     cors::{AllowOrigin, CorsLayer},
@@ -32,7 +32,10 @@ use crate::config::Config;
 use crate::http::error::ApiError;
 use crate::http::fetch_metadata::AllowedOrigins;
 use crate::oidc::http::{self as oidc_http, Documents};
-use crate::oidc::{AuthorizationService, Discovery, SigningKeyError, SigningKeys, TokenService};
+use crate::oidc::{
+    AuthorizationService, Discovery, EndSessionService, SigningKeyError, SigningKeys, TokenService,
+    UserInfoService,
+};
 use crate::sessions::SessionService;
 use crate::sessions::http as sessions_http;
 use crate::sessions::http::CookieSettings;
@@ -77,6 +80,10 @@ pub struct ApiState {
     pub authorization: AuthorizationService,
     /// `/token`, signing with the active key as `CAS_ISSUER`.
     pub tokens: TokenService,
+    /// `/userinfo`, verifying access tokens against every published key.
+    pub userinfo: UserInfoService,
+    /// `/end_session`, verifying logout hints against every published key.
+    pub end_session: EndSessionService,
     /// The frontend's origin (`CAS_ORIGIN`): where the sign-in screen is,
     /// for `/authorize` to send an anonymous request to.
     pub frontend_origin: Url,
@@ -119,6 +126,7 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
         discovery: Discovery::for_issuer(&config.issuer),
         jwks: signing_keys.jwks(),
     };
+    let verifying_keys = signing_keys.verifying_keys();
 
     let api_state = ApiState {
         registration: RegistrationService::new(webauthn.clone(), pool.clone()),
@@ -134,21 +142,34 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
             signing_keys.active().clone(),
             config.issuer.clone(),
         ),
+        userinfo: UserInfoService::new(pool.clone(), verifying_keys.clone(), config.issuer.clone()),
+        end_session: EndSessionService::new(
+            AuthorizationService::new(pool.clone()),
+            verifying_keys,
+            config.issuer.clone(),
+        ),
         frontend_origin: config.origin.clone(),
     };
 
+    let userinfo = oidc_http::userinfo_router(api_state.clone());
     let router = Router::new()
         .merge(health::router(pool))
         .merge(oidc_http::router(documents))
         .merge(oidc_http::authorize_router(api_state.clone()))
         .merge(oidc_http::token_router(api_state.clone()))
+        .merge(oidc_http::end_session_router(api_state.clone()))
         .nest(
             "/api",
             api_router(api_state, AllowedOrigins::new(config.cors_origins.clone())),
         );
 
-    Ok(NormalizePathLayer::trim_trailing_slash()
-        .layer(with_middleware(router, config.cors_origins)))
+    Ok(
+        NormalizePathLayer::trim_trailing_slash().layer(with_middleware(
+            router,
+            userinfo,
+            config.cors_origins,
+        )),
+    )
 }
 
 /// Everything under `/api`: the contexts' routers, re-sending the session
@@ -195,23 +216,37 @@ async fn not_found() -> ApiError {
     ApiError::not_found("not_found", "Not found")
 }
 
-/// Applies the middleware stack. Must be called after all routes are
-/// registered: `Router::layer` only wraps already-registered routes.
+/// Applies the middleware stack to the two routers the service is made of:
+/// `router`, everything under the root CORS policy, and `userinfo`, which
+/// has a policy of its own (ADR 0013 (e)). Must be called after all routes
+/// are registered: `Router::layer` only wraps already-registered routes.
 ///
-/// `CatchPanicLayer` sits innermost so a panic response still passes through
-/// the CORS and trace layers on the way out.
+/// Each router gets its CORS layer outside its own `CatchPanicLayer`, so a
+/// panic response still carries that router's CORS headers, and the trace
+/// layer wraps both: trace, then CORS, then catch-panic, from the outside
+/// in. The CORS layers cannot share a stack: a CORS layer answers every
+/// preflight that reaches it itself, so a route-level policy under the root
+/// one would never see its own preflights.
 ///
-/// The session cookie travels cross-origin from the frontend, which needs
-/// `Access-Control-Allow-Credentials`; browsers refuse that next to a
-/// wildcard, so methods and headers are listed rather than `Any`.
+/// `userinfo` is merged first. Neither router sets a fallback, and when
+/// neither does, axum keeps the fallback of the router merged last: the
+/// root router's, behind the root CORS and panic layers, which is where
+/// every unknown path has always been answered.
+///
+/// The root router's session cookie travels cross-origin from the
+/// frontend, which needs `Access-Control-Allow-Credentials`; browsers refuse
+/// that next to a wildcard, so methods and headers are listed rather than
+/// `Any`.
 ///
 /// The request trace logs the method, the path, the status and the latency,
 /// and no headers in either direction: registration and login answer with
 /// `Set-Cookie` carrying the session token, and the whole point of the token
 /// living only in the cookie is that it appears in no log (ADR 0004). The
 /// same goes the other way, where the `Cookie` header would arrive with
-/// every authenticated request.
-fn with_middleware(router: Router, cors_origins: Vec<HeaderValue>) -> Router {
+/// every authenticated request. Nor does it log the query: a `GET
+/// /end_session` carries a signed ID token there, with the account's name
+/// and address in it (ADR 0013), so the span records the path alone.
+fn with_middleware(router: Router, userinfo: Router, cors_origins: Vec<HeaderValue>) -> Router {
     let cors_layer = CorsLayer::new()
         .allow_origin(AllowOrigin::list(cors_origins))
         .allow_methods([
@@ -224,14 +259,29 @@ fn with_middleware(router: Router, cors_origins: Vec<HeaderValue>) -> Router {
         .allow_headers([header::CONTENT_TYPE])
         .allow_credentials(true);
 
-    router.layer(
-        ServiceBuilder::new()
-            .layer(
-                TraceLayer::new_for_http()
-                    .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
-            )
-            .layer(cors_layer)
-            .layer(CatchPanicLayer::custom(handle_panic)),
+    let router = router
+        .layer(CatchPanicLayer::custom(handle_panic))
+        .layer(cors_layer);
+    let userinfo = userinfo
+        .layer(CatchPanicLayer::custom(handle_panic))
+        .layer(oidc_http::userinfo_cors());
+
+    userinfo.merge(router).layer(
+        TraceLayer::new_for_http()
+            .make_span_with(request_span)
+            .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
+    )
+}
+
+/// The span every line of a request is logged in: what `DefaultMakeSpan`
+/// records, at its level, with the path in place of the whole URI. The
+/// query is left out because it can carry a token (see `with_middleware`).
+fn request_span(request: &Request<Body>) -> tracing::Span {
+    tracing::debug_span!(
+        "request",
+        method = %request.method(),
+        path = %request.uri().path(),
+        version = ?request.version(),
     )
 }
 
@@ -260,10 +310,12 @@ mod tests {
 
     use crate::accounts::{AccountRepository, NewAccount};
     use crate::config::SigningKeyPem;
+    use crate::oidc::{SigningKey, SigningKeys};
     use crate::sessions::{SessionOrigin, SessionService};
     use crate::testing::{
-        DEV_SIGNING_KEY_KID, capture_tracing, display_name, session_cookie,
-        soft_passkey_registration, test_config, test_cookies, test_state,
+        DEV_SIGNING_KEY_KID, capture_tracing, display_name, fresh_signing_key_pem, header_str,
+        register_public_client, session_cookie, signed_id_token, soft_passkey_registration,
+        test_config, test_cookies, test_signing_key, test_state,
     };
 
     const ALLOWED_ORIGIN: &str = "http://localhost:5173";
@@ -523,6 +575,7 @@ mod tests {
         let (events, _guard) = capture_tracing();
         let app = with_middleware(
             api_router(test_state(pool), allowed_origins()),
+            Router::new(),
             vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
         );
         let post = |uri: &str, body: serde_json::Value| {
@@ -588,6 +641,7 @@ mod tests {
         let (events, _guard) = capture_tracing();
         let app = with_middleware(
             api_router(test_state(pool), allowed_origins()),
+            Router::new(),
             vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
         );
 
@@ -629,16 +683,27 @@ mod tests {
 
         let app = with_middleware(
             Router::new().route("/panic", get(panicking)),
+            Router::new(),
             vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
         );
 
         let request = Request::builder()
             .uri("/panic")
+            .header(header::ORIGIN, ALLOWED_ORIGIN)
             .body(Body::empty())
             .unwrap();
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        // The CORS layer sits outside the panic handler, so the frontend can
+        // read the error.
+        assert_eq!(
+            response
+                .headers()
+                .get(header::ACCESS_CONTROL_ALLOW_ORIGIN)
+                .expect("a panic answer still carries CORS"),
+            ALLOWED_ORIGIN
+        );
         let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
         assert_eq!(body["error"]["code"], "internal_error");
@@ -840,6 +905,212 @@ mod tests {
             let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
             let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
             assert_eq!(body["error"]["code"], "cross_site_request", "{uri}");
+        }
+    }
+
+    /// A preflight from `origin` for `method` on `uri`, with the
+    /// `Authorization` header a browser would announce for a bearer call.
+    async fn preflight(uri: &str, origin: &str, method: &str) -> Response {
+        app(test_config())
+            .unwrap()
+            .oneshot(
+                Request::builder()
+                    .method("OPTIONS")
+                    .uri(uri)
+                    .header(header::ORIGIN, origin)
+                    .header(header::ACCESS_CONTROL_REQUEST_METHOD, method)
+                    .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "authorization")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap()
+    }
+
+    /// `/userinfo` is open to any origin, without credentials, for the
+    /// `Authorization` header (ADR 0013 (e)).
+    #[tokio::test]
+    async fn userinfo_is_open_to_any_origin_without_credentials() {
+        for method in ["GET", "POST"] {
+            let response = preflight("/userinfo", OTHER_ORIGIN, method).await;
+
+            assert_eq!(response.status(), StatusCode::OK, "{method}");
+            assert_eq!(
+                header_str(&response, header::ACCESS_CONTROL_ALLOW_ORIGIN),
+                Some("*"),
+                "{method}"
+            );
+            let headers = header_str(&response, header::ACCESS_CONTROL_ALLOW_HEADERS)
+                .unwrap()
+                .to_ascii_lowercase();
+            assert!(headers.contains("authorization"), "{headers}");
+            assert!(
+                !response
+                    .headers()
+                    .contains_key(header::ACCESS_CONTROL_ALLOW_CREDENTIALS),
+                "{method}"
+            );
+        }
+
+        // The actual request too: no credentials, whatever the origin.
+        let response = app(test_config())
+            .unwrap()
+            .oneshot(
+                Request::builder()
+                    .uri("/userinfo")
+                    .header(header::ORIGIN, ALLOWED_ORIGIN)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            header_str(&response, header::ACCESS_CONTROL_ALLOW_ORIGIN),
+            Some("*")
+        );
+        assert!(
+            !response
+                .headers()
+                .contains_key(header::ACCESS_CONTROL_ALLOW_CREDENTIALS)
+        );
+    }
+
+    /// Everything else keeps the root policy: another origin is refused for
+    /// the API and for `/token`, which stays backend-to-backend, and an
+    /// unknown path is still answered behind the root policy.
+    #[tokio::test]
+    async fn only_userinfo_is_open_to_other_origins() {
+        for uri in ["/api/me", "/token", "/end_session", "/nowhere"] {
+            let response = preflight(uri, OTHER_ORIGIN, "POST").await;
+            assert_eq!(
+                header_str(&response, header::ACCESS_CONTROL_ALLOW_ORIGIN),
+                None,
+                "{uri}"
+            );
+        }
+
+        let unknown = preflight("/nowhere", ALLOWED_ORIGIN, "POST").await;
+        assert_eq!(
+            header_str(&unknown, header::ACCESS_CONTROL_ALLOW_ORIGIN),
+            Some(ALLOWED_ORIGIN)
+        );
+        assert_eq!(
+            header_str(&unknown, header::ACCESS_CONTROL_ALLOW_CREDENTIALS),
+            Some("true")
+        );
+    }
+
+    /// Both endpoints are mounted at the root and answer before any query:
+    /// `/userinfo` without a token, `/end_session` without parameters.
+    #[tokio::test]
+    async fn userinfo_and_end_session_are_mounted_at_the_root() {
+        let app = app(test_config()).unwrap();
+
+        let userinfo = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/userinfo")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(userinfo.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            header_str(&userinfo, header::WWW_AUTHENTICATE),
+            Some("Bearer")
+        );
+
+        let end_session = app
+            .oneshot(
+                Request::builder()
+                    .uri("/end_session")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(end_session.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(
+            header_str(&end_session, header::CONTENT_TYPE),
+            Some("text/html; charset=utf-8")
+        );
+    }
+
+    /// A `GET /end_session` carries a signed ID token — the account's name
+    /// and address inside — in its query. The request span records the
+    /// path alone, so neither the hint, nor any of its segments, nor the
+    /// `state` reaches a span or an event, whether the request is accepted
+    /// or refused.
+    #[sqlx::test]
+    async fn the_request_trace_does_not_log_the_query(pool: PgPool) {
+        let client = register_public_client(&pool, "ligretto-web", &[]).await;
+        let account = AccountRepository::new(pool.clone())
+            .create(NewAccount::full(display_name("Ada")).with_email("ada@example.com"))
+            .await
+            .unwrap();
+        let hint = |key: &SigningKey| {
+            signed_id_token(
+                key,
+                &client,
+                &account,
+                &["openid"],
+                time::OffsetDateTime::now_utc(),
+            )
+        };
+        let accepted = hint(&test_signing_key());
+        let refused = hint(
+            SigningKeys::from_pem(&fresh_signing_key_pem())
+                .unwrap()
+                .active(),
+        );
+        let state = test_state(pool);
+        let app = with_middleware(
+            oidc_http::end_session_router(state.clone()),
+            oidc_http::userinfo_router(state),
+            vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
+        );
+        let (events, _guard) = capture_tracing();
+
+        for (hint, status) in [
+            (&accepted, StatusCode::FOUND),
+            (&refused, StatusCode::BAD_REQUEST),
+        ] {
+            let response = app
+                .clone()
+                .oneshot(
+                    Request::builder()
+                        .uri(format!(
+                            "/end_session?id_token_hint={hint}&state=s3cr3t-state"
+                        ))
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.status(), status);
+        }
+
+        let spans = events.mentioning("SPAN");
+        assert!(
+            spans
+                .iter()
+                .any(|span| span.contains("request") && span.contains("/end_session")),
+            "{spans:?}"
+        );
+        for event in events.all() {
+            assert!(
+                !event.contains("s3cr3t-state"),
+                "the query was logged: {event}"
+            );
+            assert!(!event.contains("ada@example.com"), "{event}");
+            for hint in [&accepted, &refused] {
+                for segment in hint.split('.') {
+                    assert!(!event.contains(segment), "the hint was logged: {event}");
+                }
+            }
         }
     }
 }
