@@ -10,20 +10,25 @@
 //! the `id_token_hint` names — and the browser sent back with `state`. See
 //! `docs/adr/0013-userinfo-and-rp-initiated-logout.md`.
 
+use std::collections::BTreeMap;
+
 use axum::{
-    Router,
     body::{Body, to_bytes},
     extract::{OriginalUri, State},
-    http::{HeaderMap, HeaderValue, header},
+    http::{HeaderMap, HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
-    routing::get,
 };
 use tower_http::set_header::SetResponseHeaderLayer;
 use url::Url;
+use utoipa::openapi::{RefOr, ResponseBuilder, response::Response as OpenApiResponse};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
-use super::page::{ErrorPage, found, method_not_allowed, redirect_with};
+use super::page::{
+    ErrorPage, HeadRefused, found, location_header, method_not_allowed, redirect_with,
+};
 use super::token::{MAX_BODY_BYTES, is_form};
 use crate::http::ApiState;
+use crate::http::response::{Documented, string_header};
 use crate::oidc::authorization::{PageError, Params};
 use crate::oidc::end_session::{EndSessionError, ValidEndSession};
 use crate::sessions::SessionToken;
@@ -39,14 +44,9 @@ use crate::sessions::http::{CLEAR_SITE_DATA, CLEAR_SITE_DATA_ON_LOGOUT};
 /// wrapped (see `oidc::http::router`). There is no cookie renewal layer:
 /// nothing here renews a session, and a response that ends one must not
 /// re-send its cookie.
-pub fn end_session_router(state: ApiState) -> Router {
-    Router::new()
-        .route(
-            "/end_session",
-            get(by_query)
-                .post(by_form)
-                .head(|| async { method_not_allowed("GET, POST") }),
-        )
+pub fn end_session_router(state: ApiState) -> OpenApiRouter {
+    OpenApiRouter::new()
+        .routes(routes!(by_query, by_form, refuse_head))
         .route_layer(SetResponseHeaderLayer::overriding(
             header::CACHE_CONTROL,
             HeaderValue::from_static("no-store"),
@@ -54,29 +54,95 @@ pub fn end_session_router(state: ApiState) -> Router {
         .with_state(state)
 }
 
+/// What `/end_session` answers, for the description: a redirect once the
+/// request is valid, CAS's own page for every refusal.
+struct EndSessionResponses;
+
+impl utoipa::IntoResponses for EndSessionResponses {
+    fn responses() -> BTreeMap<String, RefOr<OpenApiResponse>> {
+        let redirect = ResponseBuilder::new()
+            .description(
+                "To the registered `post_logout_redirect_uri` with `state`, or to the \
+                 frontend's root without one.",
+            )
+            .header("Location", location_header())
+            .header(
+                "Set-Cookie",
+                string_header(
+                    "The removal of the session cookie, when the session it names was ended \
+                     or is not live.",
+                ),
+            )
+            .header(
+                "Clear-Site-Data",
+                string_header(r#"`"cache", "storage"`, when a session was ended."#),
+            )
+            .build();
+        let mut responses = ErrorPage::responses();
+        responses.insert(StatusCode::FOUND.as_str().to_owned(), RefOr::T(redirect));
+        responses
+    }
+}
+
+/// RP-initiated logout, the parameters in the query.
+///
+/// `id_token_hint` (required, an ID token CAS issued to the client,
+/// expired or not), `client_id`, `post_logout_redirect_uri` and `state`
+/// (RP-Initiated Logout 1.0 §2), read by hand, a repeated one refused. The
+/// session the cookie names is ended only when it is the hint's account's
+/// (ADR 0013).
+#[utoipa::path(get, path = "/end_session", operation_id = "end_session_by_query")]
 async fn by_query(
     State(state): State<ApiState>,
     OriginalUri(uri): OriginalUri,
     headers: HeaderMap,
-) -> Response {
+) -> Documented<EndSessionResponses> {
     let params = Params::from_query(uri.query().unwrap_or_default());
-    end_session(&state, &headers, &params).await
+    end_session(&state, &headers, &params).await.into()
 }
 
+/// RP-initiated logout, the parameters in a form body; the query is not
+/// read.
+///
 /// The form is read as `/token` reads its own: the content type first,
 /// then the body within the same bound.
-async fn by_form(State(state): State<ApiState>, headers: HeaderMap, body: Body) -> Response {
+#[utoipa::path(
+    post,
+    path = "/end_session",
+    operation_id = "end_session_by_form",
+    request_body(
+        content = String,
+        content_type = "application/x-www-form-urlencoded",
+        description = "The parameters `GET` takes in its query.",
+    )
+)]
+async fn by_form(
+    State(state): State<ApiState>,
+    headers: HeaderMap,
+    body: Body,
+) -> Documented<EndSessionResponses> {
     if !is_form(&headers) {
         return page(PageError::MalformedRequest(
             "the body must be application/x-www-form-urlencoded",
-        ));
+        ))
+        .into();
     }
     let Ok(body) = to_bytes(body, MAX_BODY_BYTES).await else {
         return page(PageError::MalformedRequest(
             "the body is too large or unreadable",
-        ));
+        ))
+        .into();
     };
-    end_session(&state, &headers, &Params::from_form(&body)).await
+    end_session(&state, &headers, &Params::from_form(&body))
+        .await
+        .into()
+}
+
+/// `HEAD /end_session` is refused: axum would serve it from the `GET`
+/// handler and end a session for a response nobody reads.
+#[utoipa::path(head, path = "/end_session", operation_id = "end_session_head")]
+async fn refuse_head() -> Documented<HeadRefused> {
+    method_not_allowed("GET, POST").into()
 }
 
 async fn end_session(state: &ApiState, headers: &HeaderMap, params: &Params) -> Response {
@@ -220,6 +286,7 @@ fn database_page(error: sqlx::Error) -> Response {
 
 #[cfg(test)]
 mod tests {
+    use axum::Router;
     use axum::http::{Request, StatusCode};
     use sqlx::PgPool;
     use time::OffsetDateTime;
@@ -234,7 +301,7 @@ mod tests {
     use crate::oidc::{SigningKey, SigningKeys};
     use crate::sessions::SessionService;
     use crate::testing::{
-        SignedIn, TEST_ORIGIN, capture_tracing, fresh_signing_key_pem, header_str,
+        SignedIn, TEST_ORIGIN, capture_tracing, checked, fresh_signing_key_pem, header_str,
         register_public_client, signed_id_token, signed_in, test_cookies, test_signing_key,
         test_state,
     };
@@ -258,7 +325,7 @@ mod tests {
 
     async fn fixture(pool: &PgPool) -> Fixture {
         Fixture {
-            router: end_session_router(test_state(pool.clone())),
+            router: checked(end_session_router(test_state(pool.clone()))),
             pool: pool.clone(),
             client: register(pool, CLIENT).await,
             ada: signed_in(pool, "Ada").await,
@@ -412,7 +479,7 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(rows, 0, "the row is gone");
-        let me = crate::sessions::http::router(state)
+        let me = checked(crate::sessions::http::router(state))
             .oneshot(
                 Request::builder()
                     .uri("/me")
@@ -841,8 +908,11 @@ mod tests {
         let fixture = fixture(&pool).await;
         let state = test_state(pool.clone());
         let router = Router::new()
-            .merge(authorize_router(state.clone()))
-            .merge(token_router(state))
+            .merge(checked(
+                OpenApiRouter::new()
+                    .merge(authorize_router(state.clone()))
+                    .merge(token_router(state)),
+            ))
             .merge(fixture.router.clone());
 
         let authorize = send(

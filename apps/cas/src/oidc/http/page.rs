@@ -3,13 +3,18 @@
 //! (ADR 0010 (a), ADR 0013 (g)), the `302` itself, and the `405` for a
 //! `HEAD`.
 
+use std::collections::BTreeMap;
+
 use axum::{
     http::{HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
 use url::form_urlencoded;
+use utoipa::openapi::{RefOr, header::Header, response::Response as OpenApiResponse};
 
 use crate::db::Failure;
+use crate::http::error::ErrorCode;
+use crate::http::response::{ErrorShape, error_responses, string_header};
 use crate::oidc::authorization::PageError;
 
 /// `302` to `base` with `pairs` appended to its query: with `&` when the
@@ -93,6 +98,26 @@ impl ErrorPage {
         description: "The service could not handle the request.",
     };
 
+    /// The pages for conditions the code can name, for the description.
+    /// [`Self::INTERNAL`] is the family's fallback and is not among them.
+    pub(super) const DECLARED: [Self; 4] = [
+        Self::UNKNOWN_CLIENT,
+        Self::INVALID_REDIRECT_URI,
+        Self::INVALID_REQUEST,
+        Self::SERVICE_UNAVAILABLE,
+    ];
+
+    /// The responses of the pages, the fallback's included: what
+    /// `/authorize` and `/end_session` answer besides a redirect.
+    pub(super) fn responses() -> BTreeMap<String, RefOr<OpenApiResponse>> {
+        let mut codes: Vec<(StatusCode, &'static str)> = Self::DECLARED
+            .iter()
+            .map(|page| (page.status, page.code))
+            .collect();
+        codes.push((Self::INTERNAL.status, Self::INTERNAL.code));
+        error_responses(&codes, ErrorShape::Page)
+    }
+
     /// The page for a failure before the redirect address is trusted. A
     /// malformed request's description is one of the service's fixed
     /// strings.
@@ -140,7 +165,7 @@ impl IntoResponse for ErrorPage {
              </body>\n\
              </html>\n"
         );
-        (
+        let mut response = (
             status,
             [(
                 header::CONTENT_TYPE,
@@ -148,6 +173,25 @@ impl IntoResponse for ErrorPage {
             )],
             body,
         )
-            .into_response()
+            .into_response();
+        response.extensions_mut().insert(ErrorCode(code));
+        response
     }
+}
+
+/// The `405` a `HEAD` gets, for the description.
+#[derive(utoipa::IntoResponses)]
+#[allow(dead_code)] // Described, never built: `method_not_allowed` answers.
+pub(super) enum HeadRefused {
+    /// `HEAD` is refused: it must not act for a response nobody reads.
+    #[response(
+        status = 405,
+        headers(("Allow" = String, description = "The methods the endpoint serves."))
+    )]
+    MethodNotAllowed,
+}
+
+/// The `Location` of a `302`, for the descriptions that list one.
+pub(super) fn location_header() -> Header {
+    string_header("Where the browser goes next.")
 }

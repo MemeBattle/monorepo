@@ -12,82 +12,58 @@
 //! `Authenticated` extractor, which refuses one.
 
 use axum::{
-    Json,
     extract::{OriginalUri, State},
     http::{Extensions, HeaderMap},
 };
 use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 use webauthn_rs::prelude::{CreationChallengeResponse, CredentialID, RegisterPublicKeyCredential};
 
 use crate::accounts::{DisplayName, DisplayNameError};
 use crate::http::ApiState;
-use crate::http::error::ApiError;
-use crate::http::extract::{Json as AppJson, original_path};
+use crate::http::error::ApiErrors;
+use crate::http::extract::{InvalidBody, Json, original_path};
+use crate::sessions::http::WithSessionCookie;
 use crate::sessions::http::extract::resolve_session;
 use crate::sessions::service::CreateError;
 use crate::sessions::{Authenticated, SessionKind, SessionOrigin};
 use crate::webauthn::registration::{FinishError, StartError};
 use crate::webauthn::upgrade::UpgradeError;
 
-/// The name is validated by the handler rather than by the body type, so a bad
-/// one gets this code instead of a generic `invalid_body`.
-impl From<DisplayNameError> for ApiError {
-    fn from(error: DisplayNameError) -> Self {
-        ApiError::bad_request(
-            "invalid_display_name",
-            format!("Invalid display name: {error}"),
-        )
-    }
-}
+// The name is validated by the handler rather than by the body type, so a
+// bad one gets this code instead of a generic `invalid_body`.
+crate::api_errors!(DisplayNameError => BAD_REQUEST "invalid_display_name",
+    |error| format!("Invalid display name: {error}"));
 
-impl From<StartError> for ApiError {
-    fn from(error: StartError) -> Self {
-        match error {
-            // webauthn-rs refusing to issue a challenge for a valid relying
-            // party is nothing this code can name.
-            StartError::Webauthn(error) => ApiError::internal(error),
-            StartError::Db(error) => ApiError::from(error),
-        }
-    }
-}
+crate::api_errors! { StartError {
+    // webauthn-rs refusing to issue a challenge for a valid relying party is
+    // nothing this code can name.
+    Webauthn(_) => internal,
+    Db(_) => from,
+} }
 
-impl From<FinishError> for ApiError {
-    fn from(error: FinishError) -> Self {
-        let message = error.to_string();
-        match error {
-            FinishError::NotFound => ApiError::not_found("registration_not_found", message),
-            FinishError::Verification(_) => {
-                ApiError::bad_request("registration_verification_failed", message)
-            }
-            FinishError::CredentialAlreadyRegistered => {
-                ApiError::conflict("credential_already_registered", message)
-            }
-            FinishError::DiscoverableCredentialRequired => {
-                ApiError::bad_request("discoverable_credential_required", message)
-            }
-            FinishError::Db(error) => ApiError::from(error),
-        }
-    }
-}
+crate::api_errors! { FinishError {
+    NotFound => NOT_FOUND "registration_not_found",
+    Verification(_) => BAD_REQUEST "registration_verification_failed",
+    CredentialAlreadyRegistered => CONFLICT "credential_already_registered",
+    DiscoverableCredentialRequired => BAD_REQUEST "discoverable_credential_required",
+    Db(_) => from,
+} }
 
-/// The upgrade fails the way a registration does, with the same codes, plus
-/// the two ways only it can fail.
-impl From<UpgradeError> for ApiError {
-    fn from(error: UpgradeError) -> Self {
-        match error {
-            UpgradeError::Finish(error) => ApiError::from(error),
-            // The upgrade session is gone or its account is full already:
-            // the same answer, code and message, as a request with no
-            // session behind the extractor.
-            UpgradeError::SessionEnded => {
-                ApiError::unauthorized("unauthenticated", "Sign in to continue")
-            }
-            UpgradeError::Random(error) => ApiError::from(CreateError::Random(error)),
-        }
-    }
-}
+// The upgrade fails the way a registration does, with the same codes, plus
+// the two ways only it can fail.
+crate::api_errors! { UpgradeError {
+    Finish(_) => from,
+    // The upgrade session is gone or its account is full already: the same
+    // answer, code and message, as a request with no session behind the
+    // extractor.
+    SessionEnded => UNAUTHORIZED "unauthenticated": "Sign in to continue",
+    // The OS refusing randomness for the new session token, as when a
+    // session is created.
+    Random(_) => internal,
+} }
 
 /// The upgrade session the request carries, if it carries one. Any other
 /// state — no cookie, a dead one, a full session — is `None`, and the
@@ -97,13 +73,13 @@ async fn upgrade_session(
     headers: &HeaderMap,
     extensions: &Extensions,
     uri: &axum::http::Uri,
-) -> Result<Option<Authenticated>, ApiError> {
+) -> Result<Option<Authenticated>, sqlx::Error> {
     let path = original_path(extensions, uri);
     let authenticated = resolve_session(state, headers, extensions, path).await?;
     Ok(authenticated.filter(|authenticated| authenticated.session.kind == SessionKind::Upgrade))
 }
 
-#[derive(Debug, Serialize, Clone, Deserialize)]
+#[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RegistrationOptionsRequest {
     /// Validated by the handler rather than by the type, so a bad name gets
@@ -111,41 +87,55 @@ pub struct RegistrationOptionsRequest {
     display_name: String,
 }
 
-#[derive(Debug, Serialize, Clone, Deserialize)]
+#[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RegistrationOptionsResponse {
     /// Identifies the ceremony; the client brings it back to finish. Not the
     /// account id, which only a finished registration reveals.
     registration_id: Uuid,
+    /// The `PublicKeyCredentialCreationOptions` for `navigator.credentials.create`.
+    #[schema(value_type = Object)]
     ccr: CreationChallengeResponse,
 }
 
-#[derive(Debug, Serialize, Clone, Deserialize)]
+#[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct VerifyRegistrationData {
     registration_id: Uuid,
+    /// The browser's `PublicKeyCredential` answer, JSON-encoded.
+    #[schema(value_type = Object)]
     response: RegisterPublicKeyCredential,
 }
 
 /// What the client needs after a successful registration: who it now is, and
 /// which credential was stored. The credential itself is server-side state and
 /// is never sent back.
-#[derive(Debug, Serialize, Clone, Deserialize)]
+#[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct VerifyRegistrationResponse {
     account_id: Uuid,
+    /// Base64url.
+    #[schema(value_type = String)]
     credential_id: CredentialID,
 }
 
+crate::error_set!(pub(super) RegistrationOptionsErrors:
+    InvalidBody, DisplayNameError, sqlx::Error, StartError);
+
 /// The challenge for a new account, or, under an upgrade session, for the
 /// guest's first passkey with the guest's id as the user handle.
+#[utoipa::path(
+    post,
+    path = "/register-options",
+    operation_id = "registration_options"
+)]
 pub(super) async fn get_registration_options(
     State(state): State<ApiState>,
     OriginalUri(uri): OriginalUri,
     headers: HeaderMap,
     extensions: Extensions,
-    AppJson(request): AppJson<RegistrationOptionsRequest>,
-) -> Result<Json<RegistrationOptionsResponse>, ApiError> {
+    Json(request): Json<RegistrationOptionsRequest>,
+) -> Result<Json<RegistrationOptionsResponse>, ApiErrors<RegistrationOptionsErrors>> {
     let display_name = DisplayName::try_new(request.display_name)?;
 
     let started = match upgrade_session(&state, &headers, &extensions, &uri).await? {
@@ -159,24 +149,33 @@ pub(super) async fn get_registration_options(
     }))
 }
 
+crate::error_set!(pub(super) VerifyRegistrationErrors:
+    InvalidBody, sqlx::Error, UpgradeError, FinishError, CreateError);
+
 /// A finished registration signs the new account in: the response sets the
 /// session cookie alongside the body. Under an upgrade session the guest is
 /// upgraded instead, and the cookie is the full session the upgrade session
 /// was rotated into, inside the upgrade's transaction.
+#[utoipa::path(
+    post,
+    path = "/verify-registration",
+    operation_id = "verify_registration"
+)]
 pub(super) async fn verify_registration(
     State(state): State<ApiState>,
     OriginalUri(uri): OriginalUri,
     headers: HeaderMap,
     extensions: Extensions,
     jar: CookieJar,
-    AppJson(data): AppJson<VerifyRegistrationData>,
-) -> Result<(CookieJar, Json<VerifyRegistrationResponse>), ApiError> {
+    Json(data): Json<VerifyRegistrationData>,
+) -> Result<WithSessionCookie<Json<VerifyRegistrationResponse>>, ApiErrors<VerifyRegistrationErrors>>
+{
     if let Some(upgrade) = upgrade_session(&state, &headers, &extensions, &uri).await? {
         let upgraded = state
             .upgrade
             .finish(&upgrade.session, data.registration_id, &data.response)
             .await?;
-        return Ok((
+        return Ok(WithSessionCookie(
             jar.add(
                 state
                     .cookies
@@ -198,7 +197,7 @@ pub(super) async fn verify_registration(
         .create(registered.account.id, SessionOrigin::Registration)
         .await?;
 
-    Ok((
+    Ok(WithSessionCookie(
         jar.add(state.cookies.session(&issued.token, &issued.session)),
         Json(VerifyRegistrationResponse {
             account_id: registered.account.id,
@@ -220,15 +219,18 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::accounts::{AccountRepository, AccountType};
+    use crate::http::error::ApiError;
     use crate::sessions::SessionService;
-    use crate::testing::{session_cookie, soft_passkey_registration, test_cookies, test_state};
+    use crate::testing::{
+        checked, session_cookie, soft_passkey_registration, test_cookies, test_state,
+    };
     use crate::webauthn::CEREMONY_TIMEOUT;
     use crate::webauthn::http::router;
     use crate::webauthn::passkeys::DEFAULT_PASSKEY_NAME;
     use crate::webauthn::repository::PasskeyRepository;
 
     fn test_app(pool: PgPool) -> Router {
-        router(test_state(pool))
+        checked(router(test_state(pool)))
     }
 
     /// For requests that fail before any query: a lazy pool never connects,

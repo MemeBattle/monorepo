@@ -380,6 +380,25 @@ pub fn test_config() -> Config {
     }
 }
 
+/// The test configuration with a database nothing listens on: a request
+/// that reaches it fails as an outage does, and nothing is written.
+pub fn unreachable_database_config() -> Config {
+    Config {
+        database_url: "postgres://cas:cas@localhost:1/cas".to_string(),
+        ..test_config()
+    }
+}
+
+/// A context's router as its transport tests drive it: the plain router,
+/// with every answer checked against the router's own description (the
+/// fallback 500 included, as the assembly adds it), so the transport suite
+/// checks the description against real responses. See docs/TESTS.md.
+pub fn checked(router: utoipa_axum::router::OpenApiRouter) -> axum::Router {
+    let (router, mut document) = router.split_for_parts();
+    crate::http::openapi::describe_fallback(&mut document);
+    crate::http::openapi::conformance::check(router, &document)
+}
+
 /// The relying party the tests register against, built the way the server
 /// builds its own.
 pub fn test_webauthn() -> Webauthn {

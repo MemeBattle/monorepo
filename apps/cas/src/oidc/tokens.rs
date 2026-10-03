@@ -266,15 +266,20 @@ impl Released {
 /// a `name` for a guest. `iss`,
 /// `aud` and `amr` are the ID token's business and are not repeated; Core
 /// requires only `sub`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+// `ToSchema` describes it in the OpenAPI document, being on the wire
+// already (docs/LAYOUT.md, rule 1).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, utoipa::ToSchema)]
 pub struct UserInfoClaims {
     pub sub: Uuid,
     pub account_type: AccountType,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     pub email: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     pub email_verified: Option<bool>,
 }
 

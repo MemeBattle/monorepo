@@ -9,20 +9,26 @@
 //! read the former, so the endpoint has its own error type here.
 
 use std::borrow::Cow;
+use std::collections::BTreeMap;
 
 use axum::{
-    Json, Router,
     body::{Body, to_bytes},
     extract::State,
     http::{HeaderMap, HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
-    routing::post,
 };
+use serde::Serialize;
 use serde_json::json;
 use tower_http::set_header::SetResponseHeaderLayer;
+use utoipa::openapi::{RefOr, response::Response as OpenApiResponse};
+use utoipa::{OpenApi, ToSchema};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::db::Failure;
 use crate::http::ApiState;
+use crate::http::error::ErrorCode;
+use crate::http::extract::Json;
+use crate::http::response::{Documented, ErrorShape, error_responses, string_header};
 use crate::oidc::{IssuedTokens, Params, TokenError};
 
 /// The largest body a token request may have. The longest legitimate one —
@@ -46,9 +52,9 @@ const BASIC_CHALLENGE: &str = "Basic realm=\"cas\"";
 /// two headers RFC 6749 §5.1 requires on a response that carries tokens;
 /// route layers, so the root's fallback is not wrapped (see
 /// `oidc::http::router`).
-pub fn token_router(state: ApiState) -> Router {
-    Router::new()
-        .route("/token", post(token))
+pub fn token_router(state: ApiState) -> OpenApiRouter {
+    OpenApiRouter::with_openapi(TokenApi::openapi())
+        .routes(routes!(token))
         .route_layer(SetResponseHeaderLayer::overriding(
             header::CACHE_CONTROL,
             HeaderValue::from_static("no-store"),
@@ -60,11 +66,77 @@ pub fn token_router(state: ApiState) -> Router {
         .with_state(state)
 }
 
-async fn token(State(state): State<ApiState>, headers: HeaderMap, body: Body) -> Response {
+/// The success body, for the description.
+#[derive(OpenApi)]
+#[openapi(components(schemas(TokenResponse)))]
+struct TokenApi;
+
+/// What `/token` answers, for the description: the tokens, or an RFC 6749
+/// §5.2 error.
+struct TokenResponses;
+
+impl utoipa::IntoResponses for TokenResponses {
+    fn responses() -> BTreeMap<String, RefOr<OpenApiResponse>> {
+        let mut codes = OAuthErrorResponse::DECLARED.to_vec();
+        codes.push((StatusCode::INTERNAL_SERVER_ERROR, SERVER_ERROR));
+        let mut responses = error_responses(&codes, ErrorShape::OAuth);
+        for (status, name, description) in [
+            (
+                StatusCode::UNAUTHORIZED,
+                header::WWW_AUTHENTICATE,
+                "`Basic realm=\"cas\"`, for a client that tried the `Authorization` header.",
+            ),
+            (
+                StatusCode::TOO_MANY_REQUESTS,
+                header::RETRY_AFTER,
+                "Seconds until the guest grant may be asked again.",
+            ),
+        ] {
+            if let Some(RefOr::T(response)) = responses.get_mut(status.as_str()) {
+                response.headers.insert(
+                    name.as_str().to_owned(),
+                    RefOr::T(string_header(description)),
+                );
+            }
+        }
+        responses.extend(<Json<TokenResponse> as utoipa::IntoResponses>::responses());
+        responses
+    }
+}
+
+/// The token endpoint: the authorization code exchange, the refresh, and
+/// the guest grant.
+///
+/// The body is `application/x-www-form-urlencoded` (RFC 6749 §3.2), read
+/// by hand under the RFC's rules, a repeated parameter refused:
+/// `grant_type=authorization_code` with `code`, `redirect_uri` and
+/// `code_verifier` (ADR 0011); `grant_type=refresh_token` with
+/// `refresh_token` and an optional `scope` (ADR 0012);
+/// `grant_type=urn:memebattle:oauth:grant-type:guest` with an optional
+/// `scope` (ADR 0014). A confidential client authenticates with
+/// `Authorization: Basic` or with `client_id` and `client_secret` in the
+/// body, a public client sends `client_id` alone. Every answer is
+/// `Cache-Control: no-store` and `Pragma: no-cache`.
+#[utoipa::path(
+    post,
+    path = "/token",
+    request_body(
+        content = String,
+        content_type = "application/x-www-form-urlencoded",
+        description = "The grant's parameters, see the operation's description.",
+    ),
+    security((), ("basic" = []))
+)]
+async fn token(
+    State(state): State<ApiState>,
+    headers: HeaderMap,
+    body: Body,
+) -> Documented<TokenResponses> {
     match exchange(&state, &headers, body).await {
         Ok(tokens) => success(tokens),
         Err(error) => OAuthErrorResponse::from(error).into_response(),
     }
+    .into()
 }
 
 /// Reads the request and hands it to the service. The content type is
@@ -111,16 +183,36 @@ fn authorization(headers: &HeaderMap) -> Result<Option<&[u8]>, TokenError> {
     Ok(first)
 }
 
+/// The tokens, RFC 6749 §5.1 and OpenID Connect Core §3.1.3.3.
+///
+/// The fields are in alphabetical order, the order the members had when the
+/// body was built as a JSON map, so the bytes on the wire did not change.
+#[derive(Serialize, ToSchema)]
+pub struct TokenResponse {
+    /// An ES256 JWT (RFC 9068) for the client's resource server.
+    access_token: String,
+    /// Seconds.
+    expires_in: u64,
+    id_token: String,
+    /// Opaque; rotated on every refresh.
+    refresh_token: String,
+    /// The granted scopes, space-separated.
+    scope: String,
+    /// Always `Bearer`.
+    #[schema(value_type = String)]
+    token_type: &'static str,
+}
+
 /// RFC 6749 §5.1. The two headers come from the router's layers.
 fn success(tokens: IssuedTokens) -> Response {
-    Json(json!({
-        "access_token": tokens.access_token,
-        "token_type": "Bearer",
-        "expires_in": tokens.expires_in,
-        "refresh_token": tokens.refresh_token.expose(),
-        "id_token": tokens.id_token,
-        "scope": tokens.scope,
-    }))
+    Json(TokenResponse {
+        access_token: tokens.access_token,
+        expires_in: tokens.expires_in,
+        id_token: tokens.id_token,
+        refresh_token: tokens.refresh_token.expose().to_owned(),
+        scope: tokens.scope,
+        token_type: "Bearer",
+    })
     .into_response()
 }
 
@@ -140,6 +232,20 @@ pub(super) struct OAuthErrorResponse {
 }
 
 impl OAuthErrorResponse {
+    /// Every refusal the mapping below can name, for the description. The
+    /// `/token` mapping and `/userinfo`'s database failure answer within
+    /// it; [`SERVER_ERROR`] is the family's fallback and is not among them.
+    pub(super) const DECLARED: [(StatusCode, &'static str); 8] = [
+        (StatusCode::BAD_REQUEST, "invalid_request"),
+        (StatusCode::BAD_REQUEST, "invalid_grant"),
+        (StatusCode::BAD_REQUEST, "invalid_scope"),
+        (StatusCode::BAD_REQUEST, "unauthorized_client"),
+        (StatusCode::BAD_REQUEST, "unsupported_grant_type"),
+        (StatusCode::UNAUTHORIZED, "invalid_client"),
+        (StatusCode::TOO_MANY_REQUESTS, "rate_limit_exceeded"),
+        (StatusCode::SERVICE_UNAVAILABLE, TEMPORARILY_UNAVAILABLE),
+    ];
+
     fn new(
         status: StatusCode,
         error: &'static str,
@@ -229,17 +335,22 @@ pub(super) fn database_failure(error: &sqlx::Error) -> OAuthErrorResponse {
     match crate::db::classify(error) {
         Some(Failure::Unavailable | Failure::Busy) => OAuthErrorResponse::new(
             StatusCode::SERVICE_UNAVAILABLE,
-            "temporarily_unavailable",
+            TEMPORARILY_UNAVAILABLE,
             "the service is unavailable, try again later",
         ),
         None => server_error(),
     }
 }
 
+const TEMPORARILY_UNAVAILABLE: &str = "temporarily_unavailable";
+
+/// The code of the family's 500, for what the code cannot name.
+pub(super) const SERVER_ERROR: &str = "server_error";
+
 fn server_error() -> OAuthErrorResponse {
     OAuthErrorResponse::new(
         StatusCode::INTERNAL_SERVER_ERROR,
-        "server_error",
+        SERVER_ERROR,
         "the server could not complete the request",
     )
 }
@@ -254,6 +365,7 @@ impl IntoResponse for OAuthErrorResponse {
             "error_description": self.description,
         }));
         let mut response = (self.status, body).into_response();
+        response.extensions_mut().insert(ErrorCode(self.error));
         if self.challenge {
             response.headers_mut().insert(
                 header::WWW_AUTHENTICATE,
@@ -273,6 +385,7 @@ impl IntoResponse for OAuthErrorResponse {
 mod tests {
     use std::time::Duration;
 
+    use axum::Router;
     use axum::http::Request;
     use base64::Engine;
     use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
@@ -301,8 +414,8 @@ mod tests {
     use crate::oidc::{Discovery, GUEST_GRANT_TYPE, RefreshToken, SigningKeys};
     use crate::sessions::{SessionOrigin, SessionService, SessionToken};
     use crate::testing::{
-        DEV_SIGNING_KEY, DEV_SIGNING_KEY_KID, capture_tracing, display_name, header_str, scopes,
-        test_config, test_cookies, test_state,
+        DEV_SIGNING_KEY, DEV_SIGNING_KEY_KID, capture_tracing, checked, display_name, header_str,
+        scopes, test_config, test_cookies, test_state,
     };
 
     /// RFC 7636 Appendix B: the verifier of [`CHALLENGE`].
@@ -317,9 +430,14 @@ mod tests {
 
     /// What `http::app` serves at the root for OIDC, on the test's pool.
     fn router(pool: PgPool) -> Router {
+        checked(oidc_routers(pool))
+    }
+
+    /// The routers [`router`] is made of, with their description.
+    fn oidc_routers(pool: PgPool) -> OpenApiRouter {
         let state = test_state(pool);
         let keys = SigningKeys::from_pem(DEV_SIGNING_KEY).unwrap();
-        Router::new()
+        OpenApiRouter::new()
             .merge(documents_router(Documents {
                 discovery: Discovery::for_issuer(&test_config().issuer),
                 jwks: keys.jwks(),
@@ -1237,7 +1355,7 @@ mod tests {
             .acquire_timeout(Duration::from_secs(1))
             .connect_lazy("postgres://cas:cas@localhost:1/cas")
             .unwrap();
-        let router = token_router(test_state(pool));
+        let router = checked(token_router(test_state(pool)));
         let body = form(&plus(grant("x"), "client_id", PUBLIC));
 
         let response = send(&router, Some(FORM_CONTENT_TYPE), None, body).await;
@@ -1254,11 +1372,11 @@ mod tests {
     /// of the test state is never used.
     #[tokio::test]
     async fn a_body_that_is_not_a_form_is_invalid_request() {
-        let router = token_router(test_state(
+        let router = checked(token_router(test_state(
             PgPoolOptions::new()
                 .connect_lazy("postgres://cas:cas@localhost:1/cas")
                 .unwrap(),
-        ));
+        )));
         let body = form(&grant("x"));
 
         for content_type in [None, Some("application/json"), Some("text/plain")] {
@@ -2517,11 +2635,13 @@ mod tests {
     /// its way from a guest to a full account.
     fn upgrade_router(pool: PgPool) -> Router {
         let state = test_state(pool.clone());
-        router(pool).nest(
-            "/api",
-            Router::new()
-                .nest("/webauthn", crate::webauthn::http::router(state.clone()))
-                .merge(crate::sessions::http::router(state)),
+        checked(
+            oidc_routers(pool).nest(
+                "/api",
+                OpenApiRouter::new()
+                    .nest("/webauthn", crate::webauthn::http::router(state.clone()))
+                    .merge(crate::sessions::http::router(state)),
+            ),
         )
     }
 

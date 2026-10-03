@@ -82,6 +82,16 @@ Errors are RFC 6749 JSON, `{"error": "...", "error_description": "..."}`: `inval
 
 A request that fails any check — missing or invalid hint, mismatched `client_id`, unknown client, unregistered `post_logout_redirect_uri`, a repeated parameter — gets an HTML error page from CAS, never a redirect, and ends nothing. A valid request ends the CAS session the cookie names only if it belongs to the hint's account; a session of another account is left alone, and the browser is redirected either way. The response clears the cookie and sends `Clear-Site-Data: "cache", "storage"` when a session was ended. Grants and refresh tokens are untouched: the application drops its own tokens. The session cookie is `SameSite=Lax`, so an application on another site must use `GET` (a top-level navigation): a cross-site form `POST` reaches CAS without the cookie and ends nothing. See [docs/adr/0013-userinfo-and-rp-initiated-logout.md](./docs/adr/0013-userinfo-and-rp-initiated-logout.md).
 
+## OpenAPI
+
+`GET /openapi.json` (at the root, public) serves the OpenAPI 3.1 description of every route CAS mounts: request and response bodies, and on every error response the stable codes it can carry, in `x-error-codes` and, for the `/api` error shape, as the enum of `error.code`. It is generated from the handlers, not written by hand, and committed as [`openapi.json`](./openapi.json); `cargo test` fails when the file is out of date. After changing the API, regenerate it from `apps/cas` and commit it:
+
+```
+UPDATE_OPENAPI=1 cargo test --lib the_committed_document_is_current
+```
+
+See [docs/adr/0016-openapi-description.md](./docs/adr/0016-openapi-description.md).
+
 ## Database (local dev)
 
 Postgres runs in Docker; `docker-compose.yml` in this directory provides it with dev-only credentials (user/password/db `cas`) on host port `5434`:
