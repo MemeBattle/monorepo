@@ -234,6 +234,7 @@ mod tests {
             post_logout_redirect_uris: vec![],
             first_party,
             guest_login_allowed: false,
+            guest_grants_per_minute: crate::clients::GuestGrantsPerMinute::default(),
             scopes: ["openid", "profile"]
                 .map(|scope| Scope::try_new(scope).unwrap())
                 .to_vec(),

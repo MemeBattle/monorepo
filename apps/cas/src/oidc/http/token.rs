@@ -1,5 +1,5 @@
 //! `POST /token`: the authorization code exchange and the refresh (ADR 0011,
-//! ADR 0012). Served at the
+//! ADR 0012), and the guest grant (ADR 0014). Served at the
 //! root with `ApiState`, outside `/api`: it is called by a client's backend
 //! or by a public client, never with CAS's cookie, so neither the session
 //! nor the Fetch Metadata line (ADR 0005) has anything to say about it.
@@ -134,6 +134,9 @@ pub(super) struct OAuthErrorResponse {
     description: Cow<'static, str>,
     /// `WWW-Authenticate: Basic`, for a client that tried the header.
     challenge: bool,
+    /// `Retry-After`, in seconds, for a refusal that a later request may
+    /// not get.
+    retry_after: Option<u64>,
 }
 
 impl OAuthErrorResponse {
@@ -147,6 +150,7 @@ impl OAuthErrorResponse {
             error,
             description: description.into(),
             challenge: false,
+            retry_after: None,
         }
     }
 
@@ -155,7 +159,9 @@ impl OAuthErrorResponse {
     }
 }
 
-/// The client's refusals are `400`, `invalid_client` is `401`. A database
+/// The client's refusals are `400`, `invalid_client` is `401`, and the
+/// guest grant's rate limit `429` with `Retry-After`: RFC 6749 §5.2 has no
+/// code for it, and an extension grant may define its own. A database
 /// failure borrows the two codes RFC 6749 §4.1.2.1 defines for the
 /// authorization endpoint, as `/authorize` does: §5.2 has none, and a
 /// client can act on "try again" as opposed to "this is broken".
@@ -182,10 +188,21 @@ impl From<TokenError> for OAuthErrorResponse {
             TokenError::InvalidScope(description) => {
                 Self::bad_request("invalid_scope", description)
             }
-            TokenError::UnsupportedGrantType => Self::bad_request(
-                "unsupported_grant_type",
-                "only grant_type=authorization_code and refresh_token are supported",
+            TokenError::UnauthorizedClient => Self::bad_request(
+                "unauthorized_client",
+                "the client is not authorized to use this grant type",
             ),
+            TokenError::RateLimited { retry_after } => Self {
+                retry_after: Some(retry_after.as_secs()),
+                ..Self::new(
+                    StatusCode::TOO_MANY_REQUESTS,
+                    "rate_limit_exceeded",
+                    "too many guest accounts were requested, try again later",
+                )
+            },
+            TokenError::UnsupportedGrantType => {
+                Self::bad_request("unsupported_grant_type", UNSUPPORTED_GRANT_TYPE)
+            }
             TokenError::Db(error) => database_error(&error),
             TokenError::Random(error) => {
                 tracing::error!(error = %error, "no randomness for a refresh token");
@@ -194,6 +211,10 @@ impl From<TokenError> for OAuthErrorResponse {
         }
     }
 }
+
+/// The `unsupported_grant_type` description: the grants that are served.
+const UNSUPPORTED_GRANT_TYPE: &str = "only grant_type=authorization_code, refresh_token and \
+     urn:memebattle:oauth:grant-type:guest are supported";
 
 fn database_error(error: &sqlx::Error) -> OAuthErrorResponse {
     let response = database_failure(error);
@@ -232,15 +253,19 @@ impl IntoResponse for OAuthErrorResponse {
             "error": self.error,
             "error_description": self.description,
         }));
+        let mut response = (self.status, body).into_response();
         if self.challenge {
-            let challenge = [(
+            response.headers_mut().insert(
                 header::WWW_AUTHENTICATE,
                 HeaderValue::from_static(BASIC_CHALLENGE),
-            )];
-            (self.status, challenge, body).into_response()
-        } else {
-            (self.status, body).into_response()
+            );
         }
+        if let Some(seconds) = self.retry_after {
+            response
+                .headers_mut()
+                .insert(header::RETRY_AFTER, HeaderValue::from(seconds));
+        }
+        response
     }
 }
 
@@ -264,14 +289,16 @@ mod tests {
 
     use super::*;
     use crate::accounts::{AccountRepository, NewAccount};
+    use crate::clients::registration::register;
     use crate::clients::{
-        Audience, ClientId, ClientName, ClientRepository, ClientSecret, NewClient, RedirectUri,
+        Audience, ClientId, ClientKind, ClientName, ClientRepository, ClientSecret,
+        GuestGrantsPerMinute, NewClient, RedirectUri, Registration,
     };
     use crate::oidc::authorization::tests::{CALLBACK, CHALLENGE};
     use crate::oidc::http::tests::discover;
     use crate::oidc::http::{Documents, authorize_router, router as documents_router};
     use crate::oidc::token_request::INVALID_REFRESH_TOKEN;
-    use crate::oidc::{Discovery, RefreshToken, SigningKeys};
+    use crate::oidc::{Discovery, GUEST_GRANT_TYPE, RefreshToken, SigningKeys};
     use crate::sessions::{SessionOrigin, SessionService, SessionToken};
     use crate::testing::{
         DEV_SIGNING_KEY, DEV_SIGNING_KEY_KID, capture_tracing, display_name, header_str, scopes,
@@ -922,9 +949,9 @@ mod tests {
         let code = fixture.code(CONFIDENTIAL, "openid").await;
 
         for grant_type in [
-            crate::oidc::GUEST_GRANT_TYPE,
             "client_credentials",
             "password",
+            "urn:memebattle:oauth:grant-type:anonymous",
         ] {
             let response = fixture
                 .token(
@@ -935,9 +962,11 @@ mod tests {
 
             let body =
                 assert_error(response, StatusCode::BAD_REQUEST, "unsupported_grant_type").await;
+            assert_eq!(body["error_description"], UNSUPPORTED_GRANT_TYPE);
             assert_eq!(
                 body["error_description"],
-                "only grant_type=authorization_code and refresh_token are supported"
+                "only grant_type=authorization_code, refresh_token and \
+                 urn:memebattle:oauth:grant-type:guest are supported"
             );
         }
     }
@@ -1086,6 +1115,16 @@ mod tests {
     /// `finished` says there is nothing left to wait for. Bounded, so a
     /// broken assumption fails the test instead of hanging it.
     async fn wait_for_lock_wait(pool: &PgPool, statement: &str, finished: impl Fn() -> bool) {
+        wait_for_lock_waits(pool, statement, 1, finished).await;
+    }
+
+    /// [`wait_for_lock_wait`] for `backends` backends at once.
+    async fn wait_for_lock_waits(
+        pool: &PgPool,
+        statement: &str,
+        backends: i64,
+        finished: impl Fn() -> bool,
+    ) {
         for _ in 0..200 {
             if finished() {
                 return;
@@ -1102,12 +1141,12 @@ mod tests {
             .fetch_one(pool)
             .await
             .unwrap();
-            if waiting > 0 {
+            if waiting >= backends {
                 return;
             }
             tokio::time::sleep(Duration::from_millis(25)).await;
         }
-        panic!("no backend waited on a lock in {statement:?} within 5 seconds");
+        panic!("fewer than {backends} backends waited on a lock in {statement:?} within 5 seconds");
     }
 
     /// The race a replay used to win: the first exchange has consumed the
@@ -1851,6 +1890,600 @@ mod tests {
             body["access_token"].as_str().unwrap(),
             body["id_token"].as_str().unwrap(),
             body["refresh_token"].as_str().unwrap(),
+        ];
+        for event in events.all() {
+            for secret in secrets {
+                assert!(!event.contains(secret), "{secret} logged: {event}");
+            }
+        }
+    }
+
+    /// The client `scripts/seed-dev.sh` registers: confidential, first
+    /// party, guest login allowed, `openid profile email`, audience
+    /// `ligretto`, the default limit.
+    const GUEST_CLIENT: &str = "ligretto";
+    /// A public client registered with the flag, which the grant refuses.
+    const PUBLIC_GUEST_CLIENT: &str = "ligretto-spa";
+    /// The statement of the guest mint that takes the client's lock.
+    const GUEST_LOCK_STATEMENT: &str = "SELECT guest_grants_per_minute FROM clients";
+
+    /// Registers a guest-enabled client the way `cas-client` does, and
+    /// returns its secret when it is confidential.
+    async fn register_guest_client(
+        pool: &PgPool,
+        id: &str,
+        kind: ClientKind,
+        limit: Option<i32>,
+    ) -> Option<ClientSecret> {
+        register(
+            pool,
+            Registration {
+                id: ClientId::try_new(id).unwrap(),
+                name: ClientName::try_new("Ligretto").unwrap(),
+                kind,
+                redirect_uris: vec![
+                    RedirectUri::try_new("http://localhost:5173/oidc/callback").unwrap(),
+                ],
+                post_logout_redirect_uris: vec![
+                    RedirectUri::try_new("http://localhost:5173/").unwrap(),
+                ],
+                first_party: true,
+                guest_login_allowed: true,
+                guest_grants_per_minute: limit
+                    .map(|limit| GuestGrantsPerMinute::try_new(limit).unwrap()),
+                scopes: scopes(&["openid", "profile", "email"]),
+                audience: Some(Audience::try_new(AUDIENCE).unwrap()),
+            },
+        )
+        .await
+        .unwrap()
+        .secret
+    }
+
+    /// [`Fixture`] — whose confidential client has no guest flag — plus the
+    /// seeded `ligretto` client and a public client with the flag.
+    struct GuestFixture {
+        base: Fixture,
+        secret: ClientSecret,
+    }
+
+    async fn guest_fixture(pool: &PgPool) -> GuestFixture {
+        let base = fixture(pool).await;
+        let secret = register_guest_client(pool, GUEST_CLIENT, ClientKind::Confidential, None)
+            .await
+            .unwrap();
+        register_guest_client(pool, PUBLIC_GUEST_CLIENT, ClientKind::Public, None).await;
+        GuestFixture { base, secret }
+    }
+
+    fn guest() -> Pairs<'static> {
+        vec![("grant_type", GUEST_GRANT_TYPE)]
+    }
+
+    impl GuestFixture {
+        fn basic(&self) -> String {
+            basic(GUEST_CLIENT, self.secret.expose())
+        }
+
+        /// The seeded client asking for a guest with Basic, with `extra`
+        /// pairs after the grant type.
+        async fn mint(&self, extra: &[(&str, &str)]) -> Response {
+            let mut pairs = guest();
+            pairs.extend_from_slice(extra);
+            self.base.token(&pairs, Some(&self.basic())).await
+        }
+
+        /// [`Self::mint`] that must succeed: the body.
+        async fn minted(&self, extra: &[(&str, &str)]) -> serde_json::Value {
+            let response = self.mint(extra).await;
+            assert_eq!(response.status(), StatusCode::OK);
+            json(response).await
+        }
+    }
+
+    /// Spawns a guest request of `client` with Basic.
+    fn spawn_mint(
+        router: &Router,
+        client: &str,
+        secret: &ClientSecret,
+    ) -> tokio::task::JoinHandle<Response> {
+        let router = router.clone();
+        let authorization = basic(client, secret.expose());
+        let body = form(&guest());
+        tokio::spawn(async move {
+            send(&router, Some(FORM_CONTENT_TYPE), Some(&authorization), body).await
+        })
+    }
+
+    /// Opens a transaction that holds the client's row the way a guest mint
+    /// does.
+    async fn hold_client(
+        pool: &PgPool,
+        client: &str,
+    ) -> sqlx::Transaction<'static, sqlx::Postgres> {
+        let mut blocker = pool.begin().await.unwrap();
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("SELECT id FROM clients WHERE id = $1 FOR NO KEY UPDATE")
+            .bind(client)
+            .execute(&mut *blocker)
+            .await
+            .unwrap();
+        blocker
+    }
+
+    /// The one number a `SELECT count(*)` of the test answers.
+    async fn count(pool: &PgPool, query: &'static str) -> i64 {
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query_scalar(query).fetch_one(pool).await.unwrap()
+    }
+
+    const ACCOUNTS: &str = "SELECT count(*) FROM accounts";
+    const SESSIONS: &str = "SELECT count(*) FROM sessions";
+
+    /// The guests `client` minted.
+    async fn guests_of(pool: &PgPool, client: &str) -> i64 {
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query_scalar(
+            "SELECT count(*) FROM accounts WHERE created_by_client_id = $1 AND type = 'guest'",
+        )
+        .bind(client)
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    /// The first acceptance criterion: the seeded client gets the token
+    /// triple, and its `sub` is a new guest account the client minted.
+    #[sqlx::test]
+    async fn the_guest_grant_mints_a_guest_account(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let sessions = count(&pool, SESSIONS).await;
+
+        let response = fixture.mint(&[]).await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            header_str(&response, header::CACHE_CONTROL),
+            Some("no-store")
+        );
+        assert_eq!(header_str(&response, header::PRAGMA), Some("no-cache"));
+        let body = json(response).await;
+        assert_eq!(body.as_object().unwrap().len(), 6, "{body}");
+        assert_eq!(body["token_type"], "Bearer");
+        assert_eq!(body["expires_in"], 600);
+        assert_eq!(body["scope"], "openid");
+
+        let jwks = fixture.base.jwks().await;
+        let (header, claims) = decode(body["access_token"].as_str().unwrap(), &jwks);
+        assert_eq!(header["typ"], "at+jwt");
+        let sub: Uuid = claims["sub"].as_str().unwrap().parse().unwrap();
+        assert_eq!(claims["aud"], AUDIENCE);
+        assert_eq!(claims["client_id"], GUEST_CLIENT);
+        assert_eq!(claims["scope"], "openid");
+        assert_eq!(claims["amr"], serde_json::json!(["anon"]));
+        assert_eq!(claims["account_type"], "guest");
+
+        // Unchecked query: see docs/TESTS.md.
+        let (account_type, created_by, email): (String, Option<String>, Option<String>) =
+            sqlx::query_as(
+                "SELECT type::text, created_by_client_id, email FROM accounts WHERE id = $1",
+            )
+            .bind(sub)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(account_type, "guest");
+        assert_eq!(created_by.as_deref(), Some(GUEST_CLIENT));
+        assert_eq!(email, None);
+
+        // The ID token, checked by an independent implementation, with no
+        // nonce: there was no authorization request.
+        let id_token: CoreIdToken = body["id_token"].as_str().unwrap().parse().unwrap();
+        let verifier = fixture
+            .base
+            .id_token_verifier(GUEST_CLIENT, Some(fixture.secret.expose()))
+            .await;
+        let verified = id_token
+            .claims(&verifier, |nonce: Option<&Nonce>| match nonce {
+                None => Ok(()),
+                Some(_) => Err("a guest's ID token has no nonce".to_owned()),
+            })
+            .expect("the ID token verifies");
+        assert_eq!(verified.subject().as_str(), sub.to_string());
+        assert!(verified.name().is_none());
+        let (_, id_claims) = decode(body["id_token"].as_str().unwrap(), &jwks);
+        assert_eq!(id_claims["aud"], GUEST_CLIENT);
+        assert_eq!(id_claims["amr"], serde_json::json!(["anon"]));
+        assert_eq!(id_claims["account_type"], "guest");
+        for absent in ["nonce", "name", "email"] {
+            assert!(id_claims.get(absent).is_none(), "{absent}: {id_claims}");
+        }
+
+        // A grant no code produced, with the common lifetime, and its one
+        // refresh token.
+        let refresh = RefreshToken::parse(body["refresh_token"].as_str().unwrap()).unwrap();
+        // Unchecked query: see docs/TESTS.md.
+        let (account_id, client_id, scopes, linked, created_at, expires_at): (
+            Uuid,
+            String,
+            Vec<String>,
+            bool,
+            time::OffsetDateTime,
+            time::OffsetDateTime,
+        ) = sqlx::query_as(
+            "SELECT g.account_id, g.client_id, g.scopes, g.authorization_code_id IS NOT NULL,
+                    g.created_at, g.expires_at
+             FROM refresh_tokens t JOIN grants g ON g.id = t.grant_id
+             WHERE t.token_hash = $1",
+        )
+        .bind(refresh.hash().as_bytes())
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(account_id, sub);
+        assert_eq!(client_id, GUEST_CLIENT);
+        assert_eq!(scopes, ["openid"]);
+        assert!(!linked, "no code produced the grant");
+        assert_eq!(expires_at - created_at, time::Duration::days(30));
+        assert_eq!(refresh_token_count(&pool).await, 1);
+
+        // No CAS session: the guest never saw CAS.
+        assert_eq!(count(&pool, SESSIONS).await, sessions);
+    }
+
+    #[sqlx::test]
+    async fn a_guest_asking_for_profile_still_has_no_name(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+
+        let body = fixture.minted(&[("scope", "openid profile")]).await;
+
+        assert_eq!(body["scope"], "openid profile");
+        let (_, claims) = decode(
+            body["id_token"].as_str().unwrap(),
+            &fixture.base.jwks().await,
+        );
+        assert!(claims.get("name").is_none(), "{claims}");
+        assert_eq!(claims["account_type"], "guest");
+    }
+
+    #[sqlx::test]
+    async fn two_guest_grants_mint_two_accounts(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let jwks = fixture.base.jwks().await;
+
+        let first = fixture.minted(&[]).await;
+        let second = fixture.minted(&[]).await;
+
+        let (_, first) = decode(first["access_token"].as_str().unwrap(), &jwks);
+        let (_, second) = decode(second["access_token"].as_str().unwrap(), &jwks);
+        assert_ne!(first["sub"], second["sub"]);
+        assert_eq!(guests_of(&pool, GUEST_CLIENT).await, 2);
+    }
+
+    /// Refresh is account-type agnostic: a guest's token rotates like any
+    /// other, and the guest stays a guest.
+    #[sqlx::test]
+    async fn a_guest_refreshes_like_anyone(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let jwks = fixture.base.jwks().await;
+        let minted = fixture.minted(&[]).await;
+        let (_, minted_claims) = decode(minted["access_token"].as_str().unwrap(), &jwks);
+
+        let response = fixture
+            .base
+            .token(
+                &refresh(minted["refresh_token"].as_str().unwrap()),
+                Some(&fixture.basic()),
+            )
+            .await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = json(response).await;
+        assert_ne!(body["refresh_token"], minted["refresh_token"]);
+        let (_, claims) = decode(body["access_token"].as_str().unwrap(), &jwks);
+        assert_eq!(claims["sub"], minted_claims["sub"]);
+        assert_eq!(claims["account_type"], "guest");
+        assert_eq!(claims["amr"], serde_json::json!(["anon"]));
+    }
+
+    #[sqlx::test]
+    async fn the_guest_grant_takes_post_credentials_too(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let pairs = plus(
+            plus(guest(), "client_id", GUEST_CLIENT),
+            "client_secret",
+            fixture.secret.expose(),
+        );
+
+        let response = fixture.base.token(&pairs, None).await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(guests_of(&pool, GUEST_CLIENT).await, 1);
+    }
+
+    /// The second acceptance criterion, first half: a public client with
+    /// the flag cannot prove who it is, so the flag does not count. Checked
+    /// before the grant's own parameters.
+    #[sqlx::test]
+    async fn a_public_client_is_unauthorized_for_the_guest_grant(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let accounts = count(&pool, ACCOUNTS).await;
+
+        for pairs in [
+            plus(guest(), "client_id", PUBLIC_GUEST_CLIENT),
+            plus(
+                plus(guest(), "client_id", PUBLIC_GUEST_CLIENT),
+                "scope",
+                "open\"id",
+            ),
+        ] {
+            let response = fixture.base.token(&pairs, None).await;
+
+            let body = assert_error(response, StatusCode::BAD_REQUEST, "unauthorized_client").await;
+            assert_eq!(
+                body["error_description"],
+                "the client is not authorized to use this grant type"
+            );
+        }
+        assert_eq!(count(&pool, ACCOUNTS).await, accounts);
+        assert!(grants(&pool).await.is_empty());
+    }
+
+    /// The second acceptance criterion, second half.
+    #[sqlx::test]
+    async fn a_confidential_client_without_the_flag_is_unauthorized(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let accounts = count(&pool, ACCOUNTS).await;
+        let (events, _guard) = capture_tracing();
+
+        let response = fixture
+            .base
+            .token(&guest(), Some(&fixture.base.basic()))
+            .await;
+
+        assert_error(response, StatusCode::BAD_REQUEST, "unauthorized_client").await;
+        assert_eq!(count(&pool, ACCOUNTS).await, accounts);
+        assert!(grants(&pool).await.is_empty());
+        let [warning] = &events.mentioning("guest grant refused")[..] else {
+            panic!("one line: {:?}", events.all());
+        };
+        assert!(warning.contains(CONFIDENTIAL), "{warning}");
+    }
+
+    /// Authentication precedes the grant, for this grant as for the others.
+    #[sqlx::test]
+    async fn a_wrong_secret_with_the_guest_grant_is_invalid_client(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+
+        let response = fixture
+            .base
+            .token(&guest(), Some(&basic(GUEST_CLIENT, "wrong")))
+            .await;
+
+        assert_error(response, StatusCode::UNAUTHORIZED, "invalid_client").await;
+        assert_eq!(guests_of(&pool, GUEST_CLIENT).await, 0);
+    }
+
+    #[sqlx::test]
+    async fn guest_scope_errors(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+
+        for (scope, description) in [
+            ("profile", "scope must include openid"),
+            (
+                "openid offline_access",
+                "the requested scope is not allowed for this client",
+            ),
+            ("openid  profile", "scope is malformed"),
+        ] {
+            let response = fixture.mint(&[("scope", scope)]).await;
+
+            let body = assert_error(response, StatusCode::BAD_REQUEST, "invalid_scope").await;
+            assert_eq!(body["error_description"], description, "{scope:?}");
+        }
+        let response = fixture
+            .mint(&[("scope", "openid"), ("scope", "openid")])
+            .await;
+        let body = assert_error(response, StatusCode::BAD_REQUEST, "invalid_request").await;
+        assert_eq!(body["error_description"], "parameter scope is repeated");
+        assert_eq!(guests_of(&pool, GUEST_CLIENT).await, 0);
+    }
+
+    /// The limit is per client and over a sliding minute: the request past
+    /// it writes nothing and says when to come back, another client is not
+    /// affected, and once the accounts have left the window the client gets
+    /// a guest again.
+    #[sqlx::test]
+    async fn the_guest_grant_is_rate_limited_per_client(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let limited = register_guest_client(&pool, "limited", ClientKind::Confidential, Some(2))
+            .await
+            .unwrap();
+        let pairs = guest();
+        let authorization = basic("limited", limited.expose());
+        let mint = || fixture.base.token(&pairs, Some(&authorization));
+        assert_eq!(mint().await.status(), StatusCode::OK);
+        assert_eq!(mint().await.status(), StatusCode::OK);
+        let accounts = count(&pool, ACCOUNTS).await;
+        let issued = refresh_token_count(&pool).await;
+        let (events, _guard) = capture_tracing();
+
+        let response = mint().await;
+
+        assert_eq!(header_str(&response, header::RETRY_AFTER), Some("60"));
+        let body = assert_error(
+            response,
+            StatusCode::TOO_MANY_REQUESTS,
+            "rate_limit_exceeded",
+        )
+        .await;
+        assert_eq!(
+            body["error_description"],
+            "too many guest accounts were requested, try again later"
+        );
+        assert_eq!(count(&pool, ACCOUNTS).await, accounts);
+        assert_eq!(grants(&pool).await.len(), 2);
+        assert_eq!(refresh_token_count(&pool).await, issued);
+        let [warning] = &events.mentioning("guest grant rate limit exceeded")[..] else {
+            panic!("one line: {:?}", events.all());
+        };
+        assert!(warning.contains("limited"), "{warning}");
+
+        assert_eq!(fixture.mint(&[]).await.status(), StatusCode::OK);
+
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query(
+            "UPDATE accounts SET created_at = now() - interval '61 seconds'
+             WHERE created_by_client_id = 'limited'",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        assert_eq!(mint().await.status(), StatusCode::OK);
+        assert_eq!(guests_of(&pool, "limited").await, 3);
+    }
+
+    /// Two mints at the boundary of a limit of one: without the client's
+    /// lock both would count zero and pass. A test transaction holds the
+    /// client's row, both requests are seen waiting for it, and once it is
+    /// released exactly one gets a guest.
+    #[sqlx::test]
+    async fn concurrent_guest_grants_respect_the_limit(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let secret = register_guest_client(&pool, "single", ClientKind::Confidential, Some(1))
+            .await
+            .unwrap();
+        let blocker = hold_client(&pool, "single").await;
+
+        let first = spawn_mint(&fixture.base.router, "single", &secret);
+        let second = spawn_mint(&fixture.base.router, "single", &secret);
+        wait_for_lock_waits(&pool, GUEST_LOCK_STATEMENT, 2, || {
+            first.is_finished() || second.is_finished()
+        })
+        .await;
+        assert!(
+            !first.is_finished() && !second.is_finished(),
+            "both mints wait for the client"
+        );
+        blocker.rollback().await.unwrap();
+
+        let mut statuses = [
+            first.await.unwrap().status(),
+            second.await.unwrap().status(),
+        ];
+        statuses.sort();
+        assert_eq!(statuses, [StatusCode::OK, StatusCode::TOO_MANY_REQUESTS]);
+        assert_eq!(guests_of(&pool, "single").await, 1);
+        assert_eq!(grants(&pool).await.len(), 1);
+        assert_eq!(refresh_token_count(&pool).await, 1);
+    }
+
+    /// A mint delayed at the lock stamps its account with the moment it
+    /// wrote it, not the moment its transaction began: otherwise the
+    /// account would already be partly out of the window the next mint
+    /// counts.
+    #[sqlx::test]
+    async fn a_guest_minted_after_a_lock_wait_is_stamped_after_the_wait(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let secret = register_guest_client(&pool, "single", ClientKind::Confidential, Some(1))
+            .await
+            .unwrap();
+        let blocker = hold_client(&pool, "single").await;
+
+        let minting = spawn_mint(&fixture.base.router, "single", &secret);
+        wait_for_lock_wait(&pool, GUEST_LOCK_STATEMENT, || minting.is_finished()).await;
+        assert!(!minting.is_finished(), "the mint waits for the client");
+        // Unchecked query: see docs/TESTS.md.
+        let released_at: time::OffsetDateTime = sqlx::query_scalar("SELECT clock_timestamp()")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        blocker.rollback().await.unwrap();
+
+        assert_eq!(minting.await.unwrap().status(), StatusCode::OK);
+        // Unchecked query: see docs/TESTS.md.
+        let (created_at, last_seen_at): (time::OffsetDateTime, time::OffsetDateTime) =
+            sqlx::query_as(
+                "SELECT created_at, last_seen_at FROM accounts WHERE created_by_client_id = 'single'",
+            )
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert!(
+            created_at > released_at,
+            "created_at {created_at} is before the lock was released at {released_at}"
+        );
+        assert_eq!(last_seen_at, created_at);
+
+        let next = fixture
+            .base
+            .token(&guest(), Some(&basic("single", secret.expose())))
+            .await;
+        assert_error(next, StatusCode::TOO_MANY_REQUESTS, "rate_limit_exceeded").await;
+    }
+
+    /// The guest mint's lock is weaker than `FOR UPDATE`: a code exchange
+    /// of the same client, whose grant insert takes `FOR KEY SHARE` on the
+    /// client's row, completes while a mint holds it.
+    #[sqlx::test]
+    async fn a_code_exchange_is_not_queued_behind_a_guest_mint(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let code = fixture.code(CONFIDENTIAL, "openid").await;
+        let blocker = hold_client(&pool, CONFIDENTIAL).await;
+
+        let response = tokio::time::timeout(Duration::from_secs(5), fixture.exchange(&code))
+            .await
+            .expect("the exchange is not queued behind the client's lock");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        blocker.rollback().await.unwrap();
+    }
+
+    /// No token and no secret reaches a log line; the line that records
+    /// the mint names the account and the client.
+    #[sqlx::test]
+    async fn no_guest_token_is_logged(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let (events, _guard) = capture_tracing();
+
+        let body = fixture.minted(&[("scope", "openid profile")]).await;
+        let post = json(
+            fixture
+                .base
+                .token(
+                    &plus(
+                        plus(guest(), "client_id", GUEST_CLIENT),
+                        "client_secret",
+                        fixture.secret.expose(),
+                    ),
+                    None,
+                )
+                .await,
+        )
+        .await;
+        fixture
+            .base
+            .token(&guest(), Some(&basic(GUEST_CLIENT, "wrong-secret")))
+            .await;
+
+        let created = events.mentioning("guest account created");
+        assert_eq!(created.len(), 2, "{:?}", events.all());
+        let (_, claims) = decode(
+            body["access_token"].as_str().unwrap(),
+            &fixture.base.jwks().await,
+        );
+        let sub = claims["sub"].as_str().unwrap();
+        assert!(created.iter().any(|line| line.contains(sub)), "{created:?}");
+        assert!(created[0].contains(GUEST_CLIENT), "{}", created[0]);
+        let secrets = [
+            fixture.secret.expose(),
+            "wrong-secret",
+            body["access_token"].as_str().unwrap(),
+            body["id_token"].as_str().unwrap(),
+            body["refresh_token"].as_str().unwrap(),
+            post["access_token"].as_str().unwrap(),
+            post["id_token"].as_str().unwrap(),
+            post["refresh_token"].as_str().unwrap(),
         ];
         for event in events.all() {
             for secret in secrets {

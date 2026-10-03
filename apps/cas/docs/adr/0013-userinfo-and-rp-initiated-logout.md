@@ -5,6 +5,9 @@
 Accepted (2026-09-27), with [#745](https://github.com/MemeBattle/monorepo/issues/745).
 Amends ADR 0009 (d): a retired signing key stays published for thirty days
 after it stops signing, see (a).
+Amended (2026-10-03) by ADR 0014, with [#746](https://github.com/MemeBattle/monorepo/issues/746):
+"`name` with `profile`" in (c) holds for a full account; a guest has no
+name to release, so its answer never carries one.
 
 ## Context
 

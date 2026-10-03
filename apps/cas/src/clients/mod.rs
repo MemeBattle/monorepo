@@ -15,6 +15,7 @@
 mod audience;
 mod client_id;
 mod client_name;
+mod guest_limit;
 mod redirect_uri;
 pub mod registration;
 mod repository;
@@ -26,8 +27,10 @@ use time::OffsetDateTime;
 pub use audience::Audience;
 pub use client_id::{ClientId, ClientIdError, MAX_CLIENT_ID_LENGTH};
 pub use client_name::{ClientName, ClientNameError};
+pub use guest_limit::{GuestGrantsPerMinute, GuestGrantsPerMinuteError};
 pub use redirect_uri::{RedirectUri, RedirectUriError};
 pub use registration::{RegisterError, Registered, Registration};
+pub(crate) use repository::lock_guest_grant_limit;
 pub use repository::{ClientRepository, InsertError};
 pub use scope::{Scope, ScopeError};
 pub use secret::{ClientSecret, SecretHash};
@@ -104,6 +107,9 @@ pub struct Client {
     pub first_party: bool,
     /// Whether this client may mint guest accounts through the guest grant.
     pub guest_login_allowed: bool,
+    /// How many guest accounts it may mint per minute. The guest grant reads
+    /// the value of the row it locks, not this one (ADR 0014 (e)).
+    pub guest_grants_per_minute: GuestGrantsPerMinute,
     /// The allow-list of scopes this client may request.
     pub scopes: Vec<Scope>,
     /// The `aud` of the access tokens `/token` issues to this client.
@@ -169,6 +175,7 @@ pub struct NewClient {
     pub(crate) post_logout_redirect_uris: Vec<RedirectUri>,
     pub(crate) first_party: bool,
     pub(crate) guest_login_allowed: bool,
+    pub(crate) guest_grants_per_minute: GuestGrantsPerMinute,
     pub(crate) scopes: Vec<Scope>,
     pub(crate) audience: Audience,
 }
@@ -221,6 +228,7 @@ impl NewClient {
             post_logout_redirect_uris: Vec::new(),
             first_party: false,
             guest_login_allowed: false,
+            guest_grants_per_minute: GuestGrantsPerMinute::default(),
             scopes: vec![default_scope()],
         })
     }
@@ -240,6 +248,13 @@ impl NewClient {
     #[must_use]
     pub fn guest_login_allowed(mut self, allowed: bool) -> Self {
         self.guest_login_allowed = allowed;
+        self
+    }
+
+    /// Replaces the default limit of the guest grant.
+    #[must_use]
+    pub fn with_guest_grants_per_minute(mut self, limit: GuestGrantsPerMinute) -> Self {
+        self.guest_grants_per_minute = limit;
         self
     }
 
@@ -298,6 +313,7 @@ mod tests {
             post_logout_redirect_uris: vec![redirect_uri("https://app.example/")],
             first_party: true,
             guest_login_allowed: false,
+            guest_grants_per_minute: GuestGrantsPerMinute::default(),
             scopes: vec![scope("openid"), scope("profile")],
             audience: Audience::try_new("ligretto").unwrap(),
             created_at: OffsetDateTime::UNIX_EPOCH,
@@ -419,6 +435,10 @@ mod tests {
         assert!(public.post_logout_redirect_uris.is_empty());
         assert!(!public.first_party);
         assert!(!public.guest_login_allowed);
+        assert_eq!(
+            public.guest_grants_per_minute,
+            GuestGrantsPerMinute::default()
+        );
         assert_eq!(public.audience.as_str(), "ligretto", "its own id");
 
         let secret = ClientSecret::generate().unwrap();
@@ -445,6 +465,7 @@ mod tests {
         .with_post_logout_redirect_uris(vec![redirect_uri("https://app.example/")])
         .first_party(true)
         .guest_login_allowed(true)
+        .with_guest_grants_per_minute(GuestGrantsPerMinute::try_new(5).unwrap())
         .with_scopes(vec![scope("openid"), scope("email")])
         .with_audience(Audience::try_new("games").unwrap());
 
@@ -454,6 +475,10 @@ mod tests {
         );
         assert!(new_client.first_party);
         assert!(new_client.guest_login_allowed);
+        assert_eq!(
+            new_client.guest_grants_per_minute,
+            GuestGrantsPerMinute::try_new(5).unwrap()
+        );
         assert_eq!(new_client.scopes, vec![scope("openid"), scope("email")]);
         assert_eq!(new_client.audience.as_str(), "games");
     }

@@ -98,7 +98,7 @@ email/password + VK login, 7-service architecture).
     guest, and the owner loses that guest's data. Guest data is cheap.
 - GC of inactive guests is deferred; every first visit in a new browser mints a
   guest, so it will be needed before the base grows. The guest grant is
-  rate-limited per client meanwhile.
+  rate-limited per client meanwhile (ADR 0014 (e)).
 
 **SSO**
 
@@ -264,9 +264,12 @@ mock provider [#760](https://github.com/MemeBattle/monorepo/issues/760).
 - [x] Token lifetimes: access and ID token 10 minutes; refresh tokens an
       absolute 30 days from the grant's creation, never extended by rotation.
       Checked against OWASP ASVS 5.0 ch. 10 and RFC 9700 (ADR 0011 (c)).
-- [ ] Guest grant lifetime — confirm in #746.
+- [x] Guest grant lifetime: 30 days, absolute, the same as every refresh
+      grant; a guest identity is refreshed for at most that long unless it is
+      upgraded (ADR 0014 (c)).
 - [ ] Guest GC policy (deferred): inactivity threshold, whether a guest with a
-      live refresh token is ever collected.
+      live refresh token is ever collected. Undecided; ADR 0014 (g) lists the
+      signals a policy has and what the ticket that writes it must weigh.
 - [ ] When to request `telegram:bot_access`: on every Telegram sign-in, or as a
       separate "enable notifications" step. Leaning to always.
 - [ ] Agent delegation details: agent as OAuth client, scopes model per

@@ -29,7 +29,7 @@ pub const ACCESS_TOKEN_TYPE: &str = "at+jwt";
 pub const ID_TOKEN_TYPE: &str = "JWT";
 
 /// The scope that releases `name` into the ID token and the userinfo
-/// answer (OpenID Connect Core §5.4).
+/// answer (OpenID Connect Core §5.4), for an account that has one.
 const PROFILE_SCOPE: &str = "profile";
 
 /// The scope that releases `email` and `email_verified`.
@@ -189,7 +189,8 @@ pub struct IdTokenClaims {
     pub nonce: Option<String>,
     pub amr: &'static [&'static str],
     pub account_type: AccountType,
-    /// The display name, with `profile`.
+    /// The display name, with `profile`, for a full account. Absent for a
+    /// guest, which has chosen none (ADR 0014 (b)).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     /// The address, with `email`, when the account has one.
@@ -232,10 +233,13 @@ impl IdTokenClaims {
 }
 
 /// The profile and email claims the granted scopes release (OpenID Connect
-/// Core §5.4): the display name with `profile`; with `email`, the address
-/// and `email_verified: false` when the account has one — addresses are
-/// unverified in v1 (PLAN, ADR 0007). The one rule both the ID token and
-/// `/userinfo` apply, so the two cannot drift apart (ADR 0013 (c)).
+/// Core §5.4): with `profile`, the display name the account holder chose —
+/// a guest has none, its column holds a filler, and the claim is absent
+/// rather than `null`, as Core §5.3.2 asks of a claim not returned (ADR 0014
+/// (b)); with `email`, the address and `email_verified: false` when the
+/// account has one — addresses are unverified in v1 (PLAN, ADR 0007). The
+/// one rule both the ID token and `/userinfo` apply, so the two cannot drift
+/// apart (ADR 0013 (c)).
 struct Released {
     name: Option<String>,
     email: Option<String>,
@@ -247,7 +251,10 @@ impl Released {
         let granted = |name: &str| scopes.iter().any(|scope| scope.as_str() == name);
         let email = account.email.clone().filter(|_| granted(EMAIL_SCOPE));
         Self {
-            name: granted(PROFILE_SCOPE).then(|| account.display_name.to_string()),
+            name: account
+                .chosen_name()
+                .filter(|_| granted(PROFILE_SCOPE))
+                .map(ToString::to_string),
             email_verified: email.as_ref().map(|_| false),
             email,
         }
@@ -255,7 +262,8 @@ impl Released {
 }
 
 /// The `/userinfo` answer (OpenID Connect Core §5.3.2): `sub` and
-/// `account_type` always, the rest as the token's scopes release it. `iss`,
+/// `account_type` always, the rest as the token's scopes release it — never
+/// a `name` for a guest. `iss`,
 /// `aud` and `amr` are the ID token's business and are not repeated; Core
 /// requires only `sub`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -408,7 +416,7 @@ pub fn id_token_hint(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::clients::{Audience, ClientKind, ClientName, RedirectUri};
+    use crate::clients::{Audience, ClientKind, ClientName, GuestGrantsPerMinute, RedirectUri};
     use crate::oidc::SigningKeys;
     use crate::testing::{DEV_SIGNING_KEY, display_name, scopes};
 
@@ -422,6 +430,7 @@ mod tests {
             post_logout_redirect_uris: vec![],
             first_party: true,
             guest_login_allowed: false,
+            guest_grants_per_minute: GuestGrantsPerMinute::default(),
             scopes: scopes(&["openid", "profile", "email"]),
             audience: Audience::try_new("ligretto").unwrap(),
             created_at: OffsetDateTime::UNIX_EPOCH,
@@ -434,6 +443,7 @@ mod tests {
             display_name: display_name("Ada"),
             r#type,
             email: email.map(str::to_owned),
+            created_by_client_id: None,
             created_at: OffsetDateTime::UNIX_EPOCH,
             last_seen_at: OffsetDateTime::UNIX_EPOCH,
         }
@@ -604,6 +614,33 @@ mod tests {
         assert!(no_address.get("email").is_none(), "{no_address}");
         assert!(no_address.get("email_verified").is_none(), "{no_address}");
     }
+
+    /// A guest's column holds a filler, not a name: `profile` releases
+    /// nothing for it, in the ID token and at `/userinfo` alike, and `email`
+    /// nothing either, since a guest has no address.
+    #[test]
+    fn a_guest_has_no_name_to_release() {
+        let guest = account(AccountType::Guest, None);
+        let granted = scopes(&["openid", "profile", "email"]);
+
+        let id = serde_json::to_value(IdTokenClaims::new(
+            "i",
+            &client(),
+            &guest,
+            &granted,
+            None,
+            at(0),
+        ))
+        .unwrap();
+        for absent in ["name", "email", "email_verified"] {
+            assert!(id.get(absent).is_none(), "{absent}: {id}");
+        }
+        assert_eq!(
+            serde_json::to_value(UserInfoClaims::new(&guest, &granted)).unwrap(),
+            serde_json::json!({"sub": guest.id.to_string(), "account_type": "guest"})
+        );
+    }
+
     const ISSUER: &str = "https://cas.example";
 
     fn keys() -> SigningKeys {
