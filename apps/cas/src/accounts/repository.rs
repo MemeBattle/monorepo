@@ -113,6 +113,67 @@ where
     .await
 }
 
+/// Looks an account up by id and locks its row `FOR UPDATE` for the rest of
+/// the caller's transaction. The guest upgrade takes it first: `FOR UPDATE`
+/// rather than `FOR NO KEY UPDATE`, so that an insert referencing the
+/// account — a session a racing `/authorize` opens, a grant — waits for the
+/// upgrade to commit (ADR 0015 (f)). `Ok(None)` means no such account.
+pub(crate) async fn lock<'e, E>(executor: E, id: Uuid) -> Result<Option<Account>, sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    sqlx::query_as!(
+        Account,
+        r#"SELECT
+               id,
+               display_name AS "display_name: DisplayName",
+               type AS "type: AccountType",
+               email,
+               created_by_client_id AS "created_by_client_id: ClientId",
+               created_at,
+               last_seen_at
+           FROM accounts
+           WHERE id = $1
+           FOR UPDATE"#,
+        id,
+    )
+    .fetch_optional(executor)
+    .await
+}
+
+/// Turns a guest into a full account in place, with the name it chose, and
+/// returns the row. The id — the OIDC `sub` — stays, and so do
+/// `created_by_client_id` (provenance, ADR 0014 (b)) and the email.
+/// `Ok(None)` when there is no such account or it is not a guest: an
+/// account is upgraded once.
+pub(crate) async fn upgrade_guest<'e, E>(
+    executor: E,
+    id: Uuid,
+    display_name: &DisplayName,
+) -> Result<Option<Account>, sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    sqlx::query_as!(
+        Account,
+        r#"UPDATE accounts
+           SET type = 'full', display_name = $2
+           WHERE id = $1 AND type = 'guest'
+           RETURNING
+               id,
+               display_name AS "display_name: DisplayName",
+               type AS "type: AccountType",
+               email,
+               created_by_client_id AS "created_by_client_id: ClientId",
+               created_at,
+               last_seen_at"#,
+        id,
+        display_name as _,
+    )
+    .fetch_optional(executor)
+    .await
+}
+
 /// How many accounts `client_id` minted in the last `window`, whatever their
 /// type is now: an upgraded guest still counts for its minute. The guest
 /// grant's rate limit (ADR 0014 (e)).
@@ -503,6 +564,54 @@ mod tests {
         let found = repository.get(created.id).await.unwrap();
 
         assert_eq!(found, Some(created));
+    }
+
+    /// The upgrade flips the type and replaces the generated name, once;
+    /// the id, the minting client and the timestamps stay.
+    #[sqlx::test]
+    async fn upgrade_guest_makes_a_guest_full_once(pool: PgPool) {
+        register_public_client(&pool, CLIENT, &[]).await;
+        let guest = guest_of(&pool, CLIENT).await;
+        let full = insert(&pool, NewAccount::full(display_name("Bob")))
+            .await
+            .unwrap();
+
+        let upgraded = upgrade_guest(&pool, guest.id, &display_name("Ada"))
+            .await
+            .unwrap()
+            .expect("a guest is upgraded");
+
+        assert_eq!(upgraded.id, guest.id);
+        assert_eq!(upgraded.r#type, AccountType::Full);
+        assert_eq!(upgraded.display_name.as_ref(), "Ada");
+        assert_eq!(upgraded.created_by_client_id, guest.created_by_client_id);
+        assert_eq!(upgraded.created_at, guest.created_at);
+        assert_eq!(get(&pool, guest.id).await.unwrap(), Some(upgraded));
+        assert_eq!(
+            upgrade_guest(&pool, guest.id, &display_name("Eve"))
+                .await
+                .unwrap(),
+            None,
+            "a second upgrade finds no guest"
+        );
+        assert_eq!(
+            upgrade_guest(&pool, full.id, &display_name("Eve"))
+                .await
+                .unwrap(),
+            None
+        );
+        assert_eq!(get(&pool, full.id).await.unwrap(), Some(full));
+    }
+
+    #[sqlx::test]
+    async fn lock_returns_the_row(pool: PgPool) {
+        let account = insert(&pool, NewAccount::full(display_name("Ada")))
+            .await
+            .unwrap();
+
+        let mut tx = pool.begin().await.unwrap();
+        assert_eq!(lock(&mut *tx, account.id).await.unwrap(), Some(account));
+        assert_eq!(lock(&mut *tx, Uuid::new_v4()).await.unwrap(), None);
     }
 
     #[sqlx::test]

@@ -185,6 +185,37 @@ mod tests {
         }
     }
 
+    /// An upgrade session is no session here (ADR 0015 (a)): listing,
+    /// renaming and deleting are the same 401 as with no cookie.
+    #[sqlx::test]
+    async fn an_upgrade_session_is_unauthenticated(pool: PgPool) {
+        let upgrade = crate::testing::upgrade_signed_in(&pool).await;
+        let app = router(test_state(pool));
+        let id = Uuid::new_v4();
+
+        for (method, uri, body) in [
+            ("GET", "/".to_owned(), None),
+            ("PATCH", format!("/{id}"), Some(r#"{"name":"x"}"#)),
+            ("DELETE", format!("/{id}"), None),
+        ] {
+            let response = app
+                .clone()
+                .oneshot(request(method, &uri, Some(&upgrade.cookie), body))
+                .await
+                .unwrap();
+
+            assert_eq!(
+                response.status(),
+                StatusCode::UNAUTHORIZED,
+                "{method} {uri}"
+            );
+            assert_eq!(
+                body_json(response).await["error"]["code"],
+                "unauthenticated"
+            );
+        }
+    }
+
     #[sqlx::test]
     async fn every_endpoint_needs_a_session(pool: PgPool) {
         let app = router(test_state(pool));

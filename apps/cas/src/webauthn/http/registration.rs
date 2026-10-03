@@ -1,7 +1,21 @@
 //! The passkey registration endpoints: issuing a challenge and verifying the
 //! browser's answer.
+//!
+//! Without a session, or with a full one, they create an account. Under an
+//! upgrade session — which `/authorize` opened for a guest's `id_token_hint`
+//! — the same two requests run the guest upgrade instead: the passkey goes
+//! to the guest, which becomes a full account with the same id, and the
+//! upgrade session is rotated into a full one (ADR 0015 (e)). The session
+//! decides, not a parameter; the request and response bodies are the same.
+//! These are the only `/api` endpoints an upgrade session may use, which is
+//! why they read the session with `resolve_session` rather than through the
+//! `Authenticated` extractor, which refuses one.
 
-use axum::{Json, extract::State};
+use axum::{
+    Json,
+    extract::{OriginalUri, State},
+    http::{Extensions, HeaderMap},
+};
 use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -10,9 +24,12 @@ use webauthn_rs::prelude::{CreationChallengeResponse, CredentialID, RegisterPubl
 use crate::accounts::{DisplayName, DisplayNameError};
 use crate::http::ApiState;
 use crate::http::error::ApiError;
-use crate::http::extract::Json as AppJson;
-use crate::sessions::SessionOrigin;
+use crate::http::extract::{Json as AppJson, original_path};
+use crate::sessions::http::extract::resolve_session;
+use crate::sessions::service::CreateError;
+use crate::sessions::{Authenticated, SessionKind, SessionOrigin};
 use crate::webauthn::registration::{FinishError, StartError};
+use crate::webauthn::upgrade::UpgradeError;
 
 /// The name is validated by the handler rather than by the body type, so a bad
 /// one gets this code instead of a generic `invalid_body`.
@@ -55,6 +72,37 @@ impl From<FinishError> for ApiError {
     }
 }
 
+/// The upgrade fails the way a registration does, with the same codes, plus
+/// the two ways only it can fail.
+impl From<UpgradeError> for ApiError {
+    fn from(error: UpgradeError) -> Self {
+        match error {
+            UpgradeError::Finish(error) => ApiError::from(error),
+            // The upgrade session is gone or its account is full already:
+            // the same answer, code and message, as a request with no
+            // session behind the extractor.
+            UpgradeError::SessionEnded => {
+                ApiError::unauthorized("unauthenticated", "Sign in to continue")
+            }
+            UpgradeError::Random(error) => ApiError::from(CreateError::Random(error)),
+        }
+    }
+}
+
+/// The upgrade session the request carries, if it carries one. Any other
+/// state — no cookie, a dead one, a full session — is `None`, and the
+/// request is an ordinary registration.
+async fn upgrade_session(
+    state: &ApiState,
+    headers: &HeaderMap,
+    extensions: &Extensions,
+    uri: &axum::http::Uri,
+) -> Result<Option<Authenticated>, ApiError> {
+    let path = original_path(extensions, uri);
+    let authenticated = resolve_session(state, headers, extensions, path).await?;
+    Ok(authenticated.filter(|authenticated| authenticated.session.kind == SessionKind::Upgrade))
+}
+
 #[derive(Debug, Serialize, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RegistrationOptionsRequest {
@@ -89,13 +137,21 @@ pub struct VerifyRegistrationResponse {
     credential_id: CredentialID,
 }
 
+/// The challenge for a new account, or, under an upgrade session, for the
+/// guest's first passkey with the guest's id as the user handle.
 pub(super) async fn get_registration_options(
     State(state): State<ApiState>,
+    OriginalUri(uri): OriginalUri,
+    headers: HeaderMap,
+    extensions: Extensions,
     AppJson(request): AppJson<RegistrationOptionsRequest>,
 ) -> Result<Json<RegistrationOptionsResponse>, ApiError> {
     let display_name = DisplayName::try_new(request.display_name)?;
 
-    let started = state.registration.start(display_name).await?;
+    let started = match upgrade_session(&state, &headers, &extensions, &uri).await? {
+        Some(upgrade) => state.upgrade.start(&upgrade.account, display_name).await?,
+        None => state.registration.start(display_name).await?,
+    };
 
     Ok(Json(RegistrationOptionsResponse {
         registration_id: started.registration_id,
@@ -104,12 +160,35 @@ pub(super) async fn get_registration_options(
 }
 
 /// A finished registration signs the new account in: the response sets the
-/// session cookie alongside the body.
+/// session cookie alongside the body. Under an upgrade session the guest is
+/// upgraded instead, and the cookie is the full session the upgrade session
+/// was rotated into, inside the upgrade's transaction.
 pub(super) async fn verify_registration(
     State(state): State<ApiState>,
+    OriginalUri(uri): OriginalUri,
+    headers: HeaderMap,
+    extensions: Extensions,
     jar: CookieJar,
     AppJson(data): AppJson<VerifyRegistrationData>,
 ) -> Result<(CookieJar, Json<VerifyRegistrationResponse>), ApiError> {
+    if let Some(upgrade) = upgrade_session(&state, &headers, &extensions, &uri).await? {
+        let upgraded = state
+            .upgrade
+            .finish(&upgrade.session, data.registration_id, &data.response)
+            .await?;
+        return Ok((
+            jar.add(
+                state
+                    .cookies
+                    .session(&upgraded.issued.token, &upgraded.issued.session),
+            ),
+            Json(VerifyRegistrationResponse {
+                account_id: upgraded.account.id,
+                credential_id: upgraded.credential.passkey.cred_id().clone(),
+            }),
+        ));
+    }
+
     let registered = state
         .registration
         .finish(data.registration_id, &data.response)
@@ -268,6 +347,131 @@ mod tests {
             .unwrap()
             .expect("the cookie must carry a live session");
         assert_eq!(authenticated.account.id, account_id);
+    }
+
+    fn with_cookie(mut request: Request<Body>, cookie: &str) -> Request<Body> {
+        request
+            .headers_mut()
+            .insert(header::COOKIE, cookie.parse().unwrap());
+        request
+    }
+
+    /// Under an upgrade session the same two requests upgrade the guest: the
+    /// challenge's user handle is the guest's id, the finish answers with
+    /// that id, and its cookie is a new full session while the upgrade
+    /// session's cookie no longer authenticates (ADR 0015 (e), (f)).
+    #[sqlx::test]
+    async fn under_an_upgrade_session_registration_upgrades_the_guest(pool: PgPool) {
+        let upgrade = crate::testing::upgrade_signed_in(&pool).await;
+        let app = test_app(pool.clone());
+
+        let response = app
+            .clone()
+            .oneshot(with_cookie(
+                register_options_request("Ada"),
+                &upgrade.cookie,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let options: RegistrationOptionsResponse =
+            serde_json::from_value(body_json(response).await).unwrap();
+        let user_id = Uuid::from_slice(options.ccr.public_key.user.id.as_ref()).unwrap();
+        assert_eq!(user_id, upgrade.account.id);
+        let attestation = soft_passkey_registration(options.ccr);
+
+        let response = app
+            .oneshot(with_cookie(
+                json_request(
+                    "/verify-registration",
+                    serde_json::json!({
+                        "registrationId": options.registration_id,
+                        "response": attestation,
+                    }),
+                ),
+                &upgrade.cookie,
+            ))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let token = session_cookie(&response, test_cookies().name())
+            .expect("the upgrade rotates the session");
+        assert_ne!(token, upgrade.token);
+        let body = body_json(response).await;
+        assert_eq!(body["accountId"], upgrade.account.id.to_string());
+
+        let account = AccountRepository::new(pool.clone())
+            .get(upgrade.account.id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(account.r#type, AccountType::Full);
+        assert_eq!(account.display_name.as_ref(), "Ada");
+        let sessions = SessionService::new(pool);
+        let (authenticated, _) = sessions
+            .authenticate(&token)
+            .await
+            .unwrap()
+            .expect("the new cookie carries a live session");
+        assert_eq!(authenticated.account.id, upgrade.account.id);
+        assert_eq!(authenticated.session.kind, SessionKind::Full);
+        assert_eq!(sessions.authenticate(&upgrade.token).await.unwrap(), None);
+    }
+
+    /// An upgrade ceremony is finished by its upgrade session only: without
+    /// it, the id names no registration.
+    #[sqlx::test]
+    async fn an_upgrade_ceremony_without_its_session_is_not_found(pool: PgPool) {
+        let upgrade = crate::testing::upgrade_signed_in(&pool).await;
+        let app = test_app(pool.clone());
+        let response = app
+            .clone()
+            .oneshot(with_cookie(
+                register_options_request("Ada"),
+                &upgrade.cookie,
+            ))
+            .await
+            .unwrap();
+        let options: RegistrationOptionsResponse =
+            serde_json::from_value(body_json(response).await).unwrap();
+        let attestation = soft_passkey_registration(options.ccr);
+
+        let response = app
+            .oneshot(json_request(
+                "/verify-registration",
+                serde_json::json!({
+                    "registrationId": options.registration_id,
+                    "response": attestation,
+                }),
+            ))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        assert_eq!(
+            body_json(response).await["error"]["code"],
+            "registration_not_found"
+        );
+        let account = AccountRepository::new(pool)
+            .get(upgrade.account.id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(account.r#type, AccountType::Guest);
+    }
+
+    /// An upgrade that lost its session — revoked, or the guest upgraded by
+    /// another browser — answers like a request with no session.
+    #[tokio::test]
+    async fn an_ended_upgrade_session_is_unauthenticated() {
+        let response = ApiError::from(UpgradeError::SessionEnded).into_response();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            body_json(response).await["error"]["code"],
+            "unauthenticated"
+        );
     }
 
     /// The challenge answers exactly one request; a replayed finish finds no

@@ -1,6 +1,10 @@
 //! The `Authenticated` extractor: a handler that takes one runs only for a
-//! request carrying a live session cookie, and gets the session and the
-//! account. Everything else is a 401 before the handler is entered.
+//! request carrying a live **full** session cookie, and gets the session and
+//! the account. Everything else is a 401 before the handler is entered —
+//! an upgrade session included, so every endpoint behind the extractor,
+//! present and future, is closed to one without opting out (ADR 0015 (a)).
+//! The few places an upgrade session may go call [`resolve_session`]
+//! themselves.
 //!
 //! When authenticating renewed the session, the extractor leaves the fresh
 //! cookie in the request's [`renewal`] slot for the layer to put on the
@@ -20,7 +24,7 @@ use crate::http::ApiState;
 use crate::http::error::ApiError;
 use crate::http::extract::original_path;
 use crate::sessions::http::renewal::{self, RenewalSlot};
-use crate::sessions::{Authenticated, Renewal, SessionToken};
+use crate::sessions::{Authenticated, Renewal, SessionKind, SessionToken};
 
 /// One code for every way a request can fail to be authenticated — no
 /// cookie, a malformed one, an unknown, expired or revoked session — so a
@@ -41,17 +45,35 @@ where
         let state = ApiState::from_ref(state);
         let path = original_path(&parts.extensions, &parts.uri);
 
-        resolve_session(&state, &parts.headers, &parts.extensions, path)
+        let authenticated = resolve_session(&state, &parts.headers, &parts.extensions, path)
             .await?
-            .ok_or_else(unauthenticated)
+            .ok_or_else(unauthenticated)?;
+
+        // Default deny: an upgrade session may only register its account's
+        // passkey and continue `/authorize`, and neither takes this
+        // extractor. Answered exactly like no session at all; the warning is
+        // there because a browser holding one has no business here unless
+        // something is probing what it can do.
+        if authenticated.session.kind == SessionKind::Upgrade {
+            tracing::warn!(
+                session_id = %authenticated.session.id,
+                path,
+                "an upgrade session was refused"
+            );
+            return Err(unauthenticated());
+        }
+
+        Ok(authenticated)
     }
 }
 
-/// The session a request's cookie names, if it names a live one: the body
-/// of the extractor, for a handler that must decide for itself what a
-/// missing session or a database failure means. `/authorize` is one: it
-/// validates the request first and answers a failure through its own
-/// channels (ADR 0010 (g)).
+/// The session a request's cookie names, if it names a live one, of either
+/// kind: the body of the extractor, for a handler that must decide for
+/// itself what a missing session, an upgrade session or a database failure
+/// means. `/authorize` is one: it validates the request first and answers a
+/// failure through its own channels (ADR 0010 (g)), and it sends an upgrade
+/// session on to create-account. The registration endpoints are the other:
+/// under an upgrade session they run the guest upgrade (ADR 0015 (e)).
 ///
 /// Renews the session when due, exactly as the extractor does, and leaves
 /// the fresh cookie in the request's [`RenewalSlot`] when the router carries
@@ -107,7 +129,9 @@ mod tests {
 
     use crate::accounts::{AccountRepository, NewAccount};
     use crate::sessions::{SessionOrigin, SessionService};
+    use crate::testing::register_public_client;
     use crate::testing::{capture_tracing, display_name, test_cookies, test_state};
+    use uuid::Uuid;
 
     async fn whoami(authenticated: Authenticated) -> String {
         authenticated.account.id.to_string()
@@ -223,6 +247,71 @@ mod tests {
             "{:?}",
             events.all()
         );
+    }
+
+    /// A guest with an upgrade session; returns the session's id and token.
+    async fn upgrade_session(pool: &PgPool) -> (Uuid, SessionToken) {
+        let client = register_public_client(pool, "ligretto", &[]).await;
+        let guest = AccountRepository::new(pool.clone())
+            .create(NewAccount::guest(client.id, 1))
+            .await
+            .unwrap();
+        let issued = SessionService::new(pool.clone())
+            .open_upgrade(guest.id)
+            .await
+            .unwrap();
+        (issued.session.id, issued.token)
+    }
+
+    /// The extractor admits full sessions only: an upgrade session is the
+    /// same 401 as no session, with a warning that names the session and the
+    /// path, never the cookie.
+    #[sqlx::test]
+    async fn an_upgrade_session_is_unauthenticated(pool: PgPool) {
+        let (events, _guard) = capture_tracing();
+        let (session_id, token) = upgrade_session(&pool).await;
+        let cookie = format!("{}={}", test_cookies().name(), token.expose());
+
+        let response = app(pool).oneshot(request(Some(&cookie))).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(body["error"]["code"], "unauthenticated");
+        let [warning] = &events.mentioning("an upgrade session was refused")[..] else {
+            panic!("exactly one warning: {:?}", events.all());
+        };
+        assert!(warning.starts_with("WARN"), "{warning}");
+        assert!(warning.contains(&session_id.to_string()), "{warning}");
+        assert!(warning.contains("path=\"/api/whoami\""), "{warning}");
+        for event in events.all() {
+            assert!(
+                !event.contains(token.expose()),
+                "the cookie value must never be logged: {event}"
+            );
+        }
+    }
+
+    /// `resolve_session` sees an upgrade session for what it is.
+    #[sqlx::test]
+    async fn resolve_session_returns_an_upgrade_session_with_its_kind(pool: PgPool) {
+        let (session_id, token) = upgrade_session(&pool).await;
+        let name = test_cookies().name();
+
+        let resolved = resolve_session(
+            &test_state(pool),
+            &cookie_headers(Some(&format!("{name}={}", token.expose()))),
+            &Extensions::new(),
+            "/authorize",
+        )
+        .await
+        .unwrap()
+        .expect("a live upgrade session");
+
+        assert_eq!(resolved.session.id, session_id);
+        assert_eq!(resolved.session.kind, SessionKind::Upgrade);
     }
 
     fn cookie_headers(cookie: Option<&str>) -> HeaderMap {

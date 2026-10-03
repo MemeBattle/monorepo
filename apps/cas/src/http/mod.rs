@@ -34,7 +34,7 @@ use crate::http::fetch_metadata::AllowedOrigins;
 use crate::oidc::http::{self as oidc_http, Documents};
 use crate::oidc::{
     AuthorizationService, Discovery, EndSessionService, SigningKeyError, SigningKeys, TokenService,
-    UserInfoService,
+    UpgradeHintService, UserInfoService,
 };
 use crate::sessions::SessionService;
 use crate::sessions::http as sessions_http;
@@ -45,6 +45,7 @@ use crate::webauthn::http as webauthn_http;
 use crate::webauthn::login::LoginService;
 use crate::webauthn::management::PasskeyManagement;
 use crate::webauthn::registration::RegistrationService;
+use crate::webauthn::upgrade::UpgradeService;
 
 /// Why the router could not be built. Everything here fails at startup, before
 /// a single request is served.
@@ -73,6 +74,9 @@ pub struct ApiState {
     pub registration: RegistrationService,
     pub login: LoginService,
     pub addition: AdditionService,
+    /// The guest upgrade, run by the registration endpoints under an upgrade
+    /// session (ADR 0015).
+    pub upgrade: UpgradeService,
     pub passkeys: PasskeyManagement,
     pub accounts: AccountManagement,
     pub sessions: SessionService,
@@ -84,6 +88,9 @@ pub struct ApiState {
     pub userinfo: UserInfoService,
     /// `/end_session`, verifying logout hints against every published key.
     pub end_session: EndSessionService,
+    /// `/authorize`, verifying a guest's `id_token_hint` against every
+    /// published key (ADR 0015 (c)).
+    pub upgrade_hints: UpgradeHintService,
     /// The frontend's origin (`CAS_ORIGIN`): where the sign-in screen is,
     /// for `/authorize` to send an anonymous request to.
     pub frontend_origin: Url,
@@ -131,7 +138,8 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
     let api_state = ApiState {
         registration: RegistrationService::new(webauthn.clone(), pool.clone()),
         login: LoginService::new(webauthn.clone(), pool.clone()),
-        addition: AdditionService::new(webauthn, pool.clone()),
+        addition: AdditionService::new(webauthn.clone(), pool.clone()),
+        upgrade: UpgradeService::new(webauthn, pool.clone()),
         passkeys: PasskeyManagement::new(pool.clone()),
         accounts: AccountManagement::new(pool.clone()),
         sessions: SessionService::new(pool.clone()),
@@ -145,9 +153,10 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
         userinfo: UserInfoService::new(pool.clone(), verifying_keys.clone(), config.issuer.clone()),
         end_session: EndSessionService::new(
             AuthorizationService::new(pool.clone()),
-            verifying_keys,
+            verifying_keys.clone(),
             config.issuer.clone(),
         ),
+        upgrade_hints: UpgradeHintService::new(pool.clone(), verifying_keys, config.issuer.clone()),
         frontend_origin: config.origin.clone(),
     };
 

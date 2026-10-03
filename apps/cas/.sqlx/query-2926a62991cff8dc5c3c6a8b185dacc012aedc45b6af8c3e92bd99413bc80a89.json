@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, account_id, created_at, expires_at, last_seen_at,\n                  last_seen_at <= now() - make_interval(secs => $3) AS \"renewal_due!\"\n           FROM sessions\n           WHERE token_hash = $1\n             AND expires_at > now()\n             AND last_seen_at > now() - make_interval(secs => $2)",
+  "query": "INSERT INTO sessions (account_id, token_hash, kind, expires_at)\n           VALUES ($1, $2, $3, now() + make_interval(secs => $4))\n           RETURNING\n               id,\n               account_id,\n               kind AS \"kind: SessionKind\",\n               created_at,\n               expires_at,\n               last_seen_at",
   "describe": {
     "columns": [
       {
@@ -27,6 +27,27 @@
       },
       {
         "ordinal": 2,
+        "name": "kind: SessionKind",
+        "type_info": {
+          "Custom": {
+            "name": "session_kind",
+            "kind": {
+              "Enum": [
+                "full",
+                "upgrade"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "sessions",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -37,7 +58,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "expires_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -48,7 +69,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "last_seen_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -57,18 +78,23 @@
             "name": "last_seen_at"
           }
         }
-      },
-      {
-        "ordinal": 5,
-        "name": "renewal_due!",
-        "type_info": "Bool",
-        "origin": "Expression"
       }
     ],
     "parameters": {
       "Left": [
+        "Uuid",
         "Bytea",
-        "Float8",
+        {
+          "Custom": {
+            "name": "session_kind",
+            "kind": {
+              "Enum": [
+                "full",
+                "upgrade"
+              ]
+            }
+          }
+        },
         "Float8"
       ]
     },
@@ -78,8 +104,8 @@
       false,
       false,
       false,
-      null
+      false
     ]
   },
-  "hash": "d959a86751b33822ea19aa36e09d612f348c493eebe87460738644c58ab5e8b3"
+  "hash": "2926a62991cff8dc5c3c6a8b185dacc012aedc45b6af8c3e92bd99413bc80a89"
 }

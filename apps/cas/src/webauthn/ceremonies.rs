@@ -34,6 +34,9 @@ pub enum CeremonyKind {
     Authentication,
     /// Another passkey for an account that is already signed in.
     Addition,
+    /// The first passkey of a guest, under an upgrade session: finishing it
+    /// turns the guest into a full account (ADR 0015 (e)).
+    Upgrade,
 }
 
 /// State that can be parked in the ceremony table. The kind belongs to the
@@ -41,6 +44,15 @@ pub enum CeremonyKind {
 /// caller has to remember to pass the matching one.
 pub trait Ceremony: Serialize + DeserializeOwned {
     const KIND: CeremonyKind;
+
+    /// The existing account the ceremony is bound to, stored in the row's
+    /// `account_id` column so that an account's pending ceremonies can be
+    /// found without reading `state` (ADR 0015 (g)). `None` for a ceremony
+    /// whose account does not exist yet (registration) or is not known
+    /// (login).
+    fn account_id(&self) -> Option<Uuid> {
+        None
+    }
 }
 
 /// What consuming a ceremony found. A row that was deleted but does not
@@ -94,6 +106,31 @@ pub struct PendingAddition {
 
 impl Ceremony for PendingAddition {
     const KIND: CeremonyKind = CeremonyKind::Addition;
+
+    fn account_id(&self) -> Option<Uuid> {
+        Some(self.account_id)
+    }
+}
+
+/// A guest upgrade in flight: the first passkey of a guest account, started
+/// under the guest's upgrade session. The account id is the guest's — the
+/// WebAuthn user handle, which is what keeps the `sub` — and the finish
+/// checks that the session still names it, as for an addition. The display
+/// name is the one the guest chose on the create-account screen; it replaces
+/// the generated one when the upgrade commits.
+#[derive(Debug, Serialize, serde::Deserialize)]
+pub struct PendingUpgrade {
+    pub account_id: Uuid,
+    pub display_name: DisplayName,
+    pub state: DiscoverableRegistration,
+}
+
+impl Ceremony for PendingUpgrade {
+    const KIND: CeremonyKind = CeremonyKind::Upgrade;
+
+    fn account_id(&self) -> Option<Uuid> {
+        Some(self.account_id)
+    }
 }
 
 /// A login in flight. It carries no account: the challenge goes out without

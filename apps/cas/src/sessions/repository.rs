@@ -5,7 +5,7 @@
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-use super::{SESSION_IDLE_TIMEOUT, SESSION_LIFETIME, SESSION_RENEWAL_WINDOW, Session, TokenHash};
+use super::{SESSION_IDLE_TIMEOUT, SESSION_RENEWAL_WINDOW, Session, SessionKind, TokenHash};
 
 /// A live session as `find_live` returns it, with the one thing the service
 /// cannot see from the row alone: whether the idle clock is due for a reset,
@@ -16,25 +16,34 @@ pub(super) struct Live {
     pub renewal_due: bool,
 }
 
-/// Inserts a session for an account. `expires_at` is measured by the
-/// database clock so every replica agrees on it; the idle clock starts now.
+/// Inserts a session of `kind` for an account. `expires_at` is the kind's
+/// lifetime, measured by the database clock so every replica agrees on it;
+/// the idle clock starts now.
 pub(super) async fn insert<'e, E>(
     executor: E,
     account_id: Uuid,
     token_hash: &TokenHash,
+    kind: SessionKind,
 ) -> Result<Session, sqlx::Error>
 where
     E: sqlx::PgExecutor<'e>,
 {
-    let ttl_secs = SESSION_LIFETIME.as_secs_f64();
+    let ttl_secs = kind.lifetime().as_secs_f64();
 
     sqlx::query_as!(
         Session,
-        r#"INSERT INTO sessions (account_id, token_hash, expires_at)
-           VALUES ($1, $2, now() + make_interval(secs => $3))
-           RETURNING id, account_id, created_at, expires_at, last_seen_at"#,
+        r#"INSERT INTO sessions (account_id, token_hash, kind, expires_at)
+           VALUES ($1, $2, $3, now() + make_interval(secs => $4))
+           RETURNING
+               id,
+               account_id,
+               kind AS "kind: SessionKind",
+               created_at,
+               expires_at,
+               last_seen_at"#,
         account_id,
         token_hash.as_ref(),
+        kind as SessionKind,
         ttl_secs,
     )
     .fetch_one(executor)
@@ -56,7 +65,8 @@ where
     let window_secs = SESSION_RENEWAL_WINDOW.as_secs_f64();
 
     let row = sqlx::query!(
-        r#"SELECT id, account_id, created_at, expires_at, last_seen_at,
+        r#"SELECT id, account_id, kind AS "kind: SessionKind", created_at, expires_at,
+                  last_seen_at,
                   last_seen_at <= now() - make_interval(secs => $3) AS "renewal_due!"
            FROM sessions
            WHERE token_hash = $1
@@ -73,6 +83,7 @@ where
         session: Session {
             id: row.id,
             account_id: row.account_id,
+            kind: row.kind,
             created_at: row.created_at,
             expires_at: row.expires_at,
             last_seen_at: row.last_seen_at,
@@ -126,11 +137,29 @@ where
     .await
 }
 
+/// Deletes every session of an account and returns the ids it removed, on
+/// the caller's executor: the guest upgrade ends them all inside the
+/// transaction that holds the account's row lock (ADR 0015 (f)).
+pub(super) async fn delete_all_for_account<'e, E>(
+    executor: E,
+    account_id: Uuid,
+) -> Result<Vec<Uuid>, sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    sqlx::query_scalar!(
+        "DELETE FROM sessions WHERE account_id = $1 RETURNING id",
+        account_id,
+    )
+    .fetch_all(executor)
+    .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::accounts::{AccountRepository, NewAccount};
-    use crate::sessions::SessionToken;
+    use crate::sessions::{SESSION_LIFETIME, SessionToken};
     use crate::testing::display_name;
     use sqlx::PgPool;
 
@@ -176,7 +205,9 @@ mod tests {
         let account_id = account(&pool).await;
         let hash = SessionToken::generate().unwrap().hash();
 
-        let inserted = insert(&pool, account_id, &hash).await.unwrap();
+        let inserted = insert(&pool, account_id, &hash, SessionKind::Full)
+            .await
+            .unwrap();
         let found = find_live(&pool, &hash).await.unwrap();
 
         assert_eq!(
@@ -207,7 +238,9 @@ mod tests {
     async fn an_expired_session_is_not_found_and_not_removed(pool: PgPool) {
         let account_id = account(&pool).await;
         let hash = SessionToken::generate().unwrap().hash();
-        let session = insert(&pool, account_id, &hash).await.unwrap();
+        let session = insert(&pool, account_id, &hash, SessionKind::Full)
+            .await
+            .unwrap();
         expire(&pool, session.id).await;
 
         let found = find_live(&pool, &hash).await.unwrap();
@@ -222,7 +255,9 @@ mod tests {
     async fn an_idle_session_is_not_found_and_not_removed(pool: PgPool) {
         let account_id = account(&pool).await;
         let hash = SessionToken::generate().unwrap().hash();
-        let session = insert(&pool, account_id, &hash).await.unwrap();
+        let session = insert(&pool, account_id, &hash, SessionKind::Full)
+            .await
+            .unwrap();
         last_seen(&pool, session.id, "7 days 1 second").await;
 
         let found = find_live(&pool, &hash).await.unwrap();
@@ -238,7 +273,9 @@ mod tests {
     async fn renewal_is_due_only_outside_the_window(pool: PgPool) {
         let account_id = account(&pool).await;
         let hash = SessionToken::generate().unwrap().hash();
-        let session = insert(&pool, account_id, &hash).await.unwrap();
+        let session = insert(&pool, account_id, &hash, SessionKind::Full)
+            .await
+            .unwrap();
 
         last_seen(&pool, session.id, "30 minutes").await;
         assert!(!find_live(&pool, &hash).await.unwrap().unwrap().renewal_due);
@@ -253,7 +290,9 @@ mod tests {
     async fn renew_resets_the_idle_clock_and_keeps_the_cap(pool: PgPool) {
         let account_id = account(&pool).await;
         let hash = SessionToken::generate().unwrap().hash();
-        let session = insert(&pool, account_id, &hash).await.unwrap();
+        let session = insert(&pool, account_id, &hash, SessionKind::Full)
+            .await
+            .unwrap();
         last_seen(&pool, session.id, "2 hours").await;
 
         let seen = renew(&pool, session.id).await.unwrap().expect("due");
@@ -271,7 +310,9 @@ mod tests {
     async fn renew_writes_nothing_inside_the_window_or_for_a_missing_session(pool: PgPool) {
         let account_id = account(&pool).await;
         let hash = SessionToken::generate().unwrap().hash();
-        let session = insert(&pool, account_id, &hash).await.unwrap();
+        let session = insert(&pool, account_id, &hash, SessionKind::Full)
+            .await
+            .unwrap();
 
         assert_eq!(renew(&pool, session.id).await.unwrap(), None);
         let live = find_live(&pool, &hash).await.unwrap().unwrap();
@@ -285,9 +326,14 @@ mod tests {
     #[sqlx::test]
     async fn a_session_lives_for_the_lifetime(pool: PgPool) {
         let account_id = account(&pool).await;
-        let session = insert(&pool, account_id, &SessionToken::generate().unwrap().hash())
-            .await
-            .unwrap();
+        let session = insert(
+            &pool,
+            account_id,
+            &SessionToken::generate().unwrap().hash(),
+            SessionKind::Full,
+        )
+        .await
+        .unwrap();
 
         // In seconds: a timestamp difference of 30 days comes back as an
         // interval of days, not microseconds. Unchecked query: see
@@ -309,7 +355,9 @@ mod tests {
     async fn delete_removes_the_session_once_and_returns_its_id(pool: PgPool) {
         let account_id = account(&pool).await;
         let hash = SessionToken::generate().unwrap().hash();
-        let session = insert(&pool, account_id, &hash).await.unwrap();
+        let session = insert(&pool, account_id, &hash, SessionKind::Full)
+            .await
+            .unwrap();
 
         assert_eq!(delete(&pool, &hash).await.unwrap(), Some(session.id));
         assert_eq!(delete(&pool, &hash).await.unwrap(), None);
@@ -322,19 +370,84 @@ mod tests {
     async fn a_hash_is_unique(pool: PgPool) {
         let account_id = account(&pool).await;
         let hash = SessionToken::generate().unwrap().hash();
-        insert(&pool, account_id, &hash).await.unwrap();
+        insert(&pool, account_id, &hash, SessionKind::Full)
+            .await
+            .unwrap();
 
-        let error = insert(&pool, account_id, &hash).await.unwrap_err();
+        let error = insert(&pool, account_id, &hash, SessionKind::Full)
+            .await
+            .unwrap_err();
 
         assert!(matches!(error, sqlx::Error::Database(db) if db.is_unique_violation()));
+    }
+
+    /// The kind is stored and read back, and an upgrade row's cap is the
+    /// upgrade lifetime, not the month a full session gets.
+    #[sqlx::test]
+    async fn the_kind_round_trips_and_sets_the_lifetime(pool: PgPool) {
+        let account_id = account(&pool).await;
+
+        for kind in [SessionKind::Full, SessionKind::Upgrade] {
+            let hash = SessionToken::generate().unwrap().hash();
+            let inserted = insert(&pool, account_id, &hash, kind).await.unwrap();
+            assert_eq!(inserted.kind, kind);
+            let found = find_live(&pool, &hash).await.unwrap().unwrap();
+            assert_eq!(found.session.kind, kind);
+
+            // Unchecked query: see docs/TESTS.md.
+            let lifetime_secs: f64 = sqlx::query_scalar(
+                "SELECT extract(epoch FROM expires_at - created_at)::float8 FROM sessions WHERE id = $1",
+            )
+            .bind(inserted.id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+            assert_eq!(lifetime_secs, kind.lifetime().as_secs_f64(), "{kind:?}");
+        }
+    }
+
+    /// Every session of the account goes, its ids come back, and another
+    /// account's sessions stay.
+    #[sqlx::test]
+    async fn delete_all_for_account_removes_that_accounts_sessions_only(pool: PgPool) {
+        let account_id = account(&pool).await;
+        let other = account(&pool).await;
+        let mut ids = Vec::new();
+        for kind in [SessionKind::Full, SessionKind::Upgrade] {
+            let hash = SessionToken::generate().unwrap().hash();
+            ids.push(insert(&pool, account_id, &hash, kind).await.unwrap().id);
+        }
+        let other_hash = SessionToken::generate().unwrap().hash();
+        insert(&pool, other, &other_hash, SessionKind::Full)
+            .await
+            .unwrap();
+
+        let mut deleted = delete_all_for_account(&pool, account_id).await.unwrap();
+        deleted.sort();
+        ids.sort();
+
+        assert_eq!(deleted, ids);
+        assert_eq!(count(&pool).await, 1);
+        assert!(find_live(&pool, &other_hash).await.unwrap().is_some());
+        assert!(
+            delete_all_for_account(&pool, account_id)
+                .await
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[sqlx::test]
     async fn deleting_an_account_deletes_its_sessions(pool: PgPool) {
         let account_id = account(&pool).await;
-        insert(&pool, account_id, &SessionToken::generate().unwrap().hash())
-            .await
-            .unwrap();
+        insert(
+            &pool,
+            account_id,
+            &SessionToken::generate().unwrap().hash(),
+            SessionKind::Full,
+        )
+        .await
+        .unwrap();
 
         // Unchecked query: see docs/TESTS.md.
         sqlx::query("DELETE FROM accounts WHERE id = $1")

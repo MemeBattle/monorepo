@@ -136,6 +136,35 @@ mod tests {
         body_json(response).await["email"].clone()
     }
 
+    /// The email is one of the endpoints an upgrade session may not use
+    /// (ADR 0015 (a)): a 401, and the row is untouched.
+    #[sqlx::test]
+    async fn an_upgrade_session_cannot_change_the_email(pool: PgPool) {
+        let client = crate::testing::register_public_client(&pool, "ligretto", &[]).await;
+        let guest = AccountRepository::new(pool.clone())
+            .create(NewAccount::guest(client.id, 1))
+            .await
+            .unwrap();
+        let issued = SessionService::new(pool.clone())
+            .open_upgrade(guest.id)
+            .await
+            .unwrap();
+        let cookie = format!("{}={}", test_cookies().name(), issued.token.expose());
+
+        let response = app(pool.clone())
+            .oneshot(patch_me(Some(&cookie), r#"{"email":"ada@example.com"}"#))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            body_json(response).await["error"]["code"],
+            "unauthenticated"
+        );
+        let stored = AccountRepository::new(pool).get(guest.id).await.unwrap();
+        assert_eq!(stored.unwrap().email, None);
+    }
+
     #[sqlx::test]
     async fn setting_changing_and_clearing_round_trip_through_me(pool: PgPool) {
         let cookie = signed_in(&pool).await;

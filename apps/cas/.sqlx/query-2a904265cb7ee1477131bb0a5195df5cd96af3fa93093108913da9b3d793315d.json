@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO webauthn_ceremonies (id, kind, state, expires_at)\n           VALUES ($1, $2, $3, now() + make_interval(secs => $4))",
+  "query": "INSERT INTO webauthn_ceremonies (id, kind, state, account_id, expires_at)\n           VALUES ($1, $2, $3, $4, now() + make_interval(secs => $5))",
   "describe": {
     "columns": [],
     "parameters": {
@@ -13,16 +13,18 @@
               "Enum": [
                 "registration",
                 "authentication",
-                "addition"
+                "addition",
+                "upgrade"
               ]
             }
           }
         },
         "Jsonb",
+        "Uuid",
         "Float8"
       ]
     },
     "nullable": []
   },
-  "hash": "f2430589eb5147b7ad885f3e3363feec3f25b4186839a974642e2856b6b1e7ad"
+  "hash": "2a904265cb7ee1477131bb0a5195df5cd96af3fa93093108913da9b3d793315d"
 }
