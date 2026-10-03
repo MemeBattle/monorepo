@@ -1,4 +1,5 @@
 import type { WithContext, Graph, Thing } from 'schema-dts'
+
 interface JsonLDScriptProps<T extends Thing> {
   jsonLD: WithContext<T> | Graph
 }
