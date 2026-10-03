@@ -1,6 +1,7 @@
 //! What the browser-facing endpoints, `/authorize` and `/end_session`,
 //! answer with besides a redirect to a trusted address: CAS's own error page
-//! (ADR 0010 (a), ADR 0013 (g)), and the `302` itself.
+//! (ADR 0010 (a), ADR 0013 (g)), the `302` itself, and the `405` for a
+//! `HEAD`.
 
 use axum::{
     http::{HeaderValue, StatusCode, header},
@@ -36,6 +37,13 @@ pub(super) fn found(location: &str) -> Response {
             ErrorPage::INTERNAL.into_response()
         }
     }
+}
+
+/// `405` naming the methods the endpoint serves. Both endpoints refuse
+/// `HEAD` with it: axum would otherwise serve it from the `GET` handler,
+/// and a `HEAD` must not act for a response nobody reads.
+pub(super) fn method_not_allowed(allow: &'static str) -> Response {
+    (StatusCode::METHOD_NOT_ALLOWED, [(header::ALLOW, allow)]).into_response()
 }
 
 /// CAS's own answer to a request it cannot send back to the client: a

@@ -14,14 +14,14 @@ use axum::{
     Router,
     body::{Body, to_bytes},
     extract::{OriginalUri, State},
-    http::{HeaderMap, HeaderValue, StatusCode, header},
+    http::{HeaderMap, HeaderValue, header},
     response::{IntoResponse, Response},
     routing::get,
 };
 use tower_http::set_header::SetResponseHeaderLayer;
 use url::Url;
 
-use super::page::{ErrorPage, found, redirect_with};
+use super::page::{ErrorPage, found, method_not_allowed, redirect_with};
 use super::token::{MAX_BODY_BYTES, is_form};
 use crate::http::ApiState;
 use crate::oidc::authorization::{PageError, Params};
@@ -43,20 +43,15 @@ pub fn end_session_router(state: ApiState) -> Router {
     Router::new()
         .route(
             "/end_session",
-            get(by_query).post(by_form).head(method_not_allowed),
+            get(by_query)
+                .post(by_form)
+                .head(|| async { method_not_allowed("GET, POST") }),
         )
         .route_layer(SetResponseHeaderLayer::overriding(
             header::CACHE_CONTROL,
             HeaderValue::from_static("no-store"),
         ))
         .with_state(state)
-}
-
-async fn method_not_allowed() -> impl IntoResponse {
-    (
-        StatusCode::METHOD_NOT_ALLOWED,
-        [(header::ALLOW, "GET, POST")],
-    )
 }
 
 async fn by_query(
@@ -85,11 +80,6 @@ async fn by_form(State(state): State<ApiState>, headers: HeaderMap, body: Body) 
 }
 
 async fn end_session(state: &ApiState, headers: &HeaderMap, params: &Params) -> Response {
-    if params.is_empty() {
-        return page(PageError::MalformedRequest(
-            "the request carries no parameters",
-        ));
-    }
     let request = match state.end_session.validate(params).await {
         Ok(request) => request,
         Err(EndSessionError::Refused(error)) => return page(error),
@@ -230,25 +220,23 @@ fn database_page(error: sqlx::Error) -> Response {
 
 #[cfg(test)]
 mod tests {
-    use axum::http::Request;
+    use axum::http::{Request, StatusCode};
     use sqlx::PgPool;
     use time::OffsetDateTime;
     use tower::ServiceExt;
     use url::form_urlencoded;
-    use uuid::Uuid;
 
     use super::*;
-    use crate::accounts::{Account, AccountRepository, NewAccount};
-    use crate::clients::{
-        Client, ClientId, ClientName, ClientRepository, NewClient, RedirectUri, Scope,
-    };
+    use crate::accounts::Account;
+    use crate::clients::{Client, ClientId};
     use crate::oidc::authorization::tests::{CALLBACK, CHALLENGE};
     use crate::oidc::http::{authorize_router, token_router};
-    use crate::oidc::{AccessTokenClaims, IdTokenClaims, SigningKey, SigningKeys};
-    use crate::sessions::{SessionOrigin, SessionService};
+    use crate::oidc::{SigningKey, SigningKeys};
+    use crate::sessions::SessionService;
     use crate::testing::{
-        TEST_ORIGIN, capture_tracing, display_name, fresh_signing_key_pem, test_config,
-        test_cookies, test_signing_key, test_state,
+        SignedIn, TEST_ORIGIN, capture_tracing, fresh_signing_key_pem, header_str,
+        register_public_client, signed_id_token, signed_in, test_cookies, test_signing_key,
+        test_state,
     };
 
     const CLIENT: &str = "ligretto-web";
@@ -257,57 +245,8 @@ mod tests {
     /// RFC 7636 Appendix B: the verifier of [`CHALLENGE`].
     const VERIFIER: &str = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
 
-    fn scopes(values: &[&str]) -> Vec<Scope> {
-        values
-            .iter()
-            .map(|value| Scope::try_new(*value).unwrap())
-            .collect()
-    }
-
     async fn register(pool: &PgPool, id: &str) -> Client {
-        ClientRepository::new(pool.clone())
-            .create(
-                NewClient::public(
-                    ClientId::try_new(id).unwrap(),
-                    ClientName::try_new("Ligretto web").unwrap(),
-                    vec![RedirectUri::try_new(CALLBACK).unwrap()],
-                )
-                .unwrap()
-                .first_party(true)
-                .with_scopes(scopes(&["openid", "profile", "email"]))
-                .with_post_logout_redirect_uris(vec![
-                    RedirectUri::try_new(SIGNED_OUT).unwrap(),
-                    RedirectUri::try_new(SIGNED_OUT_WITH_QUERY).unwrap(),
-                ]),
-            )
-            .await
-            .unwrap()
-    }
-
-    /// An account signed in to CAS: the account, the token its cookie
-    /// carries, and that `Cookie` header.
-    struct SignedIn {
-        account: Account,
-        token: SessionToken,
-        session_id: Uuid,
-        cookie: String,
-    }
-
-    async fn signed_in(pool: &PgPool, name: &str) -> SignedIn {
-        let account = AccountRepository::new(pool.clone())
-            .create(NewAccount::full(display_name(name)).with_email("ada@example.com"))
-            .await
-            .unwrap();
-        let issued = SessionService::new(pool.clone())
-            .create(account.id, SessionOrigin::Login)
-            .await
-            .unwrap();
-        SignedIn {
-            cookie: format!("{}={}", test_cookies().name(), issued.token.expose()),
-            account,
-            token: issued.token,
-            session_id: issued.session.id,
-        }
+        register_public_client(pool, id, &[SIGNED_OUT, SIGNED_OUT_WITH_QUERY]).await
     }
 
     struct Fixture {
@@ -335,15 +274,13 @@ mod tests {
             account: &Account,
             issued_at: OffsetDateTime,
         ) -> String {
-            let claims = IdTokenClaims::new(
-                &test_config().issuer,
+            signed_id_token(
+                key,
                 &self.client,
                 account,
-                &scopes(&["openid", "profile", "email"]),
-                None,
+                &["openid", "profile", "email"],
                 issued_at,
-            );
-            key.sign("JWT", &serde_json::to_vec(&claims).unwrap())
+            )
         }
 
         /// A fresh hint for Ada.
@@ -401,13 +338,6 @@ mod tests {
             .oneshot(request.body(body).unwrap())
             .await
             .unwrap()
-    }
-
-    fn header_str(response: &Response, name: header::HeaderName) -> Option<&str> {
-        response
-            .headers()
-            .get(name)
-            .map(|value| value.to_str().unwrap())
     }
 
     /// Whether the response removes the session cookie.
@@ -591,78 +521,31 @@ mod tests {
         assert!(!fixture.session_is_live(&fixture.ada.token).await);
     }
 
+    /// A request without a hint, and one whose hint does not verify: a
+    /// key that is not published, a forger's or one retired since. The
+    /// session stays. Every other reason a hint is refused for is covered
+    /// where it is decided, in `oidc::tokens` and `oidc::keys`.
     #[sqlx::test]
-    async fn a_missing_or_invalid_hint_is_a_page(pool: PgPool) {
+    async fn a_missing_or_unverifiable_hint_is_a_page(pool: PgPool) {
         let fixture = fixture(&pool).await;
-        let now = OffsetDateTime::now_utc();
-        let other_key = SigningKeys::from_pem(&fresh_signing_key_pem()).unwrap();
-        let access_token = test_signing_key().sign(
-            "at+jwt",
-            &serde_json::to_vec(&AccessTokenClaims::new(
-                &test_config().issuer,
-                &fixture.client,
-                &fixture.ada.account,
-                &scopes(&["openid"]),
-                now,
-            ))
-            .unwrap(),
-        );
-        let other_issuer = IdTokenClaims::new(
-            "https://other.example",
-            &fixture.client,
+        let unpublished = SigningKeys::from_pem(&fresh_signing_key_pem()).unwrap();
+        let unverifiable = fixture.hint_signed_by(
+            unpublished.active(),
             &fixture.ada.account,
-            &scopes(&["openid"]),
-            None,
-            now,
+            OffsetDateTime::now_utc(),
         );
-        let other_issuer =
-            test_signing_key().sign("JWT", &serde_json::to_vec(&other_issuer).unwrap());
 
-        let missing = fixture
-            .get(
-                &[("post_logout_redirect_uri", SIGNED_OUT)],
-                Some(&fixture.ada.cookie),
-            )
-            .await;
-        assert_page(missing, StatusCode::BAD_REQUEST, "invalid_request").await;
-
-        for hint in [
-            "garbled".to_owned(),
-            fixture.hint_signed_by(other_key.active(), &fixture.ada.account, now),
-            access_token,
-            other_issuer,
+        for pairs in [
+            &[][..],
+            &[("post_logout_redirect_uri", SIGNED_OUT)],
+            &[
+                ("id_token_hint", unverifiable.as_str()),
+                ("post_logout_redirect_uri", SIGNED_OUT),
+            ],
         ] {
-            let response = fixture
-                .get(
-                    &[
-                        ("id_token_hint", &hint),
-                        ("post_logout_redirect_uri", SIGNED_OUT),
-                    ],
-                    Some(&fixture.ada.cookie),
-                )
-                .await;
+            let response = fixture.get(pairs, Some(&fixture.ada.cookie)).await;
             assert_page(response, StatusCode::BAD_REQUEST, "invalid_request").await;
         }
-        assert!(fixture.session_is_live(&fixture.ada.token).await);
-    }
-
-    /// A retired key is one no longer published: what it signed is refused
-    /// like anything else unverifiable, and the session stays.
-    #[sqlx::test]
-    async fn a_hint_signed_by_a_retired_key_is_a_page(pool: PgPool) {
-        let fixture = fixture(&pool).await;
-        let retired = SigningKeys::from_pem(&fresh_signing_key_pem()).unwrap();
-        let hint = fixture.hint_signed_by(
-            retired.active(),
-            &fixture.ada.account,
-            OffsetDateTime::now_utc() - time::Duration::days(31),
-        );
-
-        let response = fixture
-            .get(&[("id_token_hint", &hint)], Some(&fixture.ada.cookie))
-            .await;
-
-        assert_page(response, StatusCode::BAD_REQUEST, "invalid_request").await;
         assert!(fixture.session_is_live(&fixture.ada.token).await);
     }
 
@@ -698,15 +581,13 @@ mod tests {
         let fixture = fixture(&pool).await;
         let mut ghost = fixture.client.clone();
         ghost.id = ClientId::try_new("ghost").unwrap();
-        let claims = IdTokenClaims::new(
-            &test_config().issuer,
+        let hint = signed_id_token(
+            &test_signing_key(),
             &ghost,
             &fixture.ada.account,
-            &scopes(&["openid"]),
-            None,
+            &["openid"],
             OffsetDateTime::now_utc(),
         );
-        let hint = test_signing_key().sign("JWT", &serde_json::to_vec(&claims).unwrap());
 
         let response = fixture
             .get(&[("id_token_hint", &hint)], Some(&fixture.ada.cookie))
@@ -852,25 +733,6 @@ mod tests {
             assert_page(response, StatusCode::BAD_REQUEST, "invalid_request").await;
         }
         assert!(fixture.session_is_live(&fixture.ada.token).await);
-    }
-
-    #[sqlx::test]
-    async fn no_parameters_is_a_page(pool: PgPool) {
-        let fixture = fixture(&pool).await;
-
-        for uri in ["/end_session", "/end_session?"] {
-            let response = send(&fixture.router, "GET", uri, Some(&fixture.ada.cookie), None).await;
-            assert_page(response, StatusCode::BAD_REQUEST, "invalid_request").await;
-        }
-        let empty_form = send(
-            &fixture.router,
-            "POST",
-            "/end_session",
-            Some(&fixture.ada.cookie),
-            Some(("application/x-www-form-urlencoded", String::new())),
-        )
-        .await;
-        assert_page(empty_form, StatusCode::BAD_REQUEST, "invalid_request").await;
     }
 
     /// RP-Initiated Logout §2 requires `POST` too; its query is not read.

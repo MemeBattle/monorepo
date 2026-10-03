@@ -487,18 +487,15 @@ fn thumbprint(x: &str, y: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{DEV_SIGNING_KEY as DEV_KEY, DEV_SIGNING_KEY_KID as DEV_KEY_KID};
+    use crate::testing::{
+        DEV_SIGNING_KEY as DEV_KEY, DEV_SIGNING_KEY_KID as DEV_KEY_KID, fresh_signing_key_pem,
+    };
     use openssl::ec::EcGroup;
     use openssl::rsa::Rsa;
     use openssl::symm::Cipher;
 
     fn p256() -> EcGroup {
         EcGroup::from_curve_name(Nid::X9_62_PRIME256V1).unwrap()
-    }
-
-    fn fresh_p256_pem() -> String {
-        let key = PKey::from_ec_key(EcKey::generate(&p256()).unwrap()).unwrap();
-        String::from_utf8(key.private_key_to_pem_pkcs8().unwrap()).unwrap()
     }
 
     fn dev_ec_key() -> EcKey<Private> {
@@ -575,7 +572,7 @@ mod tests {
 
     #[test]
     fn the_first_of_several_keys_signs_and_all_are_published_in_order() {
-        let second = fresh_p256_pem();
+        let second = fresh_signing_key_pem();
         let keys = SigningKeys::from_pem(&format!("{DEV_KEY}{second}")).unwrap();
 
         assert_eq!(keys.active().kid(), DEV_KEY_KID);
@@ -856,7 +853,7 @@ mod tests {
     #[test]
     fn a_key_that_is_not_published_is_refused() {
         let verifying = dev_keys().verifying_keys();
-        let other = SigningKeys::from_pem(&fresh_p256_pem()).unwrap();
+        let other = SigningKeys::from_pem(&fresh_signing_key_pem()).unwrap();
 
         let jws = other.active().sign("JWT", b"{}");
         assert_eq!(verifying.verify(&jws, "JWT"), Err(JwsError::UnknownKey));
@@ -878,7 +875,7 @@ mod tests {
     #[test]
     fn a_token_signed_by_another_key_under_a_published_kid_is_refused() {
         let verifying = dev_keys().verifying_keys();
-        let other = SigningKeys::from_pem(&fresh_p256_pem()).unwrap();
+        let other = SigningKeys::from_pem(&fresh_signing_key_pem()).unwrap();
 
         let jws = forge(other.active(), header("JWT", DEV_KEY_KID), b"{}");
 
@@ -981,7 +978,7 @@ mod tests {
     /// for as long as that key is still published, second in the list.
     #[test]
     fn a_token_of_a_key_published_second_verifies() {
-        let new = fresh_p256_pem();
+        let new = fresh_signing_key_pem();
         let before = dev_keys();
         let after = SigningKeys::from_pem(&format!("{new}{DEV_KEY}")).unwrap();
         let jws = before.active().sign("JWT", b"{}");

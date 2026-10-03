@@ -21,7 +21,7 @@ use serde_json::json;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::set_header::SetResponseHeaderLayer;
 
-use crate::db::Failure;
+use super::token::database_failure;
 use crate::http::ApiState;
 use crate::oidc::UserInfoError;
 
@@ -203,37 +203,20 @@ impl IntoResponse for BearerError {
     }
 }
 
-/// A database failure while the account is read: the two codes `/token`
-/// borrows from RFC 6749 §4.1.2.1, for the same reason — a client can act
-/// on "try again" as opposed to "this is broken". No challenge: the token
-/// was not refused.
+/// A database failure while the account is read: `/token`'s answer to
+/// one, the two codes it borrows from RFC 6749 §4.1.2.1, for the same
+/// reason — a client can act on "try again" as opposed to "this is
+/// broken". No challenge: the token was not refused.
 fn database_error(error: &sqlx::Error) -> Response {
-    let (status, code, description) = match crate::db::classify(error) {
-        Some(Failure::Unavailable | Failure::Busy) => (
-            StatusCode::SERVICE_UNAVAILABLE,
-            "temporarily_unavailable",
-            "the service is unavailable, try again later",
-        ),
-        None => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "server_error",
-            "the server could not complete the request",
-        ),
-    };
-    tracing::error!(error = code, source = ?error, "userinfo request failed");
-    (
-        status,
-        Json(json!({"error": code, "error_description": description})),
-    )
-        .into_response()
+    let response = database_failure(error);
+    tracing::error!(error = response.error, source = ?error, "userinfo request failed");
+    response.into_response()
 }
 
 #[cfg(test)]
 mod tests {
     use axum::body::to_bytes;
     use axum::http::Request;
-    use base64::Engine;
-    use base64::engine::general_purpose::URL_SAFE_NO_PAD;
     use sqlx::PgPool;
     use sqlx::postgres::PgPoolOptions;
     use time::OffsetDateTime;
@@ -241,25 +224,15 @@ mod tests {
 
     use super::*;
     use crate::accounts::{Account, AccountRepository, NewAccount};
-    use crate::clients::{
-        Audience, Client, ClientId, ClientKind, ClientName, ClientRepository, NewClient,
-        RedirectUri, Scope,
-    };
+    use crate::clients::{Audience, Client, ClientId, ClientKind, ClientName, RedirectUri};
     use crate::oidc::authorization::tests::CALLBACK;
-    use crate::oidc::{AccessTokenClaims, IdTokenClaims, SigningKey, SigningKeys};
+    use crate::oidc::{SigningKey, SigningKeys};
     use crate::testing::{
-        capture_tracing, display_name, fresh_signing_key_pem, test_config, test_signing_key,
-        test_state,
+        capture_tracing, display_name, fresh_signing_key_pem, header_str, register_public_client,
+        scopes, signed_access_token, test_signing_key, test_state,
     };
 
     const CLIENT: &str = "ligretto-web";
-
-    fn scopes(values: &[&str]) -> Vec<Scope> {
-        values
-            .iter()
-            .map(|value| Scope::try_new(*value).unwrap())
-            .collect()
-    }
 
     struct Fixture {
         router: Router,
@@ -269,19 +242,7 @@ mod tests {
     }
 
     async fn fixture(pool: &PgPool) -> Fixture {
-        let client = ClientRepository::new(pool.clone())
-            .create(
-                NewClient::public(
-                    ClientId::try_new(CLIENT).unwrap(),
-                    ClientName::try_new("Ligretto web").unwrap(),
-                    vec![RedirectUri::try_new(CALLBACK).unwrap()],
-                )
-                .unwrap()
-                .first_party(true)
-                .with_scopes(scopes(&["openid", "profile", "email"])),
-            )
-            .await
-            .unwrap();
+        let client = register_public_client(pool, CLIENT, &[]).await;
         let account = AccountRepository::new(pool.clone())
             .create(NewAccount::full(display_name("Ada")).with_email("ada@example.com"))
             .await
@@ -302,14 +263,7 @@ mod tests {
             granted: &[&str],
             issued_at: OffsetDateTime,
         ) -> String {
-            let claims = AccessTokenClaims::new(
-                &test_config().issuer,
-                &self.client,
-                &self.account,
-                &scopes(granted),
-                issued_at,
-            );
-            key.sign("at+jwt", &serde_json::to_vec(&claims).unwrap())
+            signed_access_token(key, &self.client, &self.account, granted, issued_at)
         }
 
         /// A fresh access token for `granted`, signed by the active key.
@@ -332,13 +286,6 @@ mod tests {
             .oneshot(request.body(axum::body::Body::empty()).unwrap())
             .await
             .unwrap()
-    }
-
-    fn header_str(response: &Response, name: header::HeaderName) -> Option<&str> {
-        response
-            .headers()
-            .get(name)
-            .map(|value| value.to_str().unwrap())
     }
 
     async fn json(response: Response) -> serde_json::Value {
@@ -512,58 +459,20 @@ mod tests {
         }
     }
 
+    /// A token that does not verify: signed by a key CAS does not publish.
+    /// Every other reason a token is refused for is covered where it is
+    /// decided, in `oidc::tokens` and `oidc::keys`; they all get this
+    /// answer.
     #[sqlx::test]
-    async fn a_forged_or_foreign_token_is_401(pool: PgPool) {
+    async fn an_unverifiable_token_is_401(pool: PgPool) {
         let fixture = fixture(&pool).await;
-        let now = OffsetDateTime::now_utc();
-
-        let genuine = fixture.token(&["openid"]);
-        let (header, rest) = genuine.split_once('.').unwrap();
-        let (_, signature) = rest.split_once('.').unwrap();
-        let mut claims: serde_json::Value = serde_json::from_slice(
-            &URL_SAFE_NO_PAD
-                .decode(genuine.split('.').nth(1).unwrap())
-                .unwrap(),
-        )
-        .unwrap();
-        claims["sub"] = serde_json::json!(uuid::Uuid::new_v4());
-        let tampered = format!(
-            "{header}.{}.{signature}",
-            URL_SAFE_NO_PAD.encode(claims.to_string())
-        );
-
         let other_key = SigningKeys::from_pem(&fresh_signing_key_pem()).unwrap();
-        let foreign = fixture.token_signed_by(other_key.active(), &["openid"], now);
+        let foreign =
+            fixture.token_signed_by(other_key.active(), &["openid"], OffsetDateTime::now_utc());
 
-        let id_token = test_signing_key().sign(
-            "JWT",
-            &serde_json::to_vec(&IdTokenClaims::new(
-                &test_config().issuer,
-                &fixture.client,
-                &fixture.account,
-                &scopes(&["openid"]),
-                None,
-                now,
-            ))
-            .unwrap(),
-        );
+        let response = fixture.get(&[&format!("Bearer {foreign}")]).await;
 
-        let other_issuer = test_signing_key().sign(
-            "at+jwt",
-            &serde_json::to_vec(&AccessTokenClaims::new(
-                "https://other.example",
-                &fixture.client,
-                &fixture.account,
-                &scopes(&["openid"]),
-                now,
-            ))
-            .unwrap(),
-        );
-
-        for token in [tampered, foreign, id_token, other_issuer] {
-            let response = fixture.get(&[&format!("Bearer {token}")]).await;
-            assert_refused(response, StatusCode::UNAUTHORIZED, "invalid_token").await;
-        }
+        assert_refused(response, StatusCode::UNAUTHORIZED, "invalid_token").await;
     }
 
     #[sqlx::test]

@@ -309,13 +309,13 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::accounts::{AccountRepository, NewAccount};
-    use crate::clients::{ClientId, ClientName, ClientRepository, NewClient, RedirectUri, Scope};
     use crate::config::SigningKeyPem;
-    use crate::oidc::{IdTokenClaims, SigningKeys};
+    use crate::oidc::{SigningKey, SigningKeys};
     use crate::sessions::{SessionOrigin, SessionService};
     use crate::testing::{
-        DEV_SIGNING_KEY_KID, capture_tracing, display_name, fresh_signing_key_pem, session_cookie,
-        soft_passkey_registration, test_config, test_cookies, test_signing_key, test_state,
+        DEV_SIGNING_KEY_KID, capture_tracing, display_name, fresh_signing_key_pem, header_str,
+        register_public_client, session_cookie, signed_id_token, soft_passkey_registration,
+        test_config, test_cookies, test_signing_key, test_state,
     };
 
     const ALLOWED_ORIGIN: &str = "http://localhost:5173";
@@ -927,13 +927,6 @@ mod tests {
             .unwrap()
     }
 
-    fn header_str(response: &Response, name: header::HeaderName) -> Option<&str> {
-        response
-            .headers()
-            .get(name)
-            .map(|value| value.to_str().unwrap())
-    }
-
     /// `/userinfo` is open to any origin, without credentials, for the
     /// `Authorization` header (ADR 0013 (e)).
     #[tokio::test]
@@ -1053,38 +1046,26 @@ mod tests {
     /// or refused.
     #[sqlx::test]
     async fn the_request_trace_does_not_log_the_query(pool: PgPool) {
-        let client = ClientRepository::new(pool.clone())
-            .create(
-                NewClient::public(
-                    ClientId::try_new("ligretto-web").unwrap(),
-                    ClientName::try_new("Ligretto web").unwrap(),
-                    vec![RedirectUri::try_new("https://app.example/cb").unwrap()],
-                )
-                .unwrap()
-                .first_party(true)
-                .with_scopes(vec![Scope::try_new("openid").unwrap()]),
-            )
-            .await
-            .unwrap();
+        let client = register_public_client(&pool, "ligretto-web", &[]).await;
         let account = AccountRepository::new(pool.clone())
             .create(NewAccount::full(display_name("Ada")).with_email("ada@example.com"))
             .await
             .unwrap();
-        let scopes = [Scope::try_new("openid").unwrap()];
-        let claims = serde_json::to_vec(&IdTokenClaims::new(
-            &test_config().issuer,
-            &client,
-            &account,
-            &scopes,
-            None,
-            time::OffsetDateTime::now_utc(),
-        ))
-        .unwrap();
-        let accepted = test_signing_key().sign("JWT", &claims);
-        let refused = SigningKeys::from_pem(&fresh_signing_key_pem())
-            .unwrap()
-            .active()
-            .sign("JWT", &claims);
+        let hint = |key: &SigningKey| {
+            signed_id_token(
+                key,
+                &client,
+                &account,
+                &["openid"],
+                time::OffsetDateTime::now_utc(),
+            )
+        };
+        let accepted = hint(&test_signing_key());
+        let refused = hint(
+            SigningKeys::from_pem(&fresh_signing_key_pem())
+                .unwrap()
+                .active(),
+        );
         let state = test_state(pool);
         let app = with_middleware(
             oidc_http::end_session_router(state.clone()),

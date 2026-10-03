@@ -410,14 +410,7 @@ mod tests {
     use super::*;
     use crate::clients::{Audience, ClientKind, ClientName, RedirectUri};
     use crate::oidc::SigningKeys;
-    use crate::testing::{DEV_SIGNING_KEY, display_name};
-
-    fn scopes(values: &[&str]) -> Vec<Scope> {
-        values
-            .iter()
-            .map(|value| Scope::try_new(*value).unwrap())
-            .collect()
-    }
+    use crate::testing::{DEV_SIGNING_KEY, display_name, scopes};
 
     fn client() -> Client {
         Client {
@@ -775,22 +768,6 @@ mod tests {
                 sub: account.id,
                 client_id: ClientId::try_new("ligretto-web").unwrap(),
             })
-        );
-    }
-
-    #[test]
-    fn a_token_signed_by_another_key_is_refused() {
-        let account = account(AccountType::Full, None);
-        let other = SigningKeys::from_pem(&crate::testing::fresh_signing_key_pem()).unwrap();
-        let claims =
-            AccessTokenClaims::new(ISSUER, &client(), &account, &scopes(&["openid"]), at(0));
-        let token = other
-            .active()
-            .sign(ACCESS_TOKEN_TYPE, &serde_json::to_vec(&claims).unwrap());
-
-        assert_eq!(
-            access_token(&keys().verifying_keys(), ISSUER, &token, at(1)),
-            Err(InvalidToken::Jws(JwsError::UnknownKey))
         );
     }
 
