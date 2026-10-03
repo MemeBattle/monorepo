@@ -461,7 +461,11 @@ async fn mint(
         });
     }
 
-    let account = accounts::insert(&mut *conn, NewAccount::guest(client.id.clone())).await?;
+    // Drawn only once the limit let the mint through, so a refused request
+    // spends no number.
+    let number = accounts::next_guest_number(&mut *conn).await?;
+    let account =
+        accounts::insert(&mut *conn, NewAccount::guest(client.id.clone(), number)).await?;
     let grant_id = repository::insert_grant(
         &mut *conn,
         NewGrant {

@@ -2064,17 +2064,27 @@ mod tests {
         assert_eq!(claims["account_type"], "guest");
 
         // Unchecked query: see docs/TESTS.md.
-        let (account_type, created_by, email): (String, Option<String>, Option<String>) =
-            sqlx::query_as(
-                "SELECT type::text, created_by_client_id, email FROM accounts WHERE id = $1",
-            )
-            .bind(sub)
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+        let (account_type, created_by, email, display_name): (
+            String,
+            Option<String>,
+            Option<String>,
+            String,
+        ) = sqlx::query_as(
+            "SELECT type::text, created_by_client_id, email, display_name
+             FROM accounts WHERE id = $1",
+        )
+        .bind(sub)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
         assert_eq!(account_type, "guest");
         assert_eq!(created_by.as_deref(), Some(GUEST_CLIENT));
         assert_eq!(email, None);
+        // A name of its own, `Guest <n>`, which the tokens do not release.
+        let number = display_name
+            .strip_prefix("Guest ")
+            .unwrap_or_else(|| panic!("{display_name:?}"));
+        assert!(number.parse::<i64>().is_ok(), "{display_name:?}");
 
         // The ID token, checked by an independent implementation, with no
         // nonce: there was no authorization request.
@@ -2158,6 +2168,14 @@ mod tests {
         let (_, second) = decode(second["access_token"].as_str().unwrap(), &jwks);
         assert_ne!(first["sub"], second["sub"]);
         assert_eq!(guests_of(&pool, GUEST_CLIENT).await, 2);
+        // Unchecked query: see docs/TESTS.md.
+        let names: i64 = sqlx::query_scalar(
+            "SELECT count(DISTINCT display_name) FROM accounts WHERE type = 'guest'",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(names, 2, "each guest has a name of its own");
     }
 
     /// Refresh is account-type agnostic: a guest's token rotates like any

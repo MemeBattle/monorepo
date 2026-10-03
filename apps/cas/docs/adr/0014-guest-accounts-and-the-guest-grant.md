@@ -33,8 +33,11 @@ no code produced. What was open is everything the grant itself decides.
 - What collecting guests later can rely on.
 
 The owner decided three of these before the plan: the display name column
-keeps `NOT NULL` and holds a placeholder; a guest's grant lives the same
-thirty days as any other; the limit is a column of the client row.
+keeps `NOT NULL`; a guest's grant lives the same thirty days as any other;
+the limit is a column of the client row. After reading the first
+implementation, which stored one fixed placeholder for every guest, the
+owner asked for a distinct generated name per guest instead; (b) records
+that revision.
 
 ## Decision
 
@@ -60,18 +63,30 @@ is upgraded (#747), so deleting a client must not delete accounts that may
 belong to people by then, which `CASCADE` would. It is `NULL` for an
 account created through CAS's own UI.
 
-`display_name` stays `NOT NULL`, and a guest row holds the fixed
-placeholder `Guest` (owner's decision). The placeholder is storage filler,
-never released: the `name` claim is absent from a guest's ID token and from
-its `/userinfo` answer, even with `profile` granted. The ticket's
+`display_name` stays `NOT NULL`, and every guest gets a name of its own,
+generated when it is minted: `Guest <n>`, `n` drawn from the Postgres
+sequence `guest_display_name_seq` (owner's decision). So two guest rows are
+told apart wherever CAS shows the column — its own screens, an operator
+reading the table — rather than all reading `Guest`. A sequence because it
+is shared by every replica, never hands out a value twice and takes no
+lock; the number is drawn in the mint's transaction once the rate limit (e)
+has let the mint through, so a refused request spends none, and the gap a
+rolled-back mint leaves is harmless. The name is built and validated as a
+`DisplayName` in the accounts context, like any other. There is no UNIQUE
+constraint or index on the column: display names of full accounts are
+deliberately not unique (PLAN), a constraint over guests alone would buy
+nothing the sequence does not already guarantee, and an index would cost
+every account insert.
+
+The generated name is still not a name the guest chose, so it is never
+released: the `name` claim is absent from a guest's ID token and from its
+`/userinfo` answer, even with `profile` granted. The ticket's
 "`id_token.name` is null" is read as absent, which is what OpenID Connect
 Core §5.3.2 asks of a claim that is not returned, and how `email` is
-already handled. Nor is the placeholder a UI string: a screen decides what
-to show a guest from `account_type`, in its own language. One accessor,
-`Account::chosen_name`, knows that a guest's column is not a name; the
-claims read the name through it. A nullable column was weighed and
-rejected by the owner: it changes `/me`, passkey addition and the
-frontend's account type, for a value no client ever sees.
+already handled. One accessor, `Account::chosen_name`, knows that a
+guest's column is not a chosen name; the claims read the name through it.
+A nullable column was weighed and rejected by the owner: it changes `/me`,
+passkey addition and the frontend's account type.
 
 **(c) The grant: no code, no session, the common lifetime.** The grant row
 has `authorization_code_id` `NULL`, and its first refresh token is written
@@ -168,20 +183,22 @@ outstanding after a grant ends, upgrade sessions and pending ceremonies of
 - A migration adds `accounts.created_by_client_id` with a partial index on
   `(created_by_client_id, created_at)`, and
   `clients.guest_grants_per_minute`, defaulted so the previous release's
-  `cas-client` still registers clients. `.sqlx` gains two queries — the
-  count and the client lock — and four change: the account insert and
-  lookup, the client insert and lookup.
+  `cas-client` still registers clients. A second migration creates the
+  sequence `guest_display_name_seq`; nothing constrains
+  `accounts.display_name`. `.sqlx` gains three queries — the count, the
+  client lock and the sequence draw — and four change: the account insert
+  and lookup, the client insert and lookup.
 - `cas-client register` takes `--guest-grants-per-minute <n>`. A client
   registered before keeps the default; there is no update path until the
   admin panel (ADR 0008), so changing the number of an existing client is a
   new registration or a manual `UPDATE`.
 - Rollout: an instance of the previous release refreshes a guest's grant
-  and answers its `/userinfo` with the placeholder as `name` when `profile`
-  was granted, because it does not know the rule in (b). A client is given
+  and answers its `/userinfo` with the generated `Guest <n>` as `name` when
+  `profile` was granted, because it does not know the rule in (b). A client is given
   `guest_login_allowed` only once every serving instance runs this release.
   CAS has no guest-enabled client in production yet.
 - #747 builds on this: it reads the name through `Account::chosen_name`,
-  replaces the placeholder with the name chosen at upgrade, keeps
+  replaces the generated name with the one chosen at upgrade, keeps
   `created_by_client_id`, and revokes the guest's grants with
   `revoke_account_grants` (ADR 0012 (h)).
 - The integration guide (#751) must tell an integrator that a guest's

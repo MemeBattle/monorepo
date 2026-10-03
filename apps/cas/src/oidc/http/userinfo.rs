@@ -529,13 +529,13 @@ mod tests {
     }
 
     /// A guest's token with `profile` answers who it is and that it is a
-    /// guest, and no name: its column holds a filler, not a name (ADR 0014
-    /// (b)).
+    /// guest, and no name: its column holds a generated name, not one it
+    /// chose (ADR 0014 (b)).
     #[sqlx::test]
     async fn a_guest_has_no_name(pool: PgPool) {
         let fixture = fixture(&pool).await;
         let guest = AccountRepository::new(pool.clone())
-            .create(NewAccount::guest(fixture.client.id.clone()))
+            .create(NewAccount::guest(fixture.client.id.clone(), 1))
             .await
             .unwrap();
         let token = signed_access_token(

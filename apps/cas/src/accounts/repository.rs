@@ -152,6 +152,21 @@ where
     .await
 }
 
+/// Draws the number of a new guest's generated display name from
+/// `guest_display_name_seq`. A sequence because every replica shares it and
+/// it never hands out a value twice; a number drawn by a mint that then rolls
+/// back is simply skipped. The guest grant draws it on its transaction, after
+/// the rate limit let the mint through (ADR 0014 (b)).
+pub(crate) async fn next_guest_number<'e, E>(executor: E) -> Result<i64, sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    // `nextval` is never NULL, hence the `!`.
+    sqlx::query_scalar!(r#"SELECT nextval('guest_display_name_seq') AS "number!""#)
+        .fetch_one(executor)
+        .await
+}
+
 /// Marks an account as active now. Session creation calls it inside its own
 /// transaction; guest GC will read what it writes.
 pub(crate) async fn touch_last_seen<'e, E>(executor: E, id: Uuid) -> Result<(), sqlx::Error>
@@ -210,7 +225,6 @@ impl AccountRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::accounts::GUEST_DISPLAY_NAME;
     use crate::testing::{display_name, register_public_client};
 
     #[sqlx::test]
@@ -238,7 +252,8 @@ mod tests {
 
     /// A guest needs the client that minted it: the column is a foreign key.
     async fn guest_of(pool: &PgPool, client: &str) -> Account {
-        insert(pool, NewAccount::guest(client_id(client)))
+        let number = next_guest_number(pool).await.unwrap();
+        insert(pool, NewAccount::guest(client_id(client), number))
             .await
             .unwrap()
     }
@@ -249,15 +264,35 @@ mod tests {
         let repository = AccountRepository::new(pool.clone());
 
         let account = repository
-            .create(NewAccount::guest(client_id(CLIENT)))
+            .create(NewAccount::guest(client_id(CLIENT), 7))
             .await
             .unwrap();
 
         assert_eq!(account.r#type, AccountType::Guest);
         assert_eq!(account.email, None);
-        assert_eq!(account.display_name.as_ref(), GUEST_DISPLAY_NAME);
+        assert_eq!(account.display_name.as_ref(), "Guest 7");
         assert_eq!(account.created_by_client_id, Some(client_id(CLIENT)));
         assert_eq!(repository.get(account.id).await.unwrap(), Some(account));
+    }
+
+    /// The sequence never repeats a number, so two guests minted through it
+    /// are named apart, `Guest <n>` each.
+    #[sqlx::test]
+    async fn guests_drawn_from_the_sequence_have_distinct_names(pool: PgPool) {
+        register_public_client(&pool, CLIENT, &[]).await;
+
+        let first = guest_of(&pool, CLIENT).await;
+        let second = guest_of(&pool, CLIENT).await;
+
+        for guest in [&first, &second] {
+            let number = guest
+                .display_name
+                .as_ref()
+                .strip_prefix("Guest ")
+                .unwrap_or_else(|| panic!("{:?}", guest.display_name));
+            assert!(number.parse::<i64>().is_ok(), "{:?}", guest.display_name);
+        }
+        assert_ne!(first.display_name, second.display_name);
     }
 
     #[sqlx::test]
@@ -371,7 +406,7 @@ mod tests {
     async fn the_window_is_measured_when_the_count_runs(pool: PgPool) {
         register_public_client(&pool, CLIENT, &[]).await;
         let mut tx = pool.begin().await.unwrap();
-        let guest = insert(&mut *tx, NewAccount::guest(client_id(CLIENT)))
+        let guest = insert(&mut *tx, NewAccount::guest(client_id(CLIENT), 1))
             .await
             .unwrap();
         // Unchecked query: see docs/TESTS.md.

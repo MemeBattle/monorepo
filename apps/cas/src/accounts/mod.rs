@@ -20,15 +20,20 @@ pub use display_name::{DisplayName, DisplayNameError};
 pub use email::{Email, EmailError, MAX_EMAIL_LENGTH};
 pub use management::AccountManagement;
 pub use repository::AccountRepository;
-pub(crate) use repository::{count_created_by_client, get, insert, touch_last_seen};
+pub(crate) use repository::{
+    count_created_by_client, get, insert, next_guest_number, touch_last_seen,
+};
 
-/// What a guest's `display_name` column holds. The column is `NOT NULL` and a
-/// guest has chosen no name, so the row carries this filler; it is storage,
-/// not a UI string, and it is never released to a client: the claims read a
-/// name through [`Account::chosen_name`], which has none for a guest. A
-/// screen that shows a guest decides what to show from the account type.
-/// See `docs/adr/0014-guest-accounts-and-the-guest-grant.md` (b).
-pub const GUEST_DISPLAY_NAME: &str = "Guest";
+/// What a guest's generated display name starts with: `Guest 42`, the number
+/// drawn from a database sequence ([`next_guest_number`]) when the guest is
+/// minted, so every guest row holds a name of its own that CAS's screens and
+/// an operator can tell apart. Distinct by construction, not by a constraint:
+/// display names are not unique (PLAN). The guest has not chosen it, so it is
+/// never released to a client: the claims read a name through
+/// [`Account::chosen_name`], which has none for a guest. The guest upgrade
+/// replaces it with the name the person chooses. See
+/// `docs/adr/0014-guest-accounts-and-the-guest-grant.md` (b).
+pub const GUEST_DISPLAY_NAME_PREFIX: &str = "Guest";
 
 /// Whether an account has credentials of its own.
 ///
@@ -72,9 +77,10 @@ pub struct Account {
 
 impl Account {
     /// The name the account holder chose: `Some` for a full account, `None`
-    /// for a guest, whose `display_name` is the [`GUEST_DISPLAY_NAME`]
-    /// filler. The one place that knows the filler is not a name; whatever
-    /// releases a name to a client reads it here.
+    /// for a guest, whose `display_name` was generated for it
+    /// ([`GUEST_DISPLAY_NAME_PREFIX`]). The one place that knows a guest's
+    /// name is not one it chose; whatever releases a name to a client reads
+    /// it here.
     pub fn chosen_name(&self) -> Option<&DisplayName> {
         match self.r#type {
             AccountType::Full => Some(&self.display_name),
@@ -101,12 +107,12 @@ pub struct NewAccount {
 
 impl NewAccount {
     /// A guest minted by `created_by` through the guest grant: no
-    /// credentials, no email, and the [`GUEST_DISPLAY_NAME`] filler in place
-    /// of a name.
-    pub fn guest(created_by: ClientId) -> Self {
+    /// credentials, no email, and the generated name `Guest <number>`, where
+    /// `number` is drawn by [`next_guest_number`] so no two guests share it.
+    pub fn guest(created_by: ClientId, number: i64) -> Self {
         Self {
             id: Uuid::new_v4(),
-            display_name: guest_display_name(),
+            display_name: guest_display_name(number),
             r#type: AccountType::Guest,
             email: None,
             created_by_client_id: Some(created_by),
@@ -141,10 +147,12 @@ impl NewAccount {
     }
 }
 
-/// [`GUEST_DISPLAY_NAME`] as a [`DisplayName`]. The constant is a valid
-/// label, so the construction cannot fail.
-fn guest_display_name() -> DisplayName {
-    DisplayName::try_new(GUEST_DISPLAY_NAME).expect("the guest filler is a valid display name")
+/// `Guest <number>` as a [`DisplayName`]. The prefix, a space and the digits
+/// of an `i64` are a valid label well inside its length cap, so the
+/// construction cannot fail.
+fn guest_display_name(number: i64) -> DisplayName {
+    DisplayName::try_new(format!("{GUEST_DISPLAY_NAME_PREFIX} {number}"))
+        .expect("a generated guest name is a valid display name")
 }
 
 #[cfg(test)]
@@ -157,13 +165,28 @@ mod tests {
     }
 
     #[test]
-    fn a_new_guest_has_the_filler_no_email_and_its_client() {
-        let guest = NewAccount::guest(client_id());
+    fn a_new_guest_has_a_generated_name_no_email_and_its_client() {
+        let guest = NewAccount::guest(client_id(), 42);
 
         assert_eq!(guest.r#type, AccountType::Guest);
-        assert_eq!(guest.display_name.as_ref(), GUEST_DISPLAY_NAME);
+        assert_eq!(guest.display_name.as_ref(), "Guest 42");
         assert_eq!(guest.email, None);
         assert_eq!(guest.created_by_client_id, Some(client_id()));
+    }
+
+    /// Different numbers, different names; and the widest number still fits.
+    #[test]
+    fn guests_with_different_numbers_have_different_names() {
+        let first = NewAccount::guest(client_id(), 1);
+        let second = NewAccount::guest(client_id(), 2);
+
+        assert_ne!(first.display_name, second.display_name);
+        assert_eq!(
+            NewAccount::guest(client_id(), i64::MAX)
+                .display_name
+                .as_ref(),
+            format!("Guest {}", i64::MAX)
+        );
     }
 
     #[test]

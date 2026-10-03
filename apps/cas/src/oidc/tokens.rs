@@ -234,9 +234,9 @@ impl IdTokenClaims {
 
 /// The profile and email claims the granted scopes release (OpenID Connect
 /// Core §5.4): with `profile`, the display name the account holder chose —
-/// a guest has none, its column holds a filler, and the claim is absent
-/// rather than `null`, as Core §5.3.2 asks of a claim not returned (ADR 0014
-/// (b)); with `email`, the address and `email_verified: false` when the
+/// a guest has none, its column holds a generated name, and the claim is
+/// absent rather than `null`, as Core §5.3.2 asks of a claim not returned
+/// (ADR 0014 (b)); with `email`, the address and `email_verified: false` when the
 /// account has one — addresses are unverified in v1 (PLAN, ADR 0007). The
 /// one rule both the ID token and `/userinfo` apply, so the two cannot drift
 /// apart (ADR 0013 (c)).
@@ -615,9 +615,9 @@ mod tests {
         assert!(no_address.get("email_verified").is_none(), "{no_address}");
     }
 
-    /// A guest's column holds a filler, not a name: `profile` releases
-    /// nothing for it, in the ID token and at `/userinfo` alike, and `email`
-    /// nothing either, since a guest has no address.
+    /// A guest's column holds a generated name, not one it chose: `profile`
+    /// releases nothing for it, in the ID token and at `/userinfo` alike, and
+    /// `email` nothing either, since a guest has no address.
     #[test]
     fn a_guest_has_no_name_to_release() {
         let guest = account(AccountType::Guest, None);
