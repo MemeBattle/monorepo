@@ -6,12 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "ts-check": "tsc --noEmit"
+    "ts-check": "tsc --noEmit",
+    "unused_code:check": "pnpm -w exec knip --no-config-hints --workspace apps/gamehub-client",
+    "unused_code:remove": "pnpm unused_code:check --fix --allow-remove-files"
   },
   "dependencies": {
     "@emotion/cache": "catalog:",
     "@emotion/react": "catalog:",
-    "@emotion/server": "catalog:",
     "@memebattle/ui": "workspace:^",
     "lodash": "catalog:",
     "next": "catalog:",

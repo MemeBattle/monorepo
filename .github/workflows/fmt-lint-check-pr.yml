@@ -20,3 +20,16 @@ jobs:
 
       - name: Check linting
         run: pnpm lint:check
+
+  unused-code:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Check unused code
+        run: pnpm unused_code:check

@@ -29,7 +29,7 @@ const GameGridContainer = styled('div')(() => ({
   justifyItems: 'center',
 }))
 
-export const DesktopGameGrid: React.FC<React.PropsWithChildren<RoomGridProps>> = ({ children, centerElement, bottomElement }) => {
+const DesktopGameGrid: React.FC<React.PropsWithChildren<RoomGridProps>> = ({ children, centerElement, bottomElement }) => {
   const opponentsArray = React.Children.map(children, child => child)
 
   const hasTopElement = opponentsArray?.length === 1 || opponentsArray?.length === 3 || opponentsArray?.length === 4
@@ -53,7 +53,7 @@ export const DesktopGameGrid: React.FC<React.PropsWithChildren<RoomGridProps>> =
 
 // Opponents lay themselves out (avatar/cards order alternates via :nth-of-type),
 // so they must stay direct same-tag siblings inside Room
-export const MobileGameGrid: React.FC<React.PropsWithChildren<RoomGridProps>> = ({ children, centerElement, bottomElement }) => (
+const MobileGameGrid: React.FC<React.PropsWithChildren<RoomGridProps>> = ({ children, centerElement, bottomElement }) => (
   <Room>
     {children}
     {centerElement}

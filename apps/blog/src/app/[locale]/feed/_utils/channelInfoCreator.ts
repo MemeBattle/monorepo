@@ -6,7 +6,7 @@ import { useTranslation } from '@/i18n'
 import { generateFullUrl } from '@/utils/generateFullUrl'
 import type { Language } from '@/i18n/i18n.settings'
 
-export type FeedBlogPost = BlogPost & { content: string; url: string }
+type FeedBlogPost = BlogPost & { content: string; url: string }
 
 export type ChannelInfo = {
   title: string

@@ -1,0 +1,63 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreWorkspaces": ["apps/cas", "packages/*"],
+  "workspaces": {
+    "apps/auth-front": {
+      "entry": ["src/module.tsx", "src/**/*.stories.{ts,tsx}"],
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "apps/blog": {
+      "entry": [
+        "next.config.{js,ts}",
+        "src/app/**/{page,layout,route}.{js,jsx,ts,tsx}",
+        "src/proxy.ts",
+        "src/mdx-components.tsx",
+        "src/**/*.test.{js,jsx,ts,tsx}",
+        "vitest.config.ts"
+      ],
+      "project": ["src/**/*.{js,jsx,ts,tsx}"],
+      "ignoreDependencies": ["sharp"]
+    },
+    "apps/gamehub-client": {
+      "entry": ["next.config.{js,ts}", "src/app/**/{page,layout,route}.{js,jsx,ts,tsx}"],
+      "project": ["src/**/*.{js,jsx,ts,tsx}"],
+      "ignoreDependencies": ["sharp"]
+    },
+    "apps/ligretto-frontend": {
+      "entry": ["src/index.tsx", "src/**/*.spec.{ts,tsx}", "src/**/*.stories.{ts,tsx}", "e2e/**/*.ts", "vite.config.ts", "playwright.config.ts"],
+      "project": ["src/**/*.{ts,tsx}", "e2e/**/*.ts"]
+    },
+    "apps/ligretto-core-backend": {
+      "entry": [
+        "ace.js",
+        "adonisrc.ts",
+        "bin/**/*.ts",
+        "start/**/*.ts",
+        "config/**/*.ts",
+        "contracts/**/*.ts",
+        "providers/**/*.ts",
+        "database/migrations/**/*.ts",
+        "tests/**/*.ts",
+        "app/**/*.test.ts"
+      ],
+      "project": [
+        "app/**/*.ts",
+        "bin/**/*.ts",
+        "config/**/*.ts",
+        "contracts/**/*.ts",
+        "database/**/*.ts",
+        "overloads/**/*.ts",
+        "providers/**/*.ts",
+        "start/**/*.ts",
+        "tests/**/*.ts"
+      ],
+      "ignoreDependencies": ["better-sqlite3", "pg"],
+      "ignoreFiles": ["database/schema.ts"]
+    },
+    "apps/ligretto-gameplay-backend": {
+      "entry": ["src/index.ts", "src/cli/**/*.ts", "src/**/*.spec.ts", "test/**/*.ts", "vitest.config.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"],
+      "ignoreBinaries": ["init-partner"]
+    }
+  }
+}

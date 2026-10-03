@@ -8,7 +8,9 @@
     "start": "node .next/standalone/apps/blog/server.js",
     "ts-check": "tsc --noEmit",
     "test": "vitest",
-    "test:ci": "pnpm build && vitest run"
+    "test:ci": "pnpm build && vitest run",
+    "unused_code:check": "pnpm -w exec knip --no-config-hints --workspace apps/blog",
+    "unused_code:remove": "pnpm unused_code:check --fix --allow-remove-files"
   },
   "dependencies": {
     "@amplitude/analytics-browser": "catalog:",
@@ -17,7 +19,6 @@
     "@radix-ui/react-dropdown-menu": "catalog:",
     "@radix-ui/react-popover": "catalog:",
     "clsx": "catalog:",
-    "date-fns": "catalog:",
     "feed": "catalog:",
     "i18next": "catalog:",
     "i18next-resources-to-backend": "catalog:",
@@ -28,7 +29,6 @@
     "react-i18next": "catalog:",
     "remark-parse": "catalog:",
     "remark-rehype": "catalog:",
-    "server-only": "catalog:",
     "sharp": "catalog:",
     "unified": "catalog:"
   },
