@@ -172,6 +172,37 @@ mod tests {
             .unwrap()
     }
 
+    /// Adding a passkey is not something an upgrade session may do (ADR 0015
+    /// (a)): its account gets its first passkey through the registration
+    /// endpoints, which upgrade it. Both requests are the 401 of no session,
+    /// and no ceremony is started.
+    #[sqlx::test]
+    async fn an_upgrade_session_cannot_add_a_passkey(pool: PgPool) {
+        let upgrade = crate::testing::upgrade_signed_in(&pool).await;
+        let app = router(test_state(pool.clone()));
+
+        for (uri, body) in [
+            ("/register-options", None),
+            (
+                "/verify-registration",
+                Some(serde_json::json!({ "registrationId": Uuid::new_v4(), "response": {} })),
+            ),
+        ] {
+            let response = app
+                .clone()
+                .oneshot(request(uri, Some(&upgrade.cookie), body))
+                .await
+                .unwrap();
+
+            assert_eq!(response.status(), StatusCode::UNAUTHORIZED, "{uri}");
+            assert_eq!(
+                body_json(response).await["error"]["code"],
+                "unauthenticated"
+            );
+        }
+        assert_eq!(ceremony_count(&pool).await, 0);
+    }
+
     /// Both endpoints refuse before any query, so a lazy pool that never
     /// connects is enough.
     #[tokio::test]

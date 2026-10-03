@@ -2509,4 +2509,176 @@ mod tests {
             }
         }
     }
+
+    // The guest upgrade, end to end (ADR 0015) ---------------------------
+
+    /// [`router`] with the passkey ceremonies and `/me` mounted under `/api`
+    /// as the transport root mounts them: everything a browser touches on
+    /// its way from a guest to a full account.
+    fn upgrade_router(pool: PgPool) -> Router {
+        let state = test_state(pool.clone());
+        router(pool).nest(
+            "/api",
+            Router::new()
+                .nest("/webauthn", crate::webauthn::http::router(state.clone()))
+                .merge(crate::sessions::http::router(state)),
+        )
+    }
+
+    async fn browse(router: &Router, request: Request<Body>) -> Response {
+        router.clone().oneshot(request).await.unwrap()
+    }
+
+    fn get(uri: &str, cookie: Option<&str>) -> Request<Body> {
+        let mut request = Request::builder().uri(uri);
+        if let Some(cookie) = cookie {
+            request = request.header(header::COOKIE, cookie);
+        }
+        request.body(Body::empty()).unwrap()
+    }
+
+    fn post_json(uri: &str, cookie: &str, body: serde_json::Value) -> Request<Body> {
+        Request::builder()
+            .method("POST")
+            .uri(uri)
+            .header(header::COOKIE, cookie)
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(Body::from(body.to_string()))
+            .unwrap()
+    }
+
+    fn location_url(response: &Response) -> Url {
+        assert_eq!(response.status(), StatusCode::FOUND);
+        Url::parse(response.headers()[header::LOCATION].to_str().unwrap()).unwrap()
+    }
+
+    fn query_param(url: &Url, name: &str) -> Option<String> {
+        url.query_pairs()
+            .find(|(candidate, _)| candidate == name)
+            .map(|(_, value)| value.into_owned())
+    }
+
+    /// The `Cookie` header for the session cookie a response set.
+    fn cookie_set_by(response: &Response) -> String {
+        let token = crate::testing::session_cookie(response, test_cookies().name())
+            .expect("a session cookie");
+        format!("{}={}", test_cookies().name(), token.expose())
+    }
+
+    /// Acceptance criteria 1 and 2 in one walk: a guest's tokens, a hint
+    /// that opens an upgrade session (and, beforehand, a second one in
+    /// another browser), registration under it, the code `return_to` leads
+    /// to, and tokens for the same `sub` that now say `full` and
+    /// `webauthn`. Afterwards the guest's refresh token fails with its grant
+    /// revoked, and the other browser's session is gone.
+    #[sqlx::test]
+    async fn a_guest_upgrades_and_keeps_its_sub(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let app = upgrade_router(pool.clone());
+        let minted = fixture.minted(&[("scope", "openid profile")]).await;
+        let jwks = fixture.base.jwks().await;
+        let (_, guest_claims) = decode(minted["access_token"].as_str().unwrap(), &jwks);
+        let sub = guest_claims["sub"].as_str().unwrap().to_owned();
+        let hint = minted["id_token"].as_str().unwrap();
+        let guest_refresh = minted["refresh_token"].as_str().unwrap();
+        let authorize = |hint: Option<&str>| {
+            let mut pairs = vec![
+                ("client_id", GUEST_CLIENT),
+                ("redirect_uri", CALLBACK),
+                ("response_type", "code"),
+                ("scope", "openid profile"),
+                ("state", "s"),
+                ("code_challenge", CHALLENGE),
+                ("code_challenge_method", "S256"),
+                ("nonce", NONCE),
+            ];
+            if let Some(hint) = hint {
+                pairs.push(("id_token_hint", hint));
+            }
+            format!("/authorize?{}", form(&pairs))
+        };
+
+        // Another browser opens an upgrade session for the same guest first.
+        let elsewhere = browse(&app, get(&authorize(Some(hint)), None)).await;
+        let elsewhere = cookie_set_by(&elsewhere);
+
+        let response = browse(&app, get(&authorize(Some(hint)), None)).await;
+        let create_account = location_url(&response);
+        assert_eq!(create_account.path(), "/create-account");
+        let return_to = query_param(&create_account, "return_to").unwrap();
+        assert_eq!(return_to, authorize(None));
+        let upgrade = cookie_set_by(&response);
+
+        let options = browse(
+            &app,
+            post_json(
+                "/api/webauthn/register-options",
+                &upgrade,
+                serde_json::json!({ "displayName": "Ada" }),
+            ),
+        )
+        .await;
+        assert_eq!(options.status(), StatusCode::OK);
+        let options = json(options).await;
+        let ccr = serde_json::from_value(options["ccr"].clone()).unwrap();
+        let attestation = crate::testing::soft_passkey_registration(ccr);
+        let verified = browse(
+            &app,
+            post_json(
+                "/api/webauthn/verify-registration",
+                &upgrade,
+                serde_json::json!({
+                    "registrationId": options["registrationId"],
+                    "response": attestation,
+                }),
+            ),
+        )
+        .await;
+        assert_eq!(verified.status(), StatusCode::OK);
+        let full = cookie_set_by(&verified);
+        assert_eq!(json(verified).await["accountId"], sub);
+
+        let back = browse(&app, get(&return_to, Some(&full))).await;
+        let callback = location_url(&back);
+        assert_eq!(&callback.as_str()[..CALLBACK.len()], CALLBACK);
+        let code = query_param(&callback, "code").expect("a code");
+        let response = fixture
+            .base
+            .token(&grant(&code), Some(&fixture.basic()))
+            .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let tokens = json(response).await;
+        for token in ["access_token", "id_token"] {
+            let (_, claims) = decode(tokens[token].as_str().unwrap(), &jwks);
+            assert_eq!(claims["sub"], sub, "{token}");
+            assert_eq!(claims["account_type"], "full", "{token}");
+            assert_eq!(claims["amr"], serde_json::json!(["webauthn"]), "{token}");
+        }
+        let (_, id_claims) = decode(tokens["id_token"].as_str().unwrap(), &jwks);
+        assert_eq!(id_claims["name"], "Ada", "the chosen name is released now");
+
+        assert_invalid_grant(
+            fixture
+                .base
+                .token(&refresh(guest_refresh), Some(&fixture.basic()))
+                .await,
+        )
+        .await;
+        // Unchecked query: see docs/TESTS.md.
+        let guest_grant_revoked: bool = sqlx::query_scalar(
+            "SELECT revoked_at IS NOT NULL FROM grants \
+             WHERE account_id = $1::uuid AND authorization_code_id IS NULL",
+        )
+        .bind(&sub)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert!(guest_grant_revoked);
+
+        let me = browse(&app, get("/api/me", Some(&elsewhere))).await;
+        assert_eq!(me.status(), StatusCode::UNAUTHORIZED);
+        let me = browse(&app, get("/api/me", Some(&full))).await;
+        assert_eq!(me.status(), StatusCode::OK);
+        assert_eq!(json(me).await["accountType"], "full");
+    }
 }

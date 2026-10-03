@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO sessions (account_id, token_hash, expires_at)\n           VALUES ($1, $2, now() + make_interval(secs => $3))\n           RETURNING id, account_id, created_at, expires_at, last_seen_at",
+  "query": "SELECT id, account_id, kind AS \"kind: SessionKind\", created_at, expires_at,\n                  last_seen_at,\n                  last_seen_at <= now() - make_interval(secs => $3) AS \"renewal_due!\"\n           FROM sessions\n           WHERE token_hash = $1\n             AND expires_at > now()\n             AND last_seen_at > now() - make_interval(secs => $2)",
   "describe": {
     "columns": [
       {
@@ -27,6 +27,27 @@
       },
       {
         "ordinal": 2,
+        "name": "kind: SessionKind",
+        "type_info": {
+          "Custom": {
+            "name": "session_kind",
+            "kind": {
+              "Enum": [
+                "full",
+                "upgrade"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "sessions",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -37,7 +58,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "expires_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -48,7 +69,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "last_seen_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -57,12 +78,18 @@
             "name": "last_seen_at"
           }
         }
+      },
+      {
+        "ordinal": 6,
+        "name": "renewal_due!",
+        "type_info": "Bool",
+        "origin": "Expression"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid",
         "Bytea",
+        "Float8",
         "Float8"
       ]
     },
@@ -71,8 +98,10 @@
       false,
       false,
       false,
-      false
+      false,
+      false,
+      null
     ]
   },
-  "hash": "ddebd0ed71d696985ddb67ffbd68582c3abfd9f533f157681d22c528cd038cae"
+  "hash": "67189e186d50c4b9928d92c624211f79e08614dc5fd619c91a7d681e4e98dadf"
 }

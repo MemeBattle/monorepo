@@ -206,6 +206,7 @@ mod tests {
         Session {
             id: Uuid::new_v4(),
             account_id: Uuid::new_v4(),
+            kind: crate::sessions::SessionKind::Full,
             created_at: now,
             expires_at: now + as_time(SESSION_LIFETIME),
             last_seen_at: now,

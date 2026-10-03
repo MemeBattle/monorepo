@@ -20,7 +20,8 @@ use crate::webauthn::{CEREMONY_GRACE, CEREMONY_TIMEOUT};
 
 // Ceremonies ---------------------------------------------------------------
 
-/// Stores a ceremony and returns its id. The row lives for
+/// Stores a ceremony and returns its id, with the account it is bound to
+/// ([`Ceremony::account_id`]) in its own column. The row lives for
 /// [`CEREMONY_TIMEOUT`] plus [`CEREMONY_GRACE`], measured by the database
 /// clock so that every replica agrees on it.
 ///
@@ -34,22 +35,45 @@ where
     T: Ceremony,
 {
     let id = Uuid::new_v4();
+    let state_account_id = state.account_id();
     let state =
         serde_json::to_value(state).map_err(|error| sqlx::Error::Encode(Box::new(error)))?;
     let ttl_secs = (CEREMONY_TIMEOUT + CEREMONY_GRACE).as_secs_f64();
 
     sqlx::query!(
-        r#"INSERT INTO webauthn_ceremonies (id, kind, state, expires_at)
-           VALUES ($1, $2, $3, now() + make_interval(secs => $4))"#,
+        r#"INSERT INTO webauthn_ceremonies (id, kind, state, account_id, expires_at)
+           VALUES ($1, $2, $3, $4, now() + make_interval(secs => $5))"#,
         id,
         T::KIND as CeremonyKind,
         state,
+        state_account_id,
         ttl_secs,
     )
     .execute(executor)
     .await?;
 
     Ok(id)
+}
+
+/// Deletes every pending ceremony bound to an account (its `account_id`
+/// column), of any kind, and returns how many there were. The guest upgrade
+/// calls it on its transaction: a challenge issued to the guest before it
+/// became a full account must not be finished afterwards (ADR 0015 (f)).
+pub async fn delete_ceremonies_of_account<'e, E>(
+    executor: E,
+    account_id: Uuid,
+) -> Result<u64, sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    let result = sqlx::query!(
+        "DELETE FROM webauthn_ceremonies WHERE account_id = $1",
+        account_id,
+    )
+    .execute(executor)
+    .await?;
+
+    Ok(result.rows_affected())
 }
 
 /// Consumes a ceremony: returns its state and deletes the row in one
@@ -373,6 +397,7 @@ where
 #[cfg(test)]
 mod ceremony_tests {
     use super::*;
+    use crate::webauthn::ceremonies::{PendingAddition, PendingUpgrade};
     use serde::{Deserialize, Serialize};
     use sqlx::postgres::types::PgInterval;
 
@@ -498,6 +523,121 @@ mod ceremony_tests {
                 microseconds: (CEREMONY_TIMEOUT + CEREMONY_GRACE).as_micros() as i64,
             }
         );
+    }
+
+    /// A full account to bind ceremonies to: the column is a foreign key.
+    async fn account(pool: &PgPool) -> Uuid {
+        accounts::insert(pool, NewAccount::full(crate::testing::display_name("Ada")))
+            .await
+            .unwrap()
+            .id
+    }
+
+    fn registration_state() -> crate::webauthn::ceremonies::DiscoverableRegistration {
+        crate::webauthn::registration::start_discoverable_registration(
+            &crate::testing::test_webauthn(),
+            Uuid::new_v4(),
+            "Ada",
+            None,
+        )
+        .unwrap()
+        .1
+    }
+
+    fn upgrade(account_id: Uuid) -> PendingUpgrade {
+        PendingUpgrade {
+            account_id,
+            display_name: crate::testing::display_name("Ada"),
+            state: registration_state(),
+        }
+    }
+
+    /// The `account_id` column of a ceremony row. Unchecked query: see
+    /// docs/TESTS.md.
+    async fn bound_to(pool: &PgPool, id: Uuid) -> Option<Uuid> {
+        sqlx::query_scalar("SELECT account_id FROM webauthn_ceremonies WHERE id = $1")
+            .bind(id)
+            .fetch_one(pool)
+            .await
+            .unwrap()
+    }
+
+    /// An addition and an upgrade are bound to their account in the column;
+    /// a registration and a login, which have no existing account, are not.
+    #[sqlx::test]
+    async fn the_account_column_follows_the_ceremony(pool: PgPool) {
+        let account_id = account(&pool).await;
+
+        let addition = start_ceremony(
+            &pool,
+            &PendingAddition {
+                account_id,
+                state: registration_state(),
+            },
+        )
+        .await
+        .unwrap();
+        let upgrade = start_ceremony(&pool, &upgrade(account_id)).await.unwrap();
+        let registration = start_ceremony(&pool, &State { value: 1 }).await.unwrap();
+        let login = start_ceremony(&pool, &LoginState { value: 2 })
+            .await
+            .unwrap();
+
+        assert_eq!(bound_to(&pool, addition).await, Some(account_id));
+        assert_eq!(bound_to(&pool, upgrade).await, Some(account_id));
+        assert_eq!(bound_to(&pool, registration).await, None);
+        assert_eq!(bound_to(&pool, login).await, None);
+    }
+
+    /// An upgrade can never be finished as a registration, nor the other way
+    /// round: the kind is part of the lookup.
+    #[sqlx::test]
+    async fn an_upgrade_and_a_registration_are_not_interchangeable(pool: PgPool) {
+        let account_id = account(&pool).await;
+        let upgrade = start_ceremony(&pool, &upgrade(account_id)).await.unwrap();
+        let registration = start_ceremony(&pool, &State { value: 1 }).await.unwrap();
+
+        let as_registration: Taken<State> = take_ceremony(&pool, upgrade).await.unwrap();
+        let as_upgrade: Taken<PendingUpgrade> = take_ceremony(&pool, registration).await.unwrap();
+
+        assert_eq!(as_registration, Taken::Missing);
+        assert!(matches!(as_upgrade, Taken::Missing));
+        assert_eq!(count(&pool).await, 2, "a mismatch consumes nothing");
+    }
+
+    #[sqlx::test]
+    async fn delete_ceremonies_of_account_removes_that_accounts_rows_only(pool: PgPool) {
+        let account_id = account(&pool).await;
+        let other = account(&pool).await;
+        start_ceremony(&pool, &upgrade(account_id)).await.unwrap();
+        start_ceremony(&pool, &upgrade(account_id)).await.unwrap();
+        let others = start_ceremony(&pool, &upgrade(other)).await.unwrap();
+        start_ceremony(&pool, &State { value: 1 }).await.unwrap();
+
+        assert_eq!(
+            delete_ceremonies_of_account(&pool, account_id)
+                .await
+                .unwrap(),
+            2
+        );
+        assert_eq!(count(&pool).await, 2);
+        assert_eq!(bound_to(&pool, others).await, Some(other));
+    }
+
+    #[sqlx::test]
+    async fn deleting_an_account_deletes_its_ceremonies(pool: PgPool) {
+        let account_id = account(&pool).await;
+        start_ceremony(&pool, &upgrade(account_id)).await.unwrap();
+        start_ceremony(&pool, &State { value: 1 }).await.unwrap();
+
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("DELETE FROM accounts WHERE id = $1")
+            .bind(account_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        assert_eq!(count(&pool).await, 1);
     }
 
     /// Inside a transaction, a rollback puts the ceremony back: a finish that

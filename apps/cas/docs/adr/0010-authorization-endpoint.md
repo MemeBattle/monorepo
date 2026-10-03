@@ -8,6 +8,11 @@ the session binding of a code is `ON DELETE SET NULL`, so a redeemed row
 outlives its session and a replay after logout is still recognised; a
 pending code is voided by logout through the redemption's
 `session_id IS NOT NULL` instead of the cascade described in (d).
+Amended (2026-10-03) by ADR 0015, with [#747](https://github.com/MemeBattle/monorepo/issues/747):
+`id_token_hint` is served rather than refused (b) — a guest's fresh ID token
+opens an upgrade session — and `/authorize` has a second destination besides
+sign-in, `{CAS_ORIGIN}/create-account?return_to=...`, whose `return_to`
+leaves the hint out (c).
 
 ## Context
 

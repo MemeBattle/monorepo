@@ -368,13 +368,25 @@ pub fn access_token(
     })
 }
 
-/// What `/end_session` learns from an `id_token_hint`: whose session the
-/// client asks to end, and which client it is.
+/// What an `id_token_hint` tells: whose token it is, which client it was
+/// issued to, and until when. `/end_session` reads the first two; the guest
+/// upgrade at `/authorize` also judges the third ([`Self::is_expired`]).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IdTokenHint {
     pub sub: Uuid,
     /// The ID token's `aud`, which CAS sets to the client's id.
     pub client_id: ClientId,
+    /// The ID token's `exp`, as a `NumericDate`.
+    pub exp: i64,
+}
+
+impl IdTokenHint {
+    /// Whether the token was over at `now`: the rule of [`access_token`], no
+    /// leeway, since CAS's own clock set `exp` and a token at its expiry is
+    /// expired.
+    pub fn is_expired(&self, now: OffsetDateTime) -> bool {
+        self.exp <= numeric_date(now)
+    }
 }
 
 /// The claims of an ID token that a hint is read for.
@@ -384,14 +396,16 @@ struct PresentedIdToken {
     sub: Uuid,
     /// A single string, as CAS writes it; an array is refused.
     aud: String,
+    exp: i64,
 }
 
 /// Verifies an ID token CAS issued, presented as a logout hint: the
 /// signature and header (`typ: JWT`), `iss` equal to `issuer`, and an `aud`
-/// that is a client id exactly as CAS writes one. `exp` is not checked:
-/// RP-Initiated Logout 1.0 §2 accepts an expired ID token as a hint, and a
-/// client logging out after ten idle minutes holds nothing fresher (ADR 0013
-/// (f)).
+/// that is a client id exactly as CAS writes one. `exp` is read but not
+/// judged: RP-Initiated Logout 1.0 §2 accepts an expired ID token as a hint,
+/// and a client logging out after ten idle minutes holds nothing fresher
+/// (ADR 0013 (f)). A caller for whom expiry matters asks
+/// [`IdTokenHint::is_expired`] (ADR 0015 (c)).
 pub fn id_token_hint(
     keys: &VerifyingKeys,
     issuer: &str,
@@ -410,6 +424,7 @@ pub fn id_token_hint(
     Ok(IdTokenHint {
         sub: claims.sub,
         client_id,
+        exp: claims.exp,
     })
 }
 
@@ -804,8 +819,28 @@ mod tests {
             Ok(IdTokenHint {
                 sub: account.id,
                 client_id: ClientId::try_new("ligretto-web").unwrap(),
+                exp: 1_000_600,
             })
         );
+    }
+
+    /// The hint carries its `exp`, and is expired from that second on, as
+    /// an access token is.
+    #[test]
+    fn a_hint_is_expired_at_and_after_its_exp() {
+        let account = account(AccountType::Guest, None);
+        let hint = id_token_hint(
+            &keys().verifying_keys(),
+            ISSUER,
+            &id_token(&account, at(1_000_000)),
+        )
+        .unwrap();
+
+        assert_eq!(hint.exp, 1_000_600);
+        assert!(!hint.is_expired(at(1_000_000)));
+        assert!(!hint.is_expired(at(1_000_599)));
+        assert!(hint.is_expired(at(1_000_600)));
+        assert!(hint.is_expired(at(1_000_601)));
     }
 
     /// Userinfo releases exactly what the ID token releases for the same

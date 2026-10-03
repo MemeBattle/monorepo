@@ -1,6 +1,6 @@
 //! WebAuthn — the passkey bounded context: the ceremonies the server remembers
 //! between two requests ([`ceremonies`]), the flows that drive them
-//! ([`registration`], [`login`], [`addition`]), the credentials they store and
+//! ([`registration`], [`login`], [`addition`], [`upgrade`]), the credentials they store and
 //! verify ([`passkeys`]) and what an account may do to its own
 //! ([`management`]), the queries behind all of it ([`repository`]) and the
 //! endpoints that expose it ([`http`]).
@@ -17,6 +17,7 @@ pub mod management;
 pub mod passkeys;
 pub mod registration;
 pub mod repository;
+pub mod upgrade;
 
 /// How long the browser is given to complete a ceremony. [`build_webauthn`]
 /// puts it into every challenge, and [`repository::start_ceremony`] derives the row's

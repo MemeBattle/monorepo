@@ -3,7 +3,8 @@
 //! An account id is the OIDC `sub`. Guests are ordinary rows
 //! (`type = AccountType::Guest`) so sessions, `/me` and userinfo have a single
 //! code path for guests and full accounts; a guest that registers a passkey is
-//! upgraded in place, keeping its `sub`. See `docs/PLAN.md`.
+//! upgraded in place, keeping its `sub` ([`upgrade_guest`], under [`lock`]).
+//! See `docs/PLAN.md` and `docs/adr/0015-guest-upgrade.md`.
 
 mod display_name;
 mod email;
@@ -21,7 +22,7 @@ pub use email::{Email, EmailError, MAX_EMAIL_LENGTH};
 pub use management::AccountManagement;
 pub use repository::AccountRepository;
 pub(crate) use repository::{
-    count_created_by_client, get, insert, next_guest_number, touch_last_seen,
+    count_created_by_client, get, insert, lock, next_guest_number, touch_last_seen, upgrade_guest,
 };
 
 /// What a guest's generated display name starts with: `Guest 42`, the number

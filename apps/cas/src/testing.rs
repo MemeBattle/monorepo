@@ -36,7 +36,7 @@ use crate::http::ApiState;
 use crate::oidc::authorization::tests::CALLBACK;
 use crate::oidc::{
     AccessTokenClaims, AuthorizationService, EndSessionService, IdTokenClaims, SigningKey,
-    SigningKeys, TokenService, UserInfoService,
+    SigningKeys, TokenService, UpgradeHintService, UserInfoService,
 };
 use crate::sessions::http::CookieSettings;
 use crate::sessions::{SessionOrigin, SessionService, SessionToken};
@@ -47,6 +47,7 @@ use crate::webauthn::management::PasskeyManagement;
 use crate::webauthn::registration::{
     Registered, RegistrationService, start_discoverable_registration,
 };
+use crate::webauthn::upgrade::UpgradeService;
 
 /// The API state the handler tests run against: every service on the given
 /// pool, cookies as the development origin would have them.
@@ -61,6 +62,7 @@ pub fn test_state_with_cookies(pool: PgPool, cookies: CookieSettings) -> ApiStat
         registration: RegistrationService::new(test_webauthn(), pool.clone()),
         login: LoginService::new(test_webauthn(), pool.clone()),
         addition: AdditionService::new(test_webauthn(), pool.clone()),
+        upgrade: UpgradeService::new(test_webauthn(), pool.clone()),
         passkeys: PasskeyManagement::new(pool.clone()),
         accounts: AccountManagement::new(pool.clone()),
         sessions: SessionService::new(pool.clone()),
@@ -73,7 +75,12 @@ pub fn test_state_with_cookies(pool: PgPool, cookies: CookieSettings) -> ApiStat
             test_config().issuer,
         ),
         end_session: EndSessionService::new(
-            AuthorizationService::new(pool),
+            AuthorizationService::new(pool.clone()),
+            test_signing_keys().verifying_keys(),
+            test_config().issuer,
+        ),
+        upgrade_hints: UpgradeHintService::new(
+            pool,
             test_signing_keys().verifying_keys(),
             test_config().issuer,
         ),
@@ -450,6 +457,27 @@ pub async fn signed_in(pool: &PgPool, name: &str) -> SignedIn {
         .create(account.id, SessionOrigin::Login)
         .await
         .expect("the test session is created");
+    SignedIn {
+        cookie: format!("{}={}", test_cookies().name(), issued.token.expose()),
+        account,
+        token: issued.token,
+        session_id: issued.session.id,
+    }
+}
+
+/// A guest, minted by a public client of its own (`guest-maker`), holding an
+/// upgrade session as `/authorize` opens one for its `id_token_hint`
+/// (ADR 0015).
+pub async fn upgrade_signed_in(pool: &PgPool) -> SignedIn {
+    let client = register_public_client(pool, "guest-maker", &[]).await;
+    let account = AccountRepository::new(pool.clone())
+        .create(NewAccount::guest(client.id, 1))
+        .await
+        .expect("the test guest is created");
+    let issued = SessionService::new(pool.clone())
+        .open_upgrade(account.id)
+        .await
+        .expect("the test upgrade session is opened");
     SignedIn {
         cookie: format!("{}={}", test_cookies().name(), issued.token.expose()),
         account,

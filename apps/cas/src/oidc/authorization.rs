@@ -3,6 +3,10 @@
 //! no axum, no SQL. The handler resolves the client and the redirect URI
 //! first, because until both are known no error may be sent to the client;
 //! everything after that is [`AuthorizeRequest::parse`].
+//!
+//! `id_token_hint` is carried on the request, not judged here: whether it is
+//! a valid, unexpired ID token of a guest is the upgrade hint service's
+//! question (ADR 0015 (c)), and the handler asks it next.
 
 use url::form_urlencoded;
 
@@ -64,6 +68,22 @@ impl Params {
             return Err(Duplicate(name));
         }
         Ok(first.filter(|value| !value.is_empty()))
+    }
+
+    /// The parameters re-encoded as an `application/x-www-form-urlencoded`
+    /// query, in order, every occurrence of `name` left out. `/authorize`
+    /// builds the `return_to` of a request that carried an `id_token_hint`
+    /// with it: the hint has been judged, and it does not travel on into the
+    /// frontend's URL (ADR 0015 (d)).
+    pub fn to_query_without(&self, name: &str) -> String {
+        form_urlencoded::Serializer::new(String::new())
+            .extend_pairs(
+                self.0
+                    .iter()
+                    .filter(|(candidate, _)| candidate != name)
+                    .map(|(name, value)| (name.as_str(), value.as_str())),
+            )
+            .finish()
     }
 
     /// The first value of `name` as sent, empty or repeated, for a log line
@@ -207,7 +227,10 @@ const PROMPT_VALUES: [&str; 3] = ["login", "consent", "select_account"];
 
 /// A valid authorization request for a known client and a trusted redirect
 /// URI: what [`crate::oidc::AuthorizationService::issue`] binds a code to.
-#[derive(Debug, Clone, PartialEq, Eq)]
+///
+/// `Debug` is written by hand: the `id_token_hint` is a bearer credential —
+/// it opens an upgrade session — and must not reach a log.
+#[derive(Clone, PartialEq, Eq)]
 pub struct AuthorizeRequest {
     pub client_id: ClientId,
     /// Exactly as sent; `/token` compares it byte for byte.
@@ -220,6 +243,27 @@ pub struct AuthorizeRequest {
     /// `prompt=none`: the client promised to show no UI, so an anonymous
     /// request is answered `login_required` instead of a sign-in screen.
     pub prompt_none: bool,
+    /// The ID token the client sent as `id_token_hint`, unverified: a guest's
+    /// fresh one opens an upgrade session (ADR 0015).
+    pub id_token_hint: Option<String>,
+}
+
+impl std::fmt::Debug for AuthorizeRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AuthorizeRequest")
+            .field("client_id", &self.client_id)
+            .field("redirect_uri", &self.redirect_uri)
+            .field("scopes", &self.scopes)
+            .field("state", &self.state)
+            .field("code_challenge", &self.code_challenge)
+            .field("nonce", &self.nonce)
+            .field("prompt_none", &self.prompt_none)
+            .field(
+                "id_token_hint",
+                &self.id_token_hint.as_ref().map(|_| "<redacted>"),
+            )
+            .finish()
+    }
 }
 
 impl AuthorizeRequest {
@@ -279,6 +323,7 @@ impl AuthorizeRequest {
 
         refuse_unsupported_requirements(params)?;
         let prompt_none = prompt_none(params.get("prompt")?)?;
+        let id_token_hint = params.get("id_token_hint")?.map(str::to_owned);
 
         Ok(Self {
             client_id: client.id.clone(),
@@ -288,6 +333,7 @@ impl AuthorizeRequest {
             code_challenge,
             nonce,
             prompt_none,
+            id_token_hint,
         })
     }
 }
@@ -356,11 +402,6 @@ fn refuse_unsupported_requirements(params: &Params) -> Result<(), RedirectError>
     }
     if params.get("max_age")?.is_some() {
         return Err(RedirectError::invalid_request("max_age is not supported"));
-    }
-    if params.get("id_token_hint")?.is_some() {
-        return Err(RedirectError::invalid_request(
-            "id_token_hint is not supported yet",
-        ));
     }
     Ok(())
 }
@@ -483,7 +524,56 @@ pub(crate) mod tests {
                 code_challenge: CodeChallenge::try_new(CHALLENGE).unwrap(),
                 nonce: None,
                 prompt_none: false,
+                id_token_hint: None,
             }
+        );
+    }
+
+    /// The hint is carried as sent, for the handler to judge; an empty one
+    /// is no hint, and a repeated one is refused like any read parameter.
+    #[test]
+    fn id_token_hint_is_carried_on_the_request() {
+        assert_eq!(parse(&valid()).unwrap().id_token_hint, None);
+        assert_eq!(
+            parse(&plus("id_token_hint", "")).unwrap().id_token_hint,
+            None
+        );
+        assert_eq!(
+            parse(&plus("id_token_hint", "a.b.c"))
+                .unwrap()
+                .id_token_hint
+                .as_deref(),
+            Some("a.b.c")
+        );
+        let mut repeated = plus("id_token_hint", "a.b.c");
+        repeated.push(("id_token_hint", "d.e.f".to_owned()));
+        assert_eq!(
+            refused(&repeated),
+            invalid_request("parameter id_token_hint is repeated")
+        );
+    }
+
+    #[test]
+    fn debug_never_prints_the_hint() {
+        let request = parse(&plus("id_token_hint", "secret.hint.value")).unwrap();
+
+        let debug = format!("{request:?}");
+
+        assert!(!debug.contains("secret.hint.value"), "{debug}");
+        assert!(debug.contains("<redacted>"), "{debug}");
+    }
+
+    #[test]
+    fn the_query_without_a_parameter_keeps_every_other_in_order() {
+        let params = Params::from_query("b=2&id_token_hint=x&a=1&c=a%20b&a=3&id_token_hint=y");
+
+        assert_eq!(
+            params.to_query_without("id_token_hint"),
+            "b=2&a=1&c=a+b&a=3"
+        );
+        assert_eq!(
+            Params::from_query("id_token_hint=x").to_query_without("id_token_hint"),
+            ""
         );
     }
 
@@ -738,14 +828,6 @@ pub(crate) mod tests {
                 "max_age",
                 "0",
                 (OAuthError::InvalidRequest, "max_age is not supported"),
-            ),
-            (
-                "id_token_hint",
-                "x",
-                (
-                    OAuthError::InvalidRequest,
-                    "id_token_hint is not supported yet",
-                ),
             ),
         ] {
             assert_eq!(

@@ -6,13 +6,15 @@
 //! detection (ADR 0012), and userinfo and RP-initiated logout, which verify
 //! the tokens CAS issued (ADR 0013). Every endpoint of the minimal profile
 //! is served, and `/token` also mints guest accounts for a confidential
-//! client through the guest grant (ADR 0014). See
+//! client through the guest grant (ADR 0014), which `/authorize` upgrades to
+//! full accounts through `id_token_hint` (ADR 0015). See
 //! `docs/adr/0009-signing-key-and-discovery.md`,
 //! `docs/adr/0010-authorization-endpoint.md`,
 //! `docs/adr/0011-token-endpoint-and-access-tokens.md`,
 //! `docs/adr/0012-refresh-token-rotation.md`,
-//! `docs/adr/0013-userinfo-and-rp-initiated-logout.md` and
-//! `docs/adr/0014-guest-accounts-and-the-guest-grant.md`.
+//! `docs/adr/0013-userinfo-and-rp-initiated-logout.md`,
+//! `docs/adr/0014-guest-accounts-and-the-guest-grant.md` and
+//! `docs/adr/0015-guest-upgrade.md`.
 
 pub mod authorization;
 mod codes;
@@ -26,6 +28,7 @@ mod repository;
 pub mod service;
 mod token_request;
 mod tokens;
+mod upgrade_hint;
 mod userinfo;
 
 use std::time::Duration;
@@ -47,6 +50,7 @@ pub use token_request::TokenError;
 pub use tokens::{
     AccessTokenClaims, IdTokenClaims, InvalidToken, RefreshToken, RefreshTokenHash, UserInfoClaims,
 };
+pub use upgrade_hint::{HintError, UpgradeHintService};
 pub use userinfo::{UserInfoError, UserInfoService};
 
 /// The extension grant (RFC 6749 §4.5) a confidential client with

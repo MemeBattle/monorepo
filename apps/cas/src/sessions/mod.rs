@@ -5,8 +5,18 @@
 //! of the table does not hand out live sessions. Registration and login create
 //! a session; `GET /api/me` reads it; `POST /api/logout` deletes it. A session
 //! ends when it has been idle for [`SESSION_IDLE_TIMEOUT`] or, whatever
-//! happens, [`SESSION_LIFETIME`] after it was created; both clocks are the
+//! happens, its kind's lifetime after it was created; both clocks are the
 //! database's. See `docs/adr/0004-cookie-sessions.md`.
+//!
+//! A session has a [`SessionKind`]. A `full` session is what registration and
+//! login issue. An `upgrade` session is what `/authorize` opens for a guest
+//! that presents a fresh ID token as `id_token_hint`: it may only run the
+//! account-registration ceremony for its own account and continue
+//! `/authorize`, which never gives it a code. The `Authenticated` extractor
+//! admits full sessions only, so every other endpoint answers an upgrade
+//! session as unauthenticated; logout ends it like any other. An upgrade
+//! session lives for [`UPGRADE_SESSION_LIFETIME`] and only while its account
+//! is a guest. See `docs/adr/0015-guest-upgrade.md`.
 //!
 //! This module is the vocabulary: the token, its hash, the row. Issuing,
 //! resolving and revoking sessions is [`service`]; the SQL is `repository`;
@@ -26,11 +36,18 @@ use uuid::Uuid;
 use crate::accounts::Account;
 
 pub use service::SessionService;
+pub(crate) use service::rotate_upgraded;
 
 /// The absolute cap: how long a session may live from the moment it is
 /// created, however active it is. The row's `expires_at` is derived from it
 /// and never moves.
 pub const SESSION_LIFETIME: Duration = Duration::from_secs(30 * 24 * 60 * 60);
+
+/// The absolute cap of an upgrade session. It was opened by an ID token that
+/// travelled in a URL, good for ten minutes: one hour is enough to register a
+/// passkey and short enough that the hint does not become a month-long
+/// session (ADR 0015 (b)).
+pub const UPGRADE_SESSION_LIFETIME: Duration = Duration::from_secs(60 * 60);
 
 /// The idle timeout: a session that has not been used for this long is over,
 /// even if the absolute cap is far away. The cookie's `Max-Age` is derived
@@ -109,12 +126,43 @@ impl AsRef<[u8]> for TokenHash {
     }
 }
 
+/// What a session may do. Maps to the Postgres `session_kind` enum.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "session_kind", rename_all = "lowercase")]
+pub enum SessionKind {
+    /// A signed-in account: registration and login issue these.
+    Full,
+    /// A guest on its way to a full account: the registration ceremony for
+    /// its own account and `/authorize`, nothing else (ADR 0015 (a)).
+    Upgrade,
+}
+
+impl SessionKind {
+    /// The absolute cap of a session of this kind, from which the row's
+    /// `expires_at` is derived.
+    pub fn lifetime(self) -> Duration {
+        match self {
+            Self::Full => SESSION_LIFETIME,
+            Self::Upgrade => UPGRADE_SESSION_LIFETIME,
+        }
+    }
+
+    /// What goes in the log.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Full => "full",
+            Self::Upgrade => "upgrade",
+        }
+    }
+}
+
 /// A row of `sessions`, without the hash: once found, the row's identity is
 /// its id, and the secret has no business travelling further.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Session {
     pub id: Uuid,
     pub account_id: Uuid,
+    pub kind: SessionKind,
     pub created_at: OffsetDateTime,
     /// The absolute cap, fixed at creation.
     pub expires_at: OffsetDateTime,
@@ -131,14 +179,17 @@ impl Session {
     }
 }
 
-/// Which ceremony signed the account in. The row is the same either way; the
-/// distinction exists for the lifecycle log, where "an account just appeared"
-/// and "an account came back" are different stories about the same session
-/// (ADR 0004).
+/// What opened a session. The distinction exists for the lifecycle log,
+/// where "an account just appeared" and "an account came back" are different
+/// stories about the same kind of session (ADR 0004).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SessionOrigin {
     Registration,
     Login,
+    /// An upgrade session `/authorize` opened for a guest's `id_token_hint`.
+    IdTokenHint,
+    /// The full session a finished guest upgrade rotated into.
+    Upgrade,
 }
 
 impl SessionOrigin {
@@ -148,6 +199,8 @@ impl SessionOrigin {
         match self {
             Self::Registration => "registration",
             Self::Login => "login",
+            Self::IdTokenHint => "id_token_hint",
+            Self::Upgrade => "upgrade",
         }
     }
 }
@@ -224,6 +277,7 @@ mod tests {
         let mut session = Session {
             id: Uuid::new_v4(),
             account_id: Uuid::new_v4(),
+            kind: SessionKind::Full,
             created_at: now,
             expires_at: now + as_time(SESSION_LIFETIME),
             last_seen_at: now,
@@ -240,6 +294,28 @@ mod tests {
     fn the_renewal_window_is_small_against_the_idle_timeout() {
         assert!(SESSION_RENEWAL_WINDOW * 24 < SESSION_IDLE_TIMEOUT);
         assert!(SESSION_IDLE_TIMEOUT < SESSION_LIFETIME);
+    }
+
+    /// An upgrade session gives up long before a full one would, idle or
+    /// not: the hint that opened it was a bearer credential in a URL.
+    #[test]
+    fn the_upgrade_lifetime_is_shorter_than_the_idle_timeout_and_the_cap() {
+        assert_eq!(SessionKind::Upgrade.lifetime(), UPGRADE_SESSION_LIFETIME);
+        assert_eq!(SessionKind::Full.lifetime(), SESSION_LIFETIME);
+        assert!(UPGRADE_SESSION_LIFETIME < SESSION_IDLE_TIMEOUT);
+        assert!(UPGRADE_SESSION_LIFETIME < SESSION_LIFETIME);
+
+        // The cookie follows: `valid_until` is the cap, not the idle clock.
+        let now = OffsetDateTime::now_utc();
+        let session = Session {
+            id: Uuid::new_v4(),
+            account_id: Uuid::new_v4(),
+            kind: SessionKind::Upgrade,
+            created_at: now,
+            expires_at: now + as_time(UPGRADE_SESSION_LIFETIME),
+            last_seen_at: now,
+        };
+        assert_eq!(session.valid_until(), session.expires_at);
     }
 
     #[test]

@@ -419,6 +419,58 @@ mod tests {
         }
     }
 
+    /// A guest holding an upgrade session, as `/authorize` opens one.
+    async fn upgrade_session(pool: &PgPool) -> SessionToken {
+        let client = crate::testing::register_public_client(pool, "ligretto", &[]).await;
+        let guest = AccountRepository::new(pool.clone())
+            .create(NewAccount::guest(client.id, 1))
+            .await
+            .unwrap();
+        SessionService::new(pool.clone())
+            .open_upgrade(guest.id)
+            .await
+            .unwrap()
+            .token
+    }
+
+    /// `/me` is one of "everything else" an upgrade session may not use
+    /// (ADR 0015 (a)): the same 401 as no session.
+    #[sqlx::test]
+    async fn me_under_an_upgrade_session_is_401(pool: PgPool) {
+        let token = upgrade_session(&pool).await;
+
+        let response = router(test_state(pool))
+            .oneshot(get_me(Some(&dev_cookie(&token))))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            body_json(response).await["error"]["code"],
+            "unauthenticated"
+        );
+    }
+
+    /// Ending a session is not a use of it: logout ends an upgrade session
+    /// like any other.
+    #[sqlx::test]
+    async fn logout_ends_an_upgrade_session(pool: PgPool) {
+        let token = upgrade_session(&pool).await;
+
+        let response = router(test_state(pool.clone()))
+            .oneshot(post_logout(Some(&dev_cookie(&token))))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+        // Unchecked query: see docs/TESTS.md.
+        let left: i64 = sqlx::query_scalar("SELECT count(*) FROM sessions")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(left, 0);
+    }
+
     /// Logging out of nothing is still a logout: the cookie is cleared and
     /// nothing is refused.
     #[sqlx::test]
