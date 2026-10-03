@@ -5,12 +5,14 @@
 //! under a grant (ADR 0011) and refreshes them with rotation and reuse
 //! detection (ADR 0012), and userinfo and RP-initiated logout, which verify
 //! the tokens CAS issued (ADR 0013). Every endpoint of the minimal profile
-//! is served; the guest grant arrives with its own ticket and builds on what
-//! is here. See `docs/adr/0009-signing-key-and-discovery.md`,
+//! is served, and `/token` also mints guest accounts for a confidential
+//! client through the guest grant (ADR 0014). See
+//! `docs/adr/0009-signing-key-and-discovery.md`,
 //! `docs/adr/0010-authorization-endpoint.md`,
 //! `docs/adr/0011-token-endpoint-and-access-tokens.md`,
-//! `docs/adr/0012-refresh-token-rotation.md` and
-//! `docs/adr/0013-userinfo-and-rp-initiated-logout.md`.
+//! `docs/adr/0012-refresh-token-rotation.md`,
+//! `docs/adr/0013-userinfo-and-rp-initiated-logout.md` and
+//! `docs/adr/0014-guest-accounts-and-the-guest-grant.md`.
 
 pub mod authorization;
 mod codes;
@@ -47,8 +49,9 @@ pub use tokens::{
 };
 pub use userinfo::{UserInfoError, UserInfoService};
 
-/// The extension grant a confidential client uses to mint a guest account
-/// on `/token` (#746). Advertised by discovery already.
+/// The extension grant (RFC 6749 §4.5) a confidential client with
+/// `guest_login_allowed` uses to mint a guest account on `/token`, from its
+/// backend and without any UI (ADR 0014). Advertised by discovery.
 pub const GUEST_GRANT_TYPE: &str = "urn:memebattle:oauth:grant-type:guest";
 
 /// How long an authorization code may wait for `/token`. RFC 6749 §4.1.2
@@ -70,6 +73,13 @@ pub const ACCESS_TOKEN_LIFETIME: Duration = Duration::from_secs(10 * 60);
 /// ASVS 5.0 10.4.8, ADR 0012 (g)). Thirty days is the session cap (ADR 0004 (c)):
 /// signing in again once a month is one passkey touch.
 pub const REFRESH_TOKEN_LIFETIME: Duration = Duration::from_secs(30 * 24 * 60 * 60);
+
+/// The sliding window of the guest grant's per-client limit: a client may
+/// mint `clients.guest_grants_per_minute` guest accounts in any window of
+/// this length, measured by the database clock (ADR 0014 (e)). It is also
+/// the `Retry-After` of a refusal: by then every account that counted has
+/// left the window.
+pub const GUEST_GRANT_RATE_WINDOW: Duration = Duration::from_secs(60);
 
 /// The scope every authorization request must include: without it the
 /// request is plain OAuth, which CAS does not serve.

@@ -6,9 +6,11 @@
 //! the order ADR 0011 fixes: the client first, then the grant, then the code,
 //! then its verifier, the last two and the new grant in one transaction. A
 //! refresh locks the grant and its token, checks them, and rotates in one
-//! transaction (ADR 0012). See
-//! `docs/adr/0011-token-endpoint-and-access-tokens.md` and
-//! `docs/adr/0012-refresh-token-rotation.md`.
+//! transaction (ADR 0012). The guest grant mints a guest account and a grant
+//! for it, under the client's lock and within its limit, in one transaction
+//! (ADR 0014). See `docs/adr/0011-token-endpoint-and-access-tokens.md`,
+//! `docs/adr/0012-refresh-token-rotation.md` and
+//! `docs/adr/0014-guest-accounts-and-the-guest-grant.md`.
 
 use sqlx::{PgConnection, PgPool};
 use time::OffsetDateTime;
@@ -19,15 +21,15 @@ use super::keys::SigningKey;
 use super::repository::{self, NewGrant, Presented};
 use super::service::{AuthorizationService, RedeemError, RedeemedCode};
 use super::token_request::{
-    self, ClientCredentials, CodeGrant, Grant, INVALID_CODE, INVALID_REFRESH_TOKEN, RefreshGrant,
-    TokenError,
+    self, ClientCredentials, CodeGrant, Grant, GuestGrant, INVALID_CODE, INVALID_REFRESH_TOKEN,
+    RefreshGrant, TokenError,
 };
 use super::tokens::{
     ACCESS_TOKEN_TYPE, AccessTokenClaims, ID_TOKEN_TYPE, IdTokenClaims, RefreshToken, scope_string,
 };
-use super::{ACCESS_TOKEN_LIFETIME, REFRESH_TOKEN_LIFETIME};
-use crate::accounts::{self, Account};
-use crate::clients::{Client, ClientKind, Scope};
+use super::{ACCESS_TOKEN_LIFETIME, GUEST_GRANT_RATE_WINDOW, REFRESH_TOKEN_LIFETIME};
+use crate::accounts::{self, Account, NewAccount};
+use crate::clients::{self, Client, ClientKind, Scope};
 
 /// What a successful exchange hands the client: the body of RFC 6749 §5.1.
 /// Every field but `expires_in` and `scope` is a bearer credential, so
@@ -84,6 +86,7 @@ impl TokenService {
         match token_request::grant(params)? {
             Grant::Code(grant) => self.exchange_code(&client, grant).await,
             Grant::Refresh(grant) => self.refresh(&client, grant).await,
+            Grant::Guest(grant) => self.mint_guest(&client, grant).await,
         }
     }
 
@@ -263,6 +266,54 @@ impl TokenService {
         Ok(self.issue(client, &account, &scopes, None, successor))
     }
 
+    /// Mints a guest account for `client` and issues the tokens under a new
+    /// grant for it (ADR 0014). No authorization request, no code, no CAS
+    /// session: the application's backend asks, and the guest never sees
+    /// CAS.
+    ///
+    /// Only a confidential client with `guest_login_allowed` may: a public
+    /// client cannot prove who it is, so the flag would be an open tap for
+    /// accounts. That is checked here, after the client authenticated (ADR
+    /// 0011 (f)) and before anything of the grant is read or written. Then
+    /// the scope, then one transaction: the client's lock, the count, the
+    /// account, the grant and its first refresh token. A refusal writes
+    /// nothing; a database failure rolls everything back.
+    async fn mint_guest(
+        &self,
+        client: &Client,
+        grant: GuestGrant,
+    ) -> Result<IssuedTokens, TokenError> {
+        if client.kind != ClientKind::Confidential || !client.guest_login_allowed {
+            tracing::warn!(
+                client_id = %client.id,
+                kind = client.kind.as_str(),
+                guest_login_allowed = client.guest_login_allowed,
+                "guest grant refused to a client not allowed to use it"
+            );
+            return Err(TokenError::UnauthorizedClient);
+        }
+        let scopes = token_request::guest_scopes(grant.scope.as_deref(), client)?;
+
+        // Drawn before the transaction, as for the other grants, so that a
+        // failure here writes nothing.
+        let refresh_token = RefreshToken::generate().map_err(TokenError::Random)?;
+
+        let mut tx = self.pool.begin().await?;
+        // Returning early drops the transaction, which rolls it back.
+        let (account, grant_id) = mint(&mut tx, client, &scopes, &refresh_token).await?;
+        tx.commit().await?;
+
+        tracing::info!(
+            grant_id = %grant_id,
+            client_id = %client.id,
+            account_id = %account.id,
+            "guest account created"
+        );
+
+        // No authorization request, so no nonce.
+        Ok(self.issue(client, &account, &scopes, None, refresh_token))
+    }
+
     /// Signs the two JWTs. Their times are the process clock, unlike the
     /// rows' (ADR 0011 (e)): they are read by other machines against their
     /// own clocks, and the database has no say in that.
@@ -369,6 +420,65 @@ async fn rotate(
         scopes: token.scopes,
         grant_id: token.grant_id,
     })
+}
+
+/// Everything [`TokenService::mint_guest`] does on its transaction.
+///
+/// The client's row is locked first, in a statement of its own, and held to
+/// the commit: guest mints of one client are serialised across every
+/// replica, so the count sees every account a mint before this one
+/// committed, and the limit is exact (ADR 0014 (e)). The count's cutoff and
+/// the account's `created_at` are read by the statements after the lock,
+/// from `statement_timestamp()`: a mint that waited for the lock counts the
+/// real last minute and stamps its account with the moment it wrote it.
+///
+/// The lock is the client row first, then only rows this transaction
+/// creates, so there is nothing to deadlock with; it is `FOR NO KEY
+/// UPDATE`, so the client's code exchanges and refreshes are not queued
+/// behind it.
+async fn mint(
+    conn: &mut PgConnection,
+    client: &Client,
+    scopes: &[Scope],
+    refresh_token: &RefreshToken,
+) -> Result<(Account, Uuid), TokenError> {
+    // The client authenticated a moment ago; `None` means it was deleted
+    // since, and it is no more authorized than an unknown one.
+    let Some(limit) = clients::lock_guest_grant_limit(&mut *conn, &client.id).await? else {
+        return Err(TokenError::UnauthorizedClient);
+    };
+    let minted =
+        accounts::count_created_by_client(&mut *conn, &client.id, GUEST_GRANT_RATE_WINDOW).await?;
+    if minted >= i64::from(i32::from(limit)) {
+        tracing::warn!(
+            client_id = %client.id,
+            minted,
+            limit = %limit,
+            "guest grant rate limit exceeded"
+        );
+        return Err(TokenError::RateLimited {
+            retry_after: GUEST_GRANT_RATE_WINDOW,
+        });
+    }
+
+    // Drawn only once the limit let the mint through, so a refused request
+    // spends no number.
+    let number = accounts::next_guest_number(&mut *conn).await?;
+    let account =
+        accounts::insert(&mut *conn, NewAccount::guest(client.id.clone(), number)).await?;
+    let grant_id = repository::insert_grant(
+        &mut *conn,
+        NewGrant {
+            account_id: account.id,
+            client_id: &client.id,
+            scopes,
+            authorization_code_id: None,
+            lifetime: REFRESH_TOKEN_LIFETIME,
+        },
+    )
+    .await?;
+    repository::insert_refresh_token(&mut *conn, grant_id, &refresh_token.hash()).await?;
+    Ok((account, grant_id))
 }
 
 /// The grant and its first refresh token, on the exchange's transaction: a

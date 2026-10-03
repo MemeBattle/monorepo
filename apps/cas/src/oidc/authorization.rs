@@ -404,6 +404,7 @@ pub(crate) mod tests {
             post_logout_redirect_uris: vec![],
             first_party: true,
             guest_login_allowed: false,
+            guest_grants_per_minute: crate::clients::GuestGrantsPerMinute::default(),
             scopes: ["openid", "profile", "email"]
                 .into_iter()
                 .map(|scope| Scope::try_new(scope).unwrap())

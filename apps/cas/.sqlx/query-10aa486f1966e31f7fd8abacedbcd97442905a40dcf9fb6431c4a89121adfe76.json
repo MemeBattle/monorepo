@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT guest_grants_per_minute FROM clients WHERE id = $1 FOR NO KEY UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guest_grants_per_minute",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "clients",
+            "name": "guest_grants_per_minute"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "10aa486f1966e31f7fd8abacedbcd97442905a40dcf9fb6431c4a89121adfe76"
+}

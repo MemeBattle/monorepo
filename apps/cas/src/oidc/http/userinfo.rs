@@ -528,6 +528,33 @@ mod tests {
         assert_eq!(body["email"], "grace@example.com");
     }
 
+    /// A guest's token with `profile` answers who it is and that it is a
+    /// guest, and no name: its column holds a generated name, not one it
+    /// chose (ADR 0014 (b)).
+    #[sqlx::test]
+    async fn a_guest_has_no_name(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let guest = AccountRepository::new(pool.clone())
+            .create(NewAccount::guest(fixture.client.id.clone(), 1))
+            .await
+            .unwrap();
+        let token = signed_access_token(
+            &test_signing_key(),
+            &fixture.client,
+            &guest,
+            &["openid", "profile", "email"],
+            OffsetDateTime::now_utc(),
+        );
+
+        let response = fixture.get(&[&format!("Bearer {token}")]).await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            json(response).await,
+            serde_json::json!({"sub": guest.id.to_string(), "account_type": "guest"})
+        );
+    }
+
     /// A database that does not answer while the account is read. The
     /// token is valid, so no challenge.
     #[tokio::test]
@@ -548,6 +575,7 @@ mod tests {
                 post_logout_redirect_uris: vec![],
                 first_party: true,
                 guest_login_allowed: false,
+                guest_grants_per_minute: crate::clients::GuestGrantsPerMinute::default(),
                 scopes: scopes(&["openid"]),
                 audience: Audience::try_new(CLIENT).unwrap(),
                 created_at: OffsetDateTime::UNIX_EPOCH,
@@ -557,6 +585,7 @@ mod tests {
                 display_name: display_name("Ada"),
                 r#type: crate::accounts::AccountType::Full,
                 email: None,
+                created_by_client_id: None,
                 created_at: OffsetDateTime::UNIX_EPOCH,
                 last_seen_at: OffsetDateTime::UNIX_EPOCH,
             },
