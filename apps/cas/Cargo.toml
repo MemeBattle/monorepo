@@ -45,6 +45,13 @@ tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["fmt", "env-filter"] }
 unicode-general-category = "1.1"
 unicode-normalization = "0.1.25"
+# The OpenAPI description, derived from the handlers (src/http/openapi.rs,
+# ADR 0016). `auto_into_responses` reads a handler's responses off its return
+# type, which is why the handlers return the crate's own wrappers.
+utoipa = { version = "6", features = ["axum_extras", "uuid", "time", "auto_into_responses"] }
+# Mounts the documented handlers and collects their paths (`OpenApiRouter`,
+# `routes!`), so a route cannot be mounted without being described.
+utoipa-axum = "0.3"
 # Validating a registered redirect URI (src/clients/redirect_uri.rs). A direct
 # dependency rather than `webauthn_rs::prelude::Url`, which `config.rs` uses:
 # the clients context has no business depending on the WebAuthn crate.

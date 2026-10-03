@@ -9,7 +9,9 @@ use super::keys::SIGNING_ALGORITHM;
 /// The discovery document. It advertises the whole SSO milestone, including
 /// the endpoints later tickets add, so that it stays the same across their
 /// releases (ADR 0009 (f)).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+// `ToSchema` describes it in the OpenAPI document, being on the wire
+// already (docs/LAYOUT.md, rule 1).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, utoipa::ToSchema)]
 pub struct Discovery {
     issuer: String,
     authorization_endpoint: String,
@@ -17,15 +19,23 @@ pub struct Discovery {
     userinfo_endpoint: String,
     end_session_endpoint: String,
     jwks_uri: String,
+    #[schema(value_type = Vec<String>)]
     response_types_supported: &'static [&'static str],
+    #[schema(value_type = Vec<String>)]
     response_modes_supported: &'static [&'static str],
+    #[schema(value_type = Vec<String>)]
     grant_types_supported: &'static [&'static str],
+    #[schema(value_type = Vec<String>)]
     subject_types_supported: &'static [&'static str],
+    #[schema(value_type = Vec<String>)]
     id_token_signing_alg_values_supported: &'static [&'static str],
+    #[schema(value_type = Vec<String>)]
     scopes_supported: &'static [&'static str],
     /// `none` is a public client, which authenticates with its `client_id`
     /// and proves itself with PKCE (OpenID Connect Core §9, ADR 0011).
+    #[schema(value_type = Vec<String>)]
     token_endpoint_auth_methods_supported: &'static [&'static str],
+    #[schema(value_type = Vec<String>)]
     code_challenge_methods_supported: &'static [&'static str],
     /// Discovery §3 defaults this to `true`, and `/authorize` refuses
     /// `request_uri` (ADR 0010 (b)), so it is stated. The sibling

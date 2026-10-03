@@ -51,20 +51,26 @@ pub enum SigningKeyError {
 
 /// The public half of a signing key, as `/jwks.json` publishes it
 /// (RFC 7517, RFC 7518 §6.2.1).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+// `ToSchema` describes it in the OpenAPI document, being on the wire
+// already (docs/LAYOUT.md, rule 1).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, utoipa::ToSchema)]
 pub struct PublicJwk {
+    #[schema(value_type = String)]
     pub kty: &'static str,
+    #[schema(value_type = String)]
     pub crv: &'static str,
     pub x: String,
     pub y: String,
     pub kid: String,
     #[serde(rename = "use")]
+    #[schema(value_type = String)]
     pub use_: &'static str,
+    #[schema(value_type = String)]
     pub alg: &'static str,
 }
 
 /// A JWK Set: the body of `/jwks.json`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, utoipa::ToSchema)]
 pub struct Jwks {
     pub keys: Vec<PublicJwk>,
 }

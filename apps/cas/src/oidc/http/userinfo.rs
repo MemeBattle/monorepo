@@ -8,22 +8,27 @@
 //! the same code in a JSON body for the developer reading the response. See
 //! `docs/adr/0013-userinfo-and-rp-initiated-logout.md`.
 
+use std::collections::BTreeMap;
 use std::time::Duration;
 
 use axum::{
-    Json, Router,
     extract::State,
     http::{HeaderMap, HeaderValue, Method, StatusCode, header},
     response::{IntoResponse, Response},
-    routing::get,
 };
 use serde_json::json;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::set_header::SetResponseHeaderLayer;
+use utoipa::OpenApi;
+use utoipa::openapi::{RefOr, response::Response as OpenApiResponse};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
-use super::token::database_failure;
+use super::token::{OAuthErrorResponse, SERVER_ERROR, database_failure};
 use crate::http::ApiState;
-use crate::oidc::UserInfoError;
+use crate::http::error::ErrorCode;
+use crate::http::extract::Json;
+use crate::http::response::{Documented, ErrorShape, error_responses, string_header};
+use crate::oidc::{UserInfoClaims, UserInfoError};
 
 /// The challenge for a request that sent no Bearer credentials: RFC 6750
 /// §3.1 asks for no error code then, since the client may simply not know
@@ -42,9 +47,9 @@ const PREFLIGHT_MAX_AGE: Duration = Duration::from_secs(60 * 60);
 /// so the root's fallback is not wrapped (see `oidc::http::router`). The
 /// CORS policy is [`userinfo_cors`], which the transport root applies
 /// outside this router's panic handler.
-pub fn userinfo_router(state: ApiState) -> Router {
-    Router::new()
-        .route("/userinfo", get(userinfo).post(userinfo))
+pub fn userinfo_router(state: ApiState) -> OpenApiRouter {
+    OpenApiRouter::with_openapi(UserInfoApi::openapi())
+        .routes(routes!(userinfo_by_get, userinfo_by_post))
         .route_layer(SetResponseHeaderLayer::overriding(
             header::CACHE_CONTROL,
             HeaderValue::from_static("no-store"),
@@ -66,7 +71,75 @@ pub fn userinfo_cors() -> CorsLayer {
         .max_age(PREFLIGHT_MAX_AGE)
 }
 
-async fn userinfo(State(state): State<ApiState>, headers: HeaderMap) -> Response {
+/// The claims body, for the description.
+#[derive(OpenApi)]
+#[openapi(components(schemas(UserInfoClaims)))]
+struct UserInfoApi;
+
+/// What `/userinfo` answers, for the description: the claims, or an RFC
+/// 6750 §3 refusal with its challenge.
+struct UserInfoResponses;
+
+impl utoipa::IntoResponses for UserInfoResponses {
+    fn responses() -> BTreeMap<String, RefOr<OpenApiResponse>> {
+        let mut codes: Vec<(StatusCode, &'static str)> = BearerError::ALL
+            .iter()
+            .filter_map(|error| {
+                let (status, _, body) = error.parts();
+                body.map(|(code, _)| (status, code))
+            })
+            .collect();
+        // A database failure answers as `/token` does.
+        codes.extend(
+            OAuthErrorResponse::DECLARED
+                .into_iter()
+                .filter(|(status, _)| *status == StatusCode::SERVICE_UNAVAILABLE),
+        );
+        codes.push((StatusCode::INTERNAL_SERVER_ERROR, SERVER_ERROR));
+        let mut responses = error_responses(&codes, ErrorShape::OAuth);
+        for status in [
+            StatusCode::BAD_REQUEST,
+            StatusCode::UNAUTHORIZED,
+            StatusCode::FORBIDDEN,
+        ] {
+            if let Some(RefOr::T(response)) = responses.get_mut(status.as_str()) {
+                response.headers.insert(
+                    header::WWW_AUTHENTICATE.as_str().to_owned(),
+                    RefOr::T(string_header(
+                        "The Bearer challenge, with the code; a request without Bearer \
+                         credentials gets a bare `Bearer` and no body.",
+                    )),
+                );
+            }
+        }
+        responses.extend(<Json<UserInfoClaims> as utoipa::IntoResponses>::responses());
+        responses
+    }
+}
+
+/// The claims of the account behind the access token.
+///
+/// The token is read from `Authorization: Bearer` only, never from the
+/// query or a body (ADR 0013).
+#[utoipa::path(get, path = "/userinfo", security(("bearer" = [])))]
+async fn userinfo_by_get(
+    State(state): State<ApiState>,
+    headers: HeaderMap,
+) -> Documented<UserInfoResponses> {
+    userinfo(state, headers).await.into()
+}
+
+/// The claims of the account behind the access token, by `POST`: the same
+/// as `GET`, the body is not read (ADR 0013 (d)).
+#[utoipa::path(post, path = "/userinfo", security(("bearer" = [])))]
+async fn userinfo_by_post(
+    State(state): State<ApiState>,
+    headers: HeaderMap,
+) -> Documented<UserInfoResponses> {
+    userinfo(state, headers).await.into()
+}
+
+async fn userinfo(state: ApiState, headers: HeaderMap) -> Response {
     let bearer = match bearer(&headers) {
         Ok(bearer) => bearer,
         Err(error) => return error.into_response(),
@@ -143,6 +216,14 @@ enum BearerError {
 }
 
 impl BearerError {
+    /// Every refusal, for the description.
+    const ALL: [Self; 4] = [
+        Self::NoCredentials,
+        Self::InvalidRequest,
+        Self::InvalidToken,
+        Self::InsufficientScope,
+    ];
+
     /// The status, the challenge, and the `error` and `error_description`
     /// of the body; `None` for a request without Bearer credentials, which
     /// is told nothing but the scheme.
@@ -192,12 +273,16 @@ impl IntoResponse for BearerError {
             HeaderValue::from_static(challenge),
         )];
         match body {
-            Some((error, description)) => (
-                status,
-                challenge,
-                Json(json!({"error": error, "error_description": description})),
-            )
-                .into_response(),
+            Some((error, description)) => {
+                let mut response = (
+                    status,
+                    challenge,
+                    Json(json!({"error": error, "error_description": description})),
+                )
+                    .into_response();
+                response.extensions_mut().insert(ErrorCode(error));
+                response
+            }
             None => (status, challenge).into_response(),
         }
     }
@@ -215,6 +300,7 @@ fn database_error(error: &sqlx::Error) -> Response {
 
 #[cfg(test)]
 mod tests {
+    use axum::Router;
     use axum::body::to_bytes;
     use axum::http::Request;
     use sqlx::PgPool;
@@ -228,8 +314,8 @@ mod tests {
     use crate::oidc::authorization::tests::CALLBACK;
     use crate::oidc::{SigningKey, SigningKeys};
     use crate::testing::{
-        capture_tracing, display_name, fresh_signing_key_pem, header_str, register_public_client,
-        scopes, signed_access_token, test_signing_key, test_state,
+        capture_tracing, checked, display_name, fresh_signing_key_pem, header_str,
+        register_public_client, scopes, signed_access_token, test_signing_key, test_state,
     };
 
     const CLIENT: &str = "ligretto-web";
@@ -248,7 +334,7 @@ mod tests {
             .await
             .unwrap();
         Fixture {
-            router: userinfo_router(test_state(pool.clone())),
+            router: checked(userinfo_router(test_state(pool.clone()))),
             pool: pool.clone(),
             client,
             account,
@@ -564,7 +650,7 @@ mod tests {
             .connect_lazy("postgres://cas:cas@localhost:1/cas")
             .unwrap();
         let fixture = Fixture {
-            router: userinfo_router(test_state(pool.clone())),
+            router: checked(userinfo_router(test_state(pool.clone()))),
             pool,
             client: Client {
                 id: ClientId::try_new(CLIENT).unwrap(),

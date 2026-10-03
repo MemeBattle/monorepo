@@ -12,13 +12,14 @@ pub mod token;
 pub mod userinfo;
 
 use axum::{
-    Json, Router,
     extract::State,
     http::{HeaderValue, header},
-    routing::get,
 };
 use tower_http::set_header::SetResponseHeaderLayer;
+use utoipa::OpenApi;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
+use crate::http::extract::Json;
 use crate::oidc::{Discovery, Jwks};
 
 pub use authorize::authorize_router;
@@ -39,10 +40,10 @@ pub struct Documents {
 /// hour they may be cached. A route layer, not `Router::layer`: the latter
 /// would also wrap this router's default fallback, and once merged into the
 /// root that fallback answers every unknown path outside `/api`.
-pub fn router(documents: Documents) -> Router {
-    Router::new()
-        .route("/.well-known/openid-configuration", get(discovery))
-        .route("/jwks.json", get(jwks))
+pub fn router(documents: Documents) -> OpenApiRouter {
+    OpenApiRouter::with_openapi(DocumentsApi::openapi())
+        .routes(routes!(discovery))
+        .routes(routes!(jwks))
         .route_layer(SetResponseHeaderLayer::overriding(
             header::CACHE_CONTROL,
             HeaderValue::from_static("public, max-age=3600"),
@@ -50,10 +51,19 @@ pub fn router(documents: Documents) -> Router {
         .with_state(documents)
 }
 
+/// The two documents' bodies, for the description.
+#[derive(OpenApi)]
+#[openapi(components(schemas(Discovery, Jwks)))]
+struct DocumentsApi;
+
+/// The OpenID Provider metadata (OpenID Connect Discovery 1.0 §3).
+#[utoipa::path(get, path = "/.well-known/openid-configuration")]
 async fn discovery(State(documents): State<Documents>) -> Json<Discovery> {
     Json(documents.discovery)
 }
 
+/// The published signing keys, a JWK Set (RFC 7517).
+#[utoipa::path(get, path = "/jwks.json")]
 async fn jwks(State(documents): State<Documents>) -> Json<Jwks> {
     Json(documents.jwks)
 }

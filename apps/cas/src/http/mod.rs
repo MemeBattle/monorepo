@@ -6,6 +6,8 @@ pub mod error;
 pub(crate) mod extract;
 mod fetch_metadata;
 mod health;
+pub(crate) mod openapi;
+pub mod response;
 
 use axum::{
     Router,
@@ -25,6 +27,7 @@ use tower_http::{
 };
 use tracing::Level;
 use url::Url;
+use utoipa_axum::router::OpenApiRouter;
 
 use crate::accounts::AccountManagement;
 use crate::accounts::http as accounts_http;
@@ -105,6 +108,10 @@ pub struct ApiState {
 /// router (a nested router's catch-all does not match an empty rest, so the
 /// slash-terminated prefix alone escaped it). `/api/me/` is `/api/me`, and
 /// nothing served here gives a trailing slash a meaning of its own.
+///
+/// Every router is an `OpenApiRouter`, so the document `GET /openapi.json`
+/// serves is collected from the same mounts that route the requests
+/// (`openapi`). In tests, every answer is also checked against it.
 pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
     // Lazy pool: connections open on first use, so startup succeeds even when
     // the DB is down and `/health` reports the actual connectivity.
@@ -160,8 +167,9 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
         frontend_origin: config.origin.clone(),
     };
 
-    let userinfo = oidc_http::userinfo_router(api_state.clone());
-    let router = Router::new()
+    let (userinfo, userinfo_document) =
+        oidc_http::userinfo_router(api_state.clone()).split_for_parts();
+    let (router, mut document) = OpenApiRouter::with_openapi(openapi::base())
         .merge(health::router(pool))
         .merge(oidc_http::router(documents))
         .merge(oidc_http::authorize_router(api_state.clone()))
@@ -170,15 +178,16 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
         .nest(
             "/api",
             api_router(api_state, AllowedOrigins::new(config.cors_origins.clone())),
-        );
+        )
+        .split_for_parts();
+    document.merge(userinfo_document);
+    let (router, _document) = openapi::serve_document(router, document);
 
-    Ok(
-        NormalizePathLayer::trim_trailing_slash().layer(with_middleware(
-            router,
-            userinfo,
-            config.cors_origins,
-        )),
-    )
+    let service = with_middleware(router, userinfo, config.cors_origins);
+    #[cfg(test)]
+    let service = openapi::conformance::check(service, &_document);
+
+    Ok(NormalizePathLayer::trim_trailing_slash().layer(service))
 }
 
 /// Everything under `/api`: the contexts' routers, re-sending the session
@@ -193,23 +202,31 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
 /// path that does not exist — and a new endpoint must be covered by where it
 /// is mounted. It wraps the CSRF line from the outside so that the layer's
 /// own refusals carry it too.
-fn api_router(state: ApiState, origins: AllowedOrigins) -> Router {
+///
+/// The description is taken off the contexts' routers before the CSRF line
+/// wraps them, completed with the line's own refusal, and handed back with
+/// the guarded router for the root to nest.
+fn api_router(state: ApiState, origins: AllowedOrigins) -> OpenApiRouter {
     // `/me` is one path with two owners by verb: the sessions router answers
     // `GET`, the accounts router `PATCH`, and axum merges the two method
     // routers for the path (ADR 0007).
-    let api = Router::new()
+    let api = OpenApiRouter::new()
         .nest("/webauthn", webauthn_http::router(state.clone()))
         .nest("/passkeys", webauthn_http::passkeys::router(state.clone()))
         .merge(sessions_http::router(state.clone()))
         .merge(accounts_http::router(state))
         .fallback(not_found);
 
-    fetch_metadata::guard(sessions_http::with_cookie_renewal(api), origins).layer(
-        SetResponseHeaderLayer::overriding(
-            header::CACHE_CONTROL,
-            HeaderValue::from_static("no-store"),
-        ),
-    )
+    let (api, mut document) = sessions_http::with_cookie_renewal(api).split_for_parts();
+    fetch_metadata::describe(&mut document);
+    let guarded = fetch_metadata::guard(api, origins).layer(SetResponseHeaderLayer::overriding(
+        header::CACHE_CONTROL,
+        HeaderValue::from_static("no-store"),
+    ));
+
+    let mut api = OpenApiRouter::from(guarded);
+    *api.get_openapi_mut() = document;
+    api
 }
 
 /// The answer for a path under `/api` that does not exist.
@@ -322,9 +339,9 @@ mod tests {
     use crate::oidc::{SigningKey, SigningKeys};
     use crate::sessions::{SessionOrigin, SessionService};
     use crate::testing::{
-        DEV_SIGNING_KEY_KID, capture_tracing, display_name, fresh_signing_key_pem, header_str,
-        register_public_client, session_cookie, signed_id_token, soft_passkey_registration,
-        test_config, test_cookies, test_signing_key, test_state,
+        DEV_SIGNING_KEY_KID, capture_tracing, checked, display_name, fresh_signing_key_pem,
+        header_str, register_public_client, session_cookie, signed_id_token,
+        soft_passkey_registration, test_config, test_cookies, test_signing_key, test_state,
     };
 
     const ALLOWED_ORIGIN: &str = "http://localhost:5173";
@@ -469,7 +486,7 @@ mod tests {
     #[sqlx::test]
     async fn a_cross_site_form_post_to_logout_is_forbidden_and_keeps_the_session(pool: PgPool) {
         let cookie = signed_in(&pool).await;
-        let app = api_router(test_state(pool), allowed_origins());
+        let app = checked(api_router(test_state(pool), allowed_origins()));
 
         let response = app
             .clone()
@@ -515,7 +532,7 @@ mod tests {
     async fn a_fetch_from_the_frontend_logs_out(pool: PgPool) {
         let cookie = signed_in(&pool).await;
 
-        let response = api_router(test_state(pool), allowed_origins())
+        let response = checked(api_router(test_state(pool), allowed_origins()))
             .oneshot(
                 Request::builder()
                     .method("POST")
@@ -583,7 +600,7 @@ mod tests {
     async fn the_request_trace_does_not_log_the_session_cookie(pool: PgPool) {
         let (events, _guard) = capture_tracing();
         let app = with_middleware(
-            api_router(test_state(pool), allowed_origins()),
+            checked(api_router(test_state(pool), allowed_origins())),
             Router::new(),
             vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
         );
@@ -649,7 +666,7 @@ mod tests {
         let cookie = signed_in(&pool).await;
         let (events, _guard) = capture_tracing();
         let app = with_middleware(
-            api_router(test_state(pool), allowed_origins()),
+            checked(api_router(test_state(pool), allowed_origins())),
             Router::new(),
             vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
         );
@@ -809,7 +826,7 @@ mod tests {
     async fn a_successful_me_is_no_store(pool: PgPool) {
         let cookie = signed_in(&pool).await;
 
-        let response = api_router(test_state(pool), allowed_origins())
+        let response = checked(api_router(test_state(pool), allowed_origins()))
             .oneshot(
                 Request::builder()
                     .uri("/me")
@@ -1077,8 +1094,8 @@ mod tests {
         );
         let state = test_state(pool);
         let app = with_middleware(
-            oidc_http::end_session_router(state.clone()),
-            oidc_http::userinfo_router(state),
+            checked(oidc_http::end_session_router(state.clone())),
+            checked(oidc_http::userinfo_router(state)),
             vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
         );
         let (events, _guard) = capture_tracing();

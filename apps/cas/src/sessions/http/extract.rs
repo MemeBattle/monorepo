@@ -20,8 +20,10 @@ use axum::extract::{FromRef, FromRequestParts};
 use axum::http::request::Parts;
 use axum::http::{Extensions, HeaderMap};
 
+use axum::http::StatusCode;
+
 use crate::http::ApiState;
-use crate::http::error::ApiError;
+use crate::http::error::{ApiError, ErrorCodes};
 use crate::http::extract::original_path;
 use crate::sessions::http::renewal::{self, RenewalSlot};
 use crate::sessions::{Authenticated, Renewal, SessionKind, SessionToken};
@@ -30,8 +32,22 @@ use crate::sessions::{Authenticated, Renewal, SessionKind, SessionToken};
 /// cookie, a malformed one, an unknown, expired or revoked session — so a
 /// client learns nothing about which sessions exist. The fix is the same in
 /// every case: sign in.
+struct Unauthenticated;
+
+crate::api_errors!(Unauthenticated => UNAUTHORIZED "unauthenticated", |_| "Sign in to continue");
+
 fn unauthenticated() -> ApiError {
-    ApiError::unauthorized("unauthenticated", "Sign in to continue")
+    ApiError::from(Unauthenticated)
+}
+
+/// What a handler taking the extractor answers without being entered: the
+/// 401, or the database's codes when the lookup fails.
+impl ErrorCodes for Authenticated {
+    fn codes() -> Vec<(StatusCode, &'static str)> {
+        let mut codes = Unauthenticated::codes();
+        codes.extend(sqlx::Error::codes());
+        codes
+    }
 }
 
 impl<S> FromRequestParts<S> for Authenticated

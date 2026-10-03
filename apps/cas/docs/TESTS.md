@@ -20,6 +20,27 @@ compile-time-checked macros, because CI runs the tests with `SQLX_OFFLINE=true`
 and `cargo sqlx prepare` does not cache queries from the test target; the
 comment `// Unchecked query: see docs/TESTS.md.` marks them.
 
+## The OpenAPI description
+
+Every answer a transport test gets is also checked against the OpenAPI
+description (ADR 0016 (f)). `http::app` carries the check in test builds,
+and a context's tests build their router with `testing::checked(router(…))`,
+which applies the same check against that router's own description. The
+check fails the test when a response has a status its operation does not
+declare, carries an error code the status does not list, or answers a route
+the description does not have (only 404, 405 and the CSRF line's 403 may
+answer those). The fix is to declare the response — add the extractor's
+marker or the domain error to the handler's `error_set!` — never to exempt it.
+
+The description is committed as `apps/cas/openapi.json` and the test
+`the_committed_document_is_current` compares it with what `GET /openapi.json`
+serves. After changing the API, regenerate it and commit the file:
+
+```sh
+cd apps/cas
+UPDATE_OPENAPI=1 cargo test --lib the_committed_document_is_current
+```
+
 ## Test support
 
 Helpers shared by all of the crate's tests live in `src/testing.rs`. The module

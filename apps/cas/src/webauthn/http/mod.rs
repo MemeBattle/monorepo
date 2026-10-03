@@ -9,21 +9,26 @@ pub mod login;
 pub mod passkeys;
 pub mod registration;
 
-use axum::{Router, routing::post};
+use utoipa::OpenApi;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::http::ApiState;
 
-pub fn router(state: ApiState) -> Router {
-    Router::new()
-        .route(
-            "/register-options",
-            post(registration::get_registration_options),
-        )
-        .route(
-            "/verify-registration",
-            post(registration::verify_registration),
-        )
-        .route("/login-options", post(login::get_login_options))
-        .route("/verify-login", post(login::verify_login))
+/// The response bodies of the ceremonies, for the description.
+#[derive(OpenApi)]
+#[openapi(components(schemas(
+    registration::RegistrationOptionsResponse,
+    registration::VerifyRegistrationResponse,
+    login::LoginOptionsResponse,
+    login::VerifyLoginResponse,
+)))]
+struct CeremoniesApi;
+
+pub fn router(state: ApiState) -> OpenApiRouter {
+    OpenApiRouter::with_openapi(CeremoniesApi::openapi())
+        .routes(routes!(registration::get_registration_options))
+        .routes(routes!(registration::verify_registration))
+        .routes(routes!(login::get_login_options))
+        .routes(routes!(login::verify_login))
         .with_state(state)
 }
