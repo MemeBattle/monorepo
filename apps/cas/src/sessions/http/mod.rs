@@ -28,6 +28,7 @@ use crate::http::ApiState;
 use crate::http::error::ApiErrors;
 use crate::http::extract::Json;
 use crate::http::response::{on_success, string_header};
+use crate::sessions::http::extract::AnySession;
 use crate::sessions::service::CreateError;
 use crate::sessions::{Authenticated, SessionToken};
 
@@ -135,6 +136,11 @@ pub fn router(state: ApiState) -> OpenApiRouter {
 /// The signed-in account as the dashboard needs it. Nothing about the
 /// session itself but when it ends if left alone: the id is server-side
 /// state.
+///
+/// Under an upgrade session it is the guest (ADR 0018): `accountType:
+/// "guest"`, the generated `Guest <n>` name, `email: null`, and the upgrade
+/// session's expiry. A resolved session of a guest is always an upgrade
+/// session, so the type is all the frontend needs to tell the two apart.
 #[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct MeResponse {
@@ -148,16 +154,22 @@ pub struct MeResponse {
     session_expires_at: OffsetDateTime,
 }
 
-crate::error_set!(MeErrors: Authenticated);
+crate::error_set!(MeErrors: AnySession);
 
 /// The signed-in account.
+///
+/// Answers an upgrade session too, with the guest it belongs to
+/// (`accountType: "guest"`): the one read open to it, so the frontend can
+/// tell a guest from a signed-out browser (ADR 0018).
 #[utoipa::path(
     get,
     path = "/me",
     operation_id = "get_me",
     security(("session" = []))
 )]
-async fn me(authenticated: Authenticated) -> Result<Json<MeResponse>, ApiErrors<MeErrors>> {
+async fn me(
+    AnySession(authenticated): AnySession,
+) -> Result<Json<MeResponse>, ApiErrors<MeErrors>> {
     let Authenticated { session, account } = authenticated;
 
     Ok(Json(MeResponse {
@@ -541,16 +553,59 @@ mod tests {
             .token
     }
 
-    /// `/me` is one of "everything else" an upgrade session may not use
-    /// (ADR 0015 (a)): the same 401 as no session.
+    /// `/me` answers an upgrade session with the guest it belongs to
+    /// (ADR 0018): the type, the generated name, no email, and the upgrade
+    /// session's expiry, at most an hour away.
     #[sqlx::test]
-    async fn me_under_an_upgrade_session_is_401(pool: PgPool) {
-        let token = upgrade_session(&pool).await;
+    async fn me_under_an_upgrade_session_answers_the_guest(pool: PgPool) {
+        let upgrade = crate::testing::upgrade_signed_in(&pool).await;
 
         let response = checked(router(test_state(pool)))
-            .oneshot(get_me(Some(&dev_cookie(&token))))
+            .oneshot(get_me(Some(&upgrade.cookie)))
             .await
             .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = body_json(response).await;
+        assert_eq!(body["accountId"], upgrade.account.id.to_string());
+        assert_eq!(body["accountType"], "guest");
+        assert_eq!(body["displayName"], "Guest 1");
+        assert_eq!(body["email"], serde_json::Value::Null);
+        let expires_at = OffsetDateTime::parse(
+            body["sessionExpiresAt"].as_str().unwrap(),
+            &time::format_description::well_known::Rfc3339,
+        )
+        .unwrap();
+        let lifetime = expires_at - OffsetDateTime::now_utc();
+        assert!(
+            lifetime > time::Duration::ZERO
+                && lifetime
+                    <= time::Duration::try_from(crate::sessions::UPGRADE_SESSION_LIFETIME).unwrap(),
+            "the upgrade session's expiry, within its hour: {lifetime}"
+        );
+    }
+
+    /// Once the account is full, the upgrade session that read `/me` reads
+    /// nothing: the read never describes a full account (ADR 0015 (b)).
+    #[sqlx::test]
+    async fn me_under_an_upgrade_session_of_a_full_account_is_401(pool: PgPool) {
+        let upgrade = crate::testing::upgrade_signed_in(&pool).await;
+        let app = checked(router(test_state(pool.clone())));
+        let before = app
+            .clone()
+            .oneshot(get_me(Some(&upgrade.cookie)))
+            .await
+            .unwrap();
+        assert_eq!(before.status(), StatusCode::OK);
+
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("UPDATE accounts SET type = 'full' WHERE id = $1")
+            .bind(upgrade.account.id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let response = app.oneshot(get_me(Some(&upgrade.cookie))).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
         assert_eq!(

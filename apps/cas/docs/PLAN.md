@@ -80,8 +80,9 @@ email/password + VK login, 7-service architecture).
   upgrade link to a victim, the victim registers a passkey, and the attacker's
   session now names a full account. Therefore:
   - An upgrade session is restricted, and the backend enforces it, not the UI:
-    it can only run the account-registration ceremony for its own `sub` and
-    continue `/oidc/authorize`. No passkey addition or listing, no email changes.
+    it can only run the account-registration ceremony for its own `sub`,
+    continue `/oidc/authorize` and read `GET /api/me` (ADR 0018). No passkey
+    addition or listing, no email changes.
   - Finishing that ceremony is one transaction with the account row locked:
     store the passkey, `type = full`, delete every other session of the
     account, revoke every grant of the account (and with it every refresh

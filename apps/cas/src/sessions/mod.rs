@@ -11,10 +11,11 @@
 //! A session has a [`SessionKind`]. A `full` session is what registration and
 //! login issue. An `upgrade` session is what `/oidc/authorize` opens for a guest
 //! that presents a fresh ID token as `id_token_hint`: it may only run the
-//! account-registration ceremony for its own account and continue
-//! `/oidc/authorize`, which never gives it a code. The `Authenticated` extractor
-//! admits full sessions only, so every other endpoint answers an upgrade
-//! session as unauthenticated; logout ends it like any other. An upgrade
+//! account-registration ceremony for its own account, continue
+//! `/oidc/authorize`, which never gives it a code, and read `GET /api/me`
+//! (ADR 0018). The `Authenticated` extractor admits full sessions only, so
+//! every other endpoint answers an upgrade session as unauthenticated; logout
+//! ends it like any other. An upgrade
 //! session lives for [`UPGRADE_SESSION_LIFETIME`] and only while its account
 //! is a guest. See `docs/adr/0015-guest-upgrade.md`.
 //!
