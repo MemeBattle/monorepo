@@ -5,18 +5,30 @@ import type {
   PublicKeyCredentialRequestOptionsJSON,
 } from '@simplewebauthn/browser'
 
-import { request } from '#shared/api/request'
+import type { ErrorCodeOf, Result } from '#shared/api/client'
+import type { GetLoginOptionsResponses } from '#shared/api/generated/models/GetLoginOptions'
+import type { GetRegistrationOptionsResponses } from '#shared/api/generated/models/GetRegistrationOptions'
+import type { LoginOptionsResponse } from '#shared/api/generated/models/LoginOptionsResponse'
+import type { RegistrationOptionsResponse } from '#shared/api/generated/models/RegistrationOptionsResponse'
+import type { VerifyLoginResponses } from '#shared/api/generated/models/VerifyLogin'
+import type { VerifyLoginResponse } from '#shared/api/generated/models/VerifyLoginResponse'
+import type { VerifyRegistrationResponses } from '#shared/api/generated/models/VerifyRegistration'
+import type { VerifyRegistrationResponse } from '#shared/api/generated/models/VerifyRegistrationResponse'
+import { getLoginOptions } from '#shared/api/generated/operations/getLoginOptions'
+import { getRegistrationOptions } from '#shared/api/generated/operations/getRegistrationOptions'
+import { verifyLogin as verifyLoginOperation } from '#shared/api/generated/operations/verifyLogin'
+import { verifyRegistration } from '#shared/api/generated/operations/verifyRegistration'
 
-interface RegistrationOptionsResponse {
-  /** Names the ceremony, not the account; goes back with the answer. */
-  registrationId: string
-  ccr: { publicKey: PublicKeyCredentialCreationOptionsJSON }
-}
+/**
+ * The registration options as the authenticator reads them. `registrationId` names the ceremony, not the account, and
+ * goes back with the answer; the description leaves `ccr` an `object`.
+ */
+type RegistrationOptions = Omit<RegistrationOptionsResponse, 'ccr'> & { ccr: { publicKey: PublicKeyCredentialCreationOptionsJSON } }
 
-export interface Registered {
-  accountId: string
-  credentialId: string
-}
+export type Registered = VerifyRegistrationResponse
+
+/** The codes `registerWithPasskey` can fail with, from either request. */
+export type RegisterWithPasskeyErrorCode = ErrorCodeOf<GetRegistrationOptionsResponses> | ErrorCodeOf<VerifyRegistrationResponses>
 
 /** The guest a registration is meant to upgrade. */
 export interface Upgrading {
@@ -52,9 +64,12 @@ class NotTheGuestError extends Error {
 /**
  * The registration ceremony: the server issues a challenge for the name, the
  * authenticator makes a discoverable credential, and the finish signs the new
- * account in by setting the session cookie. Throws `ApiError` from either
- * request and, from the authenticator, the browser's `DOMException` as
- * `@simplewebauthn/browser` rethrows it (see `isCeremonyCancelled`).
+ * account in by setting the session cookie. A failure either request
+ * declares comes back as the `Result`; an options failure is returned before
+ * the authenticator is asked. Thrown: what is outside the contract (no
+ * network, a 5xx, `ApiError`) and, from the authenticator, the browser's
+ * `DOMException` as `@simplewebauthn/browser` rethrows it (see
+ * `isCeremonyCancelled`).
  *
  * The browser's session, not the request, decides whether CAS creates an
  * account or upgrades the guest it belongs to. With `upgrading`, the challenge
@@ -63,50 +78,51 @@ class NotTheGuestError extends Error {
  * authenticator is never asked and the call throws the error `isNotTheGuest`
  * recognises. The orphaned challenge just expires on the server.
  */
-export const registerWithPasskey = async (displayName: string, upgrading?: Upgrading): Promise<Registered> => {
-  const { registrationId, ccr } = await request<RegistrationOptionsResponse>('/api/webauthn/register-options', {
-    method: 'POST',
-    body: { displayName },
-  })
+export const registerWithPasskey = async (displayName: string, upgrading?: Upgrading): Promise<Result<Registered, RegisterWithPasskeyErrorCode>> => {
+  const options = await getRegistrationOptions({ body: { displayName } })
+  if (!options.ok) {
+    return options
+  }
+  const { registrationId, ccr } = options.data as RegistrationOptions
   if (upgrading && !isUserHandleOf(ccr.publicKey.user.id, upgrading.accountId)) {
     throw new NotTheGuestError('The registration challenge is not for the guest being upgraded')
   }
   const response = await startRegistration({ optionsJSON: ccr.publicKey })
-  return request<Registered>('/api/webauthn/verify-registration', {
-    method: 'POST',
-    body: { registrationId, response },
-  })
+  return verifyRegistration({ body: { registrationId, response } })
 }
 
-interface LoginOptionsResponse {
-  /** Names the ceremony; goes back with the assertion. */
-  loginId: string
-  rcr: { publicKey: PublicKeyCredentialRequestOptionsJSON }
+/** The login options as the authenticator reads them. `loginId` names the ceremony and goes back with the assertion. */
+type LoginOptions = Omit<LoginOptionsResponse, 'rcr'> & { rcr: { publicKey: PublicKeyCredentialRequestOptionsJSON } }
+
+const fetchLoginOptions = async (): Promise<Result<LoginOptions, SignInWithPasskeyErrorCode>> => {
+  const result = await getLoginOptions()
+  return result.ok ? { ok: true, data: result.data as LoginOptions } : result
 }
 
-export interface SignedIn {
-  accountId: string
-  credentialId: string
-}
+export type SignedIn = VerifyLoginResponse
+
+/** The codes `signInWithPasskey` and `signInWithPasskeyFromAutofill` can fail with, from either request. */
+export type SignInWithPasskeyErrorCode = ErrorCodeOf<GetLoginOptionsResponses> | ErrorCodeOf<VerifyLoginResponses>
 
 /**
  * The login ceremony: the server issues a challenge any registered passkey may
  * answer (nothing about the user is asked first), the authenticator signs it
- * with one, and the finish sets the session cookie. Throws like
- * `registerWithPasskey`; a passkey this CAS does not know is the `ApiError`
- * code `invalid_credential`.
+ * with one, and the finish sets the session cookie. Answers and throws like
+ * `registerWithPasskey`; a passkey this CAS does not know answers
+ * `invalid_credential`.
  */
-export const signInWithPasskey = async (): Promise<SignedIn> => {
-  const { loginId, rcr } = await request<LoginOptionsResponse>('/api/webauthn/login-options', { method: 'POST' })
+export const signInWithPasskey = async (): Promise<Result<SignedIn, SignInWithPasskeyErrorCode>> => {
+  const options = await fetchLoginOptions()
+  if (!options.ok) {
+    return options
+  }
+  const { loginId, rcr } = options.data
   const response = await startAuthentication({ optionsJSON: rcr.publicKey })
   return verifyLogin(loginId, response)
 }
 
-const verifyLogin = (loginId: string, response: AuthenticationResponseJSON) =>
-  request<SignedIn>('/api/webauthn/verify-login', {
-    method: 'POST',
-    body: { loginId, response },
-  })
+const verifyLogin = (loginId: string, response: AuthenticationResponseJSON): Promise<Result<SignedIn, SignInWithPasskeyErrorCode>> =>
+  verifyLoginOperation({ body: { loginId, response } })
 
 /**
  * The name of a thrown error, whatever realm it came from. `instanceof` is
@@ -175,16 +191,16 @@ const refreshAfter = (timeoutMs = DEFAULT_CHALLENGE_LIFETIME_MS) => timeoutMs * 
  * picks a passkey from the autofill list under the `webauthn` input. The
  * challenge is replaced before it expires for as long as the offer stands.
  *
- * Resolves with the verified answer, or `null` when nothing was offered or
- * picked: the browser has no autofill for passkeys, the options could not
- * be fetched, `signal` was aborted (the button starts its own ceremony and
+ * Resolves with the verify request's `Result`, or `null` when nothing was
+ * offered or picked: the browser has no autofill for passkeys, the options
+ * could not be fetched (a declared failure or a thrown one), `signal` was aborted (the button starts its own ceremony and
  * the two cannot run at once; leaving the screen), or the request ended as
  * `NotAllowedError`. That last one is the user backing out of the prompt
  * after a pick, but also a browser refusing conditional requests outright,
  * so it is not reported: nobody asked for anything yet, and the button is
  * the way to try again. Rejects only after a pick, like `signInWithPasskey`.
  */
-export const signInWithPasskeyFromAutofill = async (signal: AbortSignal): Promise<SignedIn | null> => {
+export const signInWithPasskeyFromAutofill = async (signal: AbortSignal): Promise<Result<SignedIn, SignInWithPasskeyErrorCode> | null> => {
   if (signal.aborted || !(await browserSupportsWebAuthnAutofill())) {
     return null
   }
@@ -192,9 +208,13 @@ export const signInWithPasskeyFromAutofill = async (signal: AbortSignal): Promis
   signal.addEventListener('abort', cancel)
   try {
     while (!signal.aborted) {
-      let options: LoginOptionsResponse
+      let options: LoginOptions
       try {
-        options = await request<LoginOptionsResponse>('/api/webauthn/login-options', { method: 'POST' })
+        const result = await fetchLoginOptions()
+        if (!result.ok) {
+          return null
+        }
+        options = result.data
       } catch {
         return null
       }

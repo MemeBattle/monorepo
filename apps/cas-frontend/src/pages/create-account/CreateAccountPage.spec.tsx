@@ -4,7 +4,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { isNotTheGuest } from '#entities/session'
-import { ApiError } from '#shared/api/request'
+import { ApiError, failed, ok } from '#shared/api/client'
 import { routes } from '#app/routes'
 import { CreateAccountPage } from './CreateAccountPage'
 import { messages } from './validateDisplayName'
@@ -89,7 +89,7 @@ describe('CreateAccountPage', () => {
   })
 
   it('runs the ceremony with the trimmed name and lands on the dashboard', async () => {
-    registerWithPasskey.mockResolvedValue({ accountId: 'acc', credentialId: 'cred' })
+    registerWithPasskey.mockResolvedValue(ok({ accountId: 'acc', credentialId: 'cred' }))
 
     await submit('  Ада  ')
 
@@ -99,7 +99,7 @@ describe('CreateAccountPage', () => {
   })
 
   it('sends a decomposed name near the cap in NFC instead of rejecting it', async () => {
-    registerWithPasskey.mockResolvedValue({ accountId: 'acc', credentialId: 'cred' })
+    registerWithPasskey.mockResolvedValue(ok({ accountId: 'acc', credentialId: 'cred' }))
 
     await submit('é'.repeat(33))
 
@@ -117,8 +117,8 @@ describe('CreateAccountPage', () => {
   })
 
   it('shows the server verdict under the field and keeps the name', async () => {
-    registerWithPasskey.mockRejectedValue(
-      new ApiError(400, 'invalid_display_name', 'Invalid display name: must not contain control or invisible characters'),
+    registerWithPasskey.mockResolvedValue(
+      failed(400, 'invalid_display_name', 'Invalid display name: must not contain control or invisible characters'),
     )
 
     await submit('Ада​')
@@ -130,12 +130,16 @@ describe('CreateAccountPage', () => {
   })
 
   it.each([
-    ['a network failure', new TypeError('Failed to fetch'), 'Failed to fetch'],
-    ['an outage', new ApiError(503, 'database_unavailable', 'Database unavailable'), 'Database unavailable'],
-    ['a refused cross-site request', new ApiError(403, 'cross_site_request', 'Cross-site request refused'), 'Cross-site'],
-    ['a verification the server could not do', new ApiError(400, 'registration_verification_failed', 'Attestation invalid'), 'Attestation'],
-  ])('shows %s as the generic alert, never the raw message', async (_, error, raw) => {
-    registerWithPasskey.mockRejectedValue(error)
+    ['a network failure', () => Promise.reject(new TypeError('Failed to fetch')), 'Failed to fetch'],
+    ['an outage', () => Promise.reject(new ApiError(503, 'database_unavailable', 'Database unavailable')), 'Database unavailable'],
+    ['a refused cross-site request', () => Promise.resolve(failed(403, 'cross_site_request', 'Cross-site request refused')), 'Cross-site'],
+    [
+      'a verification the server could not do',
+      () => Promise.resolve(failed(400, 'registration_verification_failed', 'Attestation invalid')),
+      'Attestation',
+    ],
+  ])('shows %s as the generic alert, never the raw message', async (_, answer, raw) => {
+    registerWithPasskey.mockImplementation(answer)
 
     await submit('Ада')
 
@@ -145,7 +149,7 @@ describe('CreateAccountPage', () => {
   })
 
   it('shows a challenge the server no longer has as a cancelled ceremony', async () => {
-    registerWithPasskey.mockRejectedValue(new ApiError(404, 'registration_not_found', 'registration not found: expired'))
+    registerWithPasskey.mockResolvedValue(failed(404, 'registration_not_found', 'registration not found: expired'))
 
     await submit('Ада')
 
@@ -156,11 +160,14 @@ describe('CreateAccountPage', () => {
   })
 
   it.each([
-    ['NotSupportedError', new DOMException('not supported', 'NotSupportedError')],
-    ['ConstraintError', new DOMException('constraint', 'ConstraintError')],
-    ['the server refusing a non-discoverable credential', new ApiError(400, 'discoverable_credential_required', 'Credential must be discoverable')],
-  ])('explains an authenticator that cannot make a passkey (%s)', async (_, error) => {
-    registerWithPasskey.mockRejectedValue(error)
+    ['NotSupportedError', () => Promise.reject(new DOMException('not supported', 'NotSupportedError'))],
+    ['ConstraintError', () => Promise.reject(new DOMException('constraint', 'ConstraintError'))],
+    [
+      'the server refusing a non-discoverable credential',
+      () => Promise.resolve(failed(400, 'discoverable_credential_required', 'Credential must be discoverable')),
+    ],
+  ])('explains an authenticator that cannot make a passkey (%s)', async (_, answer) => {
+    registerWithPasskey.mockImplementation(answer)
 
     await submit('Ада')
 
@@ -171,10 +178,10 @@ describe('CreateAccountPage', () => {
   })
 
   it.each([
-    ['InvalidStateError', new DOMException('already registered', 'InvalidStateError')],
-    ['the server knowing the credential', new ApiError(409, 'credential_already_registered', 'Credential already registered')],
-  ])('points a passkey that already exists here to sign-in (%s)', async (_, error) => {
-    registerWithPasskey.mockRejectedValue(error)
+    ['InvalidStateError', () => Promise.reject(new DOMException('already registered', 'InvalidStateError'))],
+    ['the server knowing the credential', () => Promise.resolve(failed(409, 'credential_already_registered', 'Credential already registered'))],
+  ])('points a passkey that already exists here to sign-in (%s)', async (_, answer) => {
+    registerWithPasskey.mockImplementation(answer)
 
     await submit('Ада')
 
@@ -208,7 +215,7 @@ describe('CreateAccountPage', () => {
 
   describe('opened with return_to', () => {
     it('leaves for it after the account is created, not for the dashboard', async () => {
-      registerWithPasskey.mockResolvedValue({ accountId: 'acc', credentialId: 'cred' })
+      registerWithPasskey.mockResolvedValue(ok({ accountId: 'acc', credentialId: 'cred' }))
       leaveTo.mockImplementation(pendingLeave)
 
       await submit('Ада', withReturnTo(authorize))
@@ -218,7 +225,7 @@ describe('CreateAccountPage', () => {
     })
 
     it('drops a return_to of another origin and lands on the dashboard', async () => {
-      registerWithPasskey.mockResolvedValue({ accountId: 'acc', credentialId: 'cred' })
+      registerWithPasskey.mockResolvedValue(ok({ accountId: 'acc', credentialId: 'cred' }))
 
       await submit('Ада', withReturnTo('https://evil.example/'))
 
@@ -227,7 +234,7 @@ describe('CreateAccountPage', () => {
     })
 
     it('keeps it on both links to sign-in', async () => {
-      registerWithPasskey.mockRejectedValue(new ApiError(409, 'credential_already_registered', 'Credential already registered'))
+      registerWithPasskey.mockResolvedValue(failed(409, 'credential_already_registered', 'Credential already registered'))
       const carried = `${routes.SIGN_IN}?${new URLSearchParams({ return_to: authorize }).toString()}`
 
       renderPage(withReturnTo(authorize))
@@ -261,7 +268,7 @@ describe('CreateAccountPage', () => {
 
     it('upgrades the guest and leaves for return_to', async () => {
       pageLoader.mockResolvedValue(guest)
-      registerWithPasskey.mockResolvedValue({ accountId: 'g', credentialId: 'cred' })
+      registerWithPasskey.mockResolvedValue(ok({ accountId: 'g', credentialId: 'cred' }))
       leaveTo.mockImplementation(pendingLeave)
 
       await submit('Ада', withReturnTo(authorize), true)
@@ -272,7 +279,7 @@ describe('CreateAccountPage', () => {
 
     it('upgrades the guest and lands on the dashboard without return_to', async () => {
       pageLoader.mockResolvedValue(guest)
-      registerWithPasskey.mockResolvedValue({ accountId: 'g', credentialId: 'cred' })
+      registerWithPasskey.mockResolvedValue(ok({ accountId: 'g', credentialId: 'cred' }))
 
       await submit('Ада', routes.CREATE_ACCOUNT, true)
 
@@ -297,8 +304,8 @@ describe('CreateAccountPage', () => {
 
     it('shows an expired challenge as a cancelled ceremony while the session is still the guest’s', async () => {
       pageLoader.mockResolvedValue(guest)
-      registerWithPasskey.mockRejectedValue(new ApiError(404, 'registration_not_found', 'registration not found'))
-      getMe.mockResolvedValue(guest)
+      registerWithPasskey.mockResolvedValue(failed(404, 'registration_not_found', 'registration not found'))
+      getMe.mockResolvedValue(ok(guest))
 
       await submit('Ада', routes.CREATE_ACCOUNT, true)
 
@@ -309,12 +316,12 @@ describe('CreateAccountPage', () => {
     })
 
     it.each([
-      ['no session', () => getMe.mockRejectedValue(new ApiError(401, 'unauthenticated', 'No live session'))],
-      ['a full account', () => getMe.mockResolvedValue({ ...guest, displayName: 'Ада', accountType: 'full' })],
-      ['another guest', () => getMe.mockResolvedValue({ ...guest, accountId: 'other' })],
+      ['no session', () => getMe.mockResolvedValue(failed(401, 'unauthenticated', 'No live session'))],
+      ['a full account', () => getMe.mockResolvedValue(ok({ ...guest, displayName: 'Ада', accountType: 'full' }))],
+      ['another guest', () => getMe.mockResolvedValue(ok({ ...guest, accountId: 'other' }))],
     ])('says the session ended when the challenge is gone and the browser now holds %s', async (_, session) => {
       pageLoader.mockResolvedValueOnce(guest).mockResolvedValue(null)
-      registerWithPasskey.mockRejectedValue(new ApiError(404, 'registration_not_found', 'registration not found'))
+      registerWithPasskey.mockResolvedValue(failed(404, 'registration_not_found', 'registration not found'))
       session()
 
       await submit('Ада', routes.CREATE_ACCOUNT, true)
@@ -326,7 +333,7 @@ describe('CreateAccountPage', () => {
 
     it('shows the generic alert when the session cannot be read again', async () => {
       pageLoader.mockResolvedValue(guest)
-      registerWithPasskey.mockRejectedValue(new ApiError(404, 'registration_not_found', 'registration not found'))
+      registerWithPasskey.mockResolvedValue(failed(404, 'registration_not_found', 'registration not found'))
       getMe.mockRejectedValue(new ApiError(503, 'database_unavailable', 'Database unavailable'))
 
       await submit('Ада', routes.CREATE_ACCOUNT, true)
@@ -338,7 +345,7 @@ describe('CreateAccountPage', () => {
 
     it('says the session ended when CAS answers unauthenticated', async () => {
       pageLoader.mockResolvedValueOnce(guest).mockResolvedValue(null)
-      registerWithPasskey.mockRejectedValue(new ApiError(401, 'unauthenticated', 'Sign in to continue'))
+      registerWithPasskey.mockResolvedValue(failed(401, 'unauthenticated', 'Sign in to continue'))
 
       await submit('Ада', routes.CREATE_ACCOUNT, true)
 

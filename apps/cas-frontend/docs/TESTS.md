@@ -7,11 +7,24 @@ root.
 - `pnpm test:ci` — unit tests: vitest, `src/**/*.spec.{ts,tsx}`. `pnpm test`
   runs them in watch mode.
 - `pnpm lint:check` / `pnpm fmt:check` from the repo root — oxlint and oxfmt,
-  configured once for the whole monorepo.
+  configured once for the whole monorepo. Both skip
+  `src/shared/api/generated/`, which is kubb's output.
+
+## The generated API client
+
+`src/shared/api/generated/` is generated from `apps/cas/openapi.json`
+(`adr/0004-generated-api-client.md`) and committed. After the description
+changes, run `pnpm generate:api` and commit the result with it; never edit
+the output by hand. CI does not compare the committed output with a fresh
+one: the `typecheck` job in `.github/workflows/cas-frontend-pr.yml` runs
+`generate:api` and then the type check, so what it proves is that the app
+compiles against the description as it is in that commit. A description
+change that breaks a call or a code a screen branches on fails there, with
+or without a regeneration. The workflow runs on `apps/cas/**` changes too.
 
 ## What gets a unit test
 
-Logic that can be wrong on its own: the API wrapper and error mapping, form
+Logic that can be wrong on its own: the API client and error mapping, form
 actions, anything that turns an API response into what a screen shows.
 Rendering a placeholder or a static route table does not; that is what the
 type checker and the build are for.
