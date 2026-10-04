@@ -3,8 +3,13 @@
 //! the account. Everything else is a 401 before the handler is entered —
 //! an upgrade session included, so every endpoint behind the extractor,
 //! present and future, is closed to one without opting out (ADR 0015 (a)).
-//! The few places an upgrade session may go call [`resolve_session`]
-//! themselves.
+//!
+//! Default deny stays the rule; a handler opts in to an upgrade session in
+//! one of two ways. [`AnySession`] is the same extractor admitting both
+//! kinds, for a handler that has nothing to do without a session; today
+//! exactly one takes it, `GET /api/me`, so the frontend can tell a guest from
+//! a signed-out browser (ADR 0018). The places that decide for themselves
+//! what an upgrade session means call [`resolve_session`].
 //!
 //! When authenticating renewed the session, the extractor leaves the fresh
 //! cookie in the request's [`renewal`] slot for the layer to put on the
@@ -66,8 +71,8 @@ where
             .ok_or_else(unauthenticated)?;
 
         // Default deny: an upgrade session may only register its account's
-        // passkey and continue `/oidc/authorize`, and neither takes this
-        // extractor. Answered exactly like no session at all; the warning is
+        // passkey, continue `/oidc/authorize` and read `GET /api/me`, and
+        // none of them takes this extractor. Answered exactly like no session at all; the warning is
         // there because a browser holding one has no business here unless
         // something is probing what it can do.
         if authenticated.session.kind == SessionKind::Upgrade {
@@ -83,15 +88,52 @@ where
     }
 }
 
+/// A live session of either kind, or the extractor's 401: what a handler
+/// takes when an upgrade session may read it too (ADR 0018). Opting in is
+/// naming this type; `Authenticated` stays full-only, so every other endpoint
+/// keeps refusing an upgrade session. A resolved upgrade session always
+/// belongs to a guest (ADR 0015 (b)), so the account's type says which kind
+/// it is.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AnySession(pub Authenticated);
+
+/// The same answers as [`Authenticated`]'s: the 401, or the database's codes.
+impl ErrorCodes for AnySession {
+    fn codes() -> Vec<(StatusCode, &'static str)> {
+        Authenticated::codes()
+    }
+}
+
+impl<S> FromRequestParts<S> for AnySession
+where
+    ApiState: FromRef<S>,
+    S: Send + Sync,
+{
+    type Rejection = ApiError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let state = ApiState::from_ref(state);
+        let path = original_path(&parts.extensions, &parts.uri);
+
+        // No warning for an upgrade session: it is expected here, unlike
+        // behind `Authenticated`.
+        let authenticated = resolve_session(&state, &parts.headers, &parts.extensions, path)
+            .await?
+            .ok_or_else(unauthenticated)?;
+
+        Ok(Self(authenticated))
+    }
+}
+
 /// The session a request's cookie names, if it names a live one, of either
-/// kind: the body of the extractor, for a handler that must decide for
+/// kind: the body of the extractors, for a handler that must decide for
 /// itself what a missing session, an upgrade session or a database failure
 /// means. `/oidc/authorize` is one: it validates the request first and answers a
 /// failure through its own channels (ADR 0010 (g)), and it sends an upgrade
 /// session on to create-account. The registration endpoints are the other:
 /// under an upgrade session they run the guest upgrade (ADR 0015 (e)).
 ///
-/// Renews the session when due, exactly as the extractor does, and leaves
+/// Renews the session when due, exactly as the extractors do, and leaves
 /// the fresh cookie in the request's [`RenewalSlot`] when the router carries
 /// one. `path` is the path the client sent, for the log lines.
 pub(crate) async fn resolve_session(
@@ -153,24 +195,40 @@ mod tests {
         authenticated.account.id.to_string()
     }
 
+    async fn whoever(AnySession(authenticated): AnySession) -> String {
+        authenticated.account.id.to_string()
+    }
+
     /// The route sits under a prefix, as every real one does under `/api`:
     /// the extractor must log the path the client sent, not the remainder
-    /// the nested router hands it.
+    /// the nested router hands it. `/whoever` takes [`AnySession`].
     fn app(pool: PgPool) -> Router {
         Router::new().nest(
             "/api",
             Router::new()
                 .route("/whoami", get(whoami))
+                .route("/whoever", get(whoever))
                 .with_state(test_state(pool)),
         )
     }
 
-    fn request(cookie: Option<&str>) -> Request<Body> {
-        let mut request = Request::builder().uri("/api/whoami");
+    fn request_to(uri: &str, cookie: Option<&str>) -> Request<Body> {
+        let mut request = Request::builder().uri(uri);
         if let Some(cookie) = cookie {
             request = request.header(header::COOKIE, cookie);
         }
         request.body(Body::empty()).unwrap()
+    }
+
+    async fn body_text(response: axum::response::Response) -> String {
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        String::from_utf8(body.to_vec()).unwrap()
+    }
+
+    fn request(cookie: Option<&str>) -> Request<Body> {
+        request_to("/api/whoami", cookie)
     }
 
     /// A token that was issued and then revoked: the cookie is well formed,
@@ -308,6 +366,70 @@ mod tests {
                 "the cookie value must never be logged: {event}"
             );
         }
+    }
+
+    /// `AnySession` admits an upgrade session, and without a word in the log:
+    /// where a handler opted in, the session is expected (ADR 0018 (d)).
+    #[sqlx::test]
+    async fn any_session_admits_an_upgrade_session_without_a_warning(pool: PgPool) {
+        let (events, _guard) = capture_tracing();
+        let (_, token) = upgrade_session(&pool).await;
+        let guest = SessionService::new(pool.clone())
+            .authenticate(&token)
+            .await
+            .unwrap()
+            .expect("a live upgrade session")
+            .0
+            .account;
+        let cookie = format!("{}={}", test_cookies().name(), token.expose());
+
+        let response = app(pool)
+            .oneshot(request_to("/api/whoever", Some(&cookie)))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(body_text(response).await, guest.id.to_string());
+        assert!(
+            events
+                .mentioning("an upgrade session was refused")
+                .is_empty(),
+            "{:?}",
+            events.all()
+        );
+    }
+
+    #[sqlx::test]
+    async fn any_session_admits_a_full_session(pool: PgPool) {
+        let account = AccountRepository::new(pool.clone())
+            .create(NewAccount::full(display_name("Ada")))
+            .await
+            .unwrap();
+        let issued = SessionService::new(pool.clone())
+            .create(account.id, SessionOrigin::Login)
+            .await
+            .unwrap();
+        let cookie = format!("{}={}", test_cookies().name(), issued.token.expose());
+
+        let response = app(pool)
+            .oneshot(request_to("/api/whoever", Some(&cookie)))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(body_text(response).await, account.id.to_string());
+    }
+
+    #[sqlx::test]
+    async fn any_session_without_a_cookie_is_unauthenticated(pool: PgPool) {
+        let response = app(pool)
+            .oneshot(request_to("/api/whoever", None))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        let body: serde_json::Value = serde_json::from_str(&body_text(response).await).unwrap();
+        assert_eq!(body["error"]["code"], "unauthenticated");
     }
 
     /// `resolve_session` sees an upgrade session for what it is.

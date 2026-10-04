@@ -10,7 +10,11 @@ export interface Me {
   sessionExpiresAt: string
 }
 
-/** Throws `ApiError` with the code `unauthenticated` when the browser holds no live session. */
+/**
+ * Throws `ApiError` with the code `unauthenticated` when the browser holds no live session. Answers a guest too, while
+ * the browser holds the upgrade session CAS opened for it (apps/cas ADR 0018): `accountType: 'guest'` is how the app
+ * knows it is one.
+ */
 export const getMe = () => request<Me>('/api/me')
 
 /**

@@ -7,9 +7,10 @@
 //! to the guest, which becomes a full account with the same id, and the
 //! upgrade session is rotated into a full one (ADR 0015 (e)). The session
 //! decides, not a parameter; the request and response bodies are the same.
-//! These are the only `/api` endpoints an upgrade session may use, which is
-//! why they read the session with `resolve_session` rather than through the
-//! `Authenticated` extractor, which refuses one.
+//! These are the only `/api` endpoints an upgrade session may use besides
+//! the read of `GET /api/me` (ADR 0018), and the only ones whose behaviour it
+//! changes, which is why they read the session with `resolve_session` rather
+//! than through the `Authenticated` extractor, which refuses one.
 
 use axum::{
     extract::{OriginalUri, State},

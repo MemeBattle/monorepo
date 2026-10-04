@@ -6,8 +6,10 @@ import { addPasskey, deletePasskey, renamePasskey } from '#entities/passkey'
 import type { Passkey } from '#entities/passkey'
 import { logout, updateEmail } from '#entities/session'
 import { isApiError } from '#shared/api/request'
-import { Alert, Icon, Logo, Screen, Section, Spinner } from '#shared/ui'
+import { Alert, Icon, Screen, Section, Spinner } from '#shared/ui'
+import { DashboardHeader } from './DashboardHeader'
 import { EmailSection } from './EmailSection'
+import { GuestUpgradeCard } from './GuestUpgradeCard'
 import type { DashboardData } from './loadDashboard'
 import { PasskeyNudge } from './PasskeyNudge'
 import { PasskeyRow } from './PasskeyRow'
@@ -30,9 +32,25 @@ const withChange = (passkeys: Passkey[], change: Change) =>
     ? passkeys.filter(passkey => passkey.id !== change.deleted)
     : passkeys.map(passkey => (passkey.id === change.renamed.id ? { ...passkey, name: change.renamed.name } : passkey))
 
-/** The account by name, its passkeys and the ways to add and manage them, its email, and the way out. */
+/**
+ * A guest sees what it is and the one way to an account, nothing else: no passkeys, no email, no sign-out. Hiding
+ * them is presentation only; CAS refuses those requests under the guest's session (docs/adr/0003-guest-in-the-app.md).
+ */
 export const DashboardPage = () => {
-  const { me, passkeys } = useLoaderData<DashboardData>()
+  const data = useLoaderData<DashboardData>()
+  if (data.me.accountType === 'guest') {
+    return (
+      <Screen align="top">
+        <DashboardHeader label="Гостевой аккаунт" name={data.me.displayName} />
+        <GuestUpgradeCard />
+      </Screen>
+    )
+  }
+  return <FullAccountDashboard {...data} />
+}
+
+/** The account by name, its passkeys and the ways to add and manage them, its email, and the way out. */
+const FullAccountDashboard = ({ me, passkeys }: DashboardData) => {
   const revalidator = useRevalidator()
   // React shows the changed list while the row's action runs and goes back to the loader's once it settles.
   const [shownPasskeys, showChange] = useOptimistic(passkeys, withChange)
@@ -141,18 +159,15 @@ export const DashboardPage = () => {
 
   return (
     <Screen align="top">
-      <header className="flex items-center justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <Logo size={44} />
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <span className="text-xs font-bold tracking-[0.1em] text-ink-muted uppercase">Аккаунт</span>
-            <h1 className="truncate text-[22px] leading-[1.1] font-extrabold">{me.displayName}</h1>
-          </div>
-        </div>
-        <form action={signOut}>
-          <SignOutButton />
-        </form>
-      </header>
+      <DashboardHeader
+        label="Аккаунт"
+        name={me.displayName}
+        action={
+          <form action={signOut}>
+            <SignOutButton />
+          </form>
+        }
+      />
       {failure && <Alert title={failure.title}>{failure.text}</Alert>}
       {shownPasskeys.length === 1 && <PasskeyNudge action={add} pending={adding} />}
       {addFailure && <Alert title={addFailure.title}>{addFailure.text}</Alert>}

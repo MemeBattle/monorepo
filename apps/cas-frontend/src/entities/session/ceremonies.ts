@@ -18,18 +18,59 @@ export interface Registered {
   credentialId: string
 }
 
+/** The guest a registration is meant to upgrade. */
+export interface Upgrading {
+  accountId: string
+}
+
+/**
+ * Whether a WebAuthn user handle, base64url as the options carry it, is the
+ * 16 bytes of this account's UUID. Under an upgrade session CAS uses the
+ * guest's id as the handle, and a fresh one for a new account (apps/cas
+ * ADR 0015 (e)), so the handle says which path the backend took. Anything
+ * that does not decode to 16 bytes is not the account's.
+ */
+export const isUserHandleOf = (handle: string, accountId: string): boolean => {
+  let bytes: string
+  try {
+    bytes = atob(handle.replaceAll('-', '+').replaceAll('_', '/'))
+  } catch {
+    return false
+  }
+  if (bytes.length !== 16) {
+    return false
+  }
+  const hex = Array.from(bytes, char => char.charCodeAt(0).toString(16).padStart(2, '0')).join('')
+  return hex === accountId.replaceAll('-', '').toLowerCase()
+}
+
+/** The challenge was not for the guest the screen means to upgrade (see `isNotTheGuest`). */
+class NotTheGuestError extends Error {
+  override name = 'NotTheGuestError'
+}
+
 /**
  * The registration ceremony: the server issues a challenge for the name, the
  * authenticator makes a discoverable credential, and the finish signs the new
  * account in by setting the session cookie. Throws `ApiError` from either
  * request and, from the authenticator, the browser's `DOMException` as
  * `@simplewebauthn/browser` rethrows it (see `isCeremonyCancelled`).
+ *
+ * The browser's session, not the request, decides whether CAS creates an
+ * account or upgrades the guest it belongs to. With `upgrading`, the challenge
+ * must be that guest's: when its user handle is another id, the upgrade
+ * session has ended and the finish would create a new account, so the
+ * authenticator is never asked and the call throws the error `isNotTheGuest`
+ * recognises. The orphaned challenge just expires on the server.
  */
-export const registerWithPasskey = async (displayName: string): Promise<Registered> => {
+export const registerWithPasskey = async (displayName: string, upgrading?: Upgrading): Promise<Registered> => {
   const { registrationId, ccr } = await request<RegistrationOptionsResponse>('/api/webauthn/register-options', {
     method: 'POST',
     body: { displayName },
   })
+  if (upgrading && !isUserHandleOf(ccr.publicKey.user.id, upgrading.accountId)) {
+    throw new NotTheGuestError('The registration challenge is not for the guest being upgraded')
+  }
   const response = await startRegistration({ optionsJSON: ccr.publicKey })
   return request<Registered>('/api/webauthn/verify-registration', {
     method: 'POST',
@@ -76,6 +117,12 @@ const verifyLogin = (loginId: string, response: AuthenticationResponseJSON) =>
  */
 const nameOf = (error: unknown): string | null =>
   typeof error === 'object' && error !== null && 'name' in error && typeof error.name === 'string' ? error.name : null
+
+/**
+ * Whether `registerWithPasskey` refused to upgrade because the challenge was
+ * not for the guest: the browser no longer holds that guest's upgrade session.
+ */
+export const isNotTheGuest = (error: unknown): boolean => nameOf(error) === 'NotTheGuestError'
 
 /**
  * Whether a ceremony ended without an answer: `NotAllowedError` is the

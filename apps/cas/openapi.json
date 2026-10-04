@@ -203,6 +203,7 @@
     "/api/me": {
       "get": {
         "summary": "The signed-in account.",
+        "description": "Answers an upgrade session too, with the guest it belongs to\n(`accountType: \"guest\"`): the one read open to it, so the frontend can\ntell a guest from a signed-out browser (ADR 0018).",
         "operationId": "get_me",
         "responses": {
           "200": {
@@ -4762,7 +4763,7 @@
       },
       "MeResponse": {
         "type": "object",
-        "description": "The signed-in account as the dashboard needs it. Nothing about the\nsession itself but when it ends if left alone: the id is server-side\nstate.",
+        "description": "The signed-in account as the dashboard needs it. Nothing about the\nsession itself but when it ends if left alone: the id is server-side\nstate.\n\nUnder an upgrade session it is the guest (ADR 0018): `accountType:\n\"guest\"`, the generated `Guest <n>` name, `email: null`, and the upgrade\nsession's expiry. A resolved session of a guest is always an upgrade\nsession, so the type is all the frontend needs to tell the two apart.",
         "required": [
           "accountId",
           "displayName",
