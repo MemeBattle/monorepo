@@ -19,6 +19,8 @@ apps/cas/
     shared/            shared vocabulary: rules and types more than one context
       label.rs           needs and none owns (a user-facing label's rules)
     testing.rs         test helpers, cfg(test) only
+    testing/
+      soft_passkey.rs  the software authenticator, shared with tests/reference_client
     http/              transport root: mounts the contexts, owns the wire contract
       mod.rs           router, middleware stack, pool construction
       error.rs         ApiError, the error contract on the wire; api_errors!, error_set!
@@ -31,6 +33,8 @@ apps/cas/
       <flow>.rs        services: use cases, orchestration, transaction ownership
       repository.rs    all SQL of the context and all sqlx impls for its types
       http/            the context's handlers, with an `api_errors!` table per domain error
+  tests/
+    reference_client/  a relying party over HTTP against a served CAS   → TESTS.md
 ```
 
 ## Layers
@@ -99,4 +103,6 @@ Each rule says what a layer is for and what it must not touch.
    `shared/`.
 8. **Tests** live next to the code. Repositories and services are tested with
    `#[sqlx::test]`, transport through the full router. Shared fixtures are in
-   `testing.rs`. See TESTS.md.
+   `testing.rs`. The one exception is the reference client in
+   `tests/reference_client`, which is outside the crate on purpose: it may
+   only use what a relying party has. See TESTS.md.
