@@ -1,6 +1,6 @@
-//! `GET` and `POST /end_session`: RP-initiated logout (OpenID Connect
-//! RP-Initiated Logout 1.0). Served at the root with `ApiState`, outside
-//! `/api`: like `/authorize`, it is a top-level navigation from another
+//! `GET` and `POST /oidc/end_session`: RP-initiated logout (OpenID Connect
+//! RP-Initiated Logout 1.0). Served under `/oidc` with `ApiState`, outside
+//! `/api`: like `/oidc/authorize`, it is a top-level navigation from another
 //! site, which the Fetch Metadata line under `/api` would refuse.
 //!
 //! The request is validated in full before anything happens, and every
@@ -34,7 +34,7 @@ use crate::oidc::end_session::{EndSessionError, ValidEndSession};
 use crate::sessions::SessionToken;
 use crate::sessions::http::{CLEAR_SITE_DATA, CLEAR_SITE_DATA_ON_LOGOUT};
 
-/// `GET /end_session` with the parameters in the query, `POST` with them in
+/// `GET /oidc/end_session` with the parameters in the query, `POST` with them in
 /// a form body, as RP-Initiated Logout §2 requires both (ADR 0013 (h)); the
 /// query of a `POST` is not read. `HEAD` is refused explicitly: axum would
 /// serve it from the `GET` handler and end a session for a response nobody
@@ -54,7 +54,7 @@ pub fn end_session_router(state: ApiState) -> OpenApiRouter {
         .with_state(state)
 }
 
-/// What `/end_session` answers, for the description: a redirect once the
+/// What `/oidc/end_session` answers, for the description: a redirect once the
 /// request is valid, CAS's own page for every refusal.
 struct EndSessionResponses;
 
@@ -91,7 +91,7 @@ impl utoipa::IntoResponses for EndSessionResponses {
 /// (RP-Initiated Logout 1.0 §2), read by hand, a repeated one refused. The
 /// session the cookie names is ended only when it is the hint's account's
 /// (ADR 0013).
-#[utoipa::path(get, path = "/end_session", operation_id = "end_session_by_query")]
+#[utoipa::path(get, path = "/oidc/end_session", operation_id = "end_session_by_query")]
 async fn by_query(
     State(state): State<ApiState>,
     OriginalUri(uri): OriginalUri,
@@ -104,11 +104,11 @@ async fn by_query(
 /// RP-initiated logout, the parameters in a form body; the query is not
 /// read.
 ///
-/// The form is read as `/token` reads its own: the content type first,
+/// The form is read as `/oidc/token` reads its own: the content type first,
 /// then the body within the same bound.
 #[utoipa::path(
     post,
-    path = "/end_session",
+    path = "/oidc/end_session",
     operation_id = "end_session_by_form",
     request_body(
         content = String,
@@ -138,9 +138,9 @@ async fn by_form(
         .into()
 }
 
-/// `HEAD /end_session` is refused: axum would serve it from the `GET`
+/// `HEAD /oidc/end_session` is refused: axum would serve it from the `GET`
 /// handler and end a session for a response nobody reads.
-#[utoipa::path(head, path = "/end_session", operation_id = "end_session_head")]
+#[utoipa::path(head, path = "/oidc/end_session", operation_id = "end_session_head")]
 async fn refuse_head() -> Documented<HeadRefused> {
     method_not_allowed("GET, POST").into()
 }
@@ -333,7 +333,7 @@ mod tests {
     }
 
     impl Fixture {
-        /// An ID token for `account`, as `/token` issues it, signed by
+        /// An ID token for `account`, as `/oidc/token` issues it, signed by
         /// `key` at `issued_at`.
         fn hint_signed_by(
             &self,
@@ -379,7 +379,7 @@ mod tests {
     }
 
     fn uri(pairs: &[(&str, &str)]) -> String {
-        format!("/end_session?{}", form(pairs))
+        format!("/oidc/end_session?{}", form(pairs))
     }
 
     async fn send(
@@ -811,7 +811,7 @@ mod tests {
         let response = send(
             &fixture.router,
             "POST",
-            "/end_session?post_logout_redirect_uri=https%3A%2F%2Fevil.example%2F",
+            "/oidc/end_session?post_logout_redirect_uri=https%3A%2F%2Fevil.example%2F",
             Some(&fixture.ada.cookie),
             Some((
                 "application/x-www-form-urlencoded; charset=UTF-8",
@@ -839,7 +839,7 @@ mod tests {
             let response = send(
                 &fixture.router,
                 "POST",
-                "/end_session",
+                "/oidc/end_session",
                 Some(&fixture.ada.cookie),
                 Some((content_type, body.clone())),
             )
@@ -849,7 +849,7 @@ mod tests {
         let oversized = send(
             &fixture.router,
             "POST",
-            "/end_session",
+            "/oidc/end_session",
             Some(&fixture.ada.cookie),
             Some((
                 "application/x-www-form-urlencoded",
@@ -888,8 +888,8 @@ mod tests {
 
         for (method, uri) in [
             ("GET", uri(&[("id_token_hint", &hint)])),
-            ("GET", "/end_session".to_owned()),
-            ("HEAD", "/end_session".to_owned()),
+            ("GET", "/oidc/end_session".to_owned()),
+            ("HEAD", "/oidc/end_session".to_owned()),
         ] {
             let response = send(&fixture.router, method, &uri, None, None).await;
             assert_eq!(
@@ -902,7 +902,7 @@ mod tests {
 
     /// Logout ends the CAS session and nothing else: the application's
     /// grant, obtained with that session, still refreshes (ADR 0013 (i)).
-    /// The hint is the ID token `/token` itself issued.
+    /// The hint is the ID token `/oidc/token` itself issued.
     #[sqlx::test]
     async fn grants_survive_the_logout(pool: PgPool) {
         let fixture = fixture(&pool).await;
@@ -919,7 +919,7 @@ mod tests {
             &router,
             "GET",
             &format!(
-                "/authorize?{}",
+                "/oidc/authorize?{}",
                 form(&[
                     ("client_id", CLIENT),
                     ("redirect_uri", CALLBACK),
@@ -944,7 +944,7 @@ mod tests {
             send(
                 &router,
                 "POST",
-                "/token",
+                "/oidc/token",
                 None,
                 Some(("application/x-www-form-urlencoded", form(&pairs))),
             )

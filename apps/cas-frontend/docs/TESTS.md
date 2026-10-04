@@ -55,7 +55,7 @@ cargo run -p cas
 
 Then, from `apps/cas-frontend`, `pnpm test:e2e`. Playwright starts vite on
 :5173 itself, or reuses the one already there; `CAS_API_PROXY_TARGET` points
-the proxy at a CAS on another address, as in development. `CAS_FRONTEND_PORT`
+the proxy (`/api` and `/oidc`) at a CAS on another address, as in development. `CAS_FRONTEND_PORT`
 moves vite when 5173 is taken, in which case CAS must be started with
 `CAS_ORIGIN` and `CAS_CORS_ORIGINS` set to the new origin, since the
 relying-party origin is what the browser signs.

@@ -1,4 +1,4 @@
-//! What the browser-facing endpoints, `/authorize` and `/end_session`,
+//! What the browser-facing endpoints, `/oidc/authorize` and `/oidc/end_session`,
 //! answer with besides a redirect to a trusted address: CAS's own error page
 //! (ADR 0010 (a), ADR 0013 (g)), the `302` itself, and the `405` for a
 //! `HEAD`.
@@ -108,7 +108,7 @@ impl ErrorPage {
     ];
 
     /// The responses of the pages, the fallback's included: what
-    /// `/authorize` and `/end_session` answer besides a redirect.
+    /// `/oidc/authorize` and `/oidc/end_session` answer besides a redirect.
     pub(super) fn responses() -> BTreeMap<String, RefOr<OpenApiResponse>> {
         let mut codes: Vec<(StatusCode, &'static str)> = Self::DECLARED
             .iter()

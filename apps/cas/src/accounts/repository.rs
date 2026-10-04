@@ -116,7 +116,7 @@ where
 /// Looks an account up by id and locks its row `FOR UPDATE` for the rest of
 /// the caller's transaction. The guest upgrade takes it first: `FOR UPDATE`
 /// rather than `FOR NO KEY UPDATE`, so that an insert referencing the
-/// account — a session a racing `/authorize` opens, a grant — waits for the
+/// account — a session a racing `/oidc/authorize` opens, a grant — waits for the
 /// upgrade to commit (ADR 0015 (f)). `Ok(None)` means no such account.
 pub(crate) async fn lock<'e, E>(executor: E, id: Uuid) -> Result<Option<Account>, sqlx::Error>
 where

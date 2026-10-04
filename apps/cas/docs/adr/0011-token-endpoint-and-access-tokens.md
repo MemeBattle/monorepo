@@ -11,6 +11,9 @@ the guest grant is served, so "unsupported until #746" in (f) no longer
 holds; `unauthorized_client` and `rate_limit_exceeded` (`429`) join the
 errors of (g); the ID token's `name` in (b) is released for a full account
 only, never for a guest.
+Amended (2026-10-04) by ADR 0017, with [#775](https://github.com/MemeBattle/monorepo/issues/775):
+the endpoint is at `/oidc/token`, not at the root (g); it stays outside
+`/api`.
 
 ## Context
 

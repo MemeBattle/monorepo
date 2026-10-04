@@ -1,4 +1,4 @@
-//! What a token request is: the rules `POST /token` applies to its form body
+//! What a token request is: the rules `POST /oidc/token` applies to its form body
 //! and its `Authorization` header (ADR 0011). Pure domain: no axum, no SQL.
 //! The service applies them in order, with the lookups between them — the
 //! client is authenticated before the grant is looked at, and the code is
@@ -17,7 +17,7 @@ use super::{GUEST_GRANT_TYPE, OPENID_SCOPE};
 use crate::clients::{Client, ClientId, Scope};
 
 /// Every parameter a token request is read for. A repetition of any of them
-/// is refused before any other rule is looked at, as at `/authorize` (RFC
+/// is refused before any other rule is looked at, as at `/oidc/authorize` (RFC
 /// 6749 §3.2: parameters MUST NOT be included more than once).
 const READ_PARAMETERS: [&str; 8] = [
     "grant_type",
@@ -259,7 +259,7 @@ pub struct GuestGrant {
     pub scope: Option<String>,
 }
 
-/// The grants `POST /token` serves.
+/// The grants `POST /oidc/token` serves.
 #[derive(Debug)]
 pub enum Grant {
     Code(CodeGrant),
@@ -307,7 +307,7 @@ fn code_grant(params: &Params) -> Result<CodeGrant, TokenError> {
 }
 
 /// The rest of a `refresh_token` request. `scope` is split and checked as
-/// `/authorize` checks it, and a malformed one is the same `invalid_scope`;
+/// `/oidc/authorize` checks it, and a malformed one is the same `invalid_scope`;
 /// whether it fits the grant is for the service to say, once the grant is
 /// found. A token that does not have the shape CAS issues is `invalid_grant`
 /// without a query, as a code is.

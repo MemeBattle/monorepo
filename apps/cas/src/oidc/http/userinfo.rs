@@ -1,5 +1,5 @@
-//! `GET` and `POST /userinfo` (OpenID Connect Core §5.3): the claims of the
-//! account behind a Bearer access token. Served at the root with
+//! `GET` and `POST /oidc/userinfo` (OpenID Connect Core §5.3): the claims of the
+//! account behind a Bearer access token. Served under `/oidc` with
 //! `ApiState`, outside `/api`: it reads no cookie, only the token, so
 //! neither the session nor the Fetch Metadata line (ADR 0005) has anything
 //! to say about it.
@@ -39,7 +39,7 @@ const BARE_CHALLENGE: &str = "Bearer";
 /// the discovery documents: the policy changes only with a release.
 const PREFLIGHT_MAX_AGE: Duration = Duration::from_secs(60 * 60);
 
-/// `GET` and `POST /userinfo`, holding `ApiState`. Both methods are served,
+/// `GET` and `POST /oidc/userinfo`, holding `ApiState`. Both methods are served,
 /// as Core §5.3.1 requires; a `POST` body is not read, because the token is
 /// taken from the `Authorization` header only (ADR 0013 (d)).
 ///
@@ -57,12 +57,12 @@ pub fn userinfo_router(state: ApiState) -> OpenApiRouter {
         .with_state(state)
 }
 
-/// The CORS policy of `/userinfo`, and of nothing else: any origin, `GET`
+/// The CORS policy of `/oidc/userinfo`, and of nothing else: any origin, `GET`
 /// and `POST`, the `Authorization` header, and never credentials. A browser
 /// application may call the endpoint with a token it holds; since the
 /// endpoint reads no cookie, a page on another origin can do nothing with
 /// it that it could not do with that token anyway (ADR 0013 (e)). Everything
-/// else, `/token` included, keeps the root's credentialed policy.
+/// else, `/oidc/token` included, keeps the root's credentialed policy.
 pub fn userinfo_cors() -> CorsLayer {
     CorsLayer::new()
         .allow_origin(Any)
@@ -76,7 +76,7 @@ pub fn userinfo_cors() -> CorsLayer {
 #[openapi(components(schemas(UserInfoClaims)))]
 struct UserInfoApi;
 
-/// What `/userinfo` answers, for the description: the claims, or an RFC
+/// What `/oidc/userinfo` answers, for the description: the claims, or an RFC
 /// 6750 §3 refusal with its challenge.
 struct UserInfoResponses;
 
@@ -89,7 +89,7 @@ impl utoipa::IntoResponses for UserInfoResponses {
                 body.map(|(code, _)| (status, code))
             })
             .collect();
-        // A database failure answers as `/token` does.
+        // A database failure answers as `/oidc/token` does.
         codes.extend(
             OAuthErrorResponse::DECLARED
                 .into_iter()
@@ -121,7 +121,7 @@ impl utoipa::IntoResponses for UserInfoResponses {
 ///
 /// The token is read from `Authorization: Bearer` only, never from the
 /// query or a body (ADR 0013).
-#[utoipa::path(get, path = "/userinfo", security(("bearer" = [])))]
+#[utoipa::path(get, path = "/oidc/userinfo", security(("bearer" = [])))]
 async fn userinfo_by_get(
     State(state): State<ApiState>,
     headers: HeaderMap,
@@ -131,7 +131,7 @@ async fn userinfo_by_get(
 
 /// The claims of the account behind the access token, by `POST`: the same
 /// as `GET`, the body is not read (ADR 0013 (d)).
-#[utoipa::path(post, path = "/userinfo", security(("bearer" = [])))]
+#[utoipa::path(post, path = "/oidc/userinfo", security(("bearer" = [])))]
 async fn userinfo_by_post(
     State(state): State<ApiState>,
     headers: HeaderMap,
@@ -288,7 +288,7 @@ impl IntoResponse for BearerError {
     }
 }
 
-/// A database failure while the account is read: `/token`'s answer to
+/// A database failure while the account is read: `/oidc/token`'s answer to
 /// one, the two codes it borrows from RFC 6749 §4.1.2.1, for the same
 /// reason — a client can act on "try again" as opposed to "this is
 /// broken". No challenge: the token was not refused.
@@ -342,7 +342,7 @@ mod tests {
     }
 
     impl Fixture {
-        /// An access token as `/token` issues it, signed by `key`.
+        /// An access token as `/oidc/token` issues it, signed by `key`.
         fn token_signed_by(
             &self,
             key: &SigningKey,
@@ -363,7 +363,7 @@ mod tests {
     }
 
     async fn send(router: &Router, method: &str, authorization: &[&str]) -> Response {
-        let mut request = Request::builder().method(method).uri("/userinfo");
+        let mut request = Request::builder().method(method).uri("/oidc/userinfo");
         for value in authorization {
             request = request.header(header::AUTHORIZATION, *value);
         }

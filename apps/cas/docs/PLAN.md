@@ -61,12 +61,12 @@ email/password + VK login, 7-service architecture).
   accounts (grants, refresh rotation, userinfo).
 - Opening ligretto must keep working with no click and no redirect, as the legacy
   `temp-token` does. Guests are therefore minted by the application's backend,
-  not by the browser: an extension grant on `/token`
+  not by the browser: an extension grant on `/oidc/token`
   (`grant_type=urn:memebattle:oauth:grant-type:guest`) available to a
   confidential client with `guest_login_allowed`. It creates the account and
   returns the token triple; no CAS session, no UI. Tokens carry `amr: ["anon"]`
   / `account_type: "guest"`.
-- Upgrade: the application redirects the guest to `/authorize` with
+- Upgrade: the application redirects the guest to `/oidc/authorize` with
   `id_token_hint`, a fresh guest ID token (the confidential client refreshes
   before building the link; an expired hint is refused, the hint opens a
   session and is therefore a bearer credential in a URL). CAS opens an
@@ -81,13 +81,13 @@ email/password + VK login, 7-service architecture).
   session now names a full account. Therefore:
   - An upgrade session is restricted, and the backend enforces it, not the UI:
     it can only run the account-registration ceremony for its own `sub` and
-    continue `/authorize`. No passkey addition or listing, no email changes.
+    continue `/oidc/authorize`. No passkey addition or listing, no email changes.
   - Finishing that ceremony is one transaction with the account row locked:
     store the passkey, `type = full`, delete every other session of the
     account, revoke every grant of the account (and with it every refresh
     token), drop the account's other pending ceremonies, and rotate the current
     session into a full one. Only the browser that completed the ceremony holds
-    a live session; `/authorize` then issues a code and the application
+    a live session; `/oidc/authorize` then issues a code and the application
     receives fresh tokens. Nothing legitimate is lost: a guest lives in one
     browser by construction. A second browser racing the same upgrade fails on
     the lock (`type` is already `full`, its session is gone).
@@ -117,7 +117,7 @@ email/password + VK login, 7-service architecture).
   "app" grouping and no user-belongs-to-client; the account ↔ client relation is
   a grant, created when the account authorizes the client. Ligretto is one
   confidential client: its backend exchanges the code for the browser and mints
-  guests; the browser only starts `/authorize`.
+  guests; the browser only starts `/oidc/authorize`.
 - Consent is skipped for first-party clients; the consent screen for other
   clients arrives with agent delegation.
 - Refresh tokens are not bound to the CAS cookie session: signing out of CAS
@@ -182,7 +182,7 @@ Next, in order:
   grants and refresh tokens (ADR 0002, 0004, 0010, 0011),
   monitoring. Tickets cut when SSO nears completion.
 - **Ligretto on CAS:** ligretto-frontend on an OIDC client (redirect to
-  `/authorize`, code handed to core-backend), core-backend as the confidential
+  `/oidc/authorize`, code handed to core-backend), core-backend as the confidential
   client (code exchange, refresh, guest grant, display-name snapshot for other
   players), gameplay-backend verifying JWTs via JWKS on the socket handshake,
   one-shot cutover, removal of `auth-front`, `cas-services`, `init-partner`.
@@ -203,9 +203,10 @@ Next, in order:
 Implemented in the SSO milestone:
 
 - Authorization Code flow with PKCE (S256) for all clients
-- `GET /.well-known/openid-configuration`, `GET /jwks.json`
-- `GET /authorize` (with `id_token_hint` for the guest upgrade), `POST /token`,
-  `GET /userinfo`, `GET /end_session` (ADR 0013)
+- `GET /.well-known/openid-configuration`, `GET /oidc/jwks.json`
+- `GET /oidc/authorize` (with `id_token_hint` for the guest upgrade),
+  `POST /oidc/token`, `GET /oidc/userinfo`, `GET /oidc/end_session` (ADR 0013);
+  the protocol endpoints under `/oidc` (ADR 0017)
 - Refresh tokens with rotation and reuse detection
 - Guest extension grant for confidential clients
 - Statically registered clients (DB, managed by hand until the admin panel)

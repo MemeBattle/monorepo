@@ -1,8 +1,11 @@
 //! The OIDC context's wire surface: the two static documents (ADR 0009
 //! (e)), the authorization endpoint (ADR 0010), the token endpoint (ADR
-//! 0011), and userinfo and RP-initiated logout (ADR 0013), all served from
-//! the router root outside `/api`. The documents have state of their own,
-//! the endpoints `ApiState`, so each has its own router. `/userinfo` also
+//! 0011), and userinfo and RP-initiated logout (ADR 0013), all outside
+//! `/api`: discovery at the root, where Discovery §4 puts it relative to the
+//! issuer, everything else under `/oidc` (ADR 0017). `/oidc` is only a
+//! prefix each route spells out in its path: it has no layer and no fallback
+//! of its own. The documents have state of their own,
+//! the endpoints `ApiState`, so each has its own router. `/oidc/userinfo` also
 //! has a CORS policy of its own, which the transport root applies.
 
 pub mod authorize;
@@ -35,7 +38,7 @@ pub struct Documents {
     pub jwks: Jwks,
 }
 
-/// `GET /.well-known/openid-configuration` and `GET /jwks.json`. Both are
+/// `GET /.well-known/openid-configuration` and `GET /oidc/jwks.json`. Both are
 /// public and change only on a rotation, whose procedure allows for the
 /// hour they may be cached. A route layer, not `Router::layer`: the latter
 /// would also wrap this router's default fallback, and once merged into the
@@ -63,7 +66,7 @@ async fn discovery(State(documents): State<Documents>) -> Json<Discovery> {
 }
 
 /// The published signing keys, a JWK Set (RFC 7517).
-#[utoipa::path(get, path = "/jwks.json")]
+#[utoipa::path(get, path = "/oidc/jwks.json")]
 async fn jwks(State(documents): State<Documents>) -> Json<Jwks> {
     Json(documents.jwks)
 }
@@ -122,14 +125,17 @@ pub(crate) mod tests {
         let body = json(response).await;
         assert_eq!(body["issuer"], test_config().issuer);
         assert!(
-            body["jwks_uri"].as_str().unwrap().ends_with("/jwks.json"),
+            body["jwks_uri"]
+                .as_str()
+                .unwrap()
+                .ends_with("/oidc/jwks.json"),
             "{body}"
         );
     }
 
     #[tokio::test]
     async fn jwks_publishes_the_dev_key() {
-        for uri in ["/jwks.json", "/jwks.json/"] {
+        for uri in ["/oidc/jwks.json", "/oidc/jwks.json/"] {
             let response = get(uri).await;
 
             assert_eq!(response.status(), StatusCode::OK, "{uri}");

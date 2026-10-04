@@ -1,6 +1,12 @@
 //! HTTP transport root: the router, the middleware stack and the error
 //! contract the contexts are mapped onto. The handlers themselves live with
 //! their context, in `<context>/http`; this module only mounts them.
+//!
+//! Three mounts (ADR 0017): `/api`, the first-party API behind its contract
+//! (the CSRF line, `no-store`, the `ApiError` shape); `/oidc`, the OpenID
+//! Connect protocol endpoints, a prefix each of them spells out in its path,
+//! with no layer and no fallback of its own; and the root, for discovery,
+//! `/health` and `/openapi.json`.
 
 pub mod error;
 pub(crate) mod extract;
@@ -85,17 +91,17 @@ pub struct ApiState {
     pub sessions: SessionService,
     pub cookies: CookieSettings,
     pub authorization: AuthorizationService,
-    /// `/token`, signing with the active key as `CAS_ISSUER`.
+    /// `/oidc/token`, signing with the active key as `CAS_ISSUER`.
     pub tokens: TokenService,
-    /// `/userinfo`, verifying access tokens against every published key.
+    /// `/oidc/userinfo`, verifying access tokens against every published key.
     pub userinfo: UserInfoService,
-    /// `/end_session`, verifying logout hints against every published key.
+    /// `/oidc/end_session`, verifying logout hints against every published key.
     pub end_session: EndSessionService,
-    /// `/authorize`, verifying a guest's `id_token_hint` against every
+    /// `/oidc/authorize`, verifying a guest's `id_token_hint` against every
     /// published key (ADR 0015 (c)).
     pub upgrade_hints: UpgradeHintService,
     /// The frontend's origin (`CAS_ORIGIN`): where the sign-in screen is,
-    /// for `/authorize` to send an anonymous request to.
+    /// for `/oidc/authorize` to send an anonymous request to.
     pub frontend_origin: Url,
 }
 
@@ -257,7 +263,8 @@ async fn not_found() -> ApiError {
 /// `userinfo` is merged first. Neither router sets a fallback, and when
 /// neither does, axum keeps the fallback of the router merged last: the
 /// root router's, behind the root CORS and panic layers, which is where
-/// every unknown path has always been answered.
+/// every unknown path outside `/api`, one under `/oidc` included, is
+/// answered.
 ///
 /// The root router's session cookie travels cross-origin from the
 /// frontend, which needs `Access-Control-Allow-Credentials`; browsers refuse
@@ -270,7 +277,7 @@ async fn not_found() -> ApiError {
 /// living only in the cookie is that it appears in no log (ADR 0004). The
 /// same goes the other way, where the `Cookie` header would arrive with
 /// every authenticated request. Nor does it log the query: a `GET
-/// /end_session` carries a signed ID token there, with the account's name
+/// /oidc/end_session` carries a signed ID token there, with the account's name
 /// and address in it (ADR 0013), so the span records the path alone.
 fn with_middleware(router: Router, userinfo: Router, cors_origins: Vec<HeaderValue>) -> Router {
     let cors_layer = CorsLayer::new()
@@ -953,12 +960,12 @@ mod tests {
             .unwrap()
     }
 
-    /// `/userinfo` is open to any origin, without credentials, for the
+    /// `/oidc/userinfo` is open to any origin, without credentials, for the
     /// `Authorization` header (ADR 0013 (e)).
     #[tokio::test]
     async fn userinfo_is_open_to_any_origin_without_credentials() {
         for method in ["GET", "POST"] {
-            let response = preflight("/userinfo", OTHER_ORIGIN, method).await;
+            let response = preflight("/oidc/userinfo", OTHER_ORIGIN, method).await;
 
             assert_eq!(response.status(), StatusCode::OK, "{method}");
             assert_eq!(
@@ -983,7 +990,7 @@ mod tests {
             .unwrap()
             .oneshot(
                 Request::builder()
-                    .uri("/userinfo")
+                    .uri("/oidc/userinfo")
                     .header(header::ORIGIN, ALLOWED_ORIGIN)
                     .body(Body::empty())
                     .unwrap(),
@@ -1003,11 +1010,11 @@ mod tests {
     }
 
     /// Everything else keeps the root policy: another origin is refused for
-    /// the API and for `/token`, which stays backend-to-backend, and an
+    /// the API and for `/oidc/token`, which stays backend-to-backend, and an
     /// unknown path is still answered behind the root policy.
     #[tokio::test]
     async fn only_userinfo_is_open_to_other_origins() {
-        for uri in ["/api/me", "/token", "/end_session", "/nowhere"] {
+        for uri in ["/api/me", "/oidc/token", "/oidc/end_session", "/nowhere"] {
             let response = preflight(uri, OTHER_ORIGIN, "POST").await;
             assert_eq!(
                 header_str(&response, header::ACCESS_CONTROL_ALLOW_ORIGIN),
@@ -1027,17 +1034,18 @@ mod tests {
         );
     }
 
-    /// Both endpoints are mounted at the root and answer before any query:
-    /// `/userinfo` without a token, `/end_session` without parameters.
+    /// Both endpoints are mounted under `/oidc` and answer before any query:
+    /// `/oidc/userinfo` without a token, `/oidc/end_session` without
+    /// parameters.
     #[tokio::test]
-    async fn userinfo_and_end_session_are_mounted_at_the_root() {
+    async fn userinfo_and_end_session_are_mounted_under_oidc() {
         let app = app(test_config()).unwrap();
 
         let userinfo = app
             .clone()
             .oneshot(
                 Request::builder()
-                    .uri("/userinfo")
+                    .uri("/oidc/userinfo")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -1052,7 +1060,7 @@ mod tests {
         let end_session = app
             .oneshot(
                 Request::builder()
-                    .uri("/end_session")
+                    .uri("/oidc/end_session")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -1065,7 +1073,147 @@ mod tests {
         );
     }
 
-    /// A `GET /end_session` carries a signed ID token — the account's name
+    /// `method uri` through the whole application, with no body.
+    async fn send(app: &NormalizePath<Router>, method: &str, uri: &str) -> Response {
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method(method)
+                    .uri(uri)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap()
+    }
+
+    /// The five protocol endpoints, by their discovery member and the
+    /// method a request to them is made with.
+    const ADVERTISED: [(&str, &str, &str); 5] = [
+        ("authorization_endpoint", "authorize", "GET"),
+        ("token_endpoint", "token", "POST"),
+        ("userinfo_endpoint", "userinfo", "GET"),
+        ("end_session_endpoint", "end_session", "GET"),
+        ("jwks_uri", "jwks.json", "GET"),
+    ];
+
+    /// Discovery and the routes cannot drift apart: every endpoint the
+    /// document advertises is `{issuer}/oidc/<name>`, and that path is
+    /// served for the endpoint's method (ADR 0017 (a)). No request carries
+    /// parameters, so each is refused before any query.
+    #[tokio::test]
+    async fn every_advertised_endpoint_is_mounted_under_oidc() {
+        let app = app(test_config()).unwrap();
+        let issuer = test_config().issuer;
+        let response = send(&app, "GET", "/.well-known/openid-configuration").await;
+        let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let document: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+
+        for (member, name, method) in ADVERTISED {
+            let url = document[member].as_str().unwrap();
+            assert_eq!(url, format!("{issuer}/oidc/{name}"), "{member}");
+            let path = url.strip_prefix(&issuer).unwrap();
+
+            let status = send(&app, method, path).await.status();
+            assert_ne!(status, StatusCode::NOT_FOUND, "{method} {path}");
+            assert_ne!(status, StatusCode::METHOD_NOT_ALLOWED, "{method} {path}");
+        }
+    }
+
+    /// The old root paths are not served, and nothing sends a client on to
+    /// the new ones (ADR 0017 (f)).
+    #[tokio::test]
+    async fn the_old_root_paths_are_gone() {
+        let app = app(test_config()).unwrap();
+
+        for (method, uri) in [
+            ("GET", "/authorize"),
+            ("POST", "/token"),
+            ("GET", "/userinfo"),
+            ("POST", "/userinfo"),
+            ("GET", "/end_session"),
+            ("POST", "/end_session"),
+            ("GET", "/jwks.json"),
+        ] {
+            let response = send(&app, method, uri).await;
+
+            assert_eq!(response.status(), StatusCode::NOT_FOUND, "{method} {uri}");
+            assert!(
+                !response.headers().contains_key(header::LOCATION),
+                "{method} {uri}"
+            );
+        }
+    }
+
+    /// `/oidc` is a prefix, not a router of its own: an unknown path under
+    /// it is answered exactly as an unknown root path is (ADR 0017 (e)).
+    #[tokio::test]
+    async fn an_unknown_path_under_oidc_is_the_roots_not_found() {
+        let app = app(test_config()).unwrap();
+        let answer = |response: Response| async move {
+            let status = response.status();
+            let cache_control = cache_control(&response).map(str::to_owned);
+            let content_type = header_str(&response, header::CONTENT_TYPE).map(str::to_owned);
+            let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+            (status, cache_control, content_type, body)
+        };
+
+        let expected = answer(send(&app, "GET", "/nowhere").await).await;
+        assert_eq!(expected.0, StatusCode::NOT_FOUND);
+        assert_eq!(expected.1, None);
+
+        for uri in ["/oidc", "/oidc/", "/oidc/nowhere"] {
+            let actual = answer(send(&app, "GET", uri).await).await;
+            assert_eq!(actual, expected, "{uri}");
+        }
+    }
+
+    /// The Fetch Metadata line guards `/api` alone (ADR 0017 (b)). It lets
+    /// every safe method through, so only an unsafe one proves anything: a
+    /// cross-site form `POST` to each protocol endpoint gets the endpoint's
+    /// own answer — the same one a request without those headers gets — and
+    /// a `GET`-only endpoint its 405, never the line's 403. The same request
+    /// to `/api/logout` is the control the line does refuse.
+    #[tokio::test]
+    async fn no_protocol_endpoint_is_behind_the_csrf_line() {
+        let app = app(test_config()).unwrap();
+        let post = |uri: &str, cross_site: bool| {
+            let mut request = Request::builder()
+                .method("POST")
+                .uri(uri)
+                .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
+            if cross_site {
+                request = request
+                    .header("sec-fetch-site", "cross-site")
+                    .header("sec-fetch-mode", "navigate")
+                    .header(header::ORIGIN, OTHER_ORIGIN);
+            }
+            request.body(Body::empty()).unwrap()
+        };
+
+        for (_, name, _) in ADVERTISED {
+            let uri = format!("/oidc/{name}");
+            let cross_site = app.clone().oneshot(post(&uri, true)).await.unwrap();
+            let same_site = app.clone().oneshot(post(&uri, false)).await.unwrap();
+
+            assert_ne!(cross_site.status(), StatusCode::FORBIDDEN, "{uri}");
+            assert_eq!(cross_site.status(), same_site.status(), "{uri}");
+            if matches!(name, "authorize" | "jwks.json") {
+                assert_eq!(cross_site.status(), StatusCode::METHOD_NOT_ALLOWED, "{uri}");
+            }
+            let body = to_bytes(cross_site.into_body(), usize::MAX).await.unwrap();
+            let body = String::from_utf8_lossy(&body);
+            assert!(!body.contains("cross_site_request"), "{uri}: {body}");
+        }
+
+        let control = app.oneshot(post("/api/logout", true)).await.unwrap();
+        assert_eq!(control.status(), StatusCode::FORBIDDEN);
+        let bytes = to_bytes(control.into_body(), usize::MAX).await.unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(body["error"]["code"], "cross_site_request");
+    }
+
+    /// A `GET /oidc/end_session` carries a signed ID token — the account's name
     /// and address inside — in its query. The request span records the
     /// path alone, so neither the hint, nor any of its segments, nor the
     /// `state` reaches a span or an event, whether the request is accepted
@@ -1109,7 +1257,7 @@ mod tests {
                 .oneshot(
                     Request::builder()
                         .uri(format!(
-                            "/end_session?id_token_hint={hint}&state=s3cr3t-state"
+                            "/oidc/end_session?id_token_hint={hint}&state=s3cr3t-state"
                         ))
                         .body(Body::empty())
                         .unwrap(),
@@ -1123,7 +1271,7 @@ mod tests {
         assert!(
             spans
                 .iter()
-                .any(|span| span.contains("request") && span.contains("/end_session")),
+                .any(|span| span.contains("request") && span.contains("/oidc/end_session")),
             "{spans:?}"
         );
         for event in events.all() {

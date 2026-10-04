@@ -8,6 +8,9 @@ after it stops signing, see (a).
 Amended (2026-10-03) by ADR 0014, with [#746](https://github.com/MemeBattle/monorepo/issues/746):
 "`name` with `profile`" in (c) holds for a full account; a guest has no
 name to release, so its answer never carries one.
+Amended (2026-10-04) by ADR 0017, with [#775](https://github.com/MemeBattle/monorepo/issues/775):
+the endpoints are at `/oidc/userinfo` and `/oidc/end_session`, not at the
+root; their CORS policies (e) and methods (h) are unchanged.
 
 ## Context
 

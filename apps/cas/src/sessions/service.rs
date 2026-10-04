@@ -1,7 +1,7 @@
 //! Issuing, resolving and revoking sessions.
 //!
 //! `create` is what registration and login call once an account is proven;
-//! `open_upgrade` is what `/authorize` calls for a guest's `id_token_hint`;
+//! `open_upgrade` is what `/oidc/authorize` calls for a guest's `id_token_hint`;
 //! `authenticate` is what the cookie extractor calls on every authenticated
 //! request, and it is also where a session's idle clock is reset; `revoke` is
 //! logout. The secret token exists in memory only between `create` and the
@@ -69,9 +69,9 @@ impl SessionService {
         self.insert(account_id, SessionKind::Full, origin).await
     }
 
-    /// Opens an upgrade session for a guest whose fresh ID token `/authorize`
+    /// Opens an upgrade session for a guest whose fresh ID token `/oidc/authorize`
     /// accepted as `id_token_hint` (ADR 0015). The session may only run the
-    /// registration ceremony for this account and continue `/authorize`; it
+    /// registration ceremony for this account and continue `/oidc/authorize`; it
     /// lives for [`super::UPGRADE_SESSION_LIFETIME`]. Written, timestamped
     /// and logged as [`create`](Self::create) does, with `kind = upgrade`.
     pub async fn open_upgrade(&self, account_id: Uuid) -> Result<IssuedSession, CreateError> {
@@ -175,7 +175,7 @@ impl SessionService {
 
         // An upgrade session exists to turn a guest into a full account, and
         // the upgrade deletes every session of the account when it commits.
-        // A row that escaped that delete — opened by a racing `/authorize`
+        // A row that escaped that delete — opened by a racing `/oidc/authorize`
         // after the commit — is still worth nothing: once the account is
         // full, an upgrade session is not a session (ADR 0015 (b)).
         if session.kind == SessionKind::Upgrade && account.r#type != AccountType::Guest {

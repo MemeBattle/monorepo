@@ -1,6 +1,6 @@
-//! `POST /token`: the authorization code exchange and the refresh (ADR 0011,
-//! ADR 0012), and the guest grant (ADR 0014). Served at the
-//! root with `ApiState`, outside `/api`: it is called by a client's backend
+//! `POST /oidc/token`: the authorization code exchange and the refresh (ADR 0011,
+//! ADR 0012), and the guest grant (ADR 0014). Served under
+//! `/oidc` with `ApiState`, outside `/api`: it is called by a client's backend
 //! or by a public client, never with CAS's cookie, so neither the session
 //! nor the Fetch Metadata line (ADR 0005) has anything to say about it.
 //!
@@ -34,7 +34,7 @@ use crate::oidc::{IssuedTokens, Params, TokenError};
 /// The largest body a token request may have. The longest legitimate one —
 /// a code, a verifier of 128 characters, a redirect URI and a client's
 /// credentials — is well under a kilobyte; the bound is what stops a
-/// client from making CAS buffer anything larger. `POST /end_session` reads
+/// client from making CAS buffer anything larger. `POST /oidc/end_session` reads
 /// its form within the same bound.
 pub(super) const MAX_BODY_BYTES: usize = 8 * 1024;
 
@@ -45,7 +45,7 @@ pub(super) const FORM_CONTENT_TYPE: &str = "application/x-www-form-urlencoded";
 /// RFC 7617 §2).
 const BASIC_CHALLENGE: &str = "Basic realm=\"cas\"";
 
-/// `POST /token`, holding `ApiState`. Any other method is answered `405`
+/// `POST /oidc/token`, holding `ApiState`. Any other method is answered `405`
 /// by the router, `HEAD` and `GET` included.
 ///
 /// Every answer is `Cache-Control: no-store` and `Pragma: no-cache`, the
@@ -71,7 +71,7 @@ pub fn token_router(state: ApiState) -> OpenApiRouter {
 #[openapi(components(schemas(TokenResponse)))]
 struct TokenApi;
 
-/// What `/token` answers, for the description: the tokens, or an RFC 6749
+/// What `/oidc/token` answers, for the description: the tokens, or an RFC 6749
 /// §5.2 error.
 struct TokenResponses;
 
@@ -119,7 +119,7 @@ impl utoipa::IntoResponses for TokenResponses {
 /// `Cache-Control: no-store` and `Pragma: no-cache`.
 #[utoipa::path(
     post,
-    path = "/token",
+    path = "/oidc/token",
     request_body(
         content = String,
         content_type = "application/x-www-form-urlencoded",
@@ -233,7 +233,7 @@ pub(super) struct OAuthErrorResponse {
 
 impl OAuthErrorResponse {
     /// Every refusal the mapping below can name, for the description. The
-    /// `/token` mapping and `/userinfo`'s database failure answer within
+    /// `/oidc/token` mapping and `/oidc/userinfo`'s database failure answer within
     /// it; [`SERVER_ERROR`] is the family's fallback and is not among them.
     pub(super) const DECLARED: [(StatusCode, &'static str); 8] = [
         (StatusCode::BAD_REQUEST, "invalid_request"),
@@ -269,7 +269,7 @@ impl OAuthErrorResponse {
 /// guest grant's rate limit `429` with `Retry-After`: RFC 6749 §5.2 has no
 /// code for it, and an extension grant may define its own. A database
 /// failure borrows the two codes RFC 6749 §4.1.2.1 defines for the
-/// authorization endpoint, as `/authorize` does: §5.2 has none, and a
+/// authorization endpoint, as `/oidc/authorize` does: §5.2 has none, and a
 /// client can act on "try again" as opposed to "this is broken".
 impl From<TokenError> for OAuthErrorResponse {
     fn from(error: TokenError) -> Self {
@@ -328,7 +328,7 @@ fn database_error(error: &sqlx::Error) -> OAuthErrorResponse {
     response
 }
 
-/// The answer to a database failure, which `/userinfo` gives too: "try
+/// The answer to a database failure, which `/oidc/userinfo` gives too: "try
 /// again" when [`crate::db::classify`] names it retryable, "this is
 /// broken" otherwise.
 pub(super) fn database_failure(error: &sqlx::Error) -> OAuthErrorResponse {
@@ -428,7 +428,7 @@ mod tests {
     const AUDIENCE: &str = "ligretto";
     const PUBLIC: &str = "ligretto-web";
 
-    /// What `http::app` serves at the root for OIDC, on the test's pool.
+    /// What `http::app` serves for OIDC, on the test's pool.
     fn router(pool: PgPool) -> Router {
         checked(oidc_routers(pool))
     }
@@ -509,7 +509,7 @@ mod tests {
     }
 
     impl Fixture {
-        /// A code from `/authorize` for `client_id`, the way a signed-in
+        /// A code from `/oidc/authorize` for `client_id`, the way a signed-in
         /// browser gets one.
         async fn code(&self, client_id: &str, scope: &str) -> String {
             let query = form(&[
@@ -527,7 +527,7 @@ mod tests {
                 .clone()
                 .oneshot(
                     Request::builder()
-                        .uri(format!("/authorize?{query}"))
+                        .uri(format!("/oidc/authorize?{query}"))
                         .header(header::COOKIE, &self.cookie)
                         .body(Body::empty())
                         .unwrap(),
@@ -549,7 +549,7 @@ mod tests {
             basic(CONFIDENTIAL, self.secret.expose())
         }
 
-        /// `POST /token` with a form body and, optionally, an
+        /// `POST /oidc/token` with a form body and, optionally, an
         /// `Authorization` header.
         async fn token(&self, pairs: &[(&str, &str)], authorization: Option<&str>) -> Response {
             send(
@@ -669,7 +669,7 @@ mod tests {
         authorization: Option<&str>,
         body: String,
     ) -> Response {
-        let mut request = Request::builder().method("POST").uri("/token");
+        let mut request = Request::builder().method("POST").uri("/oidc/token");
         if let Some(content_type) = content_type {
             request = request.header(header::CONTENT_TYPE, content_type);
         }
@@ -1002,7 +1002,7 @@ mod tests {
         let code = fixture.code(CONFIDENTIAL, "openid").await;
         let request = Request::builder()
             .method("POST")
-            .uri("/token")
+            .uri("/oidc/token")
             .header(header::CONTENT_TYPE, FORM_CONTENT_TYPE)
             .header(header::AUTHORIZATION, fixture.basic())
             .header(header::AUTHORIZATION, fixture.basic())
@@ -1407,11 +1407,11 @@ mod tests {
         }
     }
 
-    /// Through the whole application: the endpoint is mounted at the root,
+    /// Through the whole application: the endpoint is mounted under `/oidc`,
     /// for `POST` only, and a request that is not a form is refused before
     /// any query (the pool of `app` points at no test database).
     #[tokio::test]
-    async fn the_endpoint_is_mounted_at_the_root_for_post_only() {
+    async fn the_endpoint_is_mounted_under_oidc_for_post_only() {
         let app = crate::http::app(test_config()).unwrap();
 
         for method in ["GET", "HEAD", "PUT"] {
@@ -1420,7 +1420,7 @@ mod tests {
                 .oneshot(
                     Request::builder()
                         .method(method)
-                        .uri("/token")
+                        .uri("/oidc/token")
                         .body(Body::empty())
                         .unwrap(),
                 )
@@ -1437,7 +1437,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("POST")
-                    .uri("/token")
+                    .uri("/oidc/token")
                     .header(header::CONTENT_TYPE, "application/json")
                     .body(Body::from("{}"))
                     .unwrap(),
@@ -2715,7 +2715,7 @@ mod tests {
             if let Some(hint) = hint {
                 pairs.push(("id_token_hint", hint));
             }
-            format!("/authorize?{}", form(&pairs))
+            format!("/oidc/authorize?{}", form(&pairs))
         };
 
         // Another browser opens an upgrade session for the same guest first.

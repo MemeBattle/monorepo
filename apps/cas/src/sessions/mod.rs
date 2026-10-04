@@ -9,10 +9,10 @@
 //! database's. See `docs/adr/0004-cookie-sessions.md`.
 //!
 //! A session has a [`SessionKind`]. A `full` session is what registration and
-//! login issue. An `upgrade` session is what `/authorize` opens for a guest
+//! login issue. An `upgrade` session is what `/oidc/authorize` opens for a guest
 //! that presents a fresh ID token as `id_token_hint`: it may only run the
 //! account-registration ceremony for its own account and continue
-//! `/authorize`, which never gives it a code. The `Authenticated` extractor
+//! `/oidc/authorize`, which never gives it a code. The `Authenticated` extractor
 //! admits full sessions only, so every other endpoint answers an upgrade
 //! session as unauthenticated; logout ends it like any other. An upgrade
 //! session lives for [`UPGRADE_SESSION_LIFETIME`] and only while its account
@@ -133,7 +133,7 @@ pub enum SessionKind {
     /// A signed-in account: registration and login issue these.
     Full,
     /// A guest on its way to a full account: the registration ceremony for
-    /// its own account and `/authorize`, nothing else (ADR 0015 (a)).
+    /// its own account and `/oidc/authorize`, nothing else (ADR 0015 (a)).
     Upgrade,
 }
 
@@ -186,7 +186,7 @@ impl Session {
 pub enum SessionOrigin {
     Registration,
     Login,
-    /// An upgrade session `/authorize` opened for a guest's `id_token_hint`.
+    /// An upgrade session `/oidc/authorize` opened for a guest's `id_token_hint`.
     IdTokenHint,
     /// The full session a finished guest upgrade rotated into.
     Upgrade,

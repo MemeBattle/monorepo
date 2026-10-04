@@ -5,8 +5,8 @@
 //! under a grant (ADR 0011) and refreshes them with rotation and reuse
 //! detection (ADR 0012), and userinfo and RP-initiated logout, which verify
 //! the tokens CAS issued (ADR 0013). Every endpoint of the minimal profile
-//! is served, and `/token` also mints guest accounts for a confidential
-//! client through the guest grant (ADR 0014), which `/authorize` upgrades to
+//! is served, and `/oidc/token` also mints guest accounts for a confidential
+//! client through the guest grant (ADR 0014), which `/oidc/authorize` upgrades to
 //! full accounts through `id_token_hint` (ADR 0015). See
 //! `docs/adr/0009-signing-key-and-discovery.md`,
 //! `docs/adr/0010-authorization-endpoint.md`,
@@ -54,11 +54,11 @@ pub use upgrade_hint::{HintError, UpgradeHintService};
 pub use userinfo::{UserInfoError, UserInfoService};
 
 /// The extension grant (RFC 6749 §4.5) a confidential client with
-/// `guest_login_allowed` uses to mint a guest account on `/token`, from its
+/// `guest_login_allowed` uses to mint a guest account on `/oidc/token`, from its
 /// backend and without any UI (ADR 0014). Advertised by discovery.
 pub const GUEST_GRANT_TYPE: &str = "urn:memebattle:oauth:grant-type:guest";
 
-/// How long an authorization code may wait for `/token`. RFC 6749 §4.1.2
+/// How long an authorization code may wait for `/oidc/token`. RFC 6749 §4.1.2
 /// recommends at most ten minutes; a redirect needs a few seconds, and a
 /// minute leaves room for a slow client without leaving a code lying around.
 pub const AUTHORIZATION_CODE_LIFETIME: Duration = Duration::from_secs(60);

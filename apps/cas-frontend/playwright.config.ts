@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test'
 // The vite dev server the suite drives. The port is the CAS default `CAS_ORIGIN`;
 // CAS_FRONTEND_PORT moves it when 5173 is taken, in which case CAS has to be
 // started with `CAS_ORIGIN` and `CAS_CORS_ORIGINS` pointing at the new port.
-// CAS itself is not started here (see docs/TESTS.md): vite proxies `/api` to it,
+// CAS itself is not started here (see docs/TESTS.md): vite proxies `/api` and `/oidc` to it,
 // wherever `CAS_API_PROXY_TARGET` says it listens.
 const port = Number(process.env.CAS_FRONTEND_PORT ?? 5173)
 const baseURL = `http://localhost:${port}`

@@ -115,7 +115,7 @@ pub(crate) const CLEAR_SITE_DATA: HeaderName = HeaderName::from_static("clear-si
 /// site and drop their preferences with it. The session cookie is removed
 /// explicitly instead, by the removal cookie next to this header.
 ///
-/// RP-initiated logout (`/end_session`, ADR 0013 (i)) sends the same value
+/// RP-initiated logout (`/oidc/end_session`, ADR 0013 (i)) sends the same value
 /// when it ends a session.
 pub(crate) const CLEAR_SITE_DATA_ON_LOGOUT: HeaderValue =
     HeaderValue::from_static(r#""cache", "storage""#);
@@ -527,7 +527,7 @@ mod tests {
         }
     }
 
-    /// A guest holding an upgrade session, as `/authorize` opens one.
+    /// A guest holding an upgrade session, as `/oidc/authorize` opens one.
     async fn upgrade_session(pool: &PgPool) -> SessionToken {
         let client = crate::testing::register_public_client(pool, "ligretto", &[]).await;
         let guest = AccountRepository::new(pool.clone())

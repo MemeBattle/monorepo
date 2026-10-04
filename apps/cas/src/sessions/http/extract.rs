@@ -66,7 +66,7 @@ where
             .ok_or_else(unauthenticated)?;
 
         // Default deny: an upgrade session may only register its account's
-        // passkey and continue `/authorize`, and neither takes this
+        // passkey and continue `/oidc/authorize`, and neither takes this
         // extractor. Answered exactly like no session at all; the warning is
         // there because a browser holding one has no business here unless
         // something is probing what it can do.
@@ -86,7 +86,7 @@ where
 /// The session a request's cookie names, if it names a live one, of either
 /// kind: the body of the extractor, for a handler that must decide for
 /// itself what a missing session, an upgrade session or a database failure
-/// means. `/authorize` is one: it validates the request first and answers a
+/// means. `/oidc/authorize` is one: it validates the request first and answers a
 /// failure through its own channels (ADR 0010 (g)), and it sends an upgrade
 /// session on to create-account. The registration endpoints are the other:
 /// under an upgrade session they run the guest upgrade (ADR 0015 (e)).
@@ -320,7 +320,7 @@ mod tests {
             &test_state(pool),
             &cookie_headers(Some(&format!("{name}={}", token.expose()))),
             &Extensions::new(),
-            "/authorize",
+            "/oidc/authorize",
         )
         .await
         .unwrap()
@@ -369,7 +369,7 @@ mod tests {
                 &state,
                 &cookie_headers(cookie.as_deref()),
                 &extensions,
-                "/authorize",
+                "/oidc/authorize",
             )
             .await
             .unwrap();
@@ -380,7 +380,7 @@ mod tests {
             &state,
             &cookie_headers(Some(&format!("{name}={}", live.token.expose()))),
             &extensions,
-            "/authorize",
+            "/oidc/authorize",
         )
         .await
         .unwrap()

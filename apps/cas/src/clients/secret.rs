@@ -4,7 +4,7 @@
 //! draws the secret, shows it once, and stores only its SHA-256. A slow
 //! password hash would buy nothing here — the secret is never chosen by a
 //! person, so there is no low-entropy input to protect — and would cost a KDF
-//! on every `/token` call. See `docs/adr/0008-oidc-clients-registry.md`.
+//! on every `/oidc/token` call. See `docs/adr/0008-oidc-clients-registry.md`.
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use sha2::{Digest, Sha256};
@@ -62,7 +62,7 @@ impl SecretHash {
     }
 
     /// Whether `presented` is the secret this hash was made from. Compared in
-    /// constant time: the comparison runs on every `/token` call, against a
+    /// constant time: the comparison runs on every `/oidc/token` call, against a
     /// value the caller controls, and a byte-by-byte `==` that returns early
     /// would leak how much of the hash matched. A stored hash of another
     /// length is simply not equal.

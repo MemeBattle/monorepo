@@ -6,7 +6,7 @@
 //!
 //! Every refusal here is a [`PageError`]: until the client and its
 //! `post_logout_redirect_uri` are known, nothing may be sent anywhere, as at
-//! `/authorize` (ADR 0010 (a)).
+//! `/oidc/authorize` (ADR 0010 (a)).
 
 use uuid::Uuid;
 

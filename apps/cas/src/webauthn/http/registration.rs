@@ -2,7 +2,7 @@
 //! browser's answer.
 //!
 //! Without a session, or with a full one, they create an account. Under an
-//! upgrade session — which `/authorize` opened for a guest's `id_token_hint`
+//! upgrade session — which `/oidc/authorize` opened for a guest's `id_token_hint`
 //! — the same two requests run the guest upgrade instead: the passkey goes
 //! to the guest, which becomes a full account with the same id, and the
 //! upgrade session is rotated into a full one (ADR 0015 (e)). The session

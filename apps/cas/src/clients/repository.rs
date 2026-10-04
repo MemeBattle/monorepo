@@ -303,7 +303,7 @@ where
     limit.map(guest_grants_per_minute).transpose()
 }
 
-/// Data access for `clients`. Public so that `/authorize` and `/token` can
+/// Data access for `clients`. Public so that `/oidc/authorize` and `/oidc/token` can
 /// hold one, or a service over it, without this file changing shape.
 #[derive(Debug, Clone)]
 pub struct ClientRepository {

@@ -1,14 +1,14 @@
-//! What `/token` hands out: the refresh token, opaque and stored as its
+//! What `/oidc/token` hands out: the refresh token, opaque and stored as its
 //! hash, and the claims of the two JWTs, the access token (RFC 9068) and the
 //! ID token (OpenID Connect Core §2). Pure domain: the claims are built here
 //! and signed by [`super::SigningKey::sign`]; how the refresh token crosses
 //! the database boundary is the repository's business. See
 //! `docs/adr/0011-token-endpoint-and-access-tokens.md`.
 //!
-//! Also the way back: reading an access token presented at `/userinfo` and
+//! Also the way back: reading an access token presented at `/oidc/userinfo` and
 //! an ID token presented as a logout hint, once
 //! [`super::VerifyingKeys::verify`] has checked the signature, and the
-//! claims `/userinfo` answers with (ADR 0013).
+//! claims `/oidc/userinfo` answers with (ADR 0013).
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use serde::{Deserialize, Serialize};
@@ -171,7 +171,7 @@ impl AccessTokenClaims {
 
 /// The claims of an ID token, OpenID Connect Core §2, with the profile and
 /// email claims the granted scopes release (§5.4). `auth_time` is left out:
-/// it is required only when `max_age` is requested, which `/authorize`
+/// it is required only when `max_age` is requested, which `/oidc/authorize`
 /// refuses (ADR 0010 (b)), and what CAS would put there — when the session
 /// was opened, not when the passkey was last touched — would mislead.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -238,7 +238,7 @@ impl IdTokenClaims {
 /// absent rather than `null`, as Core §5.3.2 asks of a claim not returned
 /// (ADR 0014 (b)); with `email`, the address and `email_verified: false` when the
 /// account has one — addresses are unverified in v1 (PLAN, ADR 0007). The
-/// one rule both the ID token and `/userinfo` apply, so the two cannot drift
+/// one rule both the ID token and `/oidc/userinfo` apply, so the two cannot drift
 /// apart (ADR 0013 (c)).
 struct Released {
     name: Option<String>,
@@ -261,7 +261,7 @@ impl Released {
     }
 }
 
-/// The `/userinfo` answer (OpenID Connect Core §5.3.2): `sub` and
+/// The `/oidc/userinfo` answer (OpenID Connect Core §5.3.2): `sub` and
 /// `account_type` always, the rest as the token's scopes release it — never
 /// a `name` for a guest. `iss`,
 /// `aud` and `amr` are the ID token's business and are not repeated; Core
@@ -321,7 +321,7 @@ pub enum InvalidToken {
     Expired,
 }
 
-/// What `/userinfo` needs of a verified access token.
+/// What `/oidc/userinfo` needs of a verified access token.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VerifiedAccessToken {
     pub sub: Uuid,
@@ -330,7 +330,7 @@ pub struct VerifiedAccessToken {
 }
 
 /// The claims of an access token that are read back. `aud` is not among
-/// them: `/userinfo` takes a token for any resource server (ADR 0013 (b)).
+/// them: `/oidc/userinfo` takes a token for any resource server (ADR 0013 (b)).
 /// `iat` is not either: CAS wrote it next to `exp`, and `exp` is the one
 /// that decides.
 #[derive(Deserialize)]
@@ -374,8 +374,8 @@ pub fn access_token(
 }
 
 /// What an `id_token_hint` tells: whose token it is, which client it was
-/// issued to, and until when. `/end_session` reads the first two; the guest
-/// upgrade at `/authorize` also judges the third ([`Self::is_expired`]).
+/// issued to, and until when. `/oidc/end_session` reads the first two; the guest
+/// upgrade at `/oidc/authorize` also judges the third ([`Self::is_expired`]).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IdTokenHint {
     pub sub: Uuid,
@@ -636,7 +636,7 @@ mod tests {
     }
 
     /// A guest's column holds a generated name, not one it chose: `profile`
-    /// releases nothing for it, in the ID token and at `/userinfo` alike, and
+    /// releases nothing for it, in the ID token and at `/oidc/userinfo` alike, and
     /// `email` nothing either, since a guest has no address.
     #[test]
     fn a_guest_has_no_name_to_release() {
@@ -667,7 +667,7 @@ mod tests {
         SigningKeys::from_pem(DEV_SIGNING_KEY).unwrap()
     }
 
-    /// An access token as `/token` signs it, issued at `issued_at`.
+    /// An access token as `/oidc/token` signs it, issued at `issued_at`.
     fn access(account: &Account, granted: &[&str], issued_at: OffsetDateTime) -> String {
         let claims =
             AccessTokenClaims::new(ISSUER, &client(), account, &scopes(granted), issued_at);
@@ -676,7 +676,7 @@ mod tests {
             .sign(ACCESS_TOKEN_TYPE, &serde_json::to_vec(&claims).unwrap())
     }
 
-    /// An ID token as `/token` signs it, issued at `issued_at`.
+    /// An ID token as `/oidc/token` signs it, issued at `issued_at`.
     fn id_token(account: &Account, issued_at: OffsetDateTime) -> String {
         let claims = IdTokenClaims::new(
             ISSUER,
