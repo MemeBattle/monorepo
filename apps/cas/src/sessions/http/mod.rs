@@ -151,7 +151,12 @@ pub struct MeResponse {
 crate::error_set!(MeErrors: Authenticated);
 
 /// The signed-in account.
-#[utoipa::path(get, path = "/me", security(("session" = [])))]
+#[utoipa::path(
+    get,
+    path = "/me",
+    operation_id = "get_me",
+    security(("session" = []))
+)]
 async fn me(authenticated: Authenticated) -> Result<Json<MeResponse>, ApiErrors<MeErrors>> {
     let Authenticated { session, account } = authenticated;
 

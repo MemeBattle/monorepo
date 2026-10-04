@@ -68,7 +68,10 @@ Each rule says what a layer is for and what it must not touch.
    serves. A handler is annotated with `#[utoipa::path]`, returns one of the
    response types of `http/response.rs` (or `http/extract.rs`'s `Json`) and
    fails with `ApiErrors<Set>`, its error set declared with `error_set!`:
-   the errors its body converts and the markers of its extractors. A
+   the errors its body converts and the markers of its extractors. Its
+   operation id reads on its own, verb first (`list_passkeys`, `get_me`):
+   generated clients name their functions and types after it, and a handler
+   whose name leans on its module (`list`) sets `operation_id`. A
    context's router is an `OpenApiRouter` that mounts handlers only through
    `routes!`, so nothing is served that is not described (ADR 0016). The
    root mounts each context's router and never reaches past it. axum exists

@@ -50,7 +50,7 @@ crate::error_set!(pub(super) AdditionOptionsErrors: Authenticated, StartError);
 #[utoipa::path(
     post,
     path = "/register-options",
-    operation_id = "addition_options",
+    operation_id = "get_passkey_addition_options",
     security(("session" = []))
 )]
 pub(super) async fn get_registration_options(
@@ -73,7 +73,7 @@ crate::error_set!(pub(super) VerifyAdditionErrors: Authenticated, InvalidBody, F
 #[utoipa::path(
     post,
     path = "/verify-registration",
-    operation_id = "verify_addition",
+    operation_id = "verify_passkey_addition",
     security(("session" = []))
 )]
 pub(super) async fn verify_registration(

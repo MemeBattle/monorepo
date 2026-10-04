@@ -93,7 +93,12 @@ pub struct RenamePasskeyRequest {
 crate::error_set!(ListErrors: Authenticated, sqlx::Error);
 
 /// The account's passkeys.
-#[utoipa::path(get, path = "/", security(("session" = [])))]
+#[utoipa::path(
+    get,
+    path = "/",
+    operation_id = "list_passkeys",
+    security(("session" = []))
+)]
 async fn list(
     State(state): State<ApiState>,
     authenticated: Authenticated,
@@ -109,7 +114,12 @@ crate::error_set!(RenameErrors:
     Authenticated, InvalidPath, InvalidBody, PasskeyNameError, ManagementError);
 
 /// Renames one of the account's passkeys.
-#[utoipa::path(patch, path = "/{id}", security(("session" = [])))]
+#[utoipa::path(
+    patch,
+    path = "/{id}",
+    operation_id = "rename_passkey",
+    security(("session" = []))
+)]
 async fn rename(
     State(state): State<ApiState>,
     authenticated: Authenticated,
@@ -129,7 +139,12 @@ async fn rename(
 crate::error_set!(DeleteErrors: Authenticated, InvalidPath, ManagementError);
 
 /// Deletes one of the account's passkeys, never its last one.
-#[utoipa::path(delete, path = "/{id}", security(("session" = [])))]
+#[utoipa::path(
+    delete,
+    path = "/{id}",
+    operation_id = "delete_passkey",
+    security(("session" = []))
+)]
 async fn delete(
     State(state): State<ApiState>,
     authenticated: Authenticated,

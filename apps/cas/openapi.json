@@ -203,7 +203,7 @@
     "/api/me": {
       "get": {
         "summary": "The signed-in account.",
-        "operationId": "me",
+        "operationId": "get_me",
         "responses": {
           "200": {
             "description": "OK",
@@ -701,7 +701,7 @@
     "/api/passkeys": {
       "get": {
         "summary": "The account's passkeys.",
-        "operationId": "list",
+        "operationId": "list_passkeys",
         "responses": {
           "200": {
             "description": "OK",
@@ -837,7 +837,7 @@
     "/api/passkeys/register-options": {
       "post": {
         "summary": "`POST /api/passkeys/register-options`, no body: the challenge for another\npasskey of the signed-in account, its existing credentials excluded.",
-        "operationId": "addition_options",
+        "operationId": "get_passkey_addition_options",
         "responses": {
           "200": {
             "description": "OK",
@@ -1010,7 +1010,7 @@
     "/api/passkeys/verify-registration": {
       "post": {
         "summary": "`POST /api/passkeys/verify-registration`: stores the new passkey under the\nsession's account and answers `201` with it as `GET /api/passkeys` lists\nit. The session is left as it is: the account was signed in already.",
-        "operationId": "verify_addition",
+        "operationId": "verify_passkey_addition",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1419,7 +1419,7 @@
     "/api/passkeys/{id}": {
       "delete": {
         "summary": "Deletes one of the account's passkeys, never its last one.",
-        "operationId": "delete",
+        "operationId": "delete_passkey",
         "parameters": [
           {
             "name": "id",
@@ -1705,7 +1705,7 @@
       },
       "patch": {
         "summary": "Renames one of the account's passkeys.",
-        "operationId": "rename",
+        "operationId": "rename_passkey",
         "parameters": [
           {
             "name": "id",
@@ -2257,7 +2257,7 @@
     "/api/webauthn/register-options": {
       "post": {
         "summary": "The challenge for a new account, or, under an upgrade session, for the\nguest's first passkey with the guest's id as the user handle.",
-        "operationId": "registration_options",
+        "operationId": "get_registration_options",
         "requestBody": {
           "content": {
             "application/json": {

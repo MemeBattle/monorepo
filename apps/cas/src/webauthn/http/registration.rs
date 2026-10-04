@@ -127,7 +127,7 @@ crate::error_set!(pub(super) RegistrationOptionsErrors:
 #[utoipa::path(
     post,
     path = "/register-options",
-    operation_id = "registration_options"
+    operation_id = "get_registration_options"
 )]
 pub(super) async fn get_registration_options(
     State(state): State<ApiState>,
