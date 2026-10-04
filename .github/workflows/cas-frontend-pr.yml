@@ -44,11 +44,12 @@ jobs:
       - name: Regenerate the API client
         run: pnpm run --filter @memebattle/cas-frontend generate:api
 
-      # A changed apps/cas/openapi.json without a regeneration shows up as a diff or as a file git does not know.
+      # A changed apps/cas/openapi.json without a regeneration shows up as a changed, new or removed file. The diff is
+      # against HEAD: intent-to-add stages the removals, so a diff against the index would miss them.
       - name: Check the generated client is up to date
         run: |
           git add --intent-to-add apps/cas-frontend/src/shared/api/generated
-          git diff --exit-code -- apps/cas-frontend/src/shared/api/generated
+          git diff --exit-code HEAD -- apps/cas-frontend/src/shared/api/generated
 
   tests:
     runs-on: ubuntu-24.04

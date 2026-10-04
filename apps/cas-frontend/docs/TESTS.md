@@ -17,8 +17,8 @@ root.
 changes, run `pnpm generate:api` and commit the result with it; never edit
 the output by hand. Generation is deterministic, so the `api-client` job in
 `.github/workflows/cas-frontend-pr.yml` runs it again and fails on any
-difference or on a file git does not know: a description changed without a
-regeneration does not merge. The workflow runs on `apps/cas/**` changes too.
+changed, new or removed file (compared with `HEAD`): a description changed
+without a regeneration does not merge. The workflow runs on `apps/cas/**` changes too.
 
 ## What gets a unit test
 
