@@ -11,12 +11,15 @@ apps/cas-frontend/
   vite.config.ts       React Compiler, Tailwind, the /api and /oidc dev proxy, vitest
   playwright.config.ts the e2e suite: Chromium, vite as its webServer
   e2e/                 the e2e scenarios (*.e2e.ts) and fixtures.ts, the
-                       virtual authenticator over CDP (see TESTS.md)
+                       virtual authenticator over CDP; seed.sh registers the
+                       suite's OIDC client (see TESTS.md)
   src/
     index.tsx          createRoot + RouterProvider, imports app/styles.css
     app/               the shell: router.tsx (routes and the root layout),
                        gates.ts (the session loaders in front of every page),
-                       routes.ts (path constants), styles.css (Tailwind entry)
+                       routes.ts (path constants), returnTo.tsx (the accepted
+                       return_to and the way out to it, adr/0002-return-to.md),
+                       styles.css (Tailwind entry)
     pages/<page>/      one directory per route, the screen and nothing else;
                        loading/ and error/ are the root route's fallbacks
     entities/<name>/   API calls and types of one domain concept: session

@@ -1,12 +1,13 @@
 import { useActionState } from 'react'
 import type { ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 
 import { isAuthenticatorUnsupported, isCeremonyCancelled, isPasskeyAlreadyRegistered, isWrongOrigin, registerWithPasskey } from '#entities/session'
 import { isApiError } from '#shared/api/request'
 import { MAX_LABEL_LENGTH, normalizeLabel } from '#shared/lib/label'
 import { Alert, Hero, Icon, Screen, SubmitButton, SwitchLink, TextField } from '#shared/ui'
 import { routes } from '#app/routes'
+import { leaveTo, readReturnTo, ReturnToLink } from '#app/returnTo'
 import { messages, validateDisplayName } from './validateDisplayName'
 
 /** What the alert above the form says; never the raw `message` of an exception. */
@@ -28,7 +29,7 @@ const failures = {
     title: 'Такой пасскей уже есть',
     text: (
       <>
-        Этот пасскей уже зарегистрирован здесь. <Link to={routes.SIGN_IN}>Войти</Link>
+        Этот пасскей уже зарегистрирован здесь. <ReturnToLink to={routes.SIGN_IN}>Войти</ReturnToLink>
       </>
     ),
   },
@@ -89,8 +90,10 @@ interface FormState {
 
 const initialState: FormState = { displayName: '', nameError: null, failure: null }
 
+/** Opened with an accepted `return_to`, a created account leaves for it instead of the dashboard. */
 export const CreateAccountPage = () => {
   const navigate = useNavigate()
+  const returnTo = readReturnTo(useLocation().search)
 
   const [state, createAccount, pending] = useActionState(async (_previous: FormState, form: FormData): Promise<FormState> => {
     // Normalised the way the server does it, so the length check and the sent value agree with it.
@@ -107,8 +110,8 @@ export const CreateAccountPage = () => {
       }
       return { displayName, nameError: null, failure: toFailure(error) }
     }
-    // The finish set the session cookie; the dashboard's loader reads it.
-    await navigate(routes.DASHBOARD, { replace: true })
+    // The finish set the session cookie; CAS reads it at `return_to`, the dashboard's loader otherwise.
+    await (returnTo ? leaveTo(returnTo) : navigate(routes.DASHBOARD, { replace: true }))
     return { displayName, nameError: null, failure: null }
   }, initialState)
 
@@ -135,7 +138,7 @@ export const CreateAccountPage = () => {
           <p className="mt-1.5 text-center text-sm leading-[1.45] font-medium text-ink-muted">Следуйте подсказке браузера или телефона.</p>
         ) : (
           <SwitchLink question="Уже есть аккаунт?">
-            <Link to={routes.SIGN_IN}>Войти</Link>
+            <ReturnToLink to={routes.SIGN_IN}>Войти</ReturnToLink>
           </SwitchLink>
         )}
       </form>

@@ -107,6 +107,17 @@ States:
   зарегистрирован" / "Возможно, он от другого сайта, или аккаунта ещё нет."
   with the link "Создать аккаунт"; the button reads "Выбрать другой пасскей".
 
+**Opened for an application** (`/sign-in?return_to=…`, sent by CAS from
+`/oidc/authorize`): the screen looks and reads exactly the same, with no
+extra state. The application is not named: the `client_id` in the URL is
+text anyone can write, and CAS has no endpoint that names a client to an
+anonymous browser (`adr/0002-return-to.md` (g)). Both links to create account
+keep `return_to`. After a successful sign-in, by the button or by autofill,
+the browser leaves for `return_to` instead of the dashboard; the button keeps
+its pending state until the browser has left. A `return_to` that is not a
+path on this origin is dropped and the screen behaves as plain sign-in
+(`adr/0002-return-to.md` (a), (b)).
+
 ### Create account (`/create-account`)
 
 Hero: logo 96px, "Создать аккаунт", "Придумайте имя, остальное сделает
@@ -135,6 +146,12 @@ States:
   alert "Такой пасскей уже есть" / "Этот пасскей уже зарегистрирован здесь."
   with the link "Войти".
 
+**Opened for an application** (`/create-account?return_to=…`, from sign-in's
+links or from CAS for a guest upgrade): the same as on sign-in. The screen
+looks and reads the same and names no application, both links to sign-in
+keep `return_to`, and a created account leaves for it instead of the
+dashboard, with the button pending until the browser has left.
+
 ### Failures every ceremony can have
 
 - **Wrong address** (`SecurityError`: the page is served from an origin the
@@ -153,6 +170,11 @@ While `/api/me` is in flight: the logo at 96px, pulsing, and "Проверяем
 вы…" under it (static: text at half opacity fails the contrast check), footer
 in place. No spinner, no layout of the page behind it. It
 should be visible for well under a second in practice.
+
+On sign-in and create account, a browser that is already signed in goes to
+the dashboard; with an accepted `return_to` it is forwarded there instead, at
+once and without a ceremony, and this screen stays up until the browser has
+left.
 
 ### Dashboard (`/`)
 
@@ -259,7 +281,17 @@ States:
    without conditional mediation and for a passkey on another device.
 3. **Sign out**: "Выйти" → `/sign-in`. `Clear-Site-Data` on the API side
    empties what the browser holds; the app keeps nothing client-side.
-4. **Recovery story (v1)**: there is none beyond a second passkey, which is
+4. **Sign-in for an application**: the application sends the browser to
+   `/oidc/authorize` → CAS, finding no session, sends it to
+   `/sign-in?return_to=/oidc/authorize?…` → passkey ceremony →
+   `/oidc/authorize` again → the application's redirect URI with a code.
+   A new user takes "Создать" → `/create-account?return_to=…` → name →
+   ceremony → the same way back. A browser already signed in to CAS never
+   sees a form: the session check forwards it. The whole visit to CAS is one
+   history entry, so Back from the application does not reopen sign-in. A
+   `return_to` that is not a path on this origin is dropped and the flow ends
+   on `/`.
+5. **Recovery story (v1)**: there is none beyond a second passkey, which is
    why the nudge is the first thing a one-passkey account sees.
 
 ## Sample data on the canvas
