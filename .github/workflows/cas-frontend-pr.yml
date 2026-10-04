@@ -31,6 +31,25 @@ jobs:
       - name: TS check
         run: pnpm run --filter @memebattle/cas-frontend ts-check
 
+  api-client:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Regenerate the API client
+        run: pnpm run --filter @memebattle/cas-frontend generate:api
+
+      # A changed apps/cas/openapi.json without a regeneration shows up as a diff or as a file git does not know.
+      - name: Check the generated client is up to date
+        run: |
+          git add --intent-to-add apps/cas-frontend/src/shared/api/generated
+          git diff --exit-code -- apps/cas-frontend/src/shared/api/generated
+
   tests:
     runs-on: ubuntu-24.04
 
