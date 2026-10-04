@@ -8,24 +8,43 @@ import { routes } from '#app/routes'
 import { CreateAccountPage } from './CreateAccountPage'
 import { messages } from './validateDisplayName'
 
-const { registerWithPasskey } = vi.hoisted(() => ({ registerWithPasskey: vi.fn() }))
+const { registerWithPasskey, leaveTo } = vi.hoisted(() => ({ registerWithPasskey: vi.fn(), leaveTo: vi.fn() }))
 // Only the ceremony is faked; `isCeremonyCancelled` stays real, so the spec covers the mapping too.
 vi.mock('#entities/session', async importOriginal => ({ ...(await importOriginal<typeof import('#entities/session')>()), registerWithPasskey }))
 
-const renderPage = () => {
+// Only the document navigation is faked; `readReturnTo` and `ReturnToLink` stay real.
+vi.mock('#app/returnTo', async importOriginal => ({ ...(await importOriginal<typeof import('#app/returnTo')>()), leaveTo }))
+
+/** The authorization request CAS sends the browser back to, and the create-account screen it opens. */
+const authorize = '/oidc/authorize?client_id=x&state=s'
+const withReturnTo = (value: string) => `${routes.CREATE_ACCOUNT}?${new URLSearchParams({ return_to: value }).toString()}`
+
+/**
+ * The real `leaveTo` never settles, the browser leaves; the fake stays
+ * pending until the test is over and is settled then: React entangles a
+ * pending action with every later transition, so an action that never ends
+ * would hold back the next test's navigations.
+ */
+let releaseLeaving: () => void = () => {}
+const pendingLeave = () =>
+  new Promise<never>(resolve => {
+    releaseLeaving = () => resolve(undefined as never)
+  })
+
+const renderPage = (entry: string = routes.CREATE_ACCOUNT) => {
   const router = createMemoryRouter(
     [
       { path: routes.CREATE_ACCOUNT, element: <CreateAccountPage /> },
       { path: routes.DASHBOARD, element: <h1>Дашборд</h1> },
     ],
-    { initialEntries: [routes.CREATE_ACCOUNT] },
+    { initialEntries: [entry] },
   )
   render(<RouterProvider router={router} />)
   return router
 }
 
-const submit = async (name: string) => {
-  renderPage()
+const submit = async (name: string, entry?: string) => {
+  renderPage(entry)
   const user = userEvent.setup()
   if (name) {
     await user.type(screen.getByLabelText('Имя'), name)
@@ -37,7 +56,9 @@ describe('CreateAccountPage', () => {
   afterEach(() => {
     // No `globals` in the vitest config, so testing-library does not unmount on its own.
     cleanup()
+    releaseLeaving()
     registerWithPasskey.mockReset()
+    leaveTo.mockReset()
   })
 
   it('runs the ceremony with the trimmed name and lands on the dashboard', async () => {
@@ -154,5 +175,40 @@ describe('CreateAccountPage', () => {
     expect(alert.textContent).not.toContain('not allowed')
     expect(screen.getByLabelText<HTMLInputElement>('Имя').value).toBe('Ада')
     expect(screen.getByRole('button', { name: 'Попробовать ещё раз' })).toBeDefined()
+  })
+
+  describe('opened with return_to', () => {
+    it('leaves for it after the account is created, not for the dashboard', async () => {
+      registerWithPasskey.mockResolvedValue({ accountId: 'acc', credentialId: 'cred' })
+      leaveTo.mockImplementation(pendingLeave)
+
+      await submit('Ада', withReturnTo(authorize))
+
+      await waitFor(() => expect(leaveTo).toHaveBeenCalledWith(authorize))
+      expect(screen.queryByRole('heading', { name: 'Дашборд' })).toBeNull()
+    })
+
+    it('drops a return_to of another origin and lands on the dashboard', async () => {
+      registerWithPasskey.mockResolvedValue({ accountId: 'acc', credentialId: 'cred' })
+
+      await submit('Ада', withReturnTo('https://evil.example/'))
+
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Дашборд' })).toBeDefined())
+      expect(leaveTo).not.toHaveBeenCalled()
+    })
+
+    it('keeps it on both links to sign-in', async () => {
+      registerWithPasskey.mockRejectedValue(new ApiError(409, 'credential_already_registered', 'Credential already registered'))
+      const carried = `${routes.SIGN_IN}?${new URLSearchParams({ return_to: authorize }).toString()}`
+
+      renderPage(withReturnTo(authorize))
+
+      expect(screen.getByRole('link', { name: 'Войти' }).getAttribute('href')).toBe(carried)
+      const user = userEvent.setup()
+      await user.type(screen.getByLabelText('Имя'), 'Ада')
+      await user.click(screen.getByRole('button', { name: 'Создать пасскей' }))
+      const alert = await screen.findByRole('alert')
+      expect(within(alert).getByRole('link', { name: 'Войти' }).getAttribute('href')).toBe(carried)
+    })
   })
 })

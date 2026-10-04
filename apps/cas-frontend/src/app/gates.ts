@@ -1,8 +1,10 @@
 import { redirect } from 'react-router'
+import type { LoaderFunctionArgs } from 'react-router'
 
 import { getMe } from '#entities/session'
 import type { Me } from '#entities/session'
 import { isApiError } from '#shared/api/request'
+import { leaveTo, readReturnTo } from './returnTo'
 import { routes } from './routes'
 
 /**
@@ -30,10 +32,23 @@ export const requireSession = async (): Promise<Me> => {
   return me
 }
 
-/** The loader of sign-in and create account: a browser that is already signed in has nothing to do there. */
-export const requireNoSession = async (): Promise<null> => {
-  if (await currentAccount()) {
+/**
+ * The loader of sign-in and create account: a browser that is already signed
+ * in has nothing to do there. With an accepted `return_to` it is forwarded
+ * there at once (the request it came with completes on its session),
+ * otherwise it goes to the dashboard. Forwarding never settles, so the
+ * session check stays on screen until the browser has left.
+ */
+export const requireNoSession = async ({ request }: Pick<LoaderFunctionArgs, 'request'>): Promise<null> => {
+  if (!(await currentAccount())) {
+    return null
+  }
+  const returnTo = readReturnTo(new URL(request.url).search)
+  if (!returnTo) {
     throw redirect(routes.DASHBOARD)
   }
-  return null
+  // Leaving is a document navigation, outside the router's cancellation: a navigation abandoned while `/api/me`
+  // was in flight must not take the page away. The router ignores an aborted loader's rejection.
+  request.signal.throwIfAborted()
+  return leaveTo(returnTo)
 }
