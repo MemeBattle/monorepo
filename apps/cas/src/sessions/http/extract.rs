@@ -320,7 +320,7 @@ mod tests {
             &test_state(pool),
             &cookie_headers(Some(&format!("{name}={}", token.expose()))),
             &Extensions::new(),
-            "/authorize",
+            "/oidc/authorize",
         )
         .await
         .unwrap()
@@ -369,7 +369,7 @@ mod tests {
                 &state,
                 &cookie_headers(cookie.as_deref()),
                 &extensions,
-                "/authorize",
+                "/oidc/authorize",
             )
             .await
             .unwrap();
@@ -380,7 +380,7 @@ mod tests {
             &state,
             &cookie_headers(Some(&format!("{name}={}", live.token.expose()))),
             &extensions,
-            "/authorize",
+            "/oidc/authorize",
         )
         .await
         .unwrap()

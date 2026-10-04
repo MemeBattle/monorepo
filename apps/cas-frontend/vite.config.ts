@@ -2,9 +2,11 @@ import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-// In production the SPA and the CAS API share one origin, so the app calls
-// relative `/api/...` paths. In development vite proxies them to the CAS dev
-// server; point CAS_API_PROXY_TARGET elsewhere when it does not listen on :3000.
+// In production the SPA and CAS share one origin: the app calls relative
+// `/api/...` paths, and the sign-in screens send the browser on to the
+// `/oidc/...` navigation `return_to` leads to. In development vite proxies both
+// prefixes to the CAS dev server; point CAS_API_PROXY_TARGET elsewhere when it
+// does not listen on :3000.
 const casApiProxyTarget = process.env.CAS_API_PROXY_TARGET ?? 'http://localhost:3000'
 
 export default defineConfig({
@@ -14,6 +16,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': casApiProxyTarget,
+      '/oidc': casApiProxyTarget,
     },
   },
   build: {

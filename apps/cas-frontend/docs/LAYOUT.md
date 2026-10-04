@@ -8,7 +8,7 @@ apps/cas-frontend/
   AGENTS.md            one-screen card for agents, links into docs/
   docs/                this file, TESTS.md, CODE.md, PASSKEYS.md, ADRs
   index.html           the single page, lang="ru"
-  vite.config.ts       React Compiler, Tailwind, the /api dev proxy, vitest
+  vite.config.ts       React Compiler, Tailwind, the /api and /oidc dev proxy, vitest
   playwright.config.ts the e2e suite: Chromium, vite as its webServer
   e2e/                 the e2e scenarios (*.e2e.ts) and fixtures.ts, the
                        virtual authenticator over CDP (see TESTS.md)
@@ -40,8 +40,9 @@ All commands run from `apps/cas-frontend`.
 - `pnpm build` — production build into `dist/`.
 
 The CAS dev server must be running on :3000 (`bacon run` in `apps/cas`, see
-its README): vite proxies `/api` to it. Point `CAS_API_PROXY_TARGET` elsewhere
-when CAS listens on another address.
+its README): vite proxies `/api` and `/oidc` to it — the API the app calls,
+and the OpenID Connect endpoints (`/oidc/authorize`) a `return_to` leads back
+to. Point `CAS_API_PROXY_TARGET` elsewhere when CAS listens on another address.
 
 Stories run in the root Storybook: `pnpm storybook` from the repo root, under
 the "CAS" group. The root `.storybook/preview.tsx` tells this app's stories

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "CAS",
-    "description": "The passkey identity provider of MemeBattle: the JSON API under `/api` for its own frontend, and the OpenID Connect endpoints at the root. Every error response lists the stable codes it can carry in `x-error-codes`; clients branch on those codes, never on messages.",
+    "description": "The passkey identity provider of MemeBattle: the JSON API under `/api` for its own frontend, and the OpenID Connect endpoints under `/oidc`. Every error response lists the stable codes it can carry in `x-error-codes`; clients branch on those codes, never on messages.",
     "version": "0.1.0"
   },
   "paths": {
@@ -3328,7 +3328,72 @@
         }
       }
     },
-    "/authorize": {
+    "/health": {
+      "get": {
+        "summary": "200 when the DB answers `SELECT 1` in time, 503 otherwise.",
+        "operationId": "health_check",
+        "responses": {
+          "200": {
+            "description": "`OK`: the database answered.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "`DB unavailable`: the database did not answer in time.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oidc/authorize": {
       "get": {
         "summary": "The authorization endpoint: the authorization code flow with PKCE.",
         "description": "The parameters are those of OpenID Connect Core §3.1.2.1 in the query:\n`client_id`, `redirect_uri`, `response_type=code`, `scope` with `openid`,\n`state`, `code_challenge` with `code_challenge_method=S256`, and\noptionally `nonce`, `prompt=none` and `id_token_hint`; they are read by\nhand under the RFC's rules, a repeated one refused (ADR 0010, ADR 0015).\nBefore the client and its redirect URI are known the answer is CAS's\npage; after, every answer is a redirect.",
@@ -3491,7 +3556,7 @@
         }
       }
     },
-    "/end_session": {
+    "/oidc/end_session": {
       "get": {
         "summary": "RP-initiated logout, the parameters in the query.",
         "description": "`id_token_hint` (required, an ID token CAS issued to the client,\nexpired or not), `client_id`, `post_logout_redirect_uri` and `state`\n(RP-Initiated Logout 1.0 §2), read by hand, a repeated one refused. The\nsession the cookie names is ended only when it is the hint's account's\n(ADR 0013).",
@@ -3760,72 +3825,7 @@
         }
       }
     },
-    "/health": {
-      "get": {
-        "summary": "200 when the DB answers `SELECT 1` in time, 503 otherwise.",
-        "operationId": "health_check",
-        "responses": {
-          "200": {
-            "description": "`OK`: the database answered.",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "internal_error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "required": [
-                        "code",
-                        "message"
-                      ],
-                      "properties": {
-                        "code": {
-                          "type": "string",
-                          "enum": [
-                            "internal_error"
-                          ]
-                        },
-                        "message": {
-                          "type": "string",
-                          "description": "For the developer; clients branch on `code`."
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            },
-            "x-error-codes": [
-              "internal_error"
-            ]
-          },
-          "503": {
-            "description": "`DB unavailable`: the database did not answer in time.",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/jwks.json": {
+    "/oidc/jwks.json": {
       "get": {
         "summary": "The published signing keys, a JWK Set (RFC 7517).",
         "operationId": "jwks",
@@ -3880,62 +3880,7 @@
         }
       }
     },
-    "/openapi.json": {
-      "get": {
-        "summary": "The OpenAPI description of the service. Public: it says nothing the\ndiscovery document and the code do not.",
-        "operationId": "openapi_json",
-        "responses": {
-          "200": {
-            "description": "This document (OpenAPI 3.1).",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "internal_error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "required": [
-                        "code",
-                        "message"
-                      ],
-                      "properties": {
-                        "code": {
-                          "type": "string",
-                          "enum": [
-                            "internal_error"
-                          ]
-                        },
-                        "message": {
-                          "type": "string",
-                          "description": "For the developer; clients branch on `code`."
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            },
-            "x-error-codes": [
-              "internal_error"
-            ]
-          }
-        }
-      }
-    },
-    "/token": {
+    "/oidc/token": {
       "post": {
         "summary": "The token endpoint: the authorization code exchange, the refresh, and\nthe guest grant.",
         "description": "The body is `application/x-www-form-urlencoded` (RFC 6749 §3.2), read\nby hand under the RFC's rules, a repeated parameter refused:\n`grant_type=authorization_code` with `code`, `redirect_uri` and\n`code_verifier` (ADR 0011); `grant_type=refresh_token` with\n`refresh_token` and an optional `scope` (ADR 0012);\n`grant_type=urn:memebattle:oauth:grant-type:guest` with an optional\n`scope` (ADR 0014). A confidential client authenticates with\n`Authorization: Basic` or with `client_id` and `client_secret` in the\nbody, a public client sends `client_id` alone. Every answer is\n`Cache-Control: no-store` and `Pragma: no-cache`.",
@@ -4167,7 +4112,7 @@
         ]
       }
     },
-    "/userinfo": {
+    "/oidc/userinfo": {
       "get": {
         "summary": "The claims of the account behind the access token.",
         "description": "The token is read from `Authorization: Bearer` only, never from the\nquery or a body (ADR 0013).",
@@ -4602,6 +4547,61 @@
             "bearer": []
           }
         ]
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "summary": "The OpenAPI description of the service. Public: it says nothing the\ndiscovery document and the code do not.",
+        "operationId": "openapi_json",
+        "responses": {
+          "200": {
+            "description": "This document (OpenAPI 3.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          }
+        }
       }
     }
   },

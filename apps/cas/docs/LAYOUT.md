@@ -75,7 +75,12 @@ Each rule says what a layer is for and what it must not touch.
    context's router is an `OpenApiRouter` that mounts handlers only through
    `routes!`, so nothing is served that is not described (ADR 0016). The
    root mounts each context's router and never reaches past it. axum exists
-   nowhere but these two places.
+   nowhere but these two places. There are three mounts (ADR 0017): `/api`,
+   the first-party API, whose contract (the CSRF line, `no-store`, the
+   `ApiError` shape) an endpoint gets by being nested there; `/oidc`, the
+   OpenID Connect protocol endpoints, a prefix each handler writes into its
+   own path, with no layer or fallback of its own; and the root, for
+   discovery, `/health` and `/openapi.json`.
 5. **Shared infrastructure** — `config`, `db`, `migrations`. Used by both
    binaries, knows no context. `db` classifies database failures (unavailable,
    busy, or a bug the code has no name for); a transport only maps that verdict

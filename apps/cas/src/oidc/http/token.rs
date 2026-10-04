@@ -1,6 +1,6 @@
 //! `POST /token`: the authorization code exchange and the refresh (ADR 0011,
-//! ADR 0012), and the guest grant (ADR 0014). Served at the
-//! root with `ApiState`, outside `/api`: it is called by a client's backend
+//! ADR 0012), and the guest grant (ADR 0014). Served under
+//! `/oidc` with `ApiState`, outside `/api`: it is called by a client's backend
 //! or by a public client, never with CAS's cookie, so neither the session
 //! nor the Fetch Metadata line (ADR 0005) has anything to say about it.
 //!
@@ -119,7 +119,7 @@ impl utoipa::IntoResponses for TokenResponses {
 /// `Cache-Control: no-store` and `Pragma: no-cache`.
 #[utoipa::path(
     post,
-    path = "/token",
+    path = "/oidc/token",
     request_body(
         content = String,
         content_type = "application/x-www-form-urlencoded",
@@ -428,7 +428,7 @@ mod tests {
     const AUDIENCE: &str = "ligretto";
     const PUBLIC: &str = "ligretto-web";
 
-    /// What `http::app` serves at the root for OIDC, on the test's pool.
+    /// What `http::app` serves for OIDC, on the test's pool.
     fn router(pool: PgPool) -> Router {
         checked(oidc_routers(pool))
     }
@@ -527,7 +527,7 @@ mod tests {
                 .clone()
                 .oneshot(
                     Request::builder()
-                        .uri(format!("/authorize?{query}"))
+                        .uri(format!("/oidc/authorize?{query}"))
                         .header(header::COOKIE, &self.cookie)
                         .body(Body::empty())
                         .unwrap(),
@@ -669,7 +669,7 @@ mod tests {
         authorization: Option<&str>,
         body: String,
     ) -> Response {
-        let mut request = Request::builder().method("POST").uri("/token");
+        let mut request = Request::builder().method("POST").uri("/oidc/token");
         if let Some(content_type) = content_type {
             request = request.header(header::CONTENT_TYPE, content_type);
         }
@@ -1002,7 +1002,7 @@ mod tests {
         let code = fixture.code(CONFIDENTIAL, "openid").await;
         let request = Request::builder()
             .method("POST")
-            .uri("/token")
+            .uri("/oidc/token")
             .header(header::CONTENT_TYPE, FORM_CONTENT_TYPE)
             .header(header::AUTHORIZATION, fixture.basic())
             .header(header::AUTHORIZATION, fixture.basic())
@@ -1407,11 +1407,11 @@ mod tests {
         }
     }
 
-    /// Through the whole application: the endpoint is mounted at the root,
+    /// Through the whole application: the endpoint is mounted under `/oidc`,
     /// for `POST` only, and a request that is not a form is refused before
     /// any query (the pool of `app` points at no test database).
     #[tokio::test]
-    async fn the_endpoint_is_mounted_at_the_root_for_post_only() {
+    async fn the_endpoint_is_mounted_under_oidc_for_post_only() {
         let app = crate::http::app(test_config()).unwrap();
 
         for method in ["GET", "HEAD", "PUT"] {
@@ -1420,7 +1420,7 @@ mod tests {
                 .oneshot(
                     Request::builder()
                         .method(method)
-                        .uri("/token")
+                        .uri("/oidc/token")
                         .body(Body::empty())
                         .unwrap(),
                 )
@@ -1437,7 +1437,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("POST")
-                    .uri("/token")
+                    .uri("/oidc/token")
                     .header(header::CONTENT_TYPE, "application/json")
                     .body(Body::from("{}"))
                     .unwrap(),
@@ -2715,7 +2715,7 @@ mod tests {
             if let Some(hint) = hint {
                 pairs.push(("id_token_hint", hint));
             }
-            format!("/authorize?{}", form(&pairs))
+            format!("/oidc/authorize?{}", form(&pairs))
         };
 
         // Another browser opens an upgrade session for the same guest first.

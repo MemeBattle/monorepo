@@ -8,6 +8,10 @@ CAS now verifies its own tokens against every published key, and an
 expired ID token stays a valid logout hint, so step 4 of the rotation in
 (d) drops the old key only once every token it signed has expired and
 thirty days — the session cap — have passed since it stopped signing.
+Amended (2026-10-04) by ADR 0017, with [#775](https://github.com/MemeBattle/monorepo/issues/775):
+`/jwks.json` in (e) is served at `/oidc/jwks.json`, and the endpoints (f)
+advertises are `{issuer}/oidc/authorize`, `/oidc/token`, `/oidc/userinfo`
+and `/oidc/end_session`; the discovery document itself stays at the root.
 
 ## Context
 

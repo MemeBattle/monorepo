@@ -74,7 +74,7 @@ pub(crate) fn base() -> OpenApi {
                 .version(env!("CARGO_PKG_VERSION"))
                 .description(Some(
                     "The passkey identity provider of MemeBattle: the JSON API under `/api` \
-                     for its own frontend, and the OpenID Connect endpoints at the root. \
+                     for its own frontend, and the OpenID Connect endpoints under `/oidc`. \
                      Every error response lists the stable codes it can carry in \
                      `x-error-codes`; clients branch on those codes, never on messages.",
                 )),
@@ -520,15 +520,15 @@ mod tests {
             ("/health", Method::GET),
             ("/openapi.json", Method::GET),
             ("/.well-known/openid-configuration", Method::GET),
-            ("/jwks.json", Method::GET),
-            ("/authorize", Method::GET),
-            ("/authorize", Method::HEAD),
-            ("/token", Method::POST),
-            ("/userinfo", Method::GET),
-            ("/userinfo", Method::POST),
-            ("/end_session", Method::GET),
-            ("/end_session", Method::POST),
-            ("/end_session", Method::HEAD),
+            ("/oidc/jwks.json", Method::GET),
+            ("/oidc/authorize", Method::GET),
+            ("/oidc/authorize", Method::HEAD),
+            ("/oidc/token", Method::POST),
+            ("/oidc/userinfo", Method::GET),
+            ("/oidc/userinfo", Method::POST),
+            ("/oidc/end_session", Method::GET),
+            ("/oidc/end_session", Method::POST),
+            ("/oidc/end_session", Method::HEAD),
             ("/api/me", Method::GET),
             ("/api/me", Method::PATCH),
             ("/api/logout", Method::POST),
@@ -577,7 +577,7 @@ mod tests {
             let json_schema = &response["content"]["application/json"]["schema"];
             let codes = response_codes(response);
             match path.as_str() {
-                "/token" | "/userinfo" => {
+                "/oidc/token" | "/oidc/userinfo" => {
                     assert_eq!(codes, ["internal_error", "server_error"], "{method} {path}");
                     assert_eq!(
                         json_schema,
@@ -585,7 +585,7 @@ mod tests {
                         "{method} {path}"
                     );
                 }
-                "/authorize" | "/end_session" if method != Method::HEAD => {
+                "/oidc/authorize" | "/oidc/end_session" if method != Method::HEAD => {
                     assert_eq!(codes, ["internal", "internal_error"], "{method} {path}");
                     assert_eq!(json_schema, &fallback, "{method} {path}");
                     assert_eq!(

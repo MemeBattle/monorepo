@@ -1,5 +1,5 @@
 //! `GET /authorize`: the start of the authorization code flow with PKCE
-//! (ADR 0010). Served at the root with `ApiState`, outside `/api`: it is a
+//! (ADR 0010). Served under `/oidc` with `ApiState`, outside `/api`: it is a
 //! top-level navigation from another site, which is exactly what the Fetch
 //! Metadata line under `/api` refuses.
 //!
@@ -108,7 +108,7 @@ impl utoipa::IntoResponses for AuthorizeResponses {
 /// hand under the RFC's rules, a repeated one refused (ADR 0010, ADR 0015).
 /// Before the client and its redirect URI are known the answer is CAS's
 /// page; after, every answer is a redirect.
-#[utoipa::path(get, path = "/authorize")]
+#[utoipa::path(get, path = "/oidc/authorize")]
 async fn authorize(
     State(state): State<ApiState>,
     OriginalUri(uri): OriginalUri,
@@ -121,7 +121,7 @@ async fn authorize(
 /// `HEAD /authorize` is refused: axum would serve it from the `GET`
 /// handler, and a `HEAD` must not authenticate and mint a code whose
 /// response nobody reads.
-#[utoipa::path(head, path = "/authorize", operation_id = "authorize_head")]
+#[utoipa::path(head, path = "/oidc/authorize", operation_id = "authorize_head")]
 async fn refuse_head() -> Documented<HeadRefused> {
     method_not_allowed("GET").into()
 }
@@ -357,7 +357,7 @@ fn return_to(uri: &axum::http::Uri, params: &Params, drop_hint: bool) -> String 
         );
     }
     uri.path_and_query()
-        .map_or("/authorize", |path_and_query| path_and_query.as_str())
+        .map_or("/oidc/authorize", |path_and_query| path_and_query.as_str())
         .to_owned()
 }
 
@@ -524,7 +524,7 @@ mod tests {
         let query = form_urlencoded::Serializer::new(String::new())
             .extend_pairs(pairs.iter().map(|(name, value)| (*name, value.as_str())))
             .finish();
-        format!("/authorize?{query}")
+        format!("/oidc/authorize?{query}")
     }
 
     async fn send(router: &Router, method: &str, uri: &str, cookie: Option<&str>) -> Response {
@@ -600,7 +600,7 @@ mod tests {
             header_str(&response, header::LOCATION)
                 .unwrap()
                 .starts_with(
-                    "http://localhost:5173/sign-in?return_to=%2Fauthorize%3Fclient_id%3Dligretto"
+                    "http://localhost:5173/sign-in?return_to=%2Foidc%2Fauthorize%3Fclient_id%3Dligretto"
                 ),
             "{location}"
         );
@@ -1501,11 +1501,11 @@ mod tests {
         }
     }
 
-    /// Through the whole application: the endpoint is mounted at the root,
+    /// Through the whole application: the endpoint is mounted under `/oidc`,
     /// answers `GET` only, and refuses a request with no client before any
     /// query (the pool of `app` points at no test database).
     #[tokio::test]
-    async fn the_endpoint_is_mounted_at_the_root_for_get_only() {
+    async fn the_endpoint_is_mounted_under_oidc_for_get_only() {
         let app = crate::http::app(test_config()).unwrap();
         let full = uri(&valid());
 
@@ -1539,7 +1539,7 @@ mod tests {
 
         for (request, code) in [
             (uri(&without("client_id")), "unknown_client"),
-            ("/authorize".to_owned(), "invalid_request"),
+            ("/oidc/authorize".to_owned(), "invalid_request"),
         ] {
             let response = app
                 .clone()

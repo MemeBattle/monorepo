@@ -13,6 +13,9 @@ Amended (2026-10-03) by ADR 0015, with [#747](https://github.com/MemeBattle/mono
 opens an upgrade session — and `/authorize` has a second destination besides
 sign-in, `{CAS_ORIGIN}/create-account?return_to=...`, whose `return_to`
 leaves the hint out (c).
+Amended (2026-10-04) by ADR 0017, with [#775](https://github.com/MemeBattle/monorepo/issues/775):
+the endpoint lives at `/oidc/authorize`, not at the root (g), so the
+`return_to` of (c) carries `/oidc/authorize?<query>`.
 
 ## Context
 

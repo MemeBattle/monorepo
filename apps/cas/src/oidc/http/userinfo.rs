@@ -1,5 +1,5 @@
 //! `GET` and `POST /userinfo` (OpenID Connect Core §5.3): the claims of the
-//! account behind a Bearer access token. Served at the root with
+//! account behind a Bearer access token. Served under `/oidc` with
 //! `ApiState`, outside `/api`: it reads no cookie, only the token, so
 //! neither the session nor the Fetch Metadata line (ADR 0005) has anything
 //! to say about it.
@@ -121,7 +121,7 @@ impl utoipa::IntoResponses for UserInfoResponses {
 ///
 /// The token is read from `Authorization: Bearer` only, never from the
 /// query or a body (ADR 0013).
-#[utoipa::path(get, path = "/userinfo", security(("bearer" = [])))]
+#[utoipa::path(get, path = "/oidc/userinfo", security(("bearer" = [])))]
 async fn userinfo_by_get(
     State(state): State<ApiState>,
     headers: HeaderMap,
@@ -131,7 +131,7 @@ async fn userinfo_by_get(
 
 /// The claims of the account behind the access token, by `POST`: the same
 /// as `GET`, the body is not read (ADR 0013 (d)).
-#[utoipa::path(post, path = "/userinfo", security(("bearer" = [])))]
+#[utoipa::path(post, path = "/oidc/userinfo", security(("bearer" = [])))]
 async fn userinfo_by_post(
     State(state): State<ApiState>,
     headers: HeaderMap,
@@ -363,7 +363,7 @@ mod tests {
     }
 
     async fn send(router: &Router, method: &str, authorization: &[&str]) -> Response {
-        let mut request = Request::builder().method(method).uri("/userinfo");
+        let mut request = Request::builder().method(method).uri("/oidc/userinfo");
         for value in authorization {
             request = request.header(header::AUTHORIZATION, *value);
         }

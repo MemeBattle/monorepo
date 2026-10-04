@@ -1,5 +1,5 @@
 //! `GET` and `POST /end_session`: RP-initiated logout (OpenID Connect
-//! RP-Initiated Logout 1.0). Served at the root with `ApiState`, outside
+//! RP-Initiated Logout 1.0). Served under `/oidc` with `ApiState`, outside
 //! `/api`: like `/authorize`, it is a top-level navigation from another
 //! site, which the Fetch Metadata line under `/api` would refuse.
 //!
@@ -91,7 +91,7 @@ impl utoipa::IntoResponses for EndSessionResponses {
 /// (RP-Initiated Logout 1.0 §2), read by hand, a repeated one refused. The
 /// session the cookie names is ended only when it is the hint's account's
 /// (ADR 0013).
-#[utoipa::path(get, path = "/end_session", operation_id = "end_session_by_query")]
+#[utoipa::path(get, path = "/oidc/end_session", operation_id = "end_session_by_query")]
 async fn by_query(
     State(state): State<ApiState>,
     OriginalUri(uri): OriginalUri,
@@ -108,7 +108,7 @@ async fn by_query(
 /// then the body within the same bound.
 #[utoipa::path(
     post,
-    path = "/end_session",
+    path = "/oidc/end_session",
     operation_id = "end_session_by_form",
     request_body(
         content = String,
@@ -140,7 +140,7 @@ async fn by_form(
 
 /// `HEAD /end_session` is refused: axum would serve it from the `GET`
 /// handler and end a session for a response nobody reads.
-#[utoipa::path(head, path = "/end_session", operation_id = "end_session_head")]
+#[utoipa::path(head, path = "/oidc/end_session", operation_id = "end_session_head")]
 async fn refuse_head() -> Documented<HeadRefused> {
     method_not_allowed("GET, POST").into()
 }
@@ -379,7 +379,7 @@ mod tests {
     }
 
     fn uri(pairs: &[(&str, &str)]) -> String {
-        format!("/end_session?{}", form(pairs))
+        format!("/oidc/end_session?{}", form(pairs))
     }
 
     async fn send(
@@ -811,7 +811,7 @@ mod tests {
         let response = send(
             &fixture.router,
             "POST",
-            "/end_session?post_logout_redirect_uri=https%3A%2F%2Fevil.example%2F",
+            "/oidc/end_session?post_logout_redirect_uri=https%3A%2F%2Fevil.example%2F",
             Some(&fixture.ada.cookie),
             Some((
                 "application/x-www-form-urlencoded; charset=UTF-8",
@@ -839,7 +839,7 @@ mod tests {
             let response = send(
                 &fixture.router,
                 "POST",
-                "/end_session",
+                "/oidc/end_session",
                 Some(&fixture.ada.cookie),
                 Some((content_type, body.clone())),
             )
@@ -849,7 +849,7 @@ mod tests {
         let oversized = send(
             &fixture.router,
             "POST",
-            "/end_session",
+            "/oidc/end_session",
             Some(&fixture.ada.cookie),
             Some((
                 "application/x-www-form-urlencoded",
@@ -888,8 +888,8 @@ mod tests {
 
         for (method, uri) in [
             ("GET", uri(&[("id_token_hint", &hint)])),
-            ("GET", "/end_session".to_owned()),
-            ("HEAD", "/end_session".to_owned()),
+            ("GET", "/oidc/end_session".to_owned()),
+            ("HEAD", "/oidc/end_session".to_owned()),
         ] {
             let response = send(&fixture.router, method, &uri, None, None).await;
             assert_eq!(
@@ -919,7 +919,7 @@ mod tests {
             &router,
             "GET",
             &format!(
-                "/authorize?{}",
+                "/oidc/authorize?{}",
                 form(&[
                     ("client_id", CLIENT),
                     ("redirect_uri", CALLBACK),
@@ -944,7 +944,7 @@ mod tests {
             send(
                 &router,
                 "POST",
-                "/token",
+                "/oidc/token",
                 None,
                 Some(("application/x-www-form-urlencoded", form(&pairs))),
             )
