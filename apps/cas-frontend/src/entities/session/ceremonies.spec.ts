@@ -1,24 +1,29 @@
 import { WebAuthnError } from '@simplewebauthn/browser'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { mockLoginOptions, mockLoginVerification } from './testing/stages'
+import { mockLoginOptions, mockLoginVerification, mockRegistrationOptions, mockRegistrationVerification } from './testing/stages'
 import { ApiError } from '#shared/api/request'
 import {
   isAuthenticatorUnsupported,
   isCeremonyCancelled,
+  isNotTheGuest,
   isPasskeyAlreadyRegistered,
+  isUserHandleOf,
   isWrongOrigin,
+  registerWithPasskey,
   signInWithPasskeyFromAutofill,
 } from './ceremonies'
 
-const { startAuthentication, browserSupportsWebAuthnAutofill, cancelCeremony } = vi.hoisted(() => ({
+const { startAuthentication, startRegistration, browserSupportsWebAuthnAutofill, cancelCeremony } = vi.hoisted(() => ({
   startAuthentication: vi.fn(),
+  startRegistration: vi.fn(),
   browserSupportsWebAuthnAutofill: vi.fn(),
   cancelCeremony: vi.fn(),
 }))
 vi.mock('@simplewebauthn/browser', async importOriginal => ({
   ...(await importOriginal<typeof import('@simplewebauthn/browser')>()),
   startAuthentication,
+  startRegistration,
   browserSupportsWebAuthnAutofill,
   WebAuthnAbortService: { cancelCeremony, createNewAbortSignal: vi.fn() },
 }))
@@ -71,6 +76,82 @@ describe('the other verdicts of the authenticator', () => {
     expect(isWrongOrigin(named('SecurityError'))).toBe(true)
     expect(isWrongOrigin(wrapped('SecurityError'))).toBe(true)
     expect(isWrongOrigin(new TypeError('Failed to fetch'))).toBe(false)
+  })
+})
+
+/** The guest's id and its WebAuthn user handle: the UUID's 16 bytes, base64url without padding. */
+const guestId = '0191e2a4-5b6c-7d8e-9fa0-b1c2d3e4f506'
+const guestHandle = 'AZHipFtsfY6foLHC0-T1Bg'
+const anotherHandle = 'ESIzRFVmd4iZqrvM3e7_AA'
+
+describe('isUserHandleOf', () => {
+  it('matches the handle that is the account’s UUID', () => {
+    expect(isUserHandleOf(guestHandle, guestId)).toBe(true)
+    expect(isUserHandleOf(guestHandle, guestId.toUpperCase())).toBe(true)
+  })
+
+  it('does not match another id', () => {
+    expect(isUserHandleOf(anotherHandle, guestId)).toBe(false)
+  })
+
+  it.each([
+    ['shorter than 16 bytes', 'AZHipFtsfY6foLHC0-T1'],
+    ['longer than 16 bytes', 'AZHipFtsfY6foLHC0-T1BgAA'],
+    ['not base64url', '!!not base64!!'],
+    ['empty', ''],
+  ])('does not match a handle %s', (_, handle) => {
+    expect(isUserHandleOf(handle, guestId)).toBe(false)
+  })
+})
+
+describe('registerWithPasskey', () => {
+  const options = (userId: string) => ({
+    registrationId: 'r1',
+    ccr: { publicKey: { challenge: 'c', user: { id: userId, name: 'Ада', displayName: 'Ада' } } },
+  })
+  const made = { id: 'cred', rawId: 'cred', response: {}, type: 'public-key', clientExtensionResults: {} }
+  const registered = { accountId: guestId, credentialId: 'cred' }
+
+  afterEach(() => {
+    startRegistration.mockReset()
+  })
+
+  it('upgrades when the challenge is the guest’s', async () => {
+    mockRegistrationOptions(options(guestHandle))
+    const verified = mockRegistrationVerification(registered)
+    startRegistration.mockResolvedValue(made)
+
+    await expect(registerWithPasskey('Ада', { accountId: guestId })).resolves.toEqual(registered)
+
+    expect(startRegistration).toHaveBeenCalledWith({ optionsJSON: options(guestHandle).ccr.publicKey })
+    expect(verified).toHaveBeenCalledExactlyOnceWith({ registrationId: 'r1', response: made })
+  })
+
+  it('never asks the authenticator when the challenge is for someone else', async () => {
+    // What CAS answers once the upgrade session is gone: an ordinary challenge with a fresh handle.
+    const requested = mockRegistrationOptions(options(anotherHandle))
+    const verified = mockRegistrationVerification()
+
+    await expect(registerWithPasskey('Ада', { accountId: guestId })).rejects.toSatisfy(isNotTheGuest)
+
+    expect(startRegistration).not.toHaveBeenCalled()
+    expect(requested).toHaveBeenCalledOnce()
+    expect(verified).not.toHaveBeenCalled()
+  })
+
+  it('does not look at the handle of a plain registration', async () => {
+    mockRegistrationOptions(options(anotherHandle))
+    mockRegistrationVerification(registered)
+    startRegistration.mockResolvedValue(made)
+
+    await expect(registerWithPasskey('Ада')).resolves.toEqual(registered)
+
+    expect(startRegistration).toHaveBeenCalledOnce()
+  })
+
+  it('is the only error isNotTheGuest recognises', () => {
+    expect(isNotTheGuest(notAllowed())).toBe(false)
+    expect(isNotTheGuest(new ApiError(404, 'registration_not_found', ''))).toBe(false)
   })
 })
 

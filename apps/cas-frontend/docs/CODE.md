@@ -42,13 +42,17 @@ writing components:
 - Every call goes through `request()` from `#shared/api/request`. It throws
   `ApiError` with the stable `code` from `{ error: { code, message } }`;
   screens branch on codes, never on messages or status numbers.
-- Request and response types are hand-written next to the calls in
-  `entities/<name>/` until CAS publishes an OpenAPI description.
+- The shapes of every request and response, and the error codes each route
+  can answer with (`x-error-codes` on every error response), are in CAS's
+  OpenAPI description: `apps/cas/openapi.json`, served at `/openapi.json`.
+  Request and response types are hand-written next to the calls in
+  `entities/<name>/` and follow it, until they are generated from it.
 - Errors reach the user as messages written for the screen; a raw `ApiError`
   or `DOMException` message is never shown. The mapping of what a screen can
   actually get lives in that screen's directory, and a check on an error
-  (`isCeremonyCancelled`) next to the code that throws it. Nothing about
-  errors is shared until two screens need the same thing.
+  (`isCeremonyCancelled`) next to the code that throws it; the codes a route
+  can answer with are the ones its operation lists in the description.
+  Nothing about errors is shared until two screens need the same thing.
 
 ## Styling
 

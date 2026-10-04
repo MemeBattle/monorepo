@@ -61,12 +61,12 @@ email/password + VK login, 7-service architecture).
   accounts (grants, refresh rotation, userinfo).
 - Opening ligretto must keep working with no click and no redirect, as the legacy
   `temp-token` does. Guests are therefore minted by the application's backend,
-  not by the browser: an extension grant on `/token`
+  not by the browser: an extension grant on `/oidc/token`
   (`grant_type=urn:memebattle:oauth:grant-type:guest`) available to a
   confidential client with `guest_login_allowed`. It creates the account and
   returns the token triple; no CAS session, no UI. Tokens carry `amr: ["anon"]`
   / `account_type: "guest"`.
-- Upgrade: the application redirects the guest to `/authorize` with
+- Upgrade: the application redirects the guest to `/oidc/authorize` with
   `id_token_hint`, a fresh guest ID token (the confidential client refreshes
   before building the link; an expired hint is refused, the hint opens a
   session and is therefore a bearer credential in a URL). CAS opens an
@@ -80,14 +80,15 @@ email/password + VK login, 7-service architecture).
   upgrade link to a victim, the victim registers a passkey, and the attacker's
   session now names a full account. Therefore:
   - An upgrade session is restricted, and the backend enforces it, not the UI:
-    it can only run the account-registration ceremony for its own `sub` and
-    continue `/authorize`. No passkey addition or listing, no email changes.
+    it can only run the account-registration ceremony for its own `sub`,
+    continue `/oidc/authorize` and read `GET /api/me` (ADR 0018). No passkey
+    addition or listing, no email changes.
   - Finishing that ceremony is one transaction with the account row locked:
     store the passkey, `type = full`, delete every other session of the
     account, revoke every grant of the account (and with it every refresh
     token), drop the account's other pending ceremonies, and rotate the current
     session into a full one. Only the browser that completed the ceremony holds
-    a live session; `/authorize` then issues a code and the application
+    a live session; `/oidc/authorize` then issues a code and the application
     receives fresh tokens. Nothing legitimate is lost: a guest lives in one
     browser by construction. A second browser racing the same upgrade fails on
     the lock (`type` is already `full`, its session is gone).
@@ -98,7 +99,7 @@ email/password + VK login, 7-service architecture).
     guest, and the owner loses that guest's data. Guest data is cheap.
 - GC of inactive guests is deferred; every first visit in a new browser mints a
   guest, so it will be needed before the base grows. The guest grant is
-  rate-limited per client meanwhile.
+  rate-limited per client meanwhile (ADR 0014 (e)).
 
 **SSO**
 
@@ -109,15 +110,15 @@ email/password + VK login, 7-service architecture).
   resource servers verify locally against JWKS, CAS is not on the request path
   of the applications. Revocation is short access TTL plus refresh rotation.
   Introspection can be added later if agents need instant revocation; the
-  reverse migration would touch every resource server.
+  reverse migration would touch every resource server. See ADR 0011.
 - `aud` is a resource identifier configured per client (`ligretto` for both
-  ligretto backends), not the `client_id`.
+  ligretto backends), not the `client_id`: `clients.audience`, ADR 0011.
 - Clients are the only application entity: `clients` with `first_party`,
   `guest_login_allowed`, kind public/confidential, redirect URIs. There is no
   "app" grouping and no user-belongs-to-client; the account ↔ client relation is
   a grant, created when the account authorizes the client. Ligretto is one
   confidential client: its backend exchanges the code for the browser and mints
-  guests; the browser only starts `/authorize`.
+  guests; the browser only starts `/oidc/authorize`.
 - Consent is skipped for first-party clients; the consent screen for other
   clients arrives with agent delegation.
 - Refresh tokens are not bound to the CAS cookie session: signing out of CAS
@@ -125,10 +126,12 @@ email/password + VK login, 7-service architecture).
 - Refresh tokens are opaque, stored as a hash under a `grants` row (account ×
   client, scopes, `revoked_at`). Rotation inserts the successor and marks the
   presented token used; used rows stay until the absolute expiry so a replayed
-  token is recognised, which revokes the whole grant. That is the only
+  token is recognised, which revokes the whole grant (ADR 0012). That is the only
   revocation state: `revoked_at` on the grant, no separate list. Access tokens
   are never revoked, they expire. Expired rows go with the scheduled cleanup
-  (ADR 0002), never on the request path.
+  (ADR 0002), never on the request path. A grant is created per code
+  exchange, so each device has its own; a replayed code revokes the grant it
+  produced (ADR 0011).
 
 **External providers**
 
@@ -176,10 +179,11 @@ Next, in order:
   reference-client integration test, OpenAPI, the integration guide. No
   production, no ligretto changes.
 - **Production:** deploy CAS + cas-frontend, domain and stable `rp_id`, secrets,
-  the periodic cleanup of expired ceremonies and sessions (ADR 0002, 0004),
+  the periodic cleanup of expired ceremonies, sessions, authorization codes,
+  grants and refresh tokens (ADR 0002, 0004, 0010, 0011),
   monitoring. Tickets cut when SSO nears completion.
 - **Ligretto on CAS:** ligretto-frontend on an OIDC client (redirect to
-  `/authorize`, code handed to core-backend), core-backend as the confidential
+  `/oidc/authorize`, code handed to core-backend), core-backend as the confidential
   client (code exchange, refresh, guest grant, display-name snapshot for other
   players), gameplay-backend verifying JWTs via JWKS on the socket handshake,
   one-shot cutover, removal of `auth-front`, `cas-services`, `init-partner`.
@@ -200,9 +204,10 @@ Next, in order:
 Implemented in the SSO milestone:
 
 - Authorization Code flow with PKCE (S256) for all clients
-- `GET /.well-known/openid-configuration`, `GET /jwks.json`
-- `GET /authorize` (with `id_token_hint` for the guest upgrade), `POST /token`,
-  `GET /userinfo`, `GET /end_session`
+- `GET /.well-known/openid-configuration`, `GET /oidc/jwks.json`
+- `GET /oidc/authorize` (with `id_token_hint` for the guest upgrade),
+  `POST /oidc/token`, `GET /oidc/userinfo`, `GET /oidc/end_session` (ADR 0013);
+  the protocol endpoints under `/oidc` (ADR 0017)
 - Refresh tokens with rotation and reuse detection
 - Guest extension grant for confidential clients
 - Statically registered clients (DB, managed by hand until the admin panel)
@@ -258,10 +263,15 @@ mock provider [#760](https://github.com/MemeBattle/monorepo/issues/760).
 
 ## Open questions
 
-- [ ] Token lifetimes: access (≈10 min), refresh absolute (≈30 days), guest
-      grant lifetime — confirm the numbers in #743/#744/#746.
+- [x] Token lifetimes: access and ID token 10 minutes; refresh tokens an
+      absolute 30 days from the grant's creation, never extended by rotation.
+      Checked against OWASP ASVS 5.0 ch. 10 and RFC 9700 (ADR 0011 (c)).
+- [x] Guest grant lifetime: 30 days, absolute, the same as every refresh
+      grant; a guest identity is refreshed for at most that long unless it is
+      upgraded (ADR 0014 (c)).
 - [ ] Guest GC policy (deferred): inactivity threshold, whether a guest with a
-      live refresh token is ever collected.
+      live refresh token is ever collected. Undecided; ADR 0014 (g) lists the
+      signals a policy has and what the ticket that writes it must weigh.
 - [ ] When to request `telegram:bot_access`: on every Telegram sign-in, or as a
       separate "enable notifications" step. Leaning to always.
 - [ ] Agent delegation details: agent as OAuth client, scopes model per
@@ -269,7 +279,7 @@ mock provider [#760](https://github.com/MemeBattle/monorepo/issues/760).
       through a passkey-backed page.
 - [ ] Deployment/infra (Production milestone): where it runs, TLS/domain
       (WebAuthn requires a stable rp_id), secrets, signing-key rotation
-      procedure.
+      procedure (rotation: ADR 0009).
 - [ ] Local development against real Telegram/GitHub: tunnel + registered
       redirect URL, or the mock provider only (#760).
 

@@ -1,0 +1,112 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE authorization_codes\n           SET redeemed_at = now()\n           WHERE code_hash = $1\n             AND redeemed_at IS NULL\n             AND expires_at > now()\n             AND session_id IS NOT NULL\n           RETURNING\n               id,\n               client_id AS \"client_id: ClientId\",\n               account_id,\n               session_id AS \"session_id!\",\n               redirect_uri,\n               scopes,\n               code_challenge,\n               nonce",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "authorization_codes",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "client_id: ClientId",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "authorization_codes",
+            "name": "client_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "account_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "authorization_codes",
+            "name": "account_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "session_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "authorization_codes",
+            "name": "session_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "redirect_uri",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "authorization_codes",
+            "name": "redirect_uri"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "scopes",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "authorization_codes",
+            "name": "scopes"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "code_challenge",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "authorization_codes",
+            "name": "code_challenge"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "nonce",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "authorization_codes",
+            "name": "nonce"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "c85118f0316473095d74c94b7fbe38324f638d8e603f5d11a92893ae52149f19"
+}

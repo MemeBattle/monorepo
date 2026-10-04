@@ -1,0 +1,111 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO sessions (account_id, token_hash, kind, expires_at)\n           VALUES ($1, $2, $3, now() + make_interval(secs => $4))\n           RETURNING\n               id,\n               account_id,\n               kind AS \"kind: SessionKind\",\n               created_at,\n               expires_at,\n               last_seen_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "sessions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "account_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "sessions",
+            "name": "account_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "kind: SessionKind",
+        "type_info": {
+          "Custom": {
+            "name": "session_kind",
+            "kind": {
+              "Enum": [
+                "full",
+                "upgrade"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "sessions",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "sessions",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "sessions",
+            "name": "expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "last_seen_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "sessions",
+            "name": "last_seen_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bytea",
+        {
+          "Custom": {
+            "name": "session_kind",
+            "kind": {
+              "Enum": [
+                "full",
+                "upgrade"
+              ]
+            }
+          }
+        },
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "2926a62991cff8dc5c3c6a8b185dacc012aedc45b6af8c3e92bd99413bc80a89"
+}

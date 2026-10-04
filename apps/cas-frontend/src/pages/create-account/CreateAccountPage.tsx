@@ -1,12 +1,22 @@
 import { useActionState } from 'react'
 import type { ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { useLoaderData, useLocation, useNavigate, useRevalidator } from 'react-router'
 
-import { isAuthenticatorUnsupported, isCeremonyCancelled, isPasskeyAlreadyRegistered, isWrongOrigin, registerWithPasskey } from '#entities/session'
+import {
+  getMe,
+  isAuthenticatorUnsupported,
+  isCeremonyCancelled,
+  isNotTheGuest,
+  isPasskeyAlreadyRegistered,
+  isWrongOrigin,
+  registerWithPasskey,
+} from '#entities/session'
+import type { Me } from '#entities/session'
 import { isApiError } from '#shared/api/request'
 import { MAX_LABEL_LENGTH, normalizeLabel } from '#shared/lib/label'
 import { Alert, Hero, Icon, Screen, SubmitButton, SwitchLink, TextField } from '#shared/ui'
 import { routes } from '#app/routes'
+import { leaveTo, readReturnTo, ReturnToLink } from '#app/returnTo'
 import { messages, validateDisplayName } from './validateDisplayName'
 
 /** What the alert above the form says; never the raw `message` of an exception. */
@@ -28,7 +38,7 @@ const failures = {
     title: 'Такой пасскей уже есть',
     text: (
       <>
-        Этот пасскей уже зарегистрирован здесь. <Link to={routes.SIGN_IN}>Войти</Link>
+        Этот пасскей уже зарегистрирован здесь. <ReturnToLink to={routes.SIGN_IN}>Войти</ReturnToLink>
       </>
     ),
   },
@@ -39,6 +49,10 @@ const failures = {
   generic: {
     title: 'Что-то пошло не так',
     text: 'Попробуйте ещё раз через минуту.',
+  },
+  guestSessionEnded: {
+    title: 'Гостевая сессия закончилась',
+    text: 'Сохранить прогресс гостя отсюда уже не получится. Вернитесь в игру и начните создание аккаунта оттуда.',
   },
 } satisfies Record<string, Failure>
 
@@ -78,6 +92,32 @@ const toFailure = (error: unknown): Failure => {
   return failures.generic
 }
 
+/**
+ * What a failed upgrade is when it is about the guest's session rather than
+ * the ceremony, or `null` to map it as a plain registration. The session, not
+ * the request, makes CAS upgrade, so a session that ended under the screen
+ * must never pass for a ceremony to retry: the next submit would create a new
+ * account. A challenge for someone else (`isNotTheGuest`) and
+ * `unauthenticated` are a lost session. `registration_not_found` is either an
+ * expired challenge or an upgrade ceremony whose session is gone, so the
+ * session is read again to tell which.
+ */
+const toUpgradeFailure = async (error: unknown, guest: Me): Promise<Failure | null> => {
+  if (isNotTheGuest(error) || (isApiError(error) && error.code === 'unauthenticated')) {
+    return failures.guestSessionEnded
+  }
+  if (!(isApiError(error) && error.code === 'registration_not_found')) {
+    return null
+  }
+  let now: Me
+  try {
+    now = await getMe()
+  } catch (reading) {
+    return isApiError(reading) && reading.code === 'unauthenticated' ? failures.guestSessionEnded : failures.generic
+  }
+  return now.accountType === 'guest' && now.accountId === guest.accountId ? failures.cancelled : failures.guestSessionEnded
+}
+
 interface FormState {
   /** What was submitted, so the field keeps it after a failure. */
   displayName: string
@@ -89,8 +129,18 @@ interface FormState {
 
 const initialState: FormState = { displayName: '', nameError: null, failure: null }
 
+/**
+ * Opened with an accepted `return_to`, a created account leaves for it instead of the dashboard. Opened by a guest (the
+ * gate hands its `Me` over), the same form upgrades the guest and says that the game data stays
+ * (docs/adr/0003-guest-in-the-app.md).
+ */
 export const CreateAccountPage = () => {
   const navigate = useNavigate()
+  const revalidator = useRevalidator()
+  const returnTo = readReturnTo(useLocation().search)
+  // Optional chaining: the route may have no loader at all.
+  const loaded = useLoaderData<Me | null | undefined>()
+  const guest = loaded?.accountType === 'guest' ? loaded : null
 
   const [state, createAccount, pending] = useActionState(async (_previous: FormState, form: FormData): Promise<FormState> => {
     // Normalised the way the server does it, so the length check and the sent value agree with it.
@@ -100,21 +150,34 @@ export const CreateAccountPage = () => {
       return { displayName, nameError, failure: null }
     }
     try {
-      await registerWithPasskey(displayName)
+      await (guest ? registerWithPasskey(displayName, { accountId: guest.accountId }) : registerWithPasskey(displayName))
     } catch (error) {
       if (isApiError(error) && error.code === 'invalid_display_name') {
         return { displayName, nameError: messages.disallowed, failure: null }
       }
-      return { displayName, nameError: null, failure: toFailure(error) }
+      const upgradeFailure = guest ? await toUpgradeFailure(error, guest) : null
+      if (upgradeFailure === failures.guestSessionEnded) {
+        // The gate decides again: a full session is forwarded, no session leaves the plain screen.
+        await revalidator.revalidate()
+      }
+      return { displayName, nameError: null, failure: upgradeFailure ?? toFailure(error) }
     }
-    // The finish set the session cookie; the dashboard's loader reads it.
-    await navigate(routes.DASHBOARD, { replace: true })
+    // The finish set the session cookie; CAS reads it at `return_to`, the dashboard's loader otherwise.
+    await (returnTo ? leaveTo(returnTo) : navigate(routes.DASHBOARD, { replace: true }))
     return { displayName, nameError: null, failure: null }
   }, initialState)
 
   return (
     <Screen>
-      <Hero logoSize={96} title="Создать аккаунт" subtitle="Придумайте имя, остальное сделает браузер. Пароля не будет." />
+      <Hero
+        logoSize={96}
+        title="Создать аккаунт"
+        subtitle={
+          guest
+            ? 'Игровой прогресс останется с вами: гостевой аккаунт станет постоянным. Придумайте имя, остальное сделает браузер. Пароля не будет.'
+            : 'Придумайте имя, остальное сделает браузер. Пароля не будет.'
+        }
+      />
       <form action={createAccount} className="flex flex-col gap-3.5">
         {state.failure && <Alert title={state.failure.title}>{state.failure.text}</Alert>}
         <TextField
@@ -135,7 +198,7 @@ export const CreateAccountPage = () => {
           <p className="mt-1.5 text-center text-sm leading-[1.45] font-medium text-ink-muted">Следуйте подсказке браузера или телефона.</p>
         ) : (
           <SwitchLink question="Уже есть аккаунт?">
-            <Link to={routes.SIGN_IN}>Войти</Link>
+            <ReturnToLink to={routes.SIGN_IN}>Войти</ReturnToLink>
           </SwitchLink>
         )}
       </form>

@@ -27,6 +27,7 @@ export const mockUpdateEmail = domainMock<{ email: string | null }, void, void, 
 const registrationErrors = {
   ...commonErrors,
   invalid_display_name: 400,
+  unauthenticated: 401,
   registration_not_found: 404,
   registration_expired: 404,
   registration_verification_failed: 400,

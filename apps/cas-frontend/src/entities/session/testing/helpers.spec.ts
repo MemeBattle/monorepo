@@ -105,3 +105,16 @@ it('rejects composite network failures before invoking authenticators', async ()
   expect(startRegistration).not.toHaveBeenCalled()
   expect(startAuthentication).not.toHaveBeenCalled()
 })
+
+it('supports a guest upgrade and a session lost during verification through the composite API', async () => {
+  const guest = { accountId: '0191e2a4-5b6c-7d8e-9fa0-b1c2d3e4f506' }
+  vi.mocked(startRegistration)
+    .mockClear()
+    .mockResolvedValue({ id: 'credential' } as Awaited<ReturnType<typeof startRegistration>>)
+  const register = mockRegisterWithPasskey(guest)
+  await expect(registerWithPasskey('Ada', guest)).resolves.toEqual({ ...guest, credentialId: 'cred' })
+  expect(register).toHaveBeenCalledExactlyOnceWith({ displayName: 'Ada' })
+  mockRegisterWithPasskey.error('unauthenticated')
+  await expect(registerWithPasskey('Ada', guest)).rejects.toMatchObject({ status: 401, code: 'unauthenticated' })
+  expect(startRegistration).toHaveBeenCalledTimes(2)
+})

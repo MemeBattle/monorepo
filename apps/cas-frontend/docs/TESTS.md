@@ -144,13 +144,31 @@ up, so a database of its own is better. From the repo root:
 docker compose -f apps/cas/docker-compose.yml up -d
 psql postgres://cas:cas@localhost:5434/cas -c 'CREATE DATABASE cas_e2e;'
 export DATABASE_URL=postgres://cas:cas@localhost:5434/cas_e2e
+export SQLX_OFFLINE=true
 cargo run -p cas --bin cas-migrate
+./apps/cas-frontend/e2e/seed.sh
 cargo run -p cas
 ```
 
+`SQLX_OFFLINE` makes cargo compile the query macros from `apps/cas/.sqlx`,
+since a fresh database has no tables yet (see `apps/cas/docs/MIGRATIONS.md`).
+`e2e/seed.sh` registers the two OIDC clients the suite uses: the public
+`cas-frontend-e2e` of the authorize scenarios, and the confidential
+`cas-frontend-e2e-guest` of the guest scenarios, whose secret it writes to
+`e2e/.guest-client-secret` (gitignored, never printed). Like
+`apps/cas/scripts/seed-dev.sh` it is not idempotent: it attempts both
+clients, and "already exists" on a second run means a client is there.
+
+CAS keeps only a hash of a client's secret, so the secret file and the client
+belong together: a database seeded from another checkout has the guest client
+but not the file here. The script says so; delete the client
+(`psql "$DATABASE_URL" -c "DELETE FROM clients WHERE id = 'cas-frontend-e2e-guest'"`)
+or seed a fresh database, and run it again. A secret file left over from
+another database fails the guest grant with `invalid_client` in the same way.
+
 Then, from `apps/cas-frontend`, `pnpm test:e2e`. Playwright starts vite on
 :5173 itself, or reuses the one already there; `CAS_API_PROXY_TARGET` points
-the proxy at a CAS on another address, as in development. `CAS_FRONTEND_PORT`
+the proxy (`/api` and `/oidc`) at a CAS on another address, as in development. `CAS_FRONTEND_PORT`
 moves vite when 5173 is taken, in which case CAS must be started with
 `CAS_ORIGIN` and `CAS_CORS_ORIGINS` set to the new origin, since the
 relying-party origin is what the browser signs.
@@ -177,11 +195,40 @@ scenarios run with the option `autofill: false`, which is a browser without
 conditional mediation (`isConditionalMediationAvailable` answers `false`),
 the one the button is the fallback for in DESIGN.md.
 
+### The authorize scenarios
+
+`e2e/authorize.e2e.ts` runs the flows of `adr/0002-return-to.md`: from
+`/oidc/authorize` through sign-in or create account and back to the client
+with a code. The client's redirect URI is on a reserved TLD and nothing
+serves it, so a scenario ends by catching the browser's request to it
+(`page.waitForRequest`, armed before the action that leads there) and reading
+`code` and `state` from its URL. A navigation to a host that does not resolve
+commits no history entry, so the scenarios that check the history was
+replaced on the way out use a `return_to` that does resolve, a document CAS
+serves on this origin (`/oidc/jwks.json?forwarded`). When the first hop lands
+on CAS's error page instead of sign-in, the e2e client is missing: run
+`e2e/seed.sh`.
+
+### The guest scenarios
+
+`e2e/guest-upgrade.e2e.ts` runs the guest upgrade of
+`adr/0003-guest-in-the-app.md`. A scenario mints a guest as an application's
+backend would, with the guest grant of `cas-frontend-e2e-guest` at
+`/oidc/token` (`mintGuest` in `e2e/authorization.ts`, the shared helpers of
+the authorization request), and sends the browser to `/oidc/authorize` with
+the guest's ID token as `id_token_hint`. One scenario creates the account
+from there and returns to the client with a code; the other abandons the
+upgrade, finds the guest dashboard, and finishes from its link. Both end on
+the dashboard of a full account with one passkey, and check through
+`/api/me` that it is the guest's own account (`sub`), upgraded rather than
+created. A missing secret file fails them with "run e2e/seed.sh".
+
 ### In CI
 
 The `e2e` job in `.github/workflows/cas-frontend-pr.yml`: the Postgres
 service of `cas-pr.yml`, a debug build of `cas` and `cas-migrate`
-(`Swatinem/rust-cache` keeps the target directory between runs), CAS started
+(`Swatinem/rust-cache` keeps the target directory between runs), the e2e
+clients registered with `e2e/seed.sh`, CAS started
 in the background with its defaults, Chromium installed by Playwright, vite
 started by Playwright's `webServer`. The workflow also runs on `apps/cas/**`
 changes, since the suite tests the real backend. On failure the Playwright

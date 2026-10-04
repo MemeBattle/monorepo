@@ -6,7 +6,8 @@ export const registrationOptions = (registrationId: string) => ({
     publicKey: {
       challenge: 'Y2hhbGxlbmdl',
       rp: { name: 'MemeBattle', id: 'localhost' },
-      user: { id: 'YWRh', name: 'Ada', displayName: 'Ada' },
+      // UUID 0191e2a4-5b6c-7d8e-9fa0-b1c2d3e4f506, usable as a guest upgrade handle too.
+      user: { id: 'AZHipFtsfY6foLHC0-T1Bg', name: 'Ada', displayName: 'Ada' },
       pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
       timeout: 60_000,
       authenticatorSelection: { residentKey: 'required', userVerification: 'required' },

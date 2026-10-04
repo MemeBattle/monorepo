@@ -1,0 +1,115 @@
+//! The OpenID Provider metadata (OpenID Connect Discovery 1.0 §3) served at
+//! `/.well-known/openid-configuration`.
+
+use serde::Serialize;
+
+use super::GUEST_GRANT_TYPE;
+use super::keys::SIGNING_ALGORITHM;
+
+/// The discovery document. It advertises the whole SSO milestone, including
+/// the endpoints later tickets add, so that it stays the same across their
+/// releases (ADR 0009 (f)).
+// `ToSchema` describes it in the OpenAPI document, being on the wire
+// already (docs/LAYOUT.md, rule 1).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, utoipa::ToSchema)]
+pub struct Discovery {
+    issuer: String,
+    authorization_endpoint: String,
+    token_endpoint: String,
+    userinfo_endpoint: String,
+    end_session_endpoint: String,
+    jwks_uri: String,
+    #[schema(value_type = Vec<String>)]
+    response_types_supported: &'static [&'static str],
+    #[schema(value_type = Vec<String>)]
+    response_modes_supported: &'static [&'static str],
+    #[schema(value_type = Vec<String>)]
+    grant_types_supported: &'static [&'static str],
+    #[schema(value_type = Vec<String>)]
+    subject_types_supported: &'static [&'static str],
+    #[schema(value_type = Vec<String>)]
+    id_token_signing_alg_values_supported: &'static [&'static str],
+    #[schema(value_type = Vec<String>)]
+    scopes_supported: &'static [&'static str],
+    /// `none` is a public client, which authenticates with its `client_id`
+    /// and proves itself with PKCE (OpenID Connect Core §9, ADR 0011).
+    #[schema(value_type = Vec<String>)]
+    token_endpoint_auth_methods_supported: &'static [&'static str],
+    #[schema(value_type = Vec<String>)]
+    code_challenge_methods_supported: &'static [&'static str],
+    /// Discovery §3 defaults this to `true`, and `/oidc/authorize` refuses
+    /// `request_uri` (ADR 0010 (b)), so it is stated. The sibling
+    /// `request_parameter_supported` defaults to `false` and stays implicit.
+    request_uri_parameter_supported: bool,
+}
+
+impl Discovery {
+    /// The document for `issuer`, which config has already checked has no
+    /// trailing slash, so every endpoint is `{issuer}/<path>`.
+    pub fn for_issuer(issuer: &str) -> Self {
+        Self {
+            issuer: issuer.to_string(),
+            authorization_endpoint: format!("{issuer}/oidc/authorize"),
+            token_endpoint: format!("{issuer}/oidc/token"),
+            userinfo_endpoint: format!("{issuer}/oidc/userinfo"),
+            end_session_endpoint: format!("{issuer}/oidc/end_session"),
+            jwks_uri: format!("{issuer}/oidc/jwks.json"),
+            response_types_supported: &["code"],
+            response_modes_supported: &["query"],
+            grant_types_supported: &["authorization_code", "refresh_token", GUEST_GRANT_TYPE],
+            subject_types_supported: &["public"],
+            id_token_signing_alg_values_supported: &[SIGNING_ALGORITHM],
+            scopes_supported: &["openid", "profile", "email"],
+            token_endpoint_auth_methods_supported: &[
+                "client_secret_basic",
+                "client_secret_post",
+                "none",
+            ],
+            code_challenge_methods_supported: &["S256"],
+            request_uri_parameter_supported: false,
+        }
+    }
+
+    pub fn issuer(&self) -> &str {
+        &self.issuer
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_document_holds_exactly_the_advertised_members() {
+        let document = serde_json::to_value(Discovery::for_issuer("https://cas.example")).unwrap();
+
+        assert_eq!(
+            document,
+            serde_json::json!({
+                "issuer": "https://cas.example",
+                "authorization_endpoint": "https://cas.example/oidc/authorize",
+                "token_endpoint": "https://cas.example/oidc/token",
+                "userinfo_endpoint": "https://cas.example/oidc/userinfo",
+                "end_session_endpoint": "https://cas.example/oidc/end_session",
+                "jwks_uri": "https://cas.example/oidc/jwks.json",
+                "response_types_supported": ["code"],
+                "response_modes_supported": ["query"],
+                "grant_types_supported": [
+                    "authorization_code",
+                    "refresh_token",
+                    "urn:memebattle:oauth:grant-type:guest",
+                ],
+                "subject_types_supported": ["public"],
+                "id_token_signing_alg_values_supported": ["ES256"],
+                "scopes_supported": ["openid", "profile", "email"],
+                "token_endpoint_auth_methods_supported": [
+                    "client_secret_basic",
+                    "client_secret_post",
+                    "none",
+                ],
+                "code_challenge_methods_supported": ["S256"],
+                "request_uri_parameter_supported": false,
+            })
+        );
+    }
+}

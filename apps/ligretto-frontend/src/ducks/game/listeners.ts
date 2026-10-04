@@ -15,14 +15,16 @@ import {
   updateGameAction,
 } from '@memebattle/ligretto-shared'
 
+import { currentUserIdSelector } from '#ducks/auth'
+
 import {
+  putCardFromStackOpenDeckOptimisticallyAction,
+  putCardOptimisticallyAction,
   setGameLoadedAction,
   setGameResultAction,
   startGameAction,
   togglePlayerStatusAction,
   updateGameAction as updateGameSliceAction,
-  tapCardAction,
-  tapStackOpenDeckCardAction,
   tapStackDeckCardAction,
   tapLigrettoDeckCardAction,
   resetGameStateAction,
@@ -145,19 +147,30 @@ export function addListeners(startListener: TypedStartListening<All>) {
     },
   })
 
+  // Only this client's own placements pass through the two listeners below, and the command was
+  // validated against the same store in the same tick, so the move can be mirrored locally before
+  // the server confirms it.
   startListener({
-    actionCreator: tapCardAction,
+    actionCreator: putCardAction,
     effect: ({ payload }, listenerApi) => {
-      const gameId = gameIdSelector(listenerApi.getState())
-      listenerApi.dispatch(putCardAction({ cardIndex: payload.cardIndex, gameId }))
+      const playerId = currentUserIdSelector(listenerApi.getState())
+
+      if (playerId) {
+        listenerApi.dispatch(
+          putCardOptimisticallyAction({ playerId, cardIndex: payload.cardIndex, playgroundDeckIndex: payload.playgroundDeckIndex }),
+        )
+      }
     },
   })
 
   startListener({
-    actionCreator: tapStackOpenDeckCardAction,
-    effect: (_action, listenerApi) => {
-      const gameId = gameIdSelector(listenerApi.getState())
-      listenerApi.dispatch(putCardFromStackOpenDeck({ gameId }))
+    actionCreator: putCardFromStackOpenDeck,
+    effect: ({ payload }, listenerApi) => {
+      const playerId = currentUserIdSelector(listenerApi.getState())
+
+      if (playerId) {
+        listenerApi.dispatch(putCardFromStackOpenDeckOptimisticallyAction({ playerId, playgroundDeckIndex: payload.playgroundDeckIndex }))
+      }
     },
   })
 }

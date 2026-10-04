@@ -1,21 +1,29 @@
 //! HTTP transport root: the router, the middleware stack and the error
 //! contract the contexts are mapped onto. The handlers themselves live with
 //! their context, in `<context>/http`; this module only mounts them.
+//!
+//! Three mounts (ADR 0017): `/api`, the first-party API behind its contract
+//! (the CSRF line, `no-store`, the `ApiError` shape); `/oidc`, the OpenID
+//! Connect protocol endpoints, a prefix each of them spells out in its path,
+//! with no layer and no fallback of its own; and the root, for discovery,
+//! `/health` and `/openapi.json`.
 
 pub mod error;
 pub(crate) mod extract;
 mod fetch_metadata;
 mod health;
+pub(crate) mod openapi;
+pub mod response;
 
 use axum::{
     Router,
-    http::{HeaderValue, Method, header},
+    body::Body,
+    http::{HeaderValue, Method, Request, header},
     response::{IntoResponse, Response},
 };
 use sqlx::postgres::PgPoolOptions;
 use thiserror::Error;
 use tower::Layer;
-use tower::ServiceBuilder;
 use tower_http::{
     catch_panic::CatchPanicLayer,
     cors::{AllowOrigin, CorsLayer},
@@ -24,12 +32,19 @@ use tower_http::{
     trace::{self, TraceLayer},
 };
 use tracing::Level;
+use url::Url;
+use utoipa_axum::router::OpenApiRouter;
 
 use crate::accounts::AccountManagement;
 use crate::accounts::http as accounts_http;
 use crate::config::Config;
 use crate::http::error::ApiError;
 use crate::http::fetch_metadata::AllowedOrigins;
+use crate::oidc::http::{self as oidc_http, Documents};
+use crate::oidc::{
+    AuthorizationService, Discovery, EndSessionService, SigningKeyError, SigningKeys, TokenService,
+    UpgradeHintService, UserInfoService,
+};
 use crate::sessions::SessionService;
 use crate::sessions::http as sessions_http;
 use crate::sessions::http::CookieSettings;
@@ -39,6 +54,7 @@ use crate::webauthn::http as webauthn_http;
 use crate::webauthn::login::LoginService;
 use crate::webauthn::management::PasskeyManagement;
 use crate::webauthn::registration::RegistrationService;
+use crate::webauthn::upgrade::UpgradeService;
 
 /// Why the router could not be built. Everything here fails at startup, before
 /// a single request is served.
@@ -51,6 +67,14 @@ pub enum AppError {
     #[error("Failed to create the database pool: {0}")]
     #[diagnostic(code(cas::db_pool_error))]
     DbPool(sqlx::Error),
+
+    #[error("CAS_SIGNING_KEY is not set and a release build has no development default")]
+    #[diagnostic(code(cas::signing_key_error))]
+    MissingSigningKey,
+
+    #[error("CAS_SIGNING_KEY: {0}")]
+    #[diagnostic(code(cas::signing_key_error))]
+    SigningKey(#[source] SigningKeyError),
 }
 
 /// The services the API handlers share.
@@ -59,10 +83,26 @@ pub struct ApiState {
     pub registration: RegistrationService,
     pub login: LoginService,
     pub addition: AdditionService,
+    /// The guest upgrade, run by the registration endpoints under an upgrade
+    /// session (ADR 0015).
+    pub upgrade: UpgradeService,
     pub passkeys: PasskeyManagement,
     pub accounts: AccountManagement,
     pub sessions: SessionService,
     pub cookies: CookieSettings,
+    pub authorization: AuthorizationService,
+    /// `/oidc/token`, signing with the active key as `CAS_ISSUER`.
+    pub tokens: TokenService,
+    /// `/oidc/userinfo`, verifying access tokens against every published key.
+    pub userinfo: UserInfoService,
+    /// `/oidc/end_session`, verifying logout hints against every published key.
+    pub end_session: EndSessionService,
+    /// `/oidc/authorize`, verifying a guest's `id_token_hint` against every
+    /// published key (ADR 0015 (c)).
+    pub upgrade_hints: UpgradeHintService,
+    /// The frontend's origin (`CAS_ORIGIN`): where the sign-in screen is,
+    /// for `/oidc/authorize` to send an anonymous request to.
+    pub frontend_origin: Url,
 }
 
 /// The whole service: the routers behind their middleware, with trailing
@@ -74,6 +114,10 @@ pub struct ApiState {
 /// router (a nested router's catch-all does not match an empty rest, so the
 /// slash-terminated prefix alone escaped it). `/api/me/` is `/api/me`, and
 /// nothing served here gives a trailing slash a meaning of its own.
+///
+/// Every router is an `OpenApiRouter`, so the document `GET /openapi.json`
+/// serves is collected from the same mounts that route the requests
+/// (`openapi`). In tests, every answer is also checked against it.
 pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
     // Lazy pool: connections open on first use, so startup succeeds even when
     // the DB is down and `/health` reports the actual connectivity.
@@ -84,23 +128,72 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
 
     let webauthn = build_webauthn(&config.rp_id, &config.origin).map_err(AppError::WebauthnInit)?;
 
+    // Only the server signs, so only the server refuses to start without a
+    // key; the tools that share `Config` do not need one.
+    let pem = config
+        .signing_key
+        .as_ref()
+        .ok_or(AppError::MissingSigningKey)?;
+    let signing_keys = SigningKeys::from_pem(pem.expose()).map_err(AppError::SigningKey)?;
+    // The kid is public; this line is what an operator checks after a
+    // rotation.
+    tracing::info!(
+        kid = signing_keys.active().kid(),
+        published = signing_keys.published().len(),
+        "signing key loaded"
+    );
+    let documents = Documents {
+        discovery: Discovery::for_issuer(&config.issuer),
+        jwks: signing_keys.jwks(),
+    };
+    let verifying_keys = signing_keys.verifying_keys();
+
     let api_state = ApiState {
         registration: RegistrationService::new(webauthn.clone(), pool.clone()),
         login: LoginService::new(webauthn.clone(), pool.clone()),
-        addition: AdditionService::new(webauthn, pool.clone()),
+        addition: AdditionService::new(webauthn.clone(), pool.clone()),
+        upgrade: UpgradeService::new(webauthn, pool.clone()),
         passkeys: PasskeyManagement::new(pool.clone()),
         accounts: AccountManagement::new(pool.clone()),
         sessions: SessionService::new(pool.clone()),
         cookies: CookieSettings::for_origin(&config.origin),
+        authorization: AuthorizationService::new(pool.clone()),
+        tokens: TokenService::new(
+            pool.clone(),
+            signing_keys.active().clone(),
+            config.issuer.clone(),
+        ),
+        userinfo: UserInfoService::new(pool.clone(), verifying_keys.clone(), config.issuer.clone()),
+        end_session: EndSessionService::new(
+            AuthorizationService::new(pool.clone()),
+            verifying_keys.clone(),
+            config.issuer.clone(),
+        ),
+        upgrade_hints: UpgradeHintService::new(pool.clone(), verifying_keys, config.issuer.clone()),
+        frontend_origin: config.origin.clone(),
     };
 
-    let router = Router::new().merge(health::router(pool)).nest(
-        "/api",
-        api_router(api_state, AllowedOrigins::new(config.cors_origins.clone())),
-    );
+    let (userinfo, userinfo_document) =
+        oidc_http::userinfo_router(api_state.clone()).split_for_parts();
+    let (router, mut document) = OpenApiRouter::with_openapi(openapi::base())
+        .merge(health::router(pool))
+        .merge(oidc_http::router(documents))
+        .merge(oidc_http::authorize_router(api_state.clone()))
+        .merge(oidc_http::token_router(api_state.clone()))
+        .merge(oidc_http::end_session_router(api_state.clone()))
+        .nest(
+            "/api",
+            api_router(api_state, AllowedOrigins::new(config.cors_origins.clone())),
+        )
+        .split_for_parts();
+    document.merge(userinfo_document);
+    let (router, _document) = openapi::serve_document(router, document);
 
-    Ok(NormalizePathLayer::trim_trailing_slash()
-        .layer(with_middleware(router, config.cors_origins)))
+    let service = with_middleware(router, userinfo, config.cors_origins);
+    #[cfg(test)]
+    let service = openapi::conformance::check(service, &_document);
+
+    Ok(NormalizePathLayer::trim_trailing_slash().layer(service))
 }
 
 /// Everything under `/api`: the contexts' routers, re-sending the session
@@ -115,23 +208,31 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
 /// path that does not exist — and a new endpoint must be covered by where it
 /// is mounted. It wraps the CSRF line from the outside so that the layer's
 /// own refusals carry it too.
-fn api_router(state: ApiState, origins: AllowedOrigins) -> Router {
+///
+/// The description is taken off the contexts' routers before the CSRF line
+/// wraps them, completed with the line's own refusal, and handed back with
+/// the guarded router for the root to nest.
+fn api_router(state: ApiState, origins: AllowedOrigins) -> OpenApiRouter {
     // `/me` is one path with two owners by verb: the sessions router answers
     // `GET`, the accounts router `PATCH`, and axum merges the two method
     // routers for the path (ADR 0007).
-    let api = Router::new()
+    let api = OpenApiRouter::new()
         .nest("/webauthn", webauthn_http::router(state.clone()))
         .nest("/passkeys", webauthn_http::passkeys::router(state.clone()))
         .merge(sessions_http::router(state.clone()))
         .merge(accounts_http::router(state))
         .fallback(not_found);
 
-    fetch_metadata::guard(sessions_http::with_cookie_renewal(api), origins).layer(
-        SetResponseHeaderLayer::overriding(
-            header::CACHE_CONTROL,
-            HeaderValue::from_static("no-store"),
-        ),
-    )
+    let (api, mut document) = sessions_http::with_cookie_renewal(api).split_for_parts();
+    fetch_metadata::describe(&mut document);
+    let guarded = fetch_metadata::guard(api, origins).layer(SetResponseHeaderLayer::overriding(
+        header::CACHE_CONTROL,
+        HeaderValue::from_static("no-store"),
+    ));
+
+    let mut api = OpenApiRouter::from(guarded);
+    *api.get_openapi_mut() = document;
+    api
 }
 
 /// The answer for a path under `/api` that does not exist.
@@ -147,23 +248,38 @@ async fn not_found() -> ApiError {
     ApiError::not_found("not_found", "Not found")
 }
 
-/// Applies the middleware stack. Must be called after all routes are
-/// registered: `Router::layer` only wraps already-registered routes.
+/// Applies the middleware stack to the two routers the service is made of:
+/// `router`, everything under the root CORS policy, and `userinfo`, which
+/// has a policy of its own (ADR 0013 (e)). Must be called after all routes
+/// are registered: `Router::layer` only wraps already-registered routes.
 ///
-/// `CatchPanicLayer` sits innermost so a panic response still passes through
-/// the CORS and trace layers on the way out.
+/// Each router gets its CORS layer outside its own `CatchPanicLayer`, so a
+/// panic response still carries that router's CORS headers, and the trace
+/// layer wraps both: trace, then CORS, then catch-panic, from the outside
+/// in. The CORS layers cannot share a stack: a CORS layer answers every
+/// preflight that reaches it itself, so a route-level policy under the root
+/// one would never see its own preflights.
 ///
-/// The session cookie travels cross-origin from the frontend, which needs
-/// `Access-Control-Allow-Credentials`; browsers refuse that next to a
-/// wildcard, so methods and headers are listed rather than `Any`.
+/// `userinfo` is merged first. Neither router sets a fallback, and when
+/// neither does, axum keeps the fallback of the router merged last: the
+/// root router's, behind the root CORS and panic layers, which is where
+/// every unknown path outside `/api`, one under `/oidc` included, is
+/// answered.
+///
+/// The root router's session cookie travels cross-origin from the
+/// frontend, which needs `Access-Control-Allow-Credentials`; browsers refuse
+/// that next to a wildcard, so methods and headers are listed rather than
+/// `Any`.
 ///
 /// The request trace logs the method, the path, the status and the latency,
 /// and no headers in either direction: registration and login answer with
 /// `Set-Cookie` carrying the session token, and the whole point of the token
 /// living only in the cookie is that it appears in no log (ADR 0004). The
 /// same goes the other way, where the `Cookie` header would arrive with
-/// every authenticated request.
-fn with_middleware(router: Router, cors_origins: Vec<HeaderValue>) -> Router {
+/// every authenticated request. Nor does it log the query: a `GET
+/// /oidc/end_session` carries a signed ID token there, with the account's name
+/// and address in it (ADR 0013), so the span records the path alone.
+fn with_middleware(router: Router, userinfo: Router, cors_origins: Vec<HeaderValue>) -> Router {
     let cors_layer = CorsLayer::new()
         .allow_origin(AllowOrigin::list(cors_origins))
         .allow_methods([
@@ -176,14 +292,29 @@ fn with_middleware(router: Router, cors_origins: Vec<HeaderValue>) -> Router {
         .allow_headers([header::CONTENT_TYPE])
         .allow_credentials(true);
 
-    router.layer(
-        ServiceBuilder::new()
-            .layer(
-                TraceLayer::new_for_http()
-                    .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
-            )
-            .layer(cors_layer)
-            .layer(CatchPanicLayer::custom(handle_panic)),
+    let router = router
+        .layer(CatchPanicLayer::custom(handle_panic))
+        .layer(cors_layer);
+    let userinfo = userinfo
+        .layer(CatchPanicLayer::custom(handle_panic))
+        .layer(oidc_http::userinfo_cors());
+
+    userinfo.merge(router).layer(
+        TraceLayer::new_for_http()
+            .make_span_with(request_span)
+            .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
+    )
+}
+
+/// The span every line of a request is logged in: what `DefaultMakeSpan`
+/// records, at its level, with the path in place of the whole URI. The
+/// query is left out because it can carry a token (see `with_middleware`).
+fn request_span(request: &Request<Body>) -> tracing::Span {
+    tracing::debug_span!(
+        "request",
+        method = %request.method(),
+        path = %request.uri().path(),
+        version = ?request.version(),
     )
 }
 
@@ -211,23 +342,54 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::accounts::{AccountRepository, NewAccount};
+    use crate::config::SigningKeyPem;
+    use crate::oidc::{SigningKey, SigningKeys};
     use crate::sessions::{SessionOrigin, SessionService};
     use crate::testing::{
-        capture_tracing, display_name, session_cookie, soft_passkey_registration, test_cookies,
-        test_state,
+        DEV_SIGNING_KEY_KID, capture_tracing, checked, display_name, fresh_signing_key_pem,
+        header_str, register_public_client, session_cookie, signed_id_token,
+        soft_passkey_registration, test_config, test_cookies, test_signing_key, test_state,
     };
 
     const ALLOWED_ORIGIN: &str = "http://localhost:5173";
     const OTHER_ORIGIN: &str = "https://evil.example";
 
-    fn test_config() -> Config {
-        Config {
-            port: 0,
-            rp_id: "localhost".to_string(),
-            origin: ALLOWED_ORIGIN.parse().unwrap(),
-            cors_origins: vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
-            database_url: "postgres://cas:cas@localhost:5434/cas".to_string(),
-        }
+    /// A key the server cannot use is a startup error that names the
+    /// variable and quotes nothing of its value.
+    #[tokio::test]
+    async fn an_invalid_signing_key_fails_startup_without_echoing_it() {
+        let mut config = test_config();
+        config.signing_key = Some(SigningKeyPem::new("not a key"));
+
+        let error = app(config).unwrap_err();
+
+        assert!(matches!(error, AppError::SigningKey(_)), "{error:?}");
+        let message = error.to_string();
+        assert!(message.starts_with("CAS_SIGNING_KEY:"), "{message}");
+        assert!(!message.contains("not a key"), "{message}");
+    }
+
+    /// What a release build without `CAS_SIGNING_KEY` meets.
+    #[tokio::test]
+    async fn a_missing_signing_key_fails_startup() {
+        let mut config = test_config();
+        config.signing_key = None;
+
+        assert!(matches!(
+            app(config).unwrap_err(),
+            AppError::MissingSigningKey
+        ));
+    }
+
+    #[tokio::test]
+    async fn startup_logs_the_active_kid() {
+        let (events, _guard) = capture_tracing();
+
+        app(test_config()).unwrap();
+
+        let loaded = events.mentioning("signing key loaded");
+        assert_eq!(loaded.len(), 1, "{:?}", events.all());
+        assert!(loaded[0].contains(DEV_SIGNING_KEY_KID), "{loaded:?}");
     }
 
     #[tokio::test]
@@ -331,7 +493,7 @@ mod tests {
     #[sqlx::test]
     async fn a_cross_site_form_post_to_logout_is_forbidden_and_keeps_the_session(pool: PgPool) {
         let cookie = signed_in(&pool).await;
-        let app = api_router(test_state(pool), allowed_origins());
+        let app = checked(api_router(test_state(pool), allowed_origins()));
 
         let response = app
             .clone()
@@ -377,7 +539,7 @@ mod tests {
     async fn a_fetch_from_the_frontend_logs_out(pool: PgPool) {
         let cookie = signed_in(&pool).await;
 
-        let response = api_router(test_state(pool), allowed_origins())
+        let response = checked(api_router(test_state(pool), allowed_origins()))
             .oneshot(
                 Request::builder()
                     .method("POST")
@@ -445,7 +607,8 @@ mod tests {
     async fn the_request_trace_does_not_log_the_session_cookie(pool: PgPool) {
         let (events, _guard) = capture_tracing();
         let app = with_middleware(
-            api_router(test_state(pool), allowed_origins()),
+            checked(api_router(test_state(pool), allowed_origins())),
+            Router::new(),
             vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
         );
         let post = |uri: &str, body: serde_json::Value| {
@@ -510,7 +673,8 @@ mod tests {
         let cookie = signed_in(&pool).await;
         let (events, _guard) = capture_tracing();
         let app = with_middleware(
-            api_router(test_state(pool), allowed_origins()),
+            checked(api_router(test_state(pool), allowed_origins())),
+            Router::new(),
             vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
         );
 
@@ -552,16 +716,27 @@ mod tests {
 
         let app = with_middleware(
             Router::new().route("/panic", get(panicking)),
+            Router::new(),
             vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
         );
 
         let request = Request::builder()
             .uri("/panic")
+            .header(header::ORIGIN, ALLOWED_ORIGIN)
             .body(Body::empty())
             .unwrap();
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        // The CORS layer sits outside the panic handler, so the frontend can
+        // read the error.
+        assert_eq!(
+            response
+                .headers()
+                .get(header::ACCESS_CONTROL_ALLOW_ORIGIN)
+                .expect("a panic answer still carries CORS"),
+            ALLOWED_ORIGIN
+        );
         let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
         assert_eq!(body["error"]["code"], "internal_error");
@@ -658,7 +833,7 @@ mod tests {
     async fn a_successful_me_is_no_store(pool: PgPool) {
         let cookie = signed_in(&pool).await;
 
-        let response = api_router(test_state(pool), allowed_origins())
+        let response = checked(api_router(test_state(pool), allowed_origins()))
             .oneshot(
                 Request::builder()
                     .uri("/me")
@@ -763,6 +938,353 @@ mod tests {
             let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
             let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
             assert_eq!(body["error"]["code"], "cross_site_request", "{uri}");
+        }
+    }
+
+    /// A preflight from `origin` for `method` on `uri`, with the
+    /// `Authorization` header a browser would announce for a bearer call.
+    async fn preflight(uri: &str, origin: &str, method: &str) -> Response {
+        app(test_config())
+            .unwrap()
+            .oneshot(
+                Request::builder()
+                    .method("OPTIONS")
+                    .uri(uri)
+                    .header(header::ORIGIN, origin)
+                    .header(header::ACCESS_CONTROL_REQUEST_METHOD, method)
+                    .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "authorization")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap()
+    }
+
+    /// `/oidc/userinfo` is open to any origin, without credentials, for the
+    /// `Authorization` header (ADR 0013 (e)).
+    #[tokio::test]
+    async fn userinfo_is_open_to_any_origin_without_credentials() {
+        for method in ["GET", "POST"] {
+            let response = preflight("/oidc/userinfo", OTHER_ORIGIN, method).await;
+
+            assert_eq!(response.status(), StatusCode::OK, "{method}");
+            assert_eq!(
+                header_str(&response, header::ACCESS_CONTROL_ALLOW_ORIGIN),
+                Some("*"),
+                "{method}"
+            );
+            let headers = header_str(&response, header::ACCESS_CONTROL_ALLOW_HEADERS)
+                .unwrap()
+                .to_ascii_lowercase();
+            assert!(headers.contains("authorization"), "{headers}");
+            assert!(
+                !response
+                    .headers()
+                    .contains_key(header::ACCESS_CONTROL_ALLOW_CREDENTIALS),
+                "{method}"
+            );
+        }
+
+        // The actual request too: no credentials, whatever the origin.
+        let response = app(test_config())
+            .unwrap()
+            .oneshot(
+                Request::builder()
+                    .uri("/oidc/userinfo")
+                    .header(header::ORIGIN, ALLOWED_ORIGIN)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            header_str(&response, header::ACCESS_CONTROL_ALLOW_ORIGIN),
+            Some("*")
+        );
+        assert!(
+            !response
+                .headers()
+                .contains_key(header::ACCESS_CONTROL_ALLOW_CREDENTIALS)
+        );
+    }
+
+    /// Everything else keeps the root policy: another origin is refused for
+    /// the API and for `/oidc/token`, which stays backend-to-backend, and an
+    /// unknown path is still answered behind the root policy.
+    #[tokio::test]
+    async fn only_userinfo_is_open_to_other_origins() {
+        for uri in ["/api/me", "/oidc/token", "/oidc/end_session", "/nowhere"] {
+            let response = preflight(uri, OTHER_ORIGIN, "POST").await;
+            assert_eq!(
+                header_str(&response, header::ACCESS_CONTROL_ALLOW_ORIGIN),
+                None,
+                "{uri}"
+            );
+        }
+
+        let unknown = preflight("/nowhere", ALLOWED_ORIGIN, "POST").await;
+        assert_eq!(
+            header_str(&unknown, header::ACCESS_CONTROL_ALLOW_ORIGIN),
+            Some(ALLOWED_ORIGIN)
+        );
+        assert_eq!(
+            header_str(&unknown, header::ACCESS_CONTROL_ALLOW_CREDENTIALS),
+            Some("true")
+        );
+    }
+
+    /// Both endpoints are mounted under `/oidc` and answer before any query:
+    /// `/oidc/userinfo` without a token, `/oidc/end_session` without
+    /// parameters.
+    #[tokio::test]
+    async fn userinfo_and_end_session_are_mounted_under_oidc() {
+        let app = app(test_config()).unwrap();
+
+        let userinfo = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/oidc/userinfo")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(userinfo.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            header_str(&userinfo, header::WWW_AUTHENTICATE),
+            Some("Bearer")
+        );
+
+        let end_session = app
+            .oneshot(
+                Request::builder()
+                    .uri("/oidc/end_session")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(end_session.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(
+            header_str(&end_session, header::CONTENT_TYPE),
+            Some("text/html; charset=utf-8")
+        );
+    }
+
+    /// `method uri` through the whole application, with no body.
+    async fn send(app: &NormalizePath<Router>, method: &str, uri: &str) -> Response {
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method(method)
+                    .uri(uri)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap()
+    }
+
+    /// The five protocol endpoints, by their discovery member and the
+    /// method a request to them is made with.
+    const ADVERTISED: [(&str, &str, &str); 5] = [
+        ("authorization_endpoint", "authorize", "GET"),
+        ("token_endpoint", "token", "POST"),
+        ("userinfo_endpoint", "userinfo", "GET"),
+        ("end_session_endpoint", "end_session", "GET"),
+        ("jwks_uri", "jwks.json", "GET"),
+    ];
+
+    /// Discovery and the routes cannot drift apart: every endpoint the
+    /// document advertises is `{issuer}/oidc/<name>`, and that path is
+    /// served for the endpoint's method (ADR 0017 (a)). No request carries
+    /// parameters, so each is refused before any query.
+    #[tokio::test]
+    async fn every_advertised_endpoint_is_mounted_under_oidc() {
+        let app = app(test_config()).unwrap();
+        let issuer = test_config().issuer;
+        let response = send(&app, "GET", "/.well-known/openid-configuration").await;
+        let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let document: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+
+        for (member, name, method) in ADVERTISED {
+            let url = document[member].as_str().unwrap();
+            assert_eq!(url, format!("{issuer}/oidc/{name}"), "{member}");
+            let path = url.strip_prefix(&issuer).unwrap();
+
+            let status = send(&app, method, path).await.status();
+            assert_ne!(status, StatusCode::NOT_FOUND, "{method} {path}");
+            assert_ne!(status, StatusCode::METHOD_NOT_ALLOWED, "{method} {path}");
+        }
+    }
+
+    /// The old root paths are not served, and nothing sends a client on to
+    /// the new ones (ADR 0017 (f)).
+    #[tokio::test]
+    async fn the_old_root_paths_are_gone() {
+        let app = app(test_config()).unwrap();
+
+        for (method, uri) in [
+            ("GET", "/authorize"),
+            ("POST", "/token"),
+            ("GET", "/userinfo"),
+            ("POST", "/userinfo"),
+            ("GET", "/end_session"),
+            ("POST", "/end_session"),
+            ("GET", "/jwks.json"),
+        ] {
+            let response = send(&app, method, uri).await;
+
+            assert_eq!(response.status(), StatusCode::NOT_FOUND, "{method} {uri}");
+            assert!(
+                !response.headers().contains_key(header::LOCATION),
+                "{method} {uri}"
+            );
+        }
+    }
+
+    /// `/oidc` is a prefix, not a router of its own: an unknown path under
+    /// it is answered exactly as an unknown root path is (ADR 0017 (e)).
+    #[tokio::test]
+    async fn an_unknown_path_under_oidc_is_the_roots_not_found() {
+        let app = app(test_config()).unwrap();
+        let answer = |response: Response| async move {
+            let status = response.status();
+            let cache_control = cache_control(&response).map(str::to_owned);
+            let content_type = header_str(&response, header::CONTENT_TYPE).map(str::to_owned);
+            let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+            (status, cache_control, content_type, body)
+        };
+
+        let expected = answer(send(&app, "GET", "/nowhere").await).await;
+        assert_eq!(expected.0, StatusCode::NOT_FOUND);
+        assert_eq!(expected.1, None);
+
+        for uri in ["/oidc", "/oidc/", "/oidc/nowhere"] {
+            let actual = answer(send(&app, "GET", uri).await).await;
+            assert_eq!(actual, expected, "{uri}");
+        }
+    }
+
+    /// The Fetch Metadata line guards `/api` alone (ADR 0017 (b)). It lets
+    /// every safe method through, so only an unsafe one proves anything: a
+    /// cross-site form `POST` to each protocol endpoint gets the endpoint's
+    /// own answer — the same one a request without those headers gets — and
+    /// a `GET`-only endpoint its 405, never the line's 403. The same request
+    /// to `/api/logout` is the control the line does refuse.
+    #[tokio::test]
+    async fn no_protocol_endpoint_is_behind_the_csrf_line() {
+        let app = app(test_config()).unwrap();
+        let post = |uri: &str, cross_site: bool| {
+            let mut request = Request::builder()
+                .method("POST")
+                .uri(uri)
+                .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded");
+            if cross_site {
+                request = request
+                    .header("sec-fetch-site", "cross-site")
+                    .header("sec-fetch-mode", "navigate")
+                    .header(header::ORIGIN, OTHER_ORIGIN);
+            }
+            request.body(Body::empty()).unwrap()
+        };
+
+        for (_, name, _) in ADVERTISED {
+            let uri = format!("/oidc/{name}");
+            let cross_site = app.clone().oneshot(post(&uri, true)).await.unwrap();
+            let same_site = app.clone().oneshot(post(&uri, false)).await.unwrap();
+
+            assert_ne!(cross_site.status(), StatusCode::FORBIDDEN, "{uri}");
+            assert_eq!(cross_site.status(), same_site.status(), "{uri}");
+            if matches!(name, "authorize" | "jwks.json") {
+                assert_eq!(cross_site.status(), StatusCode::METHOD_NOT_ALLOWED, "{uri}");
+            }
+            let body = to_bytes(cross_site.into_body(), usize::MAX).await.unwrap();
+            let body = String::from_utf8_lossy(&body);
+            assert!(!body.contains("cross_site_request"), "{uri}: {body}");
+        }
+
+        let control = app.oneshot(post("/api/logout", true)).await.unwrap();
+        assert_eq!(control.status(), StatusCode::FORBIDDEN);
+        let bytes = to_bytes(control.into_body(), usize::MAX).await.unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(body["error"]["code"], "cross_site_request");
+    }
+
+    /// A `GET /oidc/end_session` carries a signed ID token — the account's name
+    /// and address inside — in its query. The request span records the
+    /// path alone, so neither the hint, nor any of its segments, nor the
+    /// `state` reaches a span or an event, whether the request is accepted
+    /// or refused.
+    #[sqlx::test]
+    async fn the_request_trace_does_not_log_the_query(pool: PgPool) {
+        let client = register_public_client(&pool, "ligretto-web", &[]).await;
+        let account = AccountRepository::new(pool.clone())
+            .create(NewAccount::full(display_name("Ada")).with_email("ada@example.com"))
+            .await
+            .unwrap();
+        let hint = |key: &SigningKey| {
+            signed_id_token(
+                key,
+                &client,
+                &account,
+                &["openid"],
+                time::OffsetDateTime::now_utc(),
+            )
+        };
+        let accepted = hint(&test_signing_key());
+        let refused = hint(
+            SigningKeys::from_pem(&fresh_signing_key_pem())
+                .unwrap()
+                .active(),
+        );
+        let state = test_state(pool);
+        let app = with_middleware(
+            checked(oidc_http::end_session_router(state.clone())),
+            checked(oidc_http::userinfo_router(state)),
+            vec![HeaderValue::from_static(ALLOWED_ORIGIN)],
+        );
+        let (events, _guard) = capture_tracing();
+
+        for (hint, status) in [
+            (&accepted, StatusCode::FOUND),
+            (&refused, StatusCode::BAD_REQUEST),
+        ] {
+            let response = app
+                .clone()
+                .oneshot(
+                    Request::builder()
+                        .uri(format!(
+                            "/oidc/end_session?id_token_hint={hint}&state=s3cr3t-state"
+                        ))
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.status(), status);
+        }
+
+        let spans = events.mentioning("SPAN");
+        assert!(
+            spans
+                .iter()
+                .any(|span| span.contains("request") && span.contains("/oidc/end_session")),
+            "{spans:?}"
+        );
+        for event in events.all() {
+            assert!(
+                !event.contains("s3cr3t-state"),
+                "the query was logged: {event}"
+            );
+            assert!(!event.contains("ada@example.com"), "{event}");
+            for hint in [&accepted, &refused] {
+                for segment in hint.split('.') {
+                    assert!(!event.contains(segment), "the hint was logged: {event}");
+                }
+            }
         }
     }
 }

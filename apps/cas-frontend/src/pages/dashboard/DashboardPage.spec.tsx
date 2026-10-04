@@ -131,6 +131,23 @@ describe('DashboardPage', () => {
     ])
   })
 
+  it('shows a guest its type, its name and the one way to an account, nothing else', async () => {
+    getMe = mockGetMe({ ...me, accountId: 'g', displayName: 'Guest 7', accountType: 'guest' })
+
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: 'Guest 7' })).toBeDefined()
+    expect(screen.getByText('Гостевой аккаунт')).toBeDefined()
+    expect(screen.getByRole('link', { name: 'Создать аккаунт' }).getAttribute('href')).toBe(routes.CREATE_ACCOUNT)
+    // Under the guest's session the list is a 401 by design; the loader does not ask.
+    expect(listPasskeys).not.toHaveBeenCalled()
+    expect(screen.queryByText('Пасскеи')).toBeNull()
+    expect(screen.queryByText('Почта')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Выйти' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Добавить/ })).toBeNull()
+    expect(screen.queryByText('Аккаунт')).toBeNull()
+  })
+
   it('ends the session and lands on sign-in', async () => {
     getMe = mockGetMe(me)
     // Once the cookie is gone `/api/me` answers 401, which is what the revalidation sees.

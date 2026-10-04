@@ -3,6 +3,9 @@ import { OnboardingPage } from '#pages/onboarding/OnboardingPage.page-object.ts'
 import { OnboardingEvent, OnboardingStep } from '#features/onboarding/model/steps.ts'
 import { ONBOARDING_SCRIPT } from '#features/onboarding/model/script.ts'
 
+/** Any free deck takes the first one; the e2e opens the blue pile away from the first deck on purpose. */
+const BLUE_PILE_DECK = 5
+
 const expectStep = async (page: Page, step: OnboardingStep) => {
   await expect(page.getByTestId('OnboardingPage')).toHaveAttribute('data-onboarding-step', step)
 }
@@ -18,27 +21,26 @@ const performEvent = async (onboarding: OnboardingPage, event: OnboardingEvent) 
       return
     case OnboardingEvent.PutStackCard:
       await onboarding.getStackOpenDeckCard().click()
-      await expect(onboarding.getStackOpenDeckCard()).toHaveAttribute('data-card-focused', 'true')
-      await onboarding.getPlaygroundDeck(0).click()
+      await expect(onboarding.getStackOpenDeckCard()).toHaveAttribute('data-card-active', 'true')
+      await onboarding.getHighlightedPlaygroundDeck().first().click()
       return
     case OnboardingEvent.PutFirstCard:
       await onboarding.getRowCard(0).click()
+      await expect(onboarding.getRowCard(0)).toHaveAttribute('data-card-active', 'true')
+      await expect(onboarding.getHighlightedPlaygroundDeck()).toHaveCount(12) // a one opens any free deck
+      await onboarding.getPlaygroundDeck(BLUE_PILE_DECK).click()
       return
     case OnboardingEvent.PutSecondCard: {
       const card = onboarding.getRowCard(1)
-      if ((await card.textContent())?.trim() === '1') {
-        await card.click()
-        return
-      }
       await card.click()
-      await expect(card).toHaveAttribute('data-card-focused', 'true')
-      await onboarding.getPlaygroundDeck(0).click()
+      await expect(card).toHaveAttribute('data-card-active', 'true')
+      await onboarding.getHighlightedPlaygroundDeck().first().click()
       return
     }
     case OnboardingEvent.PutThirdCard:
       await onboarding.getRowCard(2).click()
-      await expect(onboarding.getRowCard(2)).toHaveAttribute('data-card-focused', 'true')
-      await onboarding.getPlaygroundDeck(2).click()
+      await expect(onboarding.getRowCard(2)).toHaveAttribute('data-card-active', 'true')
+      await onboarding.getHighlightedPlaygroundDeck().first().click()
       return
     case OnboardingEvent.PutLigretto:
       await onboarding.getLigrettoDeckCard().click()
@@ -116,7 +118,9 @@ test.describe('Onboarding', () => {
     })
 
     await test.step('opponent answers and the optional ligretto move fills the free slot', async () => {
-      await onboarding.getRowCard(1).click()
+      await onboarding.dragCard(onboarding.getRowCard(1), onboarding.getPlaygroundDeck(BLUE_PILE_DECK)) // a one does not go on the blue pile
+      await expectStep(page, OnboardingStep.GameStarted)
+      await onboarding.dragCard(onboarding.getRowCard(1), onboarding.getPlaygroundDeck(0)) // it starts a pile of its own
       await expectStep(page, OnboardingStep.OpponentTurn)
 
       await onboarding.getLigrettoDeckCard().click() // the second row slot is free — a ligretto card goes there
@@ -128,13 +132,15 @@ test.describe('Onboarding', () => {
 
     await test.step('the green three and the final ligretto card end the round', async () => {
       await onboarding.getRowCard(2).click()
-      await expect(onboarding.getRowCard(2)).toHaveAttribute('data-card-focused', 'true')
+      await expect(onboarding.getRowCard(2)).toHaveAttribute('data-card-active', 'true')
       await expectStep(page, OnboardingStep.OpponentTurnSecondCard)
 
       await onboarding.getPlaygroundDeck(0).click() // the wrong pile does not advance
       await expectStep(page, OnboardingStep.OpponentTurnSecondCard)
 
-      await onboarding.getPlaygroundDeck(2).click() // the green three frees a row slot
+      // The blue pile is on its deck and the red one took the first deck, so the opponent opened the second
+      await expect(onboarding.getPlaygroundDeck(1)).toHaveAttribute('data-drop-valid')
+      await onboarding.getPlaygroundDeck(1).click() // the green three frees a row slot
       await expectStep(page, OnboardingStep.FinalLigrettoCard)
 
       await onboarding.getLigrettoDeckCard().click() // the ligretto card into the row ends the round

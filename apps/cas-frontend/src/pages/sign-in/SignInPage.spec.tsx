@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -7,10 +7,11 @@ import { mockSignInWithPasskey } from '#entities/session/testing'
 import { routes } from '#app/routes'
 import { SignInPage } from './SignInPage'
 
-const { startAuthentication, browserSupportsWebAuthnAutofill, cancelCeremony } = vi.hoisted(() => ({
+const { startAuthentication, browserSupportsWebAuthnAutofill, cancelCeremony, leaveTo } = vi.hoisted(() => ({
   startAuthentication: vi.fn(),
   browserSupportsWebAuthnAutofill: vi.fn(),
   cancelCeremony: vi.fn(),
+  leaveTo: vi.fn(),
 }))
 vi.mock('@simplewebauthn/browser', async importOriginal => ({
   ...(await importOriginal<typeof import('@simplewebauthn/browser')>()),
@@ -25,20 +26,49 @@ const standingOffer = () =>
     cancelCeremony.mockImplementationOnce(() => reject(new DOMException('Cancelled', 'AbortError')))
   })
 
-const renderPage = () => {
+// Only the document navigation is faked; `readReturnTo` and `ReturnToLink` stay real.
+vi.mock('#app/returnTo', async importOriginal => ({ ...(await importOriginal<typeof import('#app/returnTo')>()), leaveTo }))
+
+/** The authorization request CAS sends the browser back to, and the sign-in screen it opens. */
+const authorize = '/oidc/authorize?client_id=x&state=s'
+const withReturnTo = (value: string) => `${routes.SIGN_IN}?${new URLSearchParams({ return_to: value }).toString()}`
+
+/**
+ * What a test leaves pending is settled once it is over: React entangles a
+ * pending action with every later transition, so an action that never ends
+ * would hold back the next test's navigations.
+ */
+const unsettled: (() => void)[] = []
+/** The real `leaveTo` never settles, the browser leaves; the fake stays pending until the test is over. */
+const pendingLeave = () => new Promise<never>(resolve => unsettled.push(() => resolve(undefined as never)))
+/** A button ceremony nobody answers until the test is over, then a cancelled one. */
+const pendingCeremony = () => new Promise<never>((_, reject) => unsettled.push(() => reject(new DOMException('ended', 'NotAllowedError'))))
+
+/** Observe real response parsing so a late offer finishes before asserting it did not navigate. */
+const finishLateOffer = async (pick: (value: unknown) => void) => {
+  const parsed = vi.spyOn(Response.prototype, 'json')
+  try {
+    pick({ id: 'cred' })
+    await waitFor(() => expect(parsed).toHaveResolvedWith({ accountId: 'acc', credentialId: 'cred' }))
+  } finally {
+    parsed.mockRestore()
+  }
+}
+
+const renderPage = (entry: string = routes.SIGN_IN) => {
   const router = createMemoryRouter(
     [
       { path: routes.SIGN_IN, element: <SignInPage /> },
       { path: routes.DASHBOARD, element: <h1>Дашборд</h1> },
       { path: routes.CREATE_ACCOUNT, element: <h1>Создать аккаунт</h1> },
     ],
-    { initialEntries: [routes.SIGN_IN] },
+    { initialEntries: [entry] },
   )
   render(<RouterProvider router={router} />)
 }
 
-const signIn = async () => {
-  renderPage()
+const signIn = async (entry?: string) => {
+  renderPage(entry)
   await screen.findByRole('button', { name: 'Войти с пасскеем' })
   await userEvent.setup().click(screen.getByRole('button', { name: 'Войти с пасскеем' }))
 }
@@ -49,11 +79,16 @@ describe('SignInPage', () => {
     browserSupportsWebAuthnAutofill.mockReset().mockResolvedValue(false)
     startAuthentication.mockReset().mockResolvedValue({ id: 'cred' })
     cancelCeremony.mockReset()
+    leaveTo.mockImplementation(pendingLeave)
   })
 
   afterEach(() => {
     // No `globals` in the vitest config, so testing-library does not unmount on its own.
     cleanup()
+    for (const settle of unsettled.splice(0)) {
+      settle()
+    }
+    leaveTo.mockReset()
   })
 
   it('runs the ceremony and lands on the dashboard', async () => {
@@ -150,7 +185,7 @@ describe('SignInPage', () => {
         return standingOffer()
       }
       expect(cancelCeremony).toHaveBeenCalledOnce()
-      return new Promise(() => {})
+      return pendingCeremony()
     })
     renderPage()
     await waitFor(() => expect(startAuthentication).toHaveBeenCalledOnce())
@@ -168,5 +203,85 @@ describe('SignInPage', () => {
     cleanup()
     expect(cancelCeremony).toHaveBeenCalledOnce()
     await waitFor(() => expect(signInWithPasskey).toHaveBeenCalledOnce())
+  })
+
+  describe('opened with return_to', () => {
+    it('leaves for it after the button signs in, not for the dashboard', async () => {
+      signInWithPasskey = mockSignInWithPasskey({ accountId: 'acc', credentialId: 'cred' })
+
+      await signIn(withReturnTo(authorize))
+
+      await waitFor(() => expect(leaveTo).toHaveBeenCalledWith(authorize))
+      expect(screen.queryByRole('heading', { name: 'Дашборд' })).toBeNull()
+      // The button keeps its pending state until the browser has left.
+      expect(screen.getByRole('button', { name: 'Подтвердите пасскей…' })).toBeDefined()
+    })
+
+    it('leaves for it after the autofill offer signs in', async () => {
+      browserSupportsWebAuthnAutofill.mockResolvedValue(true)
+
+      renderPage(withReturnTo(authorize))
+
+      await waitFor(() => expect(leaveTo).toHaveBeenCalledWith(authorize))
+      expect(screen.queryByRole('heading', { name: 'Дашборд' })).toBeNull()
+    })
+
+    it('drops a return_to of another origin and lands on the dashboard', async () => {
+      signInWithPasskey = mockSignInWithPasskey({ accountId: 'acc', credentialId: 'cred' })
+
+      await signIn(withReturnTo('https://evil.example/'))
+
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Дашборд' })).toBeDefined())
+      expect(leaveTo).not.toHaveBeenCalled()
+    })
+
+    it('keeps it on both links to create account', async () => {
+      signInWithPasskey = mockSignInWithPasskey.error('invalid_credential')
+      const carried = `${routes.CREATE_ACCOUNT}?${new URLSearchParams({ return_to: authorize }).toString()}`
+
+      renderPage(withReturnTo(authorize))
+
+      expect((await screen.findByRole('link', { name: 'Создать' })).getAttribute('href')).toBe(carried)
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Войти с пасскеем' }))
+      const alert = await screen.findByRole('alert')
+      expect(within(alert).getByRole('link', { name: 'Создать аккаунт' }).getAttribute('href')).toBe(carried)
+    })
+
+    it('does not leave when an offer resolves after the screen was left', async () => {
+      let pick: (value: unknown) => void = () => {}
+      browserSupportsWebAuthnAutofill.mockResolvedValue(true)
+      startAuthentication.mockReturnValueOnce(
+        new Promise(resolve => {
+          pick = resolve
+        }),
+      )
+      renderPage(withReturnTo(authorize))
+      await waitFor(() => expect(startAuthentication).toHaveBeenCalledOnce())
+
+      cleanup()
+      await finishLateOffer(pick)
+
+      expect(leaveTo).not.toHaveBeenCalled()
+    })
+
+    it('does not leave when an offer resolves after the button started its own ceremony', async () => {
+      let pick: (value: unknown) => void = () => {}
+      browserSupportsWebAuthnAutofill.mockResolvedValue(true)
+      startAuthentication.mockReturnValueOnce(
+        new Promise(resolve => {
+          pick = resolve
+        }),
+      )
+      startAuthentication.mockImplementationOnce(pendingCeremony)
+
+      renderPage(withReturnTo(authorize))
+      await waitFor(() => expect(startAuthentication).toHaveBeenCalledOnce())
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Войти с пасскеем' }))
+      await waitFor(() => expect(startAuthentication).toHaveBeenCalledTimes(2))
+      await finishLateOffer(pick)
+
+      expect(leaveTo).not.toHaveBeenCalled()
+      expect(screen.getByRole('button', { name: 'Подтвердите пасскей…' })).toBeDefined()
+    })
   })
 })

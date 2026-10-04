@@ -1,0 +1,5109 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CAS",
+    "description": "The passkey identity provider of MemeBattle: the JSON API under `/api` for its own frontend, and the OpenID Connect endpoints under `/oidc`. Every error response lists the stable codes it can carry in `x-error-codes`; clients branch on those codes, never on messages.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/.well-known/openid-configuration": {
+      "get": {
+        "summary": "The OpenID Provider metadata (OpenID Connect Discovery 1.0 §3).",
+        "operationId": "discovery",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Discovery"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          }
+        }
+      }
+    },
+    "/api/logout": {
+      "post": {
+        "summary": "Ends the session the cookie names and clears the cookie. Idempotent and\nnever a 401: a browser holding an expired or already revoked cookie is\nasking to forget it, and the answer to that is yes.",
+        "description": "The removal cookie stays even though `Clear-Site-Data` asks for the\ncookies as well: a browser that does not implement the header — and it is\nnot universal — has only the removal cookie to go on, and the two say the\nsame thing.",
+        "operationId": "logout",
+        "responses": {
+          "204": {
+            "description": "Signed out; the cookie is cleared whether or not a session was ended.",
+            "headers": {
+              "Clear-Site-Data": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "`\"cache\", \"storage\"`"
+              },
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The removal of the session cookie (`Max-Age=0`)."
+              }
+            }
+          },
+          "403": {
+            "description": "cross_site_request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "cross_site_request"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "cross_site_request"
+            ]
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "database_busy, database_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "database_busy",
+                            "database_unavailable"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "database_busy",
+              "database_unavailable"
+            ]
+          }
+        }
+      }
+    },
+    "/api/me": {
+      "get": {
+        "summary": "The signed-in account.",
+        "description": "Answers an upgrade session too, with the guest it belongs to\n(`accountType: \"guest\"`): the one read open to it, so the frontend can\ntell a guest from a signed-out browser (ADR 0018).",
+        "operationId": "get_me",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unauthenticated"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "unauthenticated"
+            ]
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "database_busy, database_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "database_busy",
+                            "database_unavailable"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "database_busy",
+              "database_unavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Sets or clears the account's email.",
+        "description": "Idempotent: the same body twice leaves the same account, and clearing an\nabsent email is a `204` like any other. Nothing is returned; the\ndashboard reads the account back through `GET /api/me`.",
+        "operationId": "update_me",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "invalid_body, invalid_email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body",
+                            "invalid_email"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body",
+              "invalid_email"
+            ]
+          },
+          "401": {
+            "description": "unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unauthenticated"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "unauthenticated"
+            ]
+          },
+          "403": {
+            "description": "cross_site_request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "cross_site_request"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "cross_site_request"
+            ]
+          },
+          "404": {
+            "description": "account_not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "account_not_found"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "account_not_found"
+            ]
+          },
+          "413": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "415": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "422": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "database_busy, database_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "database_busy",
+                            "database_unavailable"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "database_busy",
+              "database_unavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/passkeys": {
+      "get": {
+        "summary": "The account's passkeys.",
+        "operationId": "list_passkeys",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unauthenticated"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "unauthenticated"
+            ]
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "database_busy, database_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "database_busy",
+                            "database_unavailable"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "database_busy",
+              "database_unavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/passkeys/register-options": {
+      "post": {
+        "summary": "`POST /api/passkeys/register-options`, no body: the challenge for another\npasskey of the signed-in account, its existing credentials excluded.",
+        "operationId": "get_passkey_addition_options",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdditionOptionsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unauthenticated"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "unauthenticated"
+            ]
+          },
+          "403": {
+            "description": "cross_site_request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "cross_site_request"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "cross_site_request"
+            ]
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "database_busy, database_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "database_busy",
+                            "database_unavailable"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "database_busy",
+              "database_unavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/passkeys/verify-registration": {
+      "post": {
+        "summary": "`POST /api/passkeys/verify-registration`: stores the new passkey under the\nsession's account and answers `201` with it as `GET /api/passkeys` lists\nit. The session is left as it is: the account was signed in already.",
+        "operationId": "verify_passkey_addition",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyAdditionData"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "discoverable_credential_required, invalid_body, registration_verification_failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "discoverable_credential_required",
+                            "invalid_body",
+                            "registration_verification_failed"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "discoverable_credential_required",
+              "invalid_body",
+              "registration_verification_failed"
+            ]
+          },
+          "401": {
+            "description": "unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unauthenticated"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "unauthenticated"
+            ]
+          },
+          "403": {
+            "description": "cross_site_request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "cross_site_request"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "cross_site_request"
+            ]
+          },
+          "404": {
+            "description": "registration_not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "registration_not_found"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "registration_not_found"
+            ]
+          },
+          "409": {
+            "description": "credential_already_registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "credential_already_registered"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "credential_already_registered"
+            ]
+          },
+          "413": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "415": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "422": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "database_busy, database_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "database_busy",
+                            "database_unavailable"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "database_busy",
+              "database_unavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/passkeys/{id}": {
+      "delete": {
+        "summary": "Deletes one of the account's passkeys, never its last one.",
+        "operationId": "delete_passkey",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "invalid_path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_path"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_path"
+            ]
+          },
+          "401": {
+            "description": "unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unauthenticated"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "unauthenticated"
+            ]
+          },
+          "403": {
+            "description": "cross_site_request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "cross_site_request"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "cross_site_request"
+            ]
+          },
+          "404": {
+            "description": "passkey_not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "passkey_not_found"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "passkey_not_found"
+            ]
+          },
+          "409": {
+            "description": "last_passkey",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "last_passkey"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "last_passkey"
+            ]
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "database_busy, database_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "database_busy",
+                            "database_unavailable"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "database_busy",
+              "database_unavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Renames one of the account's passkeys.",
+        "operationId": "rename_passkey",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenamePasskeyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_body, invalid_passkey_name, invalid_path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body",
+                            "invalid_passkey_name",
+                            "invalid_path"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body",
+              "invalid_passkey_name",
+              "invalid_path"
+            ]
+          },
+          "401": {
+            "description": "unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unauthenticated"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "unauthenticated"
+            ]
+          },
+          "403": {
+            "description": "cross_site_request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "cross_site_request"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "cross_site_request"
+            ]
+          },
+          "404": {
+            "description": "passkey_not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "passkey_not_found"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "passkey_not_found"
+            ]
+          },
+          "409": {
+            "description": "last_passkey",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "last_passkey"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "last_passkey"
+            ]
+          },
+          "413": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "415": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "422": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "database_busy, database_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "database_busy",
+                            "database_unavailable"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "database_busy",
+              "database_unavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/webauthn/login-options": {
+      "post": {
+        "summary": "The challenge any registered credential may answer.",
+        "description": "Takes no body: the challenge is the same for everyone, and nothing about\nthe user is asked before the authenticator has spoken.",
+        "operationId": "get_login_options",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginOptionsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "cross_site_request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "cross_site_request"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "cross_site_request"
+            ]
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "database_busy, database_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "database_busy",
+                            "database_unavailable"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "database_busy",
+              "database_unavailable"
+            ]
+          }
+        }
+      }
+    },
+    "/api/webauthn/register-options": {
+      "post": {
+        "summary": "The challenge for a new account, or, under an upgrade session, for the\nguest's first passkey with the guest's id as the user handle.",
+        "operationId": "get_registration_options",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationOptionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationOptionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_body, invalid_display_name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body",
+                            "invalid_display_name"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body",
+              "invalid_display_name"
+            ]
+          },
+          "403": {
+            "description": "cross_site_request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "cross_site_request"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "cross_site_request"
+            ]
+          },
+          "413": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "415": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "422": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "database_busy, database_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "database_busy",
+                            "database_unavailable"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "database_busy",
+              "database_unavailable"
+            ]
+          }
+        }
+      }
+    },
+    "/api/webauthn/verify-login": {
+      "post": {
+        "summary": "A finished login signs the account in: the response sets the session\ncookie alongside the body.",
+        "operationId": "verify_login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyLoginData"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The session cookie (`cas_session`, `__Host-cas_session` on an https origin): HttpOnly, SameSite=Lax, Path=/."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyLoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "401": {
+            "description": "invalid_credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_credential"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_credential"
+            ]
+          },
+          "403": {
+            "description": "cross_site_request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "cross_site_request"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "cross_site_request"
+            ]
+          },
+          "404": {
+            "description": "login_not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "login_not_found"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "login_not_found"
+            ]
+          },
+          "413": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "415": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "422": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "database_busy, database_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "database_busy",
+                            "database_unavailable"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "database_busy",
+              "database_unavailable"
+            ]
+          }
+        }
+      }
+    },
+    "/api/webauthn/verify-registration": {
+      "post": {
+        "summary": "A finished registration signs the new account in: the response sets the\nsession cookie alongside the body. Under an upgrade session the guest is\nupgraded instead, and the cookie is the full session the upgrade session\nwas rotated into, inside the upgrade's transaction.",
+        "operationId": "verify_registration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRegistrationData"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The session cookie (`cas_session`, `__Host-cas_session` on an https origin): HttpOnly, SameSite=Lax, Path=/."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyRegistrationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "discoverable_credential_required, invalid_body, registration_verification_failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "discoverable_credential_required",
+                            "invalid_body",
+                            "registration_verification_failed"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "discoverable_credential_required",
+              "invalid_body",
+              "registration_verification_failed"
+            ]
+          },
+          "401": {
+            "description": "unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unauthenticated"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "unauthenticated"
+            ]
+          },
+          "403": {
+            "description": "cross_site_request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "cross_site_request"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "cross_site_request"
+            ]
+          },
+          "404": {
+            "description": "registration_not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "registration_not_found"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "registration_not_found"
+            ]
+          },
+          "409": {
+            "description": "credential_already_registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "credential_already_registered"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "credential_already_registered"
+            ]
+          },
+          "413": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "415": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "422": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "database_busy, database_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "database_busy",
+                            "database_unavailable"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "database_busy",
+              "database_unavailable"
+            ]
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "200 when the DB answers `SELECT 1` in time, 503 otherwise.",
+        "operationId": "health_check",
+        "responses": {
+          "200": {
+            "description": "`OK`: the database answered.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "`DB unavailable`: the database did not answer in time.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oidc/authorize": {
+      "get": {
+        "summary": "The authorization endpoint: the authorization code flow with PKCE.",
+        "description": "The parameters are those of OpenID Connect Core §3.1.2.1 in the query:\n`client_id`, `redirect_uri`, `response_type=code`, `scope` with `openid`,\n`state`, `code_challenge` with `code_challenge_method=S256`, and\noptionally `nonce`, `prompt=none` and `id_token_hint`; they are read by\nhand under the RFC's rules, a repeated one refused (ADR 0010, ADR 0015).\nBefore the client and its redirect URI are known the answer is CAS's\npage; after, every answer is a redirect.",
+        "operationId": "authorize",
+        "responses": {
+          "302": {
+            "description": "To the client's redirect URI with `code` and `state`, or with `error`, `error_description` and `state` (`x-error-codes` lists the `error` values); or, without a signed-in session, to the frontend's `/sign-in` or, for a guest upgrade, `/create-account` with `return_to`.",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Where the browser goes next."
+              },
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "An upgrade session for a guest's `id_token_hint` (ADR 0015)."
+              }
+            },
+            "x-error-codes": [
+              "invalid_request",
+              "invalid_scope",
+              "login_required",
+              "registration_not_supported",
+              "request_not_supported",
+              "request_uri_not_supported",
+              "server_error",
+              "temporarily_unavailable",
+              "unauthorized_client",
+              "unsupported_response_type"
+            ]
+          },
+          "400": {
+            "description": "invalid_redirect_uri, invalid_request, unknown_client",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_redirect_uri",
+              "invalid_request",
+              "unknown_client"
+            ]
+          },
+          "500": {
+            "description": "internal, internal_error",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal",
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "service_unavailable",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "x-error-codes": [
+              "service_unavailable"
+            ]
+          }
+        }
+      },
+      "head": {
+        "summary": "`HEAD /oidc/authorize` is refused: axum would serve it from the `GET`\nhandler, and a `HEAD` must not authenticate and mint a code whose\nresponse nobody reads.",
+        "operationId": "authorize_head",
+        "responses": {
+          "405": {
+            "description": "`HEAD` is refused: it must not act for a response nobody reads.",
+            "headers": {
+              "Allow": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The methods the endpoint serves."
+              }
+            }
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          }
+        }
+      }
+    },
+    "/oidc/end_session": {
+      "get": {
+        "summary": "RP-initiated logout, the parameters in the query.",
+        "description": "`id_token_hint` (required, an ID token CAS issued to the client,\nexpired or not), `client_id`, `post_logout_redirect_uri` and `state`\n(RP-Initiated Logout 1.0 §2), read by hand, a repeated one refused. The\nsession the cookie names is ended only when it is the hint's account's\n(ADR 0013).",
+        "operationId": "end_session_by_query",
+        "responses": {
+          "302": {
+            "description": "To the registered `post_logout_redirect_uri` with `state`, or to the frontend's root without one.",
+            "headers": {
+              "Clear-Site-Data": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "`\"cache\", \"storage\"`, when a session was ended."
+              },
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Where the browser goes next."
+              },
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The removal of the session cookie, when the session it names was ended or is not live."
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_redirect_uri, invalid_request, unknown_client",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_redirect_uri",
+              "invalid_request",
+              "unknown_client"
+            ]
+          },
+          "500": {
+            "description": "internal, internal_error",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal",
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "service_unavailable",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "x-error-codes": [
+              "service_unavailable"
+            ]
+          }
+        }
+      },
+      "post": {
+        "summary": "RP-initiated logout, the parameters in a form body; the query is not\nread.",
+        "description": "The form is read as `/oidc/token` reads its own: the content type first,\nthen the body within the same bound.",
+        "operationId": "end_session_by_form",
+        "requestBody": {
+          "description": "The parameters `GET` takes in its query.",
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "302": {
+            "description": "To the registered `post_logout_redirect_uri` with `state`, or to the frontend's root without one.",
+            "headers": {
+              "Clear-Site-Data": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "`\"cache\", \"storage\"`, when a session was ended."
+              },
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Where the browser goes next."
+              },
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The removal of the session cookie, when the session it names was ended or is not live."
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_redirect_uri, invalid_request, unknown_client",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_redirect_uri",
+              "invalid_request",
+              "unknown_client"
+            ]
+          },
+          "500": {
+            "description": "internal, internal_error",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal",
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "service_unavailable",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "x-error-codes": [
+              "service_unavailable"
+            ]
+          }
+        }
+      },
+      "head": {
+        "summary": "`HEAD /oidc/end_session` is refused: axum would serve it from the `GET`\nhandler and end a session for a response nobody reads.",
+        "operationId": "end_session_head",
+        "responses": {
+          "405": {
+            "description": "`HEAD` is refused: it must not act for a response nobody reads.",
+            "headers": {
+              "Allow": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The methods the endpoint serves."
+              }
+            }
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          }
+        }
+      }
+    },
+    "/oidc/jwks.json": {
+      "get": {
+        "summary": "The published signing keys, a JWK Set (RFC 7517).",
+        "operationId": "jwks",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Jwks"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          }
+        }
+      }
+    },
+    "/oidc/token": {
+      "post": {
+        "summary": "The token endpoint: the authorization code exchange, the refresh, and\nthe guest grant.",
+        "description": "The body is `application/x-www-form-urlencoded` (RFC 6749 §3.2), read\nby hand under the RFC's rules, a repeated parameter refused:\n`grant_type=authorization_code` with `code`, `redirect_uri` and\n`code_verifier` (ADR 0011); `grant_type=refresh_token` with\n`refresh_token` and an optional `scope` (ADR 0012);\n`grant_type=urn:memebattle:oauth:grant-type:guest` with an optional\n`scope` (ADR 0014). A confidential client authenticates with\n`Authorization: Basic` or with `client_id` and `client_secret` in the\nbody, a public client sends `client_id` alone. Every answer is\n`Cache-Control: no-store` and `Pragma: no-cache`.",
+        "operationId": "token",
+        "requestBody": {
+          "description": "The grant's parameters, see the operation's description.",
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_grant, invalid_request, invalid_scope, unauthorized_client, unsupported_grant_type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_grant",
+                        "invalid_request",
+                        "invalid_scope",
+                        "unauthorized_client",
+                        "unsupported_grant_type"
+                      ]
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_grant",
+              "invalid_request",
+              "invalid_scope",
+              "unauthorized_client",
+              "unsupported_grant_type"
+            ]
+          },
+          "401": {
+            "description": "invalid_client",
+            "headers": {
+              "www-authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "`Basic realm=\"cas\"`, for a client that tried the `Authorization` header."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_client"
+                      ]
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_client"
+            ]
+          },
+          "429": {
+            "description": "rate_limit_exceeded",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Seconds until the guest grant may be asked again."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "rate_limit_exceeded"
+                      ]
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "rate_limit_exceeded"
+            ]
+          },
+          "500": {
+            "description": "internal_error, server_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "error",
+                        "error_description"
+                      ],
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "server_error"
+                          ]
+                        },
+                        "error_description": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "error"
+                      ],
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "required": [
+                            "code",
+                            "message"
+                          ],
+                          "properties": {
+                            "code": {
+                              "type": "string",
+                              "enum": [
+                                "internal_error"
+                              ]
+                            },
+                            "message": {
+                              "type": "string",
+                              "description": "For the developer; clients branch on `code`."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error",
+              "server_error"
+            ]
+          },
+          "503": {
+            "description": "temporarily_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "temporarily_unavailable"
+                      ]
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "temporarily_unavailable"
+            ]
+          }
+        },
+        "security": [
+          {},
+          {
+            "basic": []
+          }
+        ]
+      }
+    },
+    "/oidc/userinfo": {
+      "get": {
+        "summary": "The claims of the account behind the access token.",
+        "description": "The token is read from `Authorization: Bearer` only, never from the\nquery or a body (ADR 0013).",
+        "operationId": "userinfo_by_get",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfoClaims"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_request",
+            "headers": {
+              "www-authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The Bearer challenge, with the code; a request without Bearer credentials gets a bare `Bearer` and no body."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request"
+                      ]
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_request"
+            ]
+          },
+          "401": {
+            "description": "invalid_token",
+            "headers": {
+              "www-authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The Bearer challenge, with the code; a request without Bearer credentials gets a bare `Bearer` and no body."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_token"
+                      ]
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_token"
+            ]
+          },
+          "403": {
+            "description": "insufficient_scope",
+            "headers": {
+              "www-authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The Bearer challenge, with the code; a request without Bearer credentials gets a bare `Bearer` and no body."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "insufficient_scope"
+                      ]
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "insufficient_scope"
+            ]
+          },
+          "500": {
+            "description": "internal_error, server_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "error",
+                        "error_description"
+                      ],
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "server_error"
+                          ]
+                        },
+                        "error_description": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "error"
+                      ],
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "required": [
+                            "code",
+                            "message"
+                          ],
+                          "properties": {
+                            "code": {
+                              "type": "string",
+                              "enum": [
+                                "internal_error"
+                              ]
+                            },
+                            "message": {
+                              "type": "string",
+                              "description": "For the developer; clients branch on `code`."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error",
+              "server_error"
+            ]
+          },
+          "503": {
+            "description": "temporarily_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "temporarily_unavailable"
+                      ]
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "temporarily_unavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "The claims of the account behind the access token, by `POST`: the same\nas `GET`, the body is not read (ADR 0013 (d)).",
+        "operationId": "userinfo_by_post",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfoClaims"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_request",
+            "headers": {
+              "www-authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The Bearer challenge, with the code; a request without Bearer credentials gets a bare `Bearer` and no body."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request"
+                      ]
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_request"
+            ]
+          },
+          "401": {
+            "description": "invalid_token",
+            "headers": {
+              "www-authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The Bearer challenge, with the code; a request without Bearer credentials gets a bare `Bearer` and no body."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_token"
+                      ]
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_token"
+            ]
+          },
+          "403": {
+            "description": "insufficient_scope",
+            "headers": {
+              "www-authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The Bearer challenge, with the code; a request without Bearer credentials gets a bare `Bearer` and no body."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "insufficient_scope"
+                      ]
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "insufficient_scope"
+            ]
+          },
+          "500": {
+            "description": "internal_error, server_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "error",
+                        "error_description"
+                      ],
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "server_error"
+                          ]
+                        },
+                        "error_description": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "error"
+                      ],
+                      "properties": {
+                        "error": {
+                          "type": "object",
+                          "required": [
+                            "code",
+                            "message"
+                          ],
+                          "properties": {
+                            "code": {
+                              "type": "string",
+                              "enum": [
+                                "internal_error"
+                              ]
+                            },
+                            "message": {
+                              "type": "string",
+                              "description": "For the developer; clients branch on `code`."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error",
+              "server_error"
+            ]
+          },
+          "503": {
+            "description": "temporarily_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "temporarily_unavailable"
+                      ]
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "temporarily_unavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "summary": "The OpenAPI description of the service. Public: it says nothing the\ndiscovery document and the code do not.",
+        "operationId": "openapi_json",
+        "responses": {
+          "200": {
+            "description": "This document (OpenAPI 3.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccountType": {
+        "type": "string",
+        "description": "Whether an account has credentials of its own.\n\nMaps to the Postgres `account_type` enum; on the wire it is the same\nlowercase word.",
+        "enum": [
+          "guest",
+          "full"
+        ]
+      },
+      "AdditionOptionsResponse": {
+        "type": "object",
+        "required": [
+          "registrationId",
+          "ccr"
+        ],
+        "properties": {
+          "ccr": {
+            "type": "object",
+            "description": "The `PublicKeyCredentialCreationOptions` for `navigator.credentials.create`."
+          },
+          "registrationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identifies the ceremony; the client brings it back to finish."
+          }
+        }
+      },
+      "Discovery": {
+        "type": "object",
+        "description": "The discovery document. It advertises the whole SSO milestone, including\nthe endpoints later tickets add, so that it stays the same across their\nreleases (ADR 0009 (f)).",
+        "required": [
+          "issuer",
+          "authorization_endpoint",
+          "token_endpoint",
+          "userinfo_endpoint",
+          "end_session_endpoint",
+          "jwks_uri",
+          "response_types_supported",
+          "response_modes_supported",
+          "grant_types_supported",
+          "subject_types_supported",
+          "id_token_signing_alg_values_supported",
+          "scopes_supported",
+          "token_endpoint_auth_methods_supported",
+          "code_challenge_methods_supported",
+          "request_uri_parameter_supported"
+        ],
+        "properties": {
+          "authorization_endpoint": {
+            "type": "string"
+          },
+          "code_challenge_methods_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "end_session_endpoint": {
+            "type": "string"
+          },
+          "grant_types_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "id_token_signing_alg_values_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "jwks_uri": {
+            "type": "string"
+          },
+          "request_uri_parameter_supported": {
+            "type": "boolean",
+            "description": "Discovery §3 defaults this to `true`, and `/oidc/authorize` refuses\n`request_uri` (ADR 0010 (b)), so it is stated. The sibling\n`request_parameter_supported` defaults to `false` and stays implicit."
+          },
+          "response_modes_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "response_types_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scopes_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subject_types_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "token_endpoint": {
+            "type": "string"
+          },
+          "token_endpoint_auth_methods_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "`none` is a public client, which authenticates with its `client_id`\nand proves itself with PKCE (OpenID Connect Core §9, ADR 0011)."
+          },
+          "userinfo_endpoint": {
+            "type": "string"
+          }
+        }
+      },
+      "Jwks": {
+        "type": "object",
+        "description": "A JWK Set: the body of `/oidc/jwks.json`.",
+        "required": [
+          "keys"
+        ],
+        "properties": {
+          "keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicJwk"
+            }
+          }
+        }
+      },
+      "LoginOptionsResponse": {
+        "type": "object",
+        "required": [
+          "loginId",
+          "rcr"
+        ],
+        "properties": {
+          "loginId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identifies the ceremony; the client brings it back to finish."
+          },
+          "rcr": {
+            "type": "object",
+            "description": "The `PublicKeyCredentialRequestOptions` for `navigator.credentials.get`."
+          }
+        }
+      },
+      "MeResponse": {
+        "type": "object",
+        "description": "The signed-in account as the dashboard needs it. Nothing about the\nsession itself but when it ends if left alone: the id is server-side\nstate.\n\nUnder an upgrade session it is the guest (ADR 0018): `accountType:\n\"guest\"`, the generated `Guest <n>` name, `email: null`, and the upgrade\nsession's expiry. A resolved session of a guest is always an upgrade\nsession, so the type is all the frontend needs to tell the two apart.",
+        "required": [
+          "accountId",
+          "displayName",
+          "accountType",
+          "email",
+          "sessionExpiresAt"
+        ],
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountType": {
+            "$ref": "#/components/schemas/AccountType"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`null` when the account has no address."
+          },
+          "sessionExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PasskeyListResponse": {
+        "type": "object",
+        "required": [
+          "passkeys"
+        ],
+        "properties": {
+          "passkeys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PasskeyResponse"
+            }
+          }
+        }
+      },
+      "PasskeyResponse": {
+        "type": "object",
+        "description": "A passkey as the dashboard shows it. The credential itself (public key,\ncounter, flags) is server-side state and never leaves.",
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "lastUsedAt"
+        ],
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lastUsedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "`null` until the passkey is first used to sign in."
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "PublicJwk": {
+        "type": "object",
+        "description": "The public half of a signing key, as `/oidc/jwks.json` publishes it\n(RFC 7517, RFC 7518 §6.2.1).",
+        "required": [
+          "kty",
+          "crv",
+          "x",
+          "y",
+          "kid",
+          "use",
+          "alg"
+        ],
+        "properties": {
+          "alg": {
+            "type": "string"
+          },
+          "crv": {
+            "type": "string"
+          },
+          "kid": {
+            "type": "string"
+          },
+          "kty": {
+            "type": "string"
+          },
+          "use": {
+            "type": "string"
+          },
+          "x": {
+            "type": "string"
+          },
+          "y": {
+            "type": "string"
+          }
+        }
+      },
+      "RegistrationOptionsRequest": {
+        "type": "object",
+        "required": [
+          "displayName"
+        ],
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Validated by the handler rather than by the type, so a bad name gets\nits own error code instead of a generic `invalid_body`."
+          }
+        }
+      },
+      "RegistrationOptionsResponse": {
+        "type": "object",
+        "required": [
+          "registrationId",
+          "ccr"
+        ],
+        "properties": {
+          "ccr": {
+            "type": "object",
+            "description": "The `PublicKeyCredentialCreationOptions` for `navigator.credentials.create`."
+          },
+          "registrationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identifies the ceremony; the client brings it back to finish. Not the\naccount id, which only a finished registration reveals."
+          }
+        }
+      },
+      "RenamePasskeyRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Validated by the handler rather than by the type, so a bad name gets\nits own error code instead of a generic `invalid_body`."
+          }
+        }
+      },
+      "TokenResponse": {
+        "type": "object",
+        "description": "The tokens, RFC 6749 §5.1 and OpenID Connect Core §3.1.3.3.\n\nThe fields are in alphabetical order, the order the members had when the\nbody was built as a JSON map, so the bytes on the wire did not change.",
+        "required": [
+          "access_token",
+          "expires_in",
+          "id_token",
+          "refresh_token",
+          "scope",
+          "token_type"
+        ],
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "description": "An ES256 JWT (RFC 9068) for the client's resource server."
+          },
+          "expires_in": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Seconds.",
+            "minimum": 0
+          },
+          "id_token": {
+            "type": "string"
+          },
+          "refresh_token": {
+            "type": "string",
+            "description": "Opaque; rotated on every refresh."
+          },
+          "scope": {
+            "type": "string",
+            "description": "The granted scopes, space-separated."
+          },
+          "token_type": {
+            "type": "string",
+            "description": "Always `Bearer`."
+          }
+        }
+      },
+      "UpdateMeRequest": {
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "properties": {
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`null` clears the address. The field is required: with the serde\ndefault a missing key would read as `null` and clear the address a\nclient never mentioned. Validated by the handler rather than by the\ntype, so a bad address gets its own error code."
+          }
+        }
+      },
+      "UserInfoClaims": {
+        "type": "object",
+        "description": "The `/oidc/userinfo` answer (OpenID Connect Core §5.3.2): `sub` and\n`account_type` always, the rest as the token's scopes release it — never\na `name` for a guest. `iss`,\n`aud` and `amr` are the ID token's business and are not repeated; Core\nrequires only `sub`.",
+        "required": [
+          "sub",
+          "account_type"
+        ],
+        "properties": {
+          "account_type": {
+            "$ref": "#/components/schemas/AccountType"
+          },
+          "email": {
+            "type": "string"
+          },
+          "email_verified": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sub": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "VerifyAdditionData": {
+        "type": "object",
+        "required": [
+          "registrationId",
+          "response"
+        ],
+        "properties": {
+          "registrationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "response": {
+            "type": "object",
+            "description": "The browser's `PublicKeyCredential` answer, JSON-encoded."
+          }
+        }
+      },
+      "VerifyLoginData": {
+        "type": "object",
+        "required": [
+          "loginId",
+          "response"
+        ],
+        "properties": {
+          "loginId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "response": {
+            "type": "object",
+            "description": "The browser's `PublicKeyCredential` assertion, JSON-encoded."
+          }
+        }
+      },
+      "VerifyLoginResponse": {
+        "type": "object",
+        "description": "Who signed in and with which credential. A session (#667) will accompany\nthis; until then the client learns the account id and nothing else.",
+        "required": [
+          "accountId",
+          "credentialId"
+        ],
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "credentialId": {
+            "type": "string",
+            "description": "Base64url."
+          }
+        }
+      },
+      "VerifyRegistrationData": {
+        "type": "object",
+        "required": [
+          "registrationId",
+          "response"
+        ],
+        "properties": {
+          "registrationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "response": {
+            "type": "object",
+            "description": "The browser's `PublicKeyCredential` answer, JSON-encoded."
+          }
+        }
+      },
+      "VerifyRegistrationResponse": {
+        "type": "object",
+        "description": "What the client needs after a successful registration: who it now is, and\nwhich credential was stored. The credential itself is server-side state and\nis never sent back.",
+        "required": [
+          "accountId",
+          "credentialId"
+        ],
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "credentialId": {
+            "type": "string",
+            "description": "Base64url."
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "basic": {
+        "type": "http",
+        "scheme": "basic",
+        "description": "`client_secret_basic`: a confidential client's id and secret."
+      },
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "An access token `/oidc/token` issued (ADR 0011)."
+      },
+      "session": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "cas_session",
+        "description": "The session cookie set by registration and login (ADR 0004). On an https origin its name is `__Host-cas_session`."
+      }
+    }
+  }
+}
