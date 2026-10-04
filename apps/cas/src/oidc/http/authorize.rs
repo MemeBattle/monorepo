@@ -20,20 +20,26 @@
 //! guest, opened here if the cookie does not already carry it. An upgrade
 //! session never gets a code. `return_to` never carries the hint on.
 
+use std::collections::BTreeMap;
+
 use axum::{
-    Router,
     extract::{OriginalUri, State},
-    http::{Extensions, HeaderMap, HeaderValue, header},
+    http::{Extensions, HeaderMap, HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
-    routing::get,
 };
 use time::OffsetDateTime;
 use tower_http::set_header::SetResponseHeaderLayer;
 use url::Url;
+use utoipa::openapi::{RefOr, ResponseBuilder, response::Response as OpenApiResponse};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
-use super::page::{ErrorPage, found, method_not_allowed, redirect_with};
+use super::page::{
+    ErrorPage, HeadRefused, found, location_header, method_not_allowed, redirect_with,
+};
 use crate::db::Failure;
 use crate::http::ApiState;
+use crate::http::error::ErrorCode;
+use crate::http::response::{Documented, error_codes, string_header};
 use crate::oidc::HintError;
 use crate::oidc::authorization::{self, AuthorizeRequest, OAuthError, PageError, Params};
 use crate::oidc::service::IssueError;
@@ -54,13 +60,10 @@ const LOGGED_CLIENT_ID_CHARS: usize = 64;
 /// a code; a route layer, so the root's fallback is not wrapped (see
 /// `oidc::http::router`). The cookie renewal layer re-sends the session
 /// cookie when resolving the session renewed it, as under `/api`.
-pub fn authorize_router(state: ApiState) -> Router {
+pub fn authorize_router(state: ApiState) -> OpenApiRouter {
     with_cookie_renewal(
-        Router::new()
-            .route(
-                "/authorize",
-                get(authorize).head(|| async { method_not_allowed("GET") }),
-            )
+        OpenApiRouter::new()
+            .routes(routes!(authorize, refuse_head))
             .route_layer(SetResponseHeaderLayer::overriding(
                 header::CACHE_CONTROL,
                 HeaderValue::from_static("no-store"),
@@ -69,9 +72,63 @@ pub fn authorize_router(state: ApiState) -> Router {
     )
 }
 
+/// What `/authorize` answers, for the description: a redirect, or CAS's
+/// own page before the redirect URI is trusted.
+struct AuthorizeResponses;
+
+impl utoipa::IntoResponses for AuthorizeResponses {
+    fn responses() -> BTreeMap<String, RefOr<OpenApiResponse>> {
+        let codes: Vec<&str> = OAuthError::ALL.iter().map(|error| error.as_str()).collect();
+        let redirect = ResponseBuilder::new()
+            .description(
+                "To the client's redirect URI with `code` and `state`, or with `error`, \
+                 `error_description` and `state` (`x-error-codes` lists the `error` values); \
+                 or, without a signed-in session, to the frontend's `/sign-in` or, for a \
+                 guest upgrade, `/create-account` with `return_to`.",
+            )
+            .header("Location", location_header())
+            .header(
+                "Set-Cookie",
+                string_header("An upgrade session for a guest's `id_token_hint` (ADR 0015)."),
+            )
+            .extensions(Some(error_codes(&codes)))
+            .build();
+        let mut responses = ErrorPage::responses();
+        responses.insert(StatusCode::FOUND.as_str().to_owned(), RefOr::T(redirect));
+        responses
+    }
+}
+
+/// The authorization endpoint: the authorization code flow with PKCE.
+///
+/// The parameters are those of OpenID Connect Core §3.1.2.1 in the query:
+/// `client_id`, `redirect_uri`, `response_type=code`, `scope` with `openid`,
+/// `state`, `code_challenge` with `code_challenge_method=S256`, and
+/// optionally `nonce`, `prompt=none` and `id_token_hint`; they are read by
+/// hand under the RFC's rules, a repeated one refused (ADR 0010, ADR 0015).
+/// Before the client and its redirect URI are known the answer is CAS's
+/// page; after, every answer is a redirect.
+#[utoipa::path(get, path = "/authorize")]
 async fn authorize(
     State(state): State<ApiState>,
     OriginalUri(uri): OriginalUri,
+    headers: HeaderMap,
+    extensions: Extensions,
+) -> Documented<AuthorizeResponses> {
+    answer(state, uri, headers, extensions).await.into()
+}
+
+/// `HEAD /authorize` is refused: axum would serve it from the `GET`
+/// handler, and a `HEAD` must not authenticate and mint a code whose
+/// response nobody reads.
+#[utoipa::path(head, path = "/authorize", operation_id = "authorize_head")]
+async fn refuse_head() -> Documented<HeadRefused> {
+    method_not_allowed("GET").into()
+}
+
+async fn answer(
+    state: ApiState,
+    uri: axum::http::Uri,
     headers: HeaderMap,
     extensions: Extensions,
 ) -> Response {
@@ -259,7 +316,9 @@ impl Back<'_> {
         if let Some(state) = self.state {
             pairs.push(("state", state));
         }
-        self.redirect(&pairs)
+        let mut response = self.redirect(&pairs);
+        response.extensions_mut().insert(ErrorCode(error.as_str()));
+        response
     }
 
     fn operational(&self, error: &sqlx::Error) -> Response {
@@ -348,6 +407,7 @@ fn database_page(error: sqlx::Error) -> Response {
 mod tests {
     use std::time::Duration;
 
+    use axum::Router;
     use axum::body::{Body, to_bytes};
     use axum::http::{Request, StatusCode};
     use sqlx::PgPool;
@@ -366,8 +426,9 @@ mod tests {
     use crate::oidc::authorization::tests::{CALLBACK, CHALLENGE};
     use crate::sessions::{SessionToken, UPGRADE_SESSION_LIFETIME};
     use crate::testing::{
-        TEST_ORIGIN, capture_tracing, fresh_signing_key_pem, header_str, scopes, session_cookie,
-        signed_id_token, signed_in, test_config, test_cookies, test_signing_key, test_state,
+        TEST_ORIGIN, capture_tracing, checked, fresh_signing_key_pem, header_str, scopes,
+        session_cookie, signed_id_token, signed_in, test_config, test_cookies, test_signing_key,
+        test_state,
     };
     use uuid::Uuid;
 
@@ -521,7 +582,7 @@ mod tests {
     #[sqlx::test]
     async fn an_anonymous_request_is_sent_to_sign_in_with_return_to(pool: PgPool) {
         register_ligretto(&pool).await;
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
         let original = uri(&valid());
 
         let response = send(&router, "GET", &original, None).await;
@@ -554,7 +615,7 @@ mod tests {
         register_ligretto(&pool).await;
         let session = signed_in(&pool, "Ada").await;
         let state = test_state(pool.clone());
-        let router = authorize_router(state.clone());
+        let router = checked(authorize_router(state.clone()));
         let original = uri(&valid());
 
         let response = send(&router, "GET", &original, Some(&session.cookie)).await;
@@ -599,7 +660,7 @@ mod tests {
         let registered = "https://app.example/cb?x=1";
         register_public(&pool, "app", registered, true).await;
         let session = signed_in(&pool, "Ada").await;
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
         let mut pairs = with("client_id", "app");
         pairs.retain(|(name, _)| *name != "redirect_uri");
         pairs.push(("redirect_uri", registered.to_owned()));
@@ -641,7 +702,7 @@ mod tests {
     #[sqlx::test]
     async fn an_untrusted_request_gets_a_page_and_no_redirect(pool: PgPool) {
         register_ligretto(&pool).await;
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
 
         for pairs in [
             with("client_id", "nope"),
@@ -668,7 +729,7 @@ mod tests {
     /// a warning naming the id as sent, bounded.
     #[sqlx::test]
     async fn an_unknown_client_is_logged_bounded_and_not_rendered(pool: PgPool) {
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
         let sent = format!("x{}", "y".repeat(200));
         let (events, _guard) = capture_tracing();
 
@@ -709,7 +770,7 @@ mod tests {
     #[sqlx::test]
     async fn an_invalid_request_is_sent_back_with_error_and_state(pool: PgPool) {
         register_ligretto(&pool).await;
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
 
         for (pairs, error, description) in [
             (
@@ -763,7 +824,7 @@ mod tests {
     async fn a_public_first_party_client_with_pkce_gets_a_code(pool: PgPool) {
         register_public(&pool, "spa", CALLBACK, true).await;
         let session = signed_in(&pool, "Ada").await;
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
 
         let response = send(
             &router,
@@ -783,7 +844,7 @@ mod tests {
     async fn a_client_that_is_not_first_party_is_unauthorized(pool: PgPool) {
         register_public(&pool, "third", CALLBACK, false).await;
         let session = signed_in(&pool, "Ada").await;
-        let router = authorize_router(test_state(pool.clone()));
+        let router = checked(authorize_router(test_state(pool.clone())));
 
         for prompt in [None, Some("none")] {
             let mut pairs = with("client_id", "third");
@@ -813,7 +874,7 @@ mod tests {
     async fn prompt_none_is_honoured(pool: PgPool) {
         register_ligretto(&pool).await;
         let session = signed_in(&pool, "Ada").await;
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
         let request = uri(&plus("prompt", "none"));
 
         let anonymous = send(&router, "GET", &request, None).await;
@@ -835,7 +896,7 @@ mod tests {
     async fn unsupported_requirements_are_refused_with_a_session(pool: PgPool) {
         register_ligretto(&pool).await;
         let session = signed_in(&pool, "Ada").await;
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
 
         for (name, value, error, description) in [
             (
@@ -908,7 +969,7 @@ mod tests {
     async fn hints_are_ignored(pool: PgPool) {
         register_ligretto(&pool).await;
         let session = signed_in(&pool, "Ada").await;
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
         let mut pairs = valid();
         pairs.extend([
             ("login_hint", "x".to_owned()),
@@ -934,7 +995,7 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
 
         let response = send(&router, "GET", &uri(&valid()), Some(&session.cookie)).await;
 
@@ -950,7 +1011,7 @@ mod tests {
     #[sqlx::test]
     async fn a_malformed_request_with_a_session_gets_the_page(pool: PgPool) {
         let session = signed_in(&pool, "Ada").await;
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
 
         let response = send(
             &router,
@@ -975,7 +1036,7 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        let router = authorize_router(test_state(pool.clone()));
+        let router = checked(authorize_router(test_state(pool.clone())));
 
         let response = send(&router, "GET", &uri(&valid()), Some(&session.cookie)).await;
 
@@ -1005,7 +1066,7 @@ mod tests {
             .acquire_timeout(Duration::from_secs(1))
             .connect_lazy("postgres://cas:cas@localhost:1/cas")
             .unwrap();
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
 
         let response = send(&router, "GET", &uri(&valid()), None).await;
 
@@ -1023,7 +1084,7 @@ mod tests {
     async fn the_code_is_never_logged(pool: PgPool) {
         register_ligretto(&pool).await;
         let session = signed_in(&pool, "Ada").await;
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
         let (events, _guard) = capture_tracing();
 
         let response = send(&router, "GET", &uri(&valid()), Some(&session.cookie)).await;
@@ -1115,7 +1176,7 @@ mod tests {
     async fn a_guest_hint_opens_an_upgrade_session_and_sends_to_create_account(pool: PgPool) {
         let client = ligretto(&pool).await;
         let guest = new_guest(&pool, 1).await;
-        let router = authorize_router(test_state(pool.clone()));
+        let router = checked(authorize_router(test_state(pool.clone())));
 
         let response = send(
             &router,
@@ -1160,7 +1221,7 @@ mod tests {
         let client = ligretto(&pool).await;
         let guest = new_guest(&pool, 1).await;
         let other = new_guest(&pool, 2).await;
-        let router = authorize_router(test_state(pool.clone()));
+        let router = checked(authorize_router(test_state(pool.clone())));
         let request = uri(&plus("id_token_hint", &hint_for(&client, &guest)));
         let first = send(&router, "GET", &request, None).await;
         let cookie = cookie_of(&session_cookie(&first, test_cookies().name()).unwrap());
@@ -1202,7 +1263,7 @@ mod tests {
     async fn an_upgrade_session_never_gets_a_code(pool: PgPool) {
         let client = ligretto(&pool).await;
         let guest = new_guest(&pool, 1).await;
-        let router = authorize_router(test_state(pool.clone()));
+        let router = checked(authorize_router(test_state(pool.clone())));
         let first = send(
             &router,
             "GET",
@@ -1245,7 +1306,7 @@ mod tests {
             .unwrap()
             .unwrap();
         let guest = new_guest(&pool, 1).await;
-        let router = authorize_router(test_state(pool.clone()));
+        let router = checked(authorize_router(test_state(pool.clone())));
         let valid_hint = hint_for(&client, &guest);
         let mut segments: Vec<String> = valid_hint.split('.').map(str::to_owned).collect();
         segments[2] = hint_for(&other_client, &guest)
@@ -1297,7 +1358,7 @@ mod tests {
     async fn an_expired_hint_is_invalid_request(pool: PgPool) {
         let client = ligretto(&pool).await;
         let guest = new_guest(&pool, 1).await;
-        let router = authorize_router(test_state(pool.clone()));
+        let router = checked(authorize_router(test_state(pool.clone())));
         let expired = signed_id_token(
             &test_signing_key(),
             &client,
@@ -1327,7 +1388,7 @@ mod tests {
         let full = signed_in(&pool, "Ada").await;
         let mut unknown = full.account.clone();
         unknown.id = Uuid::new_v4();
-        let router = authorize_router(test_state(pool.clone()));
+        let router = checked(authorize_router(test_state(pool.clone())));
 
         for account in [&full.account, &unknown] {
             let response = send(
@@ -1359,7 +1420,7 @@ mod tests {
         let guest = new_guest(&pool, 1).await;
         let session = signed_in(&pool, "Ada").await;
         let state = test_state(pool.clone());
-        let router = authorize_router(state.clone());
+        let router = checked(authorize_router(state.clone()));
 
         let response = send(
             &router,
@@ -1392,7 +1453,7 @@ mod tests {
     async fn prompt_none_with_a_guest_hint_is_login_required(pool: PgPool) {
         let client = ligretto(&pool).await;
         let guest = new_guest(&pool, 1).await;
-        let router = authorize_router(test_state(pool.clone()));
+        let router = checked(authorize_router(test_state(pool.clone())));
         let mut pairs = plus("id_token_hint", &hint_for(&client, &guest));
         pairs.push(("prompt", "none".to_owned()));
 
@@ -1413,7 +1474,7 @@ mod tests {
     async fn the_hint_is_never_logged(pool: PgPool) {
         let client = ligretto(&pool).await;
         let guest = new_guest(&pool, 1).await;
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
         let fresh = hint_for(&client, &guest);
         let expired = signed_id_token(
             &test_signing_key(),

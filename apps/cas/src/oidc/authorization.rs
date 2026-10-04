@@ -157,6 +157,20 @@ pub enum OAuthError {
 }
 
 impl OAuthError {
+    /// Every code, for the description of the redirect that carries one.
+    pub const ALL: [Self; 10] = [
+        Self::InvalidRequest,
+        Self::UnsupportedResponseType,
+        Self::InvalidScope,
+        Self::UnauthorizedClient,
+        Self::ServerError,
+        Self::TemporarilyUnavailable,
+        Self::LoginRequired,
+        Self::RequestNotSupported,
+        Self::RequestUriNotSupported,
+        Self::RegistrationNotSupported,
+    ];
+
     pub fn as_str(self) -> &'static str {
         match self {
             Self::InvalidRequest => "invalid_request",

@@ -40,7 +40,19 @@ pub const GUEST_DISPLAY_NAME_PREFIX: &str = "Guest";
 ///
 /// Maps to the Postgres `account_type` enum; on the wire it is the same
 /// lowercase word.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type, serde::Serialize, serde::Deserialize)]
+// `ToSchema` describes it in the OpenAPI document, being on the wire
+// already (docs/LAYOUT.md, rule 1).
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    serde::Serialize,
+    serde::Deserialize,
+    utoipa::ToSchema,
+)]
 #[sqlx(type_name = "account_type", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum AccountType {

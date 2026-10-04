@@ -5,43 +5,58 @@
 //! never from the request.
 //!
 //! The ceremony's failures answer with the codes account registration uses
-//! (`From<FinishError> for ApiError` next to that handler): it is the same
+//! (the `FinishError` table next to that handler): it is the same
 //! ceremony failing the same way, and the client's remedy is the same. What
 //! differs is the outcome: no account, no session, and the passkey as the
 //! list shows it. See `docs/adr/0006-passkey-management.md`, decision (g).
 
-use axum::{Json, extract::State, http::StatusCode};
+use axum::extract::State;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 use webauthn_rs::prelude::{CreationChallengeResponse, RegisterPublicKeyCredential};
 
 use crate::http::ApiState;
-use crate::http::error::ApiError;
-use crate::http::extract::Json as AppJson;
+use crate::http::error::ApiErrors;
+use crate::http::extract::{InvalidBody, Json};
+use crate::http::response::Created;
 use crate::sessions::Authenticated;
 use crate::webauthn::http::passkeys::PasskeyResponse;
+use crate::webauthn::registration::{FinishError, StartError};
 
-#[derive(Debug, Serialize, Clone, Deserialize)]
+#[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct AdditionOptionsResponse {
     /// Identifies the ceremony; the client brings it back to finish.
     registration_id: Uuid,
+    /// The `PublicKeyCredentialCreationOptions` for `navigator.credentials.create`.
+    #[schema(value_type = Object)]
     ccr: CreationChallengeResponse,
 }
 
-#[derive(Debug, Serialize, Clone, Deserialize)]
+#[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct VerifyAdditionData {
     registration_id: Uuid,
+    /// The browser's `PublicKeyCredential` answer, JSON-encoded.
+    #[schema(value_type = Object)]
     response: RegisterPublicKeyCredential,
 }
 
+crate::error_set!(pub(super) AdditionOptionsErrors: Authenticated, StartError);
+
 /// `POST /api/passkeys/register-options`, no body: the challenge for another
 /// passkey of the signed-in account, its existing credentials excluded.
+#[utoipa::path(
+    post,
+    path = "/register-options",
+    operation_id = "get_passkey_addition_options",
+    security(("session" = []))
+)]
 pub(super) async fn get_registration_options(
     State(state): State<ApiState>,
     authenticated: Authenticated,
-) -> Result<Json<AdditionOptionsResponse>, ApiError> {
+) -> Result<Json<AdditionOptionsResponse>, ApiErrors<AdditionOptionsErrors>> {
     let started = state.addition.start(&authenticated.account).await?;
 
     Ok(Json(AdditionOptionsResponse {
@@ -50,14 +65,22 @@ pub(super) async fn get_registration_options(
     }))
 }
 
+crate::error_set!(pub(super) VerifyAdditionErrors: Authenticated, InvalidBody, FinishError);
+
 /// `POST /api/passkeys/verify-registration`: stores the new passkey under the
 /// session's account and answers `201` with it as `GET /api/passkeys` lists
 /// it. The session is left as it is: the account was signed in already.
+#[utoipa::path(
+    post,
+    path = "/verify-registration",
+    operation_id = "verify_passkey_addition",
+    security(("session" = []))
+)]
 pub(super) async fn verify_registration(
     State(state): State<ApiState>,
     authenticated: Authenticated,
-    AppJson(data): AppJson<VerifyAdditionData>,
-) -> Result<(StatusCode, Json<PasskeyResponse>), ApiError> {
+    Json(data): Json<VerifyAdditionData>,
+) -> Result<Created<PasskeyResponse>, ApiErrors<VerifyAdditionErrors>> {
     let added = state
         .addition
         .finish(
@@ -67,7 +90,7 @@ pub(super) async fn verify_registration(
         )
         .await?;
 
-    Ok((StatusCode::CREATED, Json(added.into())))
+    Ok(Created(added.into()))
 }
 
 #[cfg(test)]
@@ -76,7 +99,7 @@ mod tests {
     use axum::{
         Router,
         body::{Body, to_bytes},
-        http::{Request, header},
+        http::{Request, StatusCode, header},
     };
     use sqlx::{PgPool, postgres::PgPoolOptions};
     use tower::ServiceExt;
@@ -87,8 +110,8 @@ mod tests {
 
     use crate::sessions::{SessionOrigin, SessionService};
     use crate::testing::{
-        ResidentSoftPasskey, register_soft_passkey, soft_passkey_registration, test_cookies,
-        test_origin, test_passkey, test_state, test_webauthn,
+        ResidentSoftPasskey, checked, register_soft_passkey, soft_passkey_registration,
+        test_cookies, test_origin, test_passkey, test_state, test_webauthn,
     };
     use crate::webauthn::ceremonies::PendingAddition;
     use crate::webauthn::http::passkeys::router;
@@ -179,7 +202,7 @@ mod tests {
     #[sqlx::test]
     async fn an_upgrade_session_cannot_add_a_passkey(pool: PgPool) {
         let upgrade = crate::testing::upgrade_signed_in(&pool).await;
-        let app = router(test_state(pool.clone()));
+        let app = checked(router(test_state(pool.clone())));
 
         for (uri, body) in [
             ("/register-options", None),
@@ -210,7 +233,7 @@ mod tests {
         let pool = PgPoolOptions::new()
             .connect_lazy("postgres://unused")
             .expect("a lazy pool needs no database");
-        let app = router(test_state(pool));
+        let app = checked(router(test_state(pool)));
 
         for (uri, body) in [
             ("/register-options", None),
@@ -236,8 +259,8 @@ mod tests {
     #[sqlx::test]
     async fn a_signed_in_account_adds_a_passkey_and_the_list_shows_both(pool: PgPool) {
         let (_, registered, cookie) = signed_in(&pool).await;
-        let first_replica = router(test_state(pool.clone()));
-        let second_replica = router(test_state(pool.clone()));
+        let first_replica = checked(router(test_state(pool.clone())));
+        let second_replica = checked(router(test_state(pool.clone())));
 
         let options = start(&first_replica, &cookie).await;
         let attestation = soft_passkey_registration(options.ccr);
@@ -307,7 +330,7 @@ mod tests {
             .unwrap();
         let (_, other) = register_soft_passkey(&pool).await;
 
-        let options = start(&router(test_state(pool)), &cookie).await;
+        let options = start(&checked(router(test_state(pool))), &cookie).await;
 
         let public_key = serde_json::to_value(&options.ccr.public_key).unwrap();
         let mut excluded: Vec<Vec<u8>> = options
@@ -353,7 +376,7 @@ mod tests {
     #[sqlx::test]
     async fn re_registering_a_passkey_the_account_has_is_a_conflict(pool: PgPool) {
         let (_, registered, cookie) = signed_in(&pool).await;
-        let app = router(test_state(pool.clone()));
+        let app = checked(router(test_state(pool.clone())));
         let options = start(&app, &cookie).await;
         let attestation = soft_passkey_registration(options.ccr);
         // Unchecked query: see docs/TESTS.md.
@@ -394,7 +417,7 @@ mod tests {
     #[sqlx::test]
     async fn finishing_twice_is_not_found(pool: PgPool) {
         let (_, _, cookie) = signed_in(&pool).await;
-        let app = router(test_state(pool));
+        let app = checked(router(test_state(pool)));
         let options = start(&app, &cookie).await;
         let attestation = soft_passkey_registration(options.ccr);
         let finish = || {
@@ -422,7 +445,7 @@ mod tests {
     async fn another_accounts_session_cannot_finish_the_ceremony(pool: PgPool) {
         let (_, _, ada) = signed_in(&pool).await;
         let (_, _, bob) = signed_in(&pool).await;
-        let app = router(test_state(pool.clone()));
+        let app = checked(router(test_state(pool.clone())));
         let options = start(&app, &ada).await;
         let attestation = soft_passkey_registration(options.ccr);
 
@@ -451,7 +474,7 @@ mod tests {
     #[sqlx::test]
     async fn a_wrong_answer_is_a_verification_failure(pool: PgPool) {
         let (_, _, cookie) = signed_in(&pool).await;
-        let app = router(test_state(pool));
+        let app = checked(router(test_state(pool)));
         let options = start(&app, &cookie).await;
         let other = start(&app, &cookie).await;
         let attestation = soft_passkey_registration(other.ccr);
@@ -476,7 +499,7 @@ mod tests {
     async fn a_malformed_body_is_invalid_body(pool: PgPool) {
         let (_, _, cookie) = signed_in(&pool).await;
 
-        let response = router(test_state(pool))
+        let response = checked(router(test_state(pool)))
             .oneshot(request(
                 "/verify-registration",
                 Some(&cookie),

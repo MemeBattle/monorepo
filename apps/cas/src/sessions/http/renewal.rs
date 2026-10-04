@@ -9,13 +9,13 @@
 use std::sync::{Arc, OnceLock};
 
 use axum::{
-    Router,
     extract::Request,
     http::header,
     middleware::{self, Next},
     response::Response,
 };
 use axum_extra::extract::cookie::Cookie;
+use utoipa_axum::router::OpenApiRouter;
 
 /// One per request, shared between the layer and the extractor through the
 /// request extensions. Written at most once: a request authenticates once.
@@ -31,7 +31,7 @@ pub(super) fn offer(slot: &RenewalSlot, cookie: Cookie<'static>) {
 /// Wraps a router so that a request whose session was renewed answers with
 /// the fresh cookie. Applied by the transport root to everything under
 /// `/api`: any handler there may take `Authenticated`.
-pub fn with_cookie_renewal(router: Router) -> Router {
+pub fn with_cookie_renewal(router: OpenApiRouter) -> OpenApiRouter {
     router.layer(middleware::from_fn(renew_cookie))
 }
 
@@ -54,6 +54,7 @@ async fn renew_cookie(mut request: Request, next: Next) -> Response {
 mod tests {
     use super::*;
     use axum::{
+        Router,
         body::Body,
         http::{Request, StatusCode},
         routing::{get, post},
@@ -120,8 +121,10 @@ mod tests {
             Router::new()
                 .route("/whoami", get(whoami))
                 .route("/sign-out", post(sign_out))
-                .with_state(state),
+                .with_state(state)
+                .into(),
         )
+        .into()
     }
 
     fn request(method: &str, uri: &str, cookie: &str) -> Request<Body> {

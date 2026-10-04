@@ -1,74 +1,78 @@
 //! The passkey login endpoints: issuing a challenge any registered credential
 //! may answer, and verifying the browser's assertion.
 
-use axum::{Json, extract::State};
+use axum::extract::State;
 use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 use webauthn_rs::prelude::{CredentialID, PublicKeyCredential, RequestChallengeResponse};
 
 use crate::http::ApiState;
-use crate::http::error::ApiError;
-use crate::http::extract::Json as AppJson;
+use crate::http::error::ApiErrors;
+use crate::http::extract::{InvalidBody, Json};
 use crate::sessions::SessionOrigin;
+use crate::sessions::http::WithSessionCookie;
+use crate::sessions::service::CreateError;
 use crate::webauthn::login::{FinishError, StartError};
 
-impl From<StartError> for ApiError {
-    fn from(error: StartError) -> Self {
-        match error {
-            // webauthn-rs refusing to issue a challenge for a valid relying
-            // party is nothing this code can name.
-            StartError::Webauthn(error) => ApiError::internal(error),
-            StartError::Db(error) => ApiError::from(error),
-        }
-    }
-}
+crate::api_errors! { StartError {
+    // webauthn-rs refusing to issue a challenge for a valid relying party is
+    // nothing this code can name.
+    Webauthn(_) => internal,
+    Db(_) => from,
+} }
 
-impl From<FinishError> for ApiError {
-    fn from(error: FinishError) -> Self {
-        match error {
-            FinishError::NotFound => ApiError::not_found("login_not_found", error.to_string()),
-            // One status and one code for every way an assertion can be
-            // refused: the reason is logged by the service, never told to the
-            // client, so a probe learns nothing about which credentials exist.
-            FinishError::Rejected(_) => ApiError::unauthorized(
-                "invalid_credential",
-                "The credential is not registered or the assertion could not be verified",
-            ),
-            FinishError::Db(error) => ApiError::from(error),
-        }
-    }
-}
+crate::api_errors! { FinishError {
+    NotFound => NOT_FOUND "login_not_found",
+    // One status and one code for every way an assertion can be refused:
+    // the reason is logged by the service, never told to the client, so a
+    // probe learns nothing about which credentials exist.
+    Rejected(_) => UNAUTHORIZED "invalid_credential":
+        "The credential is not registered or the assertion could not be verified",
+    Db(_) => from,
+} }
 
-#[derive(Debug, Serialize, Clone, Deserialize)]
+#[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct LoginOptionsResponse {
     /// Identifies the ceremony; the client brings it back to finish.
     login_id: Uuid,
+    /// The `PublicKeyCredentialRequestOptions` for `navigator.credentials.get`.
+    #[schema(value_type = Object)]
     rcr: RequestChallengeResponse,
 }
 
-#[derive(Debug, Serialize, Clone, Deserialize)]
+#[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct VerifyLoginData {
     login_id: Uuid,
+    /// The browser's `PublicKeyCredential` assertion, JSON-encoded.
+    #[schema(value_type = Object)]
     response: PublicKeyCredential,
 }
 
 /// Who signed in and with which credential. A session (#667) will accompany
 /// this; until then the client learns the account id and nothing else.
-#[derive(Debug, Serialize, Clone, Deserialize)]
+#[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct VerifyLoginResponse {
     account_id: Uuid,
+    /// Base64url.
+    #[schema(value_type = String)]
     credential_id: CredentialID,
 }
 
+crate::error_set!(pub(super) LoginOptionsErrors: StartError);
+
+/// The challenge any registered credential may answer.
+///
 /// Takes no body: the challenge is the same for everyone, and nothing about
 /// the user is asked before the authenticator has spoken.
+#[utoipa::path(post, path = "/login-options")]
 pub(super) async fn get_login_options(
     State(state): State<ApiState>,
-) -> Result<Json<LoginOptionsResponse>, ApiError> {
+) -> Result<Json<LoginOptionsResponse>, ApiErrors<LoginOptionsErrors>> {
     let started = state.login.start().await?;
 
     Ok(Json(LoginOptionsResponse {
@@ -77,20 +81,23 @@ pub(super) async fn get_login_options(
     }))
 }
 
+crate::error_set!(pub(super) VerifyLoginErrors: InvalidBody, FinishError, CreateError);
+
 /// A finished login signs the account in: the response sets the session
 /// cookie alongside the body.
+#[utoipa::path(post, path = "/verify-login")]
 pub(super) async fn verify_login(
     State(state): State<ApiState>,
     jar: CookieJar,
-    AppJson(data): AppJson<VerifyLoginData>,
-) -> Result<(CookieJar, Json<VerifyLoginResponse>), ApiError> {
+    Json(data): Json<VerifyLoginData>,
+) -> Result<WithSessionCookie<Json<VerifyLoginResponse>>, ApiErrors<VerifyLoginErrors>> {
     let logged_in = state.login.finish(data.login_id, &data.response).await?;
     let issued = state
         .sessions
         .create(logged_in.account.id, SessionOrigin::Login)
         .await?;
 
-    Ok((
+    Ok(WithSessionCookie(
         jar.add(state.cookies.session(&issued.token, &issued.session)),
         Json(VerifyLoginResponse {
             account_id: logged_in.account.id,
@@ -111,10 +118,11 @@ mod tests {
     use sqlx::{PgPool, postgres::PgPoolOptions};
     use tower::ServiceExt;
 
+    use crate::http::error::ApiError;
     use crate::sessions::SessionService;
     use crate::testing::{
-        ResidentSoftPasskey, register_soft_passkey, session_cookie, soft_passkey_assertion,
-        test_cookies, test_origin, test_state, test_webauthn,
+        ResidentSoftPasskey, checked, register_soft_passkey, session_cookie,
+        soft_passkey_assertion, test_cookies, test_origin, test_state, test_webauthn,
     };
     use crate::webauthn::CEREMONY_TIMEOUT;
     use crate::webauthn::http::router;
@@ -123,7 +131,7 @@ mod tests {
     use webauthn_authenticator_rs::WebauthnAuthenticator;
 
     fn test_app(pool: PgPool) -> Router {
-        router(test_state(pool))
+        checked(router(test_state(pool)))
     }
 
     /// For requests that fail before any query: a lazy pool never connects,
