@@ -1,6 +1,6 @@
-//! `GET` and `POST /end_session`: RP-initiated logout (OpenID Connect
+//! `GET` and `POST /oidc/end_session`: RP-initiated logout (OpenID Connect
 //! RP-Initiated Logout 1.0). Served under `/oidc` with `ApiState`, outside
-//! `/api`: like `/authorize`, it is a top-level navigation from another
+//! `/api`: like `/oidc/authorize`, it is a top-level navigation from another
 //! site, which the Fetch Metadata line under `/api` would refuse.
 //!
 //! The request is validated in full before anything happens, and every
@@ -34,7 +34,7 @@ use crate::oidc::end_session::{EndSessionError, ValidEndSession};
 use crate::sessions::SessionToken;
 use crate::sessions::http::{CLEAR_SITE_DATA, CLEAR_SITE_DATA_ON_LOGOUT};
 
-/// `GET /end_session` with the parameters in the query, `POST` with them in
+/// `GET /oidc/end_session` with the parameters in the query, `POST` with them in
 /// a form body, as RP-Initiated Logout §2 requires both (ADR 0013 (h)); the
 /// query of a `POST` is not read. `HEAD` is refused explicitly: axum would
 /// serve it from the `GET` handler and end a session for a response nobody
@@ -54,7 +54,7 @@ pub fn end_session_router(state: ApiState) -> OpenApiRouter {
         .with_state(state)
 }
 
-/// What `/end_session` answers, for the description: a redirect once the
+/// What `/oidc/end_session` answers, for the description: a redirect once the
 /// request is valid, CAS's own page for every refusal.
 struct EndSessionResponses;
 
@@ -104,7 +104,7 @@ async fn by_query(
 /// RP-initiated logout, the parameters in a form body; the query is not
 /// read.
 ///
-/// The form is read as `/token` reads its own: the content type first,
+/// The form is read as `/oidc/token` reads its own: the content type first,
 /// then the body within the same bound.
 #[utoipa::path(
     post,
@@ -138,7 +138,7 @@ async fn by_form(
         .into()
 }
 
-/// `HEAD /end_session` is refused: axum would serve it from the `GET`
+/// `HEAD /oidc/end_session` is refused: axum would serve it from the `GET`
 /// handler and end a session for a response nobody reads.
 #[utoipa::path(head, path = "/oidc/end_session", operation_id = "end_session_head")]
 async fn refuse_head() -> Documented<HeadRefused> {
@@ -333,7 +333,7 @@ mod tests {
     }
 
     impl Fixture {
-        /// An ID token for `account`, as `/token` issues it, signed by
+        /// An ID token for `account`, as `/oidc/token` issues it, signed by
         /// `key` at `issued_at`.
         fn hint_signed_by(
             &self,
@@ -902,7 +902,7 @@ mod tests {
 
     /// Logout ends the CAS session and nothing else: the application's
     /// grant, obtained with that session, still refreshes (ADR 0013 (i)).
-    /// The hint is the ID token `/token` itself issued.
+    /// The hint is the ID token `/oidc/token` itself issued.
     #[sqlx::test]
     async fn grants_survive_the_logout(pool: PgPool) {
         let fixture = fixture(&pool).await;

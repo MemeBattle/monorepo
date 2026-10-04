@@ -485,7 +485,7 @@ pub async fn signed_in(pool: &PgPool, name: &str) -> SignedIn {
 }
 
 /// A guest, minted by a public client of its own (`guest-maker`), holding an
-/// upgrade session as `/authorize` opens one for its `id_token_hint`
+/// upgrade session as `/oidc/authorize` opens one for its `id_token_hint`
 /// (ADR 0015).
 pub async fn upgrade_signed_in(pool: &PgPool) -> SignedIn {
     let client = register_public_client(pool, "guest-maker", &[]).await;
@@ -505,7 +505,7 @@ pub async fn upgrade_signed_in(pool: &PgPool) -> SignedIn {
     }
 }
 
-/// An ID token as `/token` issues it under the test issuer: to `client`,
+/// An ID token as `/oidc/token` issues it under the test issuer: to `client`,
 /// for `account`, signed by `key` at `issued_at`.
 pub fn signed_id_token(
     key: &SigningKey,
@@ -528,7 +528,7 @@ pub fn signed_id_token(
     )
 }
 
-/// An access token as `/token` issues it under the test issuer.
+/// An access token as `/oidc/token` issues it under the test issuer.
 pub fn signed_access_token(
     key: &SigningKey,
     client: &Client,

@@ -3,7 +3,7 @@
 //! A client is a row in `clients`: an id an operator picked, what it is
 //! allowed to ask for, and — for a confidential client — the SHA-256 of a
 //! secret CAS drew once. The registry has no HTTP surface of its own;
-//! `/authorize` and `/token` read it and own their own error mapping. Until
+//! `/oidc/authorize` and `/oidc/token` read it and own their own error mapping. Until
 //! the admin panel exists, rows are written by the `cas-client` binary
 //! through [`registration::register`]. See
 //! `docs/adr/0008-oidc-clients-registry.md`.
@@ -50,7 +50,7 @@ pub enum ClientKind {
     /// A browser or native application: the code ships to the user, so it
     /// holds no secret and authenticates with PKCE alone.
     Public,
-    /// A server-side application: it authenticates at `/token` with a secret
+    /// A server-side application: it authenticates at `/oidc/token` with a secret
     /// only it and CAS know.
     Confidential,
 }
@@ -112,7 +112,7 @@ pub struct Client {
     pub guest_grants_per_minute: GuestGrantsPerMinute,
     /// The allow-list of scopes this client may request.
     pub scopes: Vec<Scope>,
-    /// The `aud` of the access tokens `/token` issues to this client.
+    /// The `aud` of the access tokens `/oidc/token` issues to this client.
     pub audience: Audience,
     pub created_at: OffsetDateTime,
 }
@@ -181,7 +181,7 @@ pub struct NewClient {
 }
 
 impl NewClient {
-    /// A public client: no secret, PKCE alone at `/token`.
+    /// A public client: no secret, PKCE alone at `/oidc/token`.
     pub fn public(
         id: ClientId,
         name: ClientName,
@@ -190,7 +190,7 @@ impl NewClient {
         Self::new(id, name, ClientKind::Public, None, redirect_uris)
     }
 
-    /// A confidential client, identified at `/token` by the secret whose hash
+    /// A confidential client, identified at `/oidc/token` by the secret whose hash
     /// this is. The secret itself never reaches this type.
     pub fn confidential(
         id: ClientId,
@@ -259,7 +259,7 @@ impl NewClient {
     }
 
     /// Replaces the default allow-list. An empty list is allowed by the type
-    /// and means "this client may request nothing", which `/authorize` will
+    /// and means "this client may request nothing", which `/oidc/authorize` will
     /// refuse; the CLI never produces one.
     #[must_use]
     pub fn with_scopes(mut self, scopes: Vec<Scope>) -> Self {

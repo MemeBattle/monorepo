@@ -5,7 +5,7 @@
 //! issuer, everything else under `/oidc` (ADR 0017). `/oidc` is only a
 //! prefix each route spells out in its path: it has no layer and no fallback
 //! of its own. The documents have state of their own,
-//! the endpoints `ApiState`, so each has its own router. `/userinfo` also
+//! the endpoints `ApiState`, so each has its own router. `/oidc/userinfo` also
 //! has a CORS policy of its own, which the transport root applies.
 
 pub mod authorize;
@@ -38,7 +38,7 @@ pub struct Documents {
     pub jwks: Jwks,
 }
 
-/// `GET /.well-known/openid-configuration` and `GET /jwks.json`. Both are
+/// `GET /.well-known/openid-configuration` and `GET /oidc/jwks.json`. Both are
 /// public and change only on a rotation, whose procedure allows for the
 /// hour they may be cached. A route layer, not `Router::layer`: the latter
 /// would also wrap this router's default fallback, and once merged into the

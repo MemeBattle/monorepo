@@ -4,7 +4,7 @@
 //!
 //! It runs on the account-registration endpoints, chosen by the session and
 //! not by a parameter: a request that carries an upgrade session — which
-//! `/authorize` opened for a guest's `id_token_hint` — upgrades that guest
+//! `/oidc/authorize` opened for a guest's `id_token_hint` — upgrades that guest
 //! instead of creating an account. The challenge is the one registration
 //! issues (ADR 0001 (d), (e)), with the guest's id as the WebAuthn user
 //! handle; the guest has no credential, so nothing is excluded.

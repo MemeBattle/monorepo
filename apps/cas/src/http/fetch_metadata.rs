@@ -105,7 +105,7 @@ impl Rejection {
 /// The decision, as a pure function of the method and the headers.
 ///
 /// Safe methods always pass: `GET` navigations from other sites are how the
-/// future OIDC `/authorize` arrives, and a safe method changes nothing. For
+/// future OIDC `/oidc/authorize` arrives, and a safe method changes nothing. For
 /// the rest, `Sec-Fetch-Site` is the authority when present: `same-origin`
 /// and `none` (a user-initiated request) pass; `same-site`, `cross-site`,
 /// and any value this code does not know, pass only with an allowed

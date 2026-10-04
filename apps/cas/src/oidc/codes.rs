@@ -1,6 +1,6 @@
 //! The values an authorization code flow carries: the code CAS hands the
-//! client, the PKCE challenge the client hands `/authorize`, and the
-//! verifier it later proves itself with at `/token`. How any of them crosses
+//! client, the PKCE challenge the client hands `/oidc/authorize`, and the
+//! verifier it later proves itself with at `/oidc/token`. How any of them crosses
 //! the database boundary is the repository's business (`repository.rs`).
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
@@ -85,7 +85,7 @@ pub enum CodeChallengeError {
 }
 
 /// A PKCE `code_challenge` (RFC 7636 §4.2): 43 to 128 characters of the
-/// unreserved set `[A-Za-z0-9-._~]`. Stored as sent; `/token` (#743)
+/// unreserved set `[A-Za-z0-9-._~]`. Stored as sent; `/oidc/token` (#743)
 /// compares it with the transformed verifier.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CodeChallenge(String);
@@ -128,7 +128,7 @@ pub struct CodeVerifierError;
 
 /// A PKCE `code_verifier` (RFC 7636 §4.1): 43 to 128 characters of the
 /// unreserved set, the secret whose S256 hash the client sent to
-/// `/authorize`. It proves that whoever redeems a code is whoever asked for
+/// `/oidc/authorize`. It proves that whoever redeems a code is whoever asked for
 /// it, so it is a secret for as long as the code lives: `Debug` is redacted
 /// and nothing exposes it.
 #[derive(Clone, PartialEq, Eq)]

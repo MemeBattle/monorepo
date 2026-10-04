@@ -91,17 +91,17 @@ pub struct ApiState {
     pub sessions: SessionService,
     pub cookies: CookieSettings,
     pub authorization: AuthorizationService,
-    /// `/token`, signing with the active key as `CAS_ISSUER`.
+    /// `/oidc/token`, signing with the active key as `CAS_ISSUER`.
     pub tokens: TokenService,
-    /// `/userinfo`, verifying access tokens against every published key.
+    /// `/oidc/userinfo`, verifying access tokens against every published key.
     pub userinfo: UserInfoService,
-    /// `/end_session`, verifying logout hints against every published key.
+    /// `/oidc/end_session`, verifying logout hints against every published key.
     pub end_session: EndSessionService,
-    /// `/authorize`, verifying a guest's `id_token_hint` against every
+    /// `/oidc/authorize`, verifying a guest's `id_token_hint` against every
     /// published key (ADR 0015 (c)).
     pub upgrade_hints: UpgradeHintService,
     /// The frontend's origin (`CAS_ORIGIN`): where the sign-in screen is,
-    /// for `/authorize` to send an anonymous request to.
+    /// for `/oidc/authorize` to send an anonymous request to.
     pub frontend_origin: Url,
 }
 
@@ -277,7 +277,7 @@ async fn not_found() -> ApiError {
 /// living only in the cookie is that it appears in no log (ADR 0004). The
 /// same goes the other way, where the `Cookie` header would arrive with
 /// every authenticated request. Nor does it log the query: a `GET
-/// /end_session` carries a signed ID token there, with the account's name
+/// /oidc/end_session` carries a signed ID token there, with the account's name
 /// and address in it (ADR 0013), so the span records the path alone.
 fn with_middleware(router: Router, userinfo: Router, cors_origins: Vec<HeaderValue>) -> Router {
     let cors_layer = CorsLayer::new()
@@ -960,7 +960,7 @@ mod tests {
             .unwrap()
     }
 
-    /// `/userinfo` is open to any origin, without credentials, for the
+    /// `/oidc/userinfo` is open to any origin, without credentials, for the
     /// `Authorization` header (ADR 0013 (e)).
     #[tokio::test]
     async fn userinfo_is_open_to_any_origin_without_credentials() {
@@ -1010,7 +1010,7 @@ mod tests {
     }
 
     /// Everything else keeps the root policy: another origin is refused for
-    /// the API and for `/token`, which stays backend-to-backend, and an
+    /// the API and for `/oidc/token`, which stays backend-to-backend, and an
     /// unknown path is still answered behind the root policy.
     #[tokio::test]
     async fn only_userinfo_is_open_to_other_origins() {
@@ -1213,7 +1213,7 @@ mod tests {
         assert_eq!(body["error"]["code"], "cross_site_request");
     }
 
-    /// A `GET /end_session` carries a signed ID token — the account's name
+    /// A `GET /oidc/end_session` carries a signed ID token — the account's name
     /// and address inside — in its query. The request span records the
     /// path alone, so neither the hint, nor any of its segments, nor the
     /// `state` reaches a span or an event, whether the request is accepted

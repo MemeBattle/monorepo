@@ -1,4 +1,4 @@
-//! `GET /authorize`: the start of the authorization code flow with PKCE
+//! `GET /oidc/authorize`: the start of the authorization code flow with PKCE
 //! (ADR 0010). Served under `/oidc` with `ApiState`, outside `/api`: it is a
 //! top-level navigation from another site, which is exactly what the Fetch
 //! Metadata line under `/api` refuses.
@@ -52,7 +52,7 @@ use crate::sessions::service::CreateError;
 /// the caller's choice, so it is bounded.
 const LOGGED_CLIENT_ID_CHARS: usize = 64;
 
-/// `GET /authorize`, holding `ApiState`. `HEAD` is refused explicitly: axum
+/// `GET /oidc/authorize`, holding `ApiState`. `HEAD` is refused explicitly: axum
 /// serves it from the `GET` handler otherwise, and a `HEAD` must not
 /// authenticate and mint a code whose response body nobody reads.
 ///
@@ -72,7 +72,7 @@ pub fn authorize_router(state: ApiState) -> OpenApiRouter {
     )
 }
 
-/// What `/authorize` answers, for the description: a redirect, or CAS's
+/// What `/oidc/authorize` answers, for the description: a redirect, or CAS's
 /// own page before the redirect URI is trusted.
 struct AuthorizeResponses;
 
@@ -118,7 +118,7 @@ async fn authorize(
     answer(state, uri, headers, extensions).await.into()
 }
 
-/// `HEAD /authorize` is refused: axum would serve it from the `GET`
+/// `HEAD /oidc/authorize` is refused: axum would serve it from the `GET`
 /// handler, and a `HEAD` must not authenticate and mint a code whose
 /// response nobody reads.
 #[utoipa::path(head, path = "/oidc/authorize", operation_id = "authorize_head")]
@@ -1126,7 +1126,7 @@ mod tests {
             .unwrap()
     }
 
-    /// A fresh ID token of `account` for `client`, as `/token` issues it.
+    /// A fresh ID token of `account` for `client`, as `/oidc/token` issues it.
     fn hint_for(client: &Client, account: &Account) -> String {
         signed_id_token(
             &test_signing_key(),

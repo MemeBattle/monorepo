@@ -3502,7 +3502,7 @@
         }
       },
       "head": {
-        "summary": "`HEAD /authorize` is refused: axum would serve it from the `GET`\nhandler, and a `HEAD` must not authenticate and mint a code whose\nresponse nobody reads.",
+        "summary": "`HEAD /oidc/authorize` is refused: axum would serve it from the `GET`\nhandler, and a `HEAD` must not authenticate and mint a code whose\nresponse nobody reads.",
         "operationId": "authorize_head",
         "responses": {
           "405": {
@@ -3660,7 +3660,7 @@
       },
       "post": {
         "summary": "RP-initiated logout, the parameters in a form body; the query is not\nread.",
-        "description": "The form is read as `/token` reads its own: the content type first,\nthen the body within the same bound.",
+        "description": "The form is read as `/oidc/token` reads its own: the content type first,\nthen the body within the same bound.",
         "operationId": "end_session_by_form",
         "requestBody": {
           "description": "The parameters `GET` takes in its query.",
@@ -3771,7 +3771,7 @@
         }
       },
       "head": {
-        "summary": "`HEAD /end_session` is refused: axum would serve it from the `GET`\nhandler and end a session for a response nobody reads.",
+        "summary": "`HEAD /oidc/end_session` is refused: axum would serve it from the `GET`\nhandler and end a session for a response nobody reads.",
         "operationId": "end_session_head",
         "responses": {
           "405": {
@@ -4686,7 +4686,7 @@
           },
           "request_uri_parameter_supported": {
             "type": "boolean",
-            "description": "Discovery §3 defaults this to `true`, and `/authorize` refuses\n`request_uri` (ADR 0010 (b)), so it is stated. The sibling\n`request_parameter_supported` defaults to `false` and stays implicit."
+            "description": "Discovery §3 defaults this to `true`, and `/oidc/authorize` refuses\n`request_uri` (ADR 0010 (b)), so it is stated. The sibling\n`request_parameter_supported` defaults to `false` and stays implicit."
           },
           "response_modes_supported": {
             "type": "array",
@@ -4729,7 +4729,7 @@
       },
       "Jwks": {
         "type": "object",
-        "description": "A JWK Set: the body of `/jwks.json`.",
+        "description": "A JWK Set: the body of `/oidc/jwks.json`.",
         "required": [
           "keys"
         ],
@@ -4841,7 +4841,7 @@
       },
       "PublicJwk": {
         "type": "object",
-        "description": "The public half of a signing key, as `/jwks.json` publishes it\n(RFC 7517, RFC 7518 §6.2.1).",
+        "description": "The public half of a signing key, as `/oidc/jwks.json` publishes it\n(RFC 7517, RFC 7518 §6.2.1).",
         "required": [
           "kty",
           "crv",
@@ -4973,7 +4973,7 @@
       },
       "UserInfoClaims": {
         "type": "object",
-        "description": "The `/userinfo` answer (OpenID Connect Core §5.3.2): `sub` and\n`account_type` always, the rest as the token's scopes release it — never\na `name` for a guest. `iss`,\n`aud` and `amr` are the ID token's business and are not repeated; Core\nrequires only `sub`.",
+        "description": "The `/oidc/userinfo` answer (OpenID Connect Core §5.3.2): `sub` and\n`account_type` always, the rest as the token's scopes release it — never\na `name` for a guest. `iss`,\n`aud` and `amr` are the ID token's business and are not repeated; Core\nrequires only `sub`.",
         "required": [
           "sub",
           "account_type"
@@ -5095,7 +5095,7 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "An access token `/token` issued (ADR 0011)."
+        "description": "An access token `/oidc/token` issued (ADR 0011)."
       },
       "session": {
         "type": "apiKey",

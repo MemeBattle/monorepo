@@ -37,7 +37,7 @@ pub struct Discovery {
     token_endpoint_auth_methods_supported: &'static [&'static str],
     #[schema(value_type = Vec<String>)]
     code_challenge_methods_supported: &'static [&'static str],
-    /// Discovery §3 defaults this to `true`, and `/authorize` refuses
+    /// Discovery §3 defaults this to `true`, and `/oidc/authorize` refuses
     /// `request_uri` (ADR 0010 (b)), so it is stated. The sibling
     /// `request_parameter_supported` defaults to `false` and stays implicit.
     request_uri_parameter_supported: bool,

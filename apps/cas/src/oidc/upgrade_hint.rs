@@ -1,6 +1,6 @@
 //! The `id_token_hint` of an authorization request: the guest upgrade's way
 //! in (ADR 0015 (c)). An application sends its guest's browser to
-//! `/authorize` with a fresh ID token of that guest; a hint that passes opens
+//! `/oidc/authorize` with a fresh ID token of that guest; a hint that passes opens
 //! an upgrade session for the guest, so it is judged as the bearer credential
 //! it is: signed by a published key, an ID token (`typ`), issued by this
 //! issuer, to the client that makes the request, and not expired by CAS's

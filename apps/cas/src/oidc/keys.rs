@@ -49,7 +49,7 @@ pub enum SigningKeyError {
     Inconsistent { index: usize },
 }
 
-/// The public half of a signing key, as `/jwks.json` publishes it
+/// The public half of a signing key, as `/oidc/jwks.json` publishes it
 /// (RFC 7517, RFC 7518 §6.2.1).
 // `ToSchema` describes it in the OpenAPI document, being on the wire
 // already (docs/LAYOUT.md, rule 1).
@@ -69,7 +69,7 @@ pub struct PublicJwk {
     pub alg: &'static str,
 }
 
-/// A JWK Set: the body of `/jwks.json`.
+/// A JWK Set: the body of `/oidc/jwks.json`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, utoipa::ToSchema)]
 pub struct Jwks {
     pub keys: Vec<PublicJwk>,

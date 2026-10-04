@@ -36,7 +36,7 @@ pub enum IssueError {
     Db(#[from] sqlx::Error),
 }
 
-/// A consumed code with everything it was bound to: what `/token` checks the
+/// A consumed code with everything it was bound to: what `/oidc/token` checks the
 /// verifier against and issues tokens for.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RedeemedCode {
@@ -50,7 +50,7 @@ pub struct RedeemedCode {
     pub nonce: Option<String>,
 }
 
-/// Why a code was not redeemed. `/token` answers every variant but `Db`
+/// Why a code was not redeemed. `/oidc/token` answers every variant but `Db`
 /// with `invalid_grant`; they are kept apart so that a replay can revoke
 /// what the first redemption produced (RFC 6749 §4.1.2, ADR 0011).
 #[derive(Debug, thiserror::Error)]
@@ -66,7 +66,7 @@ pub enum RedeemError {
     #[error("the session that authorized the code has ended")]
     SessionEnded,
 
-    /// A replay. `code_id` names the row, so that `/token` can revoke the
+    /// A replay. `code_id` names the row, so that `/oidc/token` can revoke the
     /// grant the first redemption produced.
     #[error("the code was already redeemed")]
     AlreadyRedeemed { code_id: Uuid },

@@ -51,7 +51,7 @@ pub(crate) fn base() -> OpenApi {
             HttpBuilder::new()
                 .scheme(HttpAuthScheme::Bearer)
                 .bearer_format("JWT")
-                .description(Some("An access token `/token` issued (ADR 0011)."))
+                .description(Some("An access token `/oidc/token` issued (ADR 0011)."))
                 .build(),
         ),
     );
@@ -221,8 +221,8 @@ pub(crate) fn add_api_error(operation: &mut Operation, status: StatusCode, code:
 /// The fallback 500 on every operation: `internal_error` in the `ApiError`
 /// shape, which the panic catcher and `ApiError::internal` answer with.
 /// Where a protocol endpoint describes a 500 of its own (`server_error` for
-/// `/token` and `/userinfo`, the `internal` page for `/authorize` and
-/// `/end_session`), the two become one response that lists both codes and
+/// `/oidc/token` and `/oidc/userinfo`, the `internal` page for `/oidc/authorize` and
+/// `/oidc/end_session`), the two become one response that lists both codes and
 /// describes both bodies: a `oneOf` of the two JSON shapes, or the page and
 /// the JSON side by side. No handler declares the fallback itself.
 pub(crate) fn describe_fallback(document: &mut OpenApi) {

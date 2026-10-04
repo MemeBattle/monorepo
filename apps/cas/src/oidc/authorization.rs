@@ -1,4 +1,4 @@
-//! What an authorization request is: the rules `GET /authorize` applies to
+//! What an authorization request is: the rules `GET /oidc/authorize` applies to
 //! its query before anything else happens (ADR 0010 (a), (b)). Pure domain:
 //! no axum, no SQL. The handler resolves the client and the redirect URI
 //! first, because until both are known no error may be sent to the client;
@@ -71,7 +71,7 @@ impl Params {
     }
 
     /// The parameters re-encoded as an `application/x-www-form-urlencoded`
-    /// query, in order, every occurrence of `name` left out. `/authorize`
+    /// query, in order, every occurrence of `name` left out. `/oidc/authorize`
     /// builds the `return_to` of a request that carried an `id_token_hint`
     /// with it: the hint has been judged, and it does not travel on into the
     /// frontend's URL (ADR 0015 (d)).
@@ -247,7 +247,7 @@ const PROMPT_VALUES: [&str; 3] = ["login", "consent", "select_account"];
 #[derive(Clone, PartialEq, Eq)]
 pub struct AuthorizeRequest {
     pub client_id: ClientId,
-    /// Exactly as sent; `/token` compares it byte for byte.
+    /// Exactly as sent; `/oidc/token` compares it byte for byte.
     pub redirect_uri: String,
     /// In request order, each once.
     pub scopes: Vec<Scope>,

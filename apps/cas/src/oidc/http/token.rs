@@ -1,4 +1,4 @@
-//! `POST /token`: the authorization code exchange and the refresh (ADR 0011,
+//! `POST /oidc/token`: the authorization code exchange and the refresh (ADR 0011,
 //! ADR 0012), and the guest grant (ADR 0014). Served under
 //! `/oidc` with `ApiState`, outside `/api`: it is called by a client's backend
 //! or by a public client, never with CAS's cookie, so neither the session
@@ -34,7 +34,7 @@ use crate::oidc::{IssuedTokens, Params, TokenError};
 /// The largest body a token request may have. The longest legitimate one —
 /// a code, a verifier of 128 characters, a redirect URI and a client's
 /// credentials — is well under a kilobyte; the bound is what stops a
-/// client from making CAS buffer anything larger. `POST /end_session` reads
+/// client from making CAS buffer anything larger. `POST /oidc/end_session` reads
 /// its form within the same bound.
 pub(super) const MAX_BODY_BYTES: usize = 8 * 1024;
 
@@ -45,7 +45,7 @@ pub(super) const FORM_CONTENT_TYPE: &str = "application/x-www-form-urlencoded";
 /// RFC 7617 §2).
 const BASIC_CHALLENGE: &str = "Basic realm=\"cas\"";
 
-/// `POST /token`, holding `ApiState`. Any other method is answered `405`
+/// `POST /oidc/token`, holding `ApiState`. Any other method is answered `405`
 /// by the router, `HEAD` and `GET` included.
 ///
 /// Every answer is `Cache-Control: no-store` and `Pragma: no-cache`, the
@@ -71,7 +71,7 @@ pub fn token_router(state: ApiState) -> OpenApiRouter {
 #[openapi(components(schemas(TokenResponse)))]
 struct TokenApi;
 
-/// What `/token` answers, for the description: the tokens, or an RFC 6749
+/// What `/oidc/token` answers, for the description: the tokens, or an RFC 6749
 /// §5.2 error.
 struct TokenResponses;
 
@@ -233,7 +233,7 @@ pub(super) struct OAuthErrorResponse {
 
 impl OAuthErrorResponse {
     /// Every refusal the mapping below can name, for the description. The
-    /// `/token` mapping and `/userinfo`'s database failure answer within
+    /// `/oidc/token` mapping and `/oidc/userinfo`'s database failure answer within
     /// it; [`SERVER_ERROR`] is the family's fallback and is not among them.
     pub(super) const DECLARED: [(StatusCode, &'static str); 8] = [
         (StatusCode::BAD_REQUEST, "invalid_request"),
@@ -269,7 +269,7 @@ impl OAuthErrorResponse {
 /// guest grant's rate limit `429` with `Retry-After`: RFC 6749 §5.2 has no
 /// code for it, and an extension grant may define its own. A database
 /// failure borrows the two codes RFC 6749 §4.1.2.1 defines for the
-/// authorization endpoint, as `/authorize` does: §5.2 has none, and a
+/// authorization endpoint, as `/oidc/authorize` does: §5.2 has none, and a
 /// client can act on "try again" as opposed to "this is broken".
 impl From<TokenError> for OAuthErrorResponse {
     fn from(error: TokenError) -> Self {
@@ -328,7 +328,7 @@ fn database_error(error: &sqlx::Error) -> OAuthErrorResponse {
     response
 }
 
-/// The answer to a database failure, which `/userinfo` gives too: "try
+/// The answer to a database failure, which `/oidc/userinfo` gives too: "try
 /// again" when [`crate::db::classify`] names it retryable, "this is
 /// broken" otherwise.
 pub(super) fn database_failure(error: &sqlx::Error) -> OAuthErrorResponse {
@@ -509,7 +509,7 @@ mod tests {
     }
 
     impl Fixture {
-        /// A code from `/authorize` for `client_id`, the way a signed-in
+        /// A code from `/oidc/authorize` for `client_id`, the way a signed-in
         /// browser gets one.
         async fn code(&self, client_id: &str, scope: &str) -> String {
             let query = form(&[
@@ -549,7 +549,7 @@ mod tests {
             basic(CONFIDENTIAL, self.secret.expose())
         }
 
-        /// `POST /token` with a form body and, optionally, an
+        /// `POST /oidc/token` with a form body and, optionally, an
         /// `Authorization` header.
         async fn token(&self, pairs: &[(&str, &str)], authorization: Option<&str>) -> Response {
             send(
