@@ -1,7 +1,8 @@
 import { useActionState, useEffect, useRef, useState } from 'react'
 import type { Ref } from 'react'
 
-import { isApiError } from '#shared/api/request'
+import type { UpdateEmailErrorCode } from '#entities/session'
+import { isApiError } from '#shared/api/client'
 import { Button, Icon, Section, Spinner, SubmitButton, TextField } from '#shared/ui'
 
 /** What the field says about an address this section could not save; never the raw message. */
@@ -122,7 +123,7 @@ const Editor = ({ email, onSave, onDone }: EditorProps) => {
       try {
         await onSave(address)
       } catch (error) {
-        const invalid = isApiError(error) && error.code === 'invalid_email'
+        const invalid = isApiError<UpdateEmailErrorCode>(error) && error.code === 'invalid_email'
         return { email: address, error: invalid ? messages.invalid : messages.failed }
       }
     }

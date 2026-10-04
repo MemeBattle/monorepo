@@ -1,8 +1,8 @@
 import { useActionState, useEffect, useId, useRef, useState } from 'react'
 import type { Ref } from 'react'
 
-import type { Passkey } from '#entities/passkey'
-import { isApiError } from '#shared/api/request'
+import type { Passkey, RenamePasskeyErrorCode } from '#entities/passkey'
+import { isApiError } from '#shared/api/client'
 import { MAX_LABEL_LENGTH, labelProblem, normalizeLabel } from '#shared/lib/label'
 import { Button, Icon, Spinner, SubmitButton, TextField } from '#shared/ui'
 import { DeletePasskeyDialog } from './DeletePasskeyDialog'
@@ -112,7 +112,7 @@ const Editor = ({ passkey, onRename, onDone }: EditorProps) => {
       try {
         await onRename(name)
       } catch (error) {
-        const disallowed = isApiError(error) && error.code === 'invalid_passkey_name'
+        const disallowed = isApiError<RenamePasskeyErrorCode>(error) && error.code === 'invalid_passkey_name'
         return { name, error: disallowed ? messages.disallowed : messages.failed }
       }
     }

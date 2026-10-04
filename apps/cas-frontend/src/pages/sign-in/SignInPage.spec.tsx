@@ -3,7 +3,7 @@ import { userEvent } from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ApiError } from '#shared/api/request'
+import { ApiError } from '#shared/api/client'
 import { routes } from '#app/routes'
 import { SignInPage } from './SignInPage'
 

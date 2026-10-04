@@ -3,9 +3,10 @@ import { useFormStatus } from 'react-dom'
 import { useLoaderData, useRevalidator } from 'react-router'
 
 import { addPasskey, deletePasskey, renamePasskey } from '#entities/passkey'
-import type { Passkey } from '#entities/passkey'
+import type { AddPasskeyErrorCode, DeletePasskeyErrorCode, Passkey, RenamePasskeyErrorCode } from '#entities/passkey'
 import { logout, updateEmail } from '#entities/session'
-import { isApiError } from '#shared/api/request'
+import type { UpdateEmailErrorCode } from '#entities/session'
+import { isApiError } from '#shared/api/client'
 import { Alert, Icon, Screen, Section, Spinner } from '#shared/ui'
 import { DashboardHeader } from './DashboardHeader'
 import { EmailSection } from './EmailSection'
@@ -87,7 +88,7 @@ const FullAccountDashboard = ({ me, passkeys }: DashboardData) => {
     try {
       await addPasskey()
     } catch (error) {
-      if (isApiError(error) && error.code === 'unauthenticated') {
+      if (isApiError<AddPasskeyErrorCode>(error) && error.code === 'unauthenticated') {
         // The session ended under the page: the loader finds none and redirects to sign-in.
         await revalidator.revalidate()
         return null
@@ -109,7 +110,7 @@ const FullAccountDashboard = ({ me, passkeys }: DashboardData) => {
       await renamePasskey(id, name)
     } catch (error) {
       // Deleted in another tab: the list is stale, not the name. The reload below takes the row away.
-      if (!(isApiError(error) && error.code === 'passkey_not_found')) {
+      if (!(isApiError<RenamePasskeyErrorCode>(error) && error.code === 'passkey_not_found')) {
         throw error
       }
     }
@@ -123,14 +124,14 @@ const FullAccountDashboard = ({ me, passkeys }: DashboardData) => {
     try {
       await deletePasskey(id)
     } catch (error) {
-      if (isApiError(error) && error.code === 'last_passkey') {
+      if (isApiError<DeletePasskeyErrorCode>(error) && error.code === 'last_passkey') {
         // Lost a race with another tab: this is the only passkey now. The reload below turns its delete off with the same words.
         setDeleteFailure(id, 'lastPasskey')
         await revalidator.revalidate()
         return
       }
       // Deleted in another tab: the list is stale, and the reload below takes the row away all the same.
-      if (!(isApiError(error) && error.code === 'passkey_not_found')) {
+      if (!(isApiError<DeletePasskeyErrorCode>(error) && error.code === 'passkey_not_found')) {
         // The list is fine; the row comes back with the failed action and says so.
         setDeleteFailure(id, 'failed')
         return
@@ -145,7 +146,7 @@ const FullAccountDashboard = ({ me, passkeys }: DashboardData) => {
     try {
       await updateEmail(email)
     } catch (error) {
-      if (isApiError(error) && error.code === 'unauthenticated') {
+      if (isApiError<UpdateEmailErrorCode>(error) && error.code === 'unauthenticated') {
         // The session ended under the page: the loader finds none and redirects to sign-in.
         await revalidator.revalidate()
         return

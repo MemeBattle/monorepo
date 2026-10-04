@@ -1,14 +1,22 @@
 import { startRegistration } from '@simplewebauthn/browser'
 import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser'
 
-import { request } from '#shared/api/request'
+import type { ErrorCodeOf } from '#shared/api/client'
+import type { AdditionOptionsResponse } from '#shared/api/generated/models/AdditionOptionsResponse'
+import type { GetPasskeyAdditionOptionsResponses } from '#shared/api/generated/models/GetPasskeyAdditionOptions'
+import type { VerifyPasskeyAdditionResponses } from '#shared/api/generated/models/VerifyPasskeyAddition'
+import { getPasskeyAdditionOptions } from '#shared/api/generated/operations/getPasskeyAdditionOptions'
+import { verifyPasskeyAddition } from '#shared/api/generated/operations/verifyPasskeyAddition'
 import type { Passkey } from './api'
 
-interface RegistrationOptionsResponse {
-  /** Names the ceremony, not the passkey; goes back with the answer. */
-  registrationId: string
-  ccr: { publicKey: PublicKeyCredentialCreationOptionsJSON }
-}
+/**
+ * The options as the authenticator reads them. `registrationId` names the ceremony, not the passkey, and goes back
+ * with the answer; the description leaves `ccr` an `object`.
+ */
+type AdditionOptions = Omit<AdditionOptionsResponse, 'ccr'> & { ccr: { publicKey: PublicKeyCredentialCreationOptionsJSON } }
+
+/** The codes `addPasskey` can fail with, from either request. */
+export type AddPasskeyErrorCode = ErrorCodeOf<GetPasskeyAdditionOptionsResponses> | ErrorCodeOf<VerifyPasskeyAdditionResponses>
 
 /**
  * The ceremony that gives the signed-in account another passkey: the server
@@ -29,10 +37,7 @@ interface RegistrationOptionsResponse {
  * before any request reaches the server.
  */
 export const addPasskey = async (): Promise<Passkey> => {
-  const { registrationId, ccr } = await request<RegistrationOptionsResponse>('/api/passkeys/register-options', { method: 'POST' })
+  const { registrationId, ccr } = (await getPasskeyAdditionOptions()) as AdditionOptions
   const response = await startRegistration({ optionsJSON: ccr.publicKey })
-  return request<Passkey>('/api/passkeys/verify-registration', {
-    method: 'POST',
-    body: { registrationId, response },
-  })
+  return verifyPasskeyAddition({ body: { registrationId, response } })
 }

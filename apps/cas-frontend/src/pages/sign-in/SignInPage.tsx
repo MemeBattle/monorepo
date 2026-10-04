@@ -3,7 +3,8 @@ import type { ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 
 import { isCeremonyCancelled, isWrongOrigin, signInWithPasskey, signInWithPasskeyFromAutofill } from '#entities/session'
-import { isApiError } from '#shared/api/request'
+import type { SignInWithPasskeyErrorCode } from '#entities/session'
+import { isApiError } from '#shared/api/client'
 import { Alert, Hero, Icon, Screen, SubmitButton, SwitchLink, TextField } from '#shared/ui'
 import { routes } from '#app/routes'
 import { leaveTo, readReturnTo, ReturnToLink } from '#app/returnTo'
@@ -50,7 +51,7 @@ const failures = {
  * refused cross-site request, no network) is the generic alert.
  */
 const toFailure = (error: unknown): Failure => {
-  if (isApiError(error)) {
+  if (isApiError<SignInWithPasskeyErrorCode>(error)) {
     switch (error.code) {
       case 'invalid_credential':
         return failures.unknownPasskey

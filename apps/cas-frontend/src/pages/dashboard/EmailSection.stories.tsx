@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 
-import { ApiError } from '#shared/api/request'
+import { ApiError } from '#shared/api/client'
 import { EmailSection } from './EmailSection'
 
 const never = () => new Promise<void>(() => {})

@@ -1,5 +1,6 @@
+import type { AddPasskeyErrorCode } from '#entities/passkey'
 import { isAuthenticatorUnsupported, isCeremonyCancelled, isPasskeyAlreadyRegistered, isWrongOrigin } from '#entities/session'
-import { isApiError } from '#shared/api/request'
+import { isApiError } from '#shared/api/client'
 
 /** What the alert above the passkeys says when adding one did not go through; never the raw `message` of an exception. */
 export interface AddPasskeyFailure {
@@ -44,7 +45,7 @@ export const addPasskeyFailures = {
  * network, a verification the server could not do) is the generic alert.
  */
 export const toAddPasskeyFailure = (error: unknown): AddPasskeyFailure => {
-  if (isApiError(error)) {
+  if (isApiError<AddPasskeyErrorCode>(error)) {
     switch (error.code) {
       case 'registration_not_found':
         return addPasskeyFailures.cancelled

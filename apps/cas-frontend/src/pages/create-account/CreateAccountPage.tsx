@@ -11,8 +11,8 @@ import {
   isWrongOrigin,
   registerWithPasskey,
 } from '#entities/session'
-import type { Me } from '#entities/session'
-import { isApiError } from '#shared/api/request'
+import type { GetMeErrorCode, Me, RegisterWithPasskeyErrorCode } from '#entities/session'
+import { isApiError } from '#shared/api/client'
 import { MAX_LABEL_LENGTH, normalizeLabel } from '#shared/lib/label'
 import { Alert, Hero, Icon, Screen, SubmitButton, SwitchLink, TextField } from '#shared/ui'
 import { routes } from '#app/routes'
@@ -65,7 +65,7 @@ const failures = {
  * no network, a verification the server could not do) is the generic alert.
  */
 const toFailure = (error: unknown): Failure => {
-  if (isApiError(error)) {
+  if (isApiError<RegisterWithPasskeyErrorCode>(error)) {
     switch (error.code) {
       case 'registration_not_found':
         return failures.cancelled
@@ -103,17 +103,17 @@ const toFailure = (error: unknown): Failure => {
  * session is read again to tell which.
  */
 const toUpgradeFailure = async (error: unknown, guest: Me): Promise<Failure | null> => {
-  if (isNotTheGuest(error) || (isApiError(error) && error.code === 'unauthenticated')) {
+  if (isNotTheGuest(error) || (isApiError<RegisterWithPasskeyErrorCode>(error) && error.code === 'unauthenticated')) {
     return failures.guestSessionEnded
   }
-  if (!(isApiError(error) && error.code === 'registration_not_found')) {
+  if (!(isApiError<RegisterWithPasskeyErrorCode>(error) && error.code === 'registration_not_found')) {
     return null
   }
   let now: Me
   try {
     now = await getMe()
   } catch (reading) {
-    return isApiError(reading) && reading.code === 'unauthenticated' ? failures.guestSessionEnded : failures.generic
+    return isApiError<GetMeErrorCode>(reading) && reading.code === 'unauthenticated' ? failures.guestSessionEnded : failures.generic
   }
   return now.accountType === 'guest' && now.accountId === guest.accountId ? failures.cancelled : failures.guestSessionEnded
 }
@@ -152,7 +152,7 @@ export const CreateAccountPage = () => {
     try {
       await (guest ? registerWithPasskey(displayName, { accountId: guest.accountId }) : registerWithPasskey(displayName))
     } catch (error) {
-      if (isApiError(error) && error.code === 'invalid_display_name') {
+      if (isApiError<RegisterWithPasskeyErrorCode>(error) && error.code === 'invalid_display_name') {
         return { displayName, nameError: messages.disallowed, failure: null }
       }
       const upgradeFailure = guest ? await toUpgradeFailure(error, guest) : null

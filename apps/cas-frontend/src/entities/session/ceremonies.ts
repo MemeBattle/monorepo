@@ -5,18 +5,30 @@ import type {
   PublicKeyCredentialRequestOptionsJSON,
 } from '@simplewebauthn/browser'
 
-import { request } from '#shared/api/request'
+import type { ErrorCodeOf } from '#shared/api/client'
+import type { GetLoginOptionsResponses } from '#shared/api/generated/models/GetLoginOptions'
+import type { GetRegistrationOptionsResponses } from '#shared/api/generated/models/GetRegistrationOptions'
+import type { LoginOptionsResponse } from '#shared/api/generated/models/LoginOptionsResponse'
+import type { RegistrationOptionsResponse } from '#shared/api/generated/models/RegistrationOptionsResponse'
+import type { VerifyLoginResponses } from '#shared/api/generated/models/VerifyLogin'
+import type { VerifyLoginResponse } from '#shared/api/generated/models/VerifyLoginResponse'
+import type { VerifyRegistrationResponses } from '#shared/api/generated/models/VerifyRegistration'
+import type { VerifyRegistrationResponse } from '#shared/api/generated/models/VerifyRegistrationResponse'
+import { getLoginOptions } from '#shared/api/generated/operations/getLoginOptions'
+import { getRegistrationOptions } from '#shared/api/generated/operations/getRegistrationOptions'
+import { verifyLogin as verifyLoginOperation } from '#shared/api/generated/operations/verifyLogin'
+import { verifyRegistration } from '#shared/api/generated/operations/verifyRegistration'
 
-interface RegistrationOptionsResponse {
-  /** Names the ceremony, not the account; goes back with the answer. */
-  registrationId: string
-  ccr: { publicKey: PublicKeyCredentialCreationOptionsJSON }
-}
+/**
+ * The registration options as the authenticator reads them. `registrationId` names the ceremony, not the account, and
+ * goes back with the answer; the description leaves `ccr` an `object`.
+ */
+type RegistrationOptions = Omit<RegistrationOptionsResponse, 'ccr'> & { ccr: { publicKey: PublicKeyCredentialCreationOptionsJSON } }
 
-export interface Registered {
-  accountId: string
-  credentialId: string
-}
+export type Registered = VerifyRegistrationResponse
+
+/** The codes `registerWithPasskey` can fail with, from either request. */
+export type RegisterWithPasskeyErrorCode = ErrorCodeOf<GetRegistrationOptionsResponses> | ErrorCodeOf<VerifyRegistrationResponses>
 
 /** The guest a registration is meant to upgrade. */
 export interface Upgrading {
@@ -64,30 +76,23 @@ class NotTheGuestError extends Error {
  * recognises. The orphaned challenge just expires on the server.
  */
 export const registerWithPasskey = async (displayName: string, upgrading?: Upgrading): Promise<Registered> => {
-  const { registrationId, ccr } = await request<RegistrationOptionsResponse>('/api/webauthn/register-options', {
-    method: 'POST',
-    body: { displayName },
-  })
+  const { registrationId, ccr } = (await getRegistrationOptions({ body: { displayName } })) as RegistrationOptions
   if (upgrading && !isUserHandleOf(ccr.publicKey.user.id, upgrading.accountId)) {
     throw new NotTheGuestError('The registration challenge is not for the guest being upgraded')
   }
   const response = await startRegistration({ optionsJSON: ccr.publicKey })
-  return request<Registered>('/api/webauthn/verify-registration', {
-    method: 'POST',
-    body: { registrationId, response },
-  })
+  return verifyRegistration({ body: { registrationId, response } })
 }
 
-interface LoginOptionsResponse {
-  /** Names the ceremony; goes back with the assertion. */
-  loginId: string
-  rcr: { publicKey: PublicKeyCredentialRequestOptionsJSON }
-}
+/** The login options as the authenticator reads them. `loginId` names the ceremony and goes back with the assertion. */
+type LoginOptions = Omit<LoginOptionsResponse, 'rcr'> & { rcr: { publicKey: PublicKeyCredentialRequestOptionsJSON } }
 
-export interface SignedIn {
-  accountId: string
-  credentialId: string
-}
+const fetchLoginOptions = async (): Promise<LoginOptions> => (await getLoginOptions()) as LoginOptions
+
+export type SignedIn = VerifyLoginResponse
+
+/** The codes `signInWithPasskey` and `signInWithPasskeyFromAutofill` can fail with, from either request. */
+export type SignInWithPasskeyErrorCode = ErrorCodeOf<GetLoginOptionsResponses> | ErrorCodeOf<VerifyLoginResponses>
 
 /**
  * The login ceremony: the server issues a challenge any registered passkey may
@@ -97,16 +102,13 @@ export interface SignedIn {
  * code `invalid_credential`.
  */
 export const signInWithPasskey = async (): Promise<SignedIn> => {
-  const { loginId, rcr } = await request<LoginOptionsResponse>('/api/webauthn/login-options', { method: 'POST' })
+  const { loginId, rcr } = await fetchLoginOptions()
   const response = await startAuthentication({ optionsJSON: rcr.publicKey })
   return verifyLogin(loginId, response)
 }
 
-const verifyLogin = (loginId: string, response: AuthenticationResponseJSON) =>
-  request<SignedIn>('/api/webauthn/verify-login', {
-    method: 'POST',
-    body: { loginId, response },
-  })
+const verifyLogin = (loginId: string, response: AuthenticationResponseJSON): Promise<SignedIn> =>
+  verifyLoginOperation({ body: { loginId, response } })
 
 /**
  * The name of a thrown error, whatever realm it came from. `instanceof` is
@@ -192,9 +194,9 @@ export const signInWithPasskeyFromAutofill = async (signal: AbortSignal): Promis
   signal.addEventListener('abort', cancel)
   try {
     while (!signal.aborted) {
-      let options: LoginOptionsResponse
+      let options: LoginOptions
       try {
-        options = await request<LoginOptionsResponse>('/api/webauthn/login-options', { method: 'POST' })
+        options = await fetchLoginOptions()
       } catch {
         return null
       }

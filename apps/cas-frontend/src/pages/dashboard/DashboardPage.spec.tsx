@@ -3,7 +3,7 @@ import { userEvent } from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ApiError } from '#shared/api/request'
+import { ApiError } from '#shared/api/client'
 import { routes } from '#app/routes'
 import { DashboardPage } from './DashboardPage'
 import { loadDashboard } from './loadDashboard'

@@ -4,7 +4,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { isNotTheGuest } from '#entities/session'
-import { ApiError } from '#shared/api/request'
+import { ApiError } from '#shared/api/client'
 import { routes } from '#app/routes'
 import { CreateAccountPage } from './CreateAccountPage'
 import { messages } from './validateDisplayName'
