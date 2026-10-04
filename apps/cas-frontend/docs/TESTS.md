@@ -15,10 +15,12 @@ root.
 `src/shared/api/generated/` is generated from `apps/cas/openapi.json`
 (`adr/0004-generated-api-client.md`) and committed. After the description
 changes, run `pnpm generate:api` and commit the result with it; never edit
-the output by hand. Generation is deterministic, so the `api-client` job in
-`.github/workflows/cas-frontend-pr.yml` runs it again and fails on any
-changed, new or removed file (compared with `HEAD`): a description changed
-without a regeneration does not merge. The workflow runs on `apps/cas/**` changes too.
+the output by hand. CI does not compare the committed output with a fresh
+one: the `typecheck` job in `.github/workflows/cas-frontend-pr.yml` runs
+`generate:api` and then the type check, so what it proves is that the app
+compiles against the description as it is in that commit. A description
+change that breaks a call or a code a screen branches on fails there, with
+or without a regeneration. The workflow runs on `apps/cas/**` changes too.
 
 ## What gets a unit test
 

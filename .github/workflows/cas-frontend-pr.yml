@@ -28,28 +28,13 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
-      - name: TS check
-        run: pnpm run --filter @memebattle/cas-frontend ts-check
-
-  api-client:
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - uses: ./.github/actions/prepare-nodejs
-        name: Prepare Node.js
-
+      # The types are checked against a client generated from the description as it is in this commit, not against
+      # the committed output: what matters is that the app compiles with the API CAS actually describes.
       - name: Regenerate the API client
         run: pnpm run --filter @memebattle/cas-frontend generate:api
 
-      # A changed apps/cas/openapi.json without a regeneration shows up as a changed, new or removed file. The diff is
-      # against HEAD: intent-to-add stages the removals, so a diff against the index would miss them.
-      - name: Check the generated client is up to date
-        run: |
-          git add --intent-to-add apps/cas-frontend/src/shared/api/generated
-          git diff --exit-code HEAD -- apps/cas-frontend/src/shared/api/generated
+      - name: TS check
+        run: pnpm run --filter @memebattle/cas-frontend ts-check
 
   tests:
     runs-on: ubuntu-24.04

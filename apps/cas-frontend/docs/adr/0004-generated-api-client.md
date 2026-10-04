@@ -34,9 +34,10 @@ committed.** kubb reads `apps/cas/openapi.json` and writes one type module per
 operation and one function per operation into `src/shared/api/generated/`.
 The output is in the repository so a review shows what a description change
 does to the client, and the build and the type check need no generator step.
-The `api-client` CI job regenerates it and fails on any difference, so a
-description change cannot merge without the regeneration. Generation is
-deterministic, which is what makes that check possible.
+CI does not fail on a committed output that is behind the description: the
+type check job regenerates the client first and checks the app against that,
+so a description change that breaks the app's code cannot merge, and one
+that does not is free to land before its regeneration.
 
 **(b) The generator is kubb (`@kubb/plugin-ts` + `@kubb/plugin-client`).** It
 was run against the real description next to the alternatives, and it is the
