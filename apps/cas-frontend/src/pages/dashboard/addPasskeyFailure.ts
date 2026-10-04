@@ -1,6 +1,6 @@
 import type { AddPasskeyErrorCode } from '#entities/passkey'
 import { isAuthenticatorUnsupported, isCeremonyCancelled, isPasskeyAlreadyRegistered, isWrongOrigin } from '#entities/session'
-import { isApiError } from '#shared/api/client'
+import type { ApiFailure } from '#shared/api/client'
 
 /** What the alert above the passkeys says when adding one did not go through; never the raw `message` of an exception. */
 export interface AddPasskeyFailure {
@@ -32,8 +32,8 @@ export const addPasskeyFailures = {
 } satisfies Record<string, AddPasskeyFailure>
 
 /**
- * Everything a failed addition can be, as the dashboard says it. A challenge
- * the server no longer has (`registration_not_found`) is a ceremony that took
+ * A failure the server declared, as the dashboard says it. A challenge the
+ * server no longer has (`registration_not_found`) is a ceremony that took
  * too long, the same story as a closed prompt; a credential the server
  * refuses as non-discoverable is the same story as an authenticator that
  * cannot make one; a credential the server already holds
@@ -41,22 +41,28 @@ export const addPasskeyFailures = {
  * refusing the exclude list (`InvalidStateError`): this device is already
  * in. `unauthenticated` is not a failure the alert can say (the session is
  * gone, and the page is not the place to be), so the page reloads instead of
- * asking here. Anything else (an outage, a refused cross-site request, no
- * network, a verification the server could not do) is the generic alert.
+ * asking here. Anything else (a refused cross-site request, a verification
+ * the server could not do) is the generic alert.
  */
-export const toAddPasskeyFailure = (error: unknown): AddPasskeyFailure => {
-  if (isApiError<AddPasskeyErrorCode>(error)) {
-    switch (error.code) {
-      case 'registration_not_found':
-        return addPasskeyFailures.cancelled
-      case 'discoverable_credential_required':
-        return addPasskeyFailures.unsupported
-      case 'credential_already_registered':
-        return addPasskeyFailures.alreadyOnThisDevice
-      default:
-        return addPasskeyFailures.generic
-    }
+export const toAddPasskeyFailure = (failure: ApiFailure<AddPasskeyErrorCode>): AddPasskeyFailure => {
+  switch (failure.code) {
+    case 'registration_not_found':
+      return addPasskeyFailures.cancelled
+    case 'discoverable_credential_required':
+      return addPasskeyFailures.unsupported
+    case 'credential_already_registered':
+      return addPasskeyFailures.alreadyOnThisDevice
+    default:
+      return addPasskeyFailures.generic
   }
+}
+
+/**
+ * A thrown failure, as the dashboard says it: the authenticator's verdicts
+ * (see `toAddPasskeyFailure` for why they share words with the server's
+ * codes), and the generic alert for anything else (an outage, no network).
+ */
+export const toThrownAddPasskeyFailure = (error: unknown): AddPasskeyFailure => {
   if (isCeremonyCancelled(error)) {
     return addPasskeyFailures.cancelled
   }

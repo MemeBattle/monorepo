@@ -1,4 +1,4 @@
-import type { ErrorCodeOf } from '#shared/api/client'
+import type { ErrorCodeOf, Result } from '#shared/api/client'
 import type { DeletePasskeyResponses } from '#shared/api/generated/models/DeletePasskey'
 import type { ListPasskeysResponses } from '#shared/api/generated/models/ListPasskeys'
 import type { PasskeyResponse } from '#shared/api/generated/models/PasskeyResponse'
@@ -19,27 +19,29 @@ export type RenamePasskeyErrorCode = ErrorCodeOf<RenamePasskeyResponses>
 /** The codes `deletePasskey` can fail with. */
 export type DeletePasskeyErrorCode = ErrorCodeOf<DeletePasskeyResponses>
 
-/** `GET /api/passkeys`: the signed-in account's passkeys. Throws `ApiError` `unauthenticated` without a session. */
-export const listPasskeys = async (): Promise<Passkey[]> => {
-  const { passkeys } = await listPasskeysOperation()
-  return passkeys
+/**
+ * `GET /api/passkeys`: the signed-in account's passkeys; `unauthenticated` without a session. Throws only what is
+ * outside the contract: no network, a 5xx, an unreadable body (`ApiError`); so do the other calls here.
+ */
+export const listPasskeys = async (): Promise<Result<Passkey[], ListPasskeysErrorCode>> => {
+  const result = await listPasskeysOperation()
+  return result.ok ? { ok: true, data: result.data.passkeys } : result
 }
 
 /**
  * `PATCH /api/passkeys/{id}`: gives one of the account's passkeys a new name
  * and answers the passkey as it now is. The server judges the name and
- * throws `ApiError` `invalid_passkey_name` for an empty, over-long or
- * invisible one; a passkey that is not the account's is `passkey_not_found`,
- * whoever it belongs to.
+ * answers `invalid_passkey_name` for an empty, over-long or invisible one;
+ * a passkey that is not the account's is `passkey_not_found`, whoever it
+ * belongs to.
  */
-export const renamePasskey = (id: string, name: string): Promise<Passkey> => renamePasskeyOperation({ path: { id }, body: { name } })
+export const renamePasskey = (id: string, name: string): Promise<Result<Passkey, RenamePasskeyErrorCode>> =>
+  renamePasskeyOperation({ path: { id }, body: { name } })
 
 /**
  * `DELETE /api/passkeys/{id}`: removes one of the account's passkeys; the
- * sessions it opened carry on. The account's only passkey stays: that is
- * `ApiError` `last_passkey`, and the same request goes through once there
- * is another one. A passkey that is not the account's is `passkey_not_found`.
+ * sessions it opened carry on. The account's only passkey stays: that
+ * answers `last_passkey`, and the same request goes through once there is
+ * another one. A passkey that is not the account's is `passkey_not_found`.
  */
-export const deletePasskey = async (id: string): Promise<void> => {
-  await deletePasskeyOperation({ path: { id } })
-}
+export const deletePasskey = (id: string): Promise<Result<undefined, DeletePasskeyErrorCode>> => deletePasskeyOperation({ path: { id } })

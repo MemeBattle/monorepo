@@ -1,5 +1,5 @@
 export { getMe, logout, updateEmail } from './api'
-export type { GetMeErrorCode, Me, UpdateEmailErrorCode } from './api'
+export type { GetMeErrorCode, LogoutErrorCode, Me, UpdateEmailErrorCode } from './api'
 export {
   isAuthenticatorUnsupported,
   isCeremonyCancelled,

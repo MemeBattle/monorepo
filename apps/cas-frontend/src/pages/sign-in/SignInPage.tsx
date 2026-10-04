@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router'
 
 import { isCeremonyCancelled, isWrongOrigin, signInWithPasskey, signInWithPasskeyFromAutofill } from '#entities/session'
 import type { SignInWithPasskeyErrorCode } from '#entities/session'
-import { isApiError } from '#shared/api/client'
+import type { ApiFailure } from '#shared/api/client'
 import { Alert, Hero, Icon, Screen, SubmitButton, SwitchLink, TextField } from '#shared/ui'
 import { routes } from '#app/routes'
 import { leaveTo, readReturnTo, ReturnToLink } from '#app/returnTo'
@@ -45,22 +45,24 @@ const failures = {
 } satisfies Record<string, Failure>
 
 /**
- * Everything a failed sign-in can be, as this screen says it. A challenge
- * the server no longer has (`login_not_found`) is a ceremony that took too
- * long, the same story as a closed prompt. Anything else (an outage, a
- * refused cross-site request, no network) is the generic alert.
+ * A failure the server declared, as this screen says it. A challenge the
+ * server no longer has (`login_not_found`) is a ceremony that took too long,
+ * the same story as a closed prompt. Anything else (a refused cross-site
+ * request) is the generic alert.
  */
-const toFailure = (error: unknown): Failure => {
-  if (isApiError<SignInWithPasskeyErrorCode>(error)) {
-    switch (error.code) {
-      case 'invalid_credential':
-        return failures.unknownPasskey
-      case 'login_not_found':
-        return failures.cancelled
-      default:
-        return failures.generic
-    }
+const toFailure = (failure: ApiFailure<SignInWithPasskeyErrorCode>): Failure => {
+  switch (failure.code) {
+    case 'invalid_credential':
+      return failures.unknownPasskey
+    case 'login_not_found':
+      return failures.cancelled
+    default:
+      return failures.generic
   }
+}
+
+/** A thrown failure, as this screen says it: the authenticator's verdicts, and the generic alert for an outage or no network. */
+const toThrownFailure = (error: unknown): Failure => {
   if (isCeremonyCancelled(error)) {
     return failures.cancelled
   }
@@ -92,11 +94,15 @@ export const SignInPage = () => {
         if (!signedIn || controller.signal.aborted) {
           return
         }
+        if (!signedIn.ok) {
+          setAutofillFailure(toFailure(signedIn.error))
+          return
+        }
         void (returnTo ? leaveTo(returnTo) : navigate(routes.DASHBOARD, { replace: true }))
       },
       (error: unknown) => {
         if (!controller.signal.aborted) {
-          setAutofillFailure(toFailure(error))
+          setAutofillFailure(toThrownFailure(error))
         }
       },
     )
@@ -107,9 +113,12 @@ export const SignInPage = () => {
     autofill.current?.abort()
     setAutofillFailure(null)
     try {
-      await signInWithPasskey()
+      const result = await signInWithPasskey()
+      if (!result.ok) {
+        return toFailure(result.error)
+      }
     } catch (error) {
-      return toFailure(error)
+      return toThrownFailure(error)
     }
     // The finish set the session cookie; CAS reads it at `return_to`, the dashboard's loader otherwise.
     await (returnTo ? leaveTo(returnTo) : navigate(routes.DASHBOARD, { replace: true }))

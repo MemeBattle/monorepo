@@ -2,7 +2,7 @@ import { useActionState, useEffect, useRef, useState } from 'react'
 import type { Ref } from 'react'
 
 import type { UpdateEmailErrorCode } from '#entities/session'
-import { isApiError } from '#shared/api/client'
+import type { Result } from '#shared/api/client'
 import { Button, Icon, Section, Spinner, SubmitButton, TextField } from '#shared/ui'
 
 /** What the field says about an address this section could not save; never the raw message. */
@@ -49,8 +49,11 @@ const emailProblem = (email: string, field: HTMLInputElement | null): EmailProbl
 interface EmailSectionProps {
   /** The address as the page shows it: the loader's, or the one on its way to the server. */
   email: string | null
-  /** Sends the address, `null` to clear it. The page shows it at once and takes it back if this throws. */
-  onSave: (email: string | null) => Promise<void>
+  /**
+   * Sends the address, `null` to clear it. The page shows it at once and takes it back if this answers a failure,
+   * which the editor explains, or throws.
+   */
+  onSave: (email: string | null) => Promise<Result<unknown, UpdateEmailErrorCode>>
 }
 
 /**
@@ -120,11 +123,14 @@ const Editor = ({ email, onSave, onDone }: EditorProps) => {
       }
     }
     if (address !== email) {
+      let result: Result<unknown, UpdateEmailErrorCode>
       try {
-        await onSave(address)
-      } catch (error) {
-        const invalid = isApiError<UpdateEmailErrorCode>(error) && error.code === 'invalid_email'
-        return { email: address, error: invalid ? messages.invalid : messages.failed }
+        result = await onSave(address)
+      } catch {
+        return { email: address, error: messages.failed }
+      }
+      if (!result.ok) {
+        return { email: address, error: result.error.code === 'invalid_email' ? messages.invalid : messages.failed }
       }
     }
     onDone()

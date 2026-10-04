@@ -2,7 +2,7 @@ import { useActionState, useEffect, useId, useRef, useState } from 'react'
 import type { Ref } from 'react'
 
 import type { Passkey, RenamePasskeyErrorCode } from '#entities/passkey'
-import { isApiError } from '#shared/api/client'
+import type { Result } from '#shared/api/client'
 import { MAX_LABEL_LENGTH, labelProblem, normalizeLabel } from '#shared/lib/label'
 import { Button, Icon, Spinner, SubmitButton, TextField } from '#shared/ui'
 import { DeletePasskeyDialog } from './DeletePasskeyDialog'
@@ -35,8 +35,11 @@ interface PasskeyRowProps {
   deletable: boolean
   /** The reason the page has for the last delete of this passkey that failed; `null` when there is none. */
   deleteFailure: DeleteFailure | null
-  /** Sends the new name. The page shows it in the list at once and takes it back if this throws. */
-  onRename: (name: string) => Promise<void>
+  /**
+   * Sends the new name. The page shows it in the list at once and takes it back if this answers a failure, which the
+   * editor explains, or throws.
+   */
+  onRename: (name: string) => Promise<Result<unknown, RenamePasskeyErrorCode>>
   /** Sends the delete once confirmed. The page takes the row out of the list at once and brings it back with a reason if the delete fails. */
   onDelete: () => Promise<void>
 }
@@ -109,11 +112,14 @@ const Editor = ({ passkey, onRename, onDone }: EditorProps) => {
       return { name, error: messages[problem] }
     }
     if (name !== passkey.name) {
+      let result: Result<unknown, RenamePasskeyErrorCode>
       try {
-        await onRename(name)
-      } catch (error) {
-        const disallowed = isApiError<RenamePasskeyErrorCode>(error) && error.code === 'invalid_passkey_name'
-        return { name, error: disallowed ? messages.disallowed : messages.failed }
+        result = await onRename(name)
+      } catch {
+        return { name, error: messages.failed }
+      }
+      if (!result.ok) {
+        return { name, error: result.error.code === 'invalid_passkey_name' ? messages.disallowed : messages.failed }
       }
     }
     onDone()

@@ -1,7 +1,7 @@
 import { WebAuthnError } from '@simplewebauthn/browser'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { ApiError } from '#shared/api/client'
+import { ApiError, failed, ok } from '#shared/api/client'
 import { addPasskey } from './ceremonies'
 
 const { client, startRegistration } = vi.hoisted(() => ({
@@ -25,10 +25,10 @@ describe('addPasskey', () => {
   })
 
   it('asks for a challenge without a body, hands it to the authenticator and finishes with the answer', async () => {
-    client.mockResolvedValueOnce(options).mockResolvedValueOnce(passkey)
+    client.mockResolvedValueOnce(ok(options)).mockResolvedValueOnce(ok(passkey))
     startRegistration.mockResolvedValue(made)
 
-    await expect(addPasskey()).resolves.toEqual(passkey)
+    await expect(addPasskey()).resolves.toEqual(ok(passkey))
 
     expect(client).toHaveBeenNthCalledWith(1, expect.objectContaining({ method: 'POST', url: '/api/passkeys/register-options' }))
     expect(client.mock.calls[0]?.[0]).not.toHaveProperty('body')
@@ -40,7 +40,7 @@ describe('addPasskey', () => {
   })
 
   it('lets the authenticator’s verdict through as it is and finishes nothing', async () => {
-    client.mockResolvedValueOnce(options)
+    client.mockResolvedValueOnce(ok(options))
     const cause = new DOMException('already registered', 'InvalidStateError')
     startRegistration.mockRejectedValue(new WebAuthnError({ message: cause.message, code: 'ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED', cause }))
 
@@ -50,9 +50,24 @@ describe('addPasskey', () => {
   })
 
   it('asks the authenticator for nothing without a session', async () => {
-    client.mockRejectedValueOnce(new ApiError(401, 'unauthenticated', 'No live session'))
+    client.mockResolvedValueOnce(failed(401, 'unauthenticated', 'No live session'))
 
-    await expect(addPasskey()).rejects.toSatisfy(error => error instanceof ApiError && error.code === 'unauthenticated')
+    await expect(addPasskey()).resolves.toEqual(failed(401, 'unauthenticated', 'No live session'))
+
+    expect(startRegistration).not.toHaveBeenCalled()
+  })
+
+  it('answers the failure of the finish', async () => {
+    client.mockResolvedValueOnce(ok(options)).mockResolvedValueOnce(failed(409, 'credential_already_registered', 'Credential already registered'))
+    startRegistration.mockResolvedValue(made)
+
+    await expect(addPasskey()).resolves.toEqual(failed(409, 'credential_already_registered', 'Credential already registered'))
+  })
+
+  it('lets an outage through as it is', async () => {
+    client.mockRejectedValueOnce(new ApiError(503, 'database_unavailable', 'Database unavailable'))
+
+    await expect(addPasskey()).rejects.toSatisfy(error => error instanceof ApiError && error.code === 'database_unavailable')
 
     expect(startRegistration).not.toHaveBeenCalled()
   })
