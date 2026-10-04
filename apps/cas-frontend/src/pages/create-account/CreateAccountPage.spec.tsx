@@ -3,14 +3,24 @@ import { userEvent } from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { isNotTheGuest } from '#entities/session'
 import { ApiError } from '#shared/api/request'
 import { routes } from '#app/routes'
 import { CreateAccountPage } from './CreateAccountPage'
 import { messages } from './validateDisplayName'
 
-const { registerWithPasskey, leaveTo } = vi.hoisted(() => ({ registerWithPasskey: vi.fn(), leaveTo: vi.fn() }))
-// Only the ceremony is faked; `isCeremonyCancelled` stays real, so the spec covers the mapping too.
-vi.mock('#entities/session', async importOriginal => ({ ...(await importOriginal<typeof import('#entities/session')>()), registerWithPasskey }))
+const { registerWithPasskey, getMe, leaveTo, pageLoader } = vi.hoisted(() => ({
+  registerWithPasskey: vi.fn(),
+  getMe: vi.fn(),
+  leaveTo: vi.fn(),
+  pageLoader: vi.fn(),
+}))
+// Only the calls are faked; `isCeremonyCancelled` and `isNotTheGuest` stay real, so the spec covers the mapping too.
+vi.mock('#entities/session', async importOriginal => ({
+  ...(await importOriginal<typeof import('#entities/session')>()),
+  registerWithPasskey,
+  getMe,
+}))
 
 // Only the document navigation is faked; `readReturnTo` and `ReturnToLink` stay real.
 vi.mock('#app/returnTo', async importOriginal => ({ ...(await importOriginal<typeof import('#app/returnTo')>()), leaveTo }))
@@ -31,10 +41,25 @@ const pendingLeave = () =>
     releaseLeaving = () => resolve(undefined as never)
   })
 
-const renderPage = (entry: string = routes.CREATE_ACCOUNT) => {
+const guest = { accountId: 'g', displayName: 'Guest 7', accountType: 'guest', email: null, sessionExpiresAt: '2026-09-17T00:00:00Z' }
+const plainSubtitle = 'Придумайте имя, остальное сделает браузер. Пароля не будет.'
+const upgradeSubtitle =
+  'Игровой прогресс останется с вами: гостевой аккаунт станет постоянным. Придумайте имя, остальное сделает браузер. Пароля не будет.'
+
+/** What `registerWithPasskey` throws when the challenge is not the guest's; only its name tells it apart. */
+const notTheGuest = () => Object.assign(new Error('not the guest'), { name: 'NotTheGuestError' })
+
+/**
+ * With `loaded`, the route has a loader in place of the gate: `pageLoader`,
+ * which answers what each case sets up. Without it, no loader, as a plain
+ * create-account behind a gate that found no session.
+ */
+const renderPage = (entry: string = routes.CREATE_ACCOUNT, loaded = false) => {
   const router = createMemoryRouter(
     [
-      { path: routes.CREATE_ACCOUNT, element: <CreateAccountPage /> },
+      loaded
+        ? { path: routes.CREATE_ACCOUNT, loader: pageLoader, element: <CreateAccountPage />, HydrateFallback: () => null }
+        : { path: routes.CREATE_ACCOUNT, element: <CreateAccountPage /> },
       { path: routes.DASHBOARD, element: <h1>Дашборд</h1> },
     ],
     { initialEntries: [entry] },
@@ -43,11 +68,11 @@ const renderPage = (entry: string = routes.CREATE_ACCOUNT) => {
   return router
 }
 
-const submit = async (name: string, entry?: string) => {
-  renderPage(entry)
+const submit = async (name: string, entry?: string, loaded = false) => {
+  renderPage(entry, loaded)
   const user = userEvent.setup()
   if (name) {
-    await user.type(screen.getByLabelText('Имя'), name)
+    await user.type(await screen.findByLabelText('Имя'), name)
   }
   await user.click(screen.getByRole('button', { name: 'Создать пасскей' }))
 }
@@ -58,7 +83,9 @@ describe('CreateAccountPage', () => {
     cleanup()
     releaseLeaving()
     registerWithPasskey.mockReset()
+    getMe.mockReset()
     leaveTo.mockReset()
+    pageLoader.mockReset()
   })
 
   it('runs the ceremony with the trimmed name and lands on the dashboard', async () => {
@@ -66,7 +93,8 @@ describe('CreateAccountPage', () => {
 
     await submit('  Ада  ')
 
-    expect(registerWithPasskey).toHaveBeenCalledWith('Ада')
+    // A plain registration passes no guest: the call is the name alone.
+    expect(registerWithPasskey.mock.calls).toEqual([['Ада']])
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Дашборд' })).toBeDefined())
   })
 
@@ -124,6 +152,7 @@ describe('CreateAccountPage', () => {
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toContain('Создание отменено')
     expect(alert.textContent).not.toContain('expired')
+    expect(getMe).not.toHaveBeenCalled()
   })
 
   it.each([
@@ -209,6 +238,113 @@ describe('CreateAccountPage', () => {
       await user.click(screen.getByRole('button', { name: 'Создать пасскей' }))
       const alert = await screen.findByRole('alert')
       expect(within(alert).getByRole('link', { name: 'Войти' }).getAttribute('href')).toBe(carried)
+    })
+  })
+
+  describe('opened by a guest', () => {
+    it('says the plain words without a guest', () => {
+      renderPage()
+
+      expect(screen.getByText(plainSubtitle)).toBeDefined()
+      expect(screen.queryByText(upgradeSubtitle)).toBeNull()
+    })
+
+    it('says that the game data stays', async () => {
+      pageLoader.mockResolvedValue(guest)
+
+      renderPage(routes.CREATE_ACCOUNT, true)
+
+      expect(await screen.findByText(upgradeSubtitle)).toBeDefined()
+      expect(screen.getByRole('heading', { name: 'Создать аккаунт' })).toBeDefined()
+      expect(screen.getByRole('link', { name: 'Войти' })).toBeDefined()
+    })
+
+    it('upgrades the guest and leaves for return_to', async () => {
+      pageLoader.mockResolvedValue(guest)
+      registerWithPasskey.mockResolvedValue({ accountId: 'g', credentialId: 'cred' })
+      leaveTo.mockImplementation(pendingLeave)
+
+      await submit('Ада', withReturnTo(authorize), true)
+
+      expect(registerWithPasskey).toHaveBeenCalledWith('Ада', { accountId: 'g' })
+      await waitFor(() => expect(leaveTo).toHaveBeenCalledWith(authorize))
+    })
+
+    it('upgrades the guest and lands on the dashboard without return_to', async () => {
+      pageLoader.mockResolvedValue(guest)
+      registerWithPasskey.mockResolvedValue({ accountId: 'g', credentialId: 'cred' })
+
+      await submit('Ада', routes.CREATE_ACCOUNT, true)
+
+      expect(registerWithPasskey).toHaveBeenCalledWith('Ада', { accountId: 'g' })
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'Дашборд' })).toBeDefined())
+      expect(getMe).not.toHaveBeenCalled()
+    })
+
+    it('says the session ended when the challenge is not the guest’s, and lets the gate decide again', async () => {
+      expect(isNotTheGuest(notTheGuest())).toBe(true)
+      // The gate finds no session once asked again.
+      pageLoader.mockResolvedValueOnce(guest).mockResolvedValue(null)
+      registerWithPasskey.mockRejectedValue(notTheGuest())
+
+      await submit('Ада', routes.CREATE_ACCOUNT, true)
+
+      const alert = await screen.findByRole('alert')
+      expect(alert.textContent).toContain('Гостевая сессия закончилась')
+      expect(pageLoader).toHaveBeenCalledTimes(2)
+      expect(screen.getByText(plainSubtitle)).toBeDefined()
+    })
+
+    it('shows an expired challenge as a cancelled ceremony while the session is still the guest’s', async () => {
+      pageLoader.mockResolvedValue(guest)
+      registerWithPasskey.mockRejectedValue(new ApiError(404, 'registration_not_found', 'registration not found'))
+      getMe.mockResolvedValue(guest)
+
+      await submit('Ада', routes.CREATE_ACCOUNT, true)
+
+      const alert = await screen.findByRole('alert')
+      expect(alert.textContent).toContain('Создание отменено')
+      expect(pageLoader).toHaveBeenCalledOnce()
+      expect(screen.getByText(upgradeSubtitle)).toBeDefined()
+    })
+
+    it.each([
+      ['no session', () => getMe.mockRejectedValue(new ApiError(401, 'unauthenticated', 'No live session'))],
+      ['a full account', () => getMe.mockResolvedValue({ ...guest, displayName: 'Ада', accountType: 'full' })],
+      ['another guest', () => getMe.mockResolvedValue({ ...guest, accountId: 'other' })],
+    ])('says the session ended when the challenge is gone and the browser now holds %s', async (_, session) => {
+      pageLoader.mockResolvedValueOnce(guest).mockResolvedValue(null)
+      registerWithPasskey.mockRejectedValue(new ApiError(404, 'registration_not_found', 'registration not found'))
+      session()
+
+      await submit('Ада', routes.CREATE_ACCOUNT, true)
+
+      const alert = await screen.findByRole('alert')
+      expect(alert.textContent).toContain('Гостевая сессия закончилась')
+      expect(pageLoader).toHaveBeenCalledTimes(2)
+    })
+
+    it('shows the generic alert when the session cannot be read again', async () => {
+      pageLoader.mockResolvedValue(guest)
+      registerWithPasskey.mockRejectedValue(new ApiError(404, 'registration_not_found', 'registration not found'))
+      getMe.mockRejectedValue(new ApiError(503, 'database_unavailable', 'Database unavailable'))
+
+      await submit('Ада', routes.CREATE_ACCOUNT, true)
+
+      const alert = await screen.findByRole('alert')
+      expect(alert.textContent).toContain('Что-то пошло не так')
+      expect(alert.textContent).not.toContain('Database unavailable')
+    })
+
+    it('says the session ended when CAS answers unauthenticated', async () => {
+      pageLoader.mockResolvedValueOnce(guest).mockResolvedValue(null)
+      registerWithPasskey.mockRejectedValue(new ApiError(401, 'unauthenticated', 'Sign in to continue'))
+
+      await submit('Ада', routes.CREATE_ACCOUNT, true)
+
+      const alert = await screen.findByRole('alert')
+      expect(alert.textContent).toContain('Гостевая сессия закончилась')
+      expect(pageLoader).toHaveBeenCalledTimes(2)
     })
   })
 })

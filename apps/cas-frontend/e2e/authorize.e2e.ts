@@ -1,28 +1,7 @@
 import type { Page } from '@playwright/test'
 
+import { authorizationRequest, redirectToClient, returnTo } from './authorization'
 import { expect, test, uniqueName } from './fixtures'
-
-// The client e2e/seed.sh registers: public, first-party, so a signed-in browser gets a code without consent.
-const CLIENT_ID = 'cas-frontend-e2e'
-// Nothing serves it (a reserved TLD): the tests observe the browser's request to it, not a page.
-const REDIRECT_URI = 'https://client.e2e.test/callback'
-// Any S256 challenge is valid here; the code is never exchanged in this suite.
-const CODE_CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM'
-
-/** A fresh authorization request of the e2e client: its path on this origin and the `state` it sends. */
-const authorizationRequest = () => {
-  const state = Math.random().toString(36).slice(2)
-  const query = new URLSearchParams({
-    client_id: CLIENT_ID,
-    redirect_uri: REDIRECT_URI,
-    response_type: 'code',
-    scope: 'openid',
-    state,
-    code_challenge: CODE_CHALLENGE,
-    code_challenge_method: 'S256',
-  })
-  return { path: `/oidc/authorize?${query.toString()}`, state }
-}
 
 /**
  * A `return_to` that a browser can actually arrive at: a document CAS serves
@@ -31,21 +10,6 @@ const authorizationRequest = () => {
  * how the way out was taken; history is checked against this one instead.
  */
 const FORWARDED = '/oidc/jwks.json?forwarded'
-
-/** A query string with `return_to` set to the value, encoded the way a browser would. */
-const returnTo = (value: string) => `?${new URLSearchParams({ return_to: value }).toString()}`
-
-/**
- * The browser's request to the client's redirect URI, with its `code` and
- * `state`. Armed before the action that leads there: CAS answers the
- * authorization request with a redirect, which `page.route` cannot see but
- * the request events report.
- */
-const redirectToClient = async (page: Page) => {
-  const request = await page.waitForRequest(request => request.url().startsWith(REDIRECT_URI))
-  const url = new URL(request.url())
-  return { code: url.searchParams.get('code'), state: url.searchParams.get('state') }
-}
 
 /**
  * Opens the authorization request as the application would. Without a

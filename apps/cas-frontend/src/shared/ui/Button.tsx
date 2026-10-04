@@ -25,7 +25,14 @@ const looks = {
 }
 
 const base =
-  'flex items-center justify-center gap-2.5 rounded-button px-5 py-2 text-center leading-tight font-extrabold transition outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink enabled:active:translate-y-0.5 enabled:active:shadow-none disabled:cursor-default'
+  'flex items-center justify-center gap-2.5 rounded-button px-5 py-2 text-center leading-tight font-extrabold transition outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink not-disabled:active:translate-y-0.5 not-disabled:active:shadow-none disabled:cursor-default'
+
+/**
+ * The classes of a button at rest, for a link that is the screen's action: a
+ * link to another screen looks like the button it stands for, and `shared/ui`
+ * stays free of the router.
+ */
+export const buttonLook = (variant: Variant = 'primary') => `${base} ${variants[variant]}`
 
 export const Button = ({
   variant = 'primary',

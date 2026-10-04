@@ -10,6 +10,7 @@ vi.mock('#entities/session', () => ({ getMe }))
 vi.mock('./returnTo', async importOriginal => ({ ...(await importOriginal<typeof import('./returnTo')>()), leaveTo }))
 
 const me = { accountId: 'acc', displayName: 'Ада', accountType: 'full', email: null, sessionExpiresAt: '2026-09-17T00:00:00Z' }
+const guest = { accountId: 'g', displayName: 'Guest 7', accountType: 'guest', email: null, sessionExpiresAt: '2026-09-17T00:00:00Z' }
 const unauthenticated = () => new ApiError(401, 'unauthenticated', 'No live session')
 const outage = () => new ApiError(503, 'unavailable', 'Database unavailable')
 
@@ -30,6 +31,12 @@ describe('requireSession', () => {
     getMe.mockResolvedValueOnce(me)
 
     await expect(requireSession()).resolves.toEqual(me)
+  })
+
+  it('hands a guest to the dashboard, which decides what to show it', async () => {
+    getMe.mockResolvedValueOnce(guest)
+
+    await expect(requireSession()).resolves.toEqual(guest)
   })
 
   it('sends a browser without a session to sign-in', async () => {
@@ -91,6 +98,19 @@ describe('requireNoSession', () => {
     getMe.mockRejectedValueOnce(unauthenticated())
 
     await expect(requireNoSession(signInWith(returnTo('/oidc/authorize?client_id=x')))).resolves.toBeNull()
+    expect(leaveTo).not.toHaveBeenCalled()
+  })
+
+  it('keeps a guest on the auth screens and hands it over', async () => {
+    getMe.mockResolvedValueOnce(guest)
+
+    await expect(requireNoSession(signInWith())).resolves.toEqual(guest)
+  })
+
+  it('never forwards a guest, whatever return_to says', async () => {
+    getMe.mockResolvedValueOnce(guest)
+
+    await expect(requireNoSession(signInWith(returnTo('/oidc/authorize?client_id=x')))).resolves.toEqual(guest)
     expect(leaveTo).not.toHaveBeenCalled()
   })
 

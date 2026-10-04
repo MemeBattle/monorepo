@@ -102,8 +102,9 @@ jobs:
       - name: Apply migrations
         run: ./target/debug/cas-migrate
 
-      # The OIDC client the authorize scenarios send to `/oidc/authorize`; the binaries are built, cargo only runs it.
-      - name: Register the e2e client
+      # The OIDC clients of the suite: the one the authorize scenarios send to `/oidc/authorize`, and the guest one
+      # whose secret the script writes to e2e/.guest-client-secret; the binaries are built, cargo only runs it.
+      - name: Register the e2e clients
         run: ./apps/cas-frontend/e2e/seed.sh
 
       # The defaults are the ones the suite needs: :3000, RP id `localhost`, origin http://localhost:5173.

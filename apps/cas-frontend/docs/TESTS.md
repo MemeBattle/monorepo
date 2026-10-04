@@ -57,9 +57,19 @@ cargo run -p cas
 
 `SQLX_OFFLINE` makes cargo compile the query macros from `apps/cas/.sqlx`,
 since a fresh database has no tables yet (see `apps/cas/docs/MIGRATIONS.md`).
-`e2e/seed.sh` registers the OIDC client the authorize scenarios use; like
-`apps/cas/scripts/seed-dev.sh` it is not idempotent, and "already exists" on
-a second run means the client is there.
+`e2e/seed.sh` registers the two OIDC clients the suite uses: the public
+`cas-frontend-e2e` of the authorize scenarios, and the confidential
+`cas-frontend-e2e-guest` of the guest scenarios, whose secret it writes to
+`e2e/.guest-client-secret` (gitignored, never printed). Like
+`apps/cas/scripts/seed-dev.sh` it is not idempotent: it attempts both
+clients, and "already exists" on a second run means a client is there.
+
+CAS keeps only a hash of a client's secret, so the secret file and the client
+belong together: a database seeded from another checkout has the guest client
+but not the file here. The script says so; delete the client
+(`psql "$DATABASE_URL" -c "DELETE FROM clients WHERE id = 'cas-frontend-e2e-guest'"`)
+or seed a fresh database, and run it again. A secret file left over from
+another database fails the guest grant with `invalid_client` in the same way.
 
 Then, from `apps/cas-frontend`, `pnpm test:e2e`. Playwright starts vite on
 :5173 itself, or reuses the one already there; `CAS_API_PROXY_TARGET` points
@@ -104,12 +114,26 @@ serves on this origin (`/oidc/jwks.json?forwarded`). When the first hop lands
 on CAS's error page instead of sign-in, the e2e client is missing: run
 `e2e/seed.sh`.
 
+### The guest scenarios
+
+`e2e/guest-upgrade.e2e.ts` runs the guest upgrade of
+`adr/0003-guest-in-the-app.md`. A scenario mints a guest as an application's
+backend would, with the guest grant of `cas-frontend-e2e-guest` at
+`/oidc/token` (`mintGuest` in `e2e/authorization.ts`, the shared helpers of
+the authorization request), and sends the browser to `/oidc/authorize` with
+the guest's ID token as `id_token_hint`. One scenario creates the account
+from there and returns to the client with a code; the other abandons the
+upgrade, finds the guest dashboard, and finishes from its link. Both end on
+the dashboard of a full account with one passkey, and check through
+`/api/me` that it is the guest's own account (`sub`), upgraded rather than
+created. A missing secret file fails them with "run e2e/seed.sh".
+
 ### In CI
 
 The `e2e` job in `.github/workflows/cas-frontend-pr.yml`: the Postgres
 service of `cas-pr.yml`, a debug build of `cas` and `cas-migrate`
 (`Swatinem/rust-cache` keeps the target directory between runs), the e2e
-client registered with `e2e/seed.sh`, CAS started
+clients registered with `e2e/seed.sh`, CAS started
 in the background with its defaults, Chromium installed by Playwright, vite
 started by Playwright's `webServer`. The workflow also runs on `apps/cas/**`
 changes, since the suite tests the real backend. On failure the Playwright
