@@ -13,5 +13,4 @@ React + Vite SPA for CAS, the passkey identity provider in `apps/cas`
   format, the e2e suite on a virtual authenticator.
 - [docs/PASSKEYS.md](./docs/PASSKEYS.md) — the ceremonies as the browser
   runs them: autofill, one request at a time, the challenge lifetime.
-- [docs/adr/](./docs/adr/) — recorded decisions: the stack, the `return_to`
-  contract.
+- [docs/adr/](./docs/adr/) — recorded decisions.
