@@ -57,9 +57,10 @@ generated function for them would invite it to.
 
 **(d) The transport is ours: `shared/api/client.ts`, the only caller of
 `fetch`.** Every generated function calls `client()` from that module, which
-keeps the behaviour the hand-written wrapper had: relative paths, no base URL
-and no `credentials` option (ADR 0001 (f)), a JSON body, `ApiError` with the
-stable code, `unknown` for a body that cannot be read, `undefined` for a 204.
+keeps the request the hand-written wrapper made: relative paths, no base URL
+and no `credentials` option (ADR 0001 (f)), a JSON body. What it answers is
+in (f): a `Result`, with `undefined` data for a 204, and `ApiError` thrown
+for what is outside the contract (`unknown` for a body that cannot be read).
 kubb's example client builds `new URL(baseURL + url)`, which throws on the
 relative paths the same-origin rule requires, so the module is written here
 rather than copied. Any later interceptor (logging, retries) lives there and
@@ -69,15 +70,35 @@ nowhere else.
 unions, so `generated/models/` has no runtime exports; the operation
 functions are the only runtime code the generator contributes.
 
-**(f) Error codes are types.** `ErrorCodeOf<Responses>` is the union of the
-codes an operation's error responses declare. An entity exports that union
-for each function whose failures a screen tells apart (`AddPasskeyErrorCode`,
-the union over both requests of a ceremony), and a screen narrows with
-`isApiError<AddPasskeyErrorCode>(error)`: a comparison or a `case` on a code
-the operation never answers fails `pnpm ts-check`. `unknown` is always in the
-narrowed union, since any call can end with an unreadable body. The mapping
-from a code to what the screen says stays next to the screen; nothing about
+**(f) Declared failures are values.** A 4xx with a CAS error body comes back
+as a value: a call resolves to `Result`, `{ ok: true, data }` or
+`{ ok: false, error: { status, code, message } }`, and `code` is typed as
+`ErrorCodeOf<Responses>`, the codes of the operation's 4xx responses. The
+rest is thrown as before: no network, a 5xx, a body that cannot be read or
+carries no code (`ApiError`, `unknown`). The generated signature's
+`ThrowOnError` is accepted and ignored. A caller that cannot handle a
+declared failure, such as a loader, calls `unwrap`, which throws it as
+`ApiError` for the error screen. Authenticator failures (the browser's
+`DOMException`, the guest check) stay exceptions with their predicates next
+to the ceremonies.
+
+An entity exports the code union of each function whose failures a screen
+tells apart (`AddPasskeyErrorCode`, the union over both requests of a
+ceremony) and resolves to `Result` with it. A screen reads
+`result.error.code`, whose type follows from the function it called: a
+comparison or a `case` on a code the operation never answers fails
+`pnpm ts-check`. Thrown, the same narrowing needed a type argument
+(`isApiError<Code>(error)`) that nothing tied to the call in the `try`, an
+assertion the compiler could not check. The client cannot check a code at
+runtime, since the models are types only, so an undeclared 4xx code still
+arrives as a value and every `switch` keeps its `default`. The mapping from
+a code to what the screen says stays next to the screen; nothing about
 errors moves into a shared module.
+
+Rejected: throwing `ApiError` for every non-2xx and narrowing with a type
+argument, for the reason above; a `Result` for 5xx and network failures too,
+which no screen tells apart and which would put an error branch on every
+call that today has none.
 
 **(g) The `kubb` meta package is a dependency.** The plugins import
 `kubb/config`, `kubb/kit` and `kubb/jsx` at runtime, so the leaner setup of
@@ -88,8 +109,8 @@ never reach the bundle, and `generate:api` runs with
 
 **(h) Entities keep the domain names and narrow the WebAuthn payloads.**
 `Passkey`, `Me`, `Registered` and `SignedIn` are aliases of the generated
-models, and the entity functions keep their signatures, so pages and specs do
-not depend on the generator's names. The description leaves the WebAuthn
+models, so pages and specs do not depend on the generator's names; the
+functions resolve to a `Result` (f). The description leaves the WebAuthn
 options and answers as `object`; the entity narrows the options with the
 `@simplewebauthn/browser` types it already hands to the authenticator, in one
 cast where the response is read.
@@ -102,6 +123,9 @@ cast where the response is read.
   edited by hand.
 - A code a screen branches on that the backend stops declaring breaks the
   type check at the screen, which is the point.
+- A call site that handles both kinds of failure has two channels: the
+  `Result` for the codes, and a `catch` for what is thrown, mapped to the same
+  generic or ceremony message as before.
 - `@kubb/plugin-ts` depends on TypeScript 6, so a second TypeScript sits in
   the lockfile for the generator; the app still compiles with the catalog's
   TypeScript 7.

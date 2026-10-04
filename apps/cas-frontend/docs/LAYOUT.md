@@ -28,7 +28,7 @@ apps/cas-frontend/
     entities/<name>/   API calls and types of one domain concept: session
                        (/api/me, /api/logout, the ceremonies), passkey (/api/passkeys)
     shared/api/        the wire contract with CAS: client.ts (client(), the
-                       only fetch, ApiError, isApiError, ErrorCodeOf) and
+                       only fetch, Result, unwrap, ApiError, ErrorCodeOf) and
                        generated/ (kubb's output, never edited by hand:
                        models/ the types, operations/ one function per /api/
                        operation)
