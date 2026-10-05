@@ -11,6 +11,9 @@ const StyledCardHotkeyBadge = styled(Badge)(({ theme }) => ({
     opacity: 0.9,
     borderRadius: '4px',
     backgroundColor: theme.palette.grey[400],
+    [theme.breakpoints.down('sm')]: {
+      display: 'none',
+    },
   },
   '.MuiBadge-anchorOriginBottomRight': {
     right: '50%',
