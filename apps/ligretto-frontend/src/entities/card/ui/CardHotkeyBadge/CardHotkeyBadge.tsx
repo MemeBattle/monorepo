@@ -8,6 +8,7 @@ interface CardHotkeyBadgeProps {
 
 const StyledCardHotkeyBadge = styled(Badge)(({ theme }) => ({
   '.MuiBadge-badge': {
+    pointerEvents: 'none',
     opacity: 0.9,
     borderRadius: '4px',
     backgroundColor: theme.palette.grey[400],
