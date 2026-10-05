@@ -2,7 +2,7 @@ import { WebAuthnError } from '@simplewebauthn/browser'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { mockLoginOptions, mockLoginVerification, mockRegistrationOptions, mockRegistrationVerification } from './testing/stages'
-import { ApiError } from '#shared/api/request'
+import { ApiError, ok } from '#shared/api/client'
 import {
   isAuthenticatorUnsupported,
   isCeremonyCancelled,
@@ -121,7 +121,7 @@ describe('registerWithPasskey', () => {
     const verified = mockRegistrationVerification(registered)
     startRegistration.mockResolvedValue(made)
 
-    await expect(registerWithPasskey('Ада', { accountId: guestId })).resolves.toEqual(registered)
+    await expect(registerWithPasskey('Ада', { accountId: guestId })).resolves.toEqual(ok(registered))
 
     expect(startRegistration).toHaveBeenCalledWith({ optionsJSON: options(guestHandle).ccr.publicKey })
     expect(verified).toHaveBeenCalledExactlyOnceWith({ registrationId: 'r1', response: made })
@@ -144,9 +144,28 @@ describe('registerWithPasskey', () => {
     mockRegistrationVerification(registered)
     startRegistration.mockResolvedValue(made)
 
-    await expect(registerWithPasskey('Ада')).resolves.toEqual(registered)
+    await expect(registerWithPasskey('Ада')).resolves.toEqual(ok(registered))
 
     expect(startRegistration).toHaveBeenCalledOnce()
+  })
+
+  it('answers a refused name without asking the authenticator', async () => {
+    mockRegistrationOptions.error('invalid_display_name')
+
+    await expect(registerWithPasskey('Ада')).resolves.toMatchObject({ ok: false, error: { status: 400, code: 'invalid_display_name' } })
+
+    expect(startRegistration).not.toHaveBeenCalled()
+  })
+
+  it('answers the failure of the finish', async () => {
+    mockRegistrationOptions(options(guestHandle))
+    mockRegistrationVerification.error('registration_not_found')
+    startRegistration.mockResolvedValue(made)
+
+    await expect(registerWithPasskey('Ада', { accountId: guestId })).resolves.toMatchObject({
+      ok: false,
+      error: { status: 404, code: 'registration_not_found' },
+    })
   })
 
   it('is the only error isNotTheGuest recognises', () => {
@@ -202,7 +221,7 @@ describe('signInWithPasskeyFromAutofill', () => {
     const verified = mockLoginVerification(signedIn)
     startAuthentication.mockResolvedValue(picked)
 
-    await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toEqual(signedIn)
+    await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toEqual(ok(signedIn))
 
     expect(startAuthentication).toHaveBeenCalledWith({ optionsJSON: options('l1').rcr.publicKey, useBrowserAutofill: true })
     expect(verified).toHaveBeenCalledExactlyOnceWith({ loginId: 'l1', response: picked })
@@ -219,7 +238,7 @@ describe('signInWithPasskeyFromAutofill', () => {
     expect(loginOptionsCalls()).toBe(1)
     await vi.advanceTimersByTimeAsync(1_000)
 
-    await expect(outcome).resolves.toEqual(signedIn)
+    await expect(outcome).resolves.toEqual(ok(signedIn))
     expect(loginOptionsCalls()).toBe(2)
     expect(verified).toHaveBeenCalledExactlyOnceWith({ loginId: 'l2', response: picked })
   })
@@ -262,8 +281,27 @@ describe('signInWithPasskeyFromAutofill', () => {
     mockLoginVerification.error('invalid_credential')
     startAuthentication.mockResolvedValue(picked)
 
+    await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toMatchObject({
+      ok: false,
+      error: { status: 401, code: 'invalid_credential' },
+    })
+  })
+
+  it('offers nothing when the server refuses the options', async () => {
+    mockLoginOptions.error('cross_site_request')
+
+    await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toBeNull()
+
+    expect(startAuthentication).not.toHaveBeenCalled()
+  })
+
+  it('rejects with a thrown failure after the pick', async () => {
+    mockLoginOptions(options('l1'))
+    mockLoginVerification.error('database_unavailable')
+    startAuthentication.mockResolvedValue(picked)
+
     await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).rejects.toSatisfy(
-      error => error instanceof ApiError && error.code === 'invalid_credential',
+      error => error instanceof ApiError && error.code === 'database_unavailable',
     )
   })
 })

@@ -11,6 +11,7 @@ export default defineConfig({
     'next-env.d.ts',
     'apps/cas/*',
     '!apps/cas/README.md',
+    'apps/cas-frontend/src/shared/api/generated/**',
   ],
   singleQuote: true,
   arrowParens: 'avoid',

@@ -58,6 +58,8 @@ catalog:
   '@japa/assert': ^4.2.0
   '@japa/plugin-adonisjs': ^5.2.0
   '@japa/runner': ^5.3.0
+  '@kubb/plugin-client': 5.5.2
+  '@kubb/plugin-ts': 5.0.2
   '@mdx-js/loader': ^3.1.0
   '@mdx-js/rollup': ^3.1.0
   '@mui/icons-material': 9.2.0
@@ -112,6 +114,7 @@ catalog:
   inversify: ^8.2.3
   jsdom: ^29.1.1
   jsonwebtoken: ^9.0.0
+  kubb: 5.4.5
   lodash: 4.18.1
   luxon: 3.7.2
   msw: 2.15.0
@@ -180,3 +183,27 @@ cleanupUnusedCatalogs: true
 # of quietly putting it in the lockfile for every later install to trip over.
 # Pin an exception in minimumReleaseAgeExclude when a fresh release is actually needed.
 minimumReleaseAge: 10080
+
+# Temporary: issue #776 (the generated API client of cas-frontend) was taken before the kubb
+# releases it needs had cleared the week above. Exact versions only: kubb and its own packages,
+# plus the two @scalar packages @kubb/adapter-oas pins to a range with no older release in it.
+# Delete this whole block once the newest entry is a week old: kubb 5.4.5 was published
+# 2026-10-03T20:40Z, so from 2026-10-11 the install resolves without it.
+minimumReleaseAgeExclude:
+  - '@kubb/adapter-oas@5.4.5'
+  - '@kubb/ast@5.4.5'
+  - '@kubb/cli@5.4.5'
+  - '@kubb/core@5.4.5'
+  - '@kubb/kit@5.4.5'
+  - '@kubb/mcp@5.4.5'
+  - '@kubb/parser-md@5.4.5'
+  - '@kubb/parser-ts@5.4.5'
+  - '@kubb/plugin-barrel@5.4.5'
+  - '@kubb/plugin-client@5.5.2'
+  - '@kubb/plugin-zod@5.4.1'
+  - '@kubb/renderer-jsx@5.4.5'
+  - '@kubb/studio@5.4.5'
+  - '@scalar/helpers@0.16.0'
+  - '@scalar/openapi-upgrader@0.4.1'
+  - kubb@5.4.5
+  - unplugin-kubb@5.4.5

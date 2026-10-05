@@ -28,6 +28,11 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
+      # The types are checked against a client generated from the description as it is in this commit, not against
+      # the committed output: what matters is that the app compiles with the API CAS actually describes.
+      - name: Regenerate the API client
+        run: pnpm run --filter @memebattle/cas-frontend generate:api
+
       - name: TS check
         run: pnpm run --filter @memebattle/cas-frontend ts-check
 

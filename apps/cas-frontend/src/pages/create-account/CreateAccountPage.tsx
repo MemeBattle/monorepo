@@ -11,8 +11,8 @@ import {
   isWrongOrigin,
   registerWithPasskey,
 } from '#entities/session'
-import type { Me } from '#entities/session'
-import { isApiError } from '#shared/api/request'
+import type { Me, RegisterWithPasskeyErrorCode } from '#entities/session'
+import type { ApiFailure } from '#shared/api/client'
 import { MAX_LABEL_LENGTH, normalizeLabel } from '#shared/lib/label'
 import { Alert, Hero, Icon, Screen, SubmitButton, SwitchLink, TextField } from '#shared/ui'
 import { routes } from '#app/routes'
@@ -56,27 +56,32 @@ const failures = {
   },
 } satisfies Record<string, Failure>
 
+/** How a ceremony failed: a failure the server declared, or something thrown (the authenticator, an outage). */
+type Failed = { failure: ApiFailure<RegisterWithPasskeyErrorCode> } | { thrown: unknown }
+
 /**
- * Everything a failed ceremony can be, as this screen says it. A challenge
- * the server no longer has (`registration_not_found`) is a ceremony that took
+ * A failure the server declared, as this screen says it. A challenge the
+ * server no longer has (`registration_not_found`) is a ceremony that took
  * too long, the same story as a closed prompt; a credential the server
  * refuses as non-discoverable is the same story as an authenticator that
- * cannot make one. Anything else (an outage, a refused cross-site request,
- * no network, a verification the server could not do) is the generic alert.
+ * cannot make one. Anything else (a refused cross-site request, a
+ * verification the server could not do) is the generic alert.
  */
-const toFailure = (error: unknown): Failure => {
-  if (isApiError(error)) {
-    switch (error.code) {
-      case 'registration_not_found':
-        return failures.cancelled
-      case 'discoverable_credential_required':
-        return failures.unsupported
-      case 'credential_already_registered':
-        return failures.alreadyRegistered
-      default:
-        return failures.generic
-    }
+const toFailure = (failure: ApiFailure<RegisterWithPasskeyErrorCode>): Failure => {
+  switch (failure.code) {
+    case 'registration_not_found':
+      return failures.cancelled
+    case 'discoverable_credential_required':
+      return failures.unsupported
+    case 'credential_already_registered':
+      return failures.alreadyRegistered
+    default:
+      return failures.generic
   }
+}
+
+/** A thrown failure, as this screen says it: the authenticator's verdicts, and the generic alert for an outage or no network. */
+const toThrownFailure = (error: unknown): Failure => {
   if (isCeremonyCancelled(error)) {
     return failures.cancelled
   }
@@ -102,19 +107,23 @@ const toFailure = (error: unknown): Failure => {
  * expired challenge or an upgrade ceremony whose session is gone, so the
  * session is read again to tell which.
  */
-const toUpgradeFailure = async (error: unknown, guest: Me): Promise<Failure | null> => {
-  if (isNotTheGuest(error) || (isApiError(error) && error.code === 'unauthenticated')) {
+const toUpgradeFailure = async (failed: Failed, guest: Me): Promise<Failure | null> => {
+  if ('thrown' in failed ? isNotTheGuest(failed.thrown) : failed.failure.code === 'unauthenticated') {
     return failures.guestSessionEnded
   }
-  if (!(isApiError(error) && error.code === 'registration_not_found')) {
+  if (!('failure' in failed) || failed.failure.code !== 'registration_not_found') {
     return null
   }
-  let now: Me
+  let reading: Awaited<ReturnType<typeof getMe>>
   try {
-    now = await getMe()
-  } catch (reading) {
-    return isApiError(reading) && reading.code === 'unauthenticated' ? failures.guestSessionEnded : failures.generic
+    reading = await getMe()
+  } catch {
+    return failures.generic
   }
+  if (!reading.ok) {
+    return reading.error.code === 'unauthenticated' ? failures.guestSessionEnded : failures.generic
+  }
+  const now = reading.data
   return now.accountType === 'guest' && now.accountId === guest.accountId ? failures.cancelled : failures.guestSessionEnded
 }
 
@@ -149,18 +158,29 @@ export const CreateAccountPage = () => {
     if (nameError) {
       return { displayName, nameError, failure: null }
     }
+    let failed: Failed | null = null
     try {
-      await (guest ? registerWithPasskey(displayName, { accountId: guest.accountId }) : registerWithPasskey(displayName))
-    } catch (error) {
-      if (isApiError(error) && error.code === 'invalid_display_name') {
+      const result = await (guest ? registerWithPasskey(displayName, { accountId: guest.accountId }) : registerWithPasskey(displayName))
+      if (!result.ok) {
+        failed = { failure: result.error }
+      }
+    } catch (thrown) {
+      failed = { thrown }
+    }
+    if (failed) {
+      if ('failure' in failed && failed.failure.code === 'invalid_display_name') {
         return { displayName, nameError: messages.disallowed, failure: null }
       }
-      const upgradeFailure = guest ? await toUpgradeFailure(error, guest) : null
+      const upgradeFailure = guest ? await toUpgradeFailure(failed, guest) : null
       if (upgradeFailure === failures.guestSessionEnded) {
         // The gate decides again: a full session is forwarded, no session leaves the plain screen.
         await revalidator.revalidate()
       }
-      return { displayName, nameError: null, failure: upgradeFailure ?? toFailure(error) }
+      return {
+        displayName,
+        nameError: null,
+        failure: upgradeFailure ?? ('failure' in failed ? toFailure(failed.failure) : toThrownFailure(failed.thrown)),
+      }
     }
     // The finish set the session cookie; CAS reads it at `return_to`, the dashboard's loader otherwise.
     await (returnTo ? leaveTo(returnTo) : navigate(routes.DASHBOARD, { replace: true }))

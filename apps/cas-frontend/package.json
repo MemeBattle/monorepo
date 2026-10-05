@@ -19,7 +19,8 @@
     "test": "vitest",
     "test:ci": "vitest run",
     "test:e2e": "playwright test",
-    "test:storybook": "playwright test --config playwright.storybook.config.ts"
+    "test:storybook": "playwright test --config playwright.storybook.config.ts",
+    "generate:api": "KUBB_DISABLE_TELEMETRY=1 kubb generate"
   },
   "dependencies": {
     "@simplewebauthn/browser": "catalog:",
@@ -28,6 +29,8 @@
     "react-router": "catalog:"
   },
   "devDependencies": {
+    "@kubb/plugin-client": "catalog:",
+    "@kubb/plugin-ts": "catalog:",
     "@playwright/test": "catalog:",
     "@storybook/react": "catalog:",
     "@tailwindcss/vite": "catalog:",
@@ -37,6 +40,7 @@
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "jsdom": "catalog:",
+    "kubb": "catalog:",
     "msw": "catalog:",
     "oxc-transform-react": "catalog:",
     "storybook": "catalog:",

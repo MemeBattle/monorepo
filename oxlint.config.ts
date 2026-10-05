@@ -29,7 +29,7 @@ export default defineConfig({
   categories: {
     correctness: 'off',
   },
-  ignorePatterns: ['**/.adonisjs/**', '.storybook/public/mockServiceWorker.js'],
+  ignorePatterns: ['**/.adonisjs/**', '.storybook/public/mockServiceWorker.js', 'apps/cas-frontend/src/shared/api/generated/**'],
   settings: {
     react: {
       version: '19.2.4',

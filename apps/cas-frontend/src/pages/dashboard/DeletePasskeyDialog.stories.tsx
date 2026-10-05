@@ -9,7 +9,7 @@ const passkeys = [
   { id: 'p2', name: 'iPhone Ады', createdAt: '2025-12-31T12:00:00Z', lastUsedAt: '2026-09-19T10:00:00Z' },
 ]
 
-const never = () => new Promise<void>(() => {})
+const never = () => new Promise<never>(() => {})
 
 const meta: Meta<typeof DeletePasskeyDialog> = {
   parameters: { layout: 'padded' },

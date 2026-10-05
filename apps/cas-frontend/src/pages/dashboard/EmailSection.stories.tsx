@@ -50,6 +50,7 @@ export const Invalid: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Добавить почту' }))
     await userEvent.type(canvas.getByLabelText('Почта'), 'ada@mems.fun')
     await userEvent.click(canvas.getByRole('button', { name: 'Сохранить' }))
+    await canvas.findByText('Проверьте адрес: в нём ошибка или недопустимые символы.')
   },
 }
 
@@ -62,5 +63,6 @@ export const Failed: Story = {
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Изменить почту' }))
     await userEvent.click(canvas.getByRole('button', { name: 'Удалить' }))
+    await canvas.findByText('Не получилось сохранить почту. Попробуйте ещё раз через минуту.')
   },
 }

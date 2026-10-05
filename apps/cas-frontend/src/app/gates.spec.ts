@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { aMe, mockGetMe } from '#entities/session/testing'
-import { ApiError } from '#shared/api/request'
+import { ApiError } from '#shared/api/client'
 import { requireNoSession, requireSession } from './gates'
 import { routes } from './routes'
 

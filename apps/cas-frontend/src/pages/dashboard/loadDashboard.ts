@@ -1,6 +1,7 @@
 import { listPasskeys } from '#entities/passkey'
 import type { Passkey } from '#entities/passkey'
 import type { Me } from '#entities/session'
+import { unwrap } from '#shared/api/client'
 import { requireSession } from '#app/gates'
 
 export interface DashboardData {
@@ -22,6 +23,6 @@ export const loadDashboard = async (): Promise<DashboardData> => {
   if (me.accountType === 'guest') {
     return { me, passkeys: [] }
   }
-  const passkeys = await listPasskeys()
+  const passkeys = unwrap(await listPasskeys())
   return { me, passkeys }
 }

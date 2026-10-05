@@ -4,8 +4,8 @@ import { aPasskey } from './builders'
 import { registrationOptions } from '#shared/testing/webauthn'
 import type { Passkey } from '../index'
 
-const optionsErrors = { unauthenticated: 401 } as const
-const verifyErrors = { registration_not_found: 404 } as const
+const optionsErrors = { unauthenticated: 401, database_unavailable: 503 } as const
+const verifyErrors = { registration_not_found: 404, credential_already_registered: 409 } as const
 export const mockAddOptions = domainMock<Record<string, never>, Record<string, unknown>, Record<string, unknown>, keyof typeof optionsErrors>(
   'POST',
   '/api/passkeys/register-options',

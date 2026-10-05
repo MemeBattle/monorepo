@@ -1,3 +1,4 @@
+import { ApiError, ok } from '#shared/api/client'
 import { WebAuthnError } from '@simplewebauthn/browser'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -26,7 +27,7 @@ describe('addPasskey', () => {
     const verified = mockAddVerification(passkey)
     startRegistration.mockResolvedValue(made)
 
-    await expect(addPasskey()).resolves.toEqual(passkey)
+    await expect(addPasskey()).resolves.toEqual(ok(passkey))
 
     expect(requested).toHaveBeenCalledExactlyOnceWith({})
     expect(startRegistration).toHaveBeenCalledWith({ optionsJSON: options.ccr.publicKey })
@@ -63,7 +64,23 @@ describe('addPasskey', () => {
   it('asks the authenticator for nothing without a session', async () => {
     mockAddOptions.error('unauthenticated')
 
-    await expect(addPasskey()).rejects.toSatisfy(error => error.code === 'unauthenticated')
+    await expect(addPasskey()).resolves.toMatchObject({ ok: false, error: { status: 401, code: 'unauthenticated' } })
+
+    expect(startRegistration).not.toHaveBeenCalled()
+  })
+
+  it('answers the failure of the finish', async () => {
+    mockAddOptions(options)
+    mockAddVerification.error('credential_already_registered')
+    startRegistration.mockResolvedValue(made)
+
+    await expect(addPasskey()).resolves.toMatchObject({ ok: false, error: { status: 409, code: 'credential_already_registered' } })
+  })
+
+  it('lets an outage through as it is', async () => {
+    mockAddOptions.error('database_unavailable')
+
+    await expect(addPasskey()).rejects.toSatisfy(error => error instanceof ApiError && error.code === 'database_unavailable')
 
     expect(startRegistration).not.toHaveBeenCalled()
   })

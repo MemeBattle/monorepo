@@ -7,11 +7,24 @@ root.
 - `pnpm test:ci` — unit tests: vitest, `src/**/*.spec.{ts,tsx}`. `pnpm test`
   runs them in watch mode.
 - `pnpm lint:check` / `pnpm fmt:check` from the repo root — oxlint and oxfmt,
-  configured once for the whole monorepo.
+  configured once for the whole monorepo. Both skip
+  `src/shared/api/generated/`, which is kubb's output.
+
+## The generated API client
+
+`src/shared/api/generated/` is generated from `apps/cas/openapi.json`
+(`adr/0004-generated-api-client.md`) and committed. After the description
+changes, run `pnpm generate:api` and commit the result with it; never edit
+the output by hand. CI does not compare the committed output with a fresh
+one: the `typecheck` job in `.github/workflows/cas-frontend-pr.yml` runs
+`generate:api` and then the type check, so what it proves is that the app
+compiles against the description as it is in that commit. A description
+change that breaks a call or a code a screen branches on fails there, with
+or without a regeneration. The workflow runs on `apps/cas/**` changes too.
 
 ## What gets a unit test
 
-Logic that can be wrong on its own: the API wrapper and error mapping, form
+Logic that can be wrong on its own: the API client and error mapping, form
 actions, anything that turns an API response into what a screen shows.
 Rendering a placeholder or a static route table does not; that is what the
 type checker and the build are for.
@@ -26,11 +39,13 @@ catches an unanswered request (including silent autofill failures).
 ## The network boundary
 
 A spec never mocks an entity module and never imports `msw` itself. Keep
-`request()` and the CAS wire contract running. Only the entity testing modules
-and `shared/testing/` import MSW. The focused `shared/api/request.spec.ts` may
+`client()` and the CAS wire contract running. Only the entity testing modules
+and `shared/testing/` import MSW. The focused `shared/api/client.spec.ts` may
 stub fetch to test parsing; `vi.unstubAllGlobals()` restores the intercepted
 fetch. Mock `@simplewebauthn/browser` for unit tests; real ceremonies belong in
-the separate E2E lane below.
+the separate E2E lane below. Helpers answer raw HTTP payloads; the real generated
+operations and `client()` turn them into `Result` values. A declared 4xx resolves
+to a failed result, while network failures and 5xx responses still reject.
 
 Every requesting entity has two entry points: `#entities/session` (production
 calls and types) and `#entities/session/testing` (helpers and builders), likewise

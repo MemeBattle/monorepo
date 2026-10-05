@@ -3,9 +3,11 @@ import { useFormStatus } from 'react-dom'
 import { useLoaderData, useRevalidator } from 'react-router'
 
 import { addPasskey, deletePasskey, renamePasskey } from '#entities/passkey'
-import type { Passkey } from '#entities/passkey'
+import type { Passkey, RenamePasskeyErrorCode } from '#entities/passkey'
 import { logout, updateEmail } from '#entities/session'
-import { isApiError } from '#shared/api/request'
+import type { UpdateEmailErrorCode } from '#entities/session'
+import { ok } from '#shared/api/client'
+import type { Result } from '#shared/api/client'
 import { Alert, Icon, Screen, Section, Spinner } from '#shared/ui'
 import { DashboardHeader } from './DashboardHeader'
 import { EmailSection } from './EmailSection'
@@ -14,7 +16,7 @@ import type { DashboardData } from './loadDashboard'
 import { PasskeyNudge } from './PasskeyNudge'
 import { PasskeyRow } from './PasskeyRow'
 import type { DeleteFailure } from './PasskeyRow'
-import { toAddPasskeyFailure } from './addPasskeyFailure'
+import { toAddPasskeyFailure, toThrownAddPasskeyFailure } from './addPasskeyFailure'
 import type { AddPasskeyFailure } from './addPasskeyFailure'
 
 /** What the alert under the header says when sign-out did not go through; never the raw message. */
@@ -72,7 +74,9 @@ const FullAccountDashboard = ({ me, passkeys }: DashboardData) => {
 
   const [failure, signOut] = useActionState(async (): Promise<typeof signOutFailure | null> => {
     try {
-      await logout()
+      if (!(await logout()).ok) {
+        return signOutFailure
+      }
     } catch {
       return signOutFailure
     }
@@ -84,15 +88,19 @@ const FullAccountDashboard = ({ me, passkeys }: DashboardData) => {
   // One action behind both the nudge's button and "Добавить" in the title row: a browser runs one ceremony at a
   // time, so while it is pending both controls wait.
   const [addFailure, add, adding] = useActionState(async (): Promise<AddPasskeyFailure | null> => {
+    let result: Awaited<ReturnType<typeof addPasskey>>
     try {
-      await addPasskey()
+      result = await addPasskey()
     } catch (error) {
-      if (isApiError(error) && error.code === 'unauthenticated') {
+      return toThrownAddPasskeyFailure(error)
+    }
+    if (!result.ok) {
+      if (result.error.code === 'unauthenticated') {
         // The session ended under the page: the loader finds none and redirects to sign-in.
         await revalidator.revalidate()
         return null
       }
-      return toAddPasskeyFailure(error)
+      return toAddPasskeyFailure(result.error)
     }
     // The list is about to change under every row, so what a row said about its last delete is stale: in particular
     // "the only passkey" after a `last_passkey` refusal, which the new passkey has just made untrue.
@@ -103,35 +111,39 @@ const FullAccountDashboard = ({ me, passkeys }: DashboardData) => {
     return null
   }, null)
 
-  const rename = async (id: string, name: string) => {
+  /** A failure other than `passkey_not_found` goes back to the row, which explains it; a throw rejects to it. */
+  const rename = async (id: string, name: string): Promise<Result<unknown, RenamePasskeyErrorCode>> => {
     showChange({ renamed: { id, name } })
-    try {
-      await renamePasskey(id, name)
-    } catch (error) {
-      // Deleted in another tab: the list is stale, not the name. The reload below takes the row away.
-      if (!(isApiError(error) && error.code === 'passkey_not_found')) {
-        throw error
-      }
+    const result = await renamePasskey(id, name)
+    // Deleted in another tab: the list is stale, not the name. The reload below takes the row away.
+    if (!result.ok && result.error.code !== 'passkey_not_found') {
+      return result
     }
     // The action stays pending until the loader has the new name, so the optimistic one never flickers back.
     await revalidator.revalidate()
+    return ok(undefined)
   }
 
   const remove = async (id: string) => {
     setDeleteFailure(id, null)
     showChange({ deleted: id })
+    let result: Awaited<ReturnType<typeof deletePasskey>>
     try {
-      await deletePasskey(id)
-    } catch (error) {
-      if (isApiError(error) && error.code === 'last_passkey') {
+      result = await deletePasskey(id)
+    } catch {
+      // The list is fine; the row comes back with the failed action and says so.
+      setDeleteFailure(id, 'failed')
+      return
+    }
+    if (!result.ok) {
+      if (result.error.code === 'last_passkey') {
         // Lost a race with another tab: this is the only passkey now. The reload below turns its delete off with the same words.
         setDeleteFailure(id, 'lastPasskey')
         await revalidator.revalidate()
         return
       }
       // Deleted in another tab: the list is stale, and the reload below takes the row away all the same.
-      if (!(isApiError(error) && error.code === 'passkey_not_found')) {
-        // The list is fine; the row comes back with the failed action and says so.
+      if (result.error.code !== 'passkey_not_found') {
         setDeleteFailure(id, 'failed')
         return
       }
@@ -140,21 +152,22 @@ const FullAccountDashboard = ({ me, passkeys }: DashboardData) => {
     await revalidator.revalidate()
   }
 
-  const saveEmail = async (email: string | null) => {
+  /** A failure other than a lost session goes back to the section, which explains it; a throw rejects to it. */
+  const saveEmail = async (email: string | null): Promise<Result<unknown, UpdateEmailErrorCode>> => {
     showEmail(email)
-    try {
-      await updateEmail(email)
-    } catch (error) {
-      if (isApiError(error) && error.code === 'unauthenticated') {
-        // The session ended under the page: the loader finds none and redirects to sign-in.
-        await revalidator.revalidate()
-        return
+    const result = await updateEmail(email)
+    if (!result.ok) {
+      if (result.error.code !== 'unauthenticated') {
+        return result
       }
-      throw error
+      // The session ended under the page: the loader finds none and redirects to sign-in. Nothing for the form to say.
+      await revalidator.revalidate()
+      return ok(undefined)
     }
     // The server stores the address its own way (the domain lower-cased) and answers with nothing, so the action
     // stays pending until the loader has read it back: what the row shows is what survives a reload.
     await revalidator.revalidate()
+    return result
   }
 
   return (

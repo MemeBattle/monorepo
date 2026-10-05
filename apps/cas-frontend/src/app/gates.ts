@@ -3,7 +3,7 @@ import type { LoaderFunctionArgs } from 'react-router'
 
 import { getMe } from '#entities/session'
 import type { Me } from '#entities/session'
-import { isApiError } from '#shared/api/request'
+import { unwrap } from '#shared/api/client'
 import { leaveTo, readReturnTo } from './returnTo'
 import { routes } from './routes'
 
@@ -13,14 +13,11 @@ import { routes } from './routes'
  * screen.
  */
 const currentAccount = async (): Promise<Me | null> => {
-  try {
-    return await getMe()
-  } catch (error) {
-    if (isApiError(error) && error.code === 'unauthenticated') {
-      return null
-    }
-    throw error
+  const result = await getMe()
+  if (!result.ok && result.error.code === 'unauthenticated') {
+    return null
   }
+  return unwrap(result)
 }
 
 /**

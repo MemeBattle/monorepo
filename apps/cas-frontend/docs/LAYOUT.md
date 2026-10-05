@@ -9,6 +9,7 @@ apps/cas-frontend/
   docs/                this file, TESTS.md, CODE.md, PASSKEYS.md, ADRs
   index.html           the single page, lang="ru"
   vite.config.ts       React Compiler, Tailwind, the /api and /oidc dev proxy, vitest
+  kubb.config.ts       generates shared/api/generated from apps/cas/openapi.json
   playwright.config.ts the e2e suite: Chromium, vite as its webServer
   e2e/                 the e2e scenarios (*.e2e.ts), fixtures.ts (the
                        virtual authenticator over CDP), authorization.ts (the
@@ -31,7 +32,11 @@ apps/cas-frontend/
                        private stages only for the owning entity ceremony specs
     shared/testing/    MSW server/setup for specs, browser adapter for Storybook,
                        internal request primitive and injected spy runtime
-    shared/api/        request(), ApiError: the wire contract with CAS
+    shared/api/        the wire contract with CAS: client.ts (client(), the
+                       only fetch, Result, unwrap, ApiError, ErrorCodeOf) and
+                       generated/ (kubb's output, never edited by hand:
+                       models/ the types, operations/ one function per /api/
+                       operation)
     shared/lib/        rules more than one screen applies: label (the name
                        rules CAS applies to a display name and a passkey)
     shared/ui/         the primitives every screen is made of (Button, TextField,
@@ -39,7 +44,7 @@ apps/cas-frontend/
 ```
 
 Imports inside `src` use subpath imports `#…` (see `imports` in
-`package.json`): `#pages/sign-in/SignInPage`, `#shared/api/request`.
+`package.json`): `#pages/sign-in/SignInPage`, `#shared/api/client`.
 
 ## Running
 

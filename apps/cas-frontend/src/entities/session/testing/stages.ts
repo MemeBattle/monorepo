@@ -4,8 +4,8 @@ import { aRegistration } from './builders'
 import { loginOptions, registrationOptions } from '#shared/testing/webauthn'
 import type { Registered, SignedIn } from '../index'
 
-const optionsErrors = { database_unavailable: 503 } as const
-const verifyErrors = { invalid_credential: 401, login_not_found: 404 } as const
+const optionsErrors = { database_unavailable: 503, cross_site_request: 403 } as const
+const verifyErrors = { invalid_credential: 401, login_not_found: 404, database_unavailable: 503 } as const
 export const mockLoginOptions = domainMock<Record<string, never>, Record<string, unknown>, Record<string, unknown>, keyof typeof optionsErrors>(
   'POST',
   '/api/webauthn/login-options',
@@ -23,11 +23,11 @@ export const mockRegistrationOptions = domainMock<
   { displayName: string },
   Record<string, unknown>,
   Record<string, unknown>,
-  keyof typeof optionsErrors
->('POST', '/api/webauthn/register-options', (value = registrationOptions('r1')) => value, optionsErrors)
+  keyof typeof optionsErrors | 'invalid_display_name'
+>('POST', '/api/webauthn/register-options', (value = registrationOptions('r1')) => value, { ...optionsErrors, invalid_display_name: 400 })
 export const mockRegistrationVerification = domainMock<
   { registrationId: string; response: unknown },
   Partial<Registered>,
   Registered,
-  'unauthenticated'
->('POST', '/api/webauthn/verify-registration', aRegistration, { unauthenticated: 401 })
+  'unauthenticated' | 'registration_not_found'
+>('POST', '/api/webauthn/verify-registration', aRegistration, { unauthenticated: 401, registration_not_found: 404 })
