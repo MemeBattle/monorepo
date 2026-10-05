@@ -1,4 +1,4 @@
-FROM node:24.19-trixie-slim AS dependencies
+FROM node:24.20-trixie-slim AS dependencies
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME/bin:$PATH"
 RUN corepack enable
@@ -25,7 +25,7 @@ RUN pnpm run ligretto:gameplay-backend:build
 
 RUN pnpm deploy --prod --filter=@memebattle/ligretto-gameplay-backend /prod
 
-FROM node:24.19-trixie-slim AS runtime
+FROM node:24.20-trixie-slim AS runtime
 ENV NODE_ENV=production
 
 USER node
