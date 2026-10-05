@@ -6,6 +6,14 @@ Accepted (2026-09-26), with [#743](https://github.com/MemeBattle/monorepo/issues
 Amended (2026-09-27) by ADR 0012, with [#744](https://github.com/MemeBattle/monorepo/issues/744):
 the refresh_token grant is served; "unsupported until #744" in (c) and (f)
 no longer holds.
+Amended (2026-10-03) by ADR 0014, with [#746](https://github.com/MemeBattle/monorepo/issues/746):
+the guest grant is served, so "unsupported until #746" in (f) no longer
+holds; `unauthorized_client` and `rate_limit_exceeded` (`429`) join the
+errors of (g); the ID token's `name` in (b) is released for a full account
+only, never for a guest.
+Amended (2026-10-04) by ADR 0017, with [#775](https://github.com/MemeBattle/monorepo/issues/775):
+the endpoint is at `/oidc/token`, not at the root (g); it stays outside
+`/api`.
 
 ## Context
 

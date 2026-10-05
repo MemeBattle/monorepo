@@ -9,6 +9,10 @@ Amended (2026-09-12) by [#699](https://github.com/MemeBattle/monorepo/issues/699
 decision (j) says what the session lifecycle logs.
 Amended (2026-09-12) by [#700](https://github.com/MemeBattle/monorepo/issues/700):
 decision (d) gained the `__Host-` name prefix.
+Amended (2026-10-03) by ADR 0015, with [#747](https://github.com/MemeBattle/monorepo/issues/747):
+a session has a kind, `full` or `upgrade`, and only a full session passes
+the `Authenticated` extractor of (h); the guest upgrade writes its session
+inside the ceremony's transaction rather than after it, unlike (f).
 
 ## Context
 

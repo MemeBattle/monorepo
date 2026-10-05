@@ -1,6 +1,6 @@
-//! `POST /token`: the authorization code exchange and the refresh (ADR 0011,
-//! ADR 0012). Served at the
-//! root with `ApiState`, outside `/api`: it is called by a client's backend
+//! `POST /oidc/token`: the authorization code exchange and the refresh (ADR 0011,
+//! ADR 0012), and the guest grant (ADR 0014). Served under
+//! `/oidc` with `ApiState`, outside `/api`: it is called by a client's backend
 //! or by a public client, never with CAS's cookie, so neither the session
 //! nor the Fetch Metadata line (ADR 0005) has anything to say about it.
 //!
@@ -9,45 +9,52 @@
 //! read the former, so the endpoint has its own error type here.
 
 use std::borrow::Cow;
+use std::collections::BTreeMap;
 
 use axum::{
-    Json, Router,
     body::{Body, to_bytes},
     extract::State,
     http::{HeaderMap, HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
-    routing::post,
 };
+use serde::Serialize;
 use serde_json::json;
 use tower_http::set_header::SetResponseHeaderLayer;
+use utoipa::openapi::{RefOr, response::Response as OpenApiResponse};
+use utoipa::{OpenApi, ToSchema};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::db::Failure;
 use crate::http::ApiState;
+use crate::http::error::ErrorCode;
+use crate::http::extract::Json;
+use crate::http::response::{Documented, ErrorShape, error_responses, string_header};
 use crate::oidc::{IssuedTokens, Params, TokenError};
 
 /// The largest body a token request may have. The longest legitimate one —
 /// a code, a verifier of 128 characters, a redirect URI and a client's
 /// credentials — is well under a kilobyte; the bound is what stops a
-/// client from making CAS buffer anything larger.
-const MAX_BODY_BYTES: usize = 8 * 1024;
+/// client from making CAS buffer anything larger. `POST /oidc/end_session` reads
+/// its form within the same bound.
+pub(super) const MAX_BODY_BYTES: usize = 8 * 1024;
 
 /// RFC 6749 §3.2: the token endpoint takes a form.
-const FORM_CONTENT_TYPE: &str = "application/x-www-form-urlencoded";
+pub(super) const FORM_CONTENT_TYPE: &str = "application/x-www-form-urlencoded";
 
 /// What a client that tried the `Basic` scheme is told (RFC 6749 §5.2,
 /// RFC 7617 §2).
 const BASIC_CHALLENGE: &str = "Basic realm=\"cas\"";
 
-/// `POST /token`, holding `ApiState`. Any other method is answered `405`
+/// `POST /oidc/token`, holding `ApiState`. Any other method is answered `405`
 /// by the router, `HEAD` and `GET` included.
 ///
 /// Every answer is `Cache-Control: no-store` and `Pragma: no-cache`, the
 /// two headers RFC 6749 §5.1 requires on a response that carries tokens;
 /// route layers, so the root's fallback is not wrapped (see
 /// `oidc::http::router`).
-pub fn token_router(state: ApiState) -> Router {
-    Router::new()
-        .route("/token", post(token))
+pub fn token_router(state: ApiState) -> OpenApiRouter {
+    OpenApiRouter::with_openapi(TokenApi::openapi())
+        .routes(routes!(token))
         .route_layer(SetResponseHeaderLayer::overriding(
             header::CACHE_CONTROL,
             HeaderValue::from_static("no-store"),
@@ -59,11 +66,77 @@ pub fn token_router(state: ApiState) -> Router {
         .with_state(state)
 }
 
-async fn token(State(state): State<ApiState>, headers: HeaderMap, body: Body) -> Response {
+/// The success body, for the description.
+#[derive(OpenApi)]
+#[openapi(components(schemas(TokenResponse)))]
+struct TokenApi;
+
+/// What `/oidc/token` answers, for the description: the tokens, or an RFC 6749
+/// §5.2 error.
+struct TokenResponses;
+
+impl utoipa::IntoResponses for TokenResponses {
+    fn responses() -> BTreeMap<String, RefOr<OpenApiResponse>> {
+        let mut codes = OAuthErrorResponse::DECLARED.to_vec();
+        codes.push((StatusCode::INTERNAL_SERVER_ERROR, SERVER_ERROR));
+        let mut responses = error_responses(&codes, ErrorShape::OAuth);
+        for (status, name, description) in [
+            (
+                StatusCode::UNAUTHORIZED,
+                header::WWW_AUTHENTICATE,
+                "`Basic realm=\"cas\"`, for a client that tried the `Authorization` header.",
+            ),
+            (
+                StatusCode::TOO_MANY_REQUESTS,
+                header::RETRY_AFTER,
+                "Seconds until the guest grant may be asked again.",
+            ),
+        ] {
+            if let Some(RefOr::T(response)) = responses.get_mut(status.as_str()) {
+                response.headers.insert(
+                    name.as_str().to_owned(),
+                    RefOr::T(string_header(description)),
+                );
+            }
+        }
+        responses.extend(<Json<TokenResponse> as utoipa::IntoResponses>::responses());
+        responses
+    }
+}
+
+/// The token endpoint: the authorization code exchange, the refresh, and
+/// the guest grant.
+///
+/// The body is `application/x-www-form-urlencoded` (RFC 6749 §3.2), read
+/// by hand under the RFC's rules, a repeated parameter refused:
+/// `grant_type=authorization_code` with `code`, `redirect_uri` and
+/// `code_verifier` (ADR 0011); `grant_type=refresh_token` with
+/// `refresh_token` and an optional `scope` (ADR 0012);
+/// `grant_type=urn:memebattle:oauth:grant-type:guest` with an optional
+/// `scope` (ADR 0014). A confidential client authenticates with
+/// `Authorization: Basic` or with `client_id` and `client_secret` in the
+/// body, a public client sends `client_id` alone. Every answer is
+/// `Cache-Control: no-store` and `Pragma: no-cache`.
+#[utoipa::path(
+    post,
+    path = "/oidc/token",
+    request_body(
+        content = String,
+        content_type = "application/x-www-form-urlencoded",
+        description = "The grant's parameters, see the operation's description.",
+    ),
+    security((), ("basic" = []))
+)]
+async fn token(
+    State(state): State<ApiState>,
+    headers: HeaderMap,
+    body: Body,
+) -> Documented<TokenResponses> {
     match exchange(&state, &headers, body).await {
         Ok(tokens) => success(tokens),
         Err(error) => OAuthErrorResponse::from(error).into_response(),
     }
+    .into()
 }
 
 /// Reads the request and hands it to the service. The content type is
@@ -90,7 +163,7 @@ async fn exchange(
 
 /// Whether the media type is a form, whatever its parameters (a `charset`
 /// is common and harmless).
-fn is_form(headers: &HeaderMap) -> bool {
+pub(super) fn is_form(headers: &HeaderMap) -> bool {
     headers
         .get(header::CONTENT_TYPE)
         .and_then(|value| value.to_str().ok())
@@ -110,16 +183,36 @@ fn authorization(headers: &HeaderMap) -> Result<Option<&[u8]>, TokenError> {
     Ok(first)
 }
 
+/// The tokens, RFC 6749 §5.1 and OpenID Connect Core §3.1.3.3.
+///
+/// The fields are in alphabetical order, the order the members had when the
+/// body was built as a JSON map, so the bytes on the wire did not change.
+#[derive(Serialize, ToSchema)]
+pub struct TokenResponse {
+    /// An ES256 JWT (RFC 9068) for the client's resource server.
+    access_token: String,
+    /// Seconds.
+    expires_in: u64,
+    id_token: String,
+    /// Opaque; rotated on every refresh.
+    refresh_token: String,
+    /// The granted scopes, space-separated.
+    scope: String,
+    /// Always `Bearer`.
+    #[schema(value_type = String)]
+    token_type: &'static str,
+}
+
 /// RFC 6749 §5.1. The two headers come from the router's layers.
 fn success(tokens: IssuedTokens) -> Response {
-    Json(json!({
-        "access_token": tokens.access_token,
-        "token_type": "Bearer",
-        "expires_in": tokens.expires_in,
-        "refresh_token": tokens.refresh_token.expose(),
-        "id_token": tokens.id_token,
-        "scope": tokens.scope,
-    }))
+    Json(TokenResponse {
+        access_token: tokens.access_token,
+        expires_in: tokens.expires_in,
+        id_token: tokens.id_token,
+        refresh_token: tokens.refresh_token.expose().to_owned(),
+        scope: tokens.scope,
+        token_type: "Bearer",
+    })
     .into_response()
 }
 
@@ -127,15 +220,32 @@ fn success(tokens: IssuedTokens) -> Response {
 /// only variable part, if any, is a parameter name from the service's fixed
 /// list: nothing the request carried is reflected.
 #[derive(Debug)]
-struct OAuthErrorResponse {
+pub(super) struct OAuthErrorResponse {
     status: StatusCode,
-    error: &'static str,
+    pub(super) error: &'static str,
     description: Cow<'static, str>,
     /// `WWW-Authenticate: Basic`, for a client that tried the header.
     challenge: bool,
+    /// `Retry-After`, in seconds, for a refusal that a later request may
+    /// not get.
+    retry_after: Option<u64>,
 }
 
 impl OAuthErrorResponse {
+    /// Every refusal the mapping below can name, for the description. The
+    /// `/oidc/token` mapping and `/oidc/userinfo`'s database failure answer within
+    /// it; [`SERVER_ERROR`] is the family's fallback and is not among them.
+    pub(super) const DECLARED: [(StatusCode, &'static str); 8] = [
+        (StatusCode::BAD_REQUEST, "invalid_request"),
+        (StatusCode::BAD_REQUEST, "invalid_grant"),
+        (StatusCode::BAD_REQUEST, "invalid_scope"),
+        (StatusCode::BAD_REQUEST, "unauthorized_client"),
+        (StatusCode::BAD_REQUEST, "unsupported_grant_type"),
+        (StatusCode::UNAUTHORIZED, "invalid_client"),
+        (StatusCode::TOO_MANY_REQUESTS, "rate_limit_exceeded"),
+        (StatusCode::SERVICE_UNAVAILABLE, TEMPORARILY_UNAVAILABLE),
+    ];
+
     fn new(
         status: StatusCode,
         error: &'static str,
@@ -146,6 +256,7 @@ impl OAuthErrorResponse {
             error,
             description: description.into(),
             challenge: false,
+            retry_after: None,
         }
     }
 
@@ -154,9 +265,11 @@ impl OAuthErrorResponse {
     }
 }
 
-/// The client's refusals are `400`, `invalid_client` is `401`. A database
+/// The client's refusals are `400`, `invalid_client` is `401`, and the
+/// guest grant's rate limit `429` with `Retry-After`: RFC 6749 §5.2 has no
+/// code for it, and an extension grant may define its own. A database
 /// failure borrows the two codes RFC 6749 §4.1.2.1 defines for the
-/// authorization endpoint, as `/authorize` does: §5.2 has none, and a
+/// authorization endpoint, as `/oidc/authorize` does: §5.2 has none, and a
 /// client can act on "try again" as opposed to "this is broken".
 impl From<TokenError> for OAuthErrorResponse {
     fn from(error: TokenError) -> Self {
@@ -181,10 +294,21 @@ impl From<TokenError> for OAuthErrorResponse {
             TokenError::InvalidScope(description) => {
                 Self::bad_request("invalid_scope", description)
             }
-            TokenError::UnsupportedGrantType => Self::bad_request(
-                "unsupported_grant_type",
-                "only grant_type=authorization_code and refresh_token are supported",
+            TokenError::UnauthorizedClient => Self::bad_request(
+                "unauthorized_client",
+                "the client is not authorized to use this grant type",
             ),
+            TokenError::RateLimited { retry_after } => Self {
+                retry_after: Some(retry_after.as_secs()),
+                ..Self::new(
+                    StatusCode::TOO_MANY_REQUESTS,
+                    "rate_limit_exceeded",
+                    "too many guest accounts were requested, try again later",
+                )
+            },
+            TokenError::UnsupportedGrantType => {
+                Self::bad_request("unsupported_grant_type", UNSUPPORTED_GRANT_TYPE)
+            }
             TokenError::Db(error) => database_error(&error),
             TokenError::Random(error) => {
                 tracing::error!(error = %error, "no randomness for a refresh token");
@@ -194,23 +318,39 @@ impl From<TokenError> for OAuthErrorResponse {
     }
 }
 
+/// The `unsupported_grant_type` description: the grants that are served.
+const UNSUPPORTED_GRANT_TYPE: &str = "only grant_type=authorization_code, refresh_token and \
+     urn:memebattle:oauth:grant-type:guest are supported";
+
 fn database_error(error: &sqlx::Error) -> OAuthErrorResponse {
-    let response = match crate::db::classify(error) {
-        Some(Failure::Unavailable | Failure::Busy) => OAuthErrorResponse::new(
-            StatusCode::SERVICE_UNAVAILABLE,
-            "temporarily_unavailable",
-            "the service is unavailable, try again later",
-        ),
-        None => server_error(),
-    };
+    let response = database_failure(error);
     tracing::error!(error = response.error, source = ?error, "token request failed");
     response
 }
 
+/// The answer to a database failure, which `/oidc/userinfo` gives too: "try
+/// again" when [`crate::db::classify`] names it retryable, "this is
+/// broken" otherwise.
+pub(super) fn database_failure(error: &sqlx::Error) -> OAuthErrorResponse {
+    match crate::db::classify(error) {
+        Some(Failure::Unavailable | Failure::Busy) => OAuthErrorResponse::new(
+            StatusCode::SERVICE_UNAVAILABLE,
+            TEMPORARILY_UNAVAILABLE,
+            "the service is unavailable, try again later",
+        ),
+        None => server_error(),
+    }
+}
+
+const TEMPORARILY_UNAVAILABLE: &str = "temporarily_unavailable";
+
+/// The code of the family's 500, for what the code cannot name.
+pub(super) const SERVER_ERROR: &str = "server_error";
+
 fn server_error() -> OAuthErrorResponse {
     OAuthErrorResponse::new(
         StatusCode::INTERNAL_SERVER_ERROR,
-        "server_error",
+        SERVER_ERROR,
         "the server could not complete the request",
     )
 }
@@ -224,15 +364,20 @@ impl IntoResponse for OAuthErrorResponse {
             "error": self.error,
             "error_description": self.description,
         }));
+        let mut response = (self.status, body).into_response();
+        response.extensions_mut().insert(ErrorCode(self.error));
         if self.challenge {
-            let challenge = [(
+            response.headers_mut().insert(
                 header::WWW_AUTHENTICATE,
                 HeaderValue::from_static(BASIC_CHALLENGE),
-            )];
-            (self.status, challenge, body).into_response()
-        } else {
-            (self.status, body).into_response()
+            );
         }
+        if let Some(seconds) = self.retry_after {
+            response
+                .headers_mut()
+                .insert(header::RETRY_AFTER, HeaderValue::from(seconds));
+        }
+        response
     }
 }
 
@@ -240,6 +385,7 @@ impl IntoResponse for OAuthErrorResponse {
 mod tests {
     use std::time::Duration;
 
+    use axum::Router;
     use axum::http::Request;
     use base64::Engine;
     use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
@@ -256,19 +402,20 @@ mod tests {
 
     use super::*;
     use crate::accounts::{AccountRepository, NewAccount};
+    use crate::clients::registration::register;
     use crate::clients::{
-        Audience, ClientId, ClientName, ClientRepository, ClientSecret, NewClient, RedirectUri,
-        Scope,
+        Audience, ClientId, ClientKind, ClientName, ClientRepository, ClientSecret,
+        GuestGrantsPerMinute, NewClient, RedirectUri, Registration,
     };
     use crate::oidc::authorization::tests::{CALLBACK, CHALLENGE};
     use crate::oidc::http::tests::discover;
     use crate::oidc::http::{Documents, authorize_router, router as documents_router};
     use crate::oidc::token_request::INVALID_REFRESH_TOKEN;
-    use crate::oidc::{Discovery, RefreshToken, SigningKeys};
+    use crate::oidc::{Discovery, GUEST_GRANT_TYPE, RefreshToken, SigningKeys};
     use crate::sessions::{SessionOrigin, SessionService, SessionToken};
     use crate::testing::{
-        DEV_SIGNING_KEY, DEV_SIGNING_KEY_KID, capture_tracing, display_name, test_config,
-        test_cookies, test_state,
+        DEV_SIGNING_KEY, DEV_SIGNING_KEY_KID, capture_tracing, checked, display_name, header_str,
+        scopes, test_config, test_cookies, test_state,
     };
 
     /// RFC 7636 Appendix B: the verifier of [`CHALLENGE`].
@@ -281,24 +428,22 @@ mod tests {
     const AUDIENCE: &str = "ligretto";
     const PUBLIC: &str = "ligretto-web";
 
-    /// What `http::app` serves at the root for OIDC, on the test's pool.
+    /// What `http::app` serves for OIDC, on the test's pool.
     fn router(pool: PgPool) -> Router {
+        checked(oidc_routers(pool))
+    }
+
+    /// The routers [`router`] is made of, with their description.
+    fn oidc_routers(pool: PgPool) -> OpenApiRouter {
         let state = test_state(pool);
         let keys = SigningKeys::from_pem(DEV_SIGNING_KEY).unwrap();
-        Router::new()
+        OpenApiRouter::new()
             .merge(documents_router(Documents {
                 discovery: Discovery::for_issuer(&test_config().issuer),
                 jwks: keys.jwks(),
             }))
             .merge(authorize_router(state.clone()))
             .merge(token_router(state))
-    }
-
-    fn scopes(values: &[&str]) -> Vec<Scope> {
-        values
-            .iter()
-            .map(|value| Scope::try_new(*value).unwrap())
-            .collect()
     }
 
     /// A signed-in account, a confidential and a public first-party client,
@@ -364,7 +509,7 @@ mod tests {
     }
 
     impl Fixture {
-        /// A code from `/authorize` for `client_id`, the way a signed-in
+        /// A code from `/oidc/authorize` for `client_id`, the way a signed-in
         /// browser gets one.
         async fn code(&self, client_id: &str, scope: &str) -> String {
             let query = form(&[
@@ -382,7 +527,7 @@ mod tests {
                 .clone()
                 .oneshot(
                     Request::builder()
-                        .uri(format!("/authorize?{query}"))
+                        .uri(format!("/oidc/authorize?{query}"))
                         .header(header::COOKIE, &self.cookie)
                         .body(Body::empty())
                         .unwrap(),
@@ -404,7 +549,7 @@ mod tests {
             basic(CONFIDENTIAL, self.secret.expose())
         }
 
-        /// `POST /token` with a form body and, optionally, an
+        /// `POST /oidc/token` with a form body and, optionally, an
         /// `Authorization` header.
         async fn token(&self, pairs: &[(&str, &str)], authorization: Option<&str>) -> Response {
             send(
@@ -524,7 +669,7 @@ mod tests {
         authorization: Option<&str>,
         body: String,
     ) -> Response {
-        let mut request = Request::builder().method("POST").uri("/token");
+        let mut request = Request::builder().method("POST").uri("/oidc/token");
         if let Some(content_type) = content_type {
             request = request.header(header::CONTENT_TYPE, content_type);
         }
@@ -536,13 +681,6 @@ mod tests {
             .oneshot(request.body(Body::from(body)).unwrap())
             .await
             .unwrap()
-    }
-
-    fn header_str(response: &Response, name: header::HeaderName) -> Option<&str> {
-        response
-            .headers()
-            .get(name)
-            .map(|value| value.to_str().unwrap())
     }
 
     async fn json(response: Response) -> serde_json::Value {
@@ -864,7 +1002,7 @@ mod tests {
         let code = fixture.code(CONFIDENTIAL, "openid").await;
         let request = Request::builder()
             .method("POST")
-            .uri("/token")
+            .uri("/oidc/token")
             .header(header::CONTENT_TYPE, FORM_CONTENT_TYPE)
             .header(header::AUTHORIZATION, fixture.basic())
             .header(header::AUTHORIZATION, fixture.basic())
@@ -929,9 +1067,9 @@ mod tests {
         let code = fixture.code(CONFIDENTIAL, "openid").await;
 
         for grant_type in [
-            crate::oidc::GUEST_GRANT_TYPE,
             "client_credentials",
             "password",
+            "urn:memebattle:oauth:grant-type:anonymous",
         ] {
             let response = fixture
                 .token(
@@ -942,9 +1080,11 @@ mod tests {
 
             let body =
                 assert_error(response, StatusCode::BAD_REQUEST, "unsupported_grant_type").await;
+            assert_eq!(body["error_description"], UNSUPPORTED_GRANT_TYPE);
             assert_eq!(
                 body["error_description"],
-                "only grant_type=authorization_code and refresh_token are supported"
+                "only grant_type=authorization_code, refresh_token and \
+                 urn:memebattle:oauth:grant-type:guest are supported"
             );
         }
     }
@@ -1093,6 +1233,16 @@ mod tests {
     /// `finished` says there is nothing left to wait for. Bounded, so a
     /// broken assumption fails the test instead of hanging it.
     async fn wait_for_lock_wait(pool: &PgPool, statement: &str, finished: impl Fn() -> bool) {
+        wait_for_lock_waits(pool, statement, 1, finished).await;
+    }
+
+    /// [`wait_for_lock_wait`] for `backends` backends at once.
+    async fn wait_for_lock_waits(
+        pool: &PgPool,
+        statement: &str,
+        backends: i64,
+        finished: impl Fn() -> bool,
+    ) {
         for _ in 0..200 {
             if finished() {
                 return;
@@ -1109,12 +1259,12 @@ mod tests {
             .fetch_one(pool)
             .await
             .unwrap();
-            if waiting > 0 {
+            if waiting >= backends {
                 return;
             }
             tokio::time::sleep(Duration::from_millis(25)).await;
         }
-        panic!("no backend waited on a lock in {statement:?} within 5 seconds");
+        panic!("fewer than {backends} backends waited on a lock in {statement:?} within 5 seconds");
     }
 
     /// The race a replay used to win: the first exchange has consumed the
@@ -1205,7 +1355,7 @@ mod tests {
             .acquire_timeout(Duration::from_secs(1))
             .connect_lazy("postgres://cas:cas@localhost:1/cas")
             .unwrap();
-        let router = token_router(test_state(pool));
+        let router = checked(token_router(test_state(pool)));
         let body = form(&plus(grant("x"), "client_id", PUBLIC));
 
         let response = send(&router, Some(FORM_CONTENT_TYPE), None, body).await;
@@ -1222,11 +1372,11 @@ mod tests {
     /// of the test state is never used.
     #[tokio::test]
     async fn a_body_that_is_not_a_form_is_invalid_request() {
-        let router = token_router(test_state(
+        let router = checked(token_router(test_state(
             PgPoolOptions::new()
                 .connect_lazy("postgres://cas:cas@localhost:1/cas")
                 .unwrap(),
-        ));
+        )));
         let body = form(&grant("x"));
 
         for content_type in [None, Some("application/json"), Some("text/plain")] {
@@ -1257,11 +1407,11 @@ mod tests {
         }
     }
 
-    /// Through the whole application: the endpoint is mounted at the root,
+    /// Through the whole application: the endpoint is mounted under `/oidc`,
     /// for `POST` only, and a request that is not a form is refused before
     /// any query (the pool of `app` points at no test database).
     #[tokio::test]
-    async fn the_endpoint_is_mounted_at_the_root_for_post_only() {
+    async fn the_endpoint_is_mounted_under_oidc_for_post_only() {
         let app = crate::http::app(test_config()).unwrap();
 
         for method in ["GET", "HEAD", "PUT"] {
@@ -1270,7 +1420,7 @@ mod tests {
                 .oneshot(
                     Request::builder()
                         .method(method)
-                        .uri("/token")
+                        .uri("/oidc/token")
                         .body(Body::empty())
                         .unwrap(),
                 )
@@ -1287,7 +1437,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("POST")
-                    .uri("/token")
+                    .uri("/oidc/token")
                     .header(header::CONTENT_TYPE, "application/json")
                     .body(Body::from("{}"))
                     .unwrap(),
@@ -1864,5 +2014,791 @@ mod tests {
                 assert!(!event.contains(secret), "{secret} logged: {event}");
             }
         }
+    }
+
+    /// The client `scripts/seed-dev.sh` registers: confidential, first
+    /// party, guest login allowed, `openid profile email`, audience
+    /// `ligretto`, the default limit.
+    const GUEST_CLIENT: &str = "ligretto";
+    /// A public client registered with the flag, which the grant refuses.
+    const PUBLIC_GUEST_CLIENT: &str = "ligretto-spa";
+    /// The statement of the guest mint that takes the client's lock.
+    const GUEST_LOCK_STATEMENT: &str = "SELECT guest_grants_per_minute FROM clients";
+
+    /// Registers a guest-enabled client the way `cas-client` does, and
+    /// returns its secret when it is confidential.
+    async fn register_guest_client(
+        pool: &PgPool,
+        id: &str,
+        kind: ClientKind,
+        limit: Option<i32>,
+    ) -> Option<ClientSecret> {
+        register(
+            pool,
+            Registration {
+                id: ClientId::try_new(id).unwrap(),
+                name: ClientName::try_new("Ligretto").unwrap(),
+                kind,
+                redirect_uris: vec![
+                    RedirectUri::try_new("http://localhost:5173/oidc/callback").unwrap(),
+                ],
+                post_logout_redirect_uris: vec![
+                    RedirectUri::try_new("http://localhost:5173/").unwrap(),
+                ],
+                first_party: true,
+                guest_login_allowed: true,
+                guest_grants_per_minute: limit
+                    .map(|limit| GuestGrantsPerMinute::try_new(limit).unwrap()),
+                scopes: scopes(&["openid", "profile", "email"]),
+                audience: Some(Audience::try_new(AUDIENCE).unwrap()),
+            },
+        )
+        .await
+        .unwrap()
+        .secret
+    }
+
+    /// [`Fixture`] — whose confidential client has no guest flag — plus the
+    /// seeded `ligretto` client and a public client with the flag.
+    struct GuestFixture {
+        base: Fixture,
+        secret: ClientSecret,
+    }
+
+    async fn guest_fixture(pool: &PgPool) -> GuestFixture {
+        let base = fixture(pool).await;
+        let secret = register_guest_client(pool, GUEST_CLIENT, ClientKind::Confidential, None)
+            .await
+            .unwrap();
+        register_guest_client(pool, PUBLIC_GUEST_CLIENT, ClientKind::Public, None).await;
+        GuestFixture { base, secret }
+    }
+
+    fn guest() -> Pairs<'static> {
+        vec![("grant_type", GUEST_GRANT_TYPE)]
+    }
+
+    impl GuestFixture {
+        fn basic(&self) -> String {
+            basic(GUEST_CLIENT, self.secret.expose())
+        }
+
+        /// The seeded client asking for a guest with Basic, with `extra`
+        /// pairs after the grant type.
+        async fn mint(&self, extra: &[(&str, &str)]) -> Response {
+            let mut pairs = guest();
+            pairs.extend_from_slice(extra);
+            self.base.token(&pairs, Some(&self.basic())).await
+        }
+
+        /// [`Self::mint`] that must succeed: the body.
+        async fn minted(&self, extra: &[(&str, &str)]) -> serde_json::Value {
+            let response = self.mint(extra).await;
+            assert_eq!(response.status(), StatusCode::OK);
+            json(response).await
+        }
+    }
+
+    /// Spawns a guest request of `client` with Basic.
+    fn spawn_mint(
+        router: &Router,
+        client: &str,
+        secret: &ClientSecret,
+    ) -> tokio::task::JoinHandle<Response> {
+        let router = router.clone();
+        let authorization = basic(client, secret.expose());
+        let body = form(&guest());
+        tokio::spawn(async move {
+            send(&router, Some(FORM_CONTENT_TYPE), Some(&authorization), body).await
+        })
+    }
+
+    /// Opens a transaction that holds the client's row the way a guest mint
+    /// does.
+    async fn hold_client(
+        pool: &PgPool,
+        client: &str,
+    ) -> sqlx::Transaction<'static, sqlx::Postgres> {
+        let mut blocker = pool.begin().await.unwrap();
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("SELECT id FROM clients WHERE id = $1 FOR NO KEY UPDATE")
+            .bind(client)
+            .execute(&mut *blocker)
+            .await
+            .unwrap();
+        blocker
+    }
+
+    /// The one number a `SELECT count(*)` of the test answers.
+    async fn count(pool: &PgPool, query: &'static str) -> i64 {
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query_scalar(query).fetch_one(pool).await.unwrap()
+    }
+
+    const ACCOUNTS: &str = "SELECT count(*) FROM accounts";
+    const SESSIONS: &str = "SELECT count(*) FROM sessions";
+
+    /// The guests `client` minted.
+    async fn guests_of(pool: &PgPool, client: &str) -> i64 {
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query_scalar(
+            "SELECT count(*) FROM accounts WHERE created_by_client_id = $1 AND type = 'guest'",
+        )
+        .bind(client)
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    /// The first acceptance criterion: the seeded client gets the token
+    /// triple, and its `sub` is a new guest account the client minted.
+    #[sqlx::test]
+    async fn the_guest_grant_mints_a_guest_account(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let sessions = count(&pool, SESSIONS).await;
+
+        let response = fixture.mint(&[]).await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            header_str(&response, header::CACHE_CONTROL),
+            Some("no-store")
+        );
+        assert_eq!(header_str(&response, header::PRAGMA), Some("no-cache"));
+        let body = json(response).await;
+        assert_eq!(body.as_object().unwrap().len(), 6, "{body}");
+        assert_eq!(body["token_type"], "Bearer");
+        assert_eq!(body["expires_in"], 600);
+        assert_eq!(body["scope"], "openid");
+
+        let jwks = fixture.base.jwks().await;
+        let (header, claims) = decode(body["access_token"].as_str().unwrap(), &jwks);
+        assert_eq!(header["typ"], "at+jwt");
+        let sub: Uuid = claims["sub"].as_str().unwrap().parse().unwrap();
+        assert_eq!(claims["aud"], AUDIENCE);
+        assert_eq!(claims["client_id"], GUEST_CLIENT);
+        assert_eq!(claims["scope"], "openid");
+        assert_eq!(claims["amr"], serde_json::json!(["anon"]));
+        assert_eq!(claims["account_type"], "guest");
+
+        // Unchecked query: see docs/TESTS.md.
+        let (account_type, created_by, email, display_name): (
+            String,
+            Option<String>,
+            Option<String>,
+            String,
+        ) = sqlx::query_as(
+            "SELECT type::text, created_by_client_id, email, display_name
+             FROM accounts WHERE id = $1",
+        )
+        .bind(sub)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(account_type, "guest");
+        assert_eq!(created_by.as_deref(), Some(GUEST_CLIENT));
+        assert_eq!(email, None);
+        // A name of its own, `Guest <n>`, which the tokens do not release.
+        let number = display_name
+            .strip_prefix("Guest ")
+            .unwrap_or_else(|| panic!("{display_name:?}"));
+        assert!(number.parse::<i64>().is_ok(), "{display_name:?}");
+
+        // The ID token, checked by an independent implementation, with no
+        // nonce: there was no authorization request.
+        let id_token: CoreIdToken = body["id_token"].as_str().unwrap().parse().unwrap();
+        let verifier = fixture
+            .base
+            .id_token_verifier(GUEST_CLIENT, Some(fixture.secret.expose()))
+            .await;
+        let verified = id_token
+            .claims(&verifier, |nonce: Option<&Nonce>| match nonce {
+                None => Ok(()),
+                Some(_) => Err("a guest's ID token has no nonce".to_owned()),
+            })
+            .expect("the ID token verifies");
+        assert_eq!(verified.subject().as_str(), sub.to_string());
+        assert!(verified.name().is_none());
+        let (_, id_claims) = decode(body["id_token"].as_str().unwrap(), &jwks);
+        assert_eq!(id_claims["aud"], GUEST_CLIENT);
+        assert_eq!(id_claims["amr"], serde_json::json!(["anon"]));
+        assert_eq!(id_claims["account_type"], "guest");
+        for absent in ["nonce", "name", "email"] {
+            assert!(id_claims.get(absent).is_none(), "{absent}: {id_claims}");
+        }
+
+        // A grant no code produced, with the common lifetime, and its one
+        // refresh token.
+        let refresh = RefreshToken::parse(body["refresh_token"].as_str().unwrap()).unwrap();
+        // Unchecked query: see docs/TESTS.md.
+        let (account_id, client_id, scopes, linked, created_at, expires_at): (
+            Uuid,
+            String,
+            Vec<String>,
+            bool,
+            time::OffsetDateTime,
+            time::OffsetDateTime,
+        ) = sqlx::query_as(
+            "SELECT g.account_id, g.client_id, g.scopes, g.authorization_code_id IS NOT NULL,
+                    g.created_at, g.expires_at
+             FROM refresh_tokens t JOIN grants g ON g.id = t.grant_id
+             WHERE t.token_hash = $1",
+        )
+        .bind(refresh.hash().as_bytes())
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(account_id, sub);
+        assert_eq!(client_id, GUEST_CLIENT);
+        assert_eq!(scopes, ["openid"]);
+        assert!(!linked, "no code produced the grant");
+        assert_eq!(expires_at - created_at, time::Duration::days(30));
+        assert_eq!(refresh_token_count(&pool).await, 1);
+
+        // No CAS session: the guest never saw CAS.
+        assert_eq!(count(&pool, SESSIONS).await, sessions);
+    }
+
+    #[sqlx::test]
+    async fn a_guest_asking_for_profile_still_has_no_name(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+
+        let body = fixture.minted(&[("scope", "openid profile")]).await;
+
+        assert_eq!(body["scope"], "openid profile");
+        let (_, claims) = decode(
+            body["id_token"].as_str().unwrap(),
+            &fixture.base.jwks().await,
+        );
+        assert!(claims.get("name").is_none(), "{claims}");
+        assert_eq!(claims["account_type"], "guest");
+    }
+
+    #[sqlx::test]
+    async fn two_guest_grants_mint_two_accounts(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let jwks = fixture.base.jwks().await;
+
+        let first = fixture.minted(&[]).await;
+        let second = fixture.minted(&[]).await;
+
+        let (_, first) = decode(first["access_token"].as_str().unwrap(), &jwks);
+        let (_, second) = decode(second["access_token"].as_str().unwrap(), &jwks);
+        assert_ne!(first["sub"], second["sub"]);
+        assert_eq!(guests_of(&pool, GUEST_CLIENT).await, 2);
+        // Unchecked query: see docs/TESTS.md.
+        let names: i64 = sqlx::query_scalar(
+            "SELECT count(DISTINCT display_name) FROM accounts WHERE type = 'guest'",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(names, 2, "each guest has a name of its own");
+    }
+
+    /// Refresh is account-type agnostic: a guest's token rotates like any
+    /// other, and the guest stays a guest.
+    #[sqlx::test]
+    async fn a_guest_refreshes_like_anyone(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let jwks = fixture.base.jwks().await;
+        let minted = fixture.minted(&[]).await;
+        let (_, minted_claims) = decode(minted["access_token"].as_str().unwrap(), &jwks);
+
+        let response = fixture
+            .base
+            .token(
+                &refresh(minted["refresh_token"].as_str().unwrap()),
+                Some(&fixture.basic()),
+            )
+            .await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = json(response).await;
+        assert_ne!(body["refresh_token"], minted["refresh_token"]);
+        let (_, claims) = decode(body["access_token"].as_str().unwrap(), &jwks);
+        assert_eq!(claims["sub"], minted_claims["sub"]);
+        assert_eq!(claims["account_type"], "guest");
+        assert_eq!(claims["amr"], serde_json::json!(["anon"]));
+    }
+
+    #[sqlx::test]
+    async fn the_guest_grant_takes_post_credentials_too(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let pairs = plus(
+            plus(guest(), "client_id", GUEST_CLIENT),
+            "client_secret",
+            fixture.secret.expose(),
+        );
+
+        let response = fixture.base.token(&pairs, None).await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(guests_of(&pool, GUEST_CLIENT).await, 1);
+    }
+
+    /// The second acceptance criterion, first half: a public client with
+    /// the flag cannot prove who it is, so the flag does not count. Checked
+    /// before the grant's own parameters.
+    #[sqlx::test]
+    async fn a_public_client_is_unauthorized_for_the_guest_grant(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let accounts = count(&pool, ACCOUNTS).await;
+
+        for pairs in [
+            plus(guest(), "client_id", PUBLIC_GUEST_CLIENT),
+            plus(
+                plus(guest(), "client_id", PUBLIC_GUEST_CLIENT),
+                "scope",
+                "open\"id",
+            ),
+        ] {
+            let response = fixture.base.token(&pairs, None).await;
+
+            let body = assert_error(response, StatusCode::BAD_REQUEST, "unauthorized_client").await;
+            assert_eq!(
+                body["error_description"],
+                "the client is not authorized to use this grant type"
+            );
+        }
+        assert_eq!(count(&pool, ACCOUNTS).await, accounts);
+        assert!(grants(&pool).await.is_empty());
+    }
+
+    /// The second acceptance criterion, second half.
+    #[sqlx::test]
+    async fn a_confidential_client_without_the_flag_is_unauthorized(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let accounts = count(&pool, ACCOUNTS).await;
+        let (events, _guard) = capture_tracing();
+
+        let response = fixture
+            .base
+            .token(&guest(), Some(&fixture.base.basic()))
+            .await;
+
+        assert_error(response, StatusCode::BAD_REQUEST, "unauthorized_client").await;
+        assert_eq!(count(&pool, ACCOUNTS).await, accounts);
+        assert!(grants(&pool).await.is_empty());
+        let [warning] = &events.mentioning("guest grant refused")[..] else {
+            panic!("one line: {:?}", events.all());
+        };
+        assert!(warning.contains(CONFIDENTIAL), "{warning}");
+    }
+
+    /// Authentication precedes the grant, for this grant as for the others.
+    #[sqlx::test]
+    async fn a_wrong_secret_with_the_guest_grant_is_invalid_client(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+
+        let response = fixture
+            .base
+            .token(&guest(), Some(&basic(GUEST_CLIENT, "wrong")))
+            .await;
+
+        assert_error(response, StatusCode::UNAUTHORIZED, "invalid_client").await;
+        assert_eq!(guests_of(&pool, GUEST_CLIENT).await, 0);
+    }
+
+    #[sqlx::test]
+    async fn guest_scope_errors(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+
+        for (scope, description) in [
+            ("profile", "scope must include openid"),
+            (
+                "openid offline_access",
+                "the requested scope is not allowed for this client",
+            ),
+            ("openid  profile", "scope is malformed"),
+        ] {
+            let response = fixture.mint(&[("scope", scope)]).await;
+
+            let body = assert_error(response, StatusCode::BAD_REQUEST, "invalid_scope").await;
+            assert_eq!(body["error_description"], description, "{scope:?}");
+        }
+        let response = fixture
+            .mint(&[("scope", "openid"), ("scope", "openid")])
+            .await;
+        let body = assert_error(response, StatusCode::BAD_REQUEST, "invalid_request").await;
+        assert_eq!(body["error_description"], "parameter scope is repeated");
+        assert_eq!(guests_of(&pool, GUEST_CLIENT).await, 0);
+    }
+
+    /// The limit is per client and over a sliding minute: the request past
+    /// it writes nothing and says when to come back, another client is not
+    /// affected, and once the accounts have left the window the client gets
+    /// a guest again.
+    #[sqlx::test]
+    async fn the_guest_grant_is_rate_limited_per_client(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let limited = register_guest_client(&pool, "limited", ClientKind::Confidential, Some(2))
+            .await
+            .unwrap();
+        let pairs = guest();
+        let authorization = basic("limited", limited.expose());
+        let mint = || fixture.base.token(&pairs, Some(&authorization));
+        assert_eq!(mint().await.status(), StatusCode::OK);
+        assert_eq!(mint().await.status(), StatusCode::OK);
+        let accounts = count(&pool, ACCOUNTS).await;
+        let issued = refresh_token_count(&pool).await;
+        let (events, _guard) = capture_tracing();
+
+        let response = mint().await;
+
+        assert_eq!(header_str(&response, header::RETRY_AFTER), Some("60"));
+        let body = assert_error(
+            response,
+            StatusCode::TOO_MANY_REQUESTS,
+            "rate_limit_exceeded",
+        )
+        .await;
+        assert_eq!(
+            body["error_description"],
+            "too many guest accounts were requested, try again later"
+        );
+        assert_eq!(count(&pool, ACCOUNTS).await, accounts);
+        assert_eq!(grants(&pool).await.len(), 2);
+        assert_eq!(refresh_token_count(&pool).await, issued);
+        let [warning] = &events.mentioning("guest grant rate limit exceeded")[..] else {
+            panic!("one line: {:?}", events.all());
+        };
+        assert!(warning.contains("limited"), "{warning}");
+
+        assert_eq!(fixture.mint(&[]).await.status(), StatusCode::OK);
+
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query(
+            "UPDATE accounts SET created_at = now() - interval '61 seconds'
+             WHERE created_by_client_id = 'limited'",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        assert_eq!(mint().await.status(), StatusCode::OK);
+        assert_eq!(guests_of(&pool, "limited").await, 3);
+    }
+
+    /// Two mints at the boundary of a limit of one: without the client's
+    /// lock both would count zero and pass. A test transaction holds the
+    /// client's row, both requests are seen waiting for it, and once it is
+    /// released exactly one gets a guest.
+    #[sqlx::test]
+    async fn concurrent_guest_grants_respect_the_limit(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let secret = register_guest_client(&pool, "single", ClientKind::Confidential, Some(1))
+            .await
+            .unwrap();
+        let blocker = hold_client(&pool, "single").await;
+
+        let first = spawn_mint(&fixture.base.router, "single", &secret);
+        let second = spawn_mint(&fixture.base.router, "single", &secret);
+        wait_for_lock_waits(&pool, GUEST_LOCK_STATEMENT, 2, || {
+            first.is_finished() || second.is_finished()
+        })
+        .await;
+        assert!(
+            !first.is_finished() && !second.is_finished(),
+            "both mints wait for the client"
+        );
+        blocker.rollback().await.unwrap();
+
+        let mut statuses = [
+            first.await.unwrap().status(),
+            second.await.unwrap().status(),
+        ];
+        statuses.sort();
+        assert_eq!(statuses, [StatusCode::OK, StatusCode::TOO_MANY_REQUESTS]);
+        assert_eq!(guests_of(&pool, "single").await, 1);
+        assert_eq!(grants(&pool).await.len(), 1);
+        assert_eq!(refresh_token_count(&pool).await, 1);
+    }
+
+    /// A mint delayed at the lock stamps its account with the moment it
+    /// wrote it, not the moment its transaction began: otherwise the
+    /// account would already be partly out of the window the next mint
+    /// counts.
+    #[sqlx::test]
+    async fn a_guest_minted_after_a_lock_wait_is_stamped_after_the_wait(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let secret = register_guest_client(&pool, "single", ClientKind::Confidential, Some(1))
+            .await
+            .unwrap();
+        let blocker = hold_client(&pool, "single").await;
+
+        let minting = spawn_mint(&fixture.base.router, "single", &secret);
+        wait_for_lock_wait(&pool, GUEST_LOCK_STATEMENT, || minting.is_finished()).await;
+        assert!(!minting.is_finished(), "the mint waits for the client");
+        // Unchecked query: see docs/TESTS.md.
+        let released_at: time::OffsetDateTime = sqlx::query_scalar("SELECT clock_timestamp()")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        blocker.rollback().await.unwrap();
+
+        assert_eq!(minting.await.unwrap().status(), StatusCode::OK);
+        // Unchecked query: see docs/TESTS.md.
+        let (created_at, last_seen_at): (time::OffsetDateTime, time::OffsetDateTime) =
+            sqlx::query_as(
+                "SELECT created_at, last_seen_at FROM accounts WHERE created_by_client_id = 'single'",
+            )
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert!(
+            created_at > released_at,
+            "created_at {created_at} is before the lock was released at {released_at}"
+        );
+        assert_eq!(last_seen_at, created_at);
+
+        let next = fixture
+            .base
+            .token(&guest(), Some(&basic("single", secret.expose())))
+            .await;
+        assert_error(next, StatusCode::TOO_MANY_REQUESTS, "rate_limit_exceeded").await;
+    }
+
+    /// The guest mint's lock is weaker than `FOR UPDATE`: a code exchange
+    /// of the same client, whose grant insert takes `FOR KEY SHARE` on the
+    /// client's row, completes while a mint holds it.
+    #[sqlx::test]
+    async fn a_code_exchange_is_not_queued_behind_a_guest_mint(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let code = fixture.code(CONFIDENTIAL, "openid").await;
+        let blocker = hold_client(&pool, CONFIDENTIAL).await;
+
+        let response = tokio::time::timeout(Duration::from_secs(5), fixture.exchange(&code))
+            .await
+            .expect("the exchange is not queued behind the client's lock");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        blocker.rollback().await.unwrap();
+    }
+
+    /// No token and no secret reaches a log line; the line that records
+    /// the mint names the account and the client.
+    #[sqlx::test]
+    async fn no_guest_token_is_logged(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let (events, _guard) = capture_tracing();
+
+        let body = fixture.minted(&[("scope", "openid profile")]).await;
+        let post = json(
+            fixture
+                .base
+                .token(
+                    &plus(
+                        plus(guest(), "client_id", GUEST_CLIENT),
+                        "client_secret",
+                        fixture.secret.expose(),
+                    ),
+                    None,
+                )
+                .await,
+        )
+        .await;
+        fixture
+            .base
+            .token(&guest(), Some(&basic(GUEST_CLIENT, "wrong-secret")))
+            .await;
+
+        let created = events.mentioning("guest account created");
+        assert_eq!(created.len(), 2, "{:?}", events.all());
+        let (_, claims) = decode(
+            body["access_token"].as_str().unwrap(),
+            &fixture.base.jwks().await,
+        );
+        let sub = claims["sub"].as_str().unwrap();
+        assert!(created.iter().any(|line| line.contains(sub)), "{created:?}");
+        assert!(created[0].contains(GUEST_CLIENT), "{}", created[0]);
+        let secrets = [
+            fixture.secret.expose(),
+            "wrong-secret",
+            body["access_token"].as_str().unwrap(),
+            body["id_token"].as_str().unwrap(),
+            body["refresh_token"].as_str().unwrap(),
+            post["access_token"].as_str().unwrap(),
+            post["id_token"].as_str().unwrap(),
+            post["refresh_token"].as_str().unwrap(),
+        ];
+        for event in events.all() {
+            for secret in secrets {
+                assert!(!event.contains(secret), "{secret} logged: {event}");
+            }
+        }
+    }
+
+    // The guest upgrade, end to end (ADR 0015) ---------------------------
+
+    /// [`router`] with the passkey ceremonies and `/me` mounted under `/api`
+    /// as the transport root mounts them: everything a browser touches on
+    /// its way from a guest to a full account.
+    fn upgrade_router(pool: PgPool) -> Router {
+        let state = test_state(pool.clone());
+        checked(
+            oidc_routers(pool).nest(
+                "/api",
+                OpenApiRouter::new()
+                    .nest("/webauthn", crate::webauthn::http::router(state.clone()))
+                    .merge(crate::sessions::http::router(state)),
+            ),
+        )
+    }
+
+    async fn browse(router: &Router, request: Request<Body>) -> Response {
+        router.clone().oneshot(request).await.unwrap()
+    }
+
+    fn get(uri: &str, cookie: Option<&str>) -> Request<Body> {
+        let mut request = Request::builder().uri(uri);
+        if let Some(cookie) = cookie {
+            request = request.header(header::COOKIE, cookie);
+        }
+        request.body(Body::empty()).unwrap()
+    }
+
+    fn post_json(uri: &str, cookie: &str, body: serde_json::Value) -> Request<Body> {
+        Request::builder()
+            .method("POST")
+            .uri(uri)
+            .header(header::COOKIE, cookie)
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(Body::from(body.to_string()))
+            .unwrap()
+    }
+
+    fn location_url(response: &Response) -> Url {
+        assert_eq!(response.status(), StatusCode::FOUND);
+        Url::parse(response.headers()[header::LOCATION].to_str().unwrap()).unwrap()
+    }
+
+    fn query_param(url: &Url, name: &str) -> Option<String> {
+        url.query_pairs()
+            .find(|(candidate, _)| candidate == name)
+            .map(|(_, value)| value.into_owned())
+    }
+
+    /// The `Cookie` header for the session cookie a response set.
+    fn cookie_set_by(response: &Response) -> String {
+        let token = crate::testing::session_cookie(response, test_cookies().name())
+            .expect("a session cookie");
+        format!("{}={}", test_cookies().name(), token.expose())
+    }
+
+    /// Acceptance criteria 1 and 2 in one walk: a guest's tokens, a hint
+    /// that opens an upgrade session (and, beforehand, a second one in
+    /// another browser), registration under it, the code `return_to` leads
+    /// to, and tokens for the same `sub` that now say `full` and
+    /// `webauthn`. Afterwards the guest's refresh token fails with its grant
+    /// revoked, and the other browser's session is gone.
+    #[sqlx::test]
+    async fn a_guest_upgrades_and_keeps_its_sub(pool: PgPool) {
+        let fixture = guest_fixture(&pool).await;
+        let app = upgrade_router(pool.clone());
+        let minted = fixture.minted(&[("scope", "openid profile")]).await;
+        let jwks = fixture.base.jwks().await;
+        let (_, guest_claims) = decode(minted["access_token"].as_str().unwrap(), &jwks);
+        let sub = guest_claims["sub"].as_str().unwrap().to_owned();
+        let hint = minted["id_token"].as_str().unwrap();
+        let guest_refresh = minted["refresh_token"].as_str().unwrap();
+        let authorize = |hint: Option<&str>| {
+            let mut pairs = vec![
+                ("client_id", GUEST_CLIENT),
+                ("redirect_uri", CALLBACK),
+                ("response_type", "code"),
+                ("scope", "openid profile"),
+                ("state", "s"),
+                ("code_challenge", CHALLENGE),
+                ("code_challenge_method", "S256"),
+                ("nonce", NONCE),
+            ];
+            if let Some(hint) = hint {
+                pairs.push(("id_token_hint", hint));
+            }
+            format!("/oidc/authorize?{}", form(&pairs))
+        };
+
+        // Another browser opens an upgrade session for the same guest first.
+        let elsewhere = browse(&app, get(&authorize(Some(hint)), None)).await;
+        let elsewhere = cookie_set_by(&elsewhere);
+
+        let response = browse(&app, get(&authorize(Some(hint)), None)).await;
+        let create_account = location_url(&response);
+        assert_eq!(create_account.path(), "/create-account");
+        let return_to = query_param(&create_account, "return_to").unwrap();
+        assert_eq!(return_to, authorize(None));
+        let upgrade = cookie_set_by(&response);
+
+        let options = browse(
+            &app,
+            post_json(
+                "/api/webauthn/register-options",
+                &upgrade,
+                serde_json::json!({ "displayName": "Ada" }),
+            ),
+        )
+        .await;
+        assert_eq!(options.status(), StatusCode::OK);
+        let options = json(options).await;
+        let ccr = serde_json::from_value(options["ccr"].clone()).unwrap();
+        let attestation = crate::testing::soft_passkey_registration(ccr);
+        let verified = browse(
+            &app,
+            post_json(
+                "/api/webauthn/verify-registration",
+                &upgrade,
+                serde_json::json!({
+                    "registrationId": options["registrationId"],
+                    "response": attestation,
+                }),
+            ),
+        )
+        .await;
+        assert_eq!(verified.status(), StatusCode::OK);
+        let full = cookie_set_by(&verified);
+        assert_eq!(json(verified).await["accountId"], sub);
+
+        let back = browse(&app, get(&return_to, Some(&full))).await;
+        let callback = location_url(&back);
+        assert_eq!(&callback.as_str()[..CALLBACK.len()], CALLBACK);
+        let code = query_param(&callback, "code").expect("a code");
+        let response = fixture
+            .base
+            .token(&grant(&code), Some(&fixture.basic()))
+            .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let tokens = json(response).await;
+        for token in ["access_token", "id_token"] {
+            let (_, claims) = decode(tokens[token].as_str().unwrap(), &jwks);
+            assert_eq!(claims["sub"], sub, "{token}");
+            assert_eq!(claims["account_type"], "full", "{token}");
+            assert_eq!(claims["amr"], serde_json::json!(["webauthn"]), "{token}");
+        }
+        let (_, id_claims) = decode(tokens["id_token"].as_str().unwrap(), &jwks);
+        assert_eq!(id_claims["name"], "Ada", "the chosen name is released now");
+
+        assert_invalid_grant(
+            fixture
+                .base
+                .token(&refresh(guest_refresh), Some(&fixture.basic()))
+                .await,
+        )
+        .await;
+        // Unchecked query: see docs/TESTS.md.
+        let guest_grant_revoked: bool = sqlx::query_scalar(
+            "SELECT revoked_at IS NOT NULL FROM grants \
+             WHERE account_id = $1::uuid AND authorization_code_id IS NULL",
+        )
+        .bind(&sub)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert!(guest_grant_revoked);
+
+        let me = browse(&app, get("/api/me", Some(&elsewhere))).await;
+        assert_eq!(me.status(), StatusCode::UNAUTHORIZED);
+        let me = browse(&app, get("/api/me", Some(&full))).await;
+        assert_eq!(me.status(), StatusCode::OK);
+        assert_eq!(json(me).await["accountType"], "full");
     }
 }

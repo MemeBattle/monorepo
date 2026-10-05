@@ -25,7 +25,8 @@
               "Enum": [
                 "registration",
                 "authentication",
-                "addition"
+                "addition",
+                "upgrade"
               ]
             }
           }

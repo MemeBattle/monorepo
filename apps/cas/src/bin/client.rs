@@ -18,8 +18,9 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use cas::clients::registration::register;
 use cas::clients::{
-    Audience, ClientId, ClientIdError, ClientKindError, ClientName, ClientNameError, RedirectUri,
-    RedirectUriError, RegisterError, Registration, Scope, ScopeError,
+    Audience, ClientId, ClientIdError, ClientKindError, ClientName, ClientNameError,
+    GuestGrantsPerMinute, RedirectUri, RedirectUriError, RegisterError, Registration, Scope,
+    ScopeError,
 };
 use cas::config::{Config, ConfigError, load_env_files};
 
@@ -27,12 +28,13 @@ const USAGE: &str = "\
 cas-client register --id <client_id> --name <name> --kind <public|confidential>
                     --redirect-uri <uri> [--redirect-uri <uri>]...
                     [--post-logout-redirect-uri <uri>]...
-                    [--first-party] [--guest-login-allowed]
+                    [--first-party]
+                    [--guest-login-allowed [--guest-grants-per-minute <n>]]
                     [--scope <scope>]... [--audience <resource>]
 
 Registers an OIDC client. --scope defaults to 'openid', --audience to the
-client id. A confidential client's secret is printed once and cannot be
-shown again.";
+client id, --guest-grants-per-minute to 60. A confidential client's secret
+is printed once and cannot be shown again.";
 
 /// Exit code for a command line that could not be understood, so a script can
 /// tell it apart from a registration that was refused.
@@ -85,6 +87,14 @@ enum UsageError {
 
     #[error("--audience: {0}")]
     InvalidAudience(ClientIdError),
+
+    #[error("--guest-grants-per-minute {0:?}: must be a positive integer")]
+    InvalidGuestGrantsPerMinute(String),
+
+    /// A limit for a grant the client may not use is a mistake, not a
+    /// default to keep.
+    #[error("--guest-grants-per-minute needs --guest-login-allowed")]
+    GuestGrantsPerMinuteWithoutGuestLogin,
 }
 
 /// Parses the command line by hand: one subcommand and ten flags is less
@@ -104,6 +114,7 @@ fn parse(args: impl Iterator<Item = String>) -> Result<Command, UsageError> {
     let mut post_logout_redirect_uris = Vec::new();
     let mut first_party = false;
     let mut guest_login_allowed = false;
+    let mut guest_grants_per_minute = None;
     let mut scopes = Vec::new();
     let mut audience = None;
 
@@ -130,6 +141,15 @@ fn parse(args: impl Iterator<Item = String>) -> Result<Command, UsageError> {
             }
             "--first-party" => first_party = true,
             "--guest-login-allowed" => guest_login_allowed = true,
+            "--guest-grants-per-minute" => {
+                let value = value(&mut args, "--guest-grants-per-minute")?;
+                let limit = value
+                    .parse()
+                    .ok()
+                    .and_then(|limit| GuestGrantsPerMinute::try_new(limit).ok())
+                    .ok_or(UsageError::InvalidGuestGrantsPerMinute(value))?;
+                guest_grants_per_minute = Some(limit);
+            }
             "--scope" => {
                 let value = value(&mut args, "--scope")?;
                 let scope = Scope::try_new(value.clone())
@@ -147,6 +167,9 @@ fn parse(args: impl Iterator<Item = String>) -> Result<Command, UsageError> {
     if redirect_uris.is_empty() {
         return Err(UsageError::MissingFlag("--redirect-uri"));
     }
+    if guest_grants_per_minute.is_some() && !guest_login_allowed {
+        return Err(UsageError::GuestGrantsPerMinuteWithoutGuestLogin);
+    }
 
     Ok(Command::Register(Box::new(Registration {
         id: id.ok_or(UsageError::MissingFlag("--id"))?,
@@ -156,6 +179,7 @@ fn parse(args: impl Iterator<Item = String>) -> Result<Command, UsageError> {
         post_logout_redirect_uris,
         first_party,
         guest_login_allowed,
+        guest_grants_per_minute,
         scopes,
         audience,
     })))
@@ -366,8 +390,48 @@ mod tests {
         assert!(registration.post_logout_redirect_uris.is_empty());
         assert!(!registration.first_party);
         assert!(!registration.guest_login_allowed);
+        assert!(registration.guest_grants_per_minute.is_none());
         assert!(registration.scopes.is_empty());
         assert!(registration.audience.is_none());
+    }
+
+    #[test]
+    fn parses_a_guest_limit_next_to_the_guest_grant() {
+        let mut args = minimal();
+        args.extend(["--guest-login-allowed", "--guest-grants-per-minute", "5"]);
+
+        let registration = parse_args(&args).unwrap();
+
+        assert!(registration.guest_login_allowed);
+        assert_eq!(
+            registration.guest_grants_per_minute,
+            Some(GuestGrantsPerMinute::try_new(5).unwrap())
+        );
+    }
+
+    #[test]
+    fn a_guest_limit_must_be_a_positive_integer() {
+        for value in ["0", "-1", "abc", "1.5", "", "99999999999"] {
+            let mut args = minimal();
+            args.extend(["--guest-login-allowed", "--guest-grants-per-minute", value]);
+
+            assert_eq!(
+                parse_error(&args),
+                UsageError::InvalidGuestGrantsPerMinute(value.to_owned()),
+                "{value:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_guest_limit_without_the_guest_grant_is_refused() {
+        let mut args = minimal();
+        args.extend(["--guest-grants-per-minute", "5"]);
+
+        assert_eq!(
+            parse_error(&args),
+            UsageError::GuestGrantsPerMinuteWithoutGuestLogin
+        );
     }
 
     #[test]
@@ -410,6 +474,7 @@ mod tests {
             "--post-logout-redirect-uri",
             "--scope",
             "--audience",
+            "--guest-grants-per-minute",
         ] {
             assert_eq!(
                 parse_error(&["register", flag]),

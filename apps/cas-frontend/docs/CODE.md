@@ -39,16 +39,46 @@ writing components:
 
 ## API access
 
-- Every call goes through `request()` from `#shared/api/request`. It throws
-  `ApiError` with the stable `code` from `{ error: { code, message } }`;
-  screens branch on codes, never on messages or status numbers.
-- Request and response types are hand-written next to the calls in
-  `entities/<name>/` until CAS publishes an OpenAPI description.
+- The shapes of every request and response, and the error codes each route
+  can answer with, are in CAS's OpenAPI description: `apps/cas/openapi.json`,
+  served at `/openapi.json`. kubb generates the client from it
+  (`kubb.config.ts`, `adr/0004-generated-api-client.md`): one function per
+  `/api/` operation in `#shared/api/generated/operations/<operation>`, and
+  the request and response types, types only, in
+  `#shared/api/generated/models/`. The generated directory is never edited
+  by hand; it is regenerated (see `TESTS.md`).
+- Every call goes through a generated function, and every generated function
+  calls `client()` from `#shared/api/client`, the only place `fetch` is
+  called. A later interceptor (logging, retries) goes there too.
+- A call resolves to a `Result`: `{ ok: true, data }`, or, for a 4xx with a
+  CAS error body, `{ ok: false, error: { status, code, message } }` with
+  `code` typed as the 4xx codes the operation declares (`ErrorCodeOf`).
+  Everything else is thrown: no network, a 5xx, a body that cannot be read
+  or has no code (`ApiError`, code `unknown` for the last). Screens branch on
+  codes, never on messages or status numbers. Code that cannot handle a
+  declared failure, such as a loader, calls `unwrap(result)`, which throws it
+  as `ApiError` for the error screen.
+- Outside `shared/api`, only `entities/<name>/` imports the generated code.
+  An entity keeps the domain names as aliases of the generated models
+  (`Passkey`, `Me`), narrows the WebAuthn payloads the description leaves as `object` with the
+  `@simplewebauthn/browser` types, and, for a function whose failures a
+  screen tells apart, exports the union of the codes its operations declare
+  (`AddPasskeyErrorCode = ErrorCodeOf<…Responses> | …`). Entity functions
+  resolve to `Result<Data, …ErrorCode>`; a ceremony returns the options
+  request's failure before the authenticator is asked.
+- A screen reads `result.error.code`, typed by the function it called: a
+  comparison or a `case` on a code the operation never answers fails the
+  type check. The client cannot check a code at runtime (the models are
+  types only), so every `switch` on a code keeps its `default`. A call site
+  that handles both channels keeps a `catch` for what is thrown, next to the
+  mapping of the codes.
 - Errors reach the user as messages written for the screen; a raw `ApiError`
   or `DOMException` message is never shown. The mapping of what a screen can
   actually get lives in that screen's directory, and a check on an error
-  (`isCeremonyCancelled`) next to the code that throws it. Nothing about
-  errors is shared until two screens need the same thing.
+  (`isCeremonyCancelled`) next to the code that throws it; the codes a route
+  can answer with are the ones its operation lists in the description, which
+  the entity's code union carries.
+  Nothing about errors is shared until two screens need the same thing.
 
 ## Styling
 

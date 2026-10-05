@@ -90,7 +90,7 @@ impl CookieSettings {
     /// each time it is renewed.
     ///
     /// `HttpOnly`: script never reads it. `SameSite=Lax`: sent on top-level
-    /// navigations (the future OIDC `/authorize` redirect must carry it) but
+    /// navigations (the future OIDC `/oidc/authorize` redirect must carry it) but
     /// not on cross-site POSTs, which is the CSRF line. `Path=/`: one cookie
     /// for the whole service. `Max-Age`: until the session stops being
     /// honoured if nothing renews it, so the browser and the server give up
@@ -206,6 +206,7 @@ mod tests {
         Session {
             id: Uuid::new_v4(),
             account_id: Uuid::new_v4(),
+            kind: crate::sessions::SessionKind::Full,
             created_at: now,
             expires_at: now + as_time(SESSION_LIFETIME),
             last_seen_at: now,

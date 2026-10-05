@@ -45,6 +45,13 @@ tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["fmt", "env-filter"] }
 unicode-general-category = "1.1"
 unicode-normalization = "0.1.25"
+# The OpenAPI description, derived from the handlers (src/http/openapi.rs,
+# ADR 0016). `auto_into_responses` reads a handler's responses off its return
+# type, which is why the handlers return the crate's own wrappers.
+utoipa = { version = "6", features = ["axum_extras", "uuid", "time", "auto_into_responses"] }
+# Mounts the documented handlers and collects their paths (`OpenApiRouter`,
+# `routes!`), so a route cannot be mounted without being described.
+utoipa-axum = "0.3"
 # Validating a registered redirect URI (src/clients/redirect_uri.rs). A direct
 # dependency rather than `webauthn_rs::prelude::Url`, which `config.rs` uses:
 # the clients context has no business depending on the WebAuthn crate.
@@ -66,7 +73,10 @@ webauthn-rs-proto = "=0.5.5"
 # webauthn-rs: it pins the same webauthn-rs-core and webauthn-rs-proto, which is
 # what makes the types interchangeable.
 webauthn-authenticator-rs = { version = "0.5.5", default-features = false, features = ["softpasskey"] }
-# An independent OIDC implementation that loads the discovery document and
-# verifies CAS signatures in tests (src/oidc/http/mod.rs). No HTTP client
-# feature: the tests hand it the router directly.
-openidconnect = { version = "4", default-features = false }
+# An independent OIDC implementation, used two ways. The in-process tests
+# (src/oidc/http/mod.rs, src/oidc/http/token.rs) hand it the router as its
+# HTTP client. The reference client (tests/reference_client) is a relying
+# party over TCP and uses the library's own reqwest client, re-exported as
+# `openidconnect::reqwest` so the two cannot drift apart. No TLS feature: the
+# test server is plain http.
+openidconnect = { version = "4", default-features = false, features = ["reqwest"] }

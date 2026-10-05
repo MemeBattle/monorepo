@@ -5,7 +5,7 @@ export default defineConfig({
   categories: {
     correctness: 'off',
   },
-  ignorePatterns: ['**/.adonisjs/**'],
+  ignorePatterns: ['**/.adonisjs/**', 'apps/cas-frontend/src/shared/api/generated/**'],
   settings: {
     react: {
       version: '19.2.4',

@@ -12,8 +12,8 @@ use sqlx::PgPool;
 use thiserror::Error;
 
 use super::{
-    Audience, Client, ClientId, ClientKind, ClientName, ClientSecret, InsertError, NewClient,
-    NewClientError, RedirectUri, Scope, default_scope, repository,
+    Audience, Client, ClientId, ClientKind, ClientName, ClientSecret, GuestGrantsPerMinute,
+    InsertError, NewClient, NewClientError, RedirectUri, Scope, default_scope, repository,
 };
 
 /// What an operator asked for. A confidential client's secret is not part of
@@ -28,6 +28,8 @@ pub struct Registration {
     pub post_logout_redirect_uris: Vec<RedirectUri>,
     pub first_party: bool,
     pub guest_login_allowed: bool,
+    /// `None` means the default, [`GuestGrantsPerMinute::default`].
+    pub guest_grants_per_minute: Option<GuestGrantsPerMinute>,
     /// Empty means the default, `openid` alone.
     pub scopes: Vec<Scope>,
     /// `None` means the default, the client's own id.
@@ -94,6 +96,7 @@ pub async fn register(
     .with_post_logout_redirect_uris(registration.post_logout_redirect_uris)
     .first_party(registration.first_party)
     .guest_login_allowed(registration.guest_login_allowed)
+    .with_guest_grants_per_minute(registration.guest_grants_per_minute.unwrap_or_default())
     .with_scopes(if registration.scopes.is_empty() {
         vec![default_scope()]
     } else {
@@ -114,6 +117,7 @@ pub async fn register(
         audience = %client.audience,
         first_party = client.first_party,
         guest_login_allowed = client.guest_login_allowed,
+        guest_grants_per_minute = %client.guest_grants_per_minute,
         "client registered"
     );
 
@@ -136,9 +140,36 @@ mod tests {
             post_logout_redirect_uris: vec![redirect_uri("http://localhost:5173/")],
             first_party: true,
             guest_login_allowed: true,
+            guest_grants_per_minute: None,
             scopes: vec![scope("openid"), scope("profile")],
             audience: None,
         }
+    }
+
+    #[sqlx::test]
+    async fn the_guest_limit_defaults_and_a_given_one_is_stored(pool: PgPool) {
+        let registered = register(&pool, registration(ClientKind::Confidential))
+            .await
+            .unwrap();
+        assert_eq!(
+            registered.client.guest_grants_per_minute,
+            GuestGrantsPerMinute::default()
+        );
+
+        let mut given = registration(ClientKind::Confidential);
+        given.id = client_id("ligretto-core");
+        given.guest_grants_per_minute = Some(GuestGrantsPerMinute::try_new(5).unwrap());
+        let registered = register(&pool, given).await.unwrap();
+        let stored = ClientRepository::new(pool)
+            .get(&client_id("ligretto-core"))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            stored.guest_grants_per_minute,
+            GuestGrantsPerMinute::try_new(5).unwrap()
+        );
+        assert_eq!(stored, registered.client);
     }
 
     #[sqlx::test]

@@ -28,6 +28,11 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
+      # The types are checked against a client generated from the description as it is in this commit, not against
+      # the committed output: what matters is that the app compiles with the API CAS actually describes.
+      - name: Regenerate the API client
+        run: pnpm run --filter @memebattle/cas-frontend generate:api
+
       - name: TS check
         run: pnpm run --filter @memebattle/cas-frontend ts-check
 
@@ -101,6 +106,11 @@ jobs:
 
       - name: Apply migrations
         run: ./target/debug/cas-migrate
+
+      # The OIDC clients of the suite: the one the authorize scenarios send to `/oidc/authorize`, and the guest one
+      # whose secret the script writes to e2e/.guest-client-secret; the binaries are built, cargo only runs it.
+      - name: Register the e2e clients
+        run: ./apps/cas-frontend/e2e/seed.sh
 
       # The defaults are the ones the suite needs: :3000, RP id `localhost`, origin http://localhost:5173.
       - name: Start CAS

@@ -13,26 +13,25 @@ use tracing::subscriber::DefaultGuard;
 use tracing_subscriber::Registry;
 use tracing_subscriber::layer::{Context, Layer, SubscriberExt};
 use uuid::Uuid;
-use webauthn_authenticator_rs::{
-    AuthenticatorBackend, WebauthnAuthenticator,
-    error::{CtapError, WebauthnCError},
-    softpasskey::SoftPasskey,
-};
+use webauthn_authenticator_rs::WebauthnAuthenticator;
 use webauthn_rs::prelude::{
-    Base64UrlSafeData, CreationChallengeResponse, Passkey, PublicKeyCredential,
-    RegisterPublicKeyCredential, RequestChallengeResponse, Url, Webauthn,
-};
-use webauthn_rs_proto::{
-    AllowCredentials, CredProps, PublicKeyCredentialCreationOptions,
-    PublicKeyCredentialRequestOptions, ResidentKeyRequirement,
+    CreationChallengeResponse, Passkey, PublicKeyCredential, RegisterPublicKeyCredential,
+    RequestChallengeResponse, Url, Webauthn,
 };
 
-use crate::accounts::{AccountManagement, DisplayName};
+use crate::accounts::{Account, AccountManagement, AccountRepository, DisplayName, NewAccount};
+use crate::clients::{
+    Client, ClientId, ClientName, ClientRepository, NewClient, RedirectUri, Scope,
+};
 use crate::config::{Config, SigningKeyPem};
 use crate::http::ApiState;
-use crate::oidc::{AuthorizationService, SigningKeys, TokenService};
+use crate::oidc::authorization::tests::CALLBACK;
+use crate::oidc::{
+    AccessTokenClaims, AuthorizationService, EndSessionService, IdTokenClaims, SigningKey,
+    SigningKeys, TokenService, UpgradeHintService, UserInfoService,
+};
 use crate::sessions::http::CookieSettings;
-use crate::sessions::{SessionService, SessionToken};
+use crate::sessions::{SessionOrigin, SessionService, SessionToken};
 use crate::webauthn::addition::AdditionService;
 use crate::webauthn::build_webauthn;
 use crate::webauthn::login::LoginService;
@@ -40,6 +39,10 @@ use crate::webauthn::management::PasskeyManagement;
 use crate::webauthn::registration::{
     Registered, RegistrationService, start_discoverable_registration,
 };
+use crate::webauthn::upgrade::UpgradeService;
+
+mod soft_passkey;
+pub use soft_passkey::ResidentSoftPasskey;
 
 /// The API state the handler tests run against: every service on the given
 /// pool, cookies as the development origin would have them.
@@ -54,12 +57,28 @@ pub fn test_state_with_cookies(pool: PgPool, cookies: CookieSettings) -> ApiStat
         registration: RegistrationService::new(test_webauthn(), pool.clone()),
         login: LoginService::new(test_webauthn(), pool.clone()),
         addition: AdditionService::new(test_webauthn(), pool.clone()),
+        upgrade: UpgradeService::new(test_webauthn(), pool.clone()),
         passkeys: PasskeyManagement::new(pool.clone()),
         accounts: AccountManagement::new(pool.clone()),
         sessions: SessionService::new(pool.clone()),
         cookies,
         authorization: AuthorizationService::new(pool.clone()),
-        tokens: TokenService::new(pool, test_signing_key(), test_config().issuer),
+        tokens: TokenService::new(pool.clone(), test_signing_key(), test_config().issuer),
+        userinfo: UserInfoService::new(
+            pool.clone(),
+            test_signing_keys().verifying_keys(),
+            test_config().issuer,
+        ),
+        end_session: EndSessionService::new(
+            AuthorizationService::new(pool.clone()),
+            test_signing_keys().verifying_keys(),
+            test_config().issuer,
+        ),
+        upgrade_hints: UpgradeHintService::new(
+            pool,
+            test_signing_keys().verifying_keys(),
+            test_config().issuer,
+        ),
         frontend_origin: test_origin(),
     }
 }
@@ -198,104 +217,6 @@ impl Visit for RenderFields<'_> {
     }
 }
 
-struct ResidentCredential {
-    rp_id: String,
-    descriptor: AllowCredentials,
-    user_handle: Base64UrlSafeData,
-}
-
-/// Adds resident storage and RP-scoped discovery to SoftPasskey's real key
-/// generation and signing. Only this test adapter downgrades the options passed
-/// to SoftPasskey, which otherwise rejects every resident-key request.
-///
-/// It also honours `excludeCredentials`, which SoftPasskey ignores: asked to
-/// create a credential when it already holds one the relying party excluded,
-/// it refuses the way a CTAP2 authenticator does (`CREDENTIAL_EXCLUDED`), so
-/// a test can show that a registered authenticator never answers the
-/// challenge that adds a passkey.
-pub struct ResidentSoftPasskey {
-    signer: SoftPasskey,
-    credentials: Vec<ResidentCredential>,
-}
-
-impl ResidentSoftPasskey {
-    pub fn new() -> Self {
-        Self {
-            signer: SoftPasskey::new(true),
-            credentials: Vec::new(),
-        }
-    }
-}
-
-impl AuthenticatorBackend for ResidentSoftPasskey {
-    fn perform_register(
-        &mut self,
-        origin: Url,
-        mut options: PublicKeyCredentialCreationOptions,
-        timeout_ms: u32,
-    ) -> Result<RegisterPublicKeyCredential, WebauthnCError> {
-        let selection = options
-            .authenticator_selection
-            .as_mut()
-            .ok_or(WebauthnCError::NotSupported)?;
-        if selection.resident_key != Some(ResidentKeyRequirement::Required)
-            || !selection.require_resident_key
-        {
-            return Err(WebauthnCError::NotSupported);
-        }
-        let rp_id = options.rp.id.clone();
-        let user_handle = options.user.id.clone();
-        if let Some(excluded) = &options.exclude_credentials
-            && self.credentials.iter().any(|credential| {
-                credential.rp_id == rp_id
-                    && excluded
-                        .iter()
-                        .any(|descriptor| descriptor.id == credential.descriptor.id)
-            })
-        {
-            return Err(WebauthnCError::Ctap(CtapError::Ctap2CredentialExcluded));
-        }
-        selection.resident_key = Some(ResidentKeyRequirement::Discouraged);
-        selection.require_resident_key = false;
-        let mut response = self.signer.perform_register(origin, options, timeout_ms)?;
-        self.credentials.push(ResidentCredential {
-            rp_id,
-            descriptor: AllowCredentials {
-                type_: "public-key".to_owned(),
-                id: response.raw_id.clone(),
-                transports: None,
-            },
-            user_handle,
-        });
-        response.extensions.cred_props = Some(CredProps { rk: Some(true) });
-        Ok(response)
-    }
-
-    fn perform_auth(
-        &mut self,
-        origin: Url,
-        mut options: PublicKeyCredentialRequestOptions,
-        timeout_ms: u32,
-    ) -> Result<PublicKeyCredential, WebauthnCError> {
-        let credential = self
-            .credentials
-            .iter()
-            .find(|credential| {
-                credential.rp_id == options.rp_id
-                    && (options.allow_credentials.is_empty()
-                        || options
-                            .allow_credentials
-                            .iter()
-                            .any(|allowed| allowed.id == credential.descriptor.id))
-            })
-            .ok_or(WebauthnCError::NotSupported)?;
-        options.allow_credentials = vec![credential.descriptor.clone()];
-        let mut response = self.signer.perform_auth(origin, options, timeout_ms)?;
-        response.response.user_handle = Some(credential.user_handle.clone());
-        Ok(response)
-    }
-}
-
 pub const TEST_RP_ID: &str = "localhost";
 pub const TEST_ORIGIN: &str = "http://localhost:5173";
 
@@ -318,12 +239,28 @@ pub const DEV_SIGNING_KEY: &str = include_str!("../dev/signing-key.pem");
 /// ```
 pub const DEV_SIGNING_KEY_KID: &str = "GWP1_U9wKE9l7YVj1GY9QsuFjPhD7zuSgyzfGFhDj6o";
 
+/// The development key set, as `http::app` loads it by default.
+pub fn test_signing_keys() -> SigningKeys {
+    SigningKeys::from_pem(DEV_SIGNING_KEY).expect("the development key is valid")
+}
+
 /// The key the development default signs with, as `http::app` loads it.
-pub fn test_signing_key() -> crate::oidc::SigningKey {
-    SigningKeys::from_pem(DEV_SIGNING_KEY)
-        .expect("the development key is valid")
-        .active()
-        .clone()
+pub fn test_signing_key() -> SigningKey {
+    test_signing_keys().active().clone()
+}
+
+/// A freshly generated P-256 key as PKCS#8 PEM: a key CAS does not
+/// publish, for a token a forger — or a retired key — signed.
+pub fn fresh_signing_key_pem() -> String {
+    use openssl::ec::{EcGroup, EcKey};
+    use openssl::nid::Nid;
+    use openssl::pkey::PKey;
+
+    let group = EcGroup::from_curve_name(Nid::X9_62_PRIME256V1).expect("P-256 is available");
+    let key = PKey::from_ec_key(EcKey::generate(&group).expect("a P-256 key generates"))
+        .expect("an EC key is a PKey");
+    String::from_utf8(key.private_key_to_pem_pkcs8().expect("the key serialises"))
+        .expect("PEM is ASCII")
 }
 
 /// The configuration the router tests build `http::app` from: the
@@ -340,6 +277,25 @@ pub fn test_config() -> Config {
     }
 }
 
+/// The test configuration with a database nothing listens on: a request
+/// that reaches it fails as an outage does, and nothing is written.
+pub fn unreachable_database_config() -> Config {
+    Config {
+        database_url: "postgres://cas:cas@localhost:1/cas".to_string(),
+        ..test_config()
+    }
+}
+
+/// A context's router as its transport tests drive it: the plain router,
+/// with every answer checked against the router's own description (the
+/// fallback 500 included, as the assembly adds it), so the transport suite
+/// checks the description against real responses. See docs/TESTS.md.
+pub fn checked(router: utoipa_axum::router::OpenApiRouter) -> axum::Router {
+    let (router, mut document) = router.split_for_parts();
+    crate::http::openapi::describe_fallback(&mut document);
+    crate::http::openapi::conformance::check(router, &document)
+}
+
 /// The relying party the tests register against, built the way the server
 /// builds its own.
 pub fn test_webauthn() -> Webauthn {
@@ -348,6 +304,146 @@ pub fn test_webauthn() -> Webauthn {
 
 pub fn display_name(value: &str) -> DisplayName {
     DisplayName::try_new(value).expect("a valid test display name")
+}
+
+pub fn scopes(values: &[&str]) -> Vec<Scope> {
+    values
+        .iter()
+        .map(|value| Scope::try_new(*value).expect("a valid test scope"))
+        .collect()
+}
+
+/// A response header as text, if the response carries it.
+pub fn header_str(
+    response: &axum::response::Response,
+    name: axum::http::header::HeaderName,
+) -> Option<&str> {
+    response
+        .headers()
+        .get(name)
+        .map(|value| value.to_str().expect("a header of visible ASCII"))
+}
+
+/// Registers a public first-party client that may ask for `openid`,
+/// `profile` and `email`, with [`CALLBACK`] as its redirect URI and the
+/// given post-logout addresses.
+pub async fn register_public_client(
+    pool: &PgPool,
+    id: &str,
+    post_logout_redirect_uris: &[&str],
+) -> Client {
+    ClientRepository::new(pool.clone())
+        .create(
+            NewClient::public(
+                ClientId::try_new(id).expect("a valid test client id"),
+                ClientName::try_new("Ligretto web").expect("a valid test client name"),
+                vec![RedirectUri::try_new(CALLBACK).expect("a valid redirect URI")],
+            )
+            .expect("a valid test client")
+            .first_party(true)
+            .with_scopes(scopes(&["openid", "profile", "email"]))
+            .with_post_logout_redirect_uris(
+                post_logout_redirect_uris
+                    .iter()
+                    .map(|uri| RedirectUri::try_new(*uri).expect("a valid post-logout URI"))
+                    .collect(),
+            ),
+        )
+        .await
+        .expect("the test client registers")
+}
+
+/// An account signed in to CAS: the account, the token its cookie carries,
+/// the session behind it, and that `Cookie` header.
+pub struct SignedIn {
+    pub account: Account,
+    pub token: SessionToken,
+    pub session_id: Uuid,
+    pub cookie: String,
+}
+
+/// A full account named `name`, with an address, and a live session of its
+/// own.
+pub async fn signed_in(pool: &PgPool, name: &str) -> SignedIn {
+    let account = AccountRepository::new(pool.clone())
+        .create(NewAccount::full(display_name(name)).with_email("ada@example.com"))
+        .await
+        .expect("the test account is created");
+    let issued = SessionService::new(pool.clone())
+        .create(account.id, SessionOrigin::Login)
+        .await
+        .expect("the test session is created");
+    SignedIn {
+        cookie: format!("{}={}", test_cookies().name(), issued.token.expose()),
+        account,
+        token: issued.token,
+        session_id: issued.session.id,
+    }
+}
+
+/// A guest, minted by a public client of its own (`guest-maker`), holding an
+/// upgrade session as `/oidc/authorize` opens one for its `id_token_hint`
+/// (ADR 0015).
+pub async fn upgrade_signed_in(pool: &PgPool) -> SignedIn {
+    let client = register_public_client(pool, "guest-maker", &[]).await;
+    let account = AccountRepository::new(pool.clone())
+        .create(NewAccount::guest(client.id, 1))
+        .await
+        .expect("the test guest is created");
+    let issued = SessionService::new(pool.clone())
+        .open_upgrade(account.id)
+        .await
+        .expect("the test upgrade session is opened");
+    SignedIn {
+        cookie: format!("{}={}", test_cookies().name(), issued.token.expose()),
+        account,
+        token: issued.token,
+        session_id: issued.session.id,
+    }
+}
+
+/// An ID token as `/oidc/token` issues it under the test issuer: to `client`,
+/// for `account`, signed by `key` at `issued_at`.
+pub fn signed_id_token(
+    key: &SigningKey,
+    client: &Client,
+    account: &Account,
+    granted: &[&str],
+    issued_at: time::OffsetDateTime,
+) -> String {
+    let claims = IdTokenClaims::new(
+        &test_config().issuer,
+        client,
+        account,
+        &scopes(granted),
+        None,
+        issued_at,
+    );
+    key.sign(
+        "JWT",
+        &serde_json::to_vec(&claims).expect("the claims serialise"),
+    )
+}
+
+/// An access token as `/oidc/token` issues it under the test issuer.
+pub fn signed_access_token(
+    key: &SigningKey,
+    client: &Client,
+    account: &Account,
+    granted: &[&str],
+    issued_at: time::OffsetDateTime,
+) -> String {
+    let claims = AccessTokenClaims::new(
+        &test_config().issuer,
+        client,
+        account,
+        &scopes(granted),
+        issued_at,
+    );
+    key.sign(
+        "at+jwt",
+        &serde_json::to_vec(&claims).expect("the claims serialise"),
+    )
 }
 
 /// Answers a registration challenge with a software authenticator, the way a

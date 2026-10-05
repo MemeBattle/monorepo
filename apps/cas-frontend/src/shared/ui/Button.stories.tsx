@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { useEffect, useRef } from 'react'
 
-import { Button, SubmitButton } from './Button'
+import { Button, buttonLook, SubmitButton } from './Button'
 import { Icon } from './icons'
 
 const meta: Meta<typeof Button> = {
@@ -34,6 +34,16 @@ export const Secondary: Story = {
 
 export const Danger: Story = {
   args: { variant: 'danger', children: 'Удалить', icon: <Icon name="trash" /> },
+}
+
+/** A link that is the screen's action, dressed by `buttonLook` (a router `Link` in the app). */
+export const LinkLook: Story = {
+  render: () => (
+    <a href="#create-account" className={buttonLook()}>
+      <Icon name="key" />
+      Создать аккаунт
+    </a>
+  ),
 }
 
 /** A form whose action never settles: the button reads the pending state from `useFormStatus`. */

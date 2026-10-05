@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react'
 
-import { ApiError } from '#shared/api/request'
+import { failed } from '#shared/api/client'
 import { EmailSection } from './EmailSection'
 
-const never = () => new Promise<void>(() => {})
+const never = () => new Promise<never>(() => {})
 
 const meta: Meta<typeof EmailSection> = {
   parameters: { layout: 'padded' },
@@ -41,7 +41,7 @@ export const Adding: Story = {
 
 /** The server refused the address (`invalid_email`): the field keeps it and says why. */
 export const Invalid: Story = {
-  args: { onSave: () => Promise.reject(new ApiError(400, 'invalid_email', 'Invalid email: must contain a single @')) },
+  args: { onSave: () => Promise.resolve(failed(400, 'invalid_email', 'Invalid email: must contain a single @')) },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Добавить почту' }))
     await userEvent.type(canvas.getByLabelText('Почта'), 'ada@mems@fun')

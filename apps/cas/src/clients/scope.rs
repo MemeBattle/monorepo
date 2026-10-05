@@ -1,5 +1,5 @@
 //! A scope token: one entry of the allow-list a client may request from
-//! `/authorize`.
+//! `/oidc/authorize`.
 
 use nutype::nutype;
 

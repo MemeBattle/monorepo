@@ -1,22 +1,27 @@
 //! Issuing, resolving and revoking sessions.
 //!
 //! `create` is what registration and login call once an account is proven;
+//! `open_upgrade` is what `/oidc/authorize` calls for a guest's `id_token_hint`;
 //! `authenticate` is what the cookie extractor calls on every authenticated
 //! request, and it is also where a session's idle clock is reset; `revoke` is
 //! logout. The secret token exists in memory only between `create` and the
 //! response that sets the cookie.
 //!
 //! This is also where the session lifecycle is logged, because this is where
-//! it happens: a session begins, is renewed and ends in these three
-//! functions, and an operator reading the log afterwards wants the same three
-//! events. A session is named by its row id, never by the token (ADR 0004).
+//! it happens: a session begins, is renewed and ends in these functions, and
+//! an operator reading the log afterwards wants the same events. A session
+//! is named by its row id, never by the token (ADR 0004). The one exception
+//! is [`rotate_upgraded`], which runs on the guest upgrade's transaction and
+//! leaves the events to its caller, who alone knows when that commits.
 
-use sqlx::PgPool;
+use sqlx::{PgConnection, PgPool};
 use thiserror::Error;
 use uuid::Uuid;
 
-use super::{Authenticated, Renewal, Session, SessionOrigin, SessionToken, repository};
-use crate::accounts;
+use super::{
+    Authenticated, Renewal, Session, SessionKind, SessionOrigin, SessionToken, repository,
+};
+use crate::accounts::{self, AccountType};
 
 #[derive(Debug, Error)]
 pub enum CreateError {
@@ -61,16 +66,36 @@ impl SessionService {
         account_id: Uuid,
         origin: SessionOrigin,
     ) -> Result<IssuedSession, CreateError> {
+        self.insert(account_id, SessionKind::Full, origin).await
+    }
+
+    /// Opens an upgrade session for a guest whose fresh ID token `/oidc/authorize`
+    /// accepted as `id_token_hint` (ADR 0015). The session may only run the
+    /// registration ceremony for this account and continue `/oidc/authorize`; it
+    /// lives for [`super::UPGRADE_SESSION_LIFETIME`]. Written, timestamped
+    /// and logged as [`create`](Self::create) does, with `kind = upgrade`.
+    pub async fn open_upgrade(&self, account_id: Uuid) -> Result<IssuedSession, CreateError> {
+        self.insert(account_id, SessionKind::Upgrade, SessionOrigin::IdTokenHint)
+            .await
+    }
+
+    async fn insert(
+        &self,
+        account_id: Uuid,
+        kind: SessionKind,
+        origin: SessionOrigin,
+    ) -> Result<IssuedSession, CreateError> {
         let token = SessionToken::generate().map_err(CreateError::Random)?;
 
         let mut tx = self.pool.begin().await?;
-        let session = repository::insert(&mut *tx, account_id, &token.hash()).await?;
+        let session = repository::insert(&mut *tx, account_id, &token.hash(), kind).await?;
         accounts::touch_last_seen(&mut *tx, account_id).await?;
         tx.commit().await?;
 
         tracing::info!(
             session_id = %session.id,
             account_id = %account_id,
+            kind = kind.as_str(),
             origin = origin.as_str(),
             "session created"
         );
@@ -80,7 +105,12 @@ impl SessionService {
 
     /// Resolves a token to the session and account it names. `Ok(None)` for a
     /// token that is unknown, idle for too long, past its cap or revoked, or
-    /// whose account is gone.
+    /// whose account is gone, and for an upgrade session whose account is no
+    /// longer a guest.
+    ///
+    /// The session comes back with its kind: what an upgrade session may do
+    /// is the caller's to decide (the `Authenticated` extractor admits full
+    /// sessions only).
     ///
     /// A live session whose last reset is a renewal window or more in the past
     /// is renewed here: its idle clock and the account's `last_seen_at` move
@@ -143,7 +173,28 @@ impl SessionService {
             return Ok(None);
         };
 
+        // An upgrade session exists to turn a guest into a full account, and
+        // the upgrade deletes every session of the account when it commits.
+        // A row that escaped that delete — opened by a racing `/oidc/authorize`
+        // after the commit — is still worth nothing: once the account is
+        // full, an upgrade session is not a session (ADR 0015 (b)).
+        if session.kind == SessionKind::Upgrade && account.r#type != AccountType::Guest {
+            return Ok(None);
+        }
+
         Ok(Some((Authenticated { session, account }, renewal)))
+    }
+
+    /// The live session a token names, read and nothing else: no renewal,
+    /// no `last_seen_at` moved on the session or on its account. For a
+    /// caller that has to know whose session a cookie is before deciding
+    /// whether to touch it — RP-initiated logout, which must leave another
+    /// account's session exactly as it found it (ADR 0013 (f)).
+    /// `Ok(None)` for a token that is unknown, idle for too long, past its
+    /// cap or revoked.
+    pub async fn find(&self, token: &SessionToken) -> Result<Option<Session>, sqlx::Error> {
+        let live = repository::find_live(&self.pool, &token.hash()).await?;
+        Ok(live.map(|live| live.session))
     }
 
     /// Ends the session a token names and returns its id. `Ok(None)` when
@@ -164,6 +215,39 @@ impl SessionService {
 
         Ok(revoked)
     }
+}
+
+/// What [`rotate_upgraded`] did: the full session it wrote, and the ids of
+/// every session of the account it ended, the upgrade session among them.
+#[derive(Debug)]
+pub struct Rotated {
+    pub session: Session,
+    pub ended: Vec<Uuid>,
+}
+
+/// The session half of a finished guest upgrade (ADR 0015 (f)), on the
+/// caller's transaction, which holds the account's row lock: deletes every
+/// session of the account and writes a full one for `token`, and moves the
+/// account's `last_seen_at`, as signing in does.
+///
+/// `Ok(None)` when `upgrade_session_id` was not among the rows deleted: the
+/// session the upgrade runs under was revoked in the meantime, and the caller
+/// rolls back. Nothing is logged: an event is emitted for what committed
+/// (ADR 0004 (j)), and only the caller knows when that is.
+pub(crate) async fn rotate_upgraded(
+    conn: &mut PgConnection,
+    token: &SessionToken,
+    account_id: Uuid,
+    upgrade_session_id: Uuid,
+) -> Result<Option<Rotated>, sqlx::Error> {
+    let ended = repository::delete_all_for_account(&mut *conn, account_id).await?;
+    if !ended.contains(&upgrade_session_id) {
+        return Ok(None);
+    }
+    let session =
+        repository::insert(&mut *conn, account_id, &token.hash(), SessionKind::Full).await?;
+    accounts::touch_last_seen(&mut *conn, account_id).await?;
+    Ok(Some(Rotated { session, ended }))
 }
 
 #[cfg(test)]
@@ -515,5 +599,175 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(count, 0);
+    }
+
+    /// `find` reads and never writes: a session past the renewal window is
+    /// returned as it is, and neither its idle clock nor the account's
+    /// `last_seen_at` moves.
+    #[sqlx::test]
+    async fn find_does_not_renew(pool: PgPool) {
+        let account = account(&pool).await;
+        let service = SessionService::new(pool.clone());
+        let issued = service
+            .create(account.id, SessionOrigin::Login)
+            .await
+            .unwrap();
+        last_seen(&pool, issued.session.id, "2 hours").await;
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("UPDATE accounts SET last_seen_at = now() - interval '2 hours' WHERE id = $1")
+            .bind(account.id)
+            .execute(&pool)
+            .await
+            .unwrap();
+        // Unchecked query: see docs/TESTS.md.
+        let clocks = || async {
+            sqlx::query_as::<_, (time::OffsetDateTime, time::OffsetDateTime)>(
+                "SELECT s.last_seen_at, a.last_seen_at FROM sessions s \
+                 JOIN accounts a ON a.id = s.account_id WHERE s.id = $1",
+            )
+            .bind(issued.session.id)
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        };
+        let before = clocks().await;
+
+        let found = service.find(&issued.token).await.unwrap().expect("live");
+
+        assert_eq!(found.id, issued.session.id);
+        assert_eq!(found.account_id, account.id);
+        assert_eq!(found.last_seen_at, before.0);
+        assert_eq!(clocks().await, before, "nothing was written");
+    }
+
+    /// A guest the guest grant would have minted.
+    async fn guest(pool: &PgPool) -> Account {
+        let client = crate::testing::register_public_client(pool, "ligretto", &[]).await;
+        // Unchecked query: see docs/TESTS.md.
+        let number: i64 = sqlx::query_scalar("SELECT nextval('guest_display_name_seq')")
+            .fetch_one(pool)
+            .await
+            .unwrap();
+        AccountRepository::new(pool.clone())
+            .create(NewAccount::guest(client.id, number))
+            .await
+            .unwrap()
+    }
+
+    async fn upgrade_to_full(pool: &PgPool, id: Uuid) {
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("UPDATE accounts SET type = 'full' WHERE id = $1")
+            .bind(id)
+            .execute(pool)
+            .await
+            .unwrap();
+    }
+
+    #[sqlx::test]
+    async fn an_upgrade_session_authenticates_with_its_kind(pool: PgPool) {
+        let (events, _guard) = capture_tracing();
+        let guest = guest(&pool).await;
+        let service = SessionService::new(pool);
+
+        let issued = service.open_upgrade(guest.id).await.unwrap();
+        let (authenticated, _) = service.authenticate(&issued.token).await.unwrap().unwrap();
+
+        assert_eq!(issued.session.kind, SessionKind::Upgrade);
+        assert_eq!(authenticated.session, issued.session);
+        assert_eq!(authenticated.account.id, guest.id);
+        let [created] = &events.mentioning("session created")[..] else {
+            panic!("one creation event: {:?}", events.all());
+        };
+        assert!(created.contains("upgrade"), "{created}");
+        assert!(created.contains("id_token_hint"), "{created}");
+    }
+
+    /// Once the account is full, an upgrade session that is still there —
+    /// a race with the upgrade's delete — authenticates nothing.
+    #[sqlx::test]
+    async fn an_upgrade_session_of_a_full_account_does_not_authenticate(pool: PgPool) {
+        let guest = guest(&pool).await;
+        let service = SessionService::new(pool.clone());
+        let upgrade = service.open_upgrade(guest.id).await.unwrap();
+        let full = service
+            .create(guest.id, SessionOrigin::Login)
+            .await
+            .unwrap();
+
+        upgrade_to_full(&pool, guest.id).await;
+
+        assert_eq!(service.authenticate(&upgrade.token).await.unwrap(), None);
+        assert!(
+            service.authenticate(&full.token).await.unwrap().is_some(),
+            "a full session of the same account is unaffected"
+        );
+    }
+
+    #[sqlx::test]
+    async fn rotate_upgraded_ends_every_session_and_writes_a_full_one(pool: PgPool) {
+        let guest = guest(&pool).await;
+        let service = SessionService::new(pool.clone());
+        let upgrade = service.open_upgrade(guest.id).await.unwrap();
+        let other = service.open_upgrade(guest.id).await.unwrap();
+        let token = SessionToken::generate().unwrap();
+
+        let mut tx = pool.begin().await.unwrap();
+        let rotated = rotate_upgraded(&mut tx, &token, guest.id, upgrade.session.id)
+            .await
+            .unwrap()
+            .expect("the upgrade session was there");
+        tx.commit().await.unwrap();
+
+        let mut ended = rotated.ended.clone();
+        ended.sort();
+        let mut expected = vec![upgrade.session.id, other.session.id];
+        expected.sort();
+        assert_eq!(ended, expected);
+        assert_eq!(rotated.session.kind, SessionKind::Full);
+        assert_eq!(rotated.session.account_id, guest.id);
+        assert_eq!(service.authenticate(&upgrade.token).await.unwrap(), None);
+        assert_eq!(service.authenticate(&other.token).await.unwrap(), None);
+        let (authenticated, _) = service.authenticate(&token).await.unwrap().unwrap();
+        assert_eq!(authenticated.session, rotated.session);
+    }
+
+    /// The upgrade session was revoked before the rotation ran: nothing is
+    /// written, and the caller rolls back the deletes.
+    #[sqlx::test]
+    async fn rotate_upgraded_is_none_when_the_upgrade_session_is_gone(pool: PgPool) {
+        let guest = guest(&pool).await;
+        let service = SessionService::new(pool.clone());
+        let upgrade = service.open_upgrade(guest.id).await.unwrap();
+        let other = service.open_upgrade(guest.id).await.unwrap();
+        service.revoke(&upgrade.token).await.unwrap();
+        let token = SessionToken::generate().unwrap();
+
+        let mut tx = pool.begin().await.unwrap();
+        let rotated = rotate_upgraded(&mut tx, &token, guest.id, upgrade.session.id)
+            .await
+            .unwrap();
+        assert!(rotated.is_none());
+        tx.rollback().await.unwrap();
+
+        assert_eq!(service.authenticate(&token).await.unwrap(), None);
+        assert!(
+            service.authenticate(&other.token).await.unwrap().is_some(),
+            "the rollback keeps the other session"
+        );
+    }
+
+    #[sqlx::test]
+    async fn find_does_not_see_a_dead_session(pool: PgPool) {
+        let account = account(&pool).await;
+        let service = SessionService::new(pool.clone());
+        let issued = service
+            .create(account.id, SessionOrigin::Login)
+            .await
+            .unwrap();
+        last_seen(&pool, issued.session.id, "8 days").await;
+
+        assert_eq!(service.find(&issued.token).await.unwrap(), None);
+        let unknown = SessionToken::generate().unwrap();
+        assert_eq!(service.find(&unknown).await.unwrap(), None);
     }
 }

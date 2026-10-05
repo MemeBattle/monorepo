@@ -11,13 +11,15 @@ use std::sync::Arc;
 use axum::{
     Router,
     extract::{Request, State},
-    http::{HeaderMap, HeaderValue, Method, header},
+    http::{HeaderMap, HeaderValue, Method, StatusCode, header},
     middleware::{self, Next},
     response::Response,
 };
+use utoipa::openapi::OpenApi;
 
 use crate::http::error::ApiError;
 use crate::http::extract::original_path;
+use crate::http::openapi::{add_api_error, operations_mut};
 
 const SEC_FETCH_SITE: &str = "sec-fetch-site";
 
@@ -60,10 +62,24 @@ async fn reject_cross_site(
             reason = rejection.reason(),
             "cross-site mutating request rejected"
         );
-        ApiError::forbidden("cross_site_request", "Cross-site requests are not allowed")
+        ApiError::forbidden(CROSS_SITE_REQUEST, "Cross-site requests are not allowed")
     })?;
 
     Ok(next.run(request).await)
+}
+
+/// The code of the line's refusal.
+pub(crate) const CROSS_SITE_REQUEST: &str = "cross_site_request";
+
+/// The line's refusal in the description of the router it guards: a 403
+/// `cross_site_request` on every operation with an unsafe method, which
+/// the handlers never see.
+pub fn describe(document: &mut OpenApi) {
+    for (method, operation) in operations_mut(document) {
+        if !matches!(method, "get" | "head" | "options") {
+            add_api_error(operation, StatusCode::FORBIDDEN, CROSS_SITE_REQUEST);
+        }
+    }
 }
 
 /// Why a request was turned away. Logged, never sent to the client: the
@@ -89,7 +105,7 @@ impl Rejection {
 /// The decision, as a pure function of the method and the headers.
 ///
 /// Safe methods always pass: `GET` navigations from other sites are how the
-/// future OIDC `/authorize` arrives, and a safe method changes nothing. For
+/// future OIDC `/oidc/authorize` arrives, and a safe method changes nothing. For
 /// the rest, `Sec-Fetch-Site` is the authority when present: `same-origin`
 /// and `none` (a user-initiated request) pass; `same-site`, `cross-site`,
 /// and any value this code does not know, pass only with an allowed

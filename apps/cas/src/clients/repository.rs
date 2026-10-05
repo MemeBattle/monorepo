@@ -5,7 +5,8 @@ use thiserror::Error;
 use time::OffsetDateTime;
 
 use super::{
-    Audience, Client, ClientId, ClientKind, ClientName, NewClient, RedirectUri, Scope, SecretHash,
+    Audience, Client, ClientId, ClientKind, ClientName, GuestGrantsPerMinute, NewClient,
+    RedirectUri, Scope, SecretHash,
 };
 
 // `nutype` cannot derive the sqlx traits, so the ones that let a `ClientId`
@@ -14,7 +15,8 @@ use super::{
 // `text[]` columns and are converted element by element in the row mapping
 // below, which is why they need no impls of their own — and no
 // `PgHasArrayType`. `Audience` is converted in the same mapping, like a
-// single element: one column read by one query shape needs no impls either.
+// single element: one column read by one query shape needs no impls either,
+// and neither does `GuestGrantsPerMinute`, read as the `i32` it wraps.
 
 /// A `ClientId` is a Postgres text value, exactly like the `String` it wraps.
 impl sqlx::Type<sqlx::Postgres> for ClientId {
@@ -119,6 +121,7 @@ struct ClientRow {
     post_logout_redirect_uris: Vec<String>,
     first_party: bool,
     guest_login_allowed: bool,
+    guest_grants_per_minute: i32,
     scopes: Vec<String>,
     audience: String,
     created_at: OffsetDateTime,
@@ -141,6 +144,7 @@ fn to_client(row: ClientRow) -> Result<Client, sqlx::Error> {
         )?,
         first_party: row.first_party,
         guest_login_allowed: row.guest_login_allowed,
+        guest_grants_per_minute: guest_grants_per_minute(row.guest_grants_per_minute)?,
         scopes: scopes(row.scopes)?,
         audience: Audience::try_new(row.audience)
             .map_err(|error| column_decode("audience", error))?,
@@ -160,6 +164,13 @@ fn scopes(values: Vec<String>) -> Result<Vec<Scope>, sqlx::Error> {
         .into_iter()
         .map(|value| Scope::try_new(value).map_err(|error| column_decode("scopes", error)))
         .collect()
+}
+
+/// The table's CHECK keeps the value positive; the conversion says so again
+/// rather than trusting it.
+fn guest_grants_per_minute(value: i32) -> Result<GuestGrantsPerMinute, sqlx::Error> {
+    GuestGrantsPerMinute::try_new(value)
+        .map_err(|error| column_decode("guest_grants_per_minute", error))
 }
 
 fn column_decode<E>(column: &str, error: E) -> sqlx::Error
@@ -195,10 +206,10 @@ where
         ClientRow,
         r#"INSERT INTO clients (
                id, name, kind, secret_hash, redirect_uris,
-               post_logout_redirect_uris, first_party, guest_login_allowed, scopes,
-               audience
+               post_logout_redirect_uris, first_party, guest_login_allowed,
+               guest_grants_per_minute, scopes, audience
            )
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
            RETURNING
                id AS "id: ClientId",
                name AS "name: ClientName",
@@ -208,6 +219,7 @@ where
                post_logout_redirect_uris,
                first_party,
                guest_login_allowed,
+               guest_grants_per_minute,
                scopes,
                audience,
                created_at"#,
@@ -219,6 +231,7 @@ where
         &post_logout_redirect_uris,
         client.first_party,
         client.guest_login_allowed,
+        i32::from(client.guest_grants_per_minute),
         &scopes,
         audience,
     )
@@ -245,6 +258,7 @@ where
                post_logout_redirect_uris,
                first_party,
                guest_login_allowed,
+               guest_grants_per_minute,
                scopes,
                audience,
                created_at
@@ -258,7 +272,38 @@ where
     row.map(to_client).transpose()
 }
 
-/// Data access for `clients`. Public so that `/authorize` and `/token` can
+/// Locks the client's row for a guest mint and returns its limit, as the
+/// locked row has it; `Ok(None)` when no such client exists any more. The
+/// lock is the per-client mutex of guest minting, across every replica: it
+/// is held until the caller's transaction ends, so a second mint of the same
+/// client waits here, and its count, sent after this, sees the first one's
+/// committed account (ADR 0014 (e)). One statement of its own, so the
+/// statements after it read the clock once the lock is held.
+///
+/// `FOR NO KEY UPDATE`, not `FOR UPDATE`: an insert into `grants` or
+/// `accounts` that references the client takes `FOR KEY SHARE` on this row,
+/// which conflicts with `FOR UPDATE` only. A code exchange or a refresh of
+/// the same client is therefore never queued behind a guest mint, and the
+/// mint's own inserts are compatible with the lock it holds. A client
+/// delete, which needs `FOR UPDATE` strength, waits for the mint.
+pub(crate) async fn lock_guest_grant_limit<'e, E>(
+    executor: E,
+    id: &ClientId,
+) -> Result<Option<GuestGrantsPerMinute>, sqlx::Error>
+where
+    E: sqlx::PgExecutor<'e>,
+{
+    let limit = sqlx::query_scalar!(
+        "SELECT guest_grants_per_minute FROM clients WHERE id = $1 FOR NO KEY UPDATE",
+        id as _,
+    )
+    .fetch_optional(executor)
+    .await?;
+
+    limit.map(guest_grants_per_minute).transpose()
+}
+
+/// Data access for `clients`. Public so that `/oidc/authorize` and `/oidc/token` can
 /// hold one, or a service over it, without this file changing shape.
 #[derive(Debug, Clone)]
 pub struct ClientRepository {
@@ -301,6 +346,7 @@ mod tests {
         .with_post_logout_redirect_uris(vec![redirect_uri("http://localhost:5173/")])
         .first_party(true)
         .guest_login_allowed(true)
+        .with_guest_grants_per_minute(GuestGrantsPerMinute::try_new(5).unwrap())
         .with_scopes(vec![scope("openid"), scope("profile"), scope("email")])
         .with_audience(Audience::try_new("games").unwrap())
     }
@@ -338,6 +384,7 @@ mod tests {
         );
         assert!(created.first_party);
         assert!(created.guest_login_allowed);
+        assert_eq!(i32::from(created.guest_grants_per_minute), 5);
         assert_eq!(
             created.scopes,
             vec![scope("openid"), scope("profile"), scope("email")]
@@ -361,6 +408,7 @@ mod tests {
         assert!(created.post_logout_redirect_uris.is_empty());
         assert!(!created.first_party);
         assert!(!created.guest_login_allowed);
+        assert_eq!(i32::from(created.guest_grants_per_minute), 60);
         assert_eq!(created.scopes, vec![scope("openid")]);
         assert_eq!(created.audience.as_str(), "cli", "its own id");
 
@@ -565,6 +613,124 @@ mod tests {
         assert!(
             matches!(error, sqlx::Error::ColumnDecode { .. }),
             "{error:?}"
+        );
+    }
+
+    /// The CHECK, not the domain: a row written outside CAS cannot hold a
+    /// limit that lets nothing through.
+    #[sqlx::test]
+    async fn the_database_refuses_a_limit_that_is_not_positive(pool: PgPool) {
+        ClientRepository::new(pool.clone())
+            .create(public())
+            .await
+            .unwrap();
+
+        for limit in [0, -1] {
+            // Unchecked query: see docs/TESTS.md.
+            let error =
+                sqlx::query("UPDATE clients SET guest_grants_per_minute = $1 WHERE id = $2")
+                    .bind(limit)
+                    .bind("cli")
+                    .execute(&pool)
+                    .await
+                    .unwrap_err();
+
+            let sqlx::Error::Database(db) = &error else {
+                panic!("expected a database error, got {error:?}");
+            };
+            assert_eq!(
+                db.constraint(),
+                Some("clients_guest_grants_per_minute_positive")
+            );
+        }
+    }
+
+    #[sqlx::test]
+    async fn the_guest_lock_returns_the_stored_limit(pool: PgPool) {
+        let secret = ClientSecret::generate().unwrap();
+        ClientRepository::new(pool.clone())
+            .create(confidential(&secret))
+            .await
+            .unwrap();
+
+        let mut tx = pool.begin().await.unwrap();
+        let limit = lock_guest_grant_limit(&mut *tx, &client_id("ligretto"))
+            .await
+            .unwrap();
+        let unknown = lock_guest_grant_limit(&mut *tx, &client_id("nobody"))
+            .await
+            .unwrap();
+
+        assert_eq!(limit, Some(GuestGrantsPerMinute::try_new(5).unwrap()));
+        assert_eq!(unknown, None);
+    }
+
+    /// Opens a transaction that gives up on any lock it cannot take within
+    /// a fifth of a second, so a test can tell "waits" from "goes through"
+    /// without hanging.
+    async fn impatient(pool: &PgPool) -> sqlx::Transaction<'static, sqlx::Postgres> {
+        let mut tx = pool.begin().await.unwrap();
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("SET LOCAL lock_timeout = '200ms'")
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+        tx
+    }
+
+    /// The lock serialises guest mints of one client: a second transaction
+    /// cannot take it while the first holds it, and takes it once the first
+    /// has ended. A grant of the same client — what a code exchange or a
+    /// refresh writes — goes through under it.
+    #[sqlx::test]
+    async fn the_guest_lock_serialises_mints_but_not_grants(pool: PgPool) {
+        ClientRepository::new(pool.clone())
+            .create(public())
+            .await
+            .unwrap();
+        let account = crate::accounts::insert(
+            &pool,
+            crate::accounts::NewAccount::full(crate::testing::display_name("Ada")),
+        )
+        .await
+        .unwrap();
+        let mut holder = pool.begin().await.unwrap();
+        lock_guest_grant_limit(&mut *holder, &client_id("cli"))
+            .await
+            .unwrap()
+            .unwrap();
+
+        let mut second = impatient(&pool).await;
+        let error = lock_guest_grant_limit(&mut *second, &client_id("cli"))
+            .await
+            .unwrap_err();
+        let sqlx::Error::Database(db) = &error else {
+            panic!("expected a lock timeout, got {error:?}");
+        };
+        assert_eq!(db.code().as_deref(), Some("55P03"), "lock_not_available");
+        second.rollback().await.unwrap();
+
+        let mut grant = impatient(&pool).await;
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query(
+            "INSERT INTO grants (account_id, client_id, scopes, expires_at)
+             VALUES ($1, $2, ARRAY['openid'], now() + interval '1 day')",
+        )
+        .bind(account.id)
+        .bind("cli")
+        .execute(&mut *grant)
+        .await
+        .expect("a grant of the client is not queued behind a guest mint");
+        grant.commit().await.unwrap();
+
+        holder.rollback().await.unwrap();
+        let mut third = impatient(&pool).await;
+        assert!(
+            lock_guest_grant_limit(&mut *third, &client_id("cli"))
+                .await
+                .unwrap()
+                .is_some(),
+            "the lock is free once its holder has ended"
         );
     }
 }

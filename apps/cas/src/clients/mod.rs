@@ -3,7 +3,7 @@
 //! A client is a row in `clients`: an id an operator picked, what it is
 //! allowed to ask for, and — for a confidential client — the SHA-256 of a
 //! secret CAS drew once. The registry has no HTTP surface of its own;
-//! `/authorize` and `/token` read it and own their own error mapping. Until
+//! `/oidc/authorize` and `/oidc/token` read it and own their own error mapping. Until
 //! the admin panel exists, rows are written by the `cas-client` binary
 //! through [`registration::register`]. See
 //! `docs/adr/0008-oidc-clients-registry.md`.
@@ -15,6 +15,7 @@
 mod audience;
 mod client_id;
 mod client_name;
+mod guest_limit;
 mod redirect_uri;
 pub mod registration;
 mod repository;
@@ -26,8 +27,10 @@ use time::OffsetDateTime;
 pub use audience::Audience;
 pub use client_id::{ClientId, ClientIdError, MAX_CLIENT_ID_LENGTH};
 pub use client_name::{ClientName, ClientNameError};
+pub use guest_limit::{GuestGrantsPerMinute, GuestGrantsPerMinuteError};
 pub use redirect_uri::{RedirectUri, RedirectUriError};
 pub use registration::{RegisterError, Registered, Registration};
+pub(crate) use repository::lock_guest_grant_limit;
 pub use repository::{ClientRepository, InsertError};
 pub use scope::{Scope, ScopeError};
 pub use secret::{ClientSecret, SecretHash};
@@ -47,7 +50,7 @@ pub enum ClientKind {
     /// A browser or native application: the code ships to the user, so it
     /// holds no secret and authenticates with PKCE alone.
     Public,
-    /// A server-side application: it authenticates at `/token` with a secret
+    /// A server-side application: it authenticates at `/oidc/token` with a secret
     /// only it and CAS know.
     Confidential,
 }
@@ -104,9 +107,12 @@ pub struct Client {
     pub first_party: bool,
     /// Whether this client may mint guest accounts through the guest grant.
     pub guest_login_allowed: bool,
+    /// How many guest accounts it may mint per minute. The guest grant reads
+    /// the value of the row it locks, not this one (ADR 0014 (e)).
+    pub guest_grants_per_minute: GuestGrantsPerMinute,
     /// The allow-list of scopes this client may request.
     pub scopes: Vec<Scope>,
-    /// The `aud` of the access tokens `/token` issues to this client.
+    /// The `aud` of the access tokens `/oidc/token` issues to this client.
     pub audience: Audience,
     pub created_at: OffsetDateTime,
 }
@@ -169,12 +175,13 @@ pub struct NewClient {
     pub(crate) post_logout_redirect_uris: Vec<RedirectUri>,
     pub(crate) first_party: bool,
     pub(crate) guest_login_allowed: bool,
+    pub(crate) guest_grants_per_minute: GuestGrantsPerMinute,
     pub(crate) scopes: Vec<Scope>,
     pub(crate) audience: Audience,
 }
 
 impl NewClient {
-    /// A public client: no secret, PKCE alone at `/token`.
+    /// A public client: no secret, PKCE alone at `/oidc/token`.
     pub fn public(
         id: ClientId,
         name: ClientName,
@@ -183,7 +190,7 @@ impl NewClient {
         Self::new(id, name, ClientKind::Public, None, redirect_uris)
     }
 
-    /// A confidential client, identified at `/token` by the secret whose hash
+    /// A confidential client, identified at `/oidc/token` by the secret whose hash
     /// this is. The secret itself never reaches this type.
     pub fn confidential(
         id: ClientId,
@@ -221,6 +228,7 @@ impl NewClient {
             post_logout_redirect_uris: Vec::new(),
             first_party: false,
             guest_login_allowed: false,
+            guest_grants_per_minute: GuestGrantsPerMinute::default(),
             scopes: vec![default_scope()],
         })
     }
@@ -243,8 +251,15 @@ impl NewClient {
         self
     }
 
+    /// Replaces the default limit of the guest grant.
+    #[must_use]
+    pub fn with_guest_grants_per_minute(mut self, limit: GuestGrantsPerMinute) -> Self {
+        self.guest_grants_per_minute = limit;
+        self
+    }
+
     /// Replaces the default allow-list. An empty list is allowed by the type
-    /// and means "this client may request nothing", which `/authorize` will
+    /// and means "this client may request nothing", which `/oidc/authorize` will
     /// refuse; the CLI never produces one.
     #[must_use]
     pub fn with_scopes(mut self, scopes: Vec<Scope>) -> Self {
@@ -298,6 +313,7 @@ mod tests {
             post_logout_redirect_uris: vec![redirect_uri("https://app.example/")],
             first_party: true,
             guest_login_allowed: false,
+            guest_grants_per_minute: GuestGrantsPerMinute::default(),
             scopes: vec![scope("openid"), scope("profile")],
             audience: Audience::try_new("ligretto").unwrap(),
             created_at: OffsetDateTime::UNIX_EPOCH,
@@ -419,6 +435,10 @@ mod tests {
         assert!(public.post_logout_redirect_uris.is_empty());
         assert!(!public.first_party);
         assert!(!public.guest_login_allowed);
+        assert_eq!(
+            public.guest_grants_per_minute,
+            GuestGrantsPerMinute::default()
+        );
         assert_eq!(public.audience.as_str(), "ligretto", "its own id");
 
         let secret = ClientSecret::generate().unwrap();
@@ -445,6 +465,7 @@ mod tests {
         .with_post_logout_redirect_uris(vec![redirect_uri("https://app.example/")])
         .first_party(true)
         .guest_login_allowed(true)
+        .with_guest_grants_per_minute(GuestGrantsPerMinute::try_new(5).unwrap())
         .with_scopes(vec![scope("openid"), scope("email")])
         .with_audience(Audience::try_new("games").unwrap());
 
@@ -454,6 +475,10 @@ mod tests {
         );
         assert!(new_client.first_party);
         assert!(new_client.guest_login_allowed);
+        assert_eq!(
+            new_client.guest_grants_per_minute,
+            GuestGrantsPerMinute::try_new(5).unwrap()
+        );
         assert_eq!(new_client.scopes, vec![scope("openid"), scope("email")]);
         assert_eq!(new_client.audience.as_str(), "games");
     }

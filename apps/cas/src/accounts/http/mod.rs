@@ -6,41 +6,35 @@
 //! comes from the session, never from the request. Mounted by the transport
 //! root in `crate::http`.
 
-use axum::{Router, extract::State, http::StatusCode, routing::patch};
+use axum::extract::State;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::accounts::management::UpdateEmailError;
 use crate::accounts::{Email, EmailError};
 use crate::http::ApiState;
-use crate::http::error::ApiError;
-use crate::http::extract::Json as AppJson;
+use crate::http::error::ApiErrors;
+use crate::http::extract::{InvalidBody, Json};
+use crate::http::response::NoContent;
 use crate::sessions::Authenticated;
 
-/// The address is validated by the handler rather than by the body type, so a
-/// bad one gets this code instead of a generic `invalid_body`.
-impl From<EmailError> for ApiError {
-    fn from(error: EmailError) -> Self {
-        ApiError::bad_request("invalid_email", format!("Invalid email: {error}"))
-    }
-}
+// The address is validated by the handler rather than by the body type, so a
+// bad one gets this code instead of a generic `invalid_body`.
+crate::api_errors!(EmailError => BAD_REQUEST "invalid_email", |error| format!("Invalid email: {error}"));
 
-impl From<UpdateEmailError> for ApiError {
-    fn from(error: UpdateEmailError) -> Self {
-        let message = error.to_string();
-        match error {
-            UpdateEmailError::AccountNotFound => ApiError::not_found("account_not_found", message),
-            UpdateEmailError::Db(error) => ApiError::from(error),
-        }
-    }
-}
+crate::api_errors! { UpdateEmailError {
+    AccountNotFound => NOT_FOUND "account_not_found",
+    Db(_) => from,
+} }
 
-pub fn router(state: ApiState) -> Router {
-    Router::new()
-        .route("/me", patch(update_me))
+pub fn router(state: ApiState) -> OpenApiRouter {
+    OpenApiRouter::new()
+        .routes(routes!(update_me))
         .with_state(state)
 }
 
-#[derive(Debug, Serialize, Clone, Deserialize)]
+#[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateMeRequest {
     /// `null` clears the address. The field is required: with the serde
@@ -48,17 +42,23 @@ pub struct UpdateMeRequest {
     /// client never mentioned. Validated by the handler rather than by the
     /// type, so a bad address gets its own error code.
     #[serde(deserialize_with = "Option::deserialize")]
+    #[schema(required)]
     email: Option<String>,
 }
 
+crate::error_set!(UpdateMeErrors: Authenticated, InvalidBody, EmailError, UpdateEmailError);
+
+/// Sets or clears the account's email.
+///
 /// Idempotent: the same body twice leaves the same account, and clearing an
 /// absent email is a `204` like any other. Nothing is returned; the
 /// dashboard reads the account back through `GET /api/me`.
+#[utoipa::path(patch, path = "/me", security(("session" = [])))]
 async fn update_me(
     State(state): State<ApiState>,
     authenticated: Authenticated,
-    AppJson(request): AppJson<UpdateMeRequest>,
-) -> Result<StatusCode, ApiError> {
+    Json(request): Json<UpdateMeRequest>,
+) -> Result<NoContent, ApiErrors<UpdateMeErrors>> {
     let email = request.email.map(Email::try_new).transpose()?;
 
     state
@@ -66,15 +66,16 @@ async fn update_me(
         .set_email(authenticated.account.id, email)
         .await?;
 
-    Ok(StatusCode::NO_CONTENT)
+    Ok(NoContent)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use axum::{
+        Router,
         body::{Body, to_bytes},
-        http::{Request, header},
+        http::{Request, StatusCode, header},
     };
     use sqlx::PgPool;
     use tower::ServiceExt;
@@ -82,7 +83,7 @@ mod tests {
     use crate::accounts::{AccountRepository, NewAccount};
     use crate::sessions::http as sessions_http;
     use crate::sessions::{SessionOrigin, SessionService};
-    use crate::testing::{display_name, test_cookies, test_state};
+    use crate::testing::{checked, display_name, test_cookies, test_state};
 
     async fn body_json(response: axum::response::Response) -> serde_json::Value {
         let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
@@ -93,9 +94,11 @@ mod tests {
     /// the write under test and the read it round-trips through.
     fn app(pool: PgPool) -> Router {
         let state = test_state(pool);
-        Router::new()
-            .merge(sessions_http::router(state.clone()))
-            .merge(router(state))
+        checked(
+            OpenApiRouter::new()
+                .merge(sessions_http::router(state.clone()))
+                .merge(router(state)),
+        )
     }
 
     /// A signed-in account without an email; returns the cookie header.
@@ -134,6 +137,35 @@ mod tests {
         let response = app.clone().oneshot(get_me(cookie)).await.unwrap();
         assert_eq!(response.status(), StatusCode::OK);
         body_json(response).await["email"].clone()
+    }
+
+    /// The email is one of the endpoints an upgrade session may not use
+    /// (ADR 0015 (a)): a 401, and the row is untouched.
+    #[sqlx::test]
+    async fn an_upgrade_session_cannot_change_the_email(pool: PgPool) {
+        let client = crate::testing::register_public_client(&pool, "ligretto", &[]).await;
+        let guest = AccountRepository::new(pool.clone())
+            .create(NewAccount::guest(client.id, 1))
+            .await
+            .unwrap();
+        let issued = SessionService::new(pool.clone())
+            .open_upgrade(guest.id)
+            .await
+            .unwrap();
+        let cookie = format!("{}={}", test_cookies().name(), issued.token.expose());
+
+        let response = app(pool.clone())
+            .oneshot(patch_me(Some(&cookie), r#"{"email":"ada@example.com"}"#))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            body_json(response).await["error"]["code"],
+            "unauthenticated"
+        );
+        let stored = AccountRepository::new(pool).get(guest.id).await.unwrap();
+        assert_eq!(stored.unwrap().email, None);
     }
 
     #[sqlx::test]

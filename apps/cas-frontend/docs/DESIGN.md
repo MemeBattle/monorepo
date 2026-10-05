@@ -107,6 +107,17 @@ States:
   зарегистрирован" / "Возможно, он от другого сайта, или аккаунта ещё нет."
   with the link "Создать аккаунт"; the button reads "Выбрать другой пасскей".
 
+**Opened for an application** (`/sign-in?return_to=…`, sent by CAS from
+`/oidc/authorize`): the screen looks and reads exactly the same, with no
+extra state. The application is not named: the `client_id` in the URL is
+text anyone can write, and CAS has no endpoint that names a client to an
+anonymous browser (`adr/0002-return-to.md` (g)). Both links to create account
+keep `return_to`. After a successful sign-in, by the button or by autofill,
+the browser leaves for `return_to` instead of the dashboard; the button keeps
+its pending state until the browser has left. A `return_to` that is not a
+path on this origin is dropped and the screen behaves as plain sign-in
+(`adr/0002-return-to.md` (a), (b)).
+
 ### Create account (`/create-account`)
 
 Hero: logo 96px, "Создать аккаунт", "Придумайте имя, остальное сделает
@@ -135,6 +146,31 @@ States:
   alert "Такой пасскей уже есть" / "Этот пасскей уже зарегистрирован здесь."
   with the link "Войти".
 
+**Opened for an application** (`/create-account?return_to=…`, from sign-in's
+links or from CAS for a guest upgrade): the same as on sign-in. The screen
+looks and reads the same and names no application, both links to sign-in
+keep `return_to`, and a created account leaves for it instead of the
+dashboard, with the button pending until the browser has left.
+
+**Guest upgrade** (the browser holds a guest's upgrade session: CAS sent it
+here for an application's `id_token_hint`, or the guest followed the
+dashboard's link): the same route, form and ceremony, which turn the guest
+into a full account with the same id. Only the subtitle changes: "Игровой
+прогресс останется с вами: гостевой аккаунт станет постоянным. Придумайте
+имя, остальное сделает браузер. Пароля не будет." The screen knows a guest
+from `/api/me`, never from the URL (`adr/0003-guest-in-the-app.md` (a)).
+Everything else, the states above included, is as for a new account. One
+state of its own:
+
+- **Guest session ended** (the challenge is not the guest's, `unauthenticated`,
+  or `registration_not_found` when `/api/me` no longer answers this guest):
+  alert "Гостевая сессия закончилась" / "Сохранить прогресс гостя отсюда уже
+  не получится. Вернитесь в игру и начните создание аккаунта оттуда." The
+  session check runs again first: a browser now signed in to a full account
+  is forwarded, one with no session stays on the plain screen with the alert.
+  A `registration_not_found` while the session is still the guest's is the
+  ordinary cancelled ceremony.
+
 ### Failures every ceremony can have
 
 - **Wrong address** (`SecurityError`: the page is served from an origin the
@@ -154,10 +190,26 @@ While `/api/me` is in flight: the logo at 96px, pulsing, and "Проверяем
 in place. No spinner, no layout of the page behind it. It
 should be visible for well under a second in practice.
 
+On sign-in and create account, a browser that is already signed in goes to
+the dashboard; with an accepted `return_to` it is forwarded there instead, at
+once and without a ceremony, and this screen stays up until the browser has
+left. A guest is not signed in for this purpose: it stays on sign-in and
+create account and is never forwarded, whatever `return_to` says
+(`adr/0003-guest-in-the-app.md` (b)).
+
 ### Dashboard (`/`)
 
 Header: logo 44px, the uppercase label "Аккаунт" over the display name
 (truncates with an ellipsis), and "Выйти" with the logout icon on the right.
+
+**Guest**: the header's label is "Гостевой аккаунт" over the generated name
+(`Guest <n>`), with nothing on the right. Under it one accent card, as the
+one-passkey nudge: key icon, "Создайте аккаунт", "Сейчас вы играете как
+гость. С аккаунтом игровой прогресс останется с вами, а входить вы будете с
+пасскеем, без пароля.", and the primary-looking link "Создать аккаунт" with
+the key icon, to `/create-account` without `return_to`. Nothing else: no
+sections, no "Выйти". Hiding them is presentation only; CAS refuses those
+requests under the guest's session (`adr/0003-guest-in-the-app.md` (e)).
 
 Sections, each a card with an uppercase title:
 
@@ -259,7 +311,26 @@ States:
    without conditional mediation and for a passkey on another device.
 3. **Sign out**: "Выйти" → `/sign-in`. `Clear-Site-Data` on the API side
    empties what the browser holds; the app keeps nothing client-side.
-4. **Recovery story (v1)**: there is none beyond a second passkey, which is
+4. **Sign-in for an application**: the application sends the browser to
+   `/oidc/authorize` → CAS, finding no session, sends it to
+   `/sign-in?return_to=/oidc/authorize?…` → passkey ceremony →
+   `/oidc/authorize` again → the application's redirect URI with a code.
+   A new user takes "Создать" → `/create-account?return_to=…` → name →
+   ceremony → the same way back. A browser already signed in to CAS never
+   sees a form: the session check forwards it. The whole visit to CAS is one
+   history entry, so Back from the application does not reopen sign-in. A
+   `return_to` that is not a path on this origin is dropped and the flow ends
+   on `/`.
+5. **Guest upgrade**: the application sends the guest's browser to
+   `/oidc/authorize` with the guest's ID token as `id_token_hint` → CAS opens
+   an upgrade session and sends it to `/create-account?return_to=…` → name →
+   ceremony → `/oidc/authorize` again → the application's redirect URI with a
+   code, for the same account, now full. Abandoned halfway, the guest that
+   opens `/` sees the guest dashboard → "Создать аккаунт" →
+   `/create-account` → name → ceremony → `/` as a full account with one
+   passkey; the application sees the upgrade at its next authorization
+   request.
+6. **Recovery story (v1)**: there is none beyond a second passkey, which is
    why the nudge is the first thing a one-passkey account sees.
 
 ## Sample data on the canvas

@@ -8,42 +8,100 @@ pub mod cookie;
 pub mod extract;
 pub mod renewal;
 
+use std::collections::BTreeMap;
+
 use axum::{
-    Json, Router,
     extract::State,
     http::{HeaderMap, HeaderName, HeaderValue, StatusCode},
-    routing::get,
-    routing::post,
+    response::{IntoResponse, Response},
 };
 use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
+use utoipa::openapi::{RefOr, response::Response as OpenApiResponse};
+use utoipa::{OpenApi, ToSchema};
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::accounts::AccountType;
 use crate::http::ApiState;
-use crate::http::error::ApiError;
+use crate::http::error::ApiErrors;
+use crate::http::extract::Json;
+use crate::http::response::{on_success, string_header};
+use crate::sessions::http::extract::AnySession;
 use crate::sessions::service::CreateError;
 use crate::sessions::{Authenticated, SessionToken};
 
 pub use cookie::CookieSettings;
 pub use renewal::with_cookie_renewal;
 
-/// Registration and login create sessions from their own handlers; the
-/// mapping lives here, with the context that owns the error.
-impl From<CreateError> for ApiError {
-    fn from(error: CreateError) -> Self {
-        match error {
-            // The OS refusing to provide randomness is nothing this code can
-            // name a remedy for.
-            CreateError::Random(error) => ApiError::internal(error),
-            CreateError::Db(error) => ApiError::from(error),
-        }
+// Registration and login create sessions from their own handlers; the
+// mapping lives here, with the context that owns the error.
+crate::api_errors! { CreateError {
+    // The OS refusing to provide randomness is nothing this code can name a
+    // remedy for.
+    Random(_) => internal,
+    Db(_) => from,
+} }
+
+/// A response that signs the browser in: `R` with the session cookie the
+/// jar carries. Registration and login answer with it; described as `R`
+/// with a `Set-Cookie` header on its success.
+pub struct WithSessionCookie<R>(pub CookieJar, pub R);
+
+impl<R: IntoResponse> IntoResponse for WithSessionCookie<R> {
+    fn into_response(self) -> Response {
+        (self.0, self.1).into_response()
+    }
+}
+
+impl<R: utoipa::IntoResponses> utoipa::IntoResponses for WithSessionCookie<R> {
+    fn responses() -> BTreeMap<String, RefOr<OpenApiResponse>> {
+        on_success(R::responses(), "Set-Cookie", session_cookie_header())
+    }
+}
+
+fn session_cookie_header() -> utoipa::openapi::header::Header {
+    string_header(
+        "The session cookie (`cas_session`, `__Host-cas_session` on an https origin): \
+         HttpOnly, SameSite=Lax, Path=/.",
+    )
+}
+
+/// Logout's answer: `204`, the removal cookie in the jar, and
+/// `Clear-Site-Data`.
+pub struct LoggedOut(CookieJar);
+
+impl IntoResponse for LoggedOut {
+    fn into_response(self) -> Response {
+        (
+            self.0,
+            [(CLEAR_SITE_DATA, CLEAR_SITE_DATA_ON_LOGOUT)],
+            StatusCode::NO_CONTENT,
+        )
+            .into_response()
+    }
+}
+
+impl utoipa::IntoResponses for LoggedOut {
+    fn responses() -> BTreeMap<String, RefOr<OpenApiResponse>> {
+        let response = utoipa::openapi::ResponseBuilder::new()
+            .description("Signed out; the cookie is cleared whether or not a session was ended.")
+            .header(
+                "Set-Cookie",
+                string_header("The removal of the session cookie (`Max-Age=0`)."),
+            )
+            .header("Clear-Site-Data", string_header(r#"`"cache", "storage"`"#))
+            .build();
+        BTreeMap::from([(
+            StatusCode::NO_CONTENT.as_str().to_owned(),
+            RefOr::T(response),
+        )])
     }
 }
 
 /// `Clear-Site-Data`, which the `http` crate has no constant for.
-const CLEAR_SITE_DATA: HeaderName = HeaderName::from_static("clear-site-data");
+pub(crate) const CLEAR_SITE_DATA: HeaderName = HeaderName::from_static("clear-site-data");
 
 /// What logout asks the browser to throw away. The quotation marks are part
 /// of the value: the header carries a list of quoted directives.
@@ -57,40 +115,73 @@ const CLEAR_SITE_DATA: HeaderName = HeaderName::from_static("clear-site-data");
 /// CAS logout would sign the browser out of every other application on the
 /// site and drop their preferences with it. The session cookie is removed
 /// explicitly instead, by the removal cookie next to this header.
-const CLEAR_SITE_DATA_ON_LOGOUT: HeaderValue = HeaderValue::from_static(r#""cache", "storage""#);
+///
+/// RP-initiated logout (`/oidc/end_session`, ADR 0013 (i)) sends the same value
+/// when it ends a session.
+pub(crate) const CLEAR_SITE_DATA_ON_LOGOUT: HeaderValue =
+    HeaderValue::from_static(r#""cache", "storage""#);
 
-pub fn router(state: ApiState) -> Router {
-    Router::new()
-        .route("/me", get(me))
-        .route("/logout", post(logout))
+/// The response bodies of the context's endpoints, for the description.
+#[derive(OpenApi)]
+#[openapi(components(schemas(MeResponse)))]
+struct SessionsApi;
+
+pub fn router(state: ApiState) -> OpenApiRouter {
+    OpenApiRouter::with_openapi(SessionsApi::openapi())
+        .routes(routes!(me))
+        .routes(routes!(logout))
         .with_state(state)
 }
 
 /// The signed-in account as the dashboard needs it. Nothing about the
 /// session itself but when it ends if left alone: the id is server-side
 /// state.
-#[derive(Debug, Serialize, Clone, Deserialize)]
+///
+/// Under an upgrade session it is the guest (ADR 0018): `accountType:
+/// "guest"`, the generated `Guest <n>` name, `email: null`, and the upgrade
+/// session's expiry. A resolved session of a guest is always an upgrade
+/// session, so the type is all the frontend needs to tell the two apart.
+#[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct MeResponse {
     account_id: Uuid,
     display_name: String,
     account_type: AccountType,
+    /// `null` when the account has no address.
+    #[schema(required)]
     email: Option<String>,
     #[serde(with = "time::serde::rfc3339")]
     session_expires_at: OffsetDateTime,
 }
 
-async fn me(authenticated: Authenticated) -> Json<MeResponse> {
+crate::error_set!(MeErrors: AnySession);
+
+/// The signed-in account.
+///
+/// Answers an upgrade session too, with the guest it belongs to
+/// (`accountType: "guest"`): the one read open to it, so the frontend can
+/// tell a guest from a signed-out browser (ADR 0018).
+#[utoipa::path(
+    get,
+    path = "/me",
+    operation_id = "get_me",
+    security(("session" = []))
+)]
+async fn me(
+    AnySession(authenticated): AnySession,
+) -> Result<Json<MeResponse>, ApiErrors<MeErrors>> {
     let Authenticated { session, account } = authenticated;
 
-    Json(MeResponse {
+    Ok(Json(MeResponse {
         account_id: account.id,
         display_name: account.display_name.into_inner(),
         account_type: account.r#type,
         email: account.email,
         session_expires_at: session.valid_until(),
-    })
+    }))
 }
+
+crate::error_set!(LogoutErrors: sqlx::Error);
 
 /// Ends the session the cookie names and clears the cookie. Idempotent and
 /// never a 401: a browser holding an expired or already revoked cookie is
@@ -100,11 +191,12 @@ async fn me(authenticated: Authenticated) -> Json<MeResponse> {
 /// cookies as well: a browser that does not implement the header — and it is
 /// not universal — has only the removal cookie to go on, and the two say the
 /// same thing.
+#[utoipa::path(post, path = "/logout")]
 async fn logout(
     State(state): State<ApiState>,
     headers: HeaderMap,
     jar: CookieJar,
-) -> Result<(CookieJar, [(HeaderName, HeaderValue); 1], StatusCode), ApiError> {
+) -> Result<LoggedOut, ApiErrors<LogoutErrors>> {
     // The name is matched on the wire, undecoded, as the extractor does
     // (see `CookieSettings::presented`); the jar only carries the answer.
     if let Some(token) = state
@@ -115,13 +207,9 @@ async fn logout(
         state.sessions.revoke(&token).await?;
     }
 
-    Ok((
-        // `add`, not `remove`: the jar only emits a removal for a cookie the
-        // request carried, and the answer must clear the cookie either way.
-        jar.add(state.cookies.removal()),
-        [(CLEAR_SITE_DATA, CLEAR_SITE_DATA_ON_LOGOUT)],
-        StatusCode::NO_CONTENT,
-    ))
+    // `add`, not `remove`: the jar only emits a removal for a cookie the
+    // request carried, and the answer must clear the cookie either way.
+    Ok(LoggedOut(jar.add(state.cookies.removal())))
 }
 
 #[cfg(test)]
@@ -136,7 +224,9 @@ mod tests {
 
     use crate::accounts::{AccountRepository, NewAccount};
     use crate::sessions::{SessionOrigin, SessionService};
-    use crate::testing::{display_name, test_cookies, test_state, test_state_with_cookies};
+    use crate::testing::{
+        checked, display_name, test_cookies, test_state, test_state_with_cookies,
+    };
 
     async fn body_json(response: axum::response::Response) -> serde_json::Value {
         let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
@@ -184,11 +274,45 @@ mod tests {
         request.body(Body::empty()).unwrap()
     }
 
+    /// The wrapper answers what `(CookieJar, Json<_>)` answered: the
+    /// cookie, the status and the body of the inner response.
+    #[tokio::test]
+    async fn with_session_cookie_is_the_jar_and_the_response() {
+        let jar = CookieJar::new().add(axum_extra::extract::cookie::Cookie::new("name", "value"));
+
+        let response = WithSessionCookie(jar, Json(serde_json::json!({"a": 1}))).into_response();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers().get(header::SET_COOKIE).unwrap(),
+            "name=value"
+        );
+        assert_eq!(body_json(response).await, serde_json::json!({"a": 1}));
+    }
+
+    /// What the logout tuple answered: `204`, the jar's cookie and
+    /// `Clear-Site-Data`, no body.
+    #[tokio::test]
+    async fn logged_out_is_a_204_with_the_cookie_and_clear_site_data() {
+        let jar = CookieJar::new().add(test_cookies().removal());
+
+        let response = LoggedOut(jar).into_response();
+
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+        assert!(response.headers().contains_key(header::SET_COOKIE));
+        assert_eq!(
+            response.headers().get(CLEAR_SITE_DATA),
+            Some(&CLEAR_SITE_DATA_ON_LOGOUT)
+        );
+        let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        assert!(bytes.is_empty());
+    }
+
     #[sqlx::test]
     async fn me_returns_the_signed_in_account(pool: PgPool) {
         let (account_id, token) = signed_in(&pool).await;
 
-        let response = router(test_state(pool))
+        let response = checked(router(test_state(pool)))
             .oneshot(get_me(Some(&dev_cookie(&token))))
             .await
             .unwrap();
@@ -205,7 +329,7 @@ mod tests {
 
     #[sqlx::test]
     async fn me_without_a_cookie_is_401(pool: PgPool) {
-        let response = router(test_state(pool))
+        let response = checked(router(test_state(pool)))
             .oneshot(get_me(None))
             .await
             .unwrap();
@@ -220,7 +344,7 @@ mod tests {
     #[sqlx::test]
     async fn me_with_a_malformed_or_unknown_cookie_is_401(pool: PgPool) {
         let name = test_cookies().name();
-        let app = router(test_state(pool));
+        let app = checked(router(test_state(pool)));
         let unknown = dev_cookie(&SessionToken::generate().unwrap());
 
         for cookie in [
@@ -254,7 +378,7 @@ mod tests {
             .await
             .unwrap();
 
-        let response = router(test_state(pool))
+        let response = checked(router(test_state(pool)))
             .oneshot(get_me(Some(&dev_cookie(&token))))
             .await
             .unwrap();
@@ -266,7 +390,7 @@ mod tests {
     async fn logout_ends_the_session_and_clears_the_cookie(pool: PgPool) {
         let (_, token) = signed_in(&pool).await;
         let name = test_cookies().name();
-        let app = router(test_state(pool));
+        let app = checked(router(test_state(pool)));
 
         let response = app
             .clone()
@@ -299,7 +423,7 @@ mod tests {
     async fn logout_on_a_secure_deployment_clears_the_prefixed_cookie(pool: PgPool) {
         let (_, token) = signed_in(&pool).await;
         let settings = CookieSettings { secure: true };
-        let app = router(test_state_with_cookies(pool, settings));
+        let app = checked(router(test_state_with_cookies(pool, settings)));
 
         let response = app
             .clone()
@@ -349,7 +473,7 @@ mod tests {
         assert_ne!(secure.name(), development.name());
 
         for (settings, other) in [(secure, development), (development, secure)] {
-            let app = router(test_state_with_cookies(pool.clone(), settings));
+            let app = checked(router(test_state_with_cookies(pool.clone(), settings)));
 
             let own = app
                 .clone()
@@ -388,7 +512,7 @@ mod tests {
             (secure, "__Host-cas%5Fsession"),
             (development, "cas%5Fsession"),
         ] {
-            let app = router(test_state_with_cookies(pool.clone(), settings));
+            let app = checked(router(test_state_with_cookies(pool.clone(), settings)));
 
             let me = app
                 .clone()
@@ -415,11 +539,106 @@ mod tests {
         }
     }
 
+    /// A guest holding an upgrade session, as `/oidc/authorize` opens one.
+    async fn upgrade_session(pool: &PgPool) -> SessionToken {
+        let client = crate::testing::register_public_client(pool, "ligretto", &[]).await;
+        let guest = AccountRepository::new(pool.clone())
+            .create(NewAccount::guest(client.id, 1))
+            .await
+            .unwrap();
+        SessionService::new(pool.clone())
+            .open_upgrade(guest.id)
+            .await
+            .unwrap()
+            .token
+    }
+
+    /// `/me` answers an upgrade session with the guest it belongs to
+    /// (ADR 0018): the type, the generated name, no email, and the upgrade
+    /// session's expiry, at most an hour away.
+    #[sqlx::test]
+    async fn me_under_an_upgrade_session_answers_the_guest(pool: PgPool) {
+        let upgrade = crate::testing::upgrade_signed_in(&pool).await;
+
+        let response = checked(router(test_state(pool)))
+            .oneshot(get_me(Some(&upgrade.cookie)))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = body_json(response).await;
+        assert_eq!(body["accountId"], upgrade.account.id.to_string());
+        assert_eq!(body["accountType"], "guest");
+        assert_eq!(body["displayName"], "Guest 1");
+        assert_eq!(body["email"], serde_json::Value::Null);
+        let expires_at = OffsetDateTime::parse(
+            body["sessionExpiresAt"].as_str().unwrap(),
+            &time::format_description::well_known::Rfc3339,
+        )
+        .unwrap();
+        let lifetime = expires_at - OffsetDateTime::now_utc();
+        assert!(
+            lifetime > time::Duration::ZERO
+                && lifetime
+                    <= time::Duration::try_from(crate::sessions::UPGRADE_SESSION_LIFETIME).unwrap(),
+            "the upgrade session's expiry, within its hour: {lifetime}"
+        );
+    }
+
+    /// Once the account is full, the upgrade session that read `/me` reads
+    /// nothing: the read never describes a full account (ADR 0015 (b)).
+    #[sqlx::test]
+    async fn me_under_an_upgrade_session_of_a_full_account_is_401(pool: PgPool) {
+        let upgrade = crate::testing::upgrade_signed_in(&pool).await;
+        let app = checked(router(test_state(pool.clone())));
+        let before = app
+            .clone()
+            .oneshot(get_me(Some(&upgrade.cookie)))
+            .await
+            .unwrap();
+        assert_eq!(before.status(), StatusCode::OK);
+
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query("UPDATE accounts SET type = 'full' WHERE id = $1")
+            .bind(upgrade.account.id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let response = app.oneshot(get_me(Some(&upgrade.cookie))).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            body_json(response).await["error"]["code"],
+            "unauthenticated"
+        );
+    }
+
+    /// Ending a session is not a use of it: logout ends an upgrade session
+    /// like any other.
+    #[sqlx::test]
+    async fn logout_ends_an_upgrade_session(pool: PgPool) {
+        let token = upgrade_session(&pool).await;
+
+        let response = checked(router(test_state(pool.clone())))
+            .oneshot(post_logout(Some(&dev_cookie(&token))))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+        // Unchecked query: see docs/TESTS.md.
+        let left: i64 = sqlx::query_scalar("SELECT count(*) FROM sessions")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(left, 0);
+    }
+
     /// Logging out of nothing is still a logout: the cookie is cleared and
     /// nothing is refused.
     #[sqlx::test]
     async fn logout_without_a_session_is_a_no_op_that_still_clears_the_cookie(pool: PgPool) {
-        let app = router(test_state(pool));
+        let app = checked(router(test_state(pool)));
         let unknown = dev_cookie(&SessionToken::generate().unwrap());
 
         for cookie in [None, Some("junk=1"), Some(unknown.as_str())] {

@@ -1,5 +1,5 @@
-//! `GET /authorize`: the start of the authorization code flow with PKCE
-//! (ADR 0010). Served at the root with `ApiState`, outside `/api`: it is a
+//! `GET /oidc/authorize`: the start of the authorization code flow with PKCE
+//! (ADR 0010). Served under `/oidc` with `ApiState`, outside `/api`: it is a
 //! top-level navigation from another site, which is exactly what the Fetch
 //! Metadata line under `/api` refuses.
 //!
@@ -9,29 +9,50 @@
 //! CAS renders a page of its own and never redirects. After it is, every
 //! failure goes back to the client as `error`, `error_description` and
 //! `state` in the redirect (RFC 6749 §4.1.2.1).
+//!
+//! A request with an `id_token_hint` is the guest upgrade's way in (ADR
+//! 0015 (c), (d)). The hint, when sent, must be a valid, unexpired ID token
+//! issued to this client, whatever the session is; a refused one is
+//! `invalid_request`. A full session then wins: the code is for the
+//! signed-in account and the hint is dropped. Without one, a hint of a guest
+//! — or, failing that, an upgrade session the cookie carries — sends the
+//! browser to the create-account screen under an upgrade session for that
+//! guest, opened here if the cookie does not already carry it. An upgrade
+//! session never gets a code. `return_to` never carries the hint on.
+
+use std::collections::BTreeMap;
 
 use axum::{
-    Router,
     extract::{OriginalUri, State},
     http::{Extensions, HeaderMap, HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
-    routing::get,
 };
+use time::OffsetDateTime;
 use tower_http::set_header::SetResponseHeaderLayer;
-use url::{Url, form_urlencoded};
+use url::Url;
+use utoipa::openapi::{RefOr, ResponseBuilder, response::Response as OpenApiResponse};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
+use super::page::{
+    ErrorPage, HeadRefused, found, location_header, method_not_allowed, redirect_with,
+};
 use crate::db::Failure;
 use crate::http::ApiState;
+use crate::http::error::ErrorCode;
+use crate::http::response::{Documented, error_codes, string_header};
+use crate::oidc::HintError;
 use crate::oidc::authorization::{self, AuthorizeRequest, OAuthError, PageError, Params};
 use crate::oidc::service::IssueError;
+use crate::sessions::SessionKind;
 use crate::sessions::http::extract::resolve_session;
 use crate::sessions::http::with_cookie_renewal;
+use crate::sessions::service::CreateError;
 
 /// How much of an unknown `client_id` goes into a log line. The value is
 /// the caller's choice, so it is bounded.
 const LOGGED_CLIENT_ID_CHARS: usize = 64;
 
-/// `GET /authorize`, holding `ApiState`. `HEAD` is refused explicitly: axum
+/// `GET /oidc/authorize`, holding `ApiState`. `HEAD` is refused explicitly: axum
 /// serves it from the `GET` handler otherwise, and a `HEAD` must not
 /// authenticate and mint a code whose response body nobody reads.
 ///
@@ -39,10 +60,10 @@ const LOGGED_CLIENT_ID_CHARS: usize = 64;
 /// a code; a route layer, so the root's fallback is not wrapped (see
 /// `oidc::http::router`). The cookie renewal layer re-sends the session
 /// cookie when resolving the session renewed it, as under `/api`.
-pub fn authorize_router(state: ApiState) -> Router {
+pub fn authorize_router(state: ApiState) -> OpenApiRouter {
     with_cookie_renewal(
-        Router::new()
-            .route("/authorize", get(authorize).head(method_not_allowed))
+        OpenApiRouter::new()
+            .routes(routes!(authorize, refuse_head))
             .route_layer(SetResponseHeaderLayer::overriding(
                 header::CACHE_CONTROL,
                 HeaderValue::from_static("no-store"),
@@ -51,13 +72,63 @@ pub fn authorize_router(state: ApiState) -> Router {
     )
 }
 
-async fn method_not_allowed() -> impl IntoResponse {
-    (StatusCode::METHOD_NOT_ALLOWED, [(header::ALLOW, "GET")])
+/// What `/oidc/authorize` answers, for the description: a redirect, or CAS's
+/// own page before the redirect URI is trusted.
+struct AuthorizeResponses;
+
+impl utoipa::IntoResponses for AuthorizeResponses {
+    fn responses() -> BTreeMap<String, RefOr<OpenApiResponse>> {
+        let codes: Vec<&str> = OAuthError::ALL.iter().map(|error| error.as_str()).collect();
+        let redirect = ResponseBuilder::new()
+            .description(
+                "To the client's redirect URI with `code` and `state`, or with `error`, \
+                 `error_description` and `state` (`x-error-codes` lists the `error` values); \
+                 or, without a signed-in session, to the frontend's `/sign-in` or, for a \
+                 guest upgrade, `/create-account` with `return_to`.",
+            )
+            .header("Location", location_header())
+            .header(
+                "Set-Cookie",
+                string_header("An upgrade session for a guest's `id_token_hint` (ADR 0015)."),
+            )
+            .extensions(Some(error_codes(&codes)))
+            .build();
+        let mut responses = ErrorPage::responses();
+        responses.insert(StatusCode::FOUND.as_str().to_owned(), RefOr::T(redirect));
+        responses
+    }
 }
 
+/// The authorization endpoint: the authorization code flow with PKCE.
+///
+/// The parameters are those of OpenID Connect Core §3.1.2.1 in the query:
+/// `client_id`, `redirect_uri`, `response_type=code`, `scope` with `openid`,
+/// `state`, `code_challenge` with `code_challenge_method=S256`, and
+/// optionally `nonce`, `prompt=none` and `id_token_hint`; they are read by
+/// hand under the RFC's rules, a repeated one refused (ADR 0010, ADR 0015).
+/// Before the client and its redirect URI are known the answer is CAS's
+/// page; after, every answer is a redirect.
+#[utoipa::path(get, path = "/oidc/authorize")]
 async fn authorize(
     State(state): State<ApiState>,
     OriginalUri(uri): OriginalUri,
+    headers: HeaderMap,
+    extensions: Extensions,
+) -> Documented<AuthorizeResponses> {
+    answer(state, uri, headers, extensions).await.into()
+}
+
+/// `HEAD /oidc/authorize` is refused: axum would serve it from the `GET`
+/// handler, and a `HEAD` must not authenticate and mint a code whose
+/// response nobody reads.
+#[utoipa::path(head, path = "/oidc/authorize", operation_id = "authorize_head")]
+async fn refuse_head() -> Documented<HeadRefused> {
+    method_not_allowed("GET").into()
+}
+
+async fn answer(
+    state: ApiState,
+    uri: axum::http::Uri,
     headers: HeaderMap,
     extensions: Extensions,
 ) -> Response {
@@ -96,18 +167,108 @@ async fn authorize(
         Err(error) => return back.error(error.error, &error.description),
     };
 
-    let authenticated = match resolve_session(&state, &headers, &extensions, uri.path()).await {
-        Ok(Some(authenticated)) => authenticated,
-        Ok(None) if request.prompt_none => {
-            return back.error(OAuthError::LoginRequired, "the account is not signed in");
-        }
-        Ok(None) => return sign_in(&state.frontend_origin, &uri),
+    // A hint that is sent must be valid, whatever the session is: a client
+    // that sent one expects it to be acted on or refused, never ignored for
+    // being broken (ADR 0015 (c)).
+    let hinted_guest = match &request.id_token_hint {
+        None => None,
+        Some(hint) => match state
+            .upgrade_hints
+            .guest(hint, &client.id, OffsetDateTime::now_utc())
+            .await
+        {
+            Ok(guest) => guest,
+            Err(HintError::Invalid) => {
+                return back.error(OAuthError::InvalidRequest, "id_token_hint is invalid");
+            }
+            Err(HintError::Expired) => {
+                return back.error(OAuthError::InvalidRequest, "id_token_hint has expired");
+            }
+            Err(HintError::Db(error)) => return back.operational(&error),
+        },
+    };
+    // The hint has done its work once it was judged: it does not travel on
+    // into the frontend's URL, and the request the frontend returns to
+    // cannot fail on a hint that expired meanwhile.
+    let return_to = return_to(&uri, &params, request.id_token_hint.is_some());
+
+    let session = match resolve_session(&state, &headers, &extensions, uri.path()).await {
+        Ok(session) => session,
         Err(error) => return back.operational(&error),
     };
 
+    // A full session wins: the browser is signed in to an account, and a
+    // link never trades that for a guest. A hint, valid or ignored, is
+    // dropped.
+    let upgrade_session = match session {
+        Some(authenticated) if authenticated.session.kind == SessionKind::Full => {
+            return issue(&state, &request, &client, &authenticated, &back).await;
+        }
+        upgrade_session => upgrade_session,
+    };
+
+    // The account to upgrade: the hint's guest, else the guest of the
+    // upgrade session the cookie carries (a reload, or `return_to` followed
+    // before the ceremony finished).
+    let guest_id = hinted_guest
+        .as_ref()
+        .map(|guest| guest.id)
+        .or_else(|| upgrade_session.as_ref().map(|upgrade| upgrade.account.id));
+    let Some(guest_id) = guest_id else {
+        if request.prompt_none {
+            return back.error(OAuthError::LoginRequired, "the account is not signed in");
+        }
+        return to_frontend(&state.frontend_origin, "/sign-in", &return_to);
+    };
+    // Registering a passkey is UI, which `prompt=none` promised not to show.
+    if request.prompt_none {
+        return back.error(OAuthError::LoginRequired, "the account is not signed in");
+    }
+
+    let mut response = to_frontend(&state.frontend_origin, "/create-account", &return_to);
+    let reused = upgrade_session
+        .as_ref()
+        .is_some_and(|upgrade| upgrade.account.id == guest_id);
+    if !reused {
+        let issued = match state.sessions.open_upgrade(guest_id).await {
+            Ok(issued) => issued,
+            Err(CreateError::Db(error)) => return back.operational(&error),
+            Err(CreateError::Random(error)) => {
+                tracing::error!(error = %error, "no randomness for an upgrade session");
+                return back.error(
+                    OAuthError::ServerError,
+                    "the server could not complete the request",
+                );
+            }
+        };
+        // A handler's own cookie wins over the renewal layer's. The cookie
+        // is a token of base64url characters and fixed attributes, so it
+        // always parses.
+        if let Ok(cookie) = state
+            .cookies
+            .session(&issued.token, &issued.session)
+            .encoded()
+            .to_string()
+            .parse::<HeaderValue>()
+        {
+            response.headers_mut().insert(header::SET_COOKIE, cookie);
+        }
+    }
+    response
+}
+
+/// Issues the code for a full session's account and sends it back with the
+/// request's `state`.
+async fn issue(
+    state: &ApiState,
+    request: &AuthorizeRequest,
+    client: &crate::clients::Client,
+    authenticated: &crate::sessions::Authenticated,
+    back: &Back<'_>,
+) -> Response {
     match state
         .authorization
-        .issue(&request, &client, &authenticated)
+        .issue(request, client, authenticated)
         .await
     {
         Ok(issued) => back.redirect(&[("code", issued.code.expose()), ("state", &request.state)]),
@@ -155,7 +316,9 @@ impl Back<'_> {
         if let Some(state) = self.state {
             pairs.push(("state", state));
         }
-        self.redirect(&pairs)
+        let mut response = self.redirect(&pairs);
+        response.extensions_mut().insert(ErrorCode(error.as_str()));
+        response
     }
 
     fn operational(&self, error: &sqlx::Error) -> Response {
@@ -177,28 +340,32 @@ impl Back<'_> {
     /// `&` when the registered URI already has one, `?` otherwise (RFC 6749
     /// §4.1.2).
     fn redirect(&self, pairs: &[(&str, &str)]) -> Response {
-        let query = form_urlencoded::Serializer::new(String::new())
-            .extend_pairs(pairs)
-            .finish();
-        let separator = if self.redirect_uri.contains('?') {
-            '&'
-        } else {
-            '?'
-        };
-        found(&format!("{}{separator}{query}", self.redirect_uri))
+        redirect_with(self.redirect_uri, pairs)
     }
 }
 
-/// `302` to the frontend's sign-in screen with `return_to` set to this very
-/// request, path and query, relative: after the ceremony the frontend
-/// navigates there and the same request completes with a session (ADR 0010
-/// (c)). Nothing is stored.
-fn sign_in(frontend_origin: &Url, uri: &axum::http::Uri) -> Response {
-    let return_to = uri
-        .path_and_query()
-        .map_or("/authorize", |path_and_query| path_and_query.as_str());
+/// This very request, path and query, relative: where the frontend
+/// navigates after its ceremony so that the same request completes with a
+/// session (ADR 0010 (c)). As sent, byte for byte — unless it carried an
+/// `id_token_hint`, which is left out (ADR 0015 (d)).
+fn return_to(uri: &axum::http::Uri, params: &Params, drop_hint: bool) -> String {
+    if drop_hint {
+        return format!(
+            "{}?{}",
+            uri.path(),
+            params.to_query_without("id_token_hint")
+        );
+    }
+    uri.path_and_query()
+        .map_or("/oidc/authorize", |path_and_query| path_and_query.as_str())
+        .to_owned()
+}
+
+/// `302` to a screen of the frontend — `/sign-in`, or `/create-account` for
+/// a guest upgrade (ADR 0015 (d)) — with `return_to`. Nothing is stored.
+fn to_frontend(frontend_origin: &Url, path: &str, return_to: &str) -> Response {
     let mut location = frontend_origin.clone();
-    location.set_path("/sign-in");
+    location.set_path(path);
     location.set_fragment(None);
     location
         .query_pairs_mut()
@@ -207,30 +374,10 @@ fn sign_in(frontend_origin: &Url, uri: &axum::http::Uri) -> Response {
     found(location.as_str())
 }
 
-fn found(location: &str) -> Response {
-    match HeaderValue::from_str(location) {
-        Ok(location) => (StatusCode::FOUND, [(header::LOCATION, location)]).into_response(),
-        // A registered redirect URI is validated ASCII and every appended
-        // value is percent-encoded, so this is a bug, not a request to
-        // name.
-        Err(error) => {
-            tracing::error!(error = %error, "a redirect location is not a header value");
-            ErrorPage::INTERNAL.into_response()
-        }
-    }
-}
-
 /// A pre-redirect failure, logged and rendered. `client_id` is the value as
 /// sent, if any.
 fn page(error: PageError, client_id: Option<&str>) -> Response {
-    let page = match error {
-        PageError::UnknownClient => ErrorPage::UNKNOWN_CLIENT,
-        PageError::InvalidRedirectUri => ErrorPage::INVALID_REDIRECT_URI,
-        PageError::MalformedRequest(description) => ErrorPage {
-            description,
-            ..ErrorPage::INVALID_REQUEST
-        },
-    };
+    let page = ErrorPage::for_error(error);
     let client_id = client_id.map(|value| {
         value
             .chars()
@@ -251,120 +398,39 @@ fn page(error: PageError, client_id: Option<&str>) -> Response {
 /// A database failure while the client is looked up: before the redirect
 /// URI is trusted, so a page, like every other failure there.
 fn database_page(error: sqlx::Error) -> Response {
-    let page = match crate::db::classify(&error) {
-        Some(Failure::Unavailable | Failure::Busy) => ErrorPage::SERVICE_UNAVAILABLE,
-        None => ErrorPage::INTERNAL,
-    };
+    let page = ErrorPage::for_database(&error);
     tracing::error!(code = page.code, source = ?error, "authorization request failed");
     page.into_response()
-}
-
-/// CAS's own answer to a request it cannot send back to the client: a
-/// minimal document of fixed strings. Nothing from the request is rendered,
-/// so no escaping question arises.
-#[derive(Debug, Clone, Copy)]
-struct ErrorPage {
-    status: StatusCode,
-    code: &'static str,
-    title: &'static str,
-    description: &'static str,
-}
-
-impl ErrorPage {
-    const UNKNOWN_CLIENT: Self = Self {
-        status: StatusCode::BAD_REQUEST,
-        code: "unknown_client",
-        title: "Unknown application",
-        description: "The application that sent you here is not registered with this service.",
-    };
-
-    const INVALID_REDIRECT_URI: Self = Self {
-        status: StatusCode::BAD_REQUEST,
-        code: "invalid_redirect_uri",
-        title: "Invalid return address",
-        description: "The application that sent you here asked to return to an address it has not registered.",
-    };
-
-    const INVALID_REQUEST: Self = Self {
-        status: StatusCode::BAD_REQUEST,
-        code: "invalid_request",
-        title: "Invalid request",
-        description: "The request is malformed.",
-    };
-
-    const SERVICE_UNAVAILABLE: Self = Self {
-        status: StatusCode::SERVICE_UNAVAILABLE,
-        code: "service_unavailable",
-        title: "Service unavailable",
-        description: "The service is temporarily unavailable. Try again later.",
-    };
-
-    const INTERNAL: Self = Self {
-        status: StatusCode::INTERNAL_SERVER_ERROR,
-        code: "internal",
-        title: "Something went wrong",
-        description: "The service could not handle the request.",
-    };
-}
-
-impl IntoResponse for ErrorPage {
-    fn into_response(self) -> Response {
-        let Self {
-            status,
-            code,
-            title,
-            description,
-        } = self;
-        let body = format!(
-            "<!doctype html>\n\
-             <html lang=\"en\">\n\
-             <head>\n\
-             <meta charset=\"utf-8\">\n\
-             <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
-             <title>{title}</title>\n\
-             </head>\n\
-             <body>\n\
-             <h1>{title}</h1>\n\
-             <p>{description}</p>\n\
-             <p>Error code: <code>{code}</code></p>\n\
-             </body>\n\
-             </html>\n"
-        );
-        (
-            status,
-            [(
-                header::CONTENT_TYPE,
-                HeaderValue::from_static("text/html; charset=utf-8"),
-            )],
-            body,
-        )
-            .into_response()
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
 
+    use axum::Router;
     use axum::body::{Body, to_bytes};
-    use axum::http::Request;
+    use axum::http::{Request, StatusCode};
     use sqlx::PgPool;
     use sqlx::postgres::PgPoolOptions;
     use tower::ServiceExt;
-    use uuid::Uuid;
+    use url::form_urlencoded;
 
     use super::*;
-    use crate::accounts::{AccountRepository, NewAccount};
+    use crate::accounts::{Account, AccountRepository, AccountType, NewAccount};
+    use crate::clients::Client;
     use crate::clients::{
-        ClientId, ClientName, ClientRepository, ClientSecret, NewClient, RedirectUri, Scope,
+        ClientId, ClientName, ClientRepository, ClientSecret, NewClient, RedirectUri,
     };
     use crate::db::test_support::db_error;
     use crate::oidc::AuthorizationCode;
     use crate::oidc::authorization::tests::{CALLBACK, CHALLENGE};
-    use crate::sessions::{SessionOrigin, SessionService};
+    use crate::sessions::{SessionToken, UPGRADE_SESSION_LIFETIME};
     use crate::testing::{
-        TEST_ORIGIN, capture_tracing, display_name, test_config, test_cookies, test_state,
+        TEST_ORIGIN, capture_tracing, checked, fresh_signing_key_pem, header_str, scopes,
+        session_cookie, signed_id_token, signed_in, test_config, test_cookies, test_signing_key,
+        test_state,
     };
+    use uuid::Uuid;
 
     #[test]
     fn a_retryable_database_failure_is_temporarily_unavailable() {
@@ -390,13 +456,6 @@ mod tests {
                 "{error:?}"
             );
         }
-    }
-
-    fn scopes(values: &[&str]) -> Vec<Scope> {
-        values
-            .iter()
-            .map(|value| Scope::try_new(*value).unwrap())
-            .collect()
     }
 
     /// The `ligretto` client as `scripts/seed-dev.sh` registers it.
@@ -433,28 +492,6 @@ mod tests {
             .unwrap();
     }
 
-    struct SignedIn {
-        cookie: String,
-        account_id: Uuid,
-        session_id: Uuid,
-    }
-
-    async fn signed_in(pool: &PgPool) -> SignedIn {
-        let account = AccountRepository::new(pool.clone())
-            .create(NewAccount::full(display_name("Ada")))
-            .await
-            .unwrap();
-        let issued = SessionService::new(pool.clone())
-            .create(account.id, SessionOrigin::Login)
-            .await
-            .unwrap();
-        SignedIn {
-            cookie: format!("{}={}", test_cookies().name(), issued.token.expose()),
-            account_id: account.id,
-            session_id: issued.session.id,
-        }
-    }
-
     fn valid() -> Vec<(&'static str, String)> {
         vec![
             ("client_id", "ligretto".to_owned()),
@@ -487,7 +524,7 @@ mod tests {
         let query = form_urlencoded::Serializer::new(String::new())
             .extend_pairs(pairs.iter().map(|(name, value)| (*name, value.as_str())))
             .finish();
-        format!("/authorize?{query}")
+        format!("/oidc/authorize?{query}")
     }
 
     async fn send(router: &Router, method: &str, uri: &str, cookie: Option<&str>) -> Response {
@@ -500,13 +537,6 @@ mod tests {
             .oneshot(request.body(Body::empty()).unwrap())
             .await
             .unwrap()
-    }
-
-    fn header_str(response: &Response, name: header::HeaderName) -> Option<&str> {
-        response
-            .headers()
-            .get(name)
-            .map(|value| value.to_str().unwrap())
     }
 
     fn location(response: &Response) -> Url {
@@ -552,7 +582,7 @@ mod tests {
     #[sqlx::test]
     async fn an_anonymous_request_is_sent_to_sign_in_with_return_to(pool: PgPool) {
         register_ligretto(&pool).await;
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
         let original = uri(&valid());
 
         let response = send(&router, "GET", &original, None).await;
@@ -570,7 +600,7 @@ mod tests {
             header_str(&response, header::LOCATION)
                 .unwrap()
                 .starts_with(
-                    "http://localhost:5173/sign-in?return_to=%2Fauthorize%3Fclient_id%3Dligretto"
+                    "http://localhost:5173/sign-in?return_to=%2Foidc%2Fauthorize%3Fclient_id%3Dligretto"
                 ),
             "{location}"
         );
@@ -583,9 +613,9 @@ mod tests {
     #[sqlx::test]
     async fn a_signed_in_request_gets_a_code_and_its_state(pool: PgPool) {
         register_ligretto(&pool).await;
-        let session = signed_in(&pool).await;
+        let session = signed_in(&pool, "Ada").await;
         let state = test_state(pool.clone());
-        let router = authorize_router(state.clone());
+        let router = checked(authorize_router(state.clone()));
         let original = uri(&valid());
 
         let response = send(&router, "GET", &original, Some(&session.cookie)).await;
@@ -615,7 +645,7 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(redeemed.account_id, session.account_id);
+        assert_eq!(redeemed.account_id, session.account.id);
         assert_eq!(redeemed.session_id, session.session_id);
         assert_eq!(redeemed.scopes, scopes(&["openid", "profile"]));
 
@@ -629,8 +659,8 @@ mod tests {
     async fn a_redirect_uri_with_a_query_gets_the_parameters_appended(pool: PgPool) {
         let registered = "https://app.example/cb?x=1";
         register_public(&pool, "app", registered, true).await;
-        let session = signed_in(&pool).await;
-        let router = authorize_router(test_state(pool));
+        let session = signed_in(&pool, "Ada").await;
+        let router = checked(authorize_router(test_state(pool)));
         let mut pairs = with("client_id", "app");
         pairs.retain(|(name, _)| *name != "redirect_uri");
         pairs.push(("redirect_uri", registered.to_owned()));
@@ -672,7 +702,7 @@ mod tests {
     #[sqlx::test]
     async fn an_untrusted_request_gets_a_page_and_no_redirect(pool: PgPool) {
         register_ligretto(&pool).await;
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
 
         for pairs in [
             with("client_id", "nope"),
@@ -699,7 +729,7 @@ mod tests {
     /// a warning naming the id as sent, bounded.
     #[sqlx::test]
     async fn an_unknown_client_is_logged_bounded_and_not_rendered(pool: PgPool) {
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
         let sent = format!("x{}", "y".repeat(200));
         let (events, _guard) = capture_tracing();
 
@@ -740,7 +770,7 @@ mod tests {
     #[sqlx::test]
     async fn an_invalid_request_is_sent_back_with_error_and_state(pool: PgPool) {
         register_ligretto(&pool).await;
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
 
         for (pairs, error, description) in [
             (
@@ -793,8 +823,8 @@ mod tests {
     #[sqlx::test]
     async fn a_public_first_party_client_with_pkce_gets_a_code(pool: PgPool) {
         register_public(&pool, "spa", CALLBACK, true).await;
-        let session = signed_in(&pool).await;
-        let router = authorize_router(test_state(pool));
+        let session = signed_in(&pool, "Ada").await;
+        let router = checked(authorize_router(test_state(pool)));
 
         let response = send(
             &router,
@@ -813,8 +843,8 @@ mod tests {
     #[sqlx::test]
     async fn a_client_that_is_not_first_party_is_unauthorized(pool: PgPool) {
         register_public(&pool, "third", CALLBACK, false).await;
-        let session = signed_in(&pool).await;
-        let router = authorize_router(test_state(pool.clone()));
+        let session = signed_in(&pool, "Ada").await;
+        let router = checked(authorize_router(test_state(pool.clone())));
 
         for prompt in [None, Some("none")] {
             let mut pairs = with("client_id", "third");
@@ -843,8 +873,8 @@ mod tests {
     #[sqlx::test]
     async fn prompt_none_is_honoured(pool: PgPool) {
         register_ligretto(&pool).await;
-        let session = signed_in(&pool).await;
-        let router = authorize_router(test_state(pool));
+        let session = signed_in(&pool, "Ada").await;
+        let router = checked(authorize_router(test_state(pool)));
         let request = uri(&plus("prompt", "none"));
 
         let anonymous = send(&router, "GET", &request, None).await;
@@ -865,8 +895,8 @@ mod tests {
     #[sqlx::test]
     async fn unsupported_requirements_are_refused_with_a_session(pool: PgPool) {
         register_ligretto(&pool).await;
-        let session = signed_in(&pool).await;
-        let router = authorize_router(test_state(pool));
+        let session = signed_in(&pool, "Ada").await;
+        let router = checked(authorize_router(test_state(pool)));
 
         for (name, value, error, description) in [
             (
@@ -897,7 +927,7 @@ mod tests {
                 "id_token_hint",
                 "x",
                 "invalid_request",
-                "id_token_hint is not supported yet",
+                "id_token_hint is invalid",
             ),
             (
                 "request",
@@ -938,8 +968,8 @@ mod tests {
     #[sqlx::test]
     async fn hints_are_ignored(pool: PgPool) {
         register_ligretto(&pool).await;
-        let session = signed_in(&pool).await;
-        let router = authorize_router(test_state(pool));
+        let session = signed_in(&pool, "Ada").await;
+        let router = checked(authorize_router(test_state(pool)));
         let mut pairs = valid();
         pairs.extend([
             ("login_hint", "x".to_owned()),
@@ -958,14 +988,14 @@ mod tests {
     #[sqlx::test]
     async fn a_revoked_session_is_anonymous(pool: PgPool) {
         register_ligretto(&pool).await;
-        let session = signed_in(&pool).await;
+        let session = signed_in(&pool, "Ada").await;
         // Unchecked query: see docs/TESTS.md.
         sqlx::query("DELETE FROM sessions WHERE id = $1")
             .bind(session.session_id)
             .execute(&pool)
             .await
             .unwrap();
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
 
         let response = send(&router, "GET", &uri(&valid()), Some(&session.cookie)).await;
 
@@ -980,8 +1010,8 @@ mod tests {
     /// with a valid cookie still gets the page, never JSON.
     #[sqlx::test]
     async fn a_malformed_request_with_a_session_gets_the_page(pool: PgPool) {
-        let session = signed_in(&pool).await;
-        let router = authorize_router(test_state(pool));
+        let session = signed_in(&pool, "Ada").await;
+        let router = checked(authorize_router(test_state(pool)));
 
         let response = send(
             &router,
@@ -999,14 +1029,14 @@ mod tests {
     #[sqlx::test]
     async fn a_session_due_for_renewal_is_renewed_on_the_redirect(pool: PgPool) {
         register_ligretto(&pool).await;
-        let session = signed_in(&pool).await;
+        let session = signed_in(&pool, "Ada").await;
         // Unchecked query: see docs/TESTS.md.
         sqlx::query("UPDATE sessions SET last_seen_at = now() - interval '2 hours' WHERE id = $1")
             .bind(session.session_id)
             .execute(&pool)
             .await
             .unwrap();
-        let router = authorize_router(test_state(pool.clone()));
+        let router = checked(authorize_router(test_state(pool.clone())));
 
         let response = send(&router, "GET", &uri(&valid()), Some(&session.cookie)).await;
 
@@ -1036,7 +1066,7 @@ mod tests {
             .acquire_timeout(Duration::from_secs(1))
             .connect_lazy("postgres://cas:cas@localhost:1/cas")
             .unwrap();
-        let router = authorize_router(test_state(pool));
+        let router = checked(authorize_router(test_state(pool)));
 
         let response = send(&router, "GET", &uri(&valid()), None).await;
 
@@ -1053,8 +1083,8 @@ mod tests {
     #[sqlx::test]
     async fn the_code_is_never_logged(pool: PgPool) {
         register_ligretto(&pool).await;
-        let session = signed_in(&pool).await;
-        let router = authorize_router(test_state(pool));
+        let session = signed_in(&pool, "Ada").await;
+        let router = checked(authorize_router(test_state(pool)));
         let (events, _guard) = capture_tracing();
 
         let response = send(&router, "GET", &uri(&valid()), Some(&session.cookie)).await;
@@ -1064,7 +1094,7 @@ mod tests {
             panic!("one line: {:?}", events.all());
         };
         assert!(line.contains("ligretto"), "{line}");
-        assert!(line.contains(&session.account_id.to_string()), "{line}");
+        assert!(line.contains(&session.account.id.to_string()), "{line}");
         assert!(line.contains(&session.session_id.to_string()), "{line}");
         assert!(line.contains("code_id"), "{line}");
         for event in events.all() {
@@ -1075,11 +1105,407 @@ mod tests {
         }
     }
 
-    /// Through the whole application: the endpoint is mounted at the root,
+    // The guest upgrade (ADR 0015) ---------------------------------------
+
+    async fn ligretto(pool: &PgPool) -> Client {
+        register_ligretto(pool).await;
+        ClientRepository::new(pool.clone())
+            .get(&ClientId::try_new("ligretto").unwrap())
+            .await
+            .unwrap()
+            .unwrap()
+    }
+
+    async fn new_guest(pool: &PgPool, number: i64) -> Account {
+        AccountRepository::new(pool.clone())
+            .create(NewAccount::guest(
+                ClientId::try_new("ligretto").unwrap(),
+                number,
+            ))
+            .await
+            .unwrap()
+    }
+
+    /// A fresh ID token of `account` for `client`, as `/oidc/token` issues it.
+    fn hint_for(client: &Client, account: &Account) -> String {
+        signed_id_token(
+            &test_signing_key(),
+            client,
+            account,
+            &["openid"],
+            time::OffsetDateTime::now_utc(),
+        )
+    }
+
+    /// The upgrade sessions in the table: (account, session id).
+    async fn upgrade_rows(pool: &PgPool) -> Vec<(Uuid, Uuid)> {
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query_as("SELECT account_id, id FROM sessions WHERE kind = 'upgrade'")
+            .fetch_all(pool)
+            .await
+            .unwrap()
+    }
+
+    async fn session_count(pool: &PgPool) -> i64 {
+        // Unchecked query: see docs/TESTS.md.
+        sqlx::query_scalar("SELECT count(*) FROM sessions")
+            .fetch_one(pool)
+            .await
+            .unwrap()
+    }
+
+    fn cookie_of(token: &SessionToken) -> String {
+        format!("{}={}", test_cookies().name(), token.expose())
+    }
+
+    /// The frontend screen a redirect goes to, and its `return_to`.
+    fn frontend(response: &Response) -> (String, String) {
+        assert_eq!(response.status(), StatusCode::FOUND);
+        let params = location_params(response);
+        assert_eq!(params.len(), 1, "{params:?}");
+        (
+            target(&location(response)),
+            param(&params, "return_to").expect("a return_to"),
+        )
+    }
+
+    /// The first step of the upgrade: a guest's fresh hint, no session. The
+    /// browser goes to create-account under a new upgrade session for the
+    /// guest, and `return_to` is the request without the hint.
+    #[sqlx::test]
+    async fn a_guest_hint_opens_an_upgrade_session_and_sends_to_create_account(pool: PgPool) {
+        let client = ligretto(&pool).await;
+        let guest = new_guest(&pool, 1).await;
+        let router = checked(authorize_router(test_state(pool.clone())));
+
+        let response = send(
+            &router,
+            "GET",
+            &uri(&plus("id_token_hint", &hint_for(&client, &guest))),
+            None,
+        )
+        .await;
+
+        assert_no_store(&response);
+        let (screen, return_to) = frontend(&response);
+        assert_eq!(screen, format!("{TEST_ORIGIN}/create-account"));
+        assert_eq!(return_to, uri(&valid()));
+        let token =
+            session_cookie(&response, test_cookies().name()).expect("an upgrade session cookie");
+        let set_cookie = header_str(&response, header::SET_COOKIE).unwrap();
+        let max_age: i64 = set_cookie
+            .split("; ")
+            .find_map(|attribute| attribute.strip_prefix("Max-Age="))
+            .expect("a Max-Age")
+            .parse()
+            .unwrap();
+        assert!(
+            max_age <= UPGRADE_SESSION_LIFETIME.as_secs() as i64,
+            "{set_cookie}"
+        );
+        let rows = upgrade_rows(&pool).await;
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].0, guest.id);
+        let (authenticated, _) = crate::sessions::SessionService::new(pool)
+            .authenticate(&token)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(authenticated.session.id, rows[0].1);
+    }
+
+    /// The same request again with the cookie it set — a reload — reuses
+    /// the session; a hint of another guest replaces it with one of its own.
+    #[sqlx::test]
+    async fn a_reload_reuses_the_upgrade_session_and_another_guest_gets_its_own(pool: PgPool) {
+        let client = ligretto(&pool).await;
+        let guest = new_guest(&pool, 1).await;
+        let other = new_guest(&pool, 2).await;
+        let router = checked(authorize_router(test_state(pool.clone())));
+        let request = uri(&plus("id_token_hint", &hint_for(&client, &guest)));
+        let first = send(&router, "GET", &request, None).await;
+        let cookie = cookie_of(&session_cookie(&first, test_cookies().name()).unwrap());
+
+        let again = send(&router, "GET", &request, Some(&cookie)).await;
+
+        assert_eq!(frontend(&again).0, format!("{TEST_ORIGIN}/create-account"));
+        assert!(!again.headers().contains_key(header::SET_COOKIE));
+        assert_eq!(upgrade_rows(&pool).await.len(), 1);
+
+        let switched = send(
+            &router,
+            "GET",
+            &uri(&plus("id_token_hint", &hint_for(&client, &other))),
+            Some(&cookie),
+        )
+        .await;
+
+        assert_eq!(
+            frontend(&switched).0,
+            format!("{TEST_ORIGIN}/create-account")
+        );
+        assert!(session_cookie(&switched, test_cookies().name()).is_some());
+        let mut guests: Vec<Uuid> = upgrade_rows(&pool)
+            .await
+            .into_iter()
+            .map(|(account, _)| account)
+            .collect();
+        guests.sort();
+        let mut expected = vec![guest.id, other.id];
+        expected.sort();
+        assert_eq!(guests, expected);
+    }
+
+    /// The upgrade session alone — `return_to` followed before the ceremony
+    /// finished — goes back to create-account; with `prompt=none` it is
+    /// `login_required`. It never gets a code.
+    #[sqlx::test]
+    async fn an_upgrade_session_never_gets_a_code(pool: PgPool) {
+        let client = ligretto(&pool).await;
+        let guest = new_guest(&pool, 1).await;
+        let router = checked(authorize_router(test_state(pool.clone())));
+        let first = send(
+            &router,
+            "GET",
+            &uri(&plus("id_token_hint", &hint_for(&client, &guest))),
+            None,
+        )
+        .await;
+        let cookie = cookie_of(&session_cookie(&first, test_cookies().name()).unwrap());
+
+        let response = send(&router, "GET", &uri(&valid()), Some(&cookie)).await;
+        let (screen, return_to) = frontend(&response);
+        assert_eq!(screen, format!("{TEST_ORIGIN}/create-account"));
+        assert_eq!(return_to, uri(&valid()));
+        assert!(!response.headers().contains_key(header::SET_COOKIE));
+
+        let silent = send(&router, "GET", &uri(&plus("prompt", "none")), Some(&cookie)).await;
+        assert_error_redirect(
+            &silent,
+            "login_required",
+            "the account is not signed in",
+            Some("st/ate+1"),
+        );
+        // Unchecked query: see docs/TESTS.md.
+        let codes: i64 = sqlx::query_scalar("SELECT count(*) FROM authorization_codes")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(codes, 0);
+    }
+
+    /// A hint that is not an ID token CAS issued to this client is refused
+    /// with a fixed description and the `state`, and opens nothing.
+    #[sqlx::test]
+    async fn a_tampered_foreign_or_misaddressed_hint_is_invalid_request(pool: PgPool) {
+        let client = ligretto(&pool).await;
+        register_public(&pool, "other", CALLBACK, true).await;
+        let other_client = ClientRepository::new(pool.clone())
+            .get(&ClientId::try_new("other").unwrap())
+            .await
+            .unwrap()
+            .unwrap();
+        let guest = new_guest(&pool, 1).await;
+        let router = checked(authorize_router(test_state(pool.clone())));
+        let valid_hint = hint_for(&client, &guest);
+        let mut segments: Vec<String> = valid_hint.split('.').map(str::to_owned).collect();
+        segments[2] = hint_for(&other_client, &guest)
+            .rsplit('.')
+            .next()
+            .unwrap()
+            .to_owned();
+        let tampered = segments.join(".");
+        let claims = crate::oidc::IdTokenClaims::new(
+            "https://other.example",
+            &client,
+            &guest,
+            &scopes(&["openid"]),
+            None,
+            time::OffsetDateTime::now_utc(),
+        );
+        let foreign_issuer = test_signing_key().sign("JWT", &serde_json::to_vec(&claims).unwrap());
+        let unknown_key = crate::oidc::SigningKeys::from_pem(&fresh_signing_key_pem())
+            .unwrap()
+            .active()
+            .clone();
+        let unknown = signed_id_token(
+            &unknown_key,
+            &client,
+            &guest,
+            &["openid"],
+            time::OffsetDateTime::now_utc(),
+        );
+
+        for hint in [
+            tampered,
+            foreign_issuer,
+            unknown,
+            hint_for(&other_client, &guest),
+        ] {
+            let response = send(&router, "GET", &uri(&plus("id_token_hint", &hint)), None).await;
+            assert_error_redirect(
+                &response,
+                "invalid_request",
+                "id_token_hint is invalid",
+                Some("st/ate+1"),
+            );
+            assert!(!response.headers().contains_key(header::SET_COOKIE));
+        }
+        assert_eq!(session_count(&pool).await, 0);
+    }
+
+    #[sqlx::test]
+    async fn an_expired_hint_is_invalid_request(pool: PgPool) {
+        let client = ligretto(&pool).await;
+        let guest = new_guest(&pool, 1).await;
+        let router = checked(authorize_router(test_state(pool.clone())));
+        let expired = signed_id_token(
+            &test_signing_key(),
+            &client,
+            &guest,
+            &["openid"],
+            time::OffsetDateTime::now_utc() - time::Duration::minutes(11),
+        );
+
+        let response = send(&router, "GET", &uri(&plus("id_token_hint", &expired)), None).await;
+
+        assert_error_redirect(
+            &response,
+            "invalid_request",
+            "id_token_hint has expired",
+            Some("st/ate+1"),
+        );
+        assert_eq!(session_count(&pool).await, 0);
+    }
+
+    /// A hint of a full account, or of an account that is gone, is ignored:
+    /// the anonymous path, with a `return_to` that no longer carries it, so
+    /// the request the frontend comes back to after signing in gets a code
+    /// even once the hint has expired.
+    #[sqlx::test]
+    async fn a_full_or_unknown_accounts_hint_is_ignored_and_dropped(pool: PgPool) {
+        let client = ligretto(&pool).await;
+        let full = signed_in(&pool, "Ada").await;
+        let mut unknown = full.account.clone();
+        unknown.id = Uuid::new_v4();
+        let router = checked(authorize_router(test_state(pool.clone())));
+
+        for account in [&full.account, &unknown] {
+            let response = send(
+                &router,
+                "GET",
+                &uri(&plus("id_token_hint", &hint_for(&client, account))),
+                None,
+            )
+            .await;
+
+            let (screen, return_to) = frontend(&response);
+            assert_eq!(screen, format!("{TEST_ORIGIN}/sign-in"));
+            assert_eq!(return_to, uri(&valid()));
+            assert!(!return_to.contains("id_token_hint"));
+            assert!(!response.headers().contains_key(header::SET_COOKIE));
+
+            let resumed = send(&router, "GET", &return_to, Some(&full.cookie)).await;
+            assert_eq!(target(&location(&resumed)), CALLBACK);
+            assert!(param(&location_params(&resumed), "code").is_some());
+        }
+        assert!(upgrade_rows(&pool).await.is_empty());
+    }
+
+    /// A browser signed in to an account keeps it: the code is for that
+    /// account, nothing is opened, and the guest stays a guest.
+    #[sqlx::test]
+    async fn a_full_session_wins_over_a_guest_hint(pool: PgPool) {
+        let client = ligretto(&pool).await;
+        let guest = new_guest(&pool, 1).await;
+        let session = signed_in(&pool, "Ada").await;
+        let state = test_state(pool.clone());
+        let router = checked(authorize_router(state.clone()));
+
+        let response = send(
+            &router,
+            "GET",
+            &uri(&plus("id_token_hint", &hint_for(&client, &guest))),
+            Some(&session.cookie),
+        )
+        .await;
+
+        assert_eq!(target(&location(&response)), CALLBACK);
+        let code = param(&location_params(&response), "code").unwrap();
+        let redeemed = state
+            .authorization
+            .redeem(
+                &mut pool.acquire().await.unwrap(),
+                &AuthorizationCode::parse(&code).unwrap(),
+                &client.id,
+                CALLBACK,
+            )
+            .await
+            .unwrap();
+        assert_eq!(redeemed.account_id, session.account.id);
+        assert!(upgrade_rows(&pool).await.is_empty());
+        let still = AccountRepository::new(pool).get(guest.id).await.unwrap();
+        assert_eq!(still.unwrap().r#type, AccountType::Guest);
+    }
+
+    /// `prompt=none` promised no UI, and registering a passkey is UI.
+    #[sqlx::test]
+    async fn prompt_none_with_a_guest_hint_is_login_required(pool: PgPool) {
+        let client = ligretto(&pool).await;
+        let guest = new_guest(&pool, 1).await;
+        let router = checked(authorize_router(test_state(pool.clone())));
+        let mut pairs = plus("id_token_hint", &hint_for(&client, &guest));
+        pairs.push(("prompt", "none".to_owned()));
+
+        let response = send(&router, "GET", &uri(&pairs), None).await;
+
+        assert_error_redirect(
+            &response,
+            "login_required",
+            "the account is not signed in",
+            Some("st/ate+1"),
+        );
+        assert_eq!(session_count(&pool).await, 0);
+    }
+
+    /// The hint is a bearer credential: no event carries it, accepted or
+    /// refused.
+    #[sqlx::test]
+    async fn the_hint_is_never_logged(pool: PgPool) {
+        let client = ligretto(&pool).await;
+        let guest = new_guest(&pool, 1).await;
+        let router = checked(authorize_router(test_state(pool)));
+        let fresh = hint_for(&client, &guest);
+        let expired = signed_id_token(
+            &test_signing_key(),
+            &client,
+            &guest,
+            &["openid"],
+            time::OffsetDateTime::now_utc() - time::Duration::minutes(11),
+        );
+        let (events, _guard) = capture_tracing();
+
+        for hint in [&fresh, &expired] {
+            send(&router, "GET", &uri(&plus("id_token_hint", hint)), None).await;
+        }
+
+        assert!(!events.all().is_empty());
+        for event in events.all() {
+            for hint in [&fresh, &expired] {
+                assert!(!event.contains(hint.as_str()), "{event}");
+                // Nor any of its segments, the signature included.
+                for segment in hint.split('.') {
+                    assert!(!event.contains(segment), "{event}");
+                }
+            }
+        }
+    }
+
+    /// Through the whole application: the endpoint is mounted under `/oidc`,
     /// answers `GET` only, and refuses a request with no client before any
     /// query (the pool of `app` points at no test database).
     #[tokio::test]
-    async fn the_endpoint_is_mounted_at_the_root_for_get_only() {
+    async fn the_endpoint_is_mounted_under_oidc_for_get_only() {
         let app = crate::http::app(test_config()).unwrap();
         let full = uri(&valid());
 
@@ -1113,7 +1539,7 @@ mod tests {
 
         for (request, code) in [
             (uri(&without("client_id")), "unknown_client"),
-            ("/authorize".to_owned(), "invalid_request"),
+            ("/oidc/authorize".to_owned(), "invalid_request"),
         ] {
             let response = app
                 .clone()

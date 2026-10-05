@@ -9,7 +9,9 @@ use super::keys::SIGNING_ALGORITHM;
 /// The discovery document. It advertises the whole SSO milestone, including
 /// the endpoints later tickets add, so that it stays the same across their
 /// releases (ADR 0009 (f)).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+// `ToSchema` describes it in the OpenAPI document, being on the wire
+// already (docs/LAYOUT.md, rule 1).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, utoipa::ToSchema)]
 pub struct Discovery {
     issuer: String,
     authorization_endpoint: String,
@@ -17,17 +19,25 @@ pub struct Discovery {
     userinfo_endpoint: String,
     end_session_endpoint: String,
     jwks_uri: String,
+    #[schema(value_type = Vec<String>)]
     response_types_supported: &'static [&'static str],
+    #[schema(value_type = Vec<String>)]
     response_modes_supported: &'static [&'static str],
+    #[schema(value_type = Vec<String>)]
     grant_types_supported: &'static [&'static str],
+    #[schema(value_type = Vec<String>)]
     subject_types_supported: &'static [&'static str],
+    #[schema(value_type = Vec<String>)]
     id_token_signing_alg_values_supported: &'static [&'static str],
+    #[schema(value_type = Vec<String>)]
     scopes_supported: &'static [&'static str],
     /// `none` is a public client, which authenticates with its `client_id`
     /// and proves itself with PKCE (OpenID Connect Core §9, ADR 0011).
+    #[schema(value_type = Vec<String>)]
     token_endpoint_auth_methods_supported: &'static [&'static str],
+    #[schema(value_type = Vec<String>)]
     code_challenge_methods_supported: &'static [&'static str],
-    /// Discovery §3 defaults this to `true`, and `/authorize` refuses
+    /// Discovery §3 defaults this to `true`, and `/oidc/authorize` refuses
     /// `request_uri` (ADR 0010 (b)), so it is stated. The sibling
     /// `request_parameter_supported` defaults to `false` and stays implicit.
     request_uri_parameter_supported: bool,
@@ -39,11 +49,11 @@ impl Discovery {
     pub fn for_issuer(issuer: &str) -> Self {
         Self {
             issuer: issuer.to_string(),
-            authorization_endpoint: format!("{issuer}/authorize"),
-            token_endpoint: format!("{issuer}/token"),
-            userinfo_endpoint: format!("{issuer}/userinfo"),
-            end_session_endpoint: format!("{issuer}/end_session"),
-            jwks_uri: format!("{issuer}/jwks.json"),
+            authorization_endpoint: format!("{issuer}/oidc/authorize"),
+            token_endpoint: format!("{issuer}/oidc/token"),
+            userinfo_endpoint: format!("{issuer}/oidc/userinfo"),
+            end_session_endpoint: format!("{issuer}/oidc/end_session"),
+            jwks_uri: format!("{issuer}/oidc/jwks.json"),
             response_types_supported: &["code"],
             response_modes_supported: &["query"],
             grant_types_supported: &["authorization_code", "refresh_token", GUEST_GRANT_TYPE],
@@ -77,11 +87,11 @@ mod tests {
             document,
             serde_json::json!({
                 "issuer": "https://cas.example",
-                "authorization_endpoint": "https://cas.example/authorize",
-                "token_endpoint": "https://cas.example/token",
-                "userinfo_endpoint": "https://cas.example/userinfo",
-                "end_session_endpoint": "https://cas.example/end_session",
-                "jwks_uri": "https://cas.example/jwks.json",
+                "authorization_endpoint": "https://cas.example/oidc/authorize",
+                "token_endpoint": "https://cas.example/oidc/token",
+                "userinfo_endpoint": "https://cas.example/oidc/userinfo",
+                "end_session_endpoint": "https://cas.example/oidc/end_session",
+                "jwks_uri": "https://cas.example/oidc/jwks.json",
                 "response_types_supported": ["code"],
                 "response_modes_supported": ["query"],
                 "grant_types_supported": [

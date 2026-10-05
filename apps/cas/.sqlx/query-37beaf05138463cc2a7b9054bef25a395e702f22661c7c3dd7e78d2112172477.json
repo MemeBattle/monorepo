@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n               id,\n               display_name AS \"display_name: DisplayName\",\n               type AS \"type: AccountType\",\n               email,\n               created_at,\n               last_seen_at\n           FROM accounts\n           WHERE id = $1",
+  "query": "UPDATE accounts\n           SET type = 'full', display_name = $2\n           WHERE id = $1 AND type = 'guest'\n           RETURNING\n               id,\n               display_name AS \"display_name: DisplayName\",\n               type AS \"type: AccountType\",\n               email,\n               created_by_client_id AS \"created_by_client_id: ClientId\",\n               created_at,\n               last_seen_at",
   "describe": {
     "columns": [
       {
@@ -59,6 +59,17 @@
       },
       {
         "ordinal": 4,
+        "name": "created_by_client_id: ClientId",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "accounts",
+            "name": "created_by_client_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -69,7 +80,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "last_seen_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -82,7 +93,8 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Uuid",
+        "Text"
       ]
     },
     "nullable": [
@@ -90,9 +102,10 @@
       false,
       false,
       true,
+      true,
       false,
       false
     ]
   },
-  "hash": "970e35e4ab122d420ea2a449e91068dd8d5df26447e593fa4ea4a8501ab9601f"
+  "hash": "37beaf05138463cc2a7b9054bef25a395e702f22661c7c3dd7e78d2112172477"
 }

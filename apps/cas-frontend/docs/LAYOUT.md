@@ -8,20 +8,30 @@ apps/cas-frontend/
   AGENTS.md            one-screen card for agents, links into docs/
   docs/                this file, TESTS.md, CODE.md, PASSKEYS.md, ADRs
   index.html           the single page, lang="ru"
-  vite.config.ts       React Compiler, Tailwind, the /api dev proxy, vitest
+  vite.config.ts       React Compiler, Tailwind, the /api and /oidc dev proxy, vitest
+  kubb.config.ts       generates shared/api/generated from apps/cas/openapi.json
   playwright.config.ts the e2e suite: Chromium, vite as its webServer
-  e2e/                 the e2e scenarios (*.e2e.ts) and fixtures.ts, the
-                       virtual authenticator over CDP (see TESTS.md)
+  e2e/                 the e2e scenarios (*.e2e.ts), fixtures.ts (the
+                       virtual authenticator over CDP), authorization.ts (the
+                       authorization request and the guest grant); seed.sh
+                       registers the suite's OIDC clients (see TESTS.md)
   src/
     index.tsx          createRoot + RouterProvider, imports app/styles.css
     app/               the shell: router.tsx (routes and the root layout),
-                       gates.ts (the session loaders in front of every page),
-                       routes.ts (path constants), styles.css (Tailwind entry)
+                       gates.ts (the session loaders in front of every page,
+                       which tell a guest apart),
+                       routes.ts (path constants), returnTo.tsx (the accepted
+                       return_to and the way out to it, adr/0002-return-to.md),
+                       styles.css (Tailwind entry)
     pages/<page>/      one directory per route, the screen and nothing else;
                        loading/ and error/ are the root route's fallbacks
     entities/<name>/   API calls and types of one domain concept: session
                        (/api/me, /api/logout, the ceremonies), passkey (/api/passkeys)
-    shared/api/        request(), ApiError: the wire contract with CAS
+    shared/api/        the wire contract with CAS: client.ts (client(), the
+                       only fetch, Result, unwrap, ApiError, ErrorCodeOf) and
+                       generated/ (kubb's output, never edited by hand:
+                       models/ the types, operations/ one function per /api/
+                       operation)
     shared/lib/        rules more than one screen applies: label (the name
                        rules CAS applies to a display name and a passkey)
     shared/ui/         the primitives every screen is made of (Button, TextField,
@@ -29,7 +39,7 @@ apps/cas-frontend/
 ```
 
 Imports inside `src` use subpath imports `#…` (see `imports` in
-`package.json`): `#pages/sign-in/SignInPage`, `#shared/api/request`.
+`package.json`): `#pages/sign-in/SignInPage`, `#shared/api/client`.
 
 ## Running
 
@@ -40,8 +50,9 @@ All commands run from `apps/cas-frontend`.
 - `pnpm build` — production build into `dist/`.
 
 The CAS dev server must be running on :3000 (`bacon run` in `apps/cas`, see
-its README): vite proxies `/api` to it. Point `CAS_API_PROXY_TARGET` elsewhere
-when CAS listens on another address.
+its README): vite proxies `/api` and `/oidc` to it — the API the app calls,
+and the OpenID Connect endpoints (`/oidc/authorize`) a `return_to` leads back
+to. Point `CAS_API_PROXY_TARGET` elsewhere when CAS listens on another address.
 
 Stories run in the root Storybook: `pnpm storybook` from the repo root, under
 the "CAS" group. The root `.storybook/preview.tsx` tells this app's stories

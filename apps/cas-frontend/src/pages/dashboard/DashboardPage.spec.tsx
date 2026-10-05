@@ -3,7 +3,7 @@ import { userEvent } from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ApiError } from '#shared/api/request'
+import { failed as apiFailure, ok } from '#shared/api/client'
 import { routes } from '#app/routes'
 import { DashboardPage } from './DashboardPage'
 import { loadDashboard } from './loadDashboard'
@@ -108,7 +108,7 @@ describe('DashboardPage', () => {
   beforeAll(polyfillDialog)
 
   beforeEach(() => {
-    listPasskeys.mockResolvedValue(passkeys)
+    listPasskeys.mockResolvedValue(ok(passkeys))
   })
 
   afterEach(() => {
@@ -124,7 +124,7 @@ describe('DashboardPage', () => {
   })
 
   it('lists the passkeys with when they were made and last used', async () => {
-    getMe.mockResolvedValue(me)
+    getMe.mockResolvedValue(ok(me))
 
     renderPage()
 
@@ -135,11 +135,29 @@ describe('DashboardPage', () => {
     ])
   })
 
+  it('shows a guest its type, its name and the one way to an account, nothing else', async () => {
+    getMe.mockResolvedValue(ok({ ...me, accountId: 'g', displayName: 'Guest 7', accountType: 'guest' }))
+
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: 'Guest 7' })).toBeDefined()
+    expect(screen.getByText('Гостевой аккаунт')).toBeDefined()
+    expect(screen.getByRole('link', { name: 'Создать аккаунт' }).getAttribute('href')).toBe(routes.CREATE_ACCOUNT)
+    // Under the guest's session the list is a 401 by design; the loader does not ask.
+    expect(listPasskeys).not.toHaveBeenCalled()
+    expect(screen.queryByText('Пасскеи')).toBeNull()
+    expect(screen.queryByText('Почта')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Выйти' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Добавить/ })).toBeNull()
+    expect(screen.queryByText('Аккаунт')).toBeNull()
+  })
+
   it('ends the session and lands on sign-in', async () => {
-    getMe.mockResolvedValue(me)
+    getMe.mockResolvedValue(ok(me))
     // Once the cookie is gone `/api/me` answers 401, which is what the revalidation sees.
     logout.mockImplementation(async () => {
-      getMe.mockRejectedValue(new ApiError(401, 'unauthenticated', 'No live session'))
+      getMe.mockResolvedValue(apiFailure(401, 'unauthenticated', 'No live session'))
+      return ok(undefined)
     })
 
     await signOut()
@@ -149,7 +167,7 @@ describe('DashboardPage', () => {
   })
 
   it('stays on the dashboard with an alert when sign-out fails, never the raw message', async () => {
-    getMe.mockResolvedValue(me)
+    getMe.mockResolvedValue(ok(me))
     logout.mockRejectedValue(new TypeError('Failed to fetch'))
 
     await signOut()
@@ -163,7 +181,7 @@ describe('DashboardPage', () => {
 
   describe('rename', () => {
     beforeEach(() => {
-      getMe.mockResolvedValue(me)
+      getMe.mockResolvedValue(ok(me))
     })
 
     it('shows the new name at once, sends it normalised and keeps it after the reload', async () => {
@@ -171,8 +189,8 @@ describe('DashboardPage', () => {
       let confirm = () => {}
       renamePasskey.mockImplementation(
         () =>
-          new Promise<typeof renamed>(resolve => {
-            confirm = () => resolve(renamed)
+          new Promise<ReturnType<typeof ok<typeof renamed>>>(resolve => {
+            confirm = () => resolve(ok(renamed))
           }),
       )
 
@@ -187,7 +205,7 @@ describe('DashboardPage', () => {
       expect(renamePasskey).toHaveBeenCalledWith('p2', 'Мой iPhone')
       expect(listPasskeys).toHaveBeenCalledOnce()
 
-      listPasskeys.mockResolvedValue([passkeys[0], renamed])
+      listPasskeys.mockResolvedValue(ok([passkeys[0], renamed]))
       confirm()
 
       await waitFor(() => expect(listPasskeys).toHaveBeenCalledTimes(2))
@@ -199,8 +217,8 @@ describe('DashboardPage', () => {
       let confirm = () => {}
       renamePasskey.mockImplementation(
         () =>
-          new Promise<(typeof passkeys)[1]>(resolve => {
-            confirm = () => resolve({ ...passkeys[1], name: 'Мой iPhone' })
+          new Promise<ReturnType<typeof ok<(typeof passkeys)[1]>>>(resolve => {
+            confirm = () => resolve(ok({ ...passkeys[1], name: 'Мой iPhone' }))
           }),
       )
 
@@ -212,7 +230,7 @@ describe('DashboardPage', () => {
       const other = screen.getByLabelText<HTMLInputElement>('Название')
       await user.type(other, ' Ады')
 
-      listPasskeys.mockResolvedValue([passkeys[0], { ...passkeys[1], name: 'Мой iPhone' }])
+      listPasskeys.mockResolvedValue(ok([passkeys[0], { ...passkeys[1], name: 'Мой iPhone' }]))
       confirm()
 
       await waitFor(() => expect(screen.getByRole('button', { name: 'Переименовать «Мой iPhone»' })).toHaveProperty('disabled', false))
@@ -221,8 +239,8 @@ describe('DashboardPage', () => {
     })
 
     it('takes back a name the server rejects and says why under the field', async () => {
-      renamePasskey.mockRejectedValue(
-        new ApiError(400, 'invalid_passkey_name', 'Invalid passkey name: must not contain control or invisible characters'),
+      renamePasskey.mockResolvedValue(
+        apiFailure(400, 'invalid_passkey_name', 'Invalid passkey name: must not contain control or invisible characters'),
       )
 
       await rename('Ада​')
@@ -274,8 +292,8 @@ describe('DashboardPage', () => {
     it('lets the row go when the passkey was deleted in another tab', async () => {
       // Gone by the time the rename arrives, so the reload after it no longer lists it.
       renamePasskey.mockImplementation(async () => {
-        listPasskeys.mockResolvedValue([passkeys[0]])
-        throw new ApiError(404, 'passkey_not_found', 'No such passkey')
+        listPasskeys.mockResolvedValue(ok([passkeys[0]]))
+        return apiFailure(404, 'passkey_not_found', 'No such passkey')
       })
 
       await rename('Мой iPhone')
@@ -304,15 +322,15 @@ describe('DashboardPage', () => {
   })
   describe('delete', () => {
     beforeEach(() => {
-      getMe.mockResolvedValue(me)
+      getMe.mockResolvedValue(ok(me))
     })
 
     it('asks in a sheet, takes the row out at once and keeps it out after the reload', async () => {
       let confirm = () => {}
       deletePasskey.mockImplementation(
         () =>
-          new Promise<void>(resolve => {
-            confirm = resolve
+          new Promise<ReturnType<typeof ok<undefined>>>(resolve => {
+            confirm = () => resolve(ok(undefined))
           }),
       )
 
@@ -332,7 +350,7 @@ describe('DashboardPage', () => {
       expect(deletePasskey).toHaveBeenCalledWith('p2')
       expect(listPasskeys).toHaveBeenCalledOnce()
 
-      listPasskeys.mockResolvedValue([passkeys[0]])
+      listPasskeys.mockResolvedValue(ok([passkeys[0]]))
       confirm()
 
       await waitFor(() => expect(listPasskeys).toHaveBeenCalledTimes(2))
@@ -352,7 +370,7 @@ describe('DashboardPage', () => {
     })
 
     it('keeps the only passkey with its delete off and the reason under it', async () => {
-      listPasskeys.mockResolvedValue([passkeys[0]])
+      listPasskeys.mockResolvedValue(ok([passkeys[0]]))
 
       renderPage()
 
@@ -366,8 +384,8 @@ describe('DashboardPage', () => {
     it('brings the row back with the same reason when the server says it is the last one', async () => {
       // The other passkey went in another tab between the list and the delete, so the server refuses.
       deletePasskey.mockImplementation(async () => {
-        listPasskeys.mockResolvedValue([passkeys[1]])
-        throw new ApiError(409, 'last_passkey', 'Cannot delete the last passkey; add another one first')
+        listPasskeys.mockResolvedValue(ok([passkeys[1]]))
+        return apiFailure(409, 'last_passkey', 'Cannot delete the last passkey; add another one first')
       })
 
       await confirmDelete()
@@ -379,7 +397,7 @@ describe('DashboardPage', () => {
     })
 
     it('says so in the row when the server refuses and the list has not caught up', async () => {
-      deletePasskey.mockRejectedValue(new ApiError(409, 'last_passkey', 'Cannot delete the last passkey; add another one first'))
+      deletePasskey.mockResolvedValue(apiFailure(409, 'last_passkey', 'Cannot delete the last passkey; add another one first'))
 
       await confirmDelete()
 
@@ -404,7 +422,7 @@ describe('DashboardPage', () => {
 
     it('keeps a reason on every row when two deletes in flight both fail', async () => {
       const third = { id: 'p3', name: 'Ключ на работе', createdAt: today, lastUsedAt: null }
-      listPasskeys.mockResolvedValue([...passkeys, third])
+      listPasskeys.mockResolvedValue(ok([...passkeys, third]))
       const rejections: Array<() => void> = []
       deletePasskey.mockImplementation(
         () =>
@@ -432,7 +450,7 @@ describe('DashboardPage', () => {
 
     it('takes away only the retried row reason', async () => {
       const third = { id: 'p3', name: 'Ключ на работе', createdAt: today, lastUsedAt: null }
-      listPasskeys.mockResolvedValue([...passkeys, third])
+      listPasskeys.mockResolvedValue(ok([...passkeys, third]))
       deletePasskey.mockRejectedValue(new TypeError('Failed to fetch'))
 
       const user = await openDelete()
@@ -462,8 +480,8 @@ describe('DashboardPage', () => {
 
     it('lets the row go when the passkey was deleted in another tab', async () => {
       deletePasskey.mockImplementation(async () => {
-        listPasskeys.mockResolvedValue([passkeys[0]])
-        throw new ApiError(404, 'passkey_not_found', 'No such passkey')
+        listPasskeys.mockResolvedValue(ok([passkeys[0]]))
+        return apiFailure(404, 'passkey_not_found', 'No such passkey')
       })
 
       await confirmDelete()
@@ -486,16 +504,16 @@ describe('DashboardPage', () => {
     }
 
     beforeEach(() => {
-      getMe.mockResolvedValue(me)
-      listPasskeys.mockResolvedValue([passkeys[1]])
+      getMe.mockResolvedValue(ok(me))
+      listPasskeys.mockResolvedValue(ok([passkeys[1]]))
     })
 
     it('runs the ceremony from the nudge, then lists both passkeys, drops the nudge and turns delete on', async () => {
       let confirm = () => {}
       addPasskey.mockImplementation(
         () =>
-          new Promise<typeof added>(resolve => {
-            confirm = () => resolve(added)
+          new Promise<ReturnType<typeof ok<typeof added>>>(resolve => {
+            confirm = () => resolve(ok(added))
           }),
       )
 
@@ -510,7 +528,7 @@ describe('DashboardPage', () => {
       expect(listPasskeys).toHaveBeenCalledOnce()
       expect(screen.getByRole('button', { name: 'Удалить «iPhone Ады»' })).toHaveProperty('disabled', true)
 
-      listPasskeys.mockResolvedValue([passkeys[1], added])
+      listPasskeys.mockResolvedValue(ok([passkeys[1], added]))
       confirm()
 
       await waitFor(() => expect(rowNames()).toHaveLength(2))
@@ -524,14 +542,14 @@ describe('DashboardPage', () => {
 
     it('takes away the last-passkey words a refused delete left once a second passkey is added', async () => {
       // Two passkeys listed; the other one goes in another tab, so the delete is refused and the list catches up.
-      listPasskeys.mockResolvedValue(passkeys)
+      listPasskeys.mockResolvedValue(ok(passkeys))
       deletePasskey.mockImplementation(async () => {
-        listPasskeys.mockResolvedValue([passkeys[1]])
-        throw new ApiError(409, 'last_passkey', 'Cannot delete the last passkey; add another one first')
+        listPasskeys.mockResolvedValue(ok([passkeys[1]]))
+        return apiFailure(409, 'last_passkey', 'Cannot delete the last passkey; add another one first')
       })
       addPasskey.mockImplementation(async () => {
-        listPasskeys.mockResolvedValue([passkeys[1], added])
-        return added
+        listPasskeys.mockResolvedValue(ok([passkeys[1], added]))
+        return ok(added)
       })
       const user = await openDelete()
       await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Удалить' }))
@@ -546,10 +564,10 @@ describe('DashboardPage', () => {
     })
 
     it('runs the same ceremony from the title row', async () => {
-      listPasskeys.mockResolvedValue(passkeys)
+      listPasskeys.mockResolvedValue(ok(passkeys))
       addPasskey.mockImplementation(async () => {
-        listPasskeys.mockResolvedValue([...passkeys, added])
-        return added
+        listPasskeys.mockResolvedValue(ok([...passkeys, added]))
+        return ok(added)
       })
       renderPage()
       await screen.findByRole('heading', { name: 'Ада' })
@@ -563,10 +581,13 @@ describe('DashboardPage', () => {
     })
 
     it.each([
-      ['the browser’s NotAllowedError', new DOMException('The operation either timed out or was not allowed.', 'NotAllowedError')],
-      ['a challenge the server no longer has', new ApiError(404, 'registration_not_found', 'No such registration')],
-    ])('says the addition was cancelled after %s and keeps the nudge', async (_case, error) => {
-      addPasskey.mockRejectedValue(error)
+      [
+        'the browser’s NotAllowedError',
+        () => Promise.reject(new DOMException('The operation either timed out or was not allowed.', 'NotAllowedError')),
+      ],
+      ['a challenge the server no longer has', () => Promise.resolve(apiFailure(404, 'registration_not_found', 'No such registration'))],
+    ])('says the addition was cancelled after %s and keeps the nudge', async (_case, answer) => {
+      addPasskey.mockImplementation(answer)
 
       await addFromNudge()
 
@@ -582,11 +603,14 @@ describe('DashboardPage', () => {
     it.each([
       [
         'the authenticator refuses the exclude list',
-        new DOMException('The user attempted to register an authenticator that is already registered.', 'InvalidStateError'),
+        () => Promise.reject(new DOMException('The user attempted to register an authenticator that is already registered.', 'InvalidStateError')),
       ],
-      ['the server already holds the credential', new ApiError(409, 'credential_already_registered', 'Credential already registered')],
-    ])('says this device already has a passkey when %s', async (_case, error) => {
-      addPasskey.mockRejectedValue(error)
+      [
+        'the server already holds the credential',
+        () => Promise.resolve(apiFailure(409, 'credential_already_registered', 'Credential already registered')),
+      ],
+    ])('says this device already has a passkey when %s', async (_case, answer) => {
+      addPasskey.mockImplementation(answer)
 
       await addFromNudge()
 
@@ -614,8 +638,8 @@ describe('DashboardPage', () => {
     it('lands on sign-in when the session ended under the page', async () => {
       // The session is gone by the time the ceremony asks for its challenge; `/api/me` says the same on the reload.
       addPasskey.mockImplementation(async () => {
-        getMe.mockRejectedValue(new ApiError(401, 'unauthenticated', 'No live session'))
-        throw new ApiError(401, 'unauthenticated', 'No live session')
+        getMe.mockResolvedValue(apiFailure(401, 'unauthenticated', 'No live session'))
+        return apiFailure(401, 'unauthenticated', 'No live session')
       })
 
       await addFromNudge()
@@ -653,7 +677,7 @@ describe('DashboardPage', () => {
     }
 
     it('shows the empty state with the way to add an address', async () => {
-      getMe.mockResolvedValue(me)
+      getMe.mockResolvedValue(ok(me))
 
       renderPage()
 
@@ -664,7 +688,7 @@ describe('DashboardPage', () => {
     })
 
     it('shows the address as unverified with the way to change it', async () => {
-      getMe.mockResolvedValue({ ...me, email: address })
+      getMe.mockResolvedValue(ok({ ...me, email: address }))
 
       renderPage()
 
@@ -675,12 +699,12 @@ describe('DashboardPage', () => {
     })
 
     it('shows the new address at once, sends it trimmed and keeps what the server stored after the reload', async () => {
-      getMe.mockResolvedValue(me)
+      getMe.mockResolvedValue(ok(me))
       let confirm = () => {}
       updateEmail.mockImplementation(
         () =>
-          new Promise<void>(resolve => {
-            confirm = resolve
+          new Promise<ReturnType<typeof ok<undefined>>>(resolve => {
+            confirm = () => resolve(ok(undefined))
           }),
       )
 
@@ -697,7 +721,7 @@ describe('DashboardPage', () => {
       expect(getMe).toHaveBeenCalledOnce()
 
       // The server keeps the local part and lower-cases the domain; that is what the loader reads back.
-      getMe.mockResolvedValue({ ...me, email: 'Ada@mems.fun' })
+      getMe.mockResolvedValue(ok({ ...me, email: 'Ada@mems.fun' }))
       confirm()
 
       await waitFor(() => expect(getMe).toHaveBeenCalledTimes(2))
@@ -710,9 +734,10 @@ describe('DashboardPage', () => {
     })
 
     it('changes the address', async () => {
-      getMe.mockResolvedValue({ ...me, email: address })
+      getMe.mockResolvedValue(ok({ ...me, email: address }))
       updateEmail.mockImplementation(async () => {
-        getMe.mockResolvedValue({ ...me, email: 'lovelace@mems.fun' })
+        getMe.mockResolvedValue(ok({ ...me, email: 'lovelace@mems.fun' }))
+        return ok(undefined)
       })
 
       await save('lovelace@mems.fun')
@@ -725,12 +750,12 @@ describe('DashboardPage', () => {
     })
 
     it('clears the address from its own control and sends null', async () => {
-      getMe.mockResolvedValue({ ...me, email: address })
+      getMe.mockResolvedValue(ok({ ...me, email: address }))
       let confirm = () => {}
       updateEmail.mockImplementation(
         () =>
-          new Promise<void>(resolve => {
-            confirm = resolve
+          new Promise<ReturnType<typeof ok<undefined>>>(resolve => {
+            confirm = () => resolve(ok(undefined))
           }),
       )
       const user = await openEditor()
@@ -744,7 +769,7 @@ describe('DashboardPage', () => {
       expect(updateEmail).toHaveBeenCalledWith(null)
       expect(getMe).toHaveBeenCalledOnce()
 
-      getMe.mockResolvedValue(me)
+      getMe.mockResolvedValue(ok(me))
       confirm()
 
       await waitFor(() => expect(getMe).toHaveBeenCalledTimes(2))
@@ -755,7 +780,7 @@ describe('DashboardPage', () => {
     })
 
     it('offers no clear control while there is no address', async () => {
-      getMe.mockResolvedValue(me)
+      getMe.mockResolvedValue(ok(me))
 
       await openEditor()
 
@@ -764,7 +789,7 @@ describe('DashboardPage', () => {
     })
 
     it('leaves the address alone on cancel and puts focus back where the editing began', async () => {
-      getMe.mockResolvedValue(me)
+      getMe.mockResolvedValue(ok(me))
       const user = await openEditor()
       await user.type(screen.getByLabelText('Почта'), 'ada@mems')
 
@@ -778,7 +803,7 @@ describe('DashboardPage', () => {
     })
 
     it('cancels on Escape', async () => {
-      getMe.mockResolvedValue({ ...me, email: address })
+      getMe.mockResolvedValue(ok({ ...me, email: address }))
       const user = await openEditor()
 
       await user.keyboard('{Escape}')
@@ -790,7 +815,7 @@ describe('DashboardPage', () => {
     })
 
     it('closes the form without a request when the address did not change', async () => {
-      getMe.mockResolvedValue({ ...me, email: address })
+      getMe.mockResolvedValue(ok({ ...me, email: address }))
 
       await save(` ${address} `)
 
@@ -800,7 +825,7 @@ describe('DashboardPage', () => {
     })
 
     it('does not send an empty address', async () => {
-      getMe.mockResolvedValue(me)
+      getMe.mockResolvedValue(ok(me))
 
       await save('   ')
 
@@ -815,7 +840,7 @@ describe('DashboardPage', () => {
       ['an underscore in the domain', 'ada@mems_fun.example'],
       ['a hyphen at the start of a label', 'ada@-mems.fun'],
     ])('does not send what the browser’s own check rejects: %s', async (_shape, value) => {
-      getMe.mockResolvedValue(me)
+      getMe.mockResolvedValue(ok(me))
 
       await save(value)
 
@@ -825,8 +850,8 @@ describe('DashboardPage', () => {
     })
 
     it('sends an address with a plus in the name and a dotless domain: the shape is fine, the rest is the server’s call', async () => {
-      getMe.mockResolvedValue(me)
-      updateEmail.mockResolvedValue(undefined)
+      getMe.mockResolvedValue(ok(me))
+      updateEmail.mockResolvedValue(ok(undefined))
 
       await save('ada+cas@localhost')
 
@@ -834,9 +859,10 @@ describe('DashboardPage', () => {
     })
 
     it('clears the address whatever the field holds', async () => {
-      getMe.mockResolvedValue({ ...me, email: address })
+      getMe.mockResolvedValue(ok({ ...me, email: address }))
       updateEmail.mockImplementation(async () => {
-        getMe.mockResolvedValue(me)
+        getMe.mockResolvedValue(ok(me))
+        return ok(undefined)
       })
       const user = await openEditor()
       const field = screen.getByLabelText('Почта')
@@ -851,10 +877,10 @@ describe('DashboardPage', () => {
     })
 
     it('takes back an address the server rejects and says why under the field, never the raw message', async () => {
-      getMe.mockResolvedValue(me)
+      getMe.mockResolvedValue(ok(me))
       // Over the cap: the one rule the browser's own check does not count, so it is the server that says no.
       const tooLong = `${'a'.repeat(250)}@mems.fun`
-      updateEmail.mockRejectedValue(new ApiError(400, 'invalid_email', 'Invalid email: must be at most 254 bytes'))
+      updateEmail.mockResolvedValue(apiFailure(400, 'invalid_email', 'Invalid email: must be at most 254 bytes'))
 
       await save(tooLong)
 
@@ -870,7 +896,7 @@ describe('DashboardPage', () => {
     })
 
     it('keeps the form with its own words when the request fails for another reason', async () => {
-      getMe.mockResolvedValue(me)
+      getMe.mockResolvedValue(ok(me))
       updateEmail.mockRejectedValue(new TypeError('Failed to fetch'))
 
       await save('ada@mems.fun')
@@ -883,8 +909,8 @@ describe('DashboardPage', () => {
     })
 
     it('brings the address back with its own words when the clear fails', async () => {
-      getMe.mockResolvedValue({ ...me, email: address })
-      updateEmail.mockRejectedValue(new ApiError(404, 'account_not_found', 'No such account'))
+      getMe.mockResolvedValue(ok({ ...me, email: address }))
+      updateEmail.mockResolvedValue(apiFailure(404, 'account_not_found', 'No such account'))
       const user = await openEditor()
 
       await user.click(screen.getByRole('button', { name: 'Удалить' }))
@@ -896,10 +922,10 @@ describe('DashboardPage', () => {
     })
 
     it('lands on sign-in when the session ended under the page', async () => {
-      getMe.mockResolvedValue(me)
+      getMe.mockResolvedValue(ok(me))
       updateEmail.mockImplementation(async () => {
-        getMe.mockRejectedValue(new ApiError(401, 'unauthenticated', 'No live session'))
-        throw new ApiError(401, 'unauthenticated', 'No live session')
+        getMe.mockResolvedValue(apiFailure(401, 'unauthenticated', 'No live session'))
+        return apiFailure(401, 'unauthenticated', 'No live session')
       })
 
       await save('ada@mems.fun')

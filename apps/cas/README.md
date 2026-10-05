@@ -14,7 +14,7 @@ Configuration is read from environment variables at startup. Every variable has 
 | `CAS_CORS_ORIGINS` | `http://localhost:5173`                                                | Comma-separated list of allowed CORS origins.                                                                                                                                                                                                              |
 | `DATABASE_URL`     | `postgres://cas:cas@localhost:5434/cas`                                | Postgres connection URL. The default matches `docker-compose.yml`.                                                                                                                                                                                         |
 | `CAS_ISSUER`       | `http://localhost:3000`                                                | The public base URL of CAS, published verbatim as the discovery document's `issuer` and used as the base of every advertised endpoint. `http`/`https`, no query, no fragment, no trailing slash — a value that needs repair is rejected, never normalised. |
-| `CAS_SIGNING_KEY`  | the checked-in development key in debug builds, none in release builds | One or more PEM-encoded P-256 private keys, PKCS#8 or SEC1, concatenated; the first signs, all are published in `/jwks.json`. A release server refuses to start without it.                                                                                |
+| `CAS_SIGNING_KEY`  | the checked-in development key in debug builds, none in release builds | One or more PEM-encoded P-256 private keys, PKCS#8 or SEC1, concatenated; the first signs, all are published in `/oidc/jwks.json`. A release server refuses to start without it.                                                                           |
 
 At startup the service also loads the monorepo root `.env` files. `APP_ENV` selects the environment and defaults to `development`; missing files are skipped. Priority, highest first:
 
@@ -39,29 +39,60 @@ Rotation, one deploy per step:
 1. Append the new key after the current one: it is published, not yet signing.
 2. Wait for caches — the discovery document and the JWKS are cached for an hour, and resource servers keep their own JWKS cache.
 3. Move the new key first: it signs from now on, the old one stays published.
-4. Once every token the old key signed has expired, drop the old key.
+4. Once every token the old key signed has expired **and 30 days have passed since it stopped signing**, drop the old key. An ID token stays a valid logout hint for as long as the session it names can live, so CAS keeps verifying it with the old key until then (see [docs/adr/0013-userinfo-and-rp-initiated-logout.md](./docs/adr/0013-userinfo-and-rp-initiated-logout.md)).
 
 The active `kid` and the number of published keys are logged at startup.
 
 ## OIDC discovery
 
-`GET /.well-known/openid-configuration` and `GET /jwks.json` are served at the root, outside `/api`. The discovery document already lists the endpoints later tickets add; until they land, those paths answer 404. See [docs/adr/0009-signing-key-and-discovery.md](./docs/adr/0009-signing-key-and-discovery.md).
+CAS serves three kinds of path: the first-party API under `/api`, the OpenID Connect protocol endpoints under `/oidc`, and, at the root, discovery, `/health` and `/openapi.json`; a proxy in front of CAS routes it by those two prefixes and three paths. See [docs/adr/0017-oidc-endpoints-under-a-prefix.md](./docs/adr/0017-oidc-endpoints-under-a-prefix.md).
+
+`GET /.well-known/openid-configuration` is served at the root, where Discovery puts it relative to the issuer, and `GET /oidc/jwks.json` under `/oidc`; neither is under `/api`. The discovery document lists the endpoints under `{CAS_ISSUER}/oidc/` and the grant types `/oidc/token` serves, the guest grant among them. See [docs/adr/0009-signing-key-and-discovery.md](./docs/adr/0009-signing-key-and-discovery.md).
 
 ## Authorization endpoint
 
-`GET /authorize` (at the root, e.g. `http://localhost:3000/authorize`) starts the authorization code flow. A client sends `client_id`, a registered `redirect_uri` (exact match), `response_type=code`, a `scope` that includes `openid`, `state`, and a PKCE `code_challenge` with `code_challenge_method=S256`; `nonce` is optional. An unknown client or an unregistered redirect URI gets an HTML error page from CAS; every other error is redirected back to the client with `error`, `error_description` and `state`. Without a session the browser is sent to `{CAS_ORIGIN}/sign-in?return_to=<the /authorize path and query>`, a relative path the frontend navigates back to after sign-in (the frontend half is #748; in development the Vite server does not proxy `/authorize` yet). With a session, a first-party client gets a one-time code valid for 60 seconds; other clients are refused with `unauthorized_client` until consent exists. See [docs/adr/0010-authorization-endpoint.md](./docs/adr/0010-authorization-endpoint.md).
+`GET /oidc/authorize` (under `/oidc`, e.g. `http://localhost:3000/oidc/authorize`) starts the authorization code flow. A client sends `client_id`, a registered `redirect_uri` (exact match), `response_type=code`, a `scope` that includes `openid`, `state`, and a PKCE `code_challenge` with `code_challenge_method=S256`; `nonce` is optional. An unknown client or an unregistered redirect URI gets an HTML error page from CAS; every other error is redirected back to the client with `error`, `error_description` and `state`. Without a session the browser is sent to `{CAS_ORIGIN}/sign-in?return_to=<the /oidc/authorize path and query>`, a relative path the frontend navigates back to after sign-in (in development the Vite server proxies `/oidc` to CAS, as it does `/api`). With a session, a first-party client gets a one-time code valid for 60 seconds; other clients are refused with `unauthorized_client` until consent exists. An optional `id_token_hint` starts the guest upgrade (below): when sent it must be a valid, unexpired ID token CAS issued to this client, or the request is refused with `invalid_request`; a guest's hint without a signed-in session sends the browser to `{CAS_ORIGIN}/create-account?return_to=...` instead of sign-in, and `return_to` never carries the hint. See [docs/adr/0010-authorization-endpoint.md](./docs/adr/0010-authorization-endpoint.md).
 
 ## Token endpoint
 
-`POST /token` (at the root, e.g. `http://localhost:3000/token`) exchanges a code for tokens. The body is `application/x-www-form-urlencoded` with `grant_type=authorization_code`, the `code`, the same `redirect_uri` as the authorization request and the PKCE `code_verifier`. A confidential client authenticates with `Authorization: Basic` (`client_secret_basic`) or with `client_id` and `client_secret` in the body (`client_secret_post`), never both; a public client sends `client_id` alone. The answer is `access_token`, `token_type: Bearer`, `expires_in: 600`, `refresh_token`, `id_token` and `scope`, with `Cache-Control: no-store`.
+`POST /oidc/token` (under `/oidc`, e.g. `http://localhost:3000/oidc/token`) exchanges a code for tokens. The body is `application/x-www-form-urlencoded` with `grant_type=authorization_code`, the `code`, the same `redirect_uri` as the authorization request and the PKCE `code_verifier`. A confidential client authenticates with `Authorization: Basic` (`client_secret_basic`) or with `client_id` and `client_secret` in the body (`client_secret_post`), never both; a public client sends `client_id` alone. The answer is `access_token`, `token_type: Bearer`, `expires_in: 600`, `refresh_token`, `id_token` and `scope`, with `Cache-Control: no-store`.
 
-- The access token is an ES256 JWT (RFC 9068, `typ: at+jwt`) that resource servers verify against `/jwks.json`. Its `aud` is the client's configured audience (`--audience`, see below), and it carries `sub` (the account id), `client_id`, `scope`, `jti`, `amr` (`["webauthn"]`, or `["anon"]` for a guest) and `account_type` (`full` or `guest`). It lives 10 minutes and cannot be revoked.
-- The ID token is for the client (`aud` = `client_id`), with the `nonce` of the authorization request, `name` with the `profile` scope, and `email` (always `email_verified: false`) with the `email` scope. It lives 10 minutes too.
+- The access token is an ES256 JWT (RFC 9068, `typ: at+jwt`) that resource servers verify against `/oidc/jwks.json`. Its `aud` is the client's configured audience (`--audience`, see below), and it carries `sub` (the account id), `client_id`, `scope`, `jti`, `amr` (`["webauthn"]`, or `["anon"]` for a guest) and `account_type` (`full` or `guest`). It lives 10 minutes and cannot be revoked.
+- The ID token is for the client (`aud` = `client_id`), with the `nonce` of the authorization request, the display name as `name` with the `profile` scope (a full account's only: a guest has none), and `email` (always `email_verified: false`) with the `email` scope. It lives 10 minutes too.
 - The refresh token is opaque and stored only as its SHA-256, under a grant that expires 30 days after the exchange, whatever happens.
 
 A refresh is `grant_type=refresh_token` with the `refresh_token` and an optional `scope`, with the same client authentication. The answer is the same set — a new access token, a new ID token (without `nonce`) and a **new** refresh token — for the grant's full scopes: a `scope` may repeat or narrow the grant's (it is then ignored) but not widen it. Every refresh retires the token it presents; presenting a retired token again is treated as theft and revokes the grant, so the token the rotation issued stops working too and the user signs in again. A client must therefore never refresh the same token twice concurrently. Signing out of CAS does not end a grant, and no refresh moves its 30-day cap. See [docs/adr/0012-refresh-token-rotation.md](./docs/adr/0012-refresh-token-rotation.md).
 
-Errors are RFC 6749 JSON, `{"error": "...", "error_description": "..."}`: `invalid_client` (401) for a client that fails to authenticate, `invalid_grant` for a code that is unknown, expired, already used, voided by signing out of CAS before it was redeemed, issued to another client or redirect URI, or presented with the wrong verifier — the first presentation that gets past client authentication spends the code, and presenting it again revokes the grant it produced, even after the account has signed out — and for a refresh token that is unknown, expired, revoked, already used or issued to another client, `invalid_scope` for a refresh that asks for more than its grant, and `invalid_request` or `unsupported_grant_type` for a malformed request. See [docs/adr/0011-token-endpoint-and-access-tokens.md](./docs/adr/0011-token-endpoint-and-access-tokens.md).
+A guest account is minted with `grant_type=urn:memebattle:oauth:grant-type:guest` and an optional `scope`, from the application's backend, without any UI. Only a confidential client registered with `--guest-login-allowed` may use it, with the same client authentication; any other client gets `unauthorized_client`. Each request creates a new account of type `guest` — no credentials, no email, no CAS session, and a generated display name of its own (`Guest <n>`, from a database sequence) that is never released to the client — and answers the usual set for it: the tokens carry `amr: ["anon"]` and `account_type: "guest"`, and never a `name`. `scope` defaults to `openid` alone; otherwise it must include `openid` and stay within the client's scopes. The guest's grant is like any other: it refreshes the same way and ends 30 days after the guest was minted, so a guest identity lasts that long unless the player creates an account. A client may mint at most `--guest-grants-per-minute` guests (default 60) in any minute; past that the answer is `429 rate_limit_exceeded` with `Retry-After: 60`. See [docs/adr/0014-guest-accounts-and-the-guest-grant.md](./docs/adr/0014-guest-accounts-and-the-guest-grant.md).
+
+A guest becomes a full account, with the same `sub`, through `/oidc/authorize`: the application refreshes the guest's tokens and sends the browser to its usual authorization request with the fresh ID token as `id_token_hint`. CAS opens a restricted upgrade session for the guest (one hour, good for nothing but registering the guest's passkey, continuing `/oidc/authorize` and reading `GET /api/me`, which answers the guest with `accountType: "guest"`, see [docs/adr/0018-me-under-an-upgrade-session.md](./docs/adr/0018-me-under-an-upgrade-session.md)) and sends the browser to create-account; once the passkey is registered, `return_to` yields a code, and its tokens carry the same `sub` with `account_type: "full"` and `amr: ["webauthn"]`. The upgrade revokes every grant of the guest, so its refresh tokens stop working and the application continues with the tokens of that code; access tokens already issued keep saying `guest` until they expire. A hint that is not a valid ID token of this client is refused with `invalid_request` and `error_description` `id_token_hint is invalid`, an expired one with `id_token_hint has expired`; a hint of a full account is ignored, and a browser already signed in to CAS gets a code for that account and the guest stays a guest. See [docs/adr/0015-guest-upgrade.md](./docs/adr/0015-guest-upgrade.md).
+
+Errors are RFC 6749 JSON, `{"error": "...", "error_description": "..."}`: `invalid_client` (401) for a client that fails to authenticate, `invalid_grant` for a code that is unknown, expired, already used, voided by signing out of CAS before it was redeemed, issued to another client or redirect URI, or presented with the wrong verifier — the first presentation that gets past client authentication spends the code, and presenting it again revokes the grant it produced, even after the account has signed out — and for a refresh token that is unknown, expired, revoked, already used or issued to another client, `invalid_scope` for a refresh that asks for more than its grant or a guest scope outside the rules above, `unauthorized_client` for a client that may not use the guest grant, `rate_limit_exceeded` (429) past a client's guest limit, and `invalid_request` or `unsupported_grant_type` for a malformed request. See [docs/adr/0011-token-endpoint-and-access-tokens.md](./docs/adr/0011-token-endpoint-and-access-tokens.md).
+
+## Userinfo endpoint
+
+`GET` or `POST /oidc/userinfo` (under `/oidc`, e.g. `http://localhost:3000/oidc/userinfo`) answers the claims of the account an access token was issued for, as they are now: `sub` and `account_type` always, `name` with the `profile` scope (a guest's answer has none), and `email` with `email_verified: false` with the `email` scope when the account has an address. The token goes in an `Authorization: Bearer <access token>` header, never in the query or the body. Any unexpired access token CAS issued with the `openid` scope is accepted, whatever its `aud`; a revoked grant's token still reads userinfo until it expires. Errors follow RFC 6750: no Bearer header is `401` with a bare `WWW-Authenticate: Bearer`, a malformed header `400 invalid_request`, an invalid or expired token `401 invalid_token`, a token without `openid` `403 insufficient_scope`, each with the code in the challenge and in a JSON body. Answers are `Cache-Control: no-store`. `/oidc/userinfo` is the one route open to any origin through CORS (no credentials, the `Authorization` header allowed), so a browser application can call it with a token it holds; `/oidc/token` stays backend-to-backend. See [docs/adr/0013-userinfo-and-rp-initiated-logout.md](./docs/adr/0013-userinfo-and-rp-initiated-logout.md).
+
+## End session (RP-initiated logout)
+
+`GET /oidc/end_session` (under `/oidc`, or `POST` with an `application/x-www-form-urlencoded` body) signs the browser out of CAS and sends it back to the application. Parameters:
+
+- `id_token_hint` — **required**: an ID token CAS issued to the client, expired or not.
+- `client_id` — optional; if sent, it must be the hint's `aud`.
+- `post_logout_redirect_uri` — optional; must be one the client registered (`cas-client register --post-logout-redirect-uri`), exact match. Without it the browser goes to the CAS frontend's root.
+- `state` — optional; appended to `post_logout_redirect_uri`.
+
+A request that fails any check — missing or invalid hint, mismatched `client_id`, unknown client, unregistered `post_logout_redirect_uri`, a repeated parameter — gets an HTML error page from CAS, never a redirect, and ends nothing. A valid request ends the CAS session the cookie names only if it belongs to the hint's account; a session of another account is left alone, and the browser is redirected either way. The response clears the cookie and sends `Clear-Site-Data: "cache", "storage"` when a session was ended. Grants and refresh tokens are untouched: the application drops its own tokens. The session cookie is `SameSite=Lax`, so an application on another site must use `GET` (a top-level navigation): a cross-site form `POST` reaches CAS without the cookie and ends nothing. See [docs/adr/0013-userinfo-and-rp-initiated-logout.md](./docs/adr/0013-userinfo-and-rp-initiated-logout.md).
+
+## OpenAPI
+
+`GET /openapi.json` (at the root, public) serves the OpenAPI 3.1 description of every route CAS mounts: request and response bodies, and on every error response the stable codes it can carry, in `x-error-codes` and, for the `/api` error shape, as the enum of `error.code`. It is generated from the handlers, not written by hand, and committed as [`openapi.json`](./openapi.json); `cargo test` fails when the file is out of date. After changing the API, regenerate it from `apps/cas` and commit it:
+
+```
+UPDATE_OPENAPI=1 cargo test --lib the_committed_document_is_current
+```
+
+See [docs/adr/0016-openapi-description.md](./docs/adr/0016-openapi-description.md).
 
 ## Database (local dev)
 
@@ -92,7 +123,8 @@ cargo run -p cas --bin cas-client -- register \
   --id <client_id> --name <name> --kind <public|confidential> \
   --redirect-uri <uri> [--redirect-uri <uri>]... \
   [--post-logout-redirect-uri <uri>]... \
-  [--first-party] [--guest-login-allowed] \
+  [--first-party] \
+  [--guest-login-allowed [--guest-grants-per-minute <n>]] \
   [--scope <scope>]... [--audience <resource>]
 ```
 
@@ -105,10 +137,13 @@ cargo run -p cas --bin cas-client -- register \
 | `--post-logout-redirect-uri` | Repeatable. Where RP-initiated logout may return the browser.                        |
 | `--first-party`              | The client skips the consent screen.                                                 |
 | `--guest-login-allowed`      | The client may mint guest accounts through the guest grant.                          |
+| `--guest-grants-per-minute`  | With `--guest-login-allowed`: how many guests it may mint per minute. Default 60.    |
 | `--scope`                    | Repeatable allow-list of what the client may request. Defaults to `openid`.          |
 | `--audience`                 | The `aud` of its access tokens, naming the resource server. Defaults to the id.      |
 
 A redirect URI is matched by exact string comparison, so it must be registered exactly as the client will send it: `https://app.example` and `https://app.example/` are two different registrations.
+
+Give a client `--guest-login-allowed` only once every serving instance runs a release with the guest grant and the guest upgrade: an older instance that refreshes a guest's tokens would release its generated `Guest <n>` display name as its `name`, and one without the upgrade would treat an upgrade session as a signed-in one.
 
 A confidential client's secret is generated by CAS and printed once, on stdout; the table stores only its SHA-256, so it cannot be shown again. A mistake is fixed by registering another id — there is no update, delete or rotate until the admin panel.
 

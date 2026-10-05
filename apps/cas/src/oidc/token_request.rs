@@ -1,19 +1,23 @@
-//! What a token request is: the rules `POST /token` applies to its form body
+//! What a token request is: the rules `POST /oidc/token` applies to its form body
 //! and its `Authorization` header (ADR 0011). Pure domain: no axum, no SQL.
 //! The service applies them in order, with the lookups between them — the
 //! client is authenticated before the grant is looked at, and the code is
 //! redeemed before its verifier is checked (ADR 0011); a refresh token is
-//! checked against its grant before it is spent (ADR 0012).
+//! checked against its grant before it is spent (ADR 0012); a guest is
+//! minted only for a client allowed to, within its limit (ADR 0014).
+
+use std::time::Duration;
 
 use base64::{Engine, engine::general_purpose::STANDARD};
 
 use super::authorization::{Duplicate, Params};
 use super::codes::{AuthorizationCode, CodeVerifier};
 use super::tokens::RefreshToken;
-use crate::clients::{ClientId, Scope};
+use super::{GUEST_GRANT_TYPE, OPENID_SCOPE};
+use crate::clients::{Client, ClientId, Scope};
 
 /// Every parameter a token request is read for. A repetition of any of them
-/// is refused before any other rule is looked at, as at `/authorize` (RFC
+/// is refused before any other rule is looked at, as at `/oidc/authorize` (RFC
 /// 6749 §3.2: parameters MUST NOT be included more than once).
 const READ_PARAMETERS: [&str; 8] = [
     "grant_type",
@@ -33,8 +37,9 @@ const AUTHORIZATION_CODE_GRANT_TYPE: &str = "authorization_code";
 const REFRESH_TOKEN_GRANT_TYPE: &str = "refresh_token";
 
 /// Why a token request was refused, or failed. Every variant but the last
-/// two is an RFC 6749 §5.2 error the client gets back as is, with a fixed
-/// description: nothing from the request is ever reflected into it.
+/// two is an error the client gets back as is (RFC 6749 §5.2, and the guest
+/// grant's own `rate_limit_exceeded`), with a fixed description: nothing
+/// from the request is ever reflected into it.
 #[derive(Debug, thiserror::Error)]
 pub enum TokenError {
     #[error("invalid request: {0}")]
@@ -56,9 +61,21 @@ pub enum TokenError {
     InvalidGrant(&'static str),
 
     /// The `scope` of a refresh is malformed or asks for more than the
-    /// grant holds (RFC 6749 §6).
+    /// grant holds (RFC 6749 §6); the `scope` of a guest grant is malformed,
+    /// lacks `openid`, or leaves the client's allow-list.
     #[error("invalid scope: {0}")]
     InvalidScope(&'static str),
+
+    /// The authenticated client may not use this grant type (RFC 6749
+    /// §5.2): the guest grant asked for by a public client, or by a
+    /// confidential one without `guest_login_allowed`.
+    #[error("the client is not authorized to use this grant type")]
+    UnauthorizedClient,
+
+    /// The client has minted as many guests as its limit allows in the
+    /// current window; `retry_after` is when to try again.
+    #[error("guest grant rate limit exceeded")]
+    RateLimited { retry_after: Duration },
 
     #[error("unsupported grant type")]
     UnsupportedGrantType,
@@ -234,11 +251,20 @@ pub struct RefreshGrant {
     pub scope: Option<Vec<Scope>>,
 }
 
-/// The grants `POST /token` serves.
+/// A guest grant, read but not yet checked: whether the client may use it,
+/// and which scopes it gets, depend on the client ([`guest_scopes`]).
+#[derive(Debug)]
+pub struct GuestGrant {
+    /// The `scope` parameter as sent, unparsed; `None` when omitted.
+    pub scope: Option<String>,
+}
+
+/// The grants `POST /oidc/token` serves.
 #[derive(Debug)]
 pub enum Grant {
     Code(CodeGrant),
     Refresh(RefreshGrant),
+    Guest(GuestGrant),
 }
 
 /// The grant a request asks for, after the client is authenticated. The
@@ -248,8 +274,9 @@ pub fn grant(params: &Params) -> Result<Grant, TokenError> {
         None => Err(TokenError::InvalidRequest("grant_type is required")),
         Some(AUTHORIZATION_CODE_GRANT_TYPE) => code_grant(params).map(Grant::Code),
         Some(REFRESH_TOKEN_GRANT_TYPE) => refresh_grant(params).map(Grant::Refresh),
-        // The guest grant arrives with #746, advertised by discovery
-        // already; until then it is as unsupported as any other value.
+        Some(GUEST_GRANT_TYPE) => Ok(Grant::Guest(GuestGrant {
+            scope: params.get("scope")?.map(str::to_owned),
+        })),
         Some(_) => Err(TokenError::UnsupportedGrantType),
     }
 }
@@ -280,7 +307,7 @@ fn code_grant(params: &Params) -> Result<CodeGrant, TokenError> {
 }
 
 /// The rest of a `refresh_token` request. `scope` is split and checked as
-/// `/authorize` checks it, and a malformed one is the same `invalid_scope`;
+/// `/oidc/authorize` checks it, and a malformed one is the same `invalid_scope`;
 /// whether it fits the grant is for the service to say, once the grant is
 /// found. A token that does not have the shape CAS issues is `invalid_grant`
 /// without a query, as a code is.
@@ -296,6 +323,31 @@ fn refresh_grant(params: &Params) -> Result<RefreshGrant, TokenError> {
         refresh_token,
         scope,
     })
+}
+
+/// The scopes a guest grant gets for `client`. Omitted, `openid` alone:
+/// a guest has no name and no address to release, so the client's whole
+/// allow-list would only promise claims that never come. Present, the list
+/// must be well formed, include `openid`, and stay inside the client's
+/// allow-list, the default included (ADR 0014 (d)). The descriptions are
+/// fixed strings; nothing of the request is reflected.
+pub fn guest_scopes(requested: Option<&str>, client: &Client) -> Result<Vec<Scope>, TokenError> {
+    let scopes = match requested {
+        None => vec![Scope::try_new(OPENID_SCOPE).expect("openid is a valid scope token")],
+        Some(value) => requested_scopes(value)?,
+    };
+    if !scopes.iter().any(|scope| scope.as_str() == OPENID_SCOPE) {
+        return Err(TokenError::InvalidScope("scope must include openid"));
+    }
+    if !scopes
+        .iter()
+        .all(|scope| client.allows_scope(scope.as_str()))
+    {
+        return Err(TokenError::InvalidScope(
+            "the requested scope is not allowed for this client",
+        ));
+    }
+    Ok(scopes)
 }
 
 /// A space-separated scope list, deduplicated in request order.
@@ -314,7 +366,8 @@ fn requested_scopes(value: &str) -> Result<Vec<Scope>, TokenError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::oidc::GUEST_GRANT_TYPE;
+    use crate::clients::{Audience, ClientKind, ClientName, GuestGrantsPerMinute, RedirectUri};
+    use crate::testing::scopes;
 
     const VERIFIER: &str = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
 
@@ -513,7 +566,12 @@ mod tests {
             grant_error(&without("grant_type", &code)),
             TokenError::InvalidRequest("grant_type is required")
         ));
-        for other in [GUEST_GRANT_TYPE, "password", "client_credentials", "CODE"] {
+        for other in [
+            "password",
+            "client_credentials",
+            "CODE",
+            "urn:memebattle:oauth:grant-type:GUEST",
+        ] {
             assert!(
                 matches!(
                     grant_error(&with("grant_type", other, &code)),
@@ -594,7 +652,7 @@ mod tests {
         all.extend_from_slice(pairs);
         grant(&params(&all)).map(|grant| match grant {
             Grant::Refresh(grant) => grant,
-            Grant::Code(_) => panic!("a refresh grant"),
+            Grant::Code(_) | Grant::Guest(_) => panic!("a refresh grant"),
         })
     }
 
@@ -681,5 +739,95 @@ mod tests {
         let debug = format!("{:?}", refresh(&[("refresh_token", &token)]).unwrap());
 
         assert!(!debug.contains(&token), "{debug}");
+    }
+
+    #[test]
+    fn a_guest_grant_is_read_with_its_raw_scope() {
+        for (pairs, expected) in [
+            (vec![("grant_type", GUEST_GRANT_TYPE)], None),
+            (vec![("grant_type", GUEST_GRANT_TYPE), ("scope", "")], None),
+            (
+                vec![("grant_type", GUEST_GRANT_TYPE), ("scope", "openid  bad")],
+                Some("openid  bad"),
+            ),
+        ] {
+            let Grant::Guest(grant) = grant(&params(&pairs)).unwrap() else {
+                panic!("a guest grant: {pairs:?}");
+            };
+
+            assert_eq!(grant.scope.as_deref(), expected, "{pairs:?}");
+        }
+    }
+
+    /// A client of the allow-list given, as registered.
+    fn guest_client(allowed: &[&str]) -> Client {
+        Client {
+            id: ClientId::try_new("ligretto").unwrap(),
+            name: ClientName::try_new("Ligretto").unwrap(),
+            kind: ClientKind::Confidential,
+            secret_hash: None,
+            redirect_uris: vec![RedirectUri::try_new("https://app.example/cb").unwrap()],
+            post_logout_redirect_uris: vec![],
+            first_party: true,
+            guest_login_allowed: true,
+            guest_grants_per_minute: GuestGrantsPerMinute::default(),
+            scopes: scopes(allowed),
+            audience: Audience::try_new("ligretto").unwrap(),
+            created_at: time::OffsetDateTime::UNIX_EPOCH,
+        }
+    }
+
+    #[test]
+    fn an_omitted_guest_scope_is_openid_alone() {
+        let client = guest_client(&["openid", "profile", "email"]);
+
+        assert_eq!(guest_scopes(None, &client).unwrap(), scopes(&["openid"]));
+    }
+
+    #[test]
+    fn a_guest_scope_is_kept_in_order_and_deduplicated() {
+        let client = guest_client(&["openid", "profile", "email"]);
+
+        assert_eq!(
+            guest_scopes(Some("profile openid profile"), &client).unwrap(),
+            scopes(&["profile", "openid"])
+        );
+    }
+
+    #[test]
+    fn a_guest_scope_is_refused_with_a_fixed_description() {
+        let client = guest_client(&["openid", "profile"]);
+        for (requested, description) in [
+            ("profile", "scope must include openid"),
+            (
+                "openid email",
+                "the requested scope is not allowed for this client",
+            ),
+            ("openid  profile", "scope is malformed"),
+            ("open\"id", "scope is malformed"),
+        ] {
+            let error = guest_scopes(Some(requested), &client).unwrap_err();
+
+            assert!(
+                matches!(error, TokenError::InvalidScope(d) if d == description),
+                "{requested:?}: {error:?}"
+            );
+        }
+    }
+
+    /// The default is checked against the allow-list like any request.
+    #[test]
+    fn the_default_guest_scope_needs_openid_in_the_allow_list() {
+        let client = guest_client(&["profile"]);
+
+        let error = guest_scopes(None, &client).unwrap_err();
+
+        assert!(
+            matches!(
+                error,
+                TokenError::InvalidScope("the requested scope is not allowed for this client")
+            ),
+            "{error:?}"
+        );
     }
 }
