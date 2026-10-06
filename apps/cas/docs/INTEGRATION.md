@@ -631,10 +631,11 @@ may call it directly. It takes any unexpired CAS access token with the
 `openid` scope, whatever its `aud`, and only in the `Authorization`
 header, never in the query or the body.
 
-Errors follow RFC 6750, with the code in the `WWW-Authenticate` challenge
-and in a JSON body: no Bearer header is `401` with a bare challenge, a
-malformed header `400 invalid_request`, an invalid or expired token
-`401 invalid_token`, a token without `openid` `403 insufficient_scope`.
+Errors follow RFC 6750. No Bearer header (or a header of another scheme)
+is `401` with a bare `WWW-Authenticate: Bearer` and no body. The others
+carry the code in the challenge and in a JSON body: a malformed header
+`400 invalid_request`, an invalid or expired token `401 invalid_token`, a
+token without `openid` `403 insufficient_scope`.
 
 ## 11. Logout
 
@@ -694,8 +695,11 @@ Each endpoint reports errors in the shape its specification fixes
 - `/oidc/token` answers RFC 6749 JSON,
   `{"error": "...", "error_description": "..."}`, `400`, or `401` for
   `invalid_client` and `429` for `rate_limit_exceeded`.
-- `/oidc/userinfo` answers RFC 6750: the code in `WWW-Authenticate`, and the
-  same JSON body.
+- `/oidc/userinfo` answers RFC 6750: a refused token or header carries the
+  code both in `WWW-Authenticate` and in the same JSON body. Two answers
+  carry one of the two only: a missing Bearer header is a bare challenge
+  with no body, and a database failure is the JSON body with no challenge,
+  since no token was refused.
 - `/oidc/authorize` sends `error`, `error_description` and `state` to your
   callback once your redirect URI is trusted, and an HTML page before that.
 - `/oidc/end_session` answers every refusal with an HTML page.
