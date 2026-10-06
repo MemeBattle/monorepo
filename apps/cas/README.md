@@ -2,6 +2,10 @@
 
 CAS (Central Authentication Service) is a centralized authentication and user management service for an ecosystem of applications. It serves as a single Identity Provider (IdP) that allows multiple applications to delegate user authentication and identity management, eliminating the need for each application to implement its own authentication system.
 
+## Integrating an application
+
+An application that signs its users in with CAS starts with [docs/INTEGRATION.md](./docs/INTEGRATION.md): registering a client, choosing a library, sign-in and the code exchange, verifying access tokens on a resource server, refresh rotation, guests and their upgrade, and logout, from the application's side. The sections below are the reference it links to.
+
 ## Configuration
 
 Configuration is read from environment variables at startup. Every variable has a dev-friendly default, so `bacon run` works with no environment set. An invalid value fails startup with an error.
@@ -86,7 +90,7 @@ A request that fails any check — missing or invalid hint, mismatched `client_i
 
 ## OpenAPI
 
-`GET /openapi.json` (at the root, public) serves the OpenAPI 3.1 description of every route CAS mounts: request and response bodies, and on every error response the stable codes it can carry, in `x-error-codes` and, for the `/api` error shape, as the enum of `error.code`. It is generated from the handlers, not written by hand, and committed as [`openapi.json`](./openapi.json); `cargo test` fails when the file is out of date. After changing the API, regenerate it from `apps/cas` and commit it:
+`GET /openapi.json` (at the root, public) serves the OpenAPI 3.1 description of every route CAS mounts: request and response bodies, and on every error response the stable codes it can carry, in `x-error-codes` and, for the `/api` error shape, as the enum of `error.code`. It is generated from the handlers, not written by hand, and committed as [`openapi.json`](./openapi.json); `cargo test` fails when the file is out of date. The document's `externalDocs` points at the integration guide, [docs/INTEGRATION.md](./docs/INTEGRATION.md). After changing the API, regenerate it from `apps/cas` and commit it:
 
 ```
 UPDATE_OPENAPI=1 cargo test --lib the_committed_document_is_current
