@@ -31,10 +31,10 @@ yours take part, and each has one job.
   builds the authorization request, exchanges the code, keeps and rotates
   the refresh token, mints guests, and gives the browser whatever session
   your application uses.
-- **Your resource servers** (the APIs, game servers and so on that the
-  browser or your backend call with an access token) verify each access
+- **Your resource servers** (the APIs and other services that the browser
+  or your backend call with an access token) verify each access
   token locally against CAS's published keys. They never call CAS on the
-  request path, so a CAS outage does not stop a game already running
+  request path, so a CAS outage does not interrupt a session already open
   ([ADR 0011 (a)](adr/0011-token-endpoint-and-access-tokens.md)).
 
 Why a confidential client rather than a public client in the browser: the
@@ -484,7 +484,7 @@ arrives here), and no `nonce`, since there was no authorization request
 
 ## 8. Guests
 
-A player can play before they have an account. Your backend mints a guest
+A user can start before they have an account. Your backend mints a guest
 with the guest grant, with no browser involved and no UI from CAS
 ([README, Token endpoint](../README.md#token-endpoint),
 [ADR 0014](adr/0014-guest-accounts-and-the-guest-grant.md)):
@@ -510,18 +510,18 @@ any other.
   and no address, so `profile` and `email` would release nothing; ask for
   them when the guest upgrades (section 9).
 - Past the client's `--guest-grants-per-minute` the answer is
-  `429 rate_limit_exceeded` with `Retry-After: 60`. Tell the player that
-  playing as a guest is unavailable for now and retry no sooner than
+  `429 rate_limit_exceeded` with `Retry-After: 60`. Tell the user that
+  continuing as a guest is unavailable for now and retry no sooner than
   `Retry-After`; never retry in a loop.
 
 The tokens are those of section 5, with `amr: ["anon"]` and
 `account_type: "guest"`, and never a `name`: CAS gives each guest a
-generated display name of its own, but it is not one the player chose, so
+generated display name of its own, but it is not one the user chose, so
 it is not released. Show your own label for a guest.
 
 A guest's grant is an ordinary grant: it refreshes exactly as in section 7
 and ends 30 days after the guest was minted, so the guest can be refreshed
-for 30 days and no longer unless the player creates an account (section 9).
+for 30 days and no longer unless the user creates an account (section 9).
 Offer the upgrade before then. The tokens of the last refresh stay valid
 for up to 10 more minutes, and so does its ID token as an upgrade hint
 ([ADR 0014 (c)](adr/0014-guest-accounts-and-the-guest-grant.md)). An
@@ -554,7 +554,7 @@ upgrade(guest_session):
       scope = "openid profile email",
       id_token_hint = tokens.id_token)
   redirect browser to request
-  # the player registers a passkey on CAS; the callback receives a code
+  # the user registers a passkey on CAS; the callback receives a code
   new = exchange(code)                          # section 5
   if new.id_token.sub != guest_session.sub:
       handle "signed in as another account"     # see below
@@ -567,14 +567,14 @@ upgrade(guest_session):
   guest just before building the link, even when its access token is still
   fresh, and never reuse a stored ID token
   ([ADR 0015 (c)](adr/0015-guest-upgrade.md)).
-- **What the player sees.** Without a CAS session the browser goes to the
+- **What the user sees.** Without a CAS session the browser goes to the
   CAS frontend's create-account screen under a restricted upgrade session;
-  the player registers a passkey and the frontend follows `return_to` back
+  the user registers a passkey and the frontend follows `return_to` back
   to the request, which now yields a code at your callback. `return_to`
   never carries the hint.
 - **The result.** The new tokens carry the same `sub`, with
   `account_type: "full"`, `amr: ["webauthn"]` and, with `profile`, the name
-  the player chose.
+  the user chose.
 - **The old tokens.** The upgrade revokes every grant of the guest, so the
   guest's refresh token is now `invalid_grant`; carry on with the tokens of
   the new code. Access tokens issued to the guest before keep saying
@@ -595,7 +595,7 @@ Two cases do not upgrade the guest, and both are by design:
 - A browser **already signed in to CAS** gets a code for the account it is
   signed in to, and the guest stays a guest. Your backend must compare the
   new ID token's `sub` with the guest's and handle the difference
-  explicitly: the player signed in to an existing account, and what your
+  explicitly: the user signed in to an existing account, and what your
   application does with the guest's data (merge it, offer to, or leave it)
   is your decision.
 
