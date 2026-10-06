@@ -341,9 +341,19 @@ The `invalid_grant` answers that matter here
   authorization request.
 - A wrong `code_verifier` has a description of its own, because it is the
   integration bug you most need named; the code is spent by then.
-- Never retry an exchange. The first presentation spends the code whatever
-  its outcome, and a second presentation is treated as a stolen code: it
-  revokes the grant the first one produced, refresh token included.
+- Do not retry an exchange that reached the code. The first presentation
+  that gets past client authentication spends the code, whatever its
+  outcome, and a second presentation is treated as a stolen code: it
+  revokes the grant the first one produced, refresh token included. A lost
+  answer is therefore a new authorization request, not a retry.
+- Two kinds of answer leave the code unspent. A database failure rolls the
+  whole exchange back (`503 temporarily_unavailable`, or `500 server_error`
+  for a failure CAS cannot classify), so the same request may be sent again
+  while the code's 60 seconds last
+  ([ADR 0011 (f)](adr/0011-token-endpoint-and-access-tokens.md)). A request
+  refused before the code is read (`invalid_client`, `invalid_request`,
+  `unsupported_grant_type`) spends nothing either, but it is a bug in the
+  request, fixed in code rather than retried.
 
 ## 6. Verify access tokens on a resource server
 
@@ -507,10 +517,13 @@ generated display name of its own, but it is not one the player chose, so
 it is not released. Show your own label for a guest.
 
 A guest's grant is an ordinary grant: it refreshes exactly as in section 7
-and ends 30 days after the guest was minted. The guest identity lasts that
-long and no longer, unless the player creates an account (section 9), so
-offer the upgrade before then. Once the grant is over (`invalid_grant`),
-the only way on is a new guest, with a new `sub`. Key the guest's data on
+and ends 30 days after the guest was minted, so the guest can be refreshed
+for 30 days and no longer unless the player creates an account (section 9).
+Offer the upgrade before then. The tokens of the last refresh stay valid
+for up to 10 more minutes, and so does its ID token as an upgrade hint
+([ADR 0014 (c)](adr/0014-guest-accounts-and-the-guest-grant.md)); once
+that ID token has expired too, nothing reaches the guest again, and the
+only way on is a new guest, with a new `sub`. Key the guest's data on
 `sub` from the start: an upgrade keeps it.
 
 ## 9. Upgrade a guest to a full account
@@ -522,8 +535,15 @@ guest's ID token as `id_token_hint`
 [ADR 0015](adr/0015-guest-upgrade.md)):
 
 ```
+force_refresh(session):                        # section 7, without the skip
+  with lock(session.grant):
+    tokens = POST token_endpoint(grant_type=refresh_token,
+                                 refresh_token=session.refresh_token)
+    session.store(tokens.refresh_token, tokens.access_token, tokens.id_token)
+    return tokens
+
 upgrade(guest_session):
-  tokens = refresh(guest_session)              # section 7: a fresh ID token
+  tokens = force_refresh(guest_session)        # always: a fresh ID token
   request = authorization_request(             # section 4, as usual
       scope = "openid profile email",
       id_token_hint = tokens.id_token)
@@ -538,7 +558,9 @@ upgrade(guest_session):
 
 - **The hint must be unexpired.** An ID token lives 10 minutes, and this
   one opens a session on CAS, so CAS checks its `exp` strictly. Refresh the
-  guest just before building the link, not when the guest was minted.
+  guest just before building the link, even when its access token is still
+  fresh, and never reuse a stored ID token
+  ([ADR 0015 (c)](adr/0015-guest-upgrade.md)).
 - **What the player sees.** Without a CAS session the browser goes to the
   CAS frontend's create-account screen under a restricted upgrade session;
   the player registers a passkey and the frontend follows `return_to` back
@@ -631,8 +653,15 @@ GET http://localhost:3000/oidc/end_session
 - `id_token_hint` is **required**: send the ID token of the application
   session being ended, the latest one you hold. CAS accepts any ID token it
   issued to your client, expired or not, because after an idle hour that is
-  all you have. It ends the browser's CAS session only when that session
-  belongs to the hint's `sub`; a session of another account is left alone,
+  all you have, as long as the key that signed it is still published. A
+  retired key stays published for 30 days after it stops signing, longer
+  than a CAS session can live ([README, Signing key and
+  rotation](../README.md#signing-key-and-rotation)); a hint signed by a key
+  dropped after that gets CAS's error page and ends nothing, and the user
+  signs out from CAS's own dashboard
+  ([ADR 0013 (a)](adr/0013-userinfo-and-rp-initiated-logout.md)). CAS
+  ends the browser's CAS session only when that session belongs to the
+  hint's `sub`; a session of another account is left alone,
   and the browser is redirected all the same. A successful redirect
   therefore does not prove the browser was signed out of CAS
   (`end_session` in
