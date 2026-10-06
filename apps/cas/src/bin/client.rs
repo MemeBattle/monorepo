@@ -340,7 +340,7 @@ mod tests {
             "--scope",
             "profile",
             "--audience",
-            "games",
+            "backend",
         ])
         .unwrap();
 
@@ -376,7 +376,7 @@ mod tests {
                 .collect::<Vec<_>>(),
             ["openid", "profile"]
         );
-        assert_eq!(registration.audience.unwrap().as_str(), "games");
+        assert_eq!(registration.audience.unwrap().as_str(), "backend");
     }
 
     /// The flags that are not given are the defaults the service applies: no

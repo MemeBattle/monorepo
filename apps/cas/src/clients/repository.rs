@@ -348,7 +348,7 @@ mod tests {
         .guest_login_allowed(true)
         .with_guest_grants_per_minute(GuestGrantsPerMinute::try_new(5).unwrap())
         .with_scopes(vec![scope("openid"), scope("profile"), scope("email")])
-        .with_audience(Audience::try_new("games").unwrap())
+        .with_audience(Audience::try_new("backend").unwrap())
     }
 
     fn public() -> NewClient {
@@ -389,7 +389,7 @@ mod tests {
             created.scopes,
             vec![scope("openid"), scope("profile"), scope("email")]
         );
-        assert_eq!(created.audience.as_str(), "games");
+        assert_eq!(created.audience.as_str(), "backend");
 
         let found = repository.get(&client_id("ligretto")).await.unwrap();
 

@@ -11,8 +11,8 @@ ADR 0010 ((b): `id_token_hint` is served; (c): a second destination,
 
 ## Context
 
-A guest (ADR 0014) is an account a confidential client minted for a player
-who never saw CAS. PLAN promises that the player can later create a real
+A guest (ADR 0014) is an account a confidential client minted for a user
+who never saw CAS. PLAN promises that the user can later create a real
 account without losing what the application keeps under the guest's `sub`:
 the guest becomes a full account in place. The application sends the
 guest's browser to `/authorize` with a fresh ID token of the guest as
