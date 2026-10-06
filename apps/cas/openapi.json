@@ -5105,5 +5105,9 @@
         "description": "The session cookie set by registration and login (ADR 0004). On an https origin its name is `__Host-cas_session`."
       }
     }
+  },
+  "externalDocs": {
+    "url": "https://github.com/MemeBattle/monorepo/blob/master/apps/cas/docs/INTEGRATION.md",
+    "description": "How an application integrates with CAS: registration, sign-in, tokens, guests, logout."
   }
 }
