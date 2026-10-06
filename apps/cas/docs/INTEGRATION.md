@@ -247,9 +247,12 @@ redirect URI yet ([ADR 0010 (a)](adr/0010-authorization-endpoint.md)):
   registered, gets an HTML error page from CAS and no redirect: sending
   anything to an unverified address is an open redirect. During
   development this means a typo in the registration; in production your
-  application never sees it.
-- Everything else comes back to the callback as `error`,
-  `error_description` and `state`.
+  application never sees it. A database failure while CAS is still looking
+  up the client is on this side too: a `503` page (`service_unavailable`),
+  not a redirect, so your callback does not see every outage.
+- Everything after the client and the redirect URI are verified comes back
+  to the callback as `error`, `error_description` and `state`, a database
+  failure included (`temporarily_unavailable`).
 
 Your callback therefore checks, in this order: `state` equals the one you
 stored for this browser (otherwise drop the request, it is not yours);
@@ -521,9 +524,12 @@ and ends 30 days after the guest was minted, so the guest can be refreshed
 for 30 days and no longer unless the player creates an account (section 9).
 Offer the upgrade before then. The tokens of the last refresh stay valid
 for up to 10 more minutes, and so does its ID token as an upgrade hint
-([ADR 0014 (c)](adr/0014-guest-accounts-and-the-guest-grant.md)); once
-that ID token has expired too, nothing reaches the guest again, and the
-only way on is a new guest, with a new `sub`. Key the guest's data on
+([ADR 0014 (c)](adr/0014-guest-accounts-and-the-guest-grant.md)). An
+upgrade already started with such a hint can still finish: its upgrade
+session on CAS lasts an hour from when it was opened, whatever the hint's
+expiry ([ADR 0015 (b), (d)](adr/0015-guest-upgrade.md)). Past both, nothing
+reaches the guest again, and the only way on is a new guest, with a new
+`sub`. Key the guest's data on
 `sub` from the start: an upgrade keeps it.
 
 ## 9. Upgrade a guest to a full account
@@ -695,8 +701,11 @@ Each endpoint reports errors in the shape its specification fixes
 - `/oidc/end_session` answers every refusal with an HTML page.
 
 A database failure is `503 temporarily_unavailable` (try again) on the token
-and userinfo endpoints, and `temporarily_unavailable` on the authorization
-redirect; anything CAS did not anticipate is `server_error` or a `500`.
+and userinfo endpoints. At the authorization endpoint it depends on when it
+happens: before the client and the redirect URI are verified it is a `503`
+HTML page on CAS (`service_unavailable`), after that a redirect to your
+callback with `temporarily_unavailable`. Anything CAS did not anticipate is
+`server_error` or a `500`.
 
 Branch on `error`, never on `error_description`: the codes are stable, the
 descriptions are for the developer reading a log. This guide names the
