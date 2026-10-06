@@ -9,7 +9,7 @@ own) and ADR 0013 (c) (`name` is released for a full account only).
 
 ## Context
 
-A player of ligretto plays before they have an account: today the legacy
+A user of ligretto starts before they have an account: today the legacy
 backend hands out a `temp-token` without any UI. PLAN keeps that shape for
 CAS. A guest is an ordinary `accounts` row of `type = guest`, so the tokens,
 userinfo and the later upgrade to a full account (#747) have one code path,

@@ -63,14 +63,14 @@ The first version of this decision had one absolute clock of 30 days and no
 idle timeout, on the grounds that a sliding expiry costs a write on every
 request. The OWASP Session Management guidance asks for an idle timeout on
 top of an absolute one, and the objection falls once renewal is rate limited
-by the window. Seven days is long for OWASP and short for a game: it is what
-a player who opens the game most weeks never notices, and a passkey makes
-signing in again a single touch rather than a password to remember, which is
-what makes a shorter idle limit affordable here. The cap stays at 30 days as
-the bound on how long a stolen cookie is worth anything, however active the
-thief. The cookie stays persistent (`Max-Age` rather than a session cookie):
-a game's players close the tab between rounds, and a non-persistent cookie
-would sign them out every time.
+by the window. Seven days is long for OWASP and short for a consumer
+application: it is what a user who opens it most weeks never notices, and a
+passkey makes signing in again a single touch rather than a password to
+remember, which is what makes a shorter idle limit affordable here. The cap
+stays at 30 days as the bound on how long a stolen cookie is worth anything,
+however active the thief. The cookie stays persistent (`Max-Age` rather than
+a session cookie): users close the tab between visits, and a non-persistent
+cookie would sign them out every time.
 
 **(d) The cookie is `HttpOnly`, `SameSite=Lax`, `Path=/`, host-only, and
 `Secure` when the relying party origin is https; its name carries the
@@ -160,9 +160,9 @@ is free, because CAS keeps nothing client-side. The `cookies` directive that
 [#698](https://github.com/MemeBattle/monorepo/issues/698) asked for is left
 out on purpose: the specification clears cookies for the whole registrable
 domain, siblings included, so a CAS logout on `cas.mems.fun` would sign the
-browser out of the game hub, the blog and every other application on
-`mems.fun`. Ending sessions elsewhere is RP-initiated logout (M2), a
-deliberate act, not a side effect of leaving the dashboard. The session
+browser out of every other application on `mems.fun`, the blog included.
+Ending sessions elsewhere is RP-initiated logout (M2), a deliberate act, not
+a side effect of leaving the dashboard. The session
 cookie is removed by the explicit removal cookie, which is what a browser
 without `Clear-Site-Data` has to go on anyway. Added with #698.
 

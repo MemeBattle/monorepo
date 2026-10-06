@@ -47,8 +47,8 @@ is issued here.
 **(a) Access tokens are JWTs (RFC 9068), not opaque tokens behind
 introspection.** A resource server — ligretto's backends first — verifies
 an access token locally against the published JWKS: CAS is not on the
-request path of any application, and an outage of CAS does not stop a game
-already in progress. The price is that an access token cannot be revoked:
+request path of any application, and an outage of CAS does not interrupt a
+session already open. The price is that an access token cannot be revoked:
 it is honoured until `exp`. That is bought down by a short lifetime (c) and
 by revocation living where it can, on the refresh side (d). Introspection
 (RFC 7662) can be added later for a resource server that needs instant
@@ -101,7 +101,7 @@ thirty days for a refresh token.** `ACCESS_TOKEN_LIFETIME` is 600 seconds;
 `expires_in` says so. Ten minutes is how long a stolen access token is
 worth anything, and how long a revoked grant or an upgraded guest (PLAN)
 still shows in tokens already out. The cost is one refresh per ten minutes
-of play, which a backend does without the player noticing.
+of use, which a backend does without the user noticing.
 
 `REFRESH_TOKEN_LIFETIME` is thirty days, measured from the grant's creation
 and absolute: every refresh token of a grant expires with the grant, and

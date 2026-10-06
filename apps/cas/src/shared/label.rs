@@ -12,7 +12,7 @@
 //! "José  Silva"; it deletes non-ASCII spaces instead of mapping them to
 //! U+0020; and it tests the string class before normalising, so decomposed
 //! Hangul is rejected. The profile itself also rejects U+FE0F and ZWJ
-//! sequences, which rules out most modern emoji — not an option for a game's
+//! sequences, which rules out most modern emoji — not an option for a
 //! display name.
 
 use icu_properties::{

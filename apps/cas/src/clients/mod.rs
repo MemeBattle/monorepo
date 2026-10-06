@@ -467,7 +467,7 @@ mod tests {
         .guest_login_allowed(true)
         .with_guest_grants_per_minute(GuestGrantsPerMinute::try_new(5).unwrap())
         .with_scopes(vec![scope("openid"), scope("email")])
-        .with_audience(Audience::try_new("games").unwrap());
+        .with_audience(Audience::try_new("backend").unwrap());
 
         assert_eq!(
             new_client.post_logout_redirect_uris,
@@ -480,7 +480,7 @@ mod tests {
             GuestGrantsPerMinute::try_new(5).unwrap()
         );
         assert_eq!(new_client.scopes, vec![scope("openid"), scope("email")]);
-        assert_eq!(new_client.audience.as_str(), "games");
+        assert_eq!(new_client.audience.as_str(), "backend");
     }
 
     #[test]

@@ -256,7 +256,7 @@ describe('CreateAccountPage', () => {
       expect(screen.queryByText(upgradeSubtitle)).toBeNull()
     })
 
-    it('says that the game data stays', async () => {
+    it('says that the data stays', async () => {
       pageLoader.mockResolvedValue(guest)
 
       renderPage(routes.CREATE_ACCOUNT, true)
