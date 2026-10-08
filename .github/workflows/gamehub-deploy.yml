@@ -6,7 +6,6 @@ on:
     branches: [master]
     paths:
       - 'apps/gamehub-client/**'
-      - '.deploy/gamehub.deploy.yml'
       - '.docker/GameHub-client_Dockerfile*'
       - '.github/workflows/gamehub-deploy.yml'
 
@@ -54,3 +53,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         name: Checkout
+
+      - name: Deploy
+        uses: ./.github/actions/deploy-helm
+        with:
+          chart-path: ./apps/gamehub-client/chart
+          namespace: gamehub-client
+          release-name: gamehub-client
+          values-files: ./apps/gamehub-client/chart/values.yaml
+          app-version: ${{ github.sha }}
+          kube-config: ${{ secrets.KUBE_CONFIG_GAMEHUB }}
