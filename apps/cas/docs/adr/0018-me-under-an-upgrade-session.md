@@ -41,7 +41,7 @@ generated name, which ADR 0014 keeps out of the tokens and userinfo, and when
 the upgrade session ends. Both are accepted. The name is a label CAS
 generated and says nothing about a person; ADR 0014 made it per guest
 precisely so that CAS's own screens can show it, and keeping it from
-applications — so none presents it as a name the player chose — is not
+applications — so none presents it as a name the user chose — is not
 undone by showing it on CAS's own screen. `n` tells roughly how many guests
 were minted, to someone who can already mint one or be one. The expiry is at
 most the fixed hour. By ADR 0015 (b) the session stops resolving the moment

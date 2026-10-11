@@ -68,7 +68,7 @@ pub const AUTHORIZATION_CODE_LIFETIME: Duration = Duration::from_secs(60);
 /// revoked (ADR 0011), so this is how long a stolen one is worth anything
 /// and how long a revoked grant or an upgraded guest still shows in tokens
 /// already out. Ten minutes keeps that window short at the cost of a
-/// refresh every ten minutes of play: short-lived bearer tokens are what
+/// refresh every ten minutes of use: short-lived bearer tokens are what
 /// RFC 6819 §5.1.5.3 and the OWASP OAuth 2.0 cheat sheet advise.
 pub const ACCESS_TOKEN_LIFETIME: Duration = Duration::from_secs(10 * 60);
 

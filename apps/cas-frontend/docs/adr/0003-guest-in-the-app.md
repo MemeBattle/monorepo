@@ -9,9 +9,10 @@ upgrade session).
 
 ## Context
 
-A guest is an account an application minted for a player who never saw CAS
-(apps/cas ADR 0014). To keep the game data, the player turns the guest into
-a full account: the application sends the browser to `/oidc/authorize` with
+A guest is an account an application minted for a user who never saw CAS
+(apps/cas ADR 0014). To keep the application's data, the user turns the
+guest into a full account: the application sends the browser to
+`/oidc/authorize` with
 the guest's ID token as `id_token_hint`, CAS opens an upgrade session and
 sends the browser to `/create-account?return_to=…`, and a registration under
 that session upgrades the guest instead of creating an account (apps/cas
@@ -20,7 +21,7 @@ ADR 0015 (d), (e)).
 Until now the app could not tell a guest from a browser without a session:
 under an upgrade session `GET /api/me` was a 401. That made create-account
 reachable and the upgrade work unchanged, but the screen promised nothing
-about the game data, and a guest who abandoned the upgrade and opened the
+about the data, and a guest who abandoned the upgrade and opened the
 dashboard was shown sign-in. With apps/cas ADR 0018 `/api/me` answers the
 guest, and the app has to decide what that means everywhere it reads the
 session.
@@ -55,7 +56,7 @@ left behind by design (apps/cas ADR 0015 (d)).
 **(c) The upgrade is the create-account screen with other words.** Same
 route, form and ceremony, because the backend chooses by the session (apps/cas
 ADR 0015 (e)) and needs nothing else from the screen. Only the subtitle
-changes, to say that the game data stays.
+changes, to say that the data stays.
 
 **(d) A submit that promised to keep the data never becomes a new account.**
 The session can end under the screen — the hour runs out, the guest is

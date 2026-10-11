@@ -94,7 +94,7 @@ gates.** `scopes text[]` holds RFC 6749 scope tokens and defaults to
 `/authorize` refuses a request for anything outside the list.
 `first_party` means the client skips the consent screen — the applications in
 this ecosystem are ours, and a consent dialog between a user and their own
-game is friction, not information. `guest_login_allowed` gates the guest
+application is friction, not information. `guest_login_allowed` gates the guest
 grant (#746), which mints an account without any user interaction and so must
 be something a client is granted rather than something it can ask for. The
 `aud` (resource identifier) per client is not here: #743 adds that column

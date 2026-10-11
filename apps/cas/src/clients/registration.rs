@@ -224,11 +224,11 @@ mod tests {
     #[sqlx::test]
     async fn a_named_audience_is_stored(pool: PgPool) {
         let mut registration = registration(ClientKind::Confidential);
-        registration.audience = Some(Audience::try_new("games").unwrap());
+        registration.audience = Some(Audience::try_new("backend").unwrap());
 
         let registered = register(&pool, registration).await.unwrap();
 
-        assert_eq!(registered.client.audience.as_str(), "games");
+        assert_eq!(registered.client.audience.as_str(), "backend");
     }
 
     #[sqlx::test]
