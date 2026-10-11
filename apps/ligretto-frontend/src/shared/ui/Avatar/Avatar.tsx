@@ -4,9 +4,9 @@ import { styled } from '@mui/material/styles'
 
 import fallbackAvatar from './assets/u1.svg'
 
-export type AvatarSize = 'small' | 'medium' | 'large' | 'auto'
+type AvatarSize = 'small' | 'medium' | 'large' | 'auto'
 
-export const maxSizeBySize: Record<AvatarSize, string> = {
+const maxSizeBySize: Record<AvatarSize, string> = {
   small: '3rem',
   medium: '7.5rem',
   large: '10rem',

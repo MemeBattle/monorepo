@@ -2,7 +2,7 @@ import type { CSSProperties, Ref } from 'react'
 import { Box, Typography } from '@memebattle/ui'
 
 /** `top`-only position: the bubble is centred horizontally in the container. */
-export type BubblePosition = { top: number; transform?: string }
+type BubblePosition = { top: number; transform?: string }
 
 interface DescriptionBubbleProps {
   text: string
