@@ -11,6 +11,8 @@ name to release, so its answer never carries one.
 Amended (2026-10-04) by ADR 0017, with [#775](https://github.com/MemeBattle/monorepo/issues/775):
 the endpoints are at `/oidc/userinfo` and `/oidc/end_session`, not at the
 root; their CORS policies (e) and methods (h) are unchanged.
+Amended (2026-10-18) by ADR 0019: verification in (a) runs on the `p256`
+crate, not OpenSSL; what it accepts and refuses is unchanged.
 
 ## Context
 

@@ -12,6 +12,9 @@ Amended (2026-10-04) by ADR 0017, with [#775](https://github.com/MemeBattle/mono
 `/jwks.json` in (e) is served at `/oidc/jwks.json`, and the endpoints (f)
 advertises are `{issuer}/oidc/authorize`, `/oidc/token`, `/oidc/userinfo`
 and `/oidc/end_session`; the discovery document itself stays at the root.
+Amended (2026-10-18) by ADR 0019: the key is read and tokens are signed
+with the `p256` crate, not OpenSSL, in (a) and (g); the checks in (a), the
+JWK, the `kid` and the signature format are unchanged.
 
 ## Context
 
