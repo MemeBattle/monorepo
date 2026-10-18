@@ -28,6 +28,9 @@ web-time = "1"
 url = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Only for the hand-rolled protocol probe in src/raw.rs.
+tokio = { version = "1", default-features = false, features = ["io-util"] }
+md5 = { package = "md-5", version = "0.11" }
 
 # Copied verbatim from the monorepo root Cargo.toml.
 [patch.crates-io]

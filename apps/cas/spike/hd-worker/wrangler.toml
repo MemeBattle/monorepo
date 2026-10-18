@@ -5,8 +5,17 @@ compatibility_date = "2026-10-01"
 [build]
 command = "worker-build --release"
 
+[observability]
+enabled = true
+
+# Hyperdrive config with its query cache disabled.
 [[hyperdrive]]
 binding = "HYPERDRIVE"
-# Placeholder: local dev only, nothing is created in the account.
 id = "00000000000000000000000000000000"
+localConnectionString = "postgres://cas:cas@localhost:5434/cas"
+
+# Same origin, Hyperdrive's query cache on (the default).
+[[hyperdrive]]
+binding = "HYPERDRIVE_CACHED"
+id = "00000000000000000000000000000001"
 localConnectionString = "postgres://cas:cas@localhost:5434/cas"
