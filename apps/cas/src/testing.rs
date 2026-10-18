@@ -252,15 +252,20 @@ pub fn test_signing_key() -> SigningKey {
 /// A freshly generated P-256 key as PKCS#8 PEM: a key CAS does not
 /// publish, for a token a forger — or a retired key — signed.
 pub fn fresh_signing_key_pem() -> String {
-    use openssl::ec::{EcGroup, EcKey};
-    use openssl::nid::Nid;
-    use openssl::pkey::PKey;
+    use p256::pkcs8::{EncodePrivateKey, LineEnding};
 
-    let group = EcGroup::from_curve_name(Nid::X9_62_PRIME256V1).expect("P-256 is available");
-    let key = PKey::from_ec_key(EcKey::generate(&group).expect("a P-256 key generates"))
-        .expect("an EC key is a PKey");
-    String::from_utf8(key.private_key_to_pem_pkcs8().expect("the key serialises"))
-        .expect("PEM is ASCII")
+    // Rejection-sample a scalar from fresh bytes; p256's own `random` would
+    // need a second rand_core.
+    let key = loop {
+        let mut bytes = [0u8; 32];
+        getrandom::fill(&mut bytes).expect("the OS has randomness");
+        if let Ok(key) = p256::SecretKey::from_slice(&bytes) {
+            break key;
+        }
+    };
+    key.to_pkcs8_pem(LineEnding::LF)
+        .expect("the key serialises")
+        .to_string()
 }
 
 /// The configuration the router tests build `http::app` from: the

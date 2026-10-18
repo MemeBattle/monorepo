@@ -1,17 +1,17 @@
 //! The signing key set: the ES256 keys read from `CAS_SIGNING_KEY`, their
 //! public halves as JWKs, the compact JWS the active one produces, and the
 //! strict verification of a JWS CAS itself issued. See
-//! `docs/adr/0009-signing-key-and-discovery.md` and
-//! `docs/adr/0013-userinfo-and-rp-initiated-logout.md`.
+//! `docs/adr/0009-signing-key-and-discovery.md`,
+//! `docs/adr/0013-userinfo-and-rp-initiated-logout.md` and
+//! `docs/adr/0019-signing-on-rustcrypto.md`.
 
-use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-use openssl::bn::{BigNum, BigNumContext};
-use openssl::ec::EcKey;
-use openssl::ecdsa::EcdsaSig;
-use openssl::hash::MessageDigest;
-use openssl::nid::Nid;
-use openssl::pkey::{PKey, Private, Public};
-use openssl::sign::{Signer, Verifier};
+use base64::{
+    Engine,
+    engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD},
+};
+use p256::ecdsa::signature::{Signer, Verifier};
+use p256::ecdsa::{Signature, SigningKey as EcdsaSigningKey, VerifyingKey};
+use p256::pkcs8::{AssociatedOid, ObjectIdentifier, der::Decode};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
@@ -20,11 +20,14 @@ pub const SIGNING_ALGORITHM: &str = "ES256";
 
 /// P-256 coordinates and ECDSA scalars are 32 bytes (JWA §3.4, RFC 7518
 /// §6.2.1.2).
-const P256_FIELD_BYTES: i32 = 32;
+const P256_FIELD_BYTES: usize = 32;
+
+/// `id-ecPublicKey` (RFC 5480 §2.1.1), the PKCS#8 algorithm of an EC key.
+const EC_PUBLIC_KEY_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.10045.2.1");
 
 /// Why `CAS_SIGNING_KEY` cannot be used. Every variant names the 1-based
 /// position of the offending PEM block and nothing else: the `Display` text
-/// is what startup prints, and OpenSSL's own messages are not forwarded
+/// is what startup prints, and the parsers' own messages are not forwarded
 /// because they can quote their input.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum SigningKeyError {
@@ -79,10 +82,10 @@ pub struct Jwks {
 #[derive(Clone)]
 pub struct SigningKey {
     kid: String,
-    pkey: PKey<Private>,
+    pkey: EcdsaSigningKey,
     /// The public half, for [`VerifyingKeys`]; derived once when the key is
     /// read, so the PEM is never parsed twice.
-    public: PKey<Public>,
+    public: VerifyingKey,
     jwk: PublicJwk,
 }
 
@@ -107,10 +110,6 @@ impl SigningKey {
     /// A compact JWS (RFC 7515 §3.1) over `payload`, with the header
     /// `{"alg":"ES256","typ":<typ>,"kid":<kid>}`. `typ` is the caller's:
     /// `at+jwt` for an RFC 9068 access token, `JWT` for an ID token.
-    ///
-    /// The key was validated when it was read, so the OpenSSL calls below
-    /// fail only if OpenSSL itself is broken; they panic rather than make
-    /// every caller handle an error that cannot happen.
     pub fn sign(&self, typ: &str, payload: &[u8]) -> String {
         let header = serde_json::json!({
             "alg": SIGNING_ALGORITHM,
@@ -123,27 +122,14 @@ impl SigningKey {
             URL_SAFE_NO_PAD.encode(payload)
         );
 
-        let mut signer = Signer::new(MessageDigest::sha256(), &self.pkey)
-            .expect("a validated P-256 key can create a signer");
-        let der = signer
-            .sign_oneshot_to_vec(signing_input.as_bytes())
-            .expect("a validated P-256 key can sign");
-
-        // OpenSSL returns the DER `ECDSA-Sig-Value`; JWS wants `r || s`, each
+        // The fixed-size encoding is already the JWS `r || s`, each
         // left-padded to the field size (JWA §3.4).
-        let signature = EcdsaSig::from_der(&der).expect("OpenSSL produced a DER ECDSA signature");
-        let mut raw = signature
-            .r()
-            .to_vec_padded(P256_FIELD_BYTES)
-            .expect("r fits the P-256 field");
-        raw.extend(
-            signature
-                .s()
-                .to_vec_padded(P256_FIELD_BYTES)
-                .expect("s fits the P-256 field"),
-        );
+        let signature: Signature = self.pkey.sign(signing_input.as_bytes());
 
-        format!("{signing_input}.{}", URL_SAFE_NO_PAD.encode(raw))
+        format!(
+            "{signing_input}.{}",
+            URL_SAFE_NO_PAD.encode(signature.to_bytes())
+        )
     }
 }
 
@@ -175,7 +161,7 @@ impl SigningKeys {
         let verifying = VerifyingKeys {
             keys: keys
                 .iter()
-                .map(|key| (key.kid.clone(), key.public.clone()))
+                .map(|key| (key.kid.clone(), key.public))
                 .collect(),
         };
         let active = keys.into_iter().next().ok_or(SigningKeyError::NoKey)?;
@@ -256,7 +242,7 @@ const FORBIDDEN_HEADER_MEMBERS: [&str; 5] = ["crit", "jku", "jwk", "x5u", "x5c"]
 /// logout hint. `Debug` prints the `kid`s only.
 #[derive(Clone)]
 pub struct VerifyingKeys {
-    keys: Vec<(String, PKey<Public>)>,
+    keys: Vec<(String, VerifyingKey)>,
 }
 
 impl std::fmt::Debug for VerifyingKeys {
@@ -322,26 +308,17 @@ impl VerifyingKeys {
         let raw = URL_SAFE_NO_PAD
             .decode(signature)
             .map_err(|_| JwsError::Malformed)?;
-        let field = P256_FIELD_BYTES as usize;
-        if raw.len() != 2 * field {
+        if raw.len() != 2 * P256_FIELD_BYTES {
             return Err(JwsError::Signature);
         }
 
-        // JWS `r || s` back to the DER `ECDSA-Sig-Value` OpenSSL verifies
-        // (JWA §3.4), the inverse of what `sign` does.
-        let der = BigNum::from_slice(&raw[..field])
-            .and_then(|r| Ok((r, BigNum::from_slice(&raw[field..])?)))
-            .and_then(|(r, s)| EcdsaSig::from_private_components(r, s))
-            .and_then(|signature| signature.to_der())
-            .map_err(|_| JwsError::Signature)?;
+        // JWS `r || s` is the fixed-size encoding (JWA §3.4); a zero or
+        // out-of-range scalar is refused here.
+        let signature = Signature::from_slice(&raw).map_err(|_| JwsError::Signature)?;
         let signing_input_length = header.len() + 1 + payload.len();
         let signing_input = &jws.as_bytes()[..signing_input_length];
-        let verified = Verifier::new(MessageDigest::sha256(), key)
-            .and_then(|mut verifier| verifier.verify_oneshot(&der, signing_input))
-            .unwrap_or(false);
-        if !verified {
-            return Err(JwsError::Signature);
-        }
+        key.verify(signing_input, &signature)
+            .map_err(|_| JwsError::Signature)?;
 
         Ok(payload_bytes)
     }
@@ -413,7 +390,7 @@ fn pem_blocks(input: &str) -> Result<Vec<PemBlock<'_>>, SigningKeyError> {
 
 fn read_key(index: usize, block: &PemBlock<'_>) -> Result<SigningKey, SigningKeyError> {
     // Encrypted PKCS#8 announces itself in the label, encrypted SEC1 in a
-    // `Proc-Type` header. Both are refused before OpenSSL sees them.
+    // `Proc-Type` header. Both are refused before the key is decoded.
     let encrypted_header = block
         .text
         .lines()
@@ -422,33 +399,56 @@ fn read_key(index: usize, block: &PemBlock<'_>) -> Result<SigningKey, SigningKey
         return Err(SigningKeyError::Encrypted { index });
     }
 
-    // Never `private_key_from_pem`: it installs OpenSSL's default passphrase
-    // callback, which prompts on the terminal for an encrypted key instead
-    // of failing. This callback supplies no passphrase, so any encrypted
-    // form the checks above missed fails here.
-    let pkey = PKey::private_key_from_pem_callback(block.text.as_bytes(), |_| Ok(0))
+    let der = pem_body(block).ok_or(SigningKeyError::NotAPrivateKey { index })?;
+    let (sec1_der, curve_from_pkcs8) = match block.label {
+        // The traditional RSA and DSA forms are private keys, only not EC
+        // ones.
+        "RSA PRIVATE KEY" | "DSA PRIVATE KEY" => {
+            return Err(SigningKeyError::NotEcP256 { index });
+        }
+        "PRIVATE KEY" => {
+            let info = p256::pkcs8::PrivateKeyInfo::from_der(&der)
+                .map_err(|_| SigningKeyError::NotAPrivateKey { index })?;
+            let curve = info
+                .algorithm
+                .parameters_oid()
+                .map_err(|_| SigningKeyError::NotEcP256 { index })?;
+            if info.algorithm.oid != EC_PUBLIC_KEY_OID || curve != p256::NistP256::OID {
+                return Err(SigningKeyError::NotEcP256 { index });
+            }
+            (info.private_key.to_vec(), true)
+        }
+        "EC PRIVATE KEY" => (der, false),
+        _ => return Err(SigningKeyError::NotAPrivateKey { index }),
+    };
+    let sec1 = sec1::EcPrivateKey::from_der(&sec1_der)
         .map_err(|_| SigningKeyError::NotAPrivateKey { index })?;
-
-    let ec_key = pkey
-        .ec_key()
-        .map_err(|_| SigningKeyError::NotEcP256 { index })?;
-    let group = ec_key.group();
-    if group.curve_name() != Some(Nid::X9_62_PRIME256V1) {
+    // Inside PKCS#8 the curve is the algorithm's, checked above, and the
+    // SEC1 parameters are optional; a bare SEC1 key has only its own
+    // parameters to name the curve, so there they are required.
+    let named_curve = sec1
+        .parameters
+        .and_then(|parameters| parameters.named_curve());
+    let curve_matches = match named_curve {
+        Some(curve) => curve == p256::NistP256::OID,
+        None => curve_from_pkcs8,
+    };
+    if !curve_matches || sec1.private_key.len() != P256_FIELD_BYTES {
         return Err(SigningKeyError::NotEcP256 { index });
     }
 
-    // Parsing does not prove that the public point is `d·G`: a key whose
-    // private scalar was altered still parses, and CAS would publish a JWK
-    // that cannot verify its own signatures.
-    ec_key
-        .check_key()
-        .map_err(|_| SigningKeyError::Inconsistent { index })?;
+    // Parsing alone does not prove that the public point is `d·G`: a key
+    // whose private scalar was altered still parses, and CAS would publish a
+    // JWK that cannot verify its own signatures. The conversion compares the
+    // embedded public key with the one the scalar derives, and refuses a
+    // zero or out-of-range scalar.
+    let secret =
+        p256::SecretKey::try_from(sec1).map_err(|_| SigningKeyError::Inconsistent { index })?;
 
-    let (x, y) = affine_coordinates(&ec_key).ok_or(SigningKeyError::Inconsistent { index })?;
+    let pkey = EcdsaSigningKey::from(&secret);
+    let public = *pkey.verifying_key();
+    let (x, y) = affine_coordinates(&public);
     let kid = thumbprint(&x, &y);
-    let public = EcKey::from_public_key(group, ec_key.public_key())
-        .and_then(PKey::from_ec_key)
-        .map_err(|_| SigningKeyError::Inconsistent { index })?;
     let jwk = PublicJwk {
         kty: "EC",
         crv: "P-256",
@@ -467,19 +467,33 @@ fn read_key(index: usize, block: &PemBlock<'_>) -> Result<SigningKey, SigningKey
     })
 }
 
+/// The DER inside a PEM block: the base64 lines between its boundaries,
+/// joined. Header lines (`Name: value`) and blank lines are skipped, and the
+/// line width is not enforced, as OpenSSL's reader does not enforce it
+/// either; anything that is not base64 makes the block unreadable.
+fn pem_body(block: &PemBlock<'_>) -> Option<Vec<u8>> {
+    let mut lines = block.text.lines().map(str::trim);
+    lines.next()?;
+    let mut body = String::new();
+    for line in lines {
+        if line.starts_with("-----END ") {
+            break;
+        }
+        if line.is_empty() || line.contains(':') {
+            continue;
+        }
+        body.push_str(line);
+    }
+    STANDARD.decode(body).ok()
+}
+
 /// The public point's coordinates, each 32 bytes, base64url without padding.
-fn affine_coordinates(ec_key: &openssl::ec::EcKey<Private>) -> Option<(String, String)> {
-    let mut ctx = BigNumContext::new().ok()?;
-    let mut x = BigNum::new().ok()?;
-    let mut y = BigNum::new().ok()?;
-    ec_key
-        .public_key()
-        .affine_coordinates(ec_key.group(), &mut x, &mut y, &mut ctx)
-        .ok()?;
-    Some((
-        URL_SAFE_NO_PAD.encode(x.to_vec_padded(P256_FIELD_BYTES).ok()?),
-        URL_SAFE_NO_PAD.encode(y.to_vec_padded(P256_FIELD_BYTES).ok()?),
-    ))
+fn affine_coordinates(public: &VerifyingKey) -> (String, String) {
+    let point = public.to_encoded_point(false);
+    (
+        URL_SAFE_NO_PAD.encode(point.x().expect("an uncompressed point has x")),
+        URL_SAFE_NO_PAD.encode(point.y().expect("an uncompressed point has y")),
+    )
 }
 
 /// RFC 7638: SHA-256 over the required members in lexicographic order, no
@@ -496,62 +510,71 @@ mod tests {
     use crate::testing::{
         DEV_SIGNING_KEY as DEV_KEY, DEV_SIGNING_KEY_KID as DEV_KEY_KID, fresh_signing_key_pem,
     };
-    use openssl::ec::EcGroup;
-    use openssl::rsa::Rsa;
-    use openssl::symm::Cipher;
+    use p256::elliptic_curve::sec1::ToEncodedPoint;
+    use p256::pkcs8::DecodePrivateKey;
 
-    fn p256() -> EcGroup {
-        EcGroup::from_curve_name(Nid::X9_62_PRIME256V1).unwrap()
-    }
+    // Fixtures written once with the openssl CLI, so the parser is tested
+    // against what a real key tool emits rather than against itself.
+    const DEV_SEC1: &str = include_str!("keys_testdata/dev-sec1.pem");
+    const RSA: &str = include_str!("keys_testdata/rsa.pem");
+    const P384: &str = include_str!("keys_testdata/p384.pem");
+    /// `openssl pkcs8 -topk8 -v2 aes-256-cbc` of the dev key.
+    const ENCRYPTED_PKCS8: &str = include_str!("keys_testdata/encrypted-pkcs8.pem");
+    /// `openssl ec -aes128` of the dev key: a `Proc-Type: 4,ENCRYPTED`
+    /// header in an `EC PRIVATE KEY` block.
+    const ENCRYPTED_SEC1: &str = include_str!("keys_testdata/encrypted-sec1.pem");
 
-    fn dev_ec_key() -> EcKey<Private> {
-        PKey::private_key_from_pem(DEV_KEY.as_bytes())
-            .unwrap()
-            .ec_key()
-            .unwrap()
+    fn dev_secret() -> p256::SecretKey {
+        p256::SecretKey::from_pkcs8_pem(DEV_KEY).unwrap()
     }
 
     /// The dev key with its private scalar moved by one and its public point
     /// left alone: it parses, and it is not a key pair.
     fn tampered_pem() -> String {
-        let key = dev_ec_key();
-        let mut d = BigNum::new().unwrap();
-        d.checked_add(key.private_key(), &BigNum::from_u32(1).unwrap())
-            .unwrap();
-        let tampered = EcKey::from_private_components(&p256(), &d, key.public_key()).unwrap();
-        String::from_utf8(tampered.private_key_to_pem().unwrap()).unwrap()
+        use p256::pkcs8::der::Encode;
+
+        let secret = dev_secret();
+        let d = *secret.to_nonzero_scalar() + p256::Scalar::ONE;
+        let public = secret.public_key().to_encoded_point(false);
+        let d_bytes = d.to_bytes();
+        let tampered = sec1::EcPrivateKey {
+            private_key: &d_bytes,
+            parameters: Some(sec1::EcParameters::NamedCurve(
+                <p256::NistP256 as AssociatedOid>::OID,
+            )),
+            public_key: Some(public.as_bytes()),
+        };
+        pem("EC PRIVATE KEY", &tampered.to_der().unwrap(), 64)
+    }
+
+    /// `der` as a PEM block, its base64 wrapped at `width` columns.
+    fn pem(label: &str, der: &[u8], width: usize) -> String {
+        let base64 = STANDARD.encode(der);
+        let lines: Vec<&str> = base64
+            .as_bytes()
+            .chunks(width)
+            .map(|line| std::str::from_utf8(line).unwrap())
+            .collect();
+        format!(
+            "-----BEGIN {label}-----\n{}\n-----END {label}-----\n",
+            lines.join("\n")
+        )
     }
 
     fn rsa_pem() -> String {
-        let key = PKey::from_rsa(Rsa::generate(2048).unwrap()).unwrap();
-        String::from_utf8(key.private_key_to_pem_pkcs8().unwrap()).unwrap()
+        RSA.to_owned()
     }
 
     fn p384_pem() -> String {
-        let group = EcGroup::from_curve_name(Nid::SECP384R1).unwrap();
-        let key = PKey::from_ec_key(EcKey::generate(&group).unwrap()).unwrap();
-        String::from_utf8(key.private_key_to_pem_pkcs8().unwrap()).unwrap()
+        P384.to_owned()
     }
 
-    /// Encrypted PKCS#8, as `openssl pkcs8 -topk8 -v2 aes-256-cbc` writes it.
     fn encrypted_pkcs8_pem() -> String {
-        let key = PKey::from_ec_key(dev_ec_key()).unwrap();
-        String::from_utf8(
-            key.private_key_to_pem_pkcs8_passphrase(Cipher::aes_256_cbc(), b"x")
-                .unwrap(),
-        )
-        .unwrap()
+        ENCRYPTED_PKCS8.to_owned()
     }
 
-    /// Encrypted SEC1: a `Proc-Type: 4,ENCRYPTED` header in an
-    /// `EC PRIVATE KEY` block.
     fn encrypted_sec1_pem() -> String {
-        String::from_utf8(
-            dev_ec_key()
-                .private_key_to_pem_passphrase(Cipher::aes_128_cbc(), b"x")
-                .unwrap(),
-        )
-        .unwrap()
+        ENCRYPTED_SEC1.to_owned()
     }
 
     fn error(pem: &str) -> SigningKeyError {
@@ -569,11 +592,40 @@ mod tests {
 
     #[test]
     fn a_sec1_key_parses() {
-        let sec1 = String::from_utf8(dev_ec_key().private_key_to_pem().unwrap()).unwrap();
+        let sec1 = DEV_SEC1;
         assert!(sec1.starts_with("-----BEGIN EC PRIVATE KEY-----"));
 
-        let keys = SigningKeys::from_pem(&sec1).unwrap();
+        let keys = SigningKeys::from_pem(sec1).unwrap();
         assert_eq!(keys.active().kid(), DEV_KEY_KID);
+    }
+
+    /// OpenSSL reads base64 wrapped at any width, and so does CAS.
+    #[test]
+    fn a_key_wrapped_at_another_width_parses() {
+        use p256::pkcs8::EncodePrivateKey;
+
+        let der = dev_secret().to_pkcs8_der().unwrap();
+        let keys = SigningKeys::from_pem(&pem("PRIVATE KEY", der.as_bytes(), 76)).unwrap();
+        assert_eq!(keys.active().kid(), DEV_KEY_KID);
+    }
+
+    /// Outside PKCS#8 only the SEC1 parameters name the curve; a 32-byte
+    /// scalar alone could be a key on any 256-bit curve.
+    #[test]
+    fn a_sec1_key_that_does_not_name_its_curve_is_refused() {
+        use p256::pkcs8::der::Encode;
+
+        let secret = dev_secret();
+        let d_bytes = secret.to_bytes();
+        let public = secret.public_key().to_encoded_point(false);
+        let unnamed = sec1::EcPrivateKey {
+            private_key: &d_bytes,
+            parameters: None,
+            public_key: Some(public.as_bytes()),
+        };
+        let pem = pem("EC PRIVATE KEY", &unnamed.to_der().unwrap(), 64);
+
+        assert_eq!(error(&pem), SigningKeyError::NotEcP256 { index: 1 });
     }
 
     #[test]
@@ -630,6 +682,10 @@ mod tests {
         assert_eq!(
             error(&format!("{DEV_KEY}{}", p384_pem())),
             SigningKeyError::NotEcP256 { index: 2 }
+        );
+        assert_eq!(
+            error("-----BEGIN RSA PRIVATE KEY-----\nAAAA\n-----END RSA PRIVATE KEY-----\n"),
+            SigningKeyError::NotEcP256 { index: 1 }
         );
     }
 
@@ -720,7 +776,7 @@ mod tests {
     }
 
     #[test]
-    fn a_signature_is_a_compact_jws_that_openssl_verifies() {
+    fn a_signature_is_a_compact_jws_that_an_independent_parse_verifies() {
         let keys = SigningKeys::from_pem(DEV_KEY).unwrap();
         let jws = keys.active().sign("at+jwt", br#"{"sub":"ada"}"#);
 
@@ -741,24 +797,13 @@ mod tests {
         let raw = URL_SAFE_NO_PAD.decode(segments[2]).unwrap();
         assert_eq!(raw.len(), 64);
 
-        // The raw `r || s` goes back to DER, and OpenSSL verifies it with
-        // the public key alone.
-        let der = EcdsaSig::from_private_components(
-            BigNum::from_slice(&raw[..32]).unwrap(),
-            BigNum::from_slice(&raw[32..]).unwrap(),
-        )
-        .unwrap()
-        .to_der()
-        .unwrap();
-        let public = EcKey::from_public_key(&p256(), dev_ec_key().public_key()).unwrap();
-        let public = PKey::from_ec_key(public).unwrap();
+        // The raw `r || s` goes back to DER, and the public key, parsed from
+        // the PEM without `read_key`, verifies it.
+        let der = Signature::from_slice(&raw).unwrap().to_der();
+        let public = VerifyingKey::from(&EcdsaSigningKey::from(&dev_secret()));
         let signing_input = format!("{}.{}", segments[0], segments[1]);
-        let mut verifier = Verifier::new(MessageDigest::sha256(), &public).unwrap();
-        assert!(
-            verifier
-                .verify_oneshot(&der, signing_input.as_bytes())
-                .unwrap()
-        );
+        let der = p256::ecdsa::DerSignature::try_from(der.as_bytes()).unwrap();
+        assert!(public.verify(signing_input.as_bytes(), &der).is_ok());
     }
 
     fn dev_keys() -> SigningKeys {
@@ -774,14 +819,11 @@ mod tests {
             URL_SAFE_NO_PAD.encode(header.to_string()),
             URL_SAFE_NO_PAD.encode(payload)
         );
-        let mut signer = Signer::new(MessageDigest::sha256(), &key.pkey).unwrap();
-        let der = signer
-            .sign_oneshot_to_vec(signing_input.as_bytes())
-            .unwrap();
-        let signature = EcdsaSig::from_der(&der).unwrap();
-        let mut raw = signature.r().to_vec_padded(P256_FIELD_BYTES).unwrap();
-        raw.extend(signature.s().to_vec_padded(P256_FIELD_BYTES).unwrap());
-        format!("{signing_input}.{}", URL_SAFE_NO_PAD.encode(raw))
+        let signature: Signature = key.pkey.sign(signing_input.as_bytes());
+        format!(
+            "{signing_input}.{}",
+            URL_SAFE_NO_PAD.encode(signature.to_bytes())
+        )
     }
 
     fn header(typ: &str, kid: &str) -> serde_json::Value {
@@ -797,6 +839,65 @@ mod tests {
             keys.verifying_keys().verify(&jws, "at+jwt"),
             Ok(br#"{"sub":"ada"}"#.to_vec())
         );
+    }
+
+    /// A token the OpenSSL implementation signed with the dev key, before
+    /// CAS moved to p256: what was issued before the change still verifies
+    /// after it, against the same published key.
+    const OPENSSL_SIGNED_JWS: &str = "eyJhbGciOiJFUzI1NiIsImtpZCI6IkdXUDFfVTl3S0U5bDdZVmoxR1k5UXN1RmpQaEQ3enVTZ3l6ZkdGaERqNm8iLCJ0eXAiOiJhdCtqd3QifQ.eyJzdWIiOiJhZGEifQ.d7lGEw4Lw3Bfb4yHNHtpPiK3gux5pK9AUAQrfCM_aiTZIpiFgmZtZe-eJY37Seg63JnzALm4XCenC96dSvFcog";
+
+    #[test]
+    fn a_token_the_openssl_implementation_signed_still_verifies() {
+        let keys = dev_keys();
+
+        assert_eq!(
+            keys.verifying_keys().verify(OPENSSL_SIGNED_JWS, "at+jwt"),
+            Ok(br#"{"sub":"ada"}"#.to_vec())
+        );
+        // The same header, byte for byte: members in the same order, the
+        // same `kid`.
+        let fresh = keys.active().sign("at+jwt", br#"{"sub":"ada"}"#);
+        assert_eq!(
+            fresh.rsplit_once('.').unwrap().0,
+            OPENSSL_SIGNED_JWS.rsplit_once('.').unwrap().0
+        );
+        assert_eq!(
+            keys.active().jwk().x,
+            "F9GhANdIzQw3RUEpaYUWRTdJfJZ5O6mjm43op20xZC8"
+        );
+        assert_eq!(
+            keys.active().jwk().y,
+            "FA9L74VrOS2cuOR3bLtkgi44I2A5o96n_s2vbc43zi8"
+        );
+    }
+
+    /// OpenSSL does not normalise `s`, so about half of the tokens it signed
+    /// carry the high one; both `s` and `n - s` verify, as they did there.
+    #[test]
+    fn a_signature_with_either_s_verifies() {
+        let keys = dev_keys();
+        let verifying = keys.verifying_keys();
+
+        for jws in [
+            OPENSSL_SIGNED_JWS.to_owned(),
+            keys.active().sign("at+jwt", br#"{"sub":"ada"}"#),
+        ] {
+            let (signing_input, signature) = jws.rsplit_once('.').unwrap();
+            let signature =
+                Signature::from_slice(&URL_SAFE_NO_PAD.decode(signature).unwrap()).unwrap();
+            let (r, s) = signature.split_scalars();
+            let mirrored = Signature::from_scalars(r, -*s).unwrap();
+            for candidate in [signature, mirrored] {
+                let token = format!(
+                    "{signing_input}.{}",
+                    URL_SAFE_NO_PAD.encode(candidate.to_bytes())
+                );
+                assert_eq!(
+                    verifying.verify(&token, "at+jwt"),
+                    Ok(br#"{"sub":"ada"}"#.to_vec())
+                );
+            }
+        }
     }
 
     /// `typ` is what keeps an ID token from passing as an access token and
