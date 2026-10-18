@@ -34,9 +34,9 @@ md5 = { package = "md-5", version = "0.11" }
 
 # Copied verbatim from the monorepo root Cargo.toml.
 [patch.crates-io]
-sqlx = { git = "https://github.com/MemeBattle/sqlx", rev = "09ef6ac9470a13bad45c54df8f51d026d21e8625" }
-sqlx-core = { git = "https://github.com/MemeBattle/sqlx", rev = "09ef6ac9470a13bad45c54df8f51d026d21e8625" }
-sqlx-postgres = { git = "https://github.com/MemeBattle/sqlx", rev = "09ef6ac9470a13bad45c54df8f51d026d21e8625" }
+sqlx = { git = "https://github.com/MemeBattle/sqlx", rev = "6678c9a3b319909099412ca69a1362f506a39ea8" }
+sqlx-core = { git = "https://github.com/MemeBattle/sqlx", rev = "6678c9a3b319909099412ca69a1362f506a39ea8" }
+sqlx-postgres = { git = "https://github.com/MemeBattle/sqlx", rev = "6678c9a3b319909099412ca69a1362f506a39ea8" }
 
 [profile.release]
 opt-level = "z"
