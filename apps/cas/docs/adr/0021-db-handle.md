@@ -60,19 +60,22 @@ method that only delegates (`PasskeyManagement::list`, every
 database, and `AdditionService::start` must let the repository's own acquire
 finish before taking the connection for its ceremony.
 
-**(d) Nested acquires are a bug, surfaced as a 503.** On Workers there is one
-connection per request, so a holder of a `DbConn` must not call into anything
-that acquires again: the connection travels down as `&mut PgConnection` — as
-an open transaction already did — never as the `Db`. On the
-connection-backed variant `acquire` uses `try_lock_owned`, so a second
-overlapping acquire fails at once rather than deadlocking. It fails as
+**(d) Nested acquires are a bug, surfaced as a retryable failure.** On
+Workers there is one connection per request, so a holder of a `DbConn` must
+not call into anything that acquires again: the connection travels down as
+`&mut PgConnection` — as an open transaction already did — never as the
+`Db`. On the connection-backed variant `acquire` uses `try_lock_owned`, so a
+second overlapping acquire fails at once rather than deadlocking. It fails as
 `sqlx::Error::PoolTimedOut`, which `db::classify` already calls
-`Failure::Unavailable`, so every transport answers it with the retryable 503
-it already answers a database failure with: `database_unavailable` under
-`/api`, `temporarily_unavailable` on the OAuth-shaped OIDC endpoints
-(`/oidc/authorize`, `/oidc/token`, `/oidc/userinfo`), the
-`service_unavailable` page on `/oidc/end_session`. No new error code, and
-never an explicit 500. Reusing an existing variant means a Worker log will
+`Failure::Unavailable`, so each transport answers it with the retryable
+answer it already gives a database failure: 503 `database_unavailable` under
+`/api`, 503 `temporarily_unavailable` on `/oidc/token` and `/oidc/userinfo`,
+the 503 `service_unavailable` page on `/oidc/end_session`. `/oidc/authorize`
+answers on whichever side of its trust boundary the contention falls: before
+the redirect URI is verified, that same 503 `service_unavailable` page; after
+it, the failure belongs to the client, so a `302` back to the redirect URI
+carrying `error=temporarily_unavailable` (RFC 6749 §4.1.2.1). No new error
+code, and never an explicit 500. Reusing an existing variant means a Worker log will
 read "pool timed out" where no pool exists; that is accepted for a
 zero-surface error contract, and is the thing to revisit if the two ever have
 to be told apart.
