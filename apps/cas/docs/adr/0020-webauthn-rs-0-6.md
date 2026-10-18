@@ -102,5 +102,22 @@ needs nothing, and a rollback finds no row it cannot read. No migration.
   RSA x5c) is refused. crypto-glue 0.1.18 fixes the match, but 0.1.16–0.1.18
   pin `digest = "=0.11.0-rc.12"`, which cannot share the lock with the
   `digest` 0.11 that sqlx and `sha2` need. CAS asks for no attestation
-  (`attestation: none`), and browsers then send a `none` statement, so this
-  is not expected in practice.
+  (`attestation: none`). A conforming browser then strips any
+  certificate-bearing statement, but it may keep packed self-attestation
+  (zero AAGUID, no x5c). That is what the software authenticator's fixture
+  carries, which is why that fixture is legitimate and why it does not
+  exercise this defect. A packed statement with an RSA x5c can still reach
+  CAS from a client that is not a browser and asks for `direct`. Its
+  registration then fails closed: `400 registration_verification_failed`,
+  and the ceremony is consumed.
+- Known behavioural difference: stricter decoding of the browser's answer.
+  In 0.5, the binary fields of a registration or login response were
+  `Base64UrlSafeData`, which accepted a url-safe base64 string, raw bytes or
+  an array of integers. In 0.6 they are serde_with's
+  `Base64<UrlSafe, Unpadded>`, so only url-safe base64 strings decode. A body
+  carrying integer arrays or the standard base64 alphabet now fails with
+  CAS's `422 invalid_body` before any verification. Canonical browser
+  base64url output keeps working, padded or not, and cas-frontend sends
+  exactly that. The unchanged OpenAPI document does not show that the
+  accepted inputs are the same: it describes those payloads as opaque
+  objects.
