@@ -1,5 +1,5 @@
 [workspace]
-members = ["apps/cas"]
+members = ["apps/cas", "vendor/sqlx-cloudflare-hd"]
 resolver = "2"
 
 # sqlx 0.9.0 cannot open a connection on wasm32-unknown-unknown (Cloudflare
