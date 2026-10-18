@@ -4,7 +4,7 @@
 
 Accepted (2026-10-18). Completes what ADR 0019 left open: OpenSSL is no
 longer anywhere in the dependency tree. Nothing on the wire and nothing
-stored changes.
+stored changes, with the behavioural differences listed under Consequences.
 
 ## Context
 
@@ -31,18 +31,26 @@ cannot read what the previous one wrote would lock users out.
 
 **(a) webauthn-rs 0.6.1-dev, from a MemeBattle fork pinned by full rev.**
 [`MemeBattle/webauthn-rs`](https://github.com/MemeBattle/webauthn-rs), tag
-`v0.6.1-dev-memebattle.1` (branch `memebattle/v0.6.1-dev-wasm-clock`), is
+`v0.6.1-dev-memebattle.2` (branch `memebattle/v0.6.1-dev-wasm-clock`), is
 upstream commit `8a80623a` (the one crates.io's 0.6.1-dev crates name in
-their `.cargo_vcs_info.json`; their sources match it file for file) plus one
-commit: `webauthn-rs-core` reads the clock through the `web-time` crate,
-which re-exports std's clock everywhere except wasm32, where it reads
-`Date.now()`. The root `Cargo.toml` patches `webauthn-rs`,
+their `.cargo_vcs_info.json`; their sources match it file for file) plus two
+commits. In the first, `webauthn-rs-core` reads the clock through the
+`web-time` crate, which re-exports std's clock everywhere except wasm32,
+where it reads `Date.now()`. The second adds
+`WebauthnBuilder::algorithms`, for (b); the library's default is unchanged. The root `Cargo.toml` patches `webauthn-rs`,
 `webauthn-rs-core`, `webauthn-rs-proto`, `webauthn-attestation-ca` and
 `webauthn-authenticator-rs` (dev only) to that rev, the way it patches sqlx:
 the crates pin each other exactly, so they come from one source together.
-The tag message carries a patch description ready for an upstream PR.
+The tag messages carry a patch description for each commit, ready for
+upstream PRs.
 
-**(b) The API stays what it was.** 0.6 made `CredentialID` a bare `Vec<u8>`,
+**(b) The API stays what it was.** 0.6's default credential algorithms
+(`COSEAlgorithm::secure_algs()`) add ES384 to 0.5's ES256 and RS256, and
+0.5 cannot verify an ES384 credential. CAS therefore sets its own list,
+`webauthn::CREDENTIAL_ALGORITHMS`: `pubKeyCredParams` stays exactly
+`[-7, -257]` in that order, and a test holds it. The algorithms are part of
+CAS's wire contract, not the library's to change. 0.6 made `CredentialID` a
+bare `Vec<u8>`,
 which serialises as an array of numbers. The `credentialId` of
 `/verify-registration` and `/verify-login` is therefore written by CAS
 itself, base64url without padding, as before; the OpenAPI document is
@@ -78,3 +86,21 @@ needs nothing, and a rollback finds no row it cannot read. No migration.
   is captured under the version being left before the bump, as here.
 - A later upgrade keeps these 0.5.5 fixtures: a passkey written by 0.5.5
   must load for as long as any are stored.
+- Known behavioural difference: the hash used to check an EC signature. 0.5
+  verified an ES256 (`-7`) credential with SHA-256 whatever its curve. 0.6
+  picks the hash from the key's curve: SHA-384 for P-384, and P-521 is
+  refused. So a credential stored as ES256 with a P-384 key would stop
+  signing in. CAS has only ever offered ES256 and RS256, and an ES256 key is
+  P-256, so no conforming authenticator produced one, and CAS had no
+  production credentials before this change. The stored-data tests cover
+  P-256 keys only.
+- Known gap, unfixed: crypto-glue 0.1.15, which webauthn-rs 0.6.1-dev pulls,
+  cannot verify a signature made with an RSA attestation certificate. It
+  matches the certificate's `rsaEncryption` key against
+  `sha256WithRSAEncryption` and fails with `SignatureAlgorithmNotImplemented`,
+  so a registration carrying such a statement (a TPM or packed one with an
+  RSA x5c) is refused. crypto-glue 0.1.18 fixes the match, but 0.1.16–0.1.18
+  pin `digest = "=0.11.0-rc.12"`, which cannot share the lock with the
+  `digest` 0.11 that sqlx and `sha2` need. CAS asks for no attestation
+  (`attestation: none`), and browsers then send a `none` statement, so this
+  is not expected in practice.
