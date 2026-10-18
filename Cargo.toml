@@ -6,9 +6,14 @@ resolver = "2"
 # Workers): `PgStream::connect` only knows TCP and unix sockets, and
 # `std::time::Instant::now()` traps there. The MemeBattle fork adds
 # `PgConnection::connect_with_socket` and a wasm-safe `Instant`, which upstream
-# refused in transact-rs/sqlx#4444. The pinned commit is tag v0.9.0 plus those
-# two cherry-picks (tag v0.9.0-memebattle.1, branch memebattle/v0.9.0-wasm-socket).
+# refused in transact-rs/sqlx#4444. Cloudflare Hyperdrive also rejects every
+# Close message and cannot keep sqlx's named statements apart across Worker
+# requests, so the fork no longer sends Close(Portal) after Execute, prepares
+# uncached statements unnamed (connect through Hyperdrive with
+# statement_cache_capacity(0)) and re-parses an unnamed statement a simple
+# Query dropped. The pinned commit is tag v0.9.0 plus those five commits
+# (tag v0.9.0-memebattle.2, branch memebattle/v0.9.0-hyperdrive).
 [patch.crates-io]
-sqlx = { git = "https://github.com/MemeBattle/sqlx", rev = "09ef6ac9470a13bad45c54df8f51d026d21e8625" }
-sqlx-core = { git = "https://github.com/MemeBattle/sqlx", rev = "09ef6ac9470a13bad45c54df8f51d026d21e8625" }
-sqlx-postgres = { git = "https://github.com/MemeBattle/sqlx", rev = "09ef6ac9470a13bad45c54df8f51d026d21e8625" }
+sqlx = { git = "https://github.com/MemeBattle/sqlx", rev = "6678c9a3b319909099412ca69a1362f506a39ea8" }
+sqlx-core = { git = "https://github.com/MemeBattle/sqlx", rev = "6678c9a3b319909099412ca69a1362f506a39ea8" }
+sqlx-postgres = { git = "https://github.com/MemeBattle/sqlx", rev = "6678c9a3b319909099412ca69a1362f506a39ea8" }

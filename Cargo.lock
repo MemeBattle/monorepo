@@ -1879,7 +1879,7 @@ version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51e219e79014df21a225b1860a479e2dcd7cbd9130f4defd4bd0e191ea31d67d"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.21.7",
  "chrono",
  "getrandom 0.2.17",
  "http",
@@ -2790,7 +2790,7 @@ dependencies = [
 [[package]]
 name = "sqlx"
 version = "0.9.0"
-source = "git+https://github.com/MemeBattle/sqlx?rev=09ef6ac9470a13bad45c54df8f51d026d21e8625#09ef6ac9470a13bad45c54df8f51d026d21e8625"
+source = "git+https://github.com/MemeBattle/sqlx?rev=6678c9a3b319909099412ca69a1362f506a39ea8#6678c9a3b319909099412ca69a1362f506a39ea8"
 dependencies = [
  "sqlx-core",
  "sqlx-macros",
@@ -2816,7 +2816,7 @@ dependencies = [
 [[package]]
 name = "sqlx-core"
 version = "0.9.0"
-source = "git+https://github.com/MemeBattle/sqlx?rev=09ef6ac9470a13bad45c54df8f51d026d21e8625#09ef6ac9470a13bad45c54df8f51d026d21e8625"
+source = "git+https://github.com/MemeBattle/sqlx?rev=6678c9a3b319909099412ca69a1362f506a39ea8#6678c9a3b319909099412ca69a1362f506a39ea8"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -2854,7 +2854,7 @@ dependencies = [
 [[package]]
 name = "sqlx-macros"
 version = "0.9.0"
-source = "git+https://github.com/MemeBattle/sqlx?rev=09ef6ac9470a13bad45c54df8f51d026d21e8625#09ef6ac9470a13bad45c54df8f51d026d21e8625"
+source = "git+https://github.com/MemeBattle/sqlx?rev=6678c9a3b319909099412ca69a1362f506a39ea8#6678c9a3b319909099412ca69a1362f506a39ea8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2866,7 +2866,7 @@ dependencies = [
 [[package]]
 name = "sqlx-macros-core"
 version = "0.9.0"
-source = "git+https://github.com/MemeBattle/sqlx?rev=09ef6ac9470a13bad45c54df8f51d026d21e8625#09ef6ac9470a13bad45c54df8f51d026d21e8625"
+source = "git+https://github.com/MemeBattle/sqlx?rev=6678c9a3b319909099412ca69a1362f506a39ea8#6678c9a3b319909099412ca69a1362f506a39ea8"
 dependencies = [
  "cfg-if",
  "dotenvy",
@@ -2891,7 +2891,7 @@ dependencies = [
 [[package]]
 name = "sqlx-mysql"
 version = "0.9.0"
-source = "git+https://github.com/MemeBattle/sqlx?rev=09ef6ac9470a13bad45c54df8f51d026d21e8625#09ef6ac9470a13bad45c54df8f51d026d21e8625"
+source = "git+https://github.com/MemeBattle/sqlx?rev=6678c9a3b319909099412ca69a1362f506a39ea8#6678c9a3b319909099412ca69a1362f506a39ea8"
 dependencies = [
  "bitflags 2.13.1",
  "byteorder",
@@ -2918,7 +2918,7 @@ dependencies = [
 [[package]]
 name = "sqlx-postgres"
 version = "0.9.0"
-source = "git+https://github.com/MemeBattle/sqlx?rev=09ef6ac9470a13bad45c54df8f51d026d21e8625#09ef6ac9470a13bad45c54df8f51d026d21e8625"
+source = "git+https://github.com/MemeBattle/sqlx?rev=6678c9a3b319909099412ca69a1362f506a39ea8#6678c9a3b319909099412ca69a1362f506a39ea8"
 dependencies = [
  "atoi",
  "base64 0.22.1",
@@ -2954,7 +2954,7 @@ dependencies = [
 [[package]]
 name = "sqlx-sqlite"
 version = "0.9.0"
-source = "git+https://github.com/MemeBattle/sqlx?rev=09ef6ac9470a13bad45c54df8f51d026d21e8625#09ef6ac9470a13bad45c54df8f51d026d21e8625"
+source = "git+https://github.com/MemeBattle/sqlx?rev=6678c9a3b319909099412ca69a1362f506a39ea8#6678c9a3b319909099412ca69a1362f506a39ea8"
 dependencies = [
  "atoi",
  "flume",
