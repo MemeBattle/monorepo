@@ -38,6 +38,7 @@ use utoipa_axum::router::OpenApiRouter;
 use crate::accounts::AccountManagement;
 use crate::accounts::http as accounts_http;
 use crate::config::Config;
+use crate::db::Db;
 use crate::http::error::ApiError;
 use crate::http::fetch_metadata::AllowedOrigins;
 use crate::oidc::http::{self as oidc_http, Documents};
@@ -126,6 +127,11 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
         .connect_lazy(&config.database_url)
         .map_err(AppError::DbPool)?;
 
+    // The one handle every service reaches the database through (ADR 0021).
+    // `/health` keeps the pool itself: it probes connectivity with its own
+    // timeout and answers for the process, not for a request.
+    let db = Db::pool(pool.clone());
+
     let webauthn = build_webauthn(&config.rp_id, &config.origin).map_err(AppError::WebauthnInit)?;
 
     // Only the server signs, so only the server refuses to start without a
@@ -149,27 +155,27 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
     let verifying_keys = signing_keys.verifying_keys();
 
     let api_state = ApiState {
-        registration: RegistrationService::new(webauthn.clone(), pool.clone()),
-        login: LoginService::new(webauthn.clone(), pool.clone()),
-        addition: AdditionService::new(webauthn.clone(), pool.clone()),
-        upgrade: UpgradeService::new(webauthn, pool.clone()),
-        passkeys: PasskeyManagement::new(pool.clone()),
-        accounts: AccountManagement::new(pool.clone()),
-        sessions: SessionService::new(pool.clone()),
+        registration: RegistrationService::new(webauthn.clone(), db.clone()),
+        login: LoginService::new(webauthn.clone(), db.clone()),
+        addition: AdditionService::new(webauthn.clone(), db.clone()),
+        upgrade: UpgradeService::new(webauthn, db.clone()),
+        passkeys: PasskeyManagement::new(db.clone()),
+        accounts: AccountManagement::new(db.clone()),
+        sessions: SessionService::new(db.clone()),
         cookies: CookieSettings::for_origin(&config.origin),
-        authorization: AuthorizationService::new(pool.clone()),
+        authorization: AuthorizationService::new(db.clone()),
         tokens: TokenService::new(
-            pool.clone(),
+            db.clone(),
             signing_keys.active().clone(),
             config.issuer.clone(),
         ),
-        userinfo: UserInfoService::new(pool.clone(), verifying_keys.clone(), config.issuer.clone()),
+        userinfo: UserInfoService::new(db.clone(), verifying_keys.clone(), config.issuer.clone()),
         end_session: EndSessionService::new(
-            AuthorizationService::new(pool.clone()),
+            AuthorizationService::new(db.clone()),
             verifying_keys.clone(),
             config.issuer.clone(),
         ),
-        upgrade_hints: UpgradeHintService::new(pool.clone(), verifying_keys, config.issuer.clone()),
+        upgrade_hints: UpgradeHintService::new(db, verifying_keys, config.issuer.clone()),
         frontend_origin: config.origin.clone(),
     };
 

@@ -12,13 +12,14 @@
 //! ADR 0002 (c) describes. No account is created and no session is opened.
 //! See `docs/adr/0006-passkey-management.md`, decision (g).
 
-use sqlx::PgPool;
+use sqlx::Connection;
 use uuid::Uuid;
 use webauthn_rs::prelude::{
     CreationChallengeResponse, CredentialID, RegisterPublicKeyCredential, Webauthn,
 };
 
 use crate::accounts::Account;
+use crate::db::Db;
 use crate::webauthn::ceremonies::{PendingAddition, Taken};
 use crate::webauthn::passkeys::{CreateError, DEFAULT_PASSKEY_NAME, PasskeyCredential};
 use crate::webauthn::registration::{
@@ -39,15 +40,16 @@ pub struct StartedAddition {
 pub struct AdditionService {
     webauthn: Webauthn,
     passkeys: PasskeyRepository,
-    pool: PgPool,
+    db: Db,
 }
 
 impl AdditionService {
-    pub fn new(webauthn: Webauthn, pool: PgPool) -> Self {
+    pub fn new(webauthn: Webauthn, db: impl Into<Db>) -> Self {
+        let db = db.into();
         Self {
             webauthn,
-            passkeys: PasskeyRepository::new(pool.clone()),
-            pool,
+            passkeys: PasskeyRepository::new(db.clone()),
+            db,
         }
     }
 
@@ -75,8 +77,12 @@ impl AdditionService {
         )
         .map_err(StartError::Webauthn)?;
 
+        // The repository above acquired for its own read and released it on
+        // return, so this acquire is the first of the method's own database
+        // work; the two never overlap.
+        let mut conn = self.db.acquire().await?;
         let registration_id = repository::start_ceremony(
-            &self.pool,
+            &mut *conn,
             &PendingAddition {
                 account_id: account.id,
                 state,
@@ -106,7 +112,8 @@ impl AdditionService {
         registration_id: Uuid,
         response: &RegisterPublicKeyCredential,
     ) -> Result<PasskeyCredential, FinishError> {
-        let mut tx = self.pool.begin().await?;
+        let mut conn = self.db.acquire().await?;
+        let mut tx = conn.begin().await?;
 
         let pending: PendingAddition =
             match repository::take_ceremony(&mut *tx, registration_id).await? {
@@ -157,6 +164,8 @@ impl AdditionService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sqlx::PgPool;
+
     use crate::accounts::AccountRepository;
     use crate::testing::{
         ResidentSoftPasskey, display_name, register_soft_passkey, soft_passkey_assertion,
@@ -218,6 +227,39 @@ mod tests {
             ceremony_count(&pool).await,
             0,
             "a finished ceremony is gone"
+        );
+    }
+
+    /// The delegate-then-acquire path on one connection (ADR 0021): `start`
+    /// lists the account's passkeys through the repository, which acquires
+    /// and releases for itself, and only then acquires for the ceremony it
+    /// writes. On a handle over a single connection the two acquires must be
+    /// sequential, so a nested one would be refused here instead of serving
+    /// the challenge.
+    #[sqlx::test]
+    async fn start_runs_on_one_connection_after_listing_the_passkeys(pool: PgPool) {
+        let (_, registered) = register_soft_passkey(&pool).await;
+        let service = AdditionService::new(
+            test_webauthn(),
+            Db::connection(pool.acquire().await.unwrap().detach()),
+        );
+
+        let started = service.start(&registered.account).await.unwrap();
+
+        let excluded: Vec<Vec<u8>> = started
+            .ccr
+            .public_key
+            .exclude_credentials
+            .as_deref()
+            .unwrap_or_default()
+            .iter()
+            .map(|descriptor| descriptor.id.to_vec())
+            .collect();
+        assert_eq!(excluded, [registered.credential.credential_id.clone()]);
+        assert_eq!(
+            ceremony_count(&pool).await,
+            1,
+            "the ceremony was written on the same connection"
         );
     }
 

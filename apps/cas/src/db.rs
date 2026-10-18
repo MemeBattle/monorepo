@@ -1,5 +1,133 @@
-//! Shared database infrastructure: how a `sqlx::Error` is classified for
-//! callers that must decide whether a failure is the caller's to retry.
+//! Shared database infrastructure: how a service reaches the database, and
+//! how a `sqlx::Error` is classified for callers that must decide whether a
+//! failure is the caller's to retry.
+
+use std::ops::{Deref, DerefMut};
+use std::sync::Arc;
+
+use sqlx::PgConnection;
+#[cfg(not(target_arch = "wasm32"))]
+use sqlx::{PgPool, Postgres, pool::PoolConnection};
+use tokio::sync::{Mutex, OwnedMutexGuard};
+
+/// The database as a service holds it: something to acquire a connection
+/// from, with no say in where that connection comes from.
+///
+/// Natively it is the process-wide [`PgPool`] `http::app` built, with its
+/// statement cache and its acquire timeout. On Cloudflare Workers a pool
+/// cannot exist — its semaphore panics without a runtime, it spawns tasks,
+/// and a socket may not be shared between requests — so there the entrypoint
+/// opens one [`PgConnection`] per request from the Hyperdrive binding and
+/// hands it over as [`Db::connection`](Self::connection)
+/// (`docs/spike-sqlx-worker.md`, ADR 0021). Product code sees neither: it
+/// acquires, and the handle decides what that means.
+///
+/// Cloning is cheap and shares the pool, or the one connection: the router
+/// builds a single handle and every service holds a clone of it.
+#[derive(Debug, Clone)]
+pub struct Db(Inner);
+
+/// What the handle wraps. The `Connection` variant is compiled on every
+/// target, so the single-connection contract — including the contention
+/// error — is exercised by `cargo test` natively; the `Pool` variant cannot
+/// exist on wasm32, so it is not even named there.
+#[derive(Debug, Clone)]
+enum Inner {
+    #[cfg(not(target_arch = "wasm32"))]
+    Pool(PgPool),
+    Connection(Arc<Mutex<PgConnection>>),
+}
+
+impl Db {
+    /// The native handle: every acquire is a checkout from `pool`.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn pool(pool: PgPool) -> Self {
+        Self(Inner::Pool(pool))
+    }
+
+    /// The handle over one connection, which every acquire of this request
+    /// shares: what the Worker entrypoint builds from its Hyperdrive
+    /// binding, and what a test builds to prove a call path never acquires
+    /// twice at once.
+    pub fn connection(connection: PgConnection) -> Self {
+        Self(Inner::Connection(Arc::new(Mutex::new(connection))))
+    }
+
+    /// A connection to run the next operation on, for as long as the guard
+    /// it returns lives.
+    ///
+    /// Acquire it immediately before the method's first direct database
+    /// operation — after the validation that needs no database has passed,
+    /// and after any service it delegates to, which acquires for itself, has
+    /// returned — then reuse that one guard for the rest of the method. A
+    /// method that only delegates acquires nothing.
+    ///
+    /// Nested acquires are a bug: on Workers there is one connection per
+    /// request, so a caller holding a [`DbConn`] must not call into anything
+    /// that acquires again. Pass the connection down as `&mut PgConnection`,
+    /// the way an open transaction already travels, never the `Db` itself.
+    /// On the connection-backed handle the second acquire does not deadlock:
+    /// it fails at once as [`sqlx::Error::PoolTimedOut`], which [`classify`]
+    /// calls [`Failure::Unavailable`] and the API answers with a 503, so the
+    /// bug surfaces as a retryable failure instead of a hung request.
+    pub async fn acquire(&self) -> Result<DbConn, sqlx::Error> {
+        match &self.0 {
+            #[cfg(not(target_arch = "wasm32"))]
+            Inner::Pool(pool) => Ok(DbConn(Guard::Pooled(pool.acquire().await?))),
+            Inner::Connection(connection) => Arc::clone(connection)
+                .try_lock_owned()
+                .map(|guard| DbConn(Guard::Owned(guard)))
+                .map_err(|_| sqlx::Error::PoolTimedOut),
+        }
+    }
+}
+
+/// `#[sqlx::test]` hands a fixture a `PgPool`, and a service is built from
+/// it exactly as the router builds one from the process pool.
+#[cfg(not(target_arch = "wasm32"))]
+impl From<PgPool> for Db {
+    fn from(pool: PgPool) -> Self {
+        Self::pool(pool)
+    }
+}
+
+/// A connection held for the rest of the operation: a checkout on the pool
+/// variant, the request's one connection on the other. It derefs to
+/// [`PgConnection`], so `&mut *conn` is the executor a repository takes and
+/// `conn.begin()` the transaction a service opens (`sqlx::Connection`).
+/// Dropping it returns the connection, or releases it for the next acquire
+/// of the request.
+#[derive(Debug)]
+pub struct DbConn(Guard);
+
+#[derive(Debug)]
+enum Guard {
+    #[cfg(not(target_arch = "wasm32"))]
+    Pooled(PoolConnection<Postgres>),
+    Owned(OwnedMutexGuard<PgConnection>),
+}
+
+impl Deref for DbConn {
+    type Target = PgConnection;
+
+    fn deref(&self) -> &Self::Target {
+        match &self.0 {
+            #[cfg(not(target_arch = "wasm32"))]
+            Guard::Pooled(connection) => connection,
+            Guard::Owned(connection) => connection,
+        }
+    }
+}
+
+impl DerefMut for DbConn {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        match &mut self.0 {
+            #[cfg(not(target_arch = "wasm32"))]
+            Guard::Pooled(connection) => connection,
+            Guard::Owned(connection) => connection,
+        }
+    }
+}
 
 /// SQLSTATE classes that say the database, not the statement, is the problem:
 /// `08` connection exception, `53` insufficient resources, `57` operator
@@ -112,6 +240,107 @@ pub(crate) mod test_support {
 mod tests {
     use super::test_support::db_error;
     use super::*;
+    use sqlx::Connection;
+
+    /// A table of this test's own database, so the handle is exercised
+    /// without borrowing a context's rows. Unchecked query: see
+    /// docs/TESTS.md.
+    async fn scratch(pool: &PgPool) {
+        sqlx::query("CREATE TABLE scratch (id int PRIMARY KEY)")
+            .execute(pool)
+            .await
+            .unwrap();
+    }
+
+    /// Unchecked query: see docs/TESTS.md.
+    async fn rows(pool: &PgPool) -> i64 {
+        sqlx::query_scalar("SELECT count(*) FROM scratch")
+            .fetch_one(pool)
+            .await
+            .unwrap()
+    }
+
+    /// Unchecked query: see docs/TESTS.md.
+    async fn insert(conn: &mut PgConnection, id: i32) {
+        sqlx::query("INSERT INTO scratch (id) VALUES ($1)")
+            .bind(id)
+            .execute(conn)
+            .await
+            .unwrap();
+    }
+
+    /// What a service does: acquire, then run on `&mut *conn`.
+    #[sqlx::test]
+    async fn a_pooled_handle_lends_a_connection_to_run_on(pool: PgPool) {
+        scratch(&pool).await;
+        let db = Db::pool(pool.clone());
+
+        let mut conn = db.acquire().await.unwrap();
+        insert(&mut conn, 1).await;
+
+        assert_eq!(rows(&pool).await, 1);
+    }
+
+    /// The other shape: a transaction begun on the acquired connection, and
+    /// the same guard reused for the next one.
+    #[sqlx::test]
+    async fn a_transaction_on_an_acquired_connection_commits_and_rolls_back(pool: PgPool) {
+        scratch(&pool).await;
+        let db = Db::pool(pool.clone());
+        let mut conn = db.acquire().await.unwrap();
+
+        let mut tx = conn.begin().await.unwrap();
+        insert(&mut tx, 1).await;
+        tx.commit().await.unwrap();
+        assert_eq!(rows(&pool).await, 1);
+
+        let mut tx = conn.begin().await.unwrap();
+        insert(&mut tx, 2).await;
+        tx.rollback().await.unwrap();
+
+        assert_eq!(rows(&pool).await, 1, "the rollback wrote nothing");
+    }
+
+    /// The Worker's handle: one connection, lent out once at a time, and a
+    /// second overlapping acquire refused at once rather than waited for.
+    #[sqlx::test]
+    async fn a_connection_handle_lends_its_one_connection_in_turn(pool: PgPool) {
+        scratch(&pool).await;
+        let db = Db::connection(pool.acquire().await.unwrap().detach());
+
+        let mut conn = db.acquire().await.unwrap();
+        insert(&mut conn, 1).await;
+        let contended = db.acquire().await.unwrap_err();
+        assert!(
+            matches!(contended, sqlx::Error::PoolTimedOut),
+            "{contended:?}"
+        );
+        assert!(matches!(classify(&contended), Some(Failure::Unavailable),));
+
+        drop(conn);
+        let mut conn = db.acquire().await.unwrap();
+        insert(&mut conn, 2).await;
+        drop(conn);
+
+        assert_eq!(rows(&pool).await, 2);
+    }
+
+    /// Every service holds a clone of the one handle, so a clone must
+    /// contend exactly as the original does.
+    #[sqlx::test]
+    async fn a_clone_of_a_connection_handle_contends_with_it(pool: PgPool) {
+        let db = Db::connection(pool.acquire().await.unwrap().detach());
+        let clone = db.clone();
+
+        let conn = db.acquire().await.unwrap();
+        assert!(matches!(
+            clone.acquire().await.unwrap_err(),
+            sqlx::Error::PoolTimedOut
+        ));
+
+        drop(conn);
+        assert!(clone.acquire().await.is_ok());
+    }
 
     #[test]
     fn a_pool_timeout_is_unavailable() {

@@ -12,7 +12,7 @@
 //! `docs/adr/0012-refresh-token-rotation.md` and
 //! `docs/adr/0014-guest-accounts-and-the-guest-grant.md`.
 
-use sqlx::{PgConnection, PgPool};
+use sqlx::{Connection, PgConnection};
 use time::OffsetDateTime;
 use uuid::Uuid;
 
@@ -30,6 +30,7 @@ use super::tokens::{
 use super::{ACCESS_TOKEN_LIFETIME, GUEST_GRANT_RATE_WINDOW, REFRESH_TOKEN_LIFETIME};
 use crate::accounts::{self, Account, NewAccount};
 use crate::clients::{self, Client, ClientKind, Scope};
+use crate::db::Db;
 
 /// What a successful exchange hands the client: the body of RFC 6749 §5.1.
 /// Every field but `expires_in` and `scope` is a bearer credential, so
@@ -56,7 +57,7 @@ impl std::fmt::Debug for IssuedTokens {
 #[derive(Debug, Clone)]
 pub struct TokenService {
     authorization: AuthorizationService,
-    pool: PgPool,
+    db: Db,
     /// The active key of the set `http::app` loaded (ADR 0009 (d)).
     signing_key: SigningKey,
     /// `CAS_ISSUER`, the `iss` of every token.
@@ -64,10 +65,11 @@ pub struct TokenService {
 }
 
 impl TokenService {
-    pub fn new(pool: PgPool, signing_key: SigningKey, issuer: impl Into<String>) -> Self {
+    pub fn new(db: impl Into<Db>, signing_key: SigningKey, issuer: impl Into<String>) -> Self {
+        let db = db.into();
         Self {
-            authorization: AuthorizationService::new(pool.clone()),
-            pool,
+            authorization: AuthorizationService::new(db.clone()),
+            db,
             signing_key,
             issuer: issuer.into(),
         }
@@ -136,7 +138,10 @@ impl TokenService {
         // nothing.
         let refresh_token = RefreshToken::generate().map_err(TokenError::Random)?;
 
-        let mut tx = self.pool.begin().await?;
+        // `authenticate` released its connection before this call, so this
+        // acquire is the exchange's own and never overlaps with it.
+        let mut conn = self.db.acquire().await?;
+        let mut tx = conn.begin().await?;
         let granted = match self
             .redeem_into_grant(&mut tx, client, &grant, &refresh_token)
             .await
@@ -239,7 +244,8 @@ impl TokenService {
         // nothing.
         let successor = RefreshToken::generate().map_err(TokenError::Random)?;
 
-        let mut tx = self.pool.begin().await?;
+        let mut conn = self.db.acquire().await?;
+        let mut tx = conn.begin().await?;
         let rotated = match rotate(&mut tx, client, &grant, &successor).await {
             // Returning drops the transaction, which rolls it back.
             Err(error @ TokenError::Db(_)) => return Err(error),
@@ -298,7 +304,10 @@ impl TokenService {
         // failure here writes nothing.
         let refresh_token = RefreshToken::generate().map_err(TokenError::Random)?;
 
-        let mut tx = self.pool.begin().await?;
+        // Acquired after the two refusals above, which answer an
+        // unauthorized client and a bad scope without a database.
+        let mut conn = self.db.acquire().await?;
+        let mut tx = conn.begin().await?;
         // Returning early drops the transaction, which rolls it back.
         let (account, grant_id) = mint(&mut tx, client, &scopes, &refresh_token).await?;
         tx.commit().await?;
@@ -522,4 +531,57 @@ async fn revoke_replayed(conn: &mut PgConnection, code_id: Uuid) -> Result<(), s
 /// The claims as JSON. Strings, numbers and uuids always serialise.
 fn json(claims: &impl serde::Serialize) -> Vec<u8> {
     serde_json::to_vec(claims).expect("token claims serialise to JSON")
+}
+
+#[cfg(test)]
+mod tests {
+    use sqlx::PgPool;
+
+    use super::*;
+    use crate::db::Db;
+    use crate::oidc::AuthorizationCode;
+    use crate::oidc::authorization::tests::CALLBACK;
+    use crate::oidc::repository::tests::{fixture, insert_code};
+    use crate::testing::{test_config, test_signing_key};
+
+    /// The verifier of the challenge the fixture's code carries (RFC 7636
+    /// Appendix B).
+    const VERIFIER: &str = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
+
+    /// The cross-service path on one connection (ADR 0021): `exchange`
+    /// authenticates the client through `AuthorizationService`, which
+    /// acquires and releases inside `ClientRepository`, and only then
+    /// acquires for the exchange's own transaction. On a handle over a
+    /// single connection an overlap would surface as a refusal here instead
+    /// of the tokens.
+    #[sqlx::test]
+    async fn an_exchange_runs_its_client_lookup_and_its_transaction_in_turn(pool: PgPool) {
+        let fixture = fixture(&pool).await;
+        let code = AuthorizationCode::generate().unwrap();
+        insert_code(&pool, &fixture, &code.hash()).await;
+        let service = TokenService::new(
+            Db::connection(pool.acquire().await.unwrap().detach()),
+            test_signing_key(),
+            test_config().issuer,
+        );
+        let params = Params::from_query(&format!(
+            "grant_type=authorization_code&code={}&redirect_uri={CALLBACK}\
+             &code_verifier={VERIFIER}&client_id={}",
+            code.expose(),
+            fixture.client_id
+        ));
+
+        let issued = service.exchange(&params, None).await.unwrap();
+
+        assert_eq!(issued.scope, "openid profile");
+        assert!(!issued.access_token.is_empty());
+        // The grant the transaction wrote is there, so the exchange ran to
+        // its commit on the one connection.
+        // Unchecked query: see docs/TESTS.md.
+        let grants: i64 = sqlx::query_scalar("SELECT count(*) FROM grants")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(grants, 1);
+    }
 }

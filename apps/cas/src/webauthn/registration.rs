@@ -7,7 +7,7 @@
 //! finish retryable: if the writes fail, the rollback puts the ceremony back,
 //! and the credential the authenticator has already created is not orphaned.
 
-use sqlx::PgPool;
+use sqlx::Connection;
 use thiserror::Error;
 use uuid::Uuid;
 use webauthn_rs::prelude::{
@@ -17,6 +17,7 @@ use webauthn_rs::prelude::{
 use webauthn_rs_proto::{ResidentKeyRequirement, UserVerificationPolicy};
 
 use crate::accounts::{Account, DisplayName, NewAccount};
+use crate::db::Db;
 use crate::webauthn::ceremonies::{DiscoverableRegistration, PendingRegistration, Taken};
 use crate::webauthn::passkeys::{CreateError, DEFAULT_PASSKEY_NAME, PasskeyCredential};
 use crate::webauthn::repository;
@@ -84,7 +85,7 @@ pub struct Registered {
 #[derive(Debug, Clone)]
 pub struct RegistrationService {
     webauthn: Webauthn,
-    pool: PgPool,
+    db: Db,
 }
 
 /// Keep webauthn-rs's passkey verification and synced-authenticator support,
@@ -153,8 +154,11 @@ pub(crate) fn verify_discoverable_registration(
 }
 
 impl RegistrationService {
-    pub fn new(webauthn: Webauthn, pool: PgPool) -> Self {
-        Self { webauthn, pool }
+    pub fn new(webauthn: Webauthn, db: impl Into<Db>) -> Self {
+        Self {
+            webauthn,
+            db: db.into(),
+        }
     }
 
     /// Issues a challenge for a new account with the given display name.
@@ -176,8 +180,9 @@ impl RegistrationService {
             start_discoverable_registration(&self.webauthn, account_id, &display_name, None)
                 .map_err(StartError::Webauthn)?;
 
+        let mut conn = self.db.acquire().await?;
         let registration_id = repository::start_ceremony(
-            &self.pool,
+            &mut *conn,
             &PendingRegistration {
                 account_id,
                 display_name,
@@ -204,7 +209,8 @@ impl RegistrationService {
         registration_id: Uuid,
         response: &RegisterPublicKeyCredential,
     ) -> Result<Registered, FinishError> {
-        let mut tx = self.pool.begin().await?;
+        let mut conn = self.db.acquire().await?;
+        let mut tx = conn.begin().await?;
 
         let pending: PendingRegistration =
             match repository::take_ceremony(&mut *tx, registration_id).await? {
@@ -251,6 +257,8 @@ impl RegistrationService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sqlx::PgPool;
+
     use crate::accounts::AccountRepository;
     use crate::testing::{ResidentSoftPasskey, test_origin};
     use crate::testing::{display_name, soft_passkey_registration, test_webauthn};
