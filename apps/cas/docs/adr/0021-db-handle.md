@@ -75,10 +75,10 @@ answers on whichever side of its trust boundary the contention falls: before
 the redirect URI is verified, that same 503 `service_unavailable` page; after
 it, the failure belongs to the client, so a `302` back to the redirect URI
 carrying `error=temporarily_unavailable` (RFC 6749 §4.1.2.1). No new error
-code, and never an explicit 500. Reusing an existing variant means a Worker log will
-read "pool timed out" where no pool exists; that is accepted for a
-zero-surface error contract, and is the thing to revisit if the two ever have
-to be told apart.
+code, and never an explicit 500. Reusing an existing variant means a Worker
+log will read "pool timed out" where no pool exists; that is accepted for a
+zero-surface error contract, and is the thing to revisit if the two ever
+have to be told apart.
 
 **(e) What does not change.** The 178 query sites and every repository
 signature; `.sqlx` and the migrations; native pooling, with the pool's
