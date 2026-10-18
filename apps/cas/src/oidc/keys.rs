@@ -11,7 +11,10 @@ use base64::{
 };
 use p256::ecdsa::signature::{Signer, Verifier};
 use p256::ecdsa::{Signature, SigningKey as EcdsaSigningKey, VerifyingKey};
-use p256::pkcs8::{AssociatedOid, ObjectIdentifier, der::Decode};
+use p256::elliptic_curve::sec1::FromEncodedPoint;
+use p256::pkcs8::der::asn1::{AnyRef, BitStringRef, ContextSpecific, OctetStringRef, UintRef};
+use p256::pkcs8::der::{self, Decode, Reader, SliceReader, TagMode, TagNumber, Tagged};
+use p256::pkcs8::{AssociatedOid, ObjectIdentifier};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
@@ -409,11 +412,9 @@ fn read_key(index: usize, block: &PemBlock<'_>) -> Result<SigningKey, SigningKey
         "PRIVATE KEY" => {
             let info = p256::pkcs8::PrivateKeyInfo::from_der(&der)
                 .map_err(|_| SigningKeyError::NotAPrivateKey { index })?;
-            let curve = info
-                .algorithm
-                .parameters_oid()
-                .map_err(|_| SigningKeyError::NotEcP256 { index })?;
-            if info.algorithm.oid != EC_PUBLIC_KEY_OID || curve != p256::NistP256::OID {
+            if info.algorithm.oid != EC_PUBLIC_KEY_OID
+                || !info.algorithm.parameters.is_some_and(names_p256)
+            {
                 return Err(SigningKeyError::NotEcP256 { index });
             }
             (info.private_key.to_vec(), true)
@@ -421,16 +422,12 @@ fn read_key(index: usize, block: &PemBlock<'_>) -> Result<SigningKey, SigningKey
         "EC PRIVATE KEY" => (der, false),
         _ => return Err(SigningKeyError::NotAPrivateKey { index }),
     };
-    let sec1 = sec1::EcPrivateKey::from_der(&sec1_der)
-        .map_err(|_| SigningKeyError::NotAPrivateKey { index })?;
+    let sec1 = decode_sec1(&sec1_der).map_err(|_| SigningKeyError::NotAPrivateKey { index })?;
     // Inside PKCS#8 the curve is the algorithm's, checked above, and the
     // SEC1 parameters are optional; a bare SEC1 key has only its own
     // parameters to name the curve, so there they are required.
-    let named_curve = sec1
-        .parameters
-        .and_then(|parameters| parameters.named_curve());
-    let curve_matches = match named_curve {
-        Some(curve) => curve == p256::NistP256::OID,
+    let curve_matches = match sec1.parameters {
+        Some(parameters) => names_p256(parameters),
         None => curve_from_pkcs8,
     };
     if !curve_matches || sec1.private_key.len() != P256_FIELD_BYTES {
@@ -441,9 +438,14 @@ fn read_key(index: usize, block: &PemBlock<'_>) -> Result<SigningKey, SigningKey
     // whose private scalar was altered still parses, and CAS would publish a
     // JWK that cannot verify its own signatures. The conversion compares the
     // embedded public key with the one the scalar derives, and refuses a
-    // zero or out-of-range scalar.
-    let secret =
-        p256::SecretKey::try_from(sec1).map_err(|_| SigningKeyError::Inconsistent { index })?;
+    // zero or out-of-range scalar. The curve is settled above, so the
+    // parameters are not passed on.
+    let secret = p256::SecretKey::try_from(sec1::EcPrivateKey {
+        private_key: sec1.private_key,
+        parameters: None,
+        public_key: sec1.public_key,
+    })
+    .map_err(|_| SigningKeyError::Inconsistent { index })?;
 
     let pkey = EcdsaSigningKey::from(&secret);
     let public = *pkey.verifying_key();
@@ -482,9 +484,102 @@ fn pem_body(block: &PemBlock<'_>) -> Option<Vec<u8>> {
         if line.is_empty() || line.contains(':') {
             continue;
         }
-        body.push_str(line);
+        body.extend(line.chars().filter(|c| !c.is_ascii_whitespace()));
     }
     STANDARD.decode(body).ok()
+}
+
+/// An `ECPrivateKey` (RFC 5915 §3), its parameters left undecoded. The
+/// `sec1` crate's own decoder knows only a named curve and fails on the
+/// explicit parameters OpenSSL can write.
+struct Sec1Key<'a> {
+    private_key: &'a [u8],
+    parameters: Option<AnyRef<'a>>,
+    public_key: Option<&'a [u8]>,
+}
+
+fn decode_sec1(der: &[u8]) -> der::Result<Sec1Key<'_>> {
+    let mut reader = SliceReader::new(der)?;
+    let key = reader.sequence(|fields| {
+        if u8::decode(fields)? != 1 {
+            return Err(der::Tag::Integer.value_error());
+        }
+        let private_key = OctetStringRef::decode(fields)?.as_bytes();
+        let parameters = ContextSpecific::<AnyRef<'_>>::decode_explicit(fields, TagNumber::N0)?
+            .map(|field| field.value);
+        let public_key = fields
+            .context_specific::<BitStringRef<'_>>(TagNumber::N1, TagMode::Explicit)?
+            .map(|bits| bits.as_bytes().ok_or(der::Tag::BitString.value_error()))
+            .transpose()?;
+        Ok(Sec1Key {
+            private_key,
+            parameters,
+            public_key,
+        })
+    })?;
+    reader.finish(key)
+}
+
+/// `prime-field` (X9.62, RFC 3279 §2.3.5).
+const PRIME_FIELD_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.10045.1.1");
+
+/// P-256 as explicit domain parameters (SEC 2 §2.4.2): the field prime,
+/// the curve coefficients `a` and `b`, the base point and its order, in
+/// hex without leading zeros.
+const P256_PRIME: &str = "ffffffff00000001000000000000000000000000ffffffffffffffffffffffff";
+const P256_A: &str = "ffffffff00000001000000000000000000000000fffffffffffffffffffffffc";
+const P256_B: &str = "5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b";
+const P256_ORDER: &str = "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551";
+
+/// Whether EC parameters (RFC 5480 §2.1.1) are P-256: the named curve, or
+/// explicit parameters that are exactly P-256's, which OpenSSL accepts as
+/// the same curve.
+fn names_p256(parameters: AnyRef<'_>) -> bool {
+    match parameters.tag() {
+        der::Tag::ObjectIdentifier => parameters
+            .decode_as::<ObjectIdentifier>()
+            .is_ok_and(|oid| oid == p256::NistP256::OID),
+        der::Tag::Sequence => is_explicit_p256(parameters).unwrap_or(false),
+        _ => false,
+    }
+}
+
+/// `SpecifiedECDomain` (SEC 1 §C.2). The seed is optional and not
+/// compared: `a` and `b` define the curve, the seed only how they were
+/// chosen.
+fn is_explicit_p256(parameters: AnyRef<'_>) -> der::Result<bool> {
+    fn hex(bytes: &[u8]) -> String {
+        let bytes = &bytes[bytes.iter().take_while(|byte| **byte == 0).count()..];
+        bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+    }
+
+    parameters.sequence(|domain| {
+        let _version = UintRef::decode(domain)?;
+        let (field_type, prime) = domain
+            .sequence(|field| Ok((ObjectIdentifier::decode(field)?, UintRef::decode(field)?)))?;
+        let (a, b) = domain.sequence(|curve| {
+            let a = OctetStringRef::decode(curve)?;
+            let b = OctetStringRef::decode(curve)?;
+            let _seed: Option<BitStringRef<'_>> = curve.decode()?;
+            Ok((a, b))
+        })?;
+        let base = OctetStringRef::decode(domain)?;
+        let order = UintRef::decode(domain)?;
+        let cofactor: Option<UintRef<'_>> = domain.decode()?;
+
+        let base_is_generator = p256::EncodedPoint::from_bytes(base.as_bytes())
+            .ok()
+            .and_then(|point| Option::from(p256::AffinePoint::from_encoded_point(&point)))
+            .is_some_and(|point: p256::AffinePoint| point == p256::AffinePoint::GENERATOR);
+
+        Ok(field_type == PRIME_FIELD_OID
+            && hex(prime.as_bytes()) == P256_PRIME
+            && hex(a.as_bytes()) == P256_A
+            && hex(b.as_bytes()) == P256_B
+            && base_is_generator
+            && hex(order.as_bytes()) == P256_ORDER
+            && cofactor.is_none_or(|cofactor| cofactor.as_bytes() == [1]))
+    })
 }
 
 /// The public point's coordinates, each 32 bytes, base64url without padding.
@@ -523,6 +618,18 @@ mod tests {
     /// `openssl ec -aes128` of the dev key: a `Proc-Type: 4,ENCRYPTED`
     /// header in an `EC PRIVATE KEY` block.
     const ENCRYPTED_SEC1: &str = include_str!("keys_testdata/encrypted-sec1.pem");
+    /// `openssl pkey -ec_param_enc explicit` and `openssl ec -param_enc
+    /// explicit` of the dev key: P-256 spelled out instead of named, the
+    /// last with the base point compressed (`-conv_form compressed`).
+    const EXPLICIT_PKCS8: &str = include_str!("keys_testdata/explicit-pkcs8.pem");
+    const EXPLICIT_SEC1: &str = include_str!("keys_testdata/explicit-sec1.pem");
+    const EXPLICIT_COMPRESSED_SEC1: &str =
+        include_str!("keys_testdata/explicit-compressed-sec1.pem");
+    /// `openssl ecparam -name secp256k1 -param_enc explicit`: explicit
+    /// parameters of another 256-bit curve, as SEC1 and as PKCS#8.
+    const EXPLICIT_SECP256K1_SEC1: &str = include_str!("keys_testdata/explicit-secp256k1-sec1.pem");
+    const EXPLICIT_SECP256K1_PKCS8: &str =
+        include_str!("keys_testdata/explicit-secp256k1-pkcs8.pem");
 
     fn dev_secret() -> p256::SecretKey {
         p256::SecretKey::from_pkcs8_pem(DEV_KEY).unwrap()
@@ -607,6 +714,48 @@ mod tests {
         let der = dev_secret().to_pkcs8_der().unwrap();
         let keys = SigningKeys::from_pem(&pem("PRIVATE KEY", der.as_bytes(), 76)).unwrap();
         assert_eq!(keys.active().kid(), DEV_KEY_KID);
+    }
+
+    /// OpenSSL ignores whitespace inside the base64, so a key whose lines
+    /// carry spaces or tabs loaded before and still does.
+    #[test]
+    fn whitespace_inside_the_base64_is_ignored() {
+        for separator in [" ", "\t"] {
+            let spaced: String = DEV_KEY
+                .lines()
+                .map(|line| {
+                    if line.starts_with("-----") {
+                        return format!("{line}\n");
+                    }
+                    let chunks: Vec<String> = line
+                        .as_bytes()
+                        .chunks(8)
+                        .map(|chunk| String::from_utf8(chunk.to_vec()).unwrap())
+                        .collect();
+                    format!("{}\n", chunks.join(separator))
+                })
+                .collect();
+
+            let keys = SigningKeys::from_pem(&spaced).unwrap();
+            assert_eq!(keys.active().kid(), DEV_KEY_KID, "{separator:?}");
+        }
+    }
+
+    /// OpenSSL reads P-256 spelled out as explicit parameters as P-256, so
+    /// such a key loaded before and still does, with the same `kid`.
+    #[test]
+    fn a_key_with_explicit_p256_parameters_parses() {
+        for pem in [EXPLICIT_PKCS8, EXPLICIT_SEC1, EXPLICIT_COMPRESSED_SEC1] {
+            let keys = SigningKeys::from_pem(pem).unwrap();
+            assert_eq!(keys.active().kid(), DEV_KEY_KID);
+        }
+    }
+
+    #[test]
+    fn explicit_parameters_of_another_curve_are_refused() {
+        for pem in [EXPLICIT_SECP256K1_SEC1, EXPLICIT_SECP256K1_PKCS8] {
+            assert_eq!(error(pem), SigningKeyError::NotEcP256 { index: 1 });
+        }
     }
 
     /// Outside PKCS#8 only the SEC1 parameters name the curve; a 32-byte

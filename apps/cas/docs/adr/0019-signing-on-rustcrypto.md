@@ -24,9 +24,13 @@ at startup is still refused, with the same message.
 **(a) ES256 on `p256` (RustCrypto), the key decoded with `pkcs8` and
 `sec1`.** All three were already in the lock through `webauthn-rs`. The PEM
 framing stays CAS's own, as before; the base64 inside a block is decoded at
-any line width, as OpenSSL reads it. PKCS#8 must name `id-ecPublicKey` on
-P-256; a bare SEC1 key must name P-256 in its parameters, since nothing else
-says which curve a 32-byte scalar belongs to.
+any line width and with any whitespace inside it, as OpenSSL reads it.
+PKCS#8 must name `id-ecPublicKey` on P-256; a bare SEC1 key must name P-256
+in its parameters, since nothing else says which curve a 32-byte scalar
+belongs to. P-256 is either the named curve or explicit parameters that are
+exactly P-256's (prime, `a`, `b`, base point, order, cofactor), which
+OpenSSL also accepts. The `ECPrivateKey` structure is decoded by CAS itself,
+because the `sec1` crate's decoder fails on explicit parameters.
 
 **(b) The checks of ADR 0009 (a) are kept, by other means.** An encrypted
 key is still refused before it is decoded, so there is no passphrase prompt
