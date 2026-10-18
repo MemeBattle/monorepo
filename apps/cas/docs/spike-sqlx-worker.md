@@ -271,13 +271,13 @@ All times are in ms.
   - keep `query!`, which works unnamed with that setting;
   - budget round trips;
   - expect the Paid plan's CPU limit unless profiling brings 26 ms down;
-  - migrations through Hyperdrive work (lock or no lock), but running them outside the Worker
-    is still the safer choice.
+  - migrations through Hyperdrive ran with and without the advisory lock, but whether the lock
+    excludes concurrent migrators through Hyperdrive is unverified; run them outside the Worker.
 
 ### Commands (secrets redacted)
 
 ```sh
-# Zone (kept): 15bf8a4eb23352a9bfc3c6291d75445f, ns angela/drake.ns.cloudflare.com
+# Zone (kept): <zone-id>, ns angela/drake.ns.cloudflare.com
 cf zones create --account-id <account> --name themezv.ru --type full
 
 # Origin TLS for the run: self-signed cert + a compose override outside git
@@ -311,6 +311,9 @@ cf hyperdrive create --name cas-pg-spike-cached …   # same flags, caching left
 # (package.json with wrangler 4.151.1) and `cf migrate`, which writes cloudflare.config.ts
 # and wrangler.config.ts (TODO guard removed by hand; `cf@1.0.0-beta.18` installed).
 # `cloudflare-rs-dev-server`, the Rust option cf suggests, is not on crates.io.
+# Exception: cf@1.0.0-beta.18 (published 2026-10-16) is younger than the repository's
+# one-week minimumReleaseAge. The spike's npm lockfile sits outside the pnpm workspace, so
+# the policy did not apply mechanically; it is a documented exception for throwaway tooling.
 cd apps/cas/spike/hd-worker
 cf migrate wrangler.toml --no-install --force && npm install --save-dev --save-exact cf@1.0.0-beta.18
 cf deploy
@@ -415,8 +418,11 @@ n = 29–31 including warm-up). The handler's own `total_ms` equals `x-wall-ms`.
   (see its `VENDOR.md`). Defaulting it in `options()` would be a change to the vendored source.
 - **CPU per request** is 16–20 ms for ~26 round trips. That needs the Paid plan, or profiling:
   the Debug-level QueryLogger and console logging are still suspects.
-- **Migrations** work through Hyperdrive, with the lock on or off. Running them outside the
-  Worker, over a direct connection, is still preferable.
+- **Migrations** executed successfully with locking enabled and disabled. sqlx's migrator
+  takes a session-level `pg_advisory_lock`, and Hyperdrive lists advisory locks as unsupported
+  under transaction pooling. Sequential runs with no leftover locks do not prove mutual
+  exclusion between concurrent migrators, so locking correctness through Hyperdrive is
+  unverified. Migrations should run outside the Worker, over a direct connection.
 
 ### Teardown (each confirmed with a list command)
 
