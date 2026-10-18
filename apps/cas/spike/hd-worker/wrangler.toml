@@ -1,0 +1,12 @@
+name = "hd-worker-spike"
+main = "build/index.js"
+compatibility_date = "2026-10-01"
+
+[build]
+command = "worker-build --release"
+
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+# Placeholder: local dev only, nothing is created in the account.
+id = "00000000000000000000000000000000"
+localConnectionString = "postgres://cas:cas@localhost:5434/cas"

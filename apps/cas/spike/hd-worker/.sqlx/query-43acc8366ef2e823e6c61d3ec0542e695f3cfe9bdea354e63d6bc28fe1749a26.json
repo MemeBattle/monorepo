@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT current_database() AS \"db!\", $1::int4 AS \"n!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "db!",
+        "type_info": "Name",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "n!",
+        "type_info": "Int4",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "43acc8366ef2e823e6c61d3ec0542e695f3cfe9bdea354e63d6bc28fe1749a26"
+}
