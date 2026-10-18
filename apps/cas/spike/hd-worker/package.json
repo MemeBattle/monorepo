@@ -1,0 +1,8 @@
+{
+  "name": "hd-worker-spike",
+  "private": true,
+  "devDependencies": {
+    "cf": "1.0.0-beta.18",
+    "wrangler": "4.151.1"
+  }
+}
