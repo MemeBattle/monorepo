@@ -139,7 +139,7 @@ impl TokenService {
         let refresh_token = RefreshToken::generate().map_err(TokenError::Random)?;
 
         // `authenticate` released its connection before this call, so this
-        // acquire is the exchange's own and never overlaps with it.
+        // acquire never overlaps with it.
         let mut conn = self.db.acquire().await?;
         let mut tx = conn.begin().await?;
         let granted = match self
@@ -304,8 +304,8 @@ impl TokenService {
         // failure here writes nothing.
         let refresh_token = RefreshToken::generate().map_err(TokenError::Random)?;
 
-        // Acquired after the two refusals above, which answer an
-        // unauthorized client and a bad scope without a database.
+        // Behind the two refusals above: an unauthorized client and a bad
+        // scope are answered without touching the database.
         let mut conn = self.db.acquire().await?;
         let mut tx = conn.begin().await?;
         // Returning early drops the transaction, which rolls it back.
@@ -551,9 +551,8 @@ mod tests {
     /// The cross-service path on one connection (ADR 0021): `exchange`
     /// authenticates the client through `AuthorizationService`, which
     /// acquires and releases inside `ClientRepository`, and only then
-    /// acquires for the exchange's own transaction. On a handle over a
-    /// single connection an overlap would surface as a refusal here instead
-    /// of the tokens.
+    /// acquires for the exchange's own transaction. An overlap would
+    /// surface as a refusal here instead of the tokens.
     #[sqlx::test]
     async fn an_exchange_runs_its_client_lookup_and_its_transaction_in_turn(pool: PgPool) {
         let fixture = fixture(&pool).await;

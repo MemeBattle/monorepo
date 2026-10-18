@@ -78,8 +78,7 @@ impl AdditionService {
         .map_err(StartError::Webauthn)?;
 
         // The repository above acquired for its own read and released it on
-        // return, so this acquire is the first of the method's own database
-        // work; the two never overlap.
+        // return, so this acquire never overlaps with it.
         let mut conn = self.db.acquire().await?;
         let registration_id = repository::start_ceremony(
             &mut *conn,
@@ -233,9 +232,8 @@ mod tests {
     /// The delegate-then-acquire path on one connection (ADR 0021): `start`
     /// lists the account's passkeys through the repository, which acquires
     /// and releases for itself, and only then acquires for the ceremony it
-    /// writes. On a handle over a single connection the two acquires must be
-    /// sequential, so a nested one would be refused here instead of serving
-    /// the challenge.
+    /// writes. A nested acquire would be refused here instead of serving the
+    /// challenge.
     #[sqlx::test]
     async fn start_runs_on_one_connection_after_listing_the_passkeys(pool: PgPool) {
         let (_, registered) = register_soft_passkey(&pool).await;

@@ -11,7 +11,7 @@ use sqlx::{PgPool, Postgres, pool::PoolConnection};
 use tokio::sync::{Mutex, OwnedMutexGuard};
 
 /// The database as a service holds it: something to acquire a connection
-/// from, with no say in where that connection comes from.
+/// from.
 ///
 /// Natively it is the process-wide [`PgPool`] `http::app` built, with its
 /// statement cache and its acquire timeout. On Cloudflare Workers a pool

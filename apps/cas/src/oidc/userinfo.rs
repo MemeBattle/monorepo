@@ -76,11 +76,11 @@ impl UserInfoService {
             return Err(UserInfoError::InsufficientScope);
         }
 
-        // The token outlived its account: deleting an account ends
-        // everything issued for it, and this token is no exception. The
-        // connection is acquired here, behind both refusals above: an
-        // invalid token is answered without touching the database.
+        // Behind both refusals above: a token that does not pass is answered
+        // without touching the database.
         let mut conn = self.db.acquire().await?;
+        // The token outlived its account: deleting an account ends
+        // everything issued for it, and this token is no exception.
         let Some(account) = accounts::get(&mut *conn, token.sub).await? else {
             tracing::debug!(
                 client_id = %token.client_id,
@@ -107,7 +107,7 @@ mod tests {
     /// Validation runs before the connection is acquired (ADR 0021): the
     /// service is built on a handle whose single connection the test is
     /// holding, so any acquire would fail. A refusal that still comes back
-    /// as its own error is the proof that nothing touched the database.
+    /// as its own error proves nothing touched the database.
     #[sqlx::test]
     async fn a_refused_token_never_reaches_the_database(pool: PgPool) {
         let client = register_public_client(&pool, "ligretto", &[]).await;
@@ -128,7 +128,7 @@ mod tests {
             test_signing_keys().verifying_keys(),
             test_config().issuer,
         );
-        // The one connection, held for the whole call.
+        // The one connection, taken here so every acquire below fails.
         let held = db.acquire().await.unwrap();
 
         let garbage = service.userinfo("not-a-token").await.unwrap_err();
