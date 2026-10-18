@@ -19,6 +19,9 @@ pub mod registration;
 pub mod repository;
 pub mod upgrade;
 
+#[cfg(test)]
+mod stored_data_tests;
+
 /// How long the browser is given to complete a ceremony. [`build_webauthn`]
 /// puts it into every challenge, and [`repository::start_ceremony`] derives the row's
 /// expiry from it, so the server and the browser count down from one number.

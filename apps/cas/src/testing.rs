@@ -41,7 +41,9 @@ use crate::webauthn::registration::{
 };
 use crate::webauthn::upgrade::UpgradeService;
 
+mod fixed_key_passkey;
 mod soft_passkey;
+pub use fixed_key_passkey::FixedKeyPasskey;
 pub use soft_passkey::ResidentSoftPasskey;
 
 /// The API state the handler tests run against: every service on the given

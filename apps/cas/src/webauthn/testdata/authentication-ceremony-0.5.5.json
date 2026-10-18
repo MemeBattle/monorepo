@@ -1,0 +1,11 @@
+{
+  "state": {
+    "ast": {
+      "allow_backup_eligible_upgrade": false,
+      "appid": null,
+      "challenge": "wl_GsK-iIK-HdVmkSHe-m4niRe5-Bes1X9hB4m8R65g",
+      "credentials": [],
+      "policy": "required"
+    }
+  }
+}
