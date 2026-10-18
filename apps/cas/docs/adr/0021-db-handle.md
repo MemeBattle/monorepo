@@ -67,10 +67,13 @@ an open transaction already did — never as the `Db`. On the
 connection-backed variant `acquire` uses `try_lock_owned`, so a second
 overlapping acquire fails at once rather than deadlocking. It fails as
 `sqlx::Error::PoolTimedOut`, which `db::classify` already calls
-`Failure::Unavailable` and the one `From<sqlx::Error> for ApiError` already
-answers with 503 `database_unavailable`: a retryable failure, no new error
-code, and never an explicit 500. Reusing an existing variant means a Worker
-log will read "pool timed out" where no pool exists; that is accepted for a
+`Failure::Unavailable`, so every transport answers it with the retryable 503
+it already answers a database failure with: `database_unavailable` under
+`/api`, `temporarily_unavailable` on the OAuth-shaped OIDC endpoints
+(`/oidc/authorize`, `/oidc/token`, `/oidc/userinfo`), the
+`service_unavailable` page on `/oidc/end_session`. No new error code, and
+never an explicit 500. Reusing an existing variant means a Worker log will
+read "pool timed out" where no pool exists; that is accepted for a
 zero-surface error contract, and is the thing to revisit if the two ever have
 to be told apart.
 
@@ -78,8 +81,10 @@ to be told apart.
 signature; `.sqlx` and the migrations; native pooling, with the pool's
 `acquire_timeout` and statement cache; the HTTP contract. `/health` keeps the
 `PgPool` itself and its `DB_TIMEOUT`: it probes the process's connectivity
-with a timeout of its own, not a request's. `src/bin/client.rs` keeps passing
-`&pool` to the repository free functions, which is still a `PgExecutor`.
+with a timeout of its own, not a request's. `clients::register`, the one use
+case the CLI calls, keeps its concrete `&PgPool` parameter: it runs from
+`src/bin/client.rs` alone, natively, so the Worker never reaches it and the
+deferred wasm work converts or `cfg`s it along with the rest of the binary.
 
 **(f) Deferred.** The per-request connection belongs to the Worker
 entrypoint, which is not written yet: it opens one from the Hyperdrive
@@ -112,5 +117,9 @@ wasm32-unknown-unknown` is not expected to pass.
   (`TokenService` → `AuthorizationService` → `ClientRepository`), the deepest
   sequential one (`SessionService::authenticate`), and the
   validation-before-acquire refusals of `/oidc/userinfo`.
-- A later change that adds a nested acquire fails those tests rather than
-  hanging a Worker request.
+- A later change that adds a nested acquire to one of those four paths fails
+  its test rather than hanging a Worker request. The other ten services are
+  not covered that way: their tests all build on a pool, where a second
+  overlapping acquire is only a second checkout and succeeds. There the rule
+  is held by the `Db::acquire` doc comment and by review, and a path worth
+  pinning down gets a `Db::connection` test of its own.
