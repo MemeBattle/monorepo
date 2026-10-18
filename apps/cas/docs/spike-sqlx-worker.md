@@ -334,3 +334,101 @@ cf o11y telemetry query --body '{"queryId":"…","timeframe":{…},"view":"calcu
 The zone `themezv.ru` stays. `wrangler.toml` and `cloudflare.config.ts` are back to placeholder
 ids; the spike's `[patch]` is back on the fork rev. The spent tunnel and service-token secrets
 were deleted from the scratch directory.
+
+## Committed fork re-run
+
+Run on 2026-10-18, after the protocol patch landed in the fork as proper commits. The
+topology was the same as in the previous section: Worker (colo BEG) → Hyperdrive → Access →
+Tunnel (`cloudflared` 2026.10.1, edges beg01/vie05/vie06) → the dev Postgres with TLS.
+There was one difference: only the **uncached** config `cas-pg-spike` was created, and the
+spike's two bindings both pointed at it. The cached config was not re-tested, and the query
+cache stays incompatible.
+
+The spike's own `[patch.crates-io]` pins MemeBattle/sqlx `6678c9a3`, tag
+`v0.9.0-memebattle.2`, branch `memebattle/v0.9.0-hyperdrive`. No scratch copy and no
+uncommitted patch were used. The fork adds three commits on top of `09ef6ac9`:
+
+1. `06860a39`: no `Close(Portal)` after `Execute`. The unnamed portal is destroyed by the next
+   `Bind` or the end of the transaction. This changes the default path too, by one message
+   fewer per query.
+2. `8a5804f6`: parse the unnamed statement again if a simple Query dropped it. sqlx resolves
+   unknown types with `raw_sql`, and a simple Query destroys the unnamed statement. Upstream
+   0.9.0 fails with SQLSTATE 26000 on `.persistent(false)` the first time a connection meets a
+   user-defined type. The fix re-sends `Parse` in front of the `Bind`, in the same Sync.
+3. `6678c9a3`: with `statement_cache_capacity(0)`, `run` and `prepare` use the unnamed
+   statement. `describe` stays named, because it needs one for `EXPLAIN EXECUTE`. With the
+   cache enabled, nothing changes on the wire.
+
+The optional pipelining of `Parse`/`Bind`/`Execute` into one Sync was not done. The type
+resolution that can run between `Parse` and `Bind` makes it more than a small change.
+
+sqlx's own tests passed: the Postgres suite in the form sqlx CI uses (PG 17 from
+`tests/docker-compose.yml`, `runtime-tokio`, `tls-none`, `-D warnings`, including the
+isolated `test_pg_copy_chunked` and `rustsec_2024_0363`), plus `cargo test -p sqlx-core --lib`.
+New tests cover two cases. With capacity 0, nothing is left in `pg_prepared_statements`. The
+unnamed statement survives type resolution with `persistent(false)` and with capacity 0.
+
+**Verdict: yes, with `statement_cache_capacity(0)` and caching disabled.** All 30 of 30
+`nocache` requests succeeded, `query!` included, with no scratch patch. Named modes still fail,
+as expected.
+
+### Per-mode results (30 requests each, interleaved, after one warm-up round)
+
+| Mode | OK | connect med / p95 | queries med / p95 | tx med | total med / p95 | client med / p95 | CPU med / p99 |
+|---|---|---|---|---|---|---|---|
+| nocache (all unnamed) | **30/30** | 3 / 4 | 670 / 769 | 209 | 916 / 1040 | 968 / 1088 | **16 / 20** |
+| default (named, cache 100) | 1/30 | 4 | 601 | 223 | 866 | 918 | 2 / 17 |
+| nopersist (`query!` stays named) | 1/30 | 17 | 763 | 237 | 1054 | 1094 | 3 / 21 |
+
+All times are in ms. CPU comes from Workers Logs (`$workers.cpuTimeMs`, grouped by URL,
+n = 29–31 including warm-up). The handler's own `total_ms` equals `x-wall-ms`.
+
+- **No `Close` reaches Hyperdrive any more.** Every failure (58/58) was
+  `at query! (named, $1::int4): expected ParseComplete, got ParameterDescription`. That is the
+  cross-request name collision on pooled origin sessions, and it is why named statements cannot
+  work through Hyperdrive.
+- **`nocache` leaves nothing behind.** `named_statements − statements_at_connect` was 0 on all
+  30 requests. The 1 or 7 statements found at connect were left by the failing named modes on
+  the shared origin sessions. 5 distinct origin backend pids over 30 requests showed that pooling
+  works.
+- **Latency** is about the same as the patched run before it (total median 916 ms vs 1037 ms).
+  It is still dominated by ~40 ms round trips through the Tunnel to a laptop, and an unnamed
+  query still takes 2 round trips.
+- **CPU per request dropped to median 16 ms, p99 20 ms**, down from 26 / 34 ms. The workload
+  and the logging were the same, so the variance is unexplained. The figure is still above the
+  Free plan's 10 ms.
+
+### `/migrate` and `/info`
+
+| Call | Result |
+|---|---|
+| `/migrate?mode=nocache` (advisory lock on) | OK twice: `applied=1`, `run_ms` 799 and 732, `hd_spike` dropped |
+| `/migrate?mode=nocache&nolock=1` | OK: `run_ms` 480 |
+| `/migrate?mode=default` | OK once (`run_ms` 834). Named mode can still hit the collision. |
+| afterwards | `hd_spike` gone, no advisory locks in `pg_locks`, `public._sqlx_migrations` still 15 rows |
+| `/info` | `sslmode=disable`, `parsed_ssl_mode=Disable`, `start_tls_path=false` (unchanged). Hyperdrive → origin over TLS: 5 of the `cas` client backends had `pg_stat_ssl.ssl = t`. The one with `f` was the local `psql` probe. |
+
+### What remains
+
+- **Hyperdrive's query cache must stay disabled** for every config sqlx talks to.
+- **Connect with `statement_cache_capacity(0)`.** `vendor/sqlx-cloudflare-hd` does not set it
+  (see its `VENDOR.md`). Defaulting it in `options()` would be a change to the vendored source.
+- **CPU per request** is 16–20 ms for ~26 round trips. That needs the Paid plan, or profiling:
+  the Debug-level QueryLogger and console logging are still suspects.
+- **Migrations** work through Hyperdrive, with the lock on or off. Running them outside the
+  Worker, over a direct connection, is still preferable.
+
+### Teardown (each confirmed with a list command)
+
+| Resource | Command | Confirmation |
+|---|---|---|
+| Worker `hd-worker-spike` | `cf workers delete <id> --force` | `cf workers list` → `[]` |
+| Hyperdrive `cas-pg-spike` | `cf hyperdrive delete <id> --force` | `cf hyperdrive list` → `[]` |
+| Access app `cas-pg-spike` | `cf zero-trust access applications delete <id> --force` | `… applications list` → `[]` |
+| Service token | `cf zero-trust access service-tokens delete <id> --force` | `… service-tokens list` → `[]` |
+| DNS `pg-spike.themezv.ru` | `cf dns records delete <id> --zone <zone> --force` | `cf dns records list` → `[]` |
+| Tunnel `cas-pg-spike` | `cloudflared` stopped, then `cf tunnels delete <id> --force` | `deleted_at` set; `cf tunnels list --is-deleted false` → `[]` |
+| Dev Postgres | `docker compose -p cas -f docker-compose.yml up -d` | entrypoint `postgres`, `SHOW ssl` → `off`; `cargo test -p cas` passes (663 + 10 + 4) |
+
+The zone `themezv.ru` stays. `wrangler.toml` and `cloudflare.config.ts` are back to placeholder
+ids. The tunnel token and service-token secrets were deleted from the scratch directory.
