@@ -7,7 +7,7 @@
 
 use std::time::Duration;
 
-use webauthn_rs::prelude::{Url, Webauthn, WebauthnBuilder, WebauthnError};
+use webauthn_rs::prelude::{COSEAlgorithm, Url, Webauthn, WebauthnBuilder, WebauthnError};
 
 pub mod addition;
 pub mod ceremonies;
@@ -33,10 +33,19 @@ pub const CEREMONY_TIMEOUT: Duration = webauthn_rs::DEFAULT_AUTHENTICATOR_TIMEOU
 /// up first, after the authenticator has already created the credential.
 pub const CEREMONY_GRACE: Duration = Duration::from_secs(30);
 
+/// The credential algorithms CAS offers (`pubKeyCredParams`) and accepts, in
+/// order of preference. CAS owns this part of its wire contract whatever the
+/// library's default is: webauthn-rs 0.6's default adds ES384, which 0.5 cannot
+/// verify, so leaving it to the library would let an upgrade register
+/// credentials that a rollback could not sign in (ADR 0020 (b)).
+pub const CREDENTIAL_ALGORITHMS: [COSEAlgorithm; 2] = [COSEAlgorithm::ES256, COSEAlgorithm::RS256];
+
 /// Builds the `Webauthn` instance for a relying party with the ceremony
-/// timeout applied. The only place the timeout reaches webauthn-rs.
+/// timeout and the credential algorithms applied. The only place either
+/// reaches webauthn-rs.
 pub fn build_webauthn(rp_id: &str, origin: &Url) -> Result<Webauthn, WebauthnError> {
     WebauthnBuilder::new(rp_id, origin)?
         .timeout(CEREMONY_TIMEOUT)
+        .algorithms(CREDENTIAL_ALGORITHMS.to_vec())
         .build()
 }

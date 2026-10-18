@@ -17,13 +17,15 @@ sqlx-postgres = { git = "https://github.com/MemeBattle/sqlx", rev = "09ef6ac9470
 # build for wasm32) still reads `std::time::SystemTime::now()` when a
 # registration finishes and in `Credential::verify_attestation`, which panics
 # on wasm32-unknown-unknown (Cloudflare Workers). The MemeBattle fork reads the
-# clock through `web-time` instead. The pinned commit is upstream 8a80623a (the
-# commit crates.io's 0.6.1-dev was published from) plus that one change (tag
-# v0.6.1-dev-memebattle.1, branch memebattle/v0.6.1-dev-wasm-clock). All the
+# clock through `web-time` instead, and adds `WebauthnBuilder::algorithms` so
+# CAS can keep offering exactly ES256 and RS256 (0.6's default adds ES384). The
+# pinned commit is upstream 8a80623a (the commit crates.io's 0.6.1-dev was
+# published from) plus those two changes (tag v0.6.1-dev-memebattle.2, branch
+# memebattle/v0.6.1-dev-wasm-clock). All the
 # workspace's webauthn crates come from the same rev: they pin each other
 # exactly. See apps/cas/docs/adr/0020-webauthn-rs-0-6.md.
-webauthn-rs = { git = "https://github.com/MemeBattle/webauthn-rs", rev = "096c27c3c08c6333a3c8454472c6698f0bac0a9b" }
-webauthn-rs-core = { git = "https://github.com/MemeBattle/webauthn-rs", rev = "096c27c3c08c6333a3c8454472c6698f0bac0a9b" }
-webauthn-rs-proto = { git = "https://github.com/MemeBattle/webauthn-rs", rev = "096c27c3c08c6333a3c8454472c6698f0bac0a9b" }
-webauthn-attestation-ca = { git = "https://github.com/MemeBattle/webauthn-rs", rev = "096c27c3c08c6333a3c8454472c6698f0bac0a9b" }
-webauthn-authenticator-rs = { git = "https://github.com/MemeBattle/webauthn-rs", rev = "096c27c3c08c6333a3c8454472c6698f0bac0a9b" }
+webauthn-rs = { git = "https://github.com/MemeBattle/webauthn-rs", rev = "62a8bd71a6671daacee821f3da6d31e467a55329" }
+webauthn-rs-core = { git = "https://github.com/MemeBattle/webauthn-rs", rev = "62a8bd71a6671daacee821f3da6d31e467a55329" }
+webauthn-rs-proto = { git = "https://github.com/MemeBattle/webauthn-rs", rev = "62a8bd71a6671daacee821f3da6d31e467a55329" }
+webauthn-attestation-ca = { git = "https://github.com/MemeBattle/webauthn-rs", rev = "62a8bd71a6671daacee821f3da6d31e467a55329" }
+webauthn-authenticator-rs = { git = "https://github.com/MemeBattle/webauthn-rs", rev = "62a8bd71a6671daacee821f3da6d31e467a55329" }

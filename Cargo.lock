@@ -3944,7 +3944,7 @@ dependencies = [
 [[package]]
 name = "webauthn-attestation-ca"
 version = "0.6.1-dev"
-source = "git+https://github.com/MemeBattle/webauthn-rs?rev=096c27c3c08c6333a3c8454472c6698f0bac0a9b#096c27c3c08c6333a3c8454472c6698f0bac0a9b"
+source = "git+https://github.com/MemeBattle/webauthn-rs?rev=62a8bd71a6671daacee821f3da6d31e467a55329#62a8bd71a6671daacee821f3da6d31e467a55329"
 dependencies = [
  "crypto-glue",
  "serde",
@@ -3956,7 +3956,7 @@ dependencies = [
 [[package]]
 name = "webauthn-authenticator-rs"
 version = "0.6.1-dev"
-source = "git+https://github.com/MemeBattle/webauthn-rs?rev=096c27c3c08c6333a3c8454472c6698f0bac0a9b#096c27c3c08c6333a3c8454472c6698f0bac0a9b"
+source = "git+https://github.com/MemeBattle/webauthn-rs?rev=62a8bd71a6671daacee821f3da6d31e467a55329#62a8bd71a6671daacee821f3da6d31e467a55329"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -3986,7 +3986,7 @@ dependencies = [
 [[package]]
 name = "webauthn-rs"
 version = "0.6.1-dev"
-source = "git+https://github.com/MemeBattle/webauthn-rs?rev=096c27c3c08c6333a3c8454472c6698f0bac0a9b#096c27c3c08c6333a3c8454472c6698f0bac0a9b"
+source = "git+https://github.com/MemeBattle/webauthn-rs?rev=62a8bd71a6671daacee821f3da6d31e467a55329#62a8bd71a6671daacee821f3da6d31e467a55329"
 dependencies = [
  "serde",
  "tracing",
@@ -3998,7 +3998,7 @@ dependencies = [
 [[package]]
 name = "webauthn-rs-core"
 version = "0.6.1-dev"
-source = "git+https://github.com/MemeBattle/webauthn-rs?rev=096c27c3c08c6333a3c8454472c6698f0bac0a9b#096c27c3c08c6333a3c8454472c6698f0bac0a9b"
+source = "git+https://github.com/MemeBattle/webauthn-rs?rev=62a8bd71a6671daacee821f3da6d31e467a55329#62a8bd71a6671daacee821f3da6d31e467a55329"
 dependencies = [
  "base64 0.21.7",
  "crypto-glue",
@@ -4024,7 +4024,7 @@ dependencies = [
 [[package]]
 name = "webauthn-rs-proto"
 version = "0.6.1-dev"
-source = "git+https://github.com/MemeBattle/webauthn-rs?rev=096c27c3c08c6333a3c8454472c6698f0bac0a9b#096c27c3c08c6333a3c8454472c6698f0bac0a9b"
+source = "git+https://github.com/MemeBattle/webauthn-rs?rev=62a8bd71a6671daacee821f3da6d31e467a55329#62a8bd71a6671daacee821f3da6d31e467a55329"
 dependencies = [
  "base64 0.21.7",
  "serde",

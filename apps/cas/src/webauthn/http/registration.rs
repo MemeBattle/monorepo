@@ -570,6 +570,22 @@ mod tests {
         assert_eq!(public_key["extensions"]["credProps"], true);
     }
 
+    /// Exactly ES256 then RS256, as webauthn-rs 0.5 offered them, whatever
+    /// the library's default: 0.6's adds ES384, which 0.5 cannot verify, so a
+    /// credential registered with it would not survive a rollback (ADR 0020).
+    #[sqlx::test]
+    async fn register_options_offer_es256_then_rs256_only(pool: PgPool) {
+        let options = start(&test_app(pool), "Ada").await;
+        let public_key = serde_json::to_value(options.ccr.public_key).unwrap();
+        assert_eq!(
+            public_key["pubKeyCredParams"],
+            serde_json::json!([
+                { "type": "public-key", "alg": -7 },
+                { "type": "public-key", "alg": -257 },
+            ])
+        );
+    }
+
     #[sqlx::test]
     async fn a_non_discoverable_registration_returns_a_specific_error(pool: PgPool) {
         let app = test_app(pool);
