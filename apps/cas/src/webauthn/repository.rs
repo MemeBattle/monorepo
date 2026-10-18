@@ -292,7 +292,7 @@ pub(crate) async fn insert_passkey<'e, E>(
 where
     E: sqlx::PgExecutor<'e>,
 {
-    let credential_id: &[u8] = passkey.cred_id().as_ref();
+    let credential_id: &[u8] = passkey.cred_id().as_slice();
 
     sqlx::query_as!(
         PasskeyRow,
@@ -695,7 +695,7 @@ mod passkey_tests {
         assert_eq!(account.r#type, AccountType::Full);
 
         assert_eq!(credential.account_id, id);
-        assert_eq!(credential.credential_id, passkey.cred_id().as_ref());
+        assert_eq!(credential.credential_id, passkey.cred_id().as_slice());
         assert_eq!(credential.name, DEFAULT_PASSKEY_NAME);
         assert_eq!(credential.last_used_at, None);
 
@@ -770,7 +770,7 @@ mod passkey_tests {
                 .await
                 .unwrap();
 
-        let found = find_passkey_for_update(&pool, passkey.cred_id().as_ref())
+        let found = find_passkey_for_update(&pool, passkey.cred_id().as_slice())
             .await
             .unwrap()
             .expect("the credential was just stored");
@@ -811,7 +811,7 @@ mod passkey_tests {
 
         assert_eq!(used.id, created.id);
         assert!(used.last_used_at.is_some());
-        let stored = find_passkey_for_update(&pool, passkey.cred_id().as_ref())
+        let stored = find_passkey_for_update(&pool, passkey.cred_id().as_slice())
             .await
             .unwrap()
             .unwrap();

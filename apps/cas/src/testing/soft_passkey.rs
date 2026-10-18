@@ -14,9 +14,7 @@ use webauthn_authenticator_rs::{
     error::{CtapError, WebauthnCError},
     softpasskey::SoftPasskey,
 };
-use webauthn_rs::prelude::{
-    Base64UrlSafeData, PublicKeyCredential, RegisterPublicKeyCredential, Url,
-};
+use webauthn_rs::prelude::{PublicKeyCredential, RegisterPublicKeyCredential, Url};
 use webauthn_rs_proto::{
     AllowCredentials, CredProps, PublicKeyCredentialCreationOptions,
     PublicKeyCredentialRequestOptions, ResidentKeyRequirement,
@@ -25,7 +23,7 @@ use webauthn_rs_proto::{
 struct ResidentCredential {
     rp_id: String,
     descriptor: AllowCredentials,
-    user_handle: Base64UrlSafeData,
+    user_handle: Vec<u8>,
 }
 
 /// Adds resident storage and RP-scoped discovery to SoftPasskey's real key

@@ -5,6 +5,8 @@
 Accepted (2026-09-03), with [#665](https://github.com/MemeBattle/monorepo/issues/665).
 Revised 2026-09-12: discoverable credentials are required to meet the original
 usernameless sign-in requirement.
+Noted 2026-10-18: the library limitation in (e) still holds in webauthn-rs
+0.6 (ADR 0020).
 
 ## Context
 
