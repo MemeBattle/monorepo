@@ -459,7 +459,7 @@ pub fn signed_access_token(
 /// `falsify_uv = true`: registration requires user verification, which a
 /// software authenticator can only claim to have done.
 pub fn soft_passkey_registration(ccr: CreationChallengeResponse) -> RegisterPublicKeyCredential {
-    WebauthnAuthenticator::new(ResidentSoftPasskey::new())
+    ResidentSoftPasskey::new()
         .do_registration(test_origin(), ccr)
         .expect("the software authenticator answers a valid challenge")
 }
@@ -467,11 +467,9 @@ pub fn soft_passkey_registration(ccr: CreationChallengeResponse) -> RegisterPubl
 /// Registers an account through the registration service and hands back the
 /// software authenticator that now holds its passkey, so a test can sign in
 /// with it: login needs the same emulator that answered the registration.
-pub async fn register_soft_passkey(
-    pool: &PgPool,
-) -> (WebauthnAuthenticator<ResidentSoftPasskey>, Registered) {
+pub async fn register_soft_passkey(pool: &PgPool) -> (ResidentSoftPasskey, Registered) {
     let service = RegistrationService::new(test_webauthn(), pool.clone());
-    let mut authenticator = WebauthnAuthenticator::new(ResidentSoftPasskey::new());
+    let mut authenticator = ResidentSoftPasskey::new();
     let started = service
         .start(display_name("Ada"))
         .await
@@ -489,7 +487,7 @@ pub async fn register_soft_passkey(
 /// Answers a login challenge with the credential the authenticator discovers
 /// for the relying party, the way a browser with a platform passkey would.
 pub fn soft_passkey_assertion(
-    authenticator: &mut WebauthnAuthenticator<ResidentSoftPasskey>,
+    authenticator: &mut ResidentSoftPasskey,
     rcr: RequestChallengeResponse,
 ) -> PublicKeyCredential {
     authenticator

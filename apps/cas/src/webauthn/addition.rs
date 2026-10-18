@@ -227,7 +227,7 @@ mod tests {
     async fn the_added_passkey_signs_the_account_in(pool: PgPool) {
         let (_, registered) = register_soft_passkey(&pool).await;
         let service = service(pool.clone());
-        let mut second_device = WebauthnAuthenticator::new(ResidentSoftPasskey::new());
+        let mut second_device = ResidentSoftPasskey::new();
         let started = service.start(&registered.account).await.unwrap();
         let user_id = Uuid::from_slice(started.ccr.public_key.user.id.as_ref()).unwrap();
         assert_eq!(user_id, registered.account.id);

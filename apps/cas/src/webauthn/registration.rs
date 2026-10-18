@@ -88,8 +88,9 @@ pub struct RegistrationService {
 }
 
 /// Keep webauthn-rs's passkey verification and synced-authenticator support,
-/// but require discoverability in the browser request. Its 0.5.5 high-level
-/// resident-key API requires attestation and rejects synced credentials.
+/// but require discoverability in the browser request. Its high-level
+/// resident-key API (0.5 and 0.6 alike) requires attestation and rejects
+/// synced credentials.
 /// Discoverability is a client creation requirement, not a signed authenticator
 /// flag; changing these public options does not change signature verification.
 /// See ADR 0001 for the library limitation and the trust boundary.
@@ -263,7 +264,7 @@ mod tests {
     fn an_authenticator_without_resident_storage_cannot_register() {
         let (ccr, _) =
             start_discoverable_registration(&test_webauthn(), Uuid::new_v4(), "Ada", None).unwrap();
-        let error = WebauthnAuthenticator::new(SoftPasskey::new(true))
+        let error = SoftPasskey::new(true)
             .do_registration(test_origin(), ccr)
             .unwrap_err();
         assert!(matches!(error, WebauthnCError::NotSupported));
@@ -272,7 +273,7 @@ mod tests {
     #[sqlx::test]
     async fn the_stored_passkey_supports_usernameless_sign_in(pool: PgPool) {
         let service = service(pool.clone());
-        let mut authenticator = WebauthnAuthenticator::new(ResidentSoftPasskey::new());
+        let mut authenticator = ResidentSoftPasskey::new();
         let started = service.start(display_name("Ada")).await.unwrap();
         let response = authenticator
             .do_registration(test_origin(), started.ccr)

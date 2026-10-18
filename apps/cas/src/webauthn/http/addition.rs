@@ -101,6 +101,7 @@ mod tests {
         body::{Body, to_bytes},
         http::{Request, StatusCode, header},
     };
+    use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
     use sqlx::{PgPool, postgres::PgPoolOptions};
     use tower::ServiceExt;
     use webauthn_authenticator_rs::{
@@ -126,13 +127,7 @@ mod tests {
 
     /// A signed-in account with its registration passkey: the authenticator
     /// holding that passkey, what registration created, and the cookie.
-    async fn signed_in(
-        pool: &PgPool,
-    ) -> (
-        WebauthnAuthenticator<ResidentSoftPasskey>,
-        Registered,
-        String,
-    ) {
+    async fn signed_in(pool: &PgPool) -> (ResidentSoftPasskey, Registered, String) {
         let (authenticator, registered) = register_soft_passkey(pool).await;
         let issued = SessionService::new(pool.clone())
             .create(registered.account.id, SessionOrigin::Registration)
@@ -350,10 +345,7 @@ mod tests {
         assert_eq!(public_key["excludeCredentials"][0]["type"], "public-key");
         assert_eq!(
             public_key["user"]["id"],
-            serde_json::to_value(webauthn_rs::prelude::Base64UrlSafeData::from(
-                registered.account.id.as_bytes().to_vec()
-            ))
-            .unwrap()
+            URL_SAFE_NO_PAD.encode(registered.account.id.as_bytes())
         );
         assert_eq!(public_key["user"]["name"], "Ada");
         let selection = &public_key["authenticatorSelection"];

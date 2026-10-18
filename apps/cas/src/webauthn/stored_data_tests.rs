@@ -1,18 +1,20 @@
 //! Rows written by an older webauthn-rs must still load under the current
 //! one: passkeys live forever, and ceremony state may be in flight while a
 //! release rolls out. See `docs/adr/0020-webauthn-rs-0-6.md`.
+//!
+//! The files under `testdata/` were written by webauthn-rs 0.5.5, by the
+//! `capture_fixtures` test of commit 0c40792d, and must never be regenerated:
+//! their worth is that the current version did not write them. A future
+//! upgrade adds its own `-<version>.json` set next to them.
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-use serde_json::{Value, json};
+use serde_json::Value;
 use sqlx::PgPool;
 use uuid::Uuid;
-
 use webauthn_rs::prelude::Passkey;
 
 use crate::accounts::{AccountRepository, NewAccount};
-use crate::testing::{
-    FixedKeyPasskey, TEST_ORIGIN, TEST_RP_ID, display_name, register_soft_passkey, test_webauthn,
-};
+use crate::testing::{FixedKeyPasskey, TEST_ORIGIN, TEST_RP_ID, display_name, test_webauthn};
 use crate::webauthn::addition::AdditionService;
 use crate::webauthn::ceremonies::{PendingAddition, PendingLogin, PendingRegistration};
 use crate::webauthn::login::LoginService;
@@ -208,100 +210,4 @@ async fn a_stored_addition_ceremony_finishes(pool: PgPool) {
         .unwrap();
     assert_eq!(added.account_id, account_id);
     assert_eq!(added.credential_id, SECOND_CREDENTIAL_ID);
-}
-
-async fn ceremony_state(pool: &PgPool, id: Uuid) -> Value {
-    // Unchecked query: see docs/TESTS.md.
-    sqlx::query_scalar("SELECT state FROM webauthn_ceremonies WHERE id = $1")
-        .bind(id)
-        .fetch_one(pool)
-        .await
-        .unwrap()
-}
-
-async fn passkey_row(pool: &PgPool, account_id: Uuid) -> Value {
-    // Unchecked query: see docs/TESTS.md.
-    let (credential_id, credential): (Vec<u8>, Value) = sqlx::query_as(
-        "SELECT credential_id, credential FROM passkey_credentials WHERE account_id = $1",
-    )
-    .bind(account_id)
-    .fetch_one(pool)
-    .await
-    .unwrap();
-    json!({
-        "account_id": account_id,
-        "credential_id": URL_SAFE_NO_PAD.encode(credential_id),
-        "credential": credential,
-    })
-}
-
-fn write(name: &str, value: &Value) {
-    let path = format!(
-        "{}/src/webauthn/testdata/{name}",
-        env!("CARGO_MANIFEST_DIR")
-    );
-    let mut text = serde_json::to_string_pretty(value).unwrap();
-    text.push('\n');
-    std::fs::write(path, text).unwrap();
-}
-
-/// Writes the fixtures under `testdata/`. Run once, under webauthn-rs 0.5.5:
-/// `cargo test --lib capture_fixtures -- --ignored`.
-#[sqlx::test]
-#[ignore = "writes the fixtures; only meaningful under the webauthn-rs that produced them"]
-async fn capture_fixtures(pool: PgPool) {
-    let registration = RegistrationService::new(test_webauthn(), pool.clone());
-
-    // A registration ceremony, left unfinished.
-    let started = registration.start(display_name("Ada")).await.unwrap();
-    write(
-        "registration-ceremony-0.5.5.json",
-        &ceremony_state(&pool, started.registration_id).await,
-    );
-
-    // A passkey of the fixed key, registered and stored.
-    let started = registration.start(display_name("Grace")).await.unwrap();
-    let challenge = serde_json::to_value(&started.ccr).unwrap()["publicKey"]["challenge"]
-        .as_str()
-        .unwrap()
-        .to_string();
-    let registered = registration
-        .finish(
-            started.registration_id,
-            &fixed_key(CREDENTIAL_ID).registration(&challenge),
-        )
-        .await
-        .unwrap();
-    write(
-        "passkey-0.5.5.json",
-        &passkey_row(&pool, registered.account.id).await,
-    );
-
-    // A passkey addition for that account, left unfinished: the fixture
-    // passkey goes into its `exclude_credentials`.
-    let started = AdditionService::new(test_webauthn(), pool.clone())
-        .start(&registered.account)
-        .await
-        .unwrap();
-    write(
-        "addition-ceremony-0.5.5.json",
-        &ceremony_state(&pool, started.registration_id).await,
-    );
-
-    // A login ceremony, left unfinished.
-    let started = LoginService::new(test_webauthn(), pool.clone())
-        .start()
-        .await
-        .unwrap();
-    write(
-        "authentication-ceremony-0.5.5.json",
-        &ceremony_state(&pool, started.login_id).await,
-    );
-
-    // A passkey of the software authenticator: packed self-attestation.
-    let (_, registered) = register_soft_passkey(&pool).await;
-    write(
-        "soft-passkey-0.5.5.json",
-        &passkey_row(&pool, registered.account.id).await,
-    );
 }

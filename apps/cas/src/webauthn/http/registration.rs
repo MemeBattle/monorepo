@@ -20,7 +20,7 @@ use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
-use webauthn_rs::prelude::{CreationChallengeResponse, CredentialID, RegisterPublicKeyCredential};
+use webauthn_rs::prelude::{CreationChallengeResponse, RegisterPublicKeyCredential};
 
 use crate::accounts::{DisplayName, DisplayNameError};
 use crate::http::ApiState;
@@ -116,8 +116,7 @@ pub struct VerifyRegistrationData {
 pub struct VerifyRegistrationResponse {
     account_id: Uuid,
     /// Base64url.
-    #[schema(value_type = String)]
-    credential_id: CredentialID,
+    credential_id: String,
 }
 
 crate::error_set!(pub(super) RegistrationOptionsErrors:
@@ -184,7 +183,7 @@ pub(super) async fn verify_registration(
             ),
             Json(VerifyRegistrationResponse {
                 account_id: upgraded.account.id,
-                credential_id: upgraded.credential.passkey.cred_id().clone(),
+                credential_id: super::credential_id(&upgraded.credential.passkey),
             }),
         ));
     }
@@ -202,7 +201,7 @@ pub(super) async fn verify_registration(
         jar.add(state.cookies.session(&issued.token, &issued.session)),
         Json(VerifyRegistrationResponse {
             account_id: registered.account.id,
-            credential_id: registered.credential.passkey.cred_id().clone(),
+            credential_id: super::credential_id(&registered.credential.passkey),
         }),
     ))
 }
@@ -323,7 +322,8 @@ mod tests {
         let body = body_json(response).await;
         let account_id: Uuid = serde_json::from_value(body["accountId"].clone()).unwrap();
         assert_ne!(account_id, options.registration_id);
-        assert!(body["credentialId"].is_string());
+        // Base64url, as the browser reported the credential's id.
+        assert_eq!(body["credentialId"], attestation.id.as_str());
         // The stored credential stays server-side.
         assert!(body.get("cred").is_none());
         assert!(body.get("credential").is_none());
