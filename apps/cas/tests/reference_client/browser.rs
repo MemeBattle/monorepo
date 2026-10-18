@@ -34,7 +34,7 @@ pub struct Browser {
     /// The one cookie CAS sets, as `name=value`. Its name is whatever CAS
     /// sent: the browser does not know it in advance.
     cookie: Option<String>,
-    authenticator: WebauthnAuthenticator<ResidentSoftPasskey>,
+    authenticator: ResidentSoftPasskey,
 }
 
 impl Browser {
@@ -50,7 +50,7 @@ impl Browser {
                 .expect("an HTTP client builds"),
             issuer: Url::parse(cas.issuer()).expect("the issuer is a URL"),
             cookie: None,
-            authenticator: WebauthnAuthenticator::new(ResidentSoftPasskey::new()),
+            authenticator: ResidentSoftPasskey::new(),
         }
     }
 

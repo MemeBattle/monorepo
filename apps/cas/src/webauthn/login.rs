@@ -362,7 +362,7 @@ mod tests {
     #[sqlx::test]
     async fn an_unregistered_credential_is_rejected(pool: PgPool) {
         let webauthn = test_webauthn();
-        let mut authenticator = WebauthnAuthenticator::new(ResidentSoftPasskey::new());
+        let mut authenticator = ResidentSoftPasskey::new();
         let (ccr, _) =
             start_discoverable_registration(&webauthn, Uuid::new_v4(), "Ada", None).unwrap();
         authenticator.do_registration(test_origin(), ccr).unwrap();
@@ -388,7 +388,7 @@ mod tests {
 
         let started = service.start().await.unwrap();
         let mut assertion = soft_passkey_assertion(&mut authenticator, started.rcr);
-        assertion.response.user_handle = Some(other.account.id.as_bytes().to_vec().into());
+        assertion.response.user_handle = Some(other.account.id.as_bytes().to_vec());
         let error = service
             .finish(started.login_id, &assertion)
             .await

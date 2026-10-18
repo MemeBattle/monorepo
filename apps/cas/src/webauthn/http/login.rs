@@ -6,7 +6,7 @@ use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
-use webauthn_rs::prelude::{CredentialID, PublicKeyCredential, RequestChallengeResponse};
+use webauthn_rs::prelude::{PublicKeyCredential, RequestChallengeResponse};
 
 use crate::http::ApiState;
 use crate::http::error::ApiErrors;
@@ -59,8 +59,7 @@ pub struct VerifyLoginData {
 pub struct VerifyLoginResponse {
     account_id: Uuid,
     /// Base64url.
-    #[schema(value_type = String)]
-    credential_id: CredentialID,
+    credential_id: String,
 }
 
 crate::error_set!(pub(super) LoginOptionsErrors: StartError);
@@ -101,7 +100,7 @@ pub(super) async fn verify_login(
         jar.add(state.cookies.session(&issued.token, &issued.session)),
         Json(VerifyLoginResponse {
             account_id: logged_in.account.id,
-            credential_id: logged_in.credential.passkey.cred_id().clone(),
+            credential_id: super::credential_id(&logged_in.credential.passkey),
         }),
     ))
 }
@@ -115,6 +114,7 @@ mod tests {
         http::{Request, StatusCode, header},
         response::IntoResponse,
     };
+    use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
     use sqlx::{PgPool, postgres::PgPoolOptions};
     use tower::ServiceExt;
 
@@ -222,9 +222,12 @@ mod tests {
         let body = body_json(response).await;
         let account_id: Uuid = serde_json::from_value(body["accountId"].clone()).unwrap();
         assert_eq!(account_id, registered.account.id);
-        let credential_id: CredentialID =
-            serde_json::from_value(body["credentialId"].clone()).unwrap();
-        assert_eq!(&credential_id, registered.credential.passkey.cred_id());
+        // Base64url, as the browser reported the credential's id.
+        assert_eq!(body["credentialId"], assertion.id.as_str());
+        assert_eq!(
+            URL_SAFE_NO_PAD.decode(assertion.id.as_str()).unwrap(),
+            *registered.credential.passkey.cred_id()
+        );
         // The stored credential stays server-side.
         assert!(body.get("credential").is_none());
 
@@ -274,7 +277,7 @@ mod tests {
     #[sqlx::test]
     async fn an_unregistered_credential_returns_401(pool: PgPool) {
         let webauthn = test_webauthn();
-        let mut authenticator = WebauthnAuthenticator::new(ResidentSoftPasskey::new());
+        let mut authenticator = ResidentSoftPasskey::new();
         let (ccr, _) =
             start_discoverable_registration(&webauthn, Uuid::new_v4(), "Ada", None).unwrap();
         authenticator.do_registration(test_origin(), ccr).unwrap();

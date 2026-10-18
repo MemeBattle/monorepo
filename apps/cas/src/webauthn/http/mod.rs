@@ -9,8 +9,10 @@ pub mod login;
 pub mod passkeys;
 pub mod registration;
 
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
+use webauthn_rs::prelude::Passkey;
 
 use crate::http::ApiState;
 
@@ -23,6 +25,15 @@ use crate::http::ApiState;
     login::VerifyLoginResponse,
 )))]
 struct CeremoniesApi;
+
+/// A passkey's credential id as the ceremony responses carry it: base64url
+/// without padding, the encoding of the `id` the browser reports. webauthn-rs
+/// 0.6 made `CredentialID` a bare `Vec<u8>`, which would serialise as an array
+/// of numbers, so the wire form is written here rather than left to the
+/// library.
+fn credential_id(passkey: &Passkey) -> String {
+    URL_SAFE_NO_PAD.encode(passkey.cred_id())
+}
 
 pub fn router(state: ApiState) -> OpenApiRouter {
     OpenApiRouter::with_openapi(CeremoniesApi::openapi())
