@@ -1,4 +1,12 @@
+//! Where the running service's settings come from.
+//!
+//! Two deployments, two sources. A native process reads environment variables
+//! and the monorepo's `.env` files ([`Config::from_env`]); a Cloudflare Worker
+//! has neither, so it reads its bindings ([`WorkerConfig`], ADR 0022 (e)). The
+//! validators below are shared, so a value means the same thing in both.
+
 use std::cell::Cell;
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::Path;
 
 use axum::http::HeaderValue;
@@ -8,24 +16,32 @@ use webauthn_rs::prelude::Url;
 // All .env files live in the monorepo root, resolved at compile time. That is
 // safe because deployments supply real environment variables and missing files
 // are skipped silently.
+#[cfg(not(target_arch = "wasm32"))]
 const MONOREPO_ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+#[cfg(not(target_arch = "wasm32"))]
 const DEFAULT_APP_ENV: &str = "development";
 
+#[cfg(not(target_arch = "wasm32"))]
 const DEFAULT_PORT: u16 = 3000;
+#[cfg(not(target_arch = "wasm32"))]
 const DEFAULT_RP_ID: &str = "localhost";
+#[cfg(not(target_arch = "wasm32"))]
 const DEFAULT_ORIGIN: &str = "http://localhost:5173";
+#[cfg(not(target_arch = "wasm32"))]
 const DEFAULT_CORS_ORIGINS: &str = "http://localhost:5173";
 // Matches the dev credentials in apps/cas/docker-compose.yml.
+#[cfg(not(target_arch = "wasm32"))]
 const DEFAULT_DATABASE_URL: &str = "postgres://cas:cas@localhost:5434/cas";
 // The backend's own address, not `CAS_ORIGIN` (the frontend's).
+#[cfg(not(target_arch = "wasm32"))]
 const DEFAULT_ISSUER: &str = "http://localhost:3000";
 
 // The checked-in development signing key exists only in debug builds, so a
 // release server cannot start on a key that is public by construction
 // (docs/adr/0009-signing-key-and-discovery.md (c)).
-#[cfg(debug_assertions)]
+#[cfg(all(not(target_arch = "wasm32"), debug_assertions))]
 const DEFAULT_SIGNING_KEY: Option<&str> = Some(include_str!("../dev/signing-key.pem"));
-#[cfg(not(debug_assertions))]
+#[cfg(all(not(target_arch = "wasm32"), not(debug_assertions)))]
 const DEFAULT_SIGNING_KEY: Option<&str> = None;
 
 #[derive(Debug, Error, miette::Diagnostic)]
@@ -60,6 +76,13 @@ pub enum ConfigError {
     #[error("CAS_SIGNING_KEY is set but empty")]
     #[diagnostic(code(cas::config_error))]
     EmptySigningKey,
+
+    /// A Worker binding that is not there. Unlike the native process, which
+    /// has development defaults to fall back on, a Worker is a deployment:
+    /// every binding is required (ADR 0022 (e)).
+    #[error("{0} is not bound")]
+    #[diagnostic(code(cas::config_error))]
+    MissingBinding(&'static str),
 }
 
 /// The PEM text of `CAS_SIGNING_KEY`, unparsed: config knows no context, so
@@ -84,6 +107,9 @@ impl std::fmt::Debug for SigningKeyPem {
     }
 }
 
+/// What the native server runs on, from the process environment and the
+/// monorepo's `.env` files.
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Clone)]
 pub struct Config {
     pub port: u16,
@@ -99,6 +125,7 @@ pub struct Config {
     pub signing_key: Option<SigningKeyPem>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Config {
     pub fn from_env() -> Result<Self, ConfigError> {
         Self::from_values(
@@ -156,6 +183,94 @@ impl Config {
             issuer,
             signing_key,
         })
+    }
+}
+
+/// What a Cloudflare Worker runs on, from its bindings (ADR 0022 (e)).
+///
+/// The same values as [`Config`] minus two that have no meaning there:
+/// `database_url`, because the database is the `HYPERDRIVE` binding and its
+/// credentials are Hyperdrive's to hold, and `port`, because nothing listens
+/// on one — the runtime hands the entrypoint a request.
+///
+/// Every field is required. A Worker is a deployment, so there is no
+/// localhost default to fall back on and no debug default signing key: a
+/// missing binding is a misconfigured deployment, which the entrypoint treats
+/// as a startup failure (ADR 0022 (g)).
+///
+/// Compiled on every target, so this parsing is unit-tested by `cargo test`;
+/// only the binding reading itself is wasm32-only.
+#[derive(Debug, Clone)]
+pub struct WorkerConfig {
+    pub rp_id: String,
+    pub origin: Url,
+    pub cors_origins: Vec<HeaderValue>,
+    /// The OIDC issuer, published exactly as typed.
+    pub issuer: String,
+    pub signing_key: SigningKeyPem,
+}
+
+impl WorkerConfig {
+    /// The five binding values, validated exactly as [`Config::from_env`]
+    /// validates the matching variables.
+    pub fn from_values(
+        rp_id: Option<String>,
+        origin: Option<String>,
+        cors_origins: Option<String>,
+        issuer: Option<String>,
+        signing_key: Option<String>,
+    ) -> Result<Self, ConfigError> {
+        let rp_id = rp_id.ok_or(ConfigError::MissingBinding("CAS_RP_ID"))?;
+
+        let origin = origin.ok_or(ConfigError::MissingBinding("CAS_ORIGIN"))?;
+        let origin = Url::parse(&origin).map_err(|_| ConfigError::InvalidOrigin(origin))?;
+
+        let cors_origins = cors_origins.ok_or(ConfigError::MissingBinding("CAS_CORS_ORIGINS"))?;
+        let cors_origins = parse_cors_origins(&cors_origins)?;
+
+        let issuer = issuer.ok_or(ConfigError::MissingBinding("CAS_ISSUER"))?;
+        if !is_valid_issuer(&issuer) {
+            return Err(ConfigError::InvalidIssuer(issuer));
+        }
+
+        let signing_key = resolve_signing_key(signing_key, None)?
+            .ok_or(ConfigError::MissingBinding("CAS_SIGNING_KEY"))?;
+
+        Ok(Self {
+            rp_id,
+            origin,
+            cors_origins,
+            issuer,
+            signing_key,
+        })
+    }
+
+    /// Reads the bindings of `env`.
+    ///
+    /// `CAS_RP_ID`, `CAS_ORIGIN`, `CAS_CORS_ORIGINS` and `CAS_ISSUER` are
+    /// plain vars: they are public, and two of them are published by discovery
+    /// anyway. `CAS_SIGNING_KEY` is a secret — it is the private key every
+    /// token is signed with — so it is read with `Env::secret`, which is the
+    /// binding kind a `wrangler secret` value arrives as.
+    ///
+    /// # Errors
+    ///
+    /// [`ConfigError::MissingBinding`] for a binding that is not there or not
+    /// of the expected kind, and the matching validation error for one whose
+    /// value the native server would refuse too.
+    #[cfg(target_arch = "wasm32")]
+    pub fn from_worker_env(env: &worker::Env) -> Result<Self, ConfigError> {
+        let var = |name: &str| env.var(name).ok().map(|var| var.to_string());
+
+        Self::from_values(
+            var("CAS_RP_ID"),
+            var("CAS_ORIGIN"),
+            var("CAS_CORS_ORIGINS"),
+            var("CAS_ISSUER"),
+            env.secret("CAS_SIGNING_KEY")
+                .ok()
+                .map(|secret| secret.to_string()),
+        )
     }
 }
 
@@ -239,6 +354,7 @@ fn is_valid_issuer(value: &str) -> bool {
 /// Real environment variables always win: `dotenvy::from_filename` never
 /// overrides an already-set variable, so visiting the candidates in
 /// highest-priority-first order reproduces dotenv-flow precedence.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn load_env_files() {
     let app_env = std::env::var("APP_ENV").unwrap_or_else(|_| DEFAULT_APP_ENV.to_string());
     let root = Path::new(MONOREPO_ROOT);
@@ -248,6 +364,7 @@ pub fn load_env_files() {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn env_file_names(app_env: &str) -> Vec<String> {
     vec![
         format!(".env.{app_env}.local"),
@@ -257,6 +374,7 @@ fn env_file_names(app_env: &str) -> Vec<String> {
     ]
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn env_value(name: &'static str) -> Result<Option<String>, ConfigError> {
     match std::env::var(name) {
         Ok(value) => Ok(Some(value)),
@@ -479,6 +597,99 @@ mod tests {
 
         let key = resolve_signing_key(None, Some("default")).unwrap().unwrap();
         assert_eq!(key.expose(), "default");
+    }
+
+    /// The five bindings a Worker is deployed with.
+    fn worker_values() -> [Option<String>; 5] {
+        [
+            Some("cas.example.com".to_string()),
+            Some("https://cas.example.com".to_string()),
+            Some("https://a.example.com, https://b.example.com".to_string()),
+            Some("https://cas.example.com".to_string()),
+            Some("provided key".to_string()),
+        ]
+    }
+
+    fn worker_config(values: [Option<String>; 5]) -> Result<WorkerConfig, ConfigError> {
+        let [rp_id, origin, cors_origins, issuer, signing_key] = values;
+        WorkerConfig::from_values(rp_id, origin, cors_origins, issuer, signing_key)
+    }
+
+    /// Every value is parsed exactly as the native path parses the matching
+    /// variable: the shared validators are the same code.
+    #[test]
+    fn parses_the_worker_bindings() {
+        let config = worker_config(worker_values()).unwrap();
+
+        assert_eq!(config.rp_id, "cas.example.com");
+        assert_eq!(config.origin.as_str(), "https://cas.example.com/");
+        assert_eq!(
+            config.cors_origins,
+            vec![
+                HeaderValue::from_static("https://a.example.com"),
+                HeaderValue::from_static("https://b.example.com"),
+            ]
+        );
+        assert_eq!(config.issuer, "https://cas.example.com");
+        assert_eq!(config.signing_key.expose(), "provided key");
+    }
+
+    /// A Worker has no development defaults, the signing key included: each
+    /// missing binding is named, so an operator reads which one to set.
+    #[test]
+    fn every_worker_binding_is_required() {
+        for (index, name) in [
+            "CAS_RP_ID",
+            "CAS_ORIGIN",
+            "CAS_CORS_ORIGINS",
+            "CAS_ISSUER",
+            "CAS_SIGNING_KEY",
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let mut values = worker_values();
+            values[index] = None;
+
+            let error = worker_config(values).unwrap_err();
+            assert!(
+                matches!(error, ConfigError::MissingBinding(missing) if missing == name),
+                "{name}: {error:?}"
+            );
+        }
+    }
+
+    /// One case each: the validators are shared with `Config::from_values`,
+    /// which covers the rest.
+    #[test]
+    fn rejects_worker_bindings_the_native_server_would_refuse_too() {
+        let invalid = |index: usize, value: &str| {
+            let mut values = worker_values();
+            values[index] = Some(value.to_string());
+            worker_config(values).unwrap_err()
+        };
+
+        assert!(
+            matches!(invalid(1, "not-a-url"), ConfigError::InvalidOrigin(value) if value == "not-a-url")
+        );
+        assert!(
+            matches!(invalid(2, "bad\u{7f}origin"), ConfigError::InvalidCorsOrigin(value) if value == "bad\u{7f}origin")
+        );
+        assert!(
+            matches!(invalid(3, "https://cas.example/"), ConfigError::InvalidIssuer(value) if value == "https://cas.example/")
+        );
+        assert!(matches!(invalid(4, " \n"), ConfigError::EmptySigningKey));
+    }
+
+    #[test]
+    fn debug_of_the_worker_config_redacts_the_signing_key() {
+        let mut values = worker_values();
+        values[4] = Some(include_str!("../dev/signing-key.pem").to_string());
+
+        let debug = format!("{:?}", worker_config(values).unwrap());
+
+        assert!(!debug.contains("PRIVATE KEY"), "{debug}");
+        assert!(debug.contains("SigningKeyPem(<redacted>)"), "{debug}");
     }
 
     #[test]

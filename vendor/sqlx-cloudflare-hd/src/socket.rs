@@ -7,6 +7,11 @@ use std::task::{ready, Context, Poll};
 use sqlx_core::io::ReadBuf;
 use sqlx_core::net::Socket;
 use tokio::io::{AsyncRead, AsyncWrite};
+use worker::js_sys::{Object, Reflect};
+use worker::wasm_bindgen::JsValue;
+use worker::worker_sys;
+
+use crate::abort::SocketAbort;
 
 /// How much [`HdSocket::try_write`] queues before it asks sqlx to wait for a
 /// flush.
@@ -24,49 +29,80 @@ const READ_CHUNK: usize = 8 * 1024;
 /// `poll_write_ready` or `poll_flush` pushes them out.
 pub(crate) struct HdSocket {
     inner: worker::Socket,
+    /// The same JS socket `inner` wraps, kept as a reference (`worker_sys::
+    /// Socket` is `Clone` and clones alias one JS object) so that a TLS
+    /// upgrade can go through `startTls()` and hand the socket that returns to
+    /// [`SocketAbort`].
+    raw: worker_sys::Socket,
     read_buf: Vec<u8>,
     eof: bool,
     write_buf: Vec<u8>,
 }
 
 impl HdSocket {
-    /// Opens a socket to `hyperdrive`'s host and port.
+    /// Opens a socket to `hyperdrive`'s host and port and registers it in
+    /// `abort`.
     ///
     /// `StartTls` for a driver that may upgrade the socket later, with
-    /// [`into_inner`](Self::into_inner) and `start_tls`; `Off` otherwise.
+    /// [`into_raw`](Self::into_raw) and `startTls()`; `Off` otherwise.
+    ///
+    /// It goes through `worker_sys::connect` rather than
+    /// `worker::Socket::builder()`, with the same two JS objects the builder
+    /// makes, because the builder keeps the raw socket to itself and `abort`
+    /// is a handle on exactly that.
     pub(crate) fn connect(
         hyperdrive: &worker::Hyperdrive,
-        transport: worker::SecureTransport,
+        transport: &worker::SecureTransport,
+        abort: &SocketAbort,
     ) -> Result<Self, sqlx_core::Error> {
-        let socket = worker::Socket::builder()
-            .secure_transport(transport)
-            .connect(hyperdrive.host(), hyperdrive.port())
-            .map_err(|e| sqlx_core::Error::Io(io::Error::other(e.to_string())))?;
-        Ok(Self::new(socket))
+        let address = Object::new();
+        set(&address, "hostname", &JsValue::from_str(&hyperdrive.host()))?;
+        set(
+            &address,
+            "port",
+            &JsValue::from_f64(f64::from(hyperdrive.port())),
+        )?;
+
+        let options = Object::new();
+        set(&options, "allowHalfOpen", &JsValue::FALSE)?;
+        set(
+            &options,
+            "secureTransport",
+            &JsValue::from_str(match transport {
+                worker::SecureTransport::On => "on",
+                worker::SecureTransport::Off => "off",
+                worker::SecureTransport::StartTls => "starttls",
+            }),
+        )?;
+
+        let raw = worker_sys::connect(address.into(), options.into()).map_err(js_error)?;
+        abort.set(raw.clone());
+        Ok(Self::new(raw))
     }
 
-    pub(crate) fn new(inner: worker::Socket) -> Self {
+    pub(crate) fn new(raw: worker_sys::Socket) -> Self {
         Self {
-            inner,
+            inner: worker::Socket::from(raw.clone()),
+            raw,
             read_buf: Vec::new(),
             eof: false,
             write_buf: Vec::new(),
         }
     }
 
-    /// The Worker's socket back, for `start_tls`.
+    /// The JS socket back, for `startTls()`, dropping this wrapper.
     ///
     /// Fails if the server has already sent bytes nobody has read. Before a TLS
     /// upgrade those would be plaintext an attacker injected, which must not be
     /// read as though it came over TLS (the attack behind CVE-2021-23222).
-    pub(crate) fn into_inner(self) -> io::Result<worker::Socket> {
+    pub(crate) fn into_raw(self) -> io::Result<worker_sys::Socket> {
         if !self.read_buf.is_empty() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "server sent unexpected data after accepting TLS",
             ));
         }
-        Ok(self.inner)
+        Ok(self.raw)
     }
 
     fn poll_drain(&mut self, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
@@ -134,4 +170,18 @@ impl Socket for HdSocket {
         ready!(self.poll_drain(cx))?;
         Pin::new(&mut self.inner).poll_shutdown(cx)
     }
+}
+
+/// One property of a JS object literal. Setting a property of a plain
+/// `Object` cannot fail, but `Reflect` reports in JS terms, so the result is
+/// carried rather than unwrapped.
+fn set(object: &Object, key: &str, value: &JsValue) -> Result<(), sqlx_core::Error> {
+    Reflect::set(object, &JsValue::from_str(key), value)
+        .map(|_set| ())
+        .map_err(js_error)
+}
+
+/// Whatever JS threw, as the I/O failure sqlx understands.
+pub(crate) fn js_error(value: JsValue) -> sqlx_core::Error {
+    sqlx_core::Error::Io(io::Error::other(worker::Error::from(value).to_string()))
 }

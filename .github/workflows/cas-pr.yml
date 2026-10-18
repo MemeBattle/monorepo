@@ -7,6 +7,9 @@ on:
       - 'apps/cas/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
+      # The wasm32 rustflags the Worker build needs live here, so a change to
+      # them must not skip the jobs that depend on them (ADR 0022 (h)).
+      - '.cargo/**'
       - 'vendor/**'
       - '.github/workflows/cas-**'
 
@@ -168,3 +171,29 @@ jobs:
 
       - name: Cargo clippy (wasm32)
         run: cargo clippy --locked -p sqlx-cloudflare-hd --features postgres --target wasm32-unknown-unknown -- -D warnings
+
+  # The Cloudflare Workers build of the library (ADR 0022). `--lib` on
+  # purpose: the three binaries are native-only and stay that way. No Postgres
+  # service — the macros read the offline cache.
+  lib-wasm:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+          targets: wasm32-unknown-unknown
+
+      - name: Cargo check (wasm32)
+        env:
+          SQLX_OFFLINE: 'true'
+        run: cargo check --locked -p cas --lib --target wasm32-unknown-unknown
+
+      - name: Cargo clippy (wasm32)
+        env:
+          SQLX_OFFLINE: 'true'
+        run: cargo clippy --locked -p cas --lib --target wasm32-unknown-unknown -- -D warnings

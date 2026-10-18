@@ -21,7 +21,12 @@
 // Everything below is shared by the drivers, so it only exists with one of
 // them: widen the `cfg`s to `any(...)` as drivers are added.
 #[cfg(feature = "postgres")]
+mod abort;
+#[cfg(feature = "postgres")]
 mod socket;
+
+#[cfg(feature = "postgres")]
+pub use abort::SocketAbort;
 
 #[cfg(feature = "postgres")]
 pub mod postgres;

@@ -431,6 +431,9 @@ dependencies = [
  "axum-extra",
  "base64 0.22.1",
  "dotenvy",
+ "futures-util",
+ "getrandom 0.2.17",
+ "getrandom 0.3.4",
  "getrandom 0.4.3",
  "icu_properties",
  "miette",
@@ -442,6 +445,7 @@ dependencies = [
  "serde_json",
  "sha2 0.11.0",
  "sqlx",
+ "sqlx-cloudflare-hd",
  "subtle",
  "thiserror 2.0.20",
  "time",
@@ -459,6 +463,7 @@ dependencies = [
  "webauthn-authenticator-rs",
  "webauthn-rs",
  "webauthn-rs-proto",
+ "worker",
 ]
 
 [[package]]
@@ -1240,9 +1245,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "899def5c37c4fd7b2664648c28120ecec138e4d395b459e5ca34f9cce2dd77fd"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "r-efi 5.3.0",
  "wasip2",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -3359,6 +3366,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cdb87b95ec50ddfa440816d227a17b2ccbdda963a316a727fda0fc4334f7d134"
 dependencies = [
  "deranged",
+ "js-sys",
  "num-conv",
  "powerfmt",
  "serde_core",
@@ -3807,7 +3815,17 @@ dependencies = [
  "js-sys",
  "rand 0.10.2",
  "serde_core",
+ "uuid-rng-internal",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "uuid-rng-internal"
+version = "1.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e1d7ccff5e453092983b2a5ec27ebdd52745f40bef229e92051a054a37c662b"
+dependencies = [
+ "rand 0.10.2",
 ]
 
 [[package]]

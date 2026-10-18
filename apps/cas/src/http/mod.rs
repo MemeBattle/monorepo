@@ -11,34 +11,41 @@
 pub mod error;
 pub(crate) mod extract;
 mod fetch_metadata;
-mod health;
+pub mod health;
 pub(crate) mod openapi;
 pub mod response;
 
 use axum::{
     Router,
-    body::Body,
+    body::{Body, Bytes, to_bytes},
     http::{HeaderValue, Method, Request, header},
     response::{IntoResponse, Response},
 };
+#[cfg(not(target_arch = "wasm32"))]
 use sqlx::postgres::PgPoolOptions;
 use thiserror::Error;
-use tower::Layer;
+use tower::{Layer, ServiceExt as _};
+#[cfg(not(target_arch = "wasm32"))]
+use tower_http::trace::{self, TraceLayer};
 use tower_http::{
     catch_panic::CatchPanicLayer,
     cors::{AllowOrigin, CorsLayer},
     normalize_path::{NormalizePath, NormalizePathLayer},
     set_header::SetResponseHeaderLayer,
-    trace::{self, TraceLayer},
 };
+#[cfg(not(target_arch = "wasm32"))]
 use tracing::Level;
 use url::Url;
 use utoipa_axum::router::OpenApiRouter;
+use webauthn_rs::prelude::Webauthn;
 
 use crate::accounts::AccountManagement;
 use crate::accounts::http as accounts_http;
+#[cfg(not(target_arch = "wasm32"))]
 use crate::config::Config;
-use crate::db::Db;
+use crate::config::SigningKeyPem;
+use crate::db::{CloseOutcome, Db};
+use crate::deadline::{DeadlineExpired, with_deadline};
 use crate::http::error::ApiError;
 use crate::http::fetch_metadata::AllowedOrigins;
 use crate::oidc::http::{self as oidc_http, Documents};
@@ -119,6 +126,7 @@ pub struct ApiState {
 /// Every router is an `OpenApiRouter`, so the document `GET /openapi.json`
 /// serves is collected from the same mounts that route the requests
 /// (`openapi`). In tests, every answer is also checked against it.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
     // Lazy pool: connections open on first use, so startup succeeds even when
     // the DB is down and `/health` reports the actual connectivity.
@@ -132,26 +140,104 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
     // timeout and answers for the process, not for a request.
     let db = Db::pool(pool.clone());
 
-    let webauthn = build_webauthn(&config.rp_id, &config.origin).map_err(AppError::WebauthnInit)?;
-
     // Only the server signs, so only the server refuses to start without a
     // key; the tools that share `Config` do not need one.
     let pem = config
         .signing_key
         .as_ref()
         .ok_or(AppError::MissingSigningKey)?;
-    let signing_keys = SigningKeys::from_pem(pem.expose()).map_err(AppError::SigningKey)?;
-    // The kid is public; this line is what an operator checks after a
-    // rotation.
-    tracing::info!(
-        kid = signing_keys.active().kid(),
-        published = signing_keys.published().len(),
-        "signing key loaded"
-    );
-    let documents = Documents {
-        discovery: Discovery::for_issuer(&config.issuer),
-        jwks: signing_keys.jwks(),
-    };
+    let parts = AppParts::build(
+        &config.rp_id,
+        &config.origin,
+        config.cors_origins,
+        config.issuer,
+        pem,
+    )?;
+
+    Ok(build_app(parts, db, health::router(pool)))
+}
+
+/// Everything the router is made of that building can fail at, with no
+/// database in it.
+///
+/// The split exists for the Worker, which builds a router per request: the
+/// parts are built **before** a connection is opened, so that once there is
+/// one, assembling the router cannot fail and no path can return early
+/// between the open and the close (ADR 0022 (f)). Natively it is the same
+/// code, run once at startup.
+pub struct AppParts {
+    webauthn: Webauthn,
+    signing_keys: SigningKeys,
+    documents: Documents,
+    cookies: CookieSettings,
+    cors_origins: Vec<HeaderValue>,
+    /// The frontend's origin (`CAS_ORIGIN`).
+    origin: Url,
+    issuer: String,
+}
+
+impl AppParts {
+    /// Builds the relying party, reads the signing key and derives the
+    /// published documents from it.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError::WebauthnInit`] when `rp_id` and `origin` do not make a
+    /// relying party, [`AppError::SigningKey`] when the PEM is not a key CAS
+    /// can sign with.
+    pub fn build(
+        rp_id: &str,
+        origin: &Url,
+        cors_origins: Vec<HeaderValue>,
+        issuer: String,
+        signing_key: &SigningKeyPem,
+    ) -> Result<Self, AppError> {
+        let webauthn = build_webauthn(rp_id, origin).map_err(AppError::WebauthnInit)?;
+
+        let signing_keys =
+            SigningKeys::from_pem(signing_key.expose()).map_err(AppError::SigningKey)?;
+        // The kid is public; this line is what an operator checks after a
+        // rotation.
+        tracing::info!(
+            kid = signing_keys.active().kid(),
+            published = signing_keys.published().len(),
+            "signing key loaded"
+        );
+
+        let documents = Documents {
+            discovery: Discovery::for_issuer(&issuer),
+            jwks: signing_keys.jwks(),
+        };
+
+        Ok(Self {
+            webauthn,
+            signing_keys,
+            documents,
+            cookies: CookieSettings::for_origin(origin),
+            cors_origins,
+            origin: origin.clone(),
+            issuer,
+        })
+    }
+}
+
+/// The whole service over `db`, with `health` as its `/health` mount.
+///
+/// Infallible by construction: everything that can go wrong happened in
+/// [`AppParts::build`]. `health` is a parameter rather than a choice made
+/// here because the two deployments probe different things — the process's
+/// pool natively, the request's own connection on a Worker — while answering
+/// the same contract (ADR 0022 (f)).
+pub fn build_app(parts: AppParts, db: Db, health: OpenApiRouter) -> NormalizePath<Router> {
+    let AppParts {
+        webauthn,
+        signing_keys,
+        documents,
+        cookies,
+        cors_origins,
+        origin,
+        issuer,
+    } = parts;
     let verifying_keys = signing_keys.verifying_keys();
 
     let api_state = ApiState {
@@ -162,44 +248,112 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
         passkeys: PasskeyManagement::new(db.clone()),
         accounts: AccountManagement::new(db.clone()),
         sessions: SessionService::new(db.clone()),
-        cookies: CookieSettings::for_origin(&config.origin),
+        cookies,
         authorization: AuthorizationService::new(db.clone()),
-        tokens: TokenService::new(
-            db.clone(),
-            signing_keys.active().clone(),
-            config.issuer.clone(),
-        ),
-        userinfo: UserInfoService::new(db.clone(), verifying_keys.clone(), config.issuer.clone()),
+        tokens: TokenService::new(db.clone(), signing_keys.active().clone(), issuer.clone()),
+        userinfo: UserInfoService::new(db.clone(), verifying_keys.clone(), issuer.clone()),
         end_session: EndSessionService::new(
             AuthorizationService::new(db.clone()),
             verifying_keys.clone(),
-            config.issuer.clone(),
+            issuer.clone(),
         ),
-        upgrade_hints: UpgradeHintService::new(db, verifying_keys, config.issuer.clone()),
-        frontend_origin: config.origin.clone(),
+        upgrade_hints: UpgradeHintService::new(db, verifying_keys, issuer),
+        frontend_origin: origin,
     };
 
     let (userinfo, userinfo_document) =
         oidc_http::userinfo_router(api_state.clone()).split_for_parts();
     let (router, mut document) = OpenApiRouter::with_openapi(openapi::base())
-        .merge(health::router(pool))
+        .merge(health)
         .merge(oidc_http::router(documents))
         .merge(oidc_http::authorize_router(api_state.clone()))
         .merge(oidc_http::token_router(api_state.clone()))
         .merge(oidc_http::end_session_router(api_state.clone()))
         .nest(
             "/api",
-            api_router(api_state, AllowedOrigins::new(config.cors_origins.clone())),
+            api_router(api_state, AllowedOrigins::new(cors_origins.clone())),
         )
         .split_for_parts();
     document.merge(userinfo_document);
     let (router, _document) = openapi::serve_document(router, document);
 
-    let service = with_middleware(router, userinfo, config.cors_origins);
+    let service = with_middleware(router, userinfo, cors_origins);
     #[cfg(test)]
     let service = openapi::conformance::check(service, &_document);
 
-    Ok(NormalizePathLayer::trim_trailing_slash().layer(service))
+    NormalizePathLayer::trim_trailing_slash().layer(service)
+}
+
+/// Why the connection could not be given back gracefully. Never a reason to
+/// fail the response: the request was already answered.
+#[derive(Debug, Error)]
+pub enum CloseError {
+    /// The graceful goodbye did not finish inside [`health::DB_TIMEOUT`]. The
+    /// `Terminate` may be half-sent; what expiry cancels is the Rust
+    /// operation, and the socket is the caller's to close (ADR 0022 (c)).
+    #[error("the connection did not close within its deadline")]
+    Expired,
+
+    #[error("the connection could not be closed: {0}")]
+    Database(#[source] sqlx::Error),
+}
+
+/// The response body could not be read to the end.
+#[derive(Debug, Error)]
+#[error("the response body could not be read: {0}")]
+pub struct BodyError(#[source] axum::Error);
+
+/// One request's whole lifecycle over a handle that must not outlive it:
+/// serve, then give the connection back — on **every** path.
+///
+/// What the Worker entrypoint runs (ADR 0022 (b)). The body is buffered
+/// before the close so that "closed after the response" is literal rather
+/// than a race with a body the caller has not polled yet, and there is no
+/// early return between the two: a response whose body fails still reaches
+/// the close. The router is dropped first, and with it the services' clones
+/// of `db`, which is what lets [`Db::close`] terminate gracefully instead of
+/// finding the handle still shared.
+///
+/// The close is bounded, because the Workers runtime will not cut a stalled
+/// await: an expired goodbye is reported, not waited for. Forcibly closing
+/// the socket is a separate step and the entrypoint's, not this function's —
+/// nothing here knows about sockets.
+pub async fn serve_and_close(
+    app: NormalizePath<Router>,
+    db: Db,
+    request: Request<Body>,
+) -> (
+    Result<Response<Bytes>, BodyError>,
+    Result<CloseOutcome, CloseError>,
+) {
+    let served = serve(app, request).await;
+
+    let closed = match with_deadline(health::DB_TIMEOUT, db.close()).await {
+        Ok(Ok(outcome)) => Ok(outcome),
+        Ok(Err(error)) => Err(CloseError::Database(error)),
+        Err(DeadlineExpired) => Err(CloseError::Expired),
+    };
+
+    (served, closed)
+}
+
+/// Serves one request and reads its body into memory, consuming the router.
+async fn serve(
+    app: NormalizePath<Router>,
+    request: Request<Body>,
+) -> Result<Response<Bytes>, BodyError> {
+    let response = match app.oneshot(request).await {
+        Ok(response) => response,
+        // The router's error type is `Infallible`.
+        Err(never) => match never {},
+    };
+
+    let (parts, body) = response.into_parts();
+    // CAS answers with small, eagerly produced bodies, so there is no
+    // streaming answer this would hold back.
+    let bytes = to_bytes(body, usize::MAX).await.map_err(BodyError)?;
+
+    Ok(Response::from_parts(parts, bytes))
 }
 
 /// Everything under `/api`: the contexts' routers, re-sending the session
@@ -285,6 +439,13 @@ async fn not_found() -> ApiError {
 /// every authenticated request. Nor does it log the query: a `GET
 /// /oidc/end_session` carries a signed ID token there, with the account's name
 /// and address in it (ADR 0013), so the span records the path alone.
+///
+/// There is **no** request trace on a Worker: tower-http's `Trace` runs
+/// `std::time::Instant::now()` before the inner service on every request, and
+/// that aborts on wasm32 (ADR 0020), so the layer is native-only. Cloudflare's
+/// own request logs carry the method, path and status there, and the
+/// secret-redaction guarantee holds trivially when nothing is logged
+/// (ADR 0022 (f)). The other layers touch no clock and stay on both targets.
 fn with_middleware(router: Router, userinfo: Router, cors_origins: Vec<HeaderValue>) -> Router {
     let cors_layer = CorsLayer::new()
         .allow_origin(AllowOrigin::list(cors_origins))
@@ -305,16 +466,22 @@ fn with_middleware(router: Router, userinfo: Router, cors_origins: Vec<HeaderVal
         .layer(CatchPanicLayer::custom(handle_panic))
         .layer(oidc_http::userinfo_cors());
 
-    userinfo.merge(router).layer(
+    let service = userinfo.merge(router);
+
+    #[cfg(not(target_arch = "wasm32"))]
+    let service = service.layer(
         TraceLayer::new_for_http()
             .make_span_with(request_span)
             .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
-    )
+    );
+
+    service
 }
 
 /// The span every line of a request is logged in: what `DefaultMakeSpan`
 /// records, at its level, with the path in place of the whole URI. The
 /// query is left out because it can carry a token (see `with_middleware`).
+#[cfg(not(target_arch = "wasm32"))]
 fn request_span(request: &Request<Body>) -> tracing::Span {
     tracing::debug_span!(
         "request",
@@ -359,6 +526,167 @@ mod tests {
 
     const ALLOWED_ORIGIN: &str = "http://localhost:5173";
     const OTHER_ORIGIN: &str = "https://evil.example";
+
+    /// The parts the Worker builds before it opens a connection, from the
+    /// test configuration.
+    fn test_parts() -> AppParts {
+        let config = test_config();
+        let pem = config.signing_key.clone().expect("the test key");
+        AppParts::build(
+            &config.rp_id,
+            &config.origin,
+            config.cors_origins,
+            config.issuer,
+            &pem,
+        )
+        .expect("the test configuration builds")
+    }
+
+    /// Exactly what `worker::fetch` assembles: the shared parts, one handle,
+    /// and `/health` probing that handle. So these tests exercise the router
+    /// shape the Worker serves from, through the OpenAPI conformance checker.
+    fn worker_app(db: Db) -> NormalizePath<Router> {
+        build_app(test_parts(), db.clone(), health::db_router(db))
+    }
+
+    async fn body_bytes(response: Response) -> Vec<u8> {
+        to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap()
+            .to_vec()
+    }
+
+    /// A token request that is syntactically a grant, so it reaches the
+    /// client lookup and therefore the database.
+    fn token_grant_request() -> Request<Body> {
+        let form = "grant_type=authorization_code&code=x\
+             &redirect_uri=http%3A%2F%2Flocalhost%3A5173%2Foidc%2Fcallback\
+             &code_verifier=dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk\
+             &client_id=ligretto-web";
+        Request::builder()
+            .method("POST")
+            .uri("/oidc/token")
+            .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
+            .body(Body::from(form))
+            .unwrap()
+    }
+
+    /// The Worker's happy path, natively: the request's one connection
+    /// serves a session lookup and then the health probe, in turn.
+    #[sqlx::test]
+    async fn the_router_serves_requests_on_a_connection_handle(pool: PgPool) {
+        let cookie = signed_in(&pool).await;
+        let db = Db::connection(pool.acquire().await.unwrap().detach());
+        let app = worker_app(db);
+
+        let me = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/me")
+                    .header(header::COOKIE, &cookie)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(me.status(), StatusCode::OK);
+
+        let health = send(&app, "GET", "/health").await;
+        assert_eq!(health.status(), StatusCode::OK);
+        assert_eq!(body_bytes(health).await, b"OK");
+    }
+
+    /// What a Worker whose per-request connect failed serves: the real
+    /// router, the real middleware, and each endpoint's own documented
+    /// database failure. No new code and no shape of its own
+    /// (ADR 0022 (g)).
+    #[sqlx::test]
+    async fn an_unavailable_db_answers_each_endpoint_in_its_own_shape(pool: PgPool) {
+        // The cookie is made while the database is still reachable; the
+        // application it is sent to has no database at all.
+        let cookie = signed_in(&pool).await;
+        let app = worker_app(Db::unavailable());
+
+        let me = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/me")
+                    .header(header::COOKIE, &cookie)
+                    .header(header::ORIGIN, ALLOWED_ORIGIN)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(me.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(cache_control(&me), Some("no-store"));
+        assert_eq!(
+            header_str(&me, header::ACCESS_CONTROL_ALLOW_ORIGIN),
+            Some(ALLOWED_ORIGIN),
+            "the real CORS layer still answers"
+        );
+        let body: serde_json::Value = serde_json::from_slice(&body_bytes(me).await).unwrap();
+        assert_eq!(body["error"]["code"], "database_unavailable");
+
+        let token = app.clone().oneshot(token_grant_request()).await.unwrap();
+        assert_eq!(token.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(cache_control(&token), Some("no-store"));
+        assert_eq!(header_str(&token, header::PRAGMA), Some("no-cache"));
+        let body: serde_json::Value = serde_json::from_slice(&body_bytes(token).await).unwrap();
+        assert_eq!(body["error"], "temporarily_unavailable");
+
+        let health = send(&app, "GET", "/health").await;
+        assert_eq!(health.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(body_bytes(health).await, b"DB unavailable");
+    }
+
+    /// The lifecycle: the response is produced, then the connection is given
+    /// back gracefully, because the router — and with it every service's
+    /// clone of the handle — is gone by then.
+    #[sqlx::test]
+    async fn serves_then_terminates_the_connection(pool: PgPool) {
+        let cookie = signed_in(&pool).await;
+        let db = Db::connection(pool.acquire().await.unwrap().detach());
+        let request = Request::builder()
+            .uri("/api/me")
+            .header(header::COOKIE, &cookie)
+            .body(Body::empty())
+            .unwrap();
+
+        let (served, closed) = serve_and_close(worker_app(db.clone()), db, request).await;
+
+        assert_eq!(served.unwrap().status(), StatusCode::OK);
+        assert_eq!(closed.unwrap(), CloseOutcome::Terminated);
+    }
+
+    /// The guarantee that needs proving: no post-connect path skips the
+    /// close. A body that fails halfway is the one failure left after the
+    /// fallible build was moved before the connect, and the connection is
+    /// still terminated.
+    #[sqlx::test]
+    async fn closes_even_when_the_body_fails(pool: PgPool) {
+        async fn broken_body() -> Response {
+            let failing = futures_util::stream::once(async {
+                Err::<Bytes, std::io::Error>(std::io::Error::other("the body broke"))
+            });
+            Body::from_stream(failing).into_response()
+        }
+        let db = Db::connection(pool.acquire().await.unwrap().detach());
+        let app = NormalizePathLayer::trim_trailing_slash()
+            .layer(Router::new().route("/boom", get(broken_body)));
+        let request = Request::builder().uri("/boom").body(Body::empty()).unwrap();
+
+        let (served, closed) = serve_and_close(app, db, request).await;
+
+        assert!(served.is_err(), "the body must fail");
+        assert_eq!(
+            closed.unwrap(),
+            CloseOutcome::Terminated,
+            "the close runs even after a failed response"
+        );
+    }
 
     /// A key the server cannot use is a startup error that names the
     /// variable and quotes nothing of its value.
