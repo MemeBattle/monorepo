@@ -7,10 +7,11 @@
 //! signed into again; a second passkey is the safety net, and the rule keeps
 //! it from being kicked away. See `docs/adr/0006-passkey-management.md`.
 
-use sqlx::PgPool;
+use sqlx::Connection;
 use thiserror::Error;
 use uuid::Uuid;
 
+use crate::db::Db;
 use crate::webauthn::passkeys::{PasskeyCredential, PasskeyName};
 use crate::webauthn::repository::{self, PasskeyRepository};
 
@@ -34,14 +35,15 @@ pub enum ManagementError {
 #[derive(Debug, Clone)]
 pub struct PasskeyManagement {
     passkeys: PasskeyRepository,
-    pool: PgPool,
+    db: Db,
 }
 
 impl PasskeyManagement {
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(db: impl Into<Db>) -> Self {
+        let db = db.into();
         Self {
-            passkeys: PasskeyRepository::new(pool.clone()),
-            pool,
+            passkeys: PasskeyRepository::new(db.clone()),
+            db,
         }
     }
 
@@ -57,7 +59,8 @@ impl PasskeyManagement {
         passkey_id: Uuid,
         name: PasskeyName,
     ) -> Result<PasskeyCredential, ManagementError> {
-        let renamed = repository::rename_passkey(&self.pool, passkey_id, account_id, &name)
+        let mut conn = self.db.acquire().await?;
+        let renamed = repository::rename_passkey(&mut *conn, passkey_id, account_id, &name)
             .await?
             .ok_or(ManagementError::NotFound)?;
 
@@ -73,7 +76,8 @@ impl PasskeyManagement {
     /// deleted passkey are untouched (ADR 0004): a passkey is a way in, not
     /// the session itself.
     pub async fn delete(&self, account_id: Uuid, passkey_id: Uuid) -> Result<(), ManagementError> {
-        let mut tx = self.pool.begin().await?;
+        let mut conn = self.db.acquire().await?;
+        let mut tx = conn.begin().await?;
 
         let owned = repository::lock_passkeys(&mut *tx, account_id).await?;
         if !owned.contains(&passkey_id) {
@@ -98,6 +102,8 @@ impl PasskeyManagement {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sqlx::PgPool;
+
     use crate::testing::{register_soft_passkey, test_passkey};
     use crate::webauthn::passkeys::DEFAULT_PASSKEY_NAME;
 

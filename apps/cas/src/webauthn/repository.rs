@@ -8,12 +8,13 @@
 //! when two finishes race, and it is the caller's transaction that decides
 //! whether the deletion sticks.
 
-use sqlx::{PgConnection, PgPool, types::Json};
+use sqlx::{PgConnection, types::Json};
 use time::OffsetDateTime;
 use uuid::Uuid;
 use webauthn_rs::prelude::Passkey;
 
 use crate::accounts::{self, Account, NewAccount};
+use crate::db::Db;
 use crate::webauthn::ceremonies::{Ceremony, CeremonyKind, Taken};
 use crate::webauthn::passkeys::{CreateError, PasskeyCredential, PasskeyName};
 use crate::webauthn::{CEREMONY_GRACE, CEREMONY_TIMEOUT};
@@ -165,12 +166,12 @@ impl From<PasskeyRow> for PasskeyCredential {
 /// Data access for `passkey_credentials`.
 #[derive(Debug, Clone)]
 pub struct PasskeyRepository {
-    pool: PgPool,
+    db: Db,
 }
 
 impl PasskeyRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(db: impl Into<Db>) -> Self {
+        Self { db: db.into() }
     }
 
     /// All passkeys of an account, oldest first. Powers the management screen
@@ -180,6 +181,7 @@ impl PasskeyRepository {
         &self,
         account_id: Uuid,
     ) -> Result<Vec<PasskeyCredential>, sqlx::Error> {
+        let mut conn = self.db.acquire().await?;
         let rows = sqlx::query_as!(
             PasskeyRow,
             r#"SELECT
@@ -195,7 +197,7 @@ impl PasskeyRepository {
                ORDER BY created_at, id"#,
             account_id,
         )
-        .fetch_all(&self.pool)
+        .fetch_all(&mut *conn)
         .await?;
 
         Ok(rows.into_iter().map(Into::into).collect())
@@ -399,6 +401,7 @@ mod ceremony_tests {
     use super::*;
     use crate::webauthn::ceremonies::{PendingAddition, PendingUpgrade};
     use serde::{Deserialize, Serialize};
+    use sqlx::PgPool;
     use sqlx::postgres::types::PgInterval;
 
     #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -659,6 +662,8 @@ mod ceremony_tests {
 #[cfg(test)]
 mod passkey_tests {
     use super::*;
+    use sqlx::PgPool;
+
     use crate::accounts::{AccountRepository, AccountType};
     use crate::testing::{display_name, test_passkey};
     use crate::webauthn::passkeys::DEFAULT_PASSKEY_NAME;
