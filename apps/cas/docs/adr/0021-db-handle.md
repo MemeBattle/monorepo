@@ -81,11 +81,15 @@ signature; `.sqlx` and the migrations; native pooling, with the pool's
 with a timeout of its own, not a request's. `src/bin/client.rs` keeps passing
 `&pool` to the repository free functions, which is still a `PgExecutor`.
 
-**(f) Deferred.** The Worker entrypoint that opens the per-request connection
-from the Hyperdrive binding, hands it over as `Db::connection` and closes it
-at the end of the request; `Config` from Worker bindings; the wasm feature
-flags. The `#[cfg(target_arch = "wasm32")]` arms are written here but nothing
-in CI compiles that target yet, so `cargo check --target
+**(f) Deferred.** The per-request connection belongs to the Worker
+entrypoint, which is not written yet: it opens one from the Hyperdrive
+binding, hands it over as `Db::connection`, and closes it when the request
+ends — along with whatever `Db` has to grow for that close. The handle built
+here cannot do it: nothing hands the owned `PgConnection` back out, and
+`sqlx::Connection::close` takes it by value, so all an owner can do today is
+drop the handle. Deferred with it: `Config` from Worker bindings and the wasm
+feature flags. The `#[cfg(target_arch = "wasm32")]` arms are written here but
+nothing in CI compiles that target yet, so `cargo check --target
 wasm32-unknown-unknown` is not expected to pass.
 
 ## Consequences
@@ -93,8 +97,8 @@ wasm32-unknown-unknown` is not expected to pass.
 - A service method now holds one connection for its duration instead of
   checking one out per query. On the pool variant the pressure is bounded by
   the number of concurrent requests, exactly as `begin()` already bounded it;
-  `sessions::concurrent_requests_renew_once` pins that pooled acquires still
-  run concurrently.
+  `sessions::concurrent_requests_renew_once` pins that the second of two
+  overlapping requests is still served a connection rather than refused one.
 - `SessionService::authenticate` rolls its renewal transaction back
   explicitly where it used to drop it: the reads that follow run on the same
   connection, which has to be out of the transaction first.
