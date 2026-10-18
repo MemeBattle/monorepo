@@ -17,6 +17,29 @@ MemeBattle/sqlx fork through the root `[patch.crates-io]` (upstream pins
 `iamralch/sqlx` at `4313dae17eb0d985e905022fe5e9ab862ec14e86`, which carries
 the same two commits on top of unreleased sqlx main).
 
+## Using it through Hyperdrive
+
+Production Hyperdrive rejects every `Close` message and cannot keep sqlx's
+named prepared statements apart across Worker requests (each request is a new
+client connection on top of pooled origin sessions). Two settings are
+required, neither of which this crate sets:
+
+- connect with `statement_cache_capacity(0)` on the options from `options()`,
+  so the MemeBattle/sqlx fork (`v0.9.0-memebattle.2` or later) prepares every
+  statement, `query!` included, as the unnamed statement;
+- create the Hyperdrive config with its query cache **disabled**
+  (`cf hyperdrive update <id> --caching-disabled`); the cache answers sqlx's
+  extended-protocol `Parse`/`Describe` itself and the following `Bind` lands on
+  the wrong statement.
+
+```rust
+let options = sqlx_cloudflare_hd::postgres::options(&hd)?.statement_cache_capacity(0);
+let mut conn = sqlx_cloudflare_hd::postgres::connect_with(&hd, &options).await?;
+```
+
+Evidence: `apps/cas/docs/spike-sqlx-worker.md` ("Production Hyperdrive
+(Tunnel)" and "Committed fork re-run").
+
 ## Files
 
 Copied verbatim, byte for byte:
