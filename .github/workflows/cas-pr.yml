@@ -7,6 +7,7 @@ on:
       - 'apps/cas/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
+      - 'vendor/**'
       - '.github/workflows/cas-**'
 
 jobs:
@@ -144,3 +145,26 @@ jobs:
         env:
           SQLX_OFFLINE: 'true'
         run: cargo clippy --all-targets --all-features
+
+  # The vendored Hyperdrive adapter is not a dependency of CAS and only has
+  # code behind its `postgres` feature, so no other job compiles it. This one
+  # builds it for the target it exists for, which also compiles the wasm-only
+  # paths of the sqlx fork pinned in the root Cargo.toml.
+  vendor-wasm:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+          targets: wasm32-unknown-unknown
+
+      - name: Cargo check (wasm32)
+        run: cargo check --locked -p sqlx-cloudflare-hd --features postgres --target wasm32-unknown-unknown
+
+      - name: Cargo clippy (wasm32)
+        run: cargo clippy --locked -p sqlx-cloudflare-hd --features postgres --target wasm32-unknown-unknown -- -D warnings
