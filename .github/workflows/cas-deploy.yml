@@ -56,10 +56,11 @@ jobs:
         with:
           version: '1.21.1'
 
-      # The three slow parts are independent: Node and worker-build install in
-      # the background while the migrations compile and run. `cargo install`
-      # builds in a target directory of its own, so it does not wait on the
-      # lock of the migrations' build.
+      # Node, the worker-build install and the migrations do not depend on
+      # each other, so all three run in the background, and each later step
+      # waits only for what it uses. `cargo install` builds in a target
+      # directory of its own, so it does not wait on the lock of the
+      # migrations' build.
       - name: Prepare Node.js
         id: node
         uses: ./.github/actions/prepare-nodejs
@@ -74,20 +75,26 @@ jobs:
         background: true
 
       - name: Apply migrations
+        id: migrations
         working-directory: apps/cas
         env:
           SQLX_OFFLINE: 'true'
           DATABASE_URL: ${{ secrets.CAS_DATABASE_URL }}
         run: cargo run --locked --bin cas-migrate
+        background: true
 
-      # Node's PATH and worker-build reach the steps below only after this.
-      - name: Wait for Node and worker-build
-        wait: [node, worker-build]
+      # Node's PATH reaches the steps below only after this.
+      - name: Wait for Node
+        wait: node
 
       # Before the deploy, not inside its build command: Wrangler checks that
       # the assets directory exists before it runs that command.
       - name: Build the frontend
         run: pnpm cas:front:build
+
+      # A failed migration fails the job here, before anything is deployed.
+      - name: Wait for the migrations and worker-build
+        wait: [migrations, worker-build]
 
       # Builds the Worker (apps/cas/wrangler.config.ts) and uploads it with the
       # SPA as its assets.
