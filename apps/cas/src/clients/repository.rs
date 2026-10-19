@@ -1,6 +1,5 @@
 //! Data access for `clients`.
 
-use sqlx::PgPool;
 use thiserror::Error;
 use time::OffsetDateTime;
 
@@ -8,6 +7,7 @@ use super::{
     Audience, Client, ClientId, ClientKind, ClientName, GuestGrantsPerMinute, NewClient,
     RedirectUri, Scope, SecretHash,
 };
+use crate::db::Db;
 
 // `nutype` cannot derive the sqlx traits, so the ones that let a `ClientId`
 // and a `ClientName` cross the database boundary are written by hand here,
@@ -307,28 +307,32 @@ where
 /// hold one, or a service over it, without this file changing shape.
 #[derive(Debug, Clone)]
 pub struct ClientRepository {
-    pool: PgPool,
+    db: Db,
 }
 
 impl ClientRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(db: impl Into<Db>) -> Self {
+        Self { db: db.into() }
     }
 
     /// Inserts a client and returns the stored row.
     pub async fn create(&self, client: NewClient) -> Result<Client, InsertError> {
-        insert(&self.pool, client).await
+        let mut conn = self.db.acquire().await?;
+        insert(&mut *conn, client).await
     }
 
     /// Looks a client up by id. `Ok(None)` means no such client.
     pub async fn get(&self, id: &ClientId) -> Result<Option<Client>, sqlx::Error> {
-        get(&self.pool, id).await
+        let mut conn = self.db.acquire().await?;
+        get(&mut *conn, id).await
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sqlx::PgPool;
+
     use crate::clients::ClientSecret;
     use crate::clients::tests::{client_id, client_name, redirect_uri, scope};
 
@@ -348,7 +352,7 @@ mod tests {
         .guest_login_allowed(true)
         .with_guest_grants_per_minute(GuestGrantsPerMinute::try_new(5).unwrap())
         .with_scopes(vec![scope("openid"), scope("profile"), scope("email")])
-        .with_audience(Audience::try_new("games").unwrap())
+        .with_audience(Audience::try_new("backend").unwrap())
     }
 
     fn public() -> NewClient {
@@ -389,7 +393,7 @@ mod tests {
             created.scopes,
             vec![scope("openid"), scope("profile"), scope("email")]
         );
-        assert_eq!(created.audience.as_str(), "games");
+        assert_eq!(created.audience.as_str(), "backend");
 
         let found = repository.get(&client_id("ligretto")).await.unwrap();
 

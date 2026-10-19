@@ -17,6 +17,7 @@ use super::keys::VerifyingKeys;
 use super::tokens;
 use crate::accounts::{self, Account, AccountType};
 use crate::clients::ClientId;
+use crate::db::Db;
 
 /// Why a hint was refused. The handler answers both with
 /// `invalid_request`, each with a fixed description.
@@ -42,15 +43,15 @@ pub struct UpgradeHintService {
     keys: VerifyingKeys,
     /// `CAS_ISSUER`, the `iss` a hint must carry.
     issuer: String,
-    pool: sqlx::PgPool,
+    db: Db,
 }
 
 impl UpgradeHintService {
-    pub fn new(pool: sqlx::PgPool, keys: VerifyingKeys, issuer: impl Into<String>) -> Self {
+    pub fn new(db: impl Into<Db>, keys: VerifyingKeys, issuer: impl Into<String>) -> Self {
         Self {
             keys,
             issuer: issuer.into(),
-            pool,
+            db: db.into(),
         }
     }
 
@@ -85,7 +86,10 @@ impl UpgradeHintService {
             return Err(HintError::Expired);
         }
 
-        let account = accounts::get(&self.pool, hint.sub).await?;
+        // Behind every refusal above: a hint that does not pass is answered
+        // without touching the database.
+        let mut conn = self.db.acquire().await?;
+        let account = accounts::get(&mut *conn, hint.sub).await?;
         Ok(account.filter(|account| account.r#type == AccountType::Guest))
     }
 }

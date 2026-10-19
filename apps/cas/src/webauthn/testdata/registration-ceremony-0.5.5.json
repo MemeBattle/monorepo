@@ -1,0 +1,26 @@
+{
+  "account_id": "5dc84a4c-cc40-4b2c-a555-17475e27f795",
+  "display_name": "Ada",
+  "state": {
+    "passkey": {
+      "rs": {
+        "allow_synchronised_authenticators": true,
+        "authenticator_attachment": null,
+        "challenge": "vcwzqau-nj3uzwaKwOZ_bhvqeqTJwvn5mgtkX41y7qg",
+        "credential_algorithms": [
+          "ES256",
+          "RS256"
+        ],
+        "exclude_credentials": [],
+        "extensions": {
+          "credProps": true,
+          "credentialProtectionPolicy": "userVerificationRequired",
+          "enforceCredentialProtectionPolicy": false,
+          "uvm": true
+        },
+        "policy": "required",
+        "require_resident_key": false
+      }
+    }
+  }
+}

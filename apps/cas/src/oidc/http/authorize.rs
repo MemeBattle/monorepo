@@ -424,7 +424,7 @@ mod tests {
     use crate::db::test_support::db_error;
     use crate::oidc::AuthorizationCode;
     use crate::oidc::authorization::tests::{CALLBACK, CHALLENGE};
-    use crate::sessions::{SessionToken, UPGRADE_SESSION_LIFETIME};
+    use crate::sessions::{SessionService, SessionToken, UPGRADE_SESSION_LIFETIME};
     use crate::testing::{
         TEST_ORIGIN, capture_tracing, checked, fresh_signing_key_pem, header_str, scopes,
         session_cookie, signed_id_token, signed_in, test_config, test_cookies, test_signing_key,
@@ -1076,6 +1076,39 @@ mod tests {
             "service_unavailable",
         )
         .await;
+    }
+
+    /// A database that does not answer once the redirect URI is trusted:
+    /// the failure belongs to the client, so a `302` carrying
+    /// `temporarily_unavailable` rather than a 503 of CAS's own (ADR 0021
+    /// (d)).
+    #[sqlx::test]
+    async fn an_unavailable_database_after_the_boundary_is_an_error_redirect(pool: PgPool) {
+        register_ligretto(&pool).await;
+        let mut state = test_state(pool);
+        // The client lookup still answers; the session lookup that follows
+        // the trust boundary is the one that cannot reach the database.
+        state.sessions = SessionService::new(
+            PgPoolOptions::new()
+                .acquire_timeout(Duration::from_secs(1))
+                .connect_lazy("postgres://cas:cas@localhost:1/cas")
+                .unwrap(),
+        );
+        let cookie = format!(
+            "{}={}",
+            test_cookies().name(),
+            SessionToken::generate().unwrap().expose()
+        );
+        let router = checked(authorize_router(state));
+
+        let response = send(&router, "GET", &uri(&valid()), Some(&cookie)).await;
+
+        assert_error_redirect(
+            &response,
+            "temporarily_unavailable",
+            "the service is unavailable, try again later",
+            Some("st/ate+1"),
+        );
     }
 
     /// The issue line names the row, the client, the account and the

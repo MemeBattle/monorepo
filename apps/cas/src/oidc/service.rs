@@ -3,7 +3,7 @@
 //! once, for the token endpoint (#743). See
 //! `docs/adr/0010-authorization-endpoint.md`.
 
-use sqlx::{PgConnection, PgPool};
+use sqlx::PgConnection;
 use uuid::Uuid;
 
 use super::AUTHORIZATION_CODE_LIFETIME;
@@ -11,6 +11,7 @@ use super::authorization::AuthorizeRequest;
 use super::codes::{AuthorizationCode, CodeChallenge};
 use super::repository::{self, NewCode, Redemption};
 use crate::clients::{Client, ClientId, ClientRepository, Scope};
+use crate::db::Db;
 use crate::sessions::Authenticated;
 
 /// A freshly issued code: the value for the redirect and the row it is
@@ -83,14 +84,15 @@ pub enum RedeemError {
 #[derive(Debug, Clone)]
 pub struct AuthorizationService {
     clients: ClientRepository,
-    pool: PgPool,
+    db: Db,
 }
 
 impl AuthorizationService {
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(db: impl Into<Db>) -> Self {
+        let db = db.into();
         Self {
-            clients: ClientRepository::new(pool.clone()),
-            pool,
+            clients: ClientRepository::new(db.clone()),
+            db,
         }
     }
 
@@ -115,8 +117,9 @@ impl AuthorizationService {
         }
 
         let code = AuthorizationCode::generate().map_err(IssueError::Random)?;
+        let mut conn = self.db.acquire().await?;
         let id = repository::insert(
-            &self.pool,
+            &mut *conn,
             NewCode {
                 code_hash: &code.hash(),
                 client_id: &request.client_id,

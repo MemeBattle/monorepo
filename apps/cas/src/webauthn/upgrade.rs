@@ -17,12 +17,13 @@
 //! full one for this browser, revokes every grant and deletes every other
 //! pending ceremony. See `docs/adr/0015-guest-upgrade.md` (e), (f).
 
-use sqlx::PgPool;
+use sqlx::Connection;
 use thiserror::Error;
 use uuid::Uuid;
 use webauthn_rs::prelude::{RegisterPublicKeyCredential, Webauthn};
 
 use crate::accounts::{self, Account, AccountType, DisplayName};
+use crate::db::Db;
 use crate::oidc::revoke_account_grants;
 use crate::sessions::service::IssuedSession;
 use crate::sessions::{Session, SessionKind, SessionOrigin, SessionToken, rotate_upgraded};
@@ -74,12 +75,15 @@ pub struct Upgraded {
 #[derive(Debug, Clone)]
 pub struct UpgradeService {
     webauthn: Webauthn,
-    pool: PgPool,
+    db: Db,
 }
 
 impl UpgradeService {
-    pub fn new(webauthn: Webauthn, pool: PgPool) -> Self {
-        Self { webauthn, pool }
+    pub fn new(webauthn: Webauthn, db: impl Into<Db>) -> Self {
+        Self {
+            webauthn,
+            db: db.into(),
+        }
     }
 
     /// Issues the registration challenge for `account`, the guest the upgrade
@@ -96,8 +100,9 @@ impl UpgradeService {
             start_discoverable_registration(&self.webauthn, account.id, &display_name, None)
                 .map_err(StartError::Webauthn)?;
 
+        let mut conn = self.db.acquire().await?;
         let registration_id = repository::start_ceremony(
-            &self.pool,
+            &mut *conn,
             &PendingUpgrade {
                 account_id: account.id,
                 display_name,
@@ -147,7 +152,8 @@ impl UpgradeService {
         // holds the account's lock.
         let token = SessionToken::generate().map_err(UpgradeError::Random)?;
 
-        let mut tx = self.pool.begin().await?;
+        let mut conn = self.db.acquire().await?;
+        let mut tx = conn.begin().await?;
 
         match accounts::lock(&mut *tx, account_id).await? {
             Some(account) if account.r#type == AccountType::Guest => {}
@@ -244,6 +250,8 @@ impl UpgradeService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sqlx::PgPool;
+
     use crate::accounts::{AccountRepository, NewAccount};
     use crate::oidc::REFRESH_TOKEN_LIFETIME;
     use crate::sessions::SessionService;

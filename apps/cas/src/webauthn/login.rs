@@ -16,7 +16,7 @@
 //! transport turns it into one 401. The reason is logged, not told: a caller
 //! who is probing gets nothing to distinguish by.
 
-use sqlx::{PgConnection, PgPool};
+use sqlx::{Connection, PgConnection};
 use thiserror::Error;
 use uuid::Uuid;
 use webauthn_rs::prelude::{
@@ -24,6 +24,7 @@ use webauthn_rs::prelude::{
 };
 
 use crate::accounts::{self, Account};
+use crate::db::Db;
 use crate::webauthn::ceremonies::{PendingLogin, Taken};
 use crate::webauthn::passkeys::PasskeyCredential;
 use crate::webauthn::repository;
@@ -114,12 +115,15 @@ pub struct LoggedIn {
 #[derive(Debug, Clone)]
 pub struct LoginService {
     webauthn: Webauthn,
-    pool: PgPool,
+    db: Db,
 }
 
 impl LoginService {
-    pub fn new(webauthn: Webauthn, pool: PgPool) -> Self {
-        Self { webauthn, pool }
+    pub fn new(webauthn: Webauthn, db: impl Into<Db>) -> Self {
+        Self {
+            webauthn,
+            db: db.into(),
+        }
     }
 
     /// Issues a challenge any registered credential may answer. Nothing about
@@ -130,7 +134,8 @@ impl LoginService {
             .start_discoverable_authentication()
             .map_err(StartError::Webauthn)?;
 
-        let login_id = repository::start_ceremony(&self.pool, &PendingLogin { state }).await?;
+        let mut conn = self.db.acquire().await?;
+        let login_id = repository::start_ceremony(&mut *conn, &PendingLogin { state }).await?;
 
         Ok(StartedLogin { login_id, rcr })
     }
@@ -146,7 +151,8 @@ impl LoginService {
         login_id: Uuid,
         response: &PublicKeyCredential,
     ) -> Result<LoggedIn, FinishError> {
-        let mut tx = self.pool.begin().await?;
+        let mut conn = self.db.acquire().await?;
+        let mut tx = conn.begin().await?;
 
         let pending: PendingLogin = match repository::take_ceremony(&mut *tx, login_id).await? {
             Taken::Found(pending) => pending,
@@ -230,6 +236,8 @@ impl LoginService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sqlx::PgPool;
+
     use crate::testing::{
         ResidentSoftPasskey, display_name, register_soft_passkey, soft_passkey_assertion,
         test_origin, test_webauthn,
@@ -362,7 +370,7 @@ mod tests {
     #[sqlx::test]
     async fn an_unregistered_credential_is_rejected(pool: PgPool) {
         let webauthn = test_webauthn();
-        let mut authenticator = WebauthnAuthenticator::new(ResidentSoftPasskey::new());
+        let mut authenticator = ResidentSoftPasskey::new();
         let (ccr, _) =
             start_discoverable_registration(&webauthn, Uuid::new_v4(), "Ada", None).unwrap();
         authenticator.do_registration(test_origin(), ccr).unwrap();
@@ -388,7 +396,7 @@ mod tests {
 
         let started = service.start().await.unwrap();
         let mut assertion = soft_passkey_assertion(&mut authenticator, started.rcr);
-        assertion.response.user_handle = Some(other.account.id.as_bytes().to_vec().into());
+        assertion.response.user_handle = Some(other.account.id.as_bytes().to_vec());
         let error = service
             .finish(started.login_id, &assertion)
             .await

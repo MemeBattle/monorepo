@@ -11,5 +11,8 @@ Rust (axum) authentication service.
 - [docs/QUERIES.md](./docs/QUERIES.md) — SQL queries and the offline cache.
 - [docs/TESTS.md](./docs/TESTS.md) — test setup and the isolated SQLx
   database workflow.
+- [docs/INTEGRATION.md](./docs/INTEGRATION.md) — how an application
+  integrates with CAS: registration, the flows, tokens on a resource server,
+  guests, logout.
 - [docs/adr/](./docs/adr/) — decisions that shaped the schema and the
   ceremonies.

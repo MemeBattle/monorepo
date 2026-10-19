@@ -38,6 +38,8 @@ allowBuilds:
   core-js: false
   fsevents: false
   sharp: false
+  # workerd (through wrangler, apps/cas) checks its platform binary in its install script.
+  workerd: true
 
 catalog:
   '@adonisjs/assembler': 8.4.0
@@ -94,6 +96,7 @@ catalog:
   '@vitest/coverage-v8': 5.0.0
   amplitude-js: ^8.21.6
   better-sqlite3: ^13.0.1
+  cf: 1.0.0-beta.14
   chalk: ^6.0.0
   chalk-animation: ^2.0.3
   chromatic: ^18.1.0
@@ -153,6 +156,7 @@ catalog:
   vite-plugin-svgr: 5.2.0
   vitest: 5.0.0
   wait-on: ^9.1.0
+  wrangler: 4.149.0
   youch: 4.1.1
 
 # @adonisjs/assembler (peer `typescript: ^5.0.0 || ^6.0.0`) drives `node ace build` through

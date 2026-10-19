@@ -14,7 +14,7 @@
 //! is [`rotate_upgraded`], which runs on the guest upgrade's transaction and
 //! leaves the events to its caller, who alone knows when that commits.
 
-use sqlx::{PgConnection, PgPool};
+use sqlx::{Connection, PgConnection};
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -22,6 +22,7 @@ use super::{
     Authenticated, Renewal, Session, SessionKind, SessionOrigin, SessionToken, repository,
 };
 use crate::accounts::{self, AccountType};
+use crate::db::Db;
 
 #[derive(Debug, Error)]
 pub enum CreateError {
@@ -44,12 +45,12 @@ pub struct IssuedSession {
 
 #[derive(Debug, Clone)]
 pub struct SessionService {
-    pool: PgPool,
+    db: Db,
 }
 
 impl SessionService {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(db: impl Into<Db>) -> Self {
+        Self { db: db.into() }
     }
 
     /// Issues a session for an account that has just proven who it is.
@@ -87,7 +88,8 @@ impl SessionService {
     ) -> Result<IssuedSession, CreateError> {
         let token = SessionToken::generate().map_err(CreateError::Random)?;
 
-        let mut tx = self.pool.begin().await?;
+        let mut conn = self.db.acquire().await?;
+        let mut tx = conn.begin().await?;
         let session = repository::insert(&mut *tx, account_id, &token.hash(), kind).await?;
         accounts::touch_last_seen(&mut *tx, account_id).await?;
         tx.commit().await?;
@@ -130,14 +132,17 @@ impl SessionService {
         token: &SessionToken,
     ) -> Result<Option<(Authenticated, Renewal)>, sqlx::Error> {
         let hash = token.hash();
-        let Some(live) = repository::find_live(&self.pool, &hash).await? else {
+        // One connection for the whole method: every step below is direct
+        // database work, and the renewal's transaction runs on it.
+        let mut conn = self.db.acquire().await?;
+        let Some(live) = repository::find_live(&mut *conn, &hash).await? else {
             return Ok(None);
         };
         let mut session = live.session;
 
         let mut renewal = Renewal::Kept;
         if live.renewal_due {
-            let mut tx = self.pool.begin().await?;
+            let mut tx = conn.begin().await?;
             match repository::renew(&mut *tx, session.id).await? {
                 Some(last_seen_at) => {
                     accounts::touch_last_seen(&mut *tx, session.account_id).await?;
@@ -155,10 +160,12 @@ impl SessionService {
                     );
                 }
                 None => {
-                    // Nothing was written; dropping the transaction rolls it
-                    // back. The session as read is stale by one race.
-                    drop(tx);
-                    let Some(again) = repository::find_live(&self.pool, &hash).await? else {
+                    // Nothing was written; the rollback is explicit because
+                    // the reads below run on this same connection and it has
+                    // to be out of a transaction first. The session as read
+                    // is stale by one race.
+                    tx.rollback().await?;
+                    let Some(again) = repository::find_live(&mut *conn, &hash).await? else {
                         return Ok(None);
                     };
                     session = again.session;
@@ -169,7 +176,7 @@ impl SessionService {
         // The cascade removes sessions with their account, so a missing
         // account here is a race with that delete, and the answer is the same
         // as if the session had already gone.
-        let Some(account) = accounts::get(&self.pool, session.account_id).await? else {
+        let Some(account) = accounts::get(&mut *conn, session.account_id).await? else {
             return Ok(None);
         };
 
@@ -193,7 +200,8 @@ impl SessionService {
     /// `Ok(None)` for a token that is unknown, idle for too long, past its
     /// cap or revoked.
     pub async fn find(&self, token: &SessionToken) -> Result<Option<Session>, sqlx::Error> {
-        let live = repository::find_live(&self.pool, &token.hash()).await?;
+        let mut conn = self.db.acquire().await?;
+        let live = repository::find_live(&mut *conn, &token.hash()).await?;
         Ok(live.map(|live| live.session))
     }
 
@@ -203,7 +211,8 @@ impl SessionService {
     /// The delete returns the id it removed, so the event can name the
     /// session without a lookup before it.
     pub async fn revoke(&self, token: &SessionToken) -> Result<Option<Uuid>, sqlx::Error> {
-        let revoked = repository::delete(&self.pool, &token.hash()).await?;
+        let mut conn = self.db.acquire().await?;
+        let revoked = repository::delete(&mut *conn, &token.hash()).await?;
 
         match revoked {
             Some(id) => tracing::info!(session_id = %id, "session revoked"),
@@ -254,6 +263,7 @@ pub(crate) async fn rotate_upgraded(
 mod tests {
     use super::*;
     use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
+    use sqlx::PgPool;
 
     use crate::accounts::{Account, AccountRepository, NewAccount};
     use crate::testing::{capture_tracing, display_name};
@@ -349,6 +359,32 @@ mod tests {
         let (again, renewal) = service.authenticate(&issued.token).await.unwrap().unwrap();
         assert_eq!(renewal, Renewal::Kept);
         assert_eq!(again.session, renewed.session);
+    }
+
+    /// The deepest sequential path, on a handle with one connection (ADR
+    /// 0021): `authenticate` reads the session, renews it in a transaction,
+    /// then reads the account, all on the guard it acquired once; `create`
+    /// and `revoke` acquire in their turn. A second overlapping acquire
+    /// anywhere on the path would be refused instead of served.
+    #[sqlx::test]
+    async fn the_service_never_overlaps_acquires_on_one_connection(pool: PgPool) {
+        let account = account(&pool).await;
+        let service = SessionService::new(Db::connection(pool.acquire().await.unwrap().detach()));
+        let issued = service
+            .create(account.id, SessionOrigin::Login)
+            .await
+            .unwrap();
+        last_seen(&pool, issued.session.id, "2 hours").await;
+
+        let (authenticated, renewal) = service.authenticate(&issued.token).await.unwrap().unwrap();
+
+        assert_eq!(renewal, Renewal::Renewed);
+        assert_eq!(authenticated.account.id, account.id);
+        assert_eq!(
+            service.revoke(&issued.token).await.unwrap(),
+            Some(issued.session.id)
+        );
+        assert_eq!(service.authenticate(&issued.token).await.unwrap(), None);
     }
 
     /// Two requests arrive at once with the clock due. Each is held at its

@@ -13,7 +13,7 @@ use url::form_urlencoded;
 use utoipa::openapi::{RefOr, header::Header, response::Response as OpenApiResponse};
 
 use crate::db::Failure;
-use crate::http::error::ErrorCode;
+use crate::http::error::{ErrorCode, SERVICE_UNAVAILABLE};
 use crate::http::response::{ErrorShape, error_responses, string_header};
 use crate::oidc::authorization::PageError;
 
@@ -86,7 +86,7 @@ impl ErrorPage {
 
     pub(super) const SERVICE_UNAVAILABLE: Self = Self {
         status: StatusCode::SERVICE_UNAVAILABLE,
-        code: "service_unavailable",
+        code: SERVICE_UNAVAILABLE,
         title: "Service unavailable",
         description: "The service is temporarily unavailable. Try again later.",
     };

@@ -3,13 +3,13 @@
 //! verified here against CAS's own published keys; the account is read on
 //! every call. See `docs/adr/0013-userinfo-and-rp-initiated-logout.md`.
 
-use sqlx::PgPool;
 use time::OffsetDateTime;
 
 use super::OPENID_SCOPE;
 use super::keys::VerifyingKeys;
 use super::tokens::{self, UserInfoClaims};
 use crate::accounts;
+use crate::db::Db;
 
 /// Why no claims were answered.
 #[derive(Debug, thiserror::Error)]
@@ -30,7 +30,7 @@ pub enum UserInfoError {
 
 #[derive(Debug, Clone)]
 pub struct UserInfoService {
-    pool: PgPool,
+    db: Db,
     /// Every published key (ADR 0009 (d)): a token signed before a rotation
     /// is honoured until its `exp`.
     keys: VerifyingKeys,
@@ -39,9 +39,9 @@ pub struct UserInfoService {
 }
 
 impl UserInfoService {
-    pub fn new(pool: PgPool, keys: VerifyingKeys, issuer: impl Into<String>) -> Self {
+    pub fn new(db: impl Into<Db>, keys: VerifyingKeys, issuer: impl Into<String>) -> Self {
         Self {
-            pool,
+            db: db.into(),
             keys,
             issuer: issuer.into(),
         }
@@ -76,9 +76,12 @@ impl UserInfoService {
             return Err(UserInfoError::InsufficientScope);
         }
 
+        // Behind both refusals above: a token that does not pass is answered
+        // without touching the database.
+        let mut conn = self.db.acquire().await?;
         // The token outlived its account: deleting an account ends
         // everything issued for it, and this token is no exception.
-        let Some(account) = accounts::get(&self.pool, token.sub).await? else {
+        let Some(account) = accounts::get(&mut *conn, token.sub).await? else {
             tracing::debug!(
                 client_id = %token.client_id,
                 "userinfo token refused: the account is gone"
@@ -87,5 +90,74 @@ impl UserInfoService {
         };
 
         Ok(UserInfoClaims::new(&account, &token.scopes))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use sqlx::PgPool;
+
+    use super::*;
+    use crate::accounts::{AccountRepository, NewAccount};
+    use crate::testing::{
+        display_name, register_public_client, signed_access_token, test_config, test_signing_key,
+        test_signing_keys,
+    };
+
+    /// Validation runs before the connection is acquired (ADR 0021): the
+    /// service is built on a handle whose single connection the test is
+    /// holding, so any acquire would fail. A refusal that still comes back
+    /// as its own error proves nothing touched the database.
+    #[sqlx::test]
+    async fn a_refused_token_never_reaches_the_database(pool: PgPool) {
+        let client = register_public_client(&pool, "ligretto", &[]).await;
+        let account = AccountRepository::new(pool.clone())
+            .create(NewAccount::full(display_name("Ada")))
+            .await
+            .unwrap();
+        let without_openid = signed_access_token(
+            &test_signing_key(),
+            &client,
+            &account,
+            &["profile"],
+            OffsetDateTime::now_utc(),
+        );
+        let db = Db::connection(pool.acquire().await.unwrap().detach());
+        let service = UserInfoService::new(
+            db.clone(),
+            test_signing_keys().verifying_keys(),
+            test_config().issuer,
+        );
+        // The one connection, taken here so every acquire below fails.
+        let held = db.acquire().await.unwrap();
+
+        let garbage = service.userinfo("not-a-token").await.unwrap_err();
+        let insufficient = service.userinfo(&without_openid).await.unwrap_err();
+
+        assert!(
+            matches!(garbage, UserInfoError::InvalidToken),
+            "{garbage:?}"
+        );
+        assert!(
+            matches!(insufficient, UserInfoError::InsufficientScope),
+            "{insufficient:?}"
+        );
+        // A valid token does reach the database, and finds it taken.
+        let with_openid = signed_access_token(
+            &test_signing_key(),
+            &client,
+            &account,
+            &["openid"],
+            OffsetDateTime::now_utc(),
+        );
+        let taken = service.userinfo(&with_openid).await.unwrap_err();
+        assert!(
+            matches!(taken, UserInfoError::Db(sqlx::Error::PoolTimedOut)),
+            "{taken:?}"
+        );
+
+        drop(held);
+        let claims = service.userinfo(&with_openid).await.unwrap();
+        assert_eq!(claims.sub, account.id);
     }
 }

@@ -140,7 +140,7 @@ const initialState: FormState = { displayName: '', nameError: null, failure: nul
 
 /**
  * Opened with an accepted `return_to`, a created account leaves for it instead of the dashboard. Opened by a guest (the
- * gate hands its `Me` over), the same form upgrades the guest and says that the game data stays
+ * gate hands its `Me` over), the same form upgrades the guest and says that the data stays
  * (docs/adr/0003-guest-in-the-app.md).
  */
 export const CreateAccountPage = () => {

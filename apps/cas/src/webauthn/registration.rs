@@ -7,7 +7,7 @@
 //! finish retryable: if the writes fail, the rollback puts the ceremony back,
 //! and the credential the authenticator has already created is not orphaned.
 
-use sqlx::PgPool;
+use sqlx::Connection;
 use thiserror::Error;
 use uuid::Uuid;
 use webauthn_rs::prelude::{
@@ -17,6 +17,7 @@ use webauthn_rs::prelude::{
 use webauthn_rs_proto::{ResidentKeyRequirement, UserVerificationPolicy};
 
 use crate::accounts::{Account, DisplayName, NewAccount};
+use crate::db::Db;
 use crate::webauthn::ceremonies::{DiscoverableRegistration, PendingRegistration, Taken};
 use crate::webauthn::passkeys::{CreateError, DEFAULT_PASSKEY_NAME, PasskeyCredential};
 use crate::webauthn::repository;
@@ -84,12 +85,13 @@ pub struct Registered {
 #[derive(Debug, Clone)]
 pub struct RegistrationService {
     webauthn: Webauthn,
-    pool: PgPool,
+    db: Db,
 }
 
 /// Keep webauthn-rs's passkey verification and synced-authenticator support,
-/// but require discoverability in the browser request. Its 0.5.5 high-level
-/// resident-key API requires attestation and rejects synced credentials.
+/// but require discoverability in the browser request. Its high-level
+/// resident-key API (0.5 and 0.6 alike) requires attestation and rejects
+/// synced credentials.
 /// Discoverability is a client creation requirement, not a signed authenticator
 /// flag; changing these public options does not change signature verification.
 /// See ADR 0001 for the library limitation and the trust boundary.
@@ -152,8 +154,11 @@ pub(crate) fn verify_discoverable_registration(
 }
 
 impl RegistrationService {
-    pub fn new(webauthn: Webauthn, pool: PgPool) -> Self {
-        Self { webauthn, pool }
+    pub fn new(webauthn: Webauthn, db: impl Into<Db>) -> Self {
+        Self {
+            webauthn,
+            db: db.into(),
+        }
     }
 
     /// Issues a challenge for a new account with the given display name.
@@ -175,8 +180,9 @@ impl RegistrationService {
             start_discoverable_registration(&self.webauthn, account_id, &display_name, None)
                 .map_err(StartError::Webauthn)?;
 
+        let mut conn = self.db.acquire().await?;
         let registration_id = repository::start_ceremony(
-            &self.pool,
+            &mut *conn,
             &PendingRegistration {
                 account_id,
                 display_name,
@@ -203,7 +209,8 @@ impl RegistrationService {
         registration_id: Uuid,
         response: &RegisterPublicKeyCredential,
     ) -> Result<Registered, FinishError> {
-        let mut tx = self.pool.begin().await?;
+        let mut conn = self.db.acquire().await?;
+        let mut tx = conn.begin().await?;
 
         let pending: PendingRegistration =
             match repository::take_ceremony(&mut *tx, registration_id).await? {
@@ -250,6 +257,8 @@ impl RegistrationService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sqlx::PgPool;
+
     use crate::accounts::AccountRepository;
     use crate::testing::{ResidentSoftPasskey, test_origin};
     use crate::testing::{display_name, soft_passkey_registration, test_webauthn};
@@ -263,7 +272,7 @@ mod tests {
     fn an_authenticator_without_resident_storage_cannot_register() {
         let (ccr, _) =
             start_discoverable_registration(&test_webauthn(), Uuid::new_v4(), "Ada", None).unwrap();
-        let error = WebauthnAuthenticator::new(SoftPasskey::new(true))
+        let error = SoftPasskey::new(true)
             .do_registration(test_origin(), ccr)
             .unwrap_err();
         assert!(matches!(error, WebauthnCError::NotSupported));
@@ -272,7 +281,7 @@ mod tests {
     #[sqlx::test]
     async fn the_stored_passkey_supports_usernameless_sign_in(pool: PgPool) {
         let service = service(pool.clone());
-        let mut authenticator = WebauthnAuthenticator::new(ResidentSoftPasskey::new());
+        let mut authenticator = ResidentSoftPasskey::new();
         let started = service.start(display_name("Ada")).await.unwrap();
         let response = authenticator
             .do_registration(test_origin(), started.ccr)

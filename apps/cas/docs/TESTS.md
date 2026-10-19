@@ -108,6 +108,22 @@ file must stay free of `crate::` paths and depend only on the WebAuthn
 crates. Sharing it this way, rather than through a cargo feature, keeps
 `webauthn-authenticator-rs` out of the production dependencies.
 
+## The fixed-key passkey and stored data
+
+`FixedKeyPasskey` (`src/testing/fixed_key_passkey.rs`) is a second test
+authenticator whose P-256 private key is a constant. It writes its answers
+from the wire format alone (a `none` attestation object in hand-written
+CBOR, assertions signed with `p256`), so a passkey it registered can be
+checked in as a fixture and signed in with by a later build.
+
+That is what `src/webauthn/stored_data_tests.rs` does with the rows under
+`src/webauthn/testdata/`: a stored passkey and ceremony state as webauthn-rs
+0.5.5 serialised them (ADR 0020). The tests load them, check that the
+current version writes them back as the same JSON, sign in with the stored
+passkey, and finish each stored ceremony. The fixtures are never
+regenerated; a later upgrade of webauthn-rs captures its own set, under the
+old version, before it bumps.
+
 ## The reference client
 
 `tests/reference_client` is a black-box OpenID Connect relying party: proof

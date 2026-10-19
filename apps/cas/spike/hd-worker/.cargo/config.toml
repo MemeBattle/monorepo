@@ -1,0 +1,6 @@
+[target.wasm32-unknown-unknown]
+rustflags = ['--cfg', 'getrandom_backend="wasm_js"']
+
+# The Worker build has no sqlx runtime, so the macros must read .sqlx.
+[env]
+SQLX_OFFLINE = "true"

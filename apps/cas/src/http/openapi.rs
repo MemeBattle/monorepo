@@ -23,6 +23,7 @@ use serde_json::Value;
 use utoipa::openapi::{
     Components, ContentBuilder, InfoBuilder, ObjectBuilder, OneOfBuilder, OpenApi, OpenApiBuilder,
     RefOr, ResponseBuilder, Schema, Type,
+    external_docs::ExternalDocsBuilder,
     path::{Operation, PathItem},
     response::Response as OpenApiResponse,
     security::{ApiKey, ApiKeyValue, HttpAuthScheme, HttpBuilder, SecurityScheme},
@@ -79,9 +80,24 @@ pub(crate) fn base() -> OpenApi {
                      `x-error-codes`; clients branch on those codes, never on messages.",
                 )),
         )
+        .external_docs(Some(
+            ExternalDocsBuilder::new()
+                .url(INTEGRATION_GUIDE)
+                .description(Some(
+                    "How an application integrates with CAS: registration, sign-in, tokens, \
+                     guests, logout.",
+                ))
+                .build(),
+        ))
         .components(Some(components))
         .build()
 }
+
+/// The integration guide, linked from the document as its `externalDocs`.
+/// Absolute, because the document is served by a running CAS, where a path
+/// into the repository means nothing.
+const INTEGRATION_GUIDE: &str =
+    "https://github.com/MemeBattle/monorepo/blob/master/apps/cas/docs/INTEGRATION.md";
 
 /// Mounts `GET /openapi.json` on `router` and completes `document` with it
 /// and with the fallback 500. Returns both: the router serving the
