@@ -8,7 +8,8 @@ name: 'CAS release'
 on:
   workflow_dispatch:
   push:
-    branches: [master]
+    # TEMPORARY: the test release from the PR branch. Revert before merging.
+    branches: [master, feat/cas-frontend-and-cd]
     paths:
       - 'apps/cas/**'
       - 'apps/cas-frontend/**'
