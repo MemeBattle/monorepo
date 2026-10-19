@@ -157,11 +157,25 @@ connection, nothing between the open and the close can return early.
 different things while answering the same contract: natively the process's pool
 with its own timeout (ADR 0021 (e), unchanged), on a Worker the request's own
 connection through `health::db_router`, where the acquire is part of the probe.
-Both reuse the same description and the same `/health` annotation, so the
-document does not depend on which is mounted — no `openapi.json` change. The
-`db_router` is compiled on **every** target, and the native assembly tests mount
-it, so the Worker's health implementation is exercised by `cargo test` rather
-than merely compiled.
+
+The document must not depend on which is mounted, and sharing the path and the
+response type does not give that: utoipa derives an operation's id from the
+handler's name and its summary and description from the handler's doc comment,
+so two handlers describe two operations unless they are pinned to one. They
+are: `health_check_on_db` carries `operation_id = "health_check"` and the same
+one-line summary, and the prose that is about its implementation is a plain
+comment, not a doc comment the document would publish. Sharing the id is safe
+because each assembly mounts exactly one of the two routers, so they are never
+in one document. What holds this true is a test, not a convention:
+`the_worker_assembly_serves_the_committed_document` serves `/openapi.json` from
+the Worker's own assembly and compares it with the committed
+`apps/cas/openapi.json`, as `the_committed_document_is_current` does for the
+native one. So `openapi.json` describes both deployments, and neither can drift
+from the file clients are generated from.
+
+The `db_router` is compiled on **every** target, and the native assembly tests
+mount it, so the Worker's health implementation is exercised by `cargo test`
+rather than merely compiled.
 
 There is **no request trace** on a Worker. tower-http's `Trace` runs
 `std::time::Instant::now()` before the inner service on every request, and that
@@ -181,13 +195,34 @@ median of 16 ms against the Free plan's 10 ms CPU limit and did not profile).
 answers:
 
 - **Misconfiguration** (a missing or invalid binding, a PEM that is not a key)
-  is a startup failure: the error is logged with `console_error!` and `fetch`
-  returns `Err`, which surfaces as the platform's error page. It is the Worker
-  analogue of a native process refusing to start, where no CAS-shaped answer
-  exists either because nothing is listening. Nothing is open to leak. Inventing
-  per-endpoint misconfiguration responses would itself be a new wire contract,
-  which this work rules out, and the "no explicit 500" rule governs the API's
-  own answers — here the application never came up.
+  is met inside `fetch`, because a Worker reads its settings per request: there
+  is no startup to fail at and no router to route the request through, and
+  nothing is open to leak. The error is logged with `console_error!` and the
+  entrypoint answers `http::not_started()` — **503**, `Cache-Control:
+  no-store`, the stable code `service_unavailable`.
+
+  That answer is CAS's own on purpose. Returning `Err` from `fetch` instead
+  does **not** surface as the platform's error page: the generated glue catches
+  it and answers a plain-text `500 INTERNAL SERVER ERROR` (`worker-macros`
+  0.8.7, the `Err` arm of the fetch glue; the `respond_with_errors` form only
+  swaps the body for the error's text). There is no path from a `fetch` that
+  returns to a platform error, so the choice is between two answers CAS
+  produces — and a condition the code can name, as
+  `ConfigError::MissingBinding` names its binding, never answers 500: that
+  status claims nobody anticipated the failure and tells a client to raise an
+  alarm where it should retry.
+
+  It invents no wire contract. The body is the `ApiError` shape every
+  operation's fallback already answers in — which is why the committed
+  document attaches that shape even to `/health`, whose own answers are plain
+  text — and `service_unavailable` is a code CAS already carries for a service
+  that is there but cannot serve (the OIDC error page, ADR 0010 (a)). So there
+  is no new stable code and no `openapi.json` change. What it is not is an
+  operation's answer: no handler ran, so no operation describes it, and the
+  document keeps describing what the application answers while it is running
+  (ADR 0016). For `/health` even the status is the one it promises; only the
+  body is JSON rather than its plain text, because with no router there is no
+  endpoint whose shape could be answered in.
 - **A failed or timed-out connect** aborts the socket, logs, and serves the
   request anyway through `Db::unavailable()` — a handle with no database, whose
   acquire reports `sqlx::Error::PoolClosed`, which `db::classify` already calls
@@ -253,6 +288,17 @@ Worker through production Hyperdrive is explicitly **not** claimed.
 - A later change that moves something fallible after the connect, or returns
   early between the serve and the close, breaks `closes_even_when_the_body_fails`
   rather than leaking a connection in production.
+- Both answers a Worker can give before any handler runs are decided and tested
+  natively, not inherited from the runtime: `not_started` (503,
+  `service_unavailable`, `no-store`) for a deployment that never came up, and
+  each endpoint's own documented 503 through `Db::unavailable()` for a connect
+  that failed. The document a Worker serves is pinned to the committed file by
+  a test, so a `/health` handler described differently from the one it mirrors
+  fails `cargo test` instead of reaching a deployment.
+- A Worker log says a connection was released without a goodbye only when a
+  connection was opened. `Db::unavailable()` closes as `Dropped` because there
+  was nothing to terminate, and during an outage that would otherwise print,
+  once per request, a statement about connection handling that did not happen.
 - Native behaviour is unchanged: `app(config)` keeps its signature, builds the
   same lazy pool, mounts the same pool-backed `/health`, and keeps the request
   trace. The split moved code, not behaviour.

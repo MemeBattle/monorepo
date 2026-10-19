@@ -195,8 +195,9 @@ impl Config {
 ///
 /// Every field is required. A Worker is a deployment, so there is no
 /// localhost default to fall back on and no debug default signing key: a
-/// missing binding is a misconfigured deployment, which the entrypoint treats
-/// as a startup failure (ADR 0022 (g)).
+/// missing binding is a misconfigured deployment, which the entrypoint
+/// answers with `http::not_started` — a 503 naming the condition, never a 500
+/// (ADR 0022 (g)).
 ///
 /// Compiled on every target, so this parsing is unit-tested by `cargo test`;
 /// only the binding reading itself is wasm32-only.

@@ -18,7 +18,7 @@ pub mod response;
 use axum::{
     Router,
     body::{Body, Bytes, to_bytes},
-    http::{HeaderValue, Method, Request, header},
+    http::{HeaderValue, Method, Request, StatusCode, header},
     response::{IntoResponse, Response},
 };
 #[cfg(not(target_arch = "wasm32"))]
@@ -282,6 +282,40 @@ pub fn build_app(parts: AppParts, db: Db, health: OpenApiRouter) -> NormalizePat
     let service = openapi::conformance::check(service, &_document);
 
     NormalizePathLayer::trim_trailing_slash().layer(service)
+}
+
+/// What a deployment that never came up answers: `503` with the stable
+/// `service_unavailable` code and `no-store`.
+///
+/// A Worker reads its settings per request, so a missing or invalid binding
+/// is met inside `fetch`, with no router to route the request through and
+/// nothing open. It is still a failure CAS can name —
+/// `ConfigError::MissingBinding` names the binding — so it answers 503 with a
+/// stable code. Returning `Err` from the entrypoint instead would answer
+/// `500 INTERNAL SERVER ERROR`, which the runtime's glue substitutes for a
+/// failed invocation: a 500 claims nobody anticipated this and tells a client
+/// to raise an alarm where it should retry.
+///
+/// This is the one answer CAS gives outside an operation — no handler ran, so
+/// no operation describes it. It takes the shape and the code the description
+/// already carries rather than inventing either: the `ApiError` body is the
+/// shape every operation's fallback answers in, and `service_unavailable` is
+/// the code CAS already uses for a service that is there but cannot serve
+/// (the OIDC error page). So `openapi.json` does not change
+/// (ADR 0022 (g)).
+pub fn not_started() -> Response {
+    let mut response = ApiError::new(
+        StatusCode::SERVICE_UNAVAILABLE,
+        error::SERVICE_UNAVAILABLE,
+        "The service is not available, try again later",
+    )
+    .into_response();
+    // The `/api` layer that would otherwise add this is part of the router,
+    // and there is no router here. A misconfiguration must not be cached.
+    response
+        .headers_mut()
+        .insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    response
 }
 
 /// Why the connection could not be given back gracefully. Never a reason to
@@ -569,6 +603,52 @@ mod tests {
             .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
             .body(Body::from(form))
             .unwrap()
+    }
+
+    /// What a Worker whose bindings are missing answers. The status says
+    /// retryable and the code says which condition, because a missing
+    /// binding is a failure CAS can name — never the 500 the runtime would
+    /// substitute for a failed invocation (ADR 0022 (g)).
+    #[tokio::test]
+    async fn a_deployment_that_never_came_up_is_unavailable_not_an_error() {
+        let response = not_started();
+
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(cache_control(&response), Some("no-store"));
+        assert_eq!(
+            header_str(&response, header::CONTENT_TYPE),
+            Some("application/json")
+        );
+        let body: serde_json::Value = serde_json::from_slice(&body_bytes(response).await).unwrap();
+        assert_eq!(body["error"]["code"], "service_unavailable");
+    }
+
+    /// What describes a Worker deployment: the document the Worker assembly
+    /// serves is the committed `openapi.json`, byte for byte.
+    ///
+    /// The two `/health` routers answer one contract, so they have to
+    /// describe one operation; sharing the path and the response type is not
+    /// enough, because utoipa derives the id and the summary from the
+    /// annotated handler (ADR 0022 (f)). `openapi`'s
+    /// `the_committed_document_is_current` pins the native assembly, and this
+    /// pins the other one, so neither deployment can drift from the file a
+    /// client is generated from.
+    #[tokio::test]
+    async fn the_worker_assembly_serves_the_committed_document() {
+        let app = worker_app(Db::unavailable());
+
+        let response = send(&app, "GET", "/openapi.json").await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let served = String::from_utf8(body_bytes(response).await).unwrap();
+        let committed = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("openapi.json"),
+        )
+        .unwrap();
+        assert!(
+            served == committed,
+            "the document a Worker serves is not the committed apps/cas/openapi.json"
+        );
     }
 
     /// The Worker's happy path, natively: the request's one connection

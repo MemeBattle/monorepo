@@ -4,8 +4,13 @@
 //! process, not for a request ([`router`], ADR 0021 (e)). On a Worker there is
 //! no process to answer for and no pool: the probe runs on the request's own
 //! connection through [`db_router`]. Both answer the same two plain-text
-//! answers under the same [`DB_TIMEOUT`] and share one description, so the
-//! OpenAPI document does not depend on which is mounted (ADR 0022 (f)).
+//! answers under the same [`DB_TIMEOUT`], and both are described as the same
+//! operation — one summary, one `operation_id`, one set of responses — so the
+//! OpenAPI document does not depend on which is mounted (ADR 0022 (f)). That
+//! is not something sharing a path and a response type gives: utoipa derives
+//! the id and the summary from the annotated item, so both are pinned here
+//! and `the_worker_assembly_serves_the_committed_document` (`http`) holds
+//! them to the committed document.
 
 use axum::{
     extract::State,
@@ -71,14 +76,25 @@ async fn health_check(State(pool): State<PgPool>) -> Documented<HealthResponses>
     answer.into()
 }
 
-/// The same two answers, probing the handle the request's services use.
-///
-/// The acquire is part of the probe: on a connection-backed handle it is the
-/// request's one connection, so a `/health` that cannot take it is as
-/// unavailable as one whose query fails. An `unavailable` handle — a Worker
-/// whose connect failed — fails at the acquire, which is how `/health`
-/// reports a failed connect in its own documented shape.
-#[utoipa::path(get, path = "/health")]
+/// 200 when the DB answers `SELECT 1` in time, 503 otherwise.
+//
+// The summary above is `health_check`'s, word for word, and the id is pinned
+// to its name: whichever router a deployment mounts, the document describes
+// one `/health` operation. utoipa takes the summary from the first line of
+// the doc comment, the description from the rest and the id from the function
+// name, so everything below is a plain comment — a doc comment here would
+// publish it and rename the operation.
+//
+// The same two answers, probing the handle the request's services use. The
+// acquire is part of the probe: on a connection-backed handle it is the
+// request's one connection, so a `/health` that cannot take it is as
+// unavailable as one whose query fails. An `unavailable` handle — a Worker
+// whose connect failed — fails at the acquire, which is how `/health` reports
+// a failed connect in its own documented shape.
+//
+// Sharing the id with `health_check` is safe because the two are never in one
+// document: each assembly mounts exactly one of the routers.
+#[utoipa::path(get, path = "/health", operation_id = "health_check")]
 async fn health_check_on_db(State(db): State<Db>) -> Documented<HealthResponses> {
     answer(async move {
         let mut conn = db.acquire().await?;

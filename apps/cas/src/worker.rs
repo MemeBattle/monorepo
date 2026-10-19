@@ -11,7 +11,9 @@
 //!
 //! 1. read the bindings and build everything that can fail — **before** a
 //!    connection exists, so a misconfigured deployment leaks no socket and
-//!    nothing fallible stands between the open and the close;
+//!    nothing fallible stands between the open and the close; a deployment
+//!    that cannot start answers [`not_started`], never an error of the
+//!    runtime's making;
 //! 2. open one `PgConnection` from the Hyperdrive binding with
 //!    `statement_cache_capacity(0)`, under a deadline, holding a
 //!    [`SocketAbort`] on its socket;
@@ -29,7 +31,7 @@ use worker::{Context, Env, HttpRequest, console_error, console_log, event};
 use crate::config::WorkerConfig;
 use crate::db::{CloseOutcome, Db};
 use crate::deadline::with_deadline;
-use crate::http::{AppParts, CloseError, build_app, health, serve_and_close};
+use crate::http::{AppParts, CloseError, build_app, health, not_started, serve_and_close};
 
 /// The Hyperdrive binding the database is behind. Its configuration must have
 /// the query cache **disabled**: the cache answers sqlx's `Parse`/`Describe`
@@ -39,41 +41,50 @@ const HYPERDRIVE: &str = "HYPERDRIVE";
 
 #[event(fetch)]
 async fn fetch(request: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Response> {
-    // A missing or invalid binding is a deployment that never came up, the
-    // Worker analogue of the native process refusing to start — where there
-    // is no CAS-shaped answer either, because nothing is listening. So it is
-    // the platform's error, not a wire contract invented for it, and no
-    // socket is open to leak (ADR 0022 (g)).
+    // A missing or invalid binding is a deployment that never came up: no
+    // router exists to route this request through, and no socket is open to
+    // leak. CAS still names the failure, so CAS answers it — 503 with a
+    // stable code (ADR 0022 (g)). Returning `Err` here would hand the
+    // runtime's glue a failed invocation, which answers a plain-text 500,
+    // and a condition the code can name never answers 500.
     let parts = match startup(&env) {
         Ok(parts) => parts,
         Err(error) => {
             console_error!("CAS cannot start: {}", error);
-            return Err(worker::Error::RustError(error));
+            return Ok(not_started());
         }
     };
 
     // The one handle that outlives every future raced below.
     let abort = SocketAbort::new();
-    let db = match open(&env, &abort).await {
-        Ok(connection) => Db::connection(connection),
+    // Whether anything was opened: what the close outcome means depends on
+    // it, and only this branch knows.
+    let (db, opened) = match open(&env, &abort).await {
+        Ok(connection) => (Db::connection(connection), true),
         Err(error) => {
             // The socket may be half-open mid-handshake, and nothing will
             // close it on its own, so it is closed here and now.
             abort.abort();
             console_error!("the database connection could not be opened: {}", error);
-            Db::unavailable()
+            (Db::unavailable(), false)
         }
     };
 
     let app = build_app(parts, db.clone(), health::db_router(db.clone()));
     let (served, closed) = serve_and_close(app, db, request.map(Body::new)).await;
 
-    // The response is already decided; how the connection went is a log line.
+    // The response is already decided; how the connection went is a log
+    // line. An unavailable handle reports `Dropped` because there was never
+    // anything to terminate, so only a request that opened a connection can
+    // say a connection was released without a goodbye — logging it for the
+    // rest would state, during every request of an outage, something that
+    // did not happen, on top of the connect error already logged.
     match closed {
         Ok(CloseOutcome::Terminated) => {}
-        Ok(CloseOutcome::Dropped) => {
+        Ok(CloseOutcome::Dropped) if opened => {
             console_log!("the connection was released without a graceful terminate");
         }
+        Ok(CloseOutcome::Dropped) => {}
         Err(CloseError::Expired) => console_error!("the connection did not close in time"),
         Err(error) => console_error!("{}", error),
     }
