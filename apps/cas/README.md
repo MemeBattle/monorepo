@@ -2,6 +2,10 @@
 
 CAS (Central Authentication Service) is a centralized authentication and user management service for an ecosystem of applications. It serves as a single Identity Provider (IdP) that allows multiple applications to delegate user authentication and identity management, eliminating the need for each application to implement its own authentication system.
 
+## Integrating an application
+
+An application that signs its users in with CAS starts with [docs/INTEGRATION.md](./docs/INTEGRATION.md): registering a client, choosing a library, sign-in and the code exchange, verifying access tokens on a resource server, refresh rotation, guests and their upgrade, and logout, from the application's side. The sections below are the reference it links to.
+
 ## Configuration
 
 Configuration is read from environment variables at startup. Every variable has a dev-friendly default, so `bacon run` works with no environment set. An invalid value fails startup with an error.
@@ -63,7 +67,7 @@ CAS serves three kinds of path: the first-party API under `/api`, the OpenID Con
 
 A refresh is `grant_type=refresh_token` with the `refresh_token` and an optional `scope`, with the same client authentication. The answer is the same set — a new access token, a new ID token (without `nonce`) and a **new** refresh token — for the grant's full scopes: a `scope` may repeat or narrow the grant's (it is then ignored) but not widen it. Every refresh retires the token it presents; presenting a retired token again is treated as theft and revokes the grant, so the token the rotation issued stops working too and the user signs in again. A client must therefore never refresh the same token twice concurrently. Signing out of CAS does not end a grant, and no refresh moves its 30-day cap. See [docs/adr/0012-refresh-token-rotation.md](./docs/adr/0012-refresh-token-rotation.md).
 
-A guest account is minted with `grant_type=urn:memebattle:oauth:grant-type:guest` and an optional `scope`, from the application's backend, without any UI. Only a confidential client registered with `--guest-login-allowed` may use it, with the same client authentication; any other client gets `unauthorized_client`. Each request creates a new account of type `guest` — no credentials, no email, no CAS session, and a generated display name of its own (`Guest <n>`, from a database sequence) that is never released to the client — and answers the usual set for it: the tokens carry `amr: ["anon"]` and `account_type: "guest"`, and never a `name`. `scope` defaults to `openid` alone; otherwise it must include `openid` and stay within the client's scopes. The guest's grant is like any other: it refreshes the same way and ends 30 days after the guest was minted, so a guest identity lasts that long unless the player creates an account. A client may mint at most `--guest-grants-per-minute` guests (default 60) in any minute; past that the answer is `429 rate_limit_exceeded` with `Retry-After: 60`. See [docs/adr/0014-guest-accounts-and-the-guest-grant.md](./docs/adr/0014-guest-accounts-and-the-guest-grant.md).
+A guest account is minted with `grant_type=urn:memebattle:oauth:grant-type:guest` and an optional `scope`, from the application's backend, without any UI. Only a confidential client registered with `--guest-login-allowed` may use it, with the same client authentication; any other client gets `unauthorized_client`. Each request creates a new account of type `guest` — no credentials, no email, no CAS session, and a generated display name of its own (`Guest <n>`, from a database sequence) that is never released to the client — and answers the usual set for it: the tokens carry `amr: ["anon"]` and `account_type: "guest"`, and never a `name`. `scope` defaults to `openid` alone; otherwise it must include `openid` and stay within the client's scopes. The guest's grant is like any other: it refreshes the same way and ends 30 days after the guest was minted, so a guest identity lasts that long unless the user creates an account. A client may mint at most `--guest-grants-per-minute` guests (default 60) in any minute; past that the answer is `429 rate_limit_exceeded` with `Retry-After: 60`. See [docs/adr/0014-guest-accounts-and-the-guest-grant.md](./docs/adr/0014-guest-accounts-and-the-guest-grant.md).
 
 A guest becomes a full account, with the same `sub`, through `/oidc/authorize`: the application refreshes the guest's tokens and sends the browser to its usual authorization request with the fresh ID token as `id_token_hint`. CAS opens a restricted upgrade session for the guest (one hour, good for nothing but registering the guest's passkey, continuing `/oidc/authorize` and reading `GET /api/me`, which answers the guest with `accountType: "guest"`, see [docs/adr/0018-me-under-an-upgrade-session.md](./docs/adr/0018-me-under-an-upgrade-session.md)) and sends the browser to create-account; once the passkey is registered, `return_to` yields a code, and its tokens carry the same `sub` with `account_type: "full"` and `amr: ["webauthn"]`. The upgrade revokes every grant of the guest, so its refresh tokens stop working and the application continues with the tokens of that code; access tokens already issued keep saying `guest` until they expire. A hint that is not a valid ID token of this client is refused with `invalid_request` and `error_description` `id_token_hint is invalid`, an expired one with `id_token_hint has expired`; a hint of a full account is ignored, and a browser already signed in to CAS gets a code for that account and the guest stays a guest. See [docs/adr/0015-guest-upgrade.md](./docs/adr/0015-guest-upgrade.md).
 
@@ -86,7 +90,7 @@ A request that fails any check — missing or invalid hint, mismatched `client_i
 
 ## OpenAPI
 
-`GET /openapi.json` (at the root, public) serves the OpenAPI 3.1 description of every route CAS mounts: request and response bodies, and on every error response the stable codes it can carry, in `x-error-codes` and, for the `/api` error shape, as the enum of `error.code`. It is generated from the handlers, not written by hand, and committed as [`openapi.json`](./openapi.json); `cargo test` fails when the file is out of date. After changing the API, regenerate it from `apps/cas` and commit it:
+`GET /openapi.json` (at the root, public) serves the OpenAPI 3.1 description of every route CAS mounts: request and response bodies, and on every error response the stable codes it can carry, in `x-error-codes` and, for the `/api` error shape, as the enum of `error.code`. It is generated from the handlers, not written by hand, and committed as [`openapi.json`](./openapi.json); `cargo test` fails when the file is out of date. The document's `externalDocs` points at the integration guide, [docs/INTEGRATION.md](./docs/INTEGRATION.md). After changing the API, regenerate it from `apps/cas` and commit it:
 
 ```
 UPDATE_OPENAPI=1 cargo test --lib the_committed_document_is_current
@@ -113,6 +117,25 @@ cargo run -p cas --bin cas-migrate
 ```
 
 The workflow (creating migrations, immutability, expand/contract, CI ordering check) is described in [docs/MIGRATIONS.md](./docs/MIGRATIONS.md).
+
+## Cloudflare Workers
+
+`cas.mems.fun` is served by the Worker built from `src/worker.rs` (ADR 0022), configured in `cloudflare.config.ts` and deployed with `cf`:
+
+```
+cd apps/cas
+pnpm exec cf deploy --secrets-file <file with CAS_SIGNING_KEY>
+```
+
+The build (`worker-build --release`, offline against `.sqlx`) runs from `wrangler.config.ts` and needs `worker-build` and the `wasm32-unknown-unknown` target. The Worker owns only CAS's paths on the hostname (`/api`, `/oidc`, `/.well-known`, `/health`, `/openapi.json`); everything else is the frontend's.
+
+Outside git, in the Cloudflare account:
+
+- the Hyperdrive config bound as `HYPERDRIVE`, with its query cache **disabled** (ADR 0022 (a));
+- its origin: for now the dev Postgres, reached through a Cloudflare Tunnel (`cas-pg.mems.fun`) behind an Access service token, in a database and role of its own (`cas_cf`). Hyperdrive requires TLS to the origin, so that Postgres runs with a certificate;
+- `CAS_SIGNING_KEY`, a secret uploaded with the version (`--secrets-file`).
+
+Migrations do not run through the Worker: apply them with `cas-migrate` over a direct connection to the origin before deploying a version that needs them.
 
 ## OIDC clients
 

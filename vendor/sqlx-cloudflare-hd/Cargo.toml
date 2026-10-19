@@ -1,0 +1,60 @@
+# Vendored from sqlx-contrib/sqlx-cloudflare#16; see VENDOR.md. Upstream
+# inherits everything below from its workspace manifest; here it is spelled
+# out so the crate stands on its own in this workspace.
+[package]
+name = "sqlx-cloudflare-hd"
+description = "Cloudflare Hyperdrive for sqlx: sqlx's own Postgres driver over a Workers Hyperdrive binding"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.94"
+license = "MIT"
+repository = "https://github.com/sqlx-contrib/sqlx-cloudflare"
+readme = "README.md"
+keywords = ["sqlx", "cloudflare", "hyperdrive", "workers", "postgres"]
+categories = ["database", "wasm"]
+publish = false
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+
+[lints.rust]
+missing_docs = "deny"
+
+# One feature per database Hyperdrive fronts, as sqlx has: each pulls in that
+# sqlx driver and adds its module. None by default -- pick the one your
+# Hyperdrive configuration points at.
+[features]
+default = []
+postgres = ["dep:sqlx-postgres", "dep:tokio"]
+
+[dependencies]
+# `offline` is always on: sqlx's default `macros` feature enables
+# `sqlx-core/offline`, which adds `describe` to `Executor` as a required method.
+# The git source comes from the root `[patch.crates-io]`.
+sqlx-core = { version = "0.9.0", default-features = false, features = ["offline"] }
+sqlx-postgres = { version = "0.9.0", default-features = false, features = ["offline"], optional = true }
+worker = { version = "0.8.6", default-features = false }
+# Only for the `AsyncRead`/`AsyncWrite` traits the socket adapter uses, so only
+# with a driver that needs the adapter.
+tokio = { version = "1", default-features = false, optional = true }
+
+# The sqlx drivers draw their auth nonces through `rand`, and on
+# wasm32-unknown-unknown `getrandom` refuses to build until told where
+# randomness comes from: `wasm_js` is the JS host's `crypto.getRandomValues`.
+# Enabled here so no consumer has to know.
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
+getrandom = { version = "0.4", features = ["wasm_js"] }
+
+[dev-dependencies]
+# The facade, for the docs' example: what a consumer writes against. `macros`
+# turns on `sqlx-postgres/offline` to match `sqlx-core/offline`.
+sqlx = { version = "0.9.0", default-features = false, features = ["postgres", "macros"] }
+# `tests/driver.rs` drives the upstream test Worker over plain HTTP on
+# localhost, so no TLS. It skips itself unless HD_WORKER_URL is set.
+ureq = { version = "3", default-features = false }
+serde_json = "1"
+
+[package.metadata.docs.rs]
+all-features = true
+targets = ["wasm32-unknown-unknown"]

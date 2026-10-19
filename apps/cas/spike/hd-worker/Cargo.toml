@@ -1,0 +1,44 @@
+# Throwaway spike: sqlx's Postgres driver inside workerd over a Hyperdrive
+# binding. See apps/cas/docs/spike-sqlx-worker.md. Not part of the root
+# workspace.
+[package]
+name = "hd-worker"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+# Only for `cargo sqlx prepare`: the macros need a runtime to reach the
+# database online. The Worker build itself uses the .sqlx cache with no runtime.
+prepare = ["sqlx/runtime-tokio"]
+
+[dependencies]
+sqlx-cloudflare-hd = { path = "../../../../vendor/sqlx-cloudflare-hd", features = ["postgres"] }
+# No runtime feature: the Worker has no tokio runtime and sqlx must not need one.
+sqlx = { version = "0.9.0", default-features = false, features = ["postgres", "tls-none", "macros", "migrate", "uuid", "time", "json"] }
+worker = "0.8.7"
+getrandom = { version = "0.4", features = ["wasm_js"] }
+log = "0.4"
+web-time = "1"
+url = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Only for the hand-rolled protocol probe in src/raw.rs.
+tokio = { version = "1", default-features = false, features = ["io-util"] }
+md5 = { package = "md-5", version = "0.11" }
+
+# Copied verbatim from the monorepo root Cargo.toml.
+[patch.crates-io]
+sqlx = { git = "https://github.com/MemeBattle/sqlx", rev = "6678c9a3b319909099412ca69a1362f506a39ea8" }
+sqlx-core = { git = "https://github.com/MemeBattle/sqlx", rev = "6678c9a3b319909099412ca69a1362f506a39ea8" }
+sqlx-postgres = { git = "https://github.com/MemeBattle/sqlx", rev = "6678c9a3b319909099412ca69a1362f506a39ea8" }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1

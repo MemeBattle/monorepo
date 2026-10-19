@@ -2,11 +2,11 @@
 
 use std::time::Duration;
 
-use sqlx::PgPool;
 use uuid::Uuid;
 
 use super::{Account, AccountType, DisplayName, Email, NewAccount};
 use crate::clients::ClientId;
+use crate::db::Db;
 
 // `nutype` cannot derive the sqlx traits, so the three that let a
 // `DisplayName` cross the database boundary are written by hand here, next to
@@ -263,29 +263,33 @@ where
 /// Data access for `accounts`.
 #[derive(Debug, Clone)]
 pub struct AccountRepository {
-    pool: PgPool,
+    db: Db,
 }
 
 impl AccountRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(db: impl Into<Db>) -> Self {
+        Self { db: db.into() }
     }
 
     /// Inserts an account and returns the stored row, including the
     /// database-assigned timestamps.
     pub async fn create(&self, account: NewAccount) -> Result<Account, sqlx::Error> {
-        insert(&self.pool, account).await
+        let mut conn = self.db.acquire().await?;
+        insert(&mut *conn, account).await
     }
 
     /// Looks an account up by id. `Ok(None)` means no such account.
     pub async fn get(&self, id: Uuid) -> Result<Option<Account>, sqlx::Error> {
-        get(&self.pool, id).await
+        let mut conn = self.db.acquire().await?;
+        get(&mut *conn, id).await
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sqlx::PgPool;
+
     use crate::testing::{display_name, register_public_client};
 
     #[sqlx::test]

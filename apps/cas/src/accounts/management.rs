@@ -5,11 +5,11 @@
 //! the session names; the service takes its id and touches no other row.
 //! See `docs/adr/0007-account-email.md`.
 
-use sqlx::PgPool;
 use thiserror::Error;
 use uuid::Uuid;
 
 use crate::accounts::{Email, repository};
+use crate::db::Db;
 
 #[derive(Debug, Error)]
 pub enum UpdateEmailError {
@@ -25,12 +25,12 @@ pub enum UpdateEmailError {
 
 #[derive(Debug, Clone)]
 pub struct AccountManagement {
-    pool: PgPool,
+    db: Db,
 }
 
 impl AccountManagement {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(db: impl Into<Db>) -> Self {
+        Self { db: db.into() }
     }
 
     /// Sets the account's email, or clears it with `None`. Idempotent: the
@@ -46,7 +46,8 @@ impl AccountManagement {
         account_id: Uuid,
         email: Option<Email>,
     ) -> Result<(), UpdateEmailError> {
-        if !repository::set_email(&self.pool, account_id, email.as_ref()).await? {
+        let mut conn = self.db.acquire().await?;
+        if !repository::set_email(&mut *conn, account_id, email.as_ref()).await? {
             return Err(UpdateEmailError::AccountNotFound);
         }
 
@@ -62,6 +63,8 @@ impl AccountManagement {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sqlx::PgPool;
+
     use crate::accounts::{AccountRepository, NewAccount};
     use crate::testing::{capture_tracing, display_name};
 

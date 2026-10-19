@@ -185,7 +185,7 @@ Next, in order:
 - **Ligretto on CAS:** ligretto-frontend on an OIDC client (redirect to
   `/oidc/authorize`, code handed to core-backend), core-backend as the confidential
   client (code exchange, refresh, guest grant, display-name snapshot for other
-  players), gameplay-backend verifying JWTs via JWKS on the socket handshake,
+  users), gameplay-backend verifying JWTs via JWKS on the socket handshake,
   one-shot cutover, removal of `auth-front`, `cas-services`, `init-partner`.
 - **External providers** ([milestone 19](https://github.com/MemeBattle/monorepo/milestone/19)):
   external identities + provider abstraction, Telegram sign-in and linking,

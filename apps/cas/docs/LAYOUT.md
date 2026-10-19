@@ -12,9 +12,11 @@ apps/cas/
   docs/                workflow documents, ADRs, this file
   src/
     main.rs, bin/*.rs  binaries: load the config, call into the library, nothing else
+    worker.rs          the Cloudflare Workers entrypoint, wasm32 only (ADR 0022)
     lib.rs             the module list
     config.rs          ┐
     db.rs              │ shared infrastructure: knows no context
+    deadline.rs        │
     migrations.rs      ┘
     shared/            shared vocabulary: rules and types more than one context
       label.rs           needs and none owns (a user-facing label's rules)
@@ -86,9 +88,11 @@ Each rule says what a layer is for and what it must not touch.
    own path, with no layer or fallback of its own; and the root, for
    discovery, `/health` and `/openapi.json`.
 5. **Shared infrastructure** — `config`, `db`, `migrations`. Used by both
-   binaries, knows no context. `db` classifies database failures (unavailable,
-   busy, or a bug the code has no name for); a transport only maps that verdict
-   to a status.
+   binaries, knows no context. `db` owns the `Db` handle every service reaches
+   the database through — a pool natively, the request's one connection on
+   Workers (ADR 0021) — and classifies database failures (unavailable, busy,
+   or a bug the code has no name for); a transport only maps that verdict to a
+   status.
 6. **Shared vocabulary** — `shared/`. Domain-level rules and types that at
    least two contexts need and none of them owns: the rules for a user-facing
    label are the first. The bar for entry is that second context; a rule one

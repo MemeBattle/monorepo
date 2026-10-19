@@ -41,7 +41,9 @@ use crate::webauthn::registration::{
 };
 use crate::webauthn::upgrade::UpgradeService;
 
+mod fixed_key_passkey;
 mod soft_passkey;
+pub use fixed_key_passkey::FixedKeyPasskey;
 pub use soft_passkey::ResidentSoftPasskey;
 
 /// The API state the handler tests run against: every service on the given
@@ -252,15 +254,20 @@ pub fn test_signing_key() -> SigningKey {
 /// A freshly generated P-256 key as PKCS#8 PEM: a key CAS does not
 /// publish, for a token a forger — or a retired key — signed.
 pub fn fresh_signing_key_pem() -> String {
-    use openssl::ec::{EcGroup, EcKey};
-    use openssl::nid::Nid;
-    use openssl::pkey::PKey;
+    use p256::pkcs8::{EncodePrivateKey, LineEnding};
 
-    let group = EcGroup::from_curve_name(Nid::X9_62_PRIME256V1).expect("P-256 is available");
-    let key = PKey::from_ec_key(EcKey::generate(&group).expect("a P-256 key generates"))
-        .expect("an EC key is a PKey");
-    String::from_utf8(key.private_key_to_pem_pkcs8().expect("the key serialises"))
-        .expect("PEM is ASCII")
+    // Rejection-sample a scalar from fresh bytes; p256's own `random` would
+    // need a second rand_core.
+    let key = loop {
+        let mut bytes = [0u8; 32];
+        getrandom::fill(&mut bytes).expect("the OS has randomness");
+        if let Ok(key) = p256::SecretKey::from_slice(&bytes) {
+            break key;
+        }
+    };
+    key.to_pkcs8_pem(LineEnding::LF)
+        .expect("the key serialises")
+        .to_string()
 }
 
 /// The configuration the router tests build `http::app` from: the
@@ -452,7 +459,7 @@ pub fn signed_access_token(
 /// `falsify_uv = true`: registration requires user verification, which a
 /// software authenticator can only claim to have done.
 pub fn soft_passkey_registration(ccr: CreationChallengeResponse) -> RegisterPublicKeyCredential {
-    WebauthnAuthenticator::new(ResidentSoftPasskey::new())
+    ResidentSoftPasskey::new()
         .do_registration(test_origin(), ccr)
         .expect("the software authenticator answers a valid challenge")
 }
@@ -460,11 +467,9 @@ pub fn soft_passkey_registration(ccr: CreationChallengeResponse) -> RegisterPubl
 /// Registers an account through the registration service and hands back the
 /// software authenticator that now holds its passkey, so a test can sign in
 /// with it: login needs the same emulator that answered the registration.
-pub async fn register_soft_passkey(
-    pool: &PgPool,
-) -> (WebauthnAuthenticator<ResidentSoftPasskey>, Registered) {
+pub async fn register_soft_passkey(pool: &PgPool) -> (ResidentSoftPasskey, Registered) {
     let service = RegistrationService::new(test_webauthn(), pool.clone());
-    let mut authenticator = WebauthnAuthenticator::new(ResidentSoftPasskey::new());
+    let mut authenticator = ResidentSoftPasskey::new();
     let started = service
         .start(display_name("Ada"))
         .await
@@ -482,7 +487,7 @@ pub async fn register_soft_passkey(
 /// Answers a login challenge with the credential the authenticator discovers
 /// for the relying party, the way a browser with a platform passkey would.
 pub fn soft_passkey_assertion(
-    authenticator: &mut WebauthnAuthenticator<ResidentSoftPasskey>,
+    authenticator: &mut ResidentSoftPasskey,
     rcr: RequestChallengeResponse,
 ) -> PublicKeyCredential {
     authenticator

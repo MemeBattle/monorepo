@@ -201,7 +201,7 @@ async fn a_guest_upgrades_through_id_token_hint_and_keeps_its_sub(
     let registered = cas
         .register(Registration {
             guest_login_allowed: true,
-            ..registration("reference-game", ClientKind::Confidential, CALLBACK)
+            ..registration("reference-app", ClientKind::Confidential, CALLBACK)
         })
         .await;
     let secret = registered
@@ -210,7 +210,7 @@ async fn a_guest_upgrades_through_id_token_hint_and_keeps_its_sub(
     let metadata = discover(&http_client(), cas.issuer()).await;
     let rp = RelyingParty::new(
         &metadata,
-        "reference-game",
+        "reference-app",
         Some(secret.expose()),
         AuthType::BasicAuth,
         CALLBACK,

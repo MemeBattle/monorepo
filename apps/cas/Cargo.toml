@@ -17,32 +17,34 @@ path = "src/bin/migrate.rs"
 name = "cas-client"
 path = "src/bin/client.rs"
 
+# `worker-build` links the Worker entrypoint out of a cdylib; `rlib` keeps the
+# three native binaries and the tests building against the same lib. ADR 0022
+# (h).
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+# Dependencies both targets share. What only one of them can have is split
+# below, which resolver 2 keeps apart: a feature enabled for wasm32 does not
+# reach the native build (ADR 0022 (h)).
 [dependencies]
-axum = { version = "0.8.9", features = ["macros"] }
-axum-extra = { version = "0.12.6", features = ["cookie"] }
 base64 = "0.22.1"
-dotenvy = "0.15.7"
-getrandom = "0.4.3"
 icu_properties = "2.3"
 miette = "7.6.0"
 nutype = { version = "0.7.0", features = ["serde"] }
-# The ES256 signing key and its signatures (src/oidc/keys.rs). Already in the
-# lock through webauthn-rs; taken directly because a context has no business
-# depending on the WebAuthn crate.
-openssl = "0.10"
+# The ES256 signing key and its signatures (src/oidc/keys.rs), in pure Rust
+# rather than OpenSSL, which does not build for wasm32. Already in the lock
+# through webauthn-rs; taken directly because a context has no business
+# depending on the WebAuthn crate. `sec1` reads the EC key inside the PEM
+# block by hand, so a refusal can name what was wrong with which block.
+p256 = { version = "0.13.2", features = ["ecdsa", "pem", "pkcs8"] }
+sec1 = { version = "0.7.3", features = ["der"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 sha2 = "0.11.0"
-sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "migrate", "uuid", "time", "json"] }
 # Constant-time comparison of a client secret's hash (src/clients/secret.rs).
 subtle = "2.6"
 thiserror = "2.0.20"
-time = { version = "0.3.55", features = ["serde-well-known"] }
-tokio = { version = "1.53.1", features = ["full"] }
-tower = { version = "0.5.3", features = ["full"] }
-tower-http = { version = "0.7.0", features = ["cors", "catch-panic", "full"] }
 tracing = "0.1.44"
-tracing-subscriber = { version = "0.3.23", features = ["fmt", "env-filter"] }
 unicode-general-category = "1.1"
 unicode-normalization = "0.1.25"
 # The OpenAPI description, derived from the handlers (src/http/openapi.rs,
@@ -63,16 +65,80 @@ uuid = { version = "1.26.0", features = ["fast-rng", "serde"] }
 # `conditional-ui` exposes the discoverable authentication API that login uses
 # (src/webauthn/login.rs): a challenge without `allowCredentials`, answered by
 # whichever credential the authenticator discovers for the relying party.
-webauthn-rs = { version = "0.5.5", features = ["danger-allow-state-serialisation", "conditional-ui"] }
+webauthn-rs = { version = "0.6.1-dev", features = ["danger-allow-state-serialisation", "conditional-ui"] }
 # Public WebAuthn option types used to require discoverable credentials.
-webauthn-rs-proto = "=0.5.5"
+webauthn-rs-proto = "=0.6.1-dev"
+
+# The native server: a tokio process with a pool, a TLS stack of its own, the
+# .env files and a log formatter.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+axum = { version = "0.8.9", features = ["macros"] }
+axum-extra = { version = "0.12.6", features = ["cookie"] }
+dotenvy = "0.15.7"
+getrandom = "0.4.3"
+sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "migrate", "uuid", "time", "json"] }
+time = { version = "0.3.55", features = ["serde-well-known"] }
+tokio = { version = "1.53.1", features = ["full"] }
+tower = { version = "0.5.3", features = ["full"] }
+tower-http = { version = "0.7.0", features = ["cors", "catch-panic", "full"] }
+tracing-subscriber = { version = "0.3.23", features = ["fmt", "env-filter"] }
+
+# The Worker: no runtime, no TLS stack of its own (the Workers runtime performs
+# the handshake), no process environment. ADR 0022 (h).
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# `http1`/`tokio` are server features a Worker has no use for: the runtime
+# hands the entrypoint a parsed request.
+axum = { version = "0.8.9", default-features = false, features = ["macros", "form", "json", "matched-path", "original-uri", "query", "tracing"] }
+axum-extra = { version = "0.12.6", default-features = false, features = ["cookie", "tracing"] }
+# `future::select`, which `deadline.rs` races the Worker timer with. Natively
+# `tokio::time::timeout` does the same job and this is not needed.
+futures-util = { version = "0.3.31", default-features = false }
+getrandom = { version = "0.4.3", features = ["wasm_js"] }
+# Not used by CAS: the older getrandom majors in the tree, each needing to be
+# told where randomness comes from on this target. 0.2 arrives through
+# rand_core 0.6 ← crypto-bigint ← elliptic-curve (p256 and the WebAuthn
+# crates), 0.3 through rand 0.9 ← webauthn-rs-core, and 0.3 wants both its
+# `wasm_js` feature and the cfg in the root `.cargo/config.toml`. Named here
+# because only a direct dependency can turn a transitive crate's feature on.
+# ADR 0022 (h).
+getrandom_02 = { package = "getrandom", version = "0.2.17", features = ["js"] }
+getrandom_03 = { package = "getrandom", version = "0.3.4", features = ["wasm_js"] }
+# `tls-none`: the Workers runtime performs the TLS handshake through
+# `startTls()`, so no TLS library is linked in (ADR 0022 (a)).
+sqlx = { version = "0.9.0", default-features = false, features = ["tls-none", "postgres", "macros", "migrate", "uuid", "time", "json"] }
+# One `PgConnection` per request out of the Hyperdrive binding, with the
+# `SocketAbort` handle the entrypoint forcibly closes the socket through
+# (ADR 0022 (c)).
+sqlx-cloudflare-hd = { path = "../../vendor/sqlx-cloudflare-hd", features = ["postgres"] }
+# `wasm-bindgen` makes `OffsetDateTime::now_utc()` read the JS clock instead of
+# trapping on `std::time::SystemTime` (ADR 0020's reason, one target further).
+time = { version = "0.3.55", features = ["serde-well-known", "wasm-bindgen"] }
+# `sync` alone: `db.rs`'s `Mutex`. There is no runtime to drive anything else.
+tokio = { version = "1.53.1", default-features = false, features = ["sync"] }
+tower = { version = "0.5.3", default-features = false, features = ["util"] }
+# No `trace`: tower-http's `TraceLayer` runs `std::time::Instant::now()` per
+# request, which aborts on this target, so the layer is native-only
+# (ADR 0022 (f)).
+tower-http = { version = "0.7.0", default-features = false, features = ["cors", "catch-panic", "normalize-path", "set-header"] }
+# On this target uuid refuses to build until a source of randomness is named.
+# `rng-rand` is the one that keeps the `rand`-backed generator the shared
+# entry's `fast-rng` gives the native build.
+uuid = { version = "1.26.0", features = ["rng-rand"] }
+# The Worker runtime: the `fetch` event, the Hyperdrive binding, the bindings
+# `WorkerConfig` reads, `Delay` and the `send` wrappers.
+worker = { version = "0.8.7", features = ["http"] }
 
 [dev-dependencies]
+# A response body that fails halfway, for the test that proves the per-request
+# connection is closed even then (`http::serve_and_close`). Already in the
+# tree through axum; named here because `Body::from_stream` needs a `Stream`
+# and nothing else in the native build provides one.
+futures-util = { version = "0.3.31", default-features = false }
 # Software authenticator driving the WebAuthn ceremonies in tests, exposed
 # through `cas::testing` in test builds. Its version must move in lockstep with
 # webauthn-rs: it pins the same webauthn-rs-core and webauthn-rs-proto, which is
 # what makes the types interchangeable.
-webauthn-authenticator-rs = { version = "0.5.5", default-features = false, features = ["softpasskey"] }
+webauthn-authenticator-rs = { version = "0.6.1-dev", default-features = false, features = ["softpasskey"] }
 # An independent OIDC implementation, used two ways. The in-process tests
 # (src/oidc/http/mod.rs, src/oidc/http/token.rs) hand it the router as its
 # HTTP client. The reference client (tests/reference_client) is a relying

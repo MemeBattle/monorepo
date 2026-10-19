@@ -1,0 +1,40 @@
+{
+  "account_id": "fcc80d25-af24-4e45-9d45-48c85ccfe409",
+  "credential": {
+    "cred": {
+      "attestation": {
+        "data": "Self_",
+        "metadata": "None"
+      },
+      "attestation_format": "packed",
+      "backup_eligible": false,
+      "backup_state": false,
+      "counter": 0,
+      "cred": {
+        "key": {
+          "EC_EC2": {
+            "curve": "SECP256R1",
+            "x": "xERWPdliEfjQpXKeUnd-_FEPvB2EJ1bM9NKmYbmR2bE",
+            "y": "EV9bXy6614ycu_V2rYad75Hm2ATjPxcVsOtiPVijdx4"
+          }
+        },
+        "type_": "ES256"
+      },
+      "cred_id": "DEVj10Vl322GZJ0RataVPtXGxETwA0THL1WRO6AU7oA",
+      "extensions": {
+        "appid": "NotRequested",
+        "cred_props": {
+          "Unsigned": {
+            "rk": true
+          }
+        },
+        "cred_protect": "Ignored",
+        "hmac_create_secret": "NotRequested"
+      },
+      "registration_policy": "required",
+      "transports": null,
+      "user_verified": true
+    }
+  },
+  "credential_id": "DEVj10Vl322GZJ0RataVPtXGxETwA0THL1WRO6AU7oA"
+}

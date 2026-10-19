@@ -1,0 +1,27 @@
+{
+  "account_id": "83db4642-eb3b-4b14-a19e-6b1c8bfc30ec",
+  "state": {
+    "passkey": {
+      "rs": {
+        "allow_synchronised_authenticators": true,
+        "authenticator_attachment": null,
+        "challenge": "hsh3vxGaNmiNFWYIVdmdOnIeWl6vXEnUObUz2HmloaY",
+        "credential_algorithms": [
+          "ES256",
+          "RS256"
+        ],
+        "exclude_credentials": [
+          "Y2FzLWZpeHR1cmUtcGFzc2tleS0x"
+        ],
+        "extensions": {
+          "credProps": true,
+          "credentialProtectionPolicy": "userVerificationRequired",
+          "enforceCredentialProtectionPolicy": false,
+          "uvm": true
+        },
+        "policy": "required",
+        "require_resident_key": false
+      }
+    }
+  }
+}

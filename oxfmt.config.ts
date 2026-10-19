@@ -12,6 +12,8 @@ export default defineConfig({
     'apps/cas/*',
     '!apps/cas/README.md',
     'apps/cas-frontend/src/shared/api/generated/**',
+    // Third-party sources kept byte for byte; see each crate's VENDOR.md.
+    'vendor/',
   ],
   singleQuote: true,
   arrowParens: 'avoid',
