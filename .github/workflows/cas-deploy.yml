@@ -43,9 +43,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - uses: ./.github/actions/prepare-nodejs
-        name: Prepare Node.js
-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -59,11 +56,22 @@ jobs:
         with:
           version: '1.21.1'
 
+      # The three slow parts are independent: Node and worker-build install in
+      # the background while the migrations compile and run. `cargo install`
+      # builds in a target directory of its own, so it does not wait on the
+      # lock of the migrations' build.
+      - name: Prepare Node.js
+        id: node
+        uses: ./.github/actions/prepare-nodejs
+        background: true
+
       # The same version as the `worker` crate in apps/cas/Cargo.toml.
       - name: Install worker-build
+        id: worker-build
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: cargo binstall worker-build@0.8.7 --no-confirm --disable-telemetry
+        background: true
 
       - name: Apply migrations
         working-directory: apps/cas
@@ -71,6 +79,10 @@ jobs:
           SQLX_OFFLINE: 'true'
           DATABASE_URL: ${{ secrets.CAS_DATABASE_URL }}
         run: cargo run --locked --bin cas-migrate
+
+      # Node's PATH and worker-build reach the steps below only after this.
+      - name: Wait for Node and worker-build
+        wait: [node, worker-build]
 
       # Before the deploy, not inside its build command: Wrangler checks that
       # the assets directory exists before it runs that command.
