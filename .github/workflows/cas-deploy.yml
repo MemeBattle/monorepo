@@ -2,8 +2,9 @@ name: 'CAS release'
 
 # CAS and its frontend are one Cloudflare Worker on cas.mems.fun: the Rust
 # entrypoint (ADR 0022) for CAS's own paths, the SPA as its static assets
-# (apps/cas/cloudflare.config.ts). Migrations run first, outside the Worker,
-# over a direct connection to the origin database.
+# (apps/cas/cloudflare.config.ts). A release builds everything, then runs the
+# migrations outside the Worker over a direct connection to the origin
+# database, then uploads.
 
 on:
   workflow_dispatch:
@@ -56,11 +57,11 @@ jobs:
         with:
           version: '1.21.1'
 
-      # Node, the worker-build install and the migrations do not depend on
-      # each other, so all three run in the background, and each later step
-      # waits only for what it uses. `cargo install` builds in a target
-      # directory of its own, so it does not wait on the lock of the
-      # migrations' build.
+      # Everything is built before anything touches the database, and the
+      # migrations run before the upload: a build that fails never leaves the
+      # schema ahead of the deployed code. Node, the worker-build install and
+      # the cas-migrate build do not depend on each other and run in the
+      # background; each later step waits only for what it uses.
       - name: Prepare Node.js
         id: node
         uses: ./.github/actions/prepare-nodejs
@@ -74,30 +75,42 @@ jobs:
         run: cargo binstall worker-build@0.8.7 --no-confirm --disable-telemetry
         background: true
 
-      - name: Apply migrations
-        id: migrations
+      # A target directory of its own, so this native build and the Worker's
+      # wasm build below do not wait on each other's lock.
+      - name: Build cas-migrate
+        id: migrate-build
         working-directory: apps/cas
         env:
           SQLX_OFFLINE: 'true'
-          DATABASE_URL: ${{ secrets.CAS_DATABASE_URL }}
-        run: cargo run --locked --bin cas-migrate
+          CARGO_TARGET_DIR: ${{ github.workspace }}/target/migrate
+        run: cargo build --locked --bin cas-migrate
         background: true
 
-      # Node's PATH reaches the steps below only after this.
       - name: Wait for Node
         wait: node
 
-      # Before the deploy, not inside its build command: Wrangler checks that
-      # the assets directory exists before it runs that command.
+      # Before the Worker's build, not inside its build command: Wrangler
+      # checks that the assets directory exists before it runs that command.
       - name: Build the frontend
         run: pnpm cas:front:build
 
-      # A failed migration fails the job here, before anything is deployed.
-      - name: Wait for the migrations and worker-build
-        wait: [migrations, worker-build]
+      - name: Wait for worker-build
+        wait: worker-build
 
-      # Builds the Worker (apps/cas/wrangler.config.ts) and uploads it with the
-      # SPA as its assets.
+      # The Worker (apps/cas/wrangler.config.ts) with the SPA as its assets,
+      # into .cloudflare/output for the upload below.
+      - name: Build the Worker
+        working-directory: apps/cas
+        run: pnpm exec cf build
+
+      - name: Wait for the cas-migrate build
+        wait: migrate-build
+
+      - name: Apply migrations
+        env:
+          DATABASE_URL: ${{ secrets.CAS_DATABASE_URL }}
+        run: target/migrate/debug/cas-migrate
+
       - name: Deploy
         working-directory: apps/cas
         env:
@@ -106,4 +119,4 @@ jobs:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           message="${COMMIT_MESSAGE%%$'\n'*}"
-          pnpm exec cf deploy --tag "${GITHUB_SHA::12}" --message "${message:-manual release}"
+          pnpm exec cf deploy --prebuilt --tag "${GITHUB_SHA::12}" --message "${message:-manual release}"
