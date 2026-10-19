@@ -132,10 +132,15 @@ The build (`worker-build --release`, offline against `.sqlx`) runs from `wrangle
 Outside git, in the Cloudflare account:
 
 - the Hyperdrive config bound as `HYPERDRIVE`, with its query cache **disabled** (ADR 0022 (a));
-- its origin: for now the dev Postgres, reached through a Cloudflare Tunnel (`cas-pg.mems.fun`) behind an Access service token, in a database and role of its own (`cas_cf`). Hyperdrive requires TLS to the origin, so that Postgres runs with a certificate;
+- its origin: the `cas` database on the `production` branch of the Neon project `cas` (`aws-eu-central-1`), as the role `cas`, over the **direct** endpoint, not the `-pooler` one: Hyperdrive pools the connections itself;
 - `CAS_SIGNING_KEY`, a secret uploaded with the version (`--secrets-file`).
 
-Migrations do not run through the Worker: apply them with `cas-migrate` over a direct connection to the origin before deploying a version that needs them.
+Migrations do not run through the Worker: apply them with `cas-migrate` over a direct connection to the origin before deploying a version that needs them. With `SQLX_OFFLINE=true`, so the build does not check the queries against that database:
+
+```
+neon connection-string production --project-id <id> --role-name cas --database-name cas
+SQLX_OFFLINE=true DATABASE_URL='<that string>' cargo run -p cas --bin cas-migrate
+```
 
 ## OIDC clients
 
