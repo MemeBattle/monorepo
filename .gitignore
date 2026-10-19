@@ -17,6 +17,8 @@ dist
 
 # misc
 .DS_Store
+# cf build output and generated binding types
+.cloudflare
 .env.*.local
 .env.local
 

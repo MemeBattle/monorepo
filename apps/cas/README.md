@@ -118,6 +118,25 @@ cargo run -p cas --bin cas-migrate
 
 The workflow (creating migrations, immutability, expand/contract, CI ordering check) is described in [docs/MIGRATIONS.md](./docs/MIGRATIONS.md).
 
+## Cloudflare Workers
+
+`cas.mems.fun` is served by the Worker built from `src/worker.rs` (ADR 0022), configured in `cloudflare.config.ts` and deployed with `cf`:
+
+```
+cd apps/cas
+pnpm exec cf deploy --secrets-file <file with CAS_SIGNING_KEY>
+```
+
+The build (`worker-build --release`, offline against `.sqlx`) runs from `wrangler.config.ts` and needs `worker-build` and the `wasm32-unknown-unknown` target. The Worker owns only CAS's paths on the hostname (`/api`, `/oidc`, `/.well-known`, `/health`, `/openapi.json`); everything else is the frontend's.
+
+Outside git, in the Cloudflare account:
+
+- the Hyperdrive config bound as `HYPERDRIVE`, with its query cache **disabled** (ADR 0022 (a));
+- its origin: for now the dev Postgres, reached through a Cloudflare Tunnel (`cas-pg.mems.fun`) behind an Access service token, in a database and role of its own (`cas_cf`). Hyperdrive requires TLS to the origin, so that Postgres runs with a certificate;
+- `CAS_SIGNING_KEY`, a secret uploaded with the version (`--secrets-file`).
+
+Migrations do not run through the Worker: apply them with `cas-migrate` over a direct connection to the origin before deploying a version that needs them.
+
 ## OIDC clients
 
 The applications allowed to start an authorization flow live in the `clients` table. The registry is managed by hand until the admin panel exists, and never by a migration — a migration runs everywhere, so a dev client with a known secret would reach production. Rows are written by the `cas-client` binary, which reads `DATABASE_URL` exactly like the app:

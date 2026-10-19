@@ -1,6 +1,7 @@
 {
   "name": "cas",
   "version": "1.0.0",
+  "type": "module",
   "description": "",
   "keywords": [],
   "license": "ISC",
@@ -11,5 +12,9 @@
   },
   "dependencies": {
     "@simplewebauthn/browser": "catalog:"
+  },
+  "devDependencies": {
+    "cf": "catalog:",
+    "wrangler": "catalog:"
   }
 }
