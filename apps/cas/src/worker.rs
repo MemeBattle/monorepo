@@ -1,11 +1,11 @@
 //! The Cloudflare Workers entrypoint: one request, one connection
 //! (ADR 0022).
 //!
-//! Compiled for `wasm32-unknown-unknown` only. It holds no logic of its own —
+//! Compiled for `wasm32-unknown-unknown` only. It holds no logic of its own:
 //! every piece it composes is built and tested natively (`config`,
-//! `deadline`, `db`, `http`) — because nothing here can be: the Worker types
-//! exist only on this target, so CI compiles and clippy-checks this module and
-//! that is all the cover it has.
+//! `deadline`, `db`, `http`). Nothing here can be, because the Worker types
+//! exist on this target alone, so CI compiles and clippy-checks the module
+//! and that is all the cover it has.
 //!
 //! The order is the contract:
 //!

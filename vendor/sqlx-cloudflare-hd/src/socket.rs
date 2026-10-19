@@ -29,10 +29,10 @@ const READ_CHUNK: usize = 8 * 1024;
 /// `poll_write_ready` or `poll_flush` pushes them out.
 pub(crate) struct HdSocket {
     inner: worker::Socket,
-    /// The same JS socket `inner` wraps, kept as a reference (`worker_sys::
-    /// Socket` is `Clone` and clones alias one JS object) so that a TLS
-    /// upgrade can go through `startTls()` and hand the socket that returns to
-    /// [`SocketAbort`].
+    /// The same JS socket `inner` wraps, kept as a reference: a
+    /// `worker_sys::Socket` is `Clone` and clones alias one JS object, so a
+    /// TLS upgrade can go through `startTls()` and hand the socket that
+    /// returns to [`SocketAbort`].
     raw: worker_sys::Socket,
     read_buf: Vec<u8>,
     eof: bool,

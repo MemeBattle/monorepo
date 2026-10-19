@@ -742,8 +742,8 @@ mod tests {
     }
 
     /// The guarantee that needs proving: no post-connect path skips the
-    /// close. A body that fails halfway is the one failure left after the
-    /// fallible build was moved before the connect, and the connection is
+    /// close. A body that fails halfway is the one failure left once
+    /// everything fallible runs before the connect, and the connection is
     /// still terminated.
     #[sqlx::test]
     async fn closes_even_when_the_body_fails(pool: PgPool) {

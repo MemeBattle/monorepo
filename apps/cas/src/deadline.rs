@@ -78,7 +78,6 @@ mod tests {
     use super::*;
     use crate::http::health::DB_TIMEOUT;
 
-    /// Set when the value it is held by is dropped.
     struct DropFlag(Arc<AtomicBool>);
 
     impl Drop for DropFlag {

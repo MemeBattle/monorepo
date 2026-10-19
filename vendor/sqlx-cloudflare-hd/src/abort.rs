@@ -5,8 +5,8 @@ use std::sync::{Arc, Mutex};
 use worker::send::SendWrapper;
 use worker::worker_sys;
 
-/// A handle that forcibly closes the socket of a connection, from anywhere,
-/// at any time.
+/// A handle that forcibly closes a connection's socket, from outside the
+/// future that owns the connection.
 ///
 /// Nothing on this stack closes a socket when it is dropped: neither sqlx,
 /// which sends `Terminate` and shuts the stream down only inside
@@ -23,8 +23,8 @@ use worker::worker_sys;
 /// [`abort`](Self::abort) closes whatever is in it. A TLS upgrade replaces the
 /// socket, and the handle follows it, so it always points at the live one.
 ///
-/// Cloning is cheap and shares the slot. `abort` is idempotent: the first call
-/// takes the socket out.
+/// Cloning shares the slot. `abort` is idempotent: the first call takes the
+/// socket out.
 ///
 /// [close]: https://developers.cloudflare.com/workers/runtime-apis/tcp-sockets/#close-tcp-connections
 ///

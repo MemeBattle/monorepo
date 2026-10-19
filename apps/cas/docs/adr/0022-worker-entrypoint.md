@@ -67,7 +67,7 @@ configuration is not this work; depending on it is.
 variant it is one `Arc::try_unwrap`: the last handle with no outstanding
 `DbConn` — a guard holds a clone of the same `Arc`, so one question answers
 both — gets the owned connection and a graceful `sqlx::Connection::close`
-(`Terminated`); anything else just releases this handle (`Dropped`), and
+(`Terminated`); anything else only releases this handle (`Dropped`), and
 whoever still holds one keeps using it. On the pool variant, `PgPool::close`
 (`Terminated`).
 
@@ -83,9 +83,8 @@ The outcome names describe the **Rust handle**, never the socket.
 `Terminated` means the protocol goodbye ran. `Dropped` means it did not.
 Neither says the socket is closed — that is (c).
 
-**(c) The socket-cleanup contract: four distinct things.** Conflating them is
-what made earlier designs wrong, so they are named separately, each with the
-mechanism that provides it:
+**(c) The socket-cleanup contract: four distinct things.** They are easy to
+conflate, so each is named with the mechanism that provides it:
 
 | | what it does | what it does not |
 |---|---|---|
@@ -267,8 +266,8 @@ wasm sqlx, so ADR 0021 (e)'s anticipated `cfg` was not needed).
 **(i) What is compile-verified only.** `src/worker.rs` has no native test —
 its types exist on one target — so it is kept to the composition of parts that
 are each tested natively, and `cargo check`/clippy for wasm32 is its only cover.
-The same holds for `SocketAbort`: its slot mechanics are plain Rust, reviewed in
-the diff, but the behaviour of the JS `close()` on a live, half-open or
+The same holds for `SocketAbort`: its slot mechanics are plain Rust anyone can
+read, but the behaviour of the JS `close()` on a live, half-open or
 already-closed socket is not runtime-tested here. Named as the unverified
 runtime assumption, alongside the clock via `time/wasm-bindgen`, `worker::Delay`
 and CPU time per request. The alternative to the explicit abort — relying on

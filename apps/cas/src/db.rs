@@ -122,8 +122,8 @@ impl Db {
     /// `PgConnection`, which only the last handle with no outstanding
     /// [`DbConn`] can have: a guard holds a clone of the same `Arc`, so one
     /// `Arc::try_unwrap` answers both questions. When it succeeds, the
-    /// connection is closed properly ([`CloseOutcome::Terminated`]);
-    /// otherwise this handle's `Arc` is simply released
+    /// connection is closed gracefully ([`CloseOutcome::Terminated`]);
+    /// otherwise this handle's `Arc` is released
     /// ([`CloseOutcome::Dropped`]) and whoever still holds one keeps using it.
     ///
     /// The graceful close awaits the socket, so a caller that cannot wait

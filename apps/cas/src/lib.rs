@@ -13,7 +13,5 @@ pub mod shared;
 #[cfg(test)]
 pub(crate) mod testing;
 pub mod webauthn;
-// The Cloudflare Workers entrypoint: the one module that exists for a single
-// target (ADR 0022).
 #[cfg(target_arch = "wasm32")]
 pub mod worker;

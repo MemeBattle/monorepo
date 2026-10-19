@@ -70,8 +70,7 @@ webauthn-rs = { version = "0.6.1-dev", features = ["danger-allow-state-serialisa
 webauthn-rs-proto = "=0.6.1-dev"
 
 # The native server: a tokio process with a pool, a TLS stack of its own, the
-# .env files and a log formatter. Every entry here is what the whole crate had
-# before the split.
+# .env files and a log formatter.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 axum = { version = "0.8.9", features = ["macros"] }
 axum-extra = { version = "0.12.6", features = ["cookie"] }
@@ -121,9 +120,9 @@ tower = { version = "0.5.3", default-features = false, features = ["util"] }
 # request, which aborts on this target, so the layer is native-only
 # (ADR 0022 (f)).
 tower-http = { version = "0.7.0", default-features = false, features = ["cors", "catch-panic", "normalize-path", "set-header"] }
-# Added to the shared entry's `fast-rng`: on this target uuid refuses to build
-# until a source of randomness is named, and `rng-rand` is the one that keeps
-# the `rand`-backed generator the native build already uses.
+# On this target uuid refuses to build until a source of randomness is named.
+# `rng-rand` is the one that keeps the `rand`-backed generator the shared
+# entry's `fast-rng` gives the native build.
 uuid = { version = "1.26.0", features = ["rng-rand"] }
 # The Worker runtime: the `fetch` event, the Hyperdrive binding, the bindings
 # `WorkerConfig` reads, `Delay` and the `send` wrappers.
