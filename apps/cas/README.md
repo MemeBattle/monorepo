@@ -125,11 +125,12 @@ The workflow (creating migrations, immutability, expand/contract, CI ordering ch
 Releases are continuous: every push to `master` that touches CAS or its frontend runs `.github/workflows/cas-deploy.yml`, which applies the migrations and then deploys. By hand, from a machine with `worker-build` and the `wasm32-unknown-unknown` target:
 
 ```
+pnpm cas:front:build
 cd apps/cas
 pnpm exec cf deploy
 ```
 
-The build runs `vite build` for the SPA, then `worker-build --release` offline against `.sqlx`.
+The SPA is built first: Wrangler checks that its `dist` exists before it runs the Worker's build, `worker-build --release` offline against `.sqlx`.
 
 Outside git, in the Cloudflare account:
 

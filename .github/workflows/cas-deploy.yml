@@ -72,8 +72,13 @@ jobs:
           DATABASE_URL: ${{ secrets.CAS_DATABASE_URL }}
         run: cargo run --locked --bin cas-migrate
 
-      # Builds the SPA and the Worker (apps/cas/wrangler.config.ts) and uploads
-      # both.
+      # Before the deploy, not inside its build command: Wrangler checks that
+      # the assets directory exists before it runs that command.
+      - name: Build the frontend
+        run: pnpm cas:front:build
+
+      # Builds the Worker (apps/cas/wrangler.config.ts) and uploads it with the
+      # SPA as its assets.
       - name: Deploy
         working-directory: apps/cas
         env:
