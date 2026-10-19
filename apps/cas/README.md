@@ -122,7 +122,7 @@ The workflow (creating migrations, immutability, expand/contract, CI ordering ch
 
 `cas.mems.fun` is one Worker: CAS from `src/worker.rs` (ADR 0022) on its own paths (`/api`, `/oidc`, `/.well-known`, `/health`, `/openapi.json`), and the cas-frontend SPA as its static assets on everything else, with `index.html` for any path that is not a file. It is configured in `cloudflare.config.ts` and `wrangler.config.ts`.
 
-Releases are continuous: every push to `master` that touches CAS or its frontend runs `.github/workflows/cas-deploy.yml`, which applies the migrations and then deploys. By hand, from a machine with `worker-build` and the `wasm32-unknown-unknown` target:
+Releases are continuous: every push to `master` that touches CAS or its frontend runs `.github/workflows/cas-deploy.yml`: it builds the Worker and `cas-migrate` in parallel, and once both have passed and the `CAS-production` environment approves the release, applies the migrations and uploads the build. By hand, from a machine with `worker-build` and the `wasm32-unknown-unknown` target:
 
 ```
 pnpm cas:front:build
@@ -138,7 +138,7 @@ Outside git, in the Cloudflare account:
 - its origin: the `cas` database on the `production` branch of the Neon project `cas` (`aws-eu-central-1`), as the role `cas`, over the **direct** endpoint, not the `-pooler` one: Hyperdrive pools the connections itself;
 - `CAS_SIGNING_KEY`, a Worker secret. It was set once with `cf deploy --secrets-file`; a new version keeps it, so releases do not carry it.
 
-Migrations do not run through the Worker: the release runs `cas-migrate` over a direct connection to the origin before deploying, with `SQLX_OFFLINE=true` so the build does not check the queries against that database. By hand:
+Migrations do not run through the Worker: the release runs `cas-migrate` over a direct connection to the origin before the upload, with `SQLX_OFFLINE=true` so the build does not check the queries against that database. By hand:
 
 ```
 neon connection-string production --project-id <id> --role-name cas --database-name cas

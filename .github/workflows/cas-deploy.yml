@@ -2,9 +2,10 @@ name: 'CAS release'
 
 # CAS and its frontend are one Cloudflare Worker on cas.mems.fun: the Rust
 # entrypoint (ADR 0022) for CAS's own paths, the SPA as its static assets
-# (apps/cas/cloudflare.config.ts). A release builds everything, then runs the
-# migrations outside the Worker over a direct connection to the origin
-# database, then uploads.
+# (apps/cas/cloudflare.config.ts). Two build jobs run in parallel with no
+# secrets; only when both pass does the release job, behind the CAS-production
+# environment, run the migrations outside the Worker over a direct connection
+# to the origin database and upload the prebuilt Worker.
 
 on:
   workflow_dispatch:
@@ -22,27 +23,24 @@ on:
       - 'pnpm-workspace.yaml'
       - '.github/workflows/cas-deploy.yml'
 
-# Never two releases at once, and never cancel one halfway through its
-# migrations.
-concurrency:
-  group: cas-release
-  cancel-in-progress: false
-
 env:
   CLOUDFLARE_ACCOUNT_ID: 2155fed9f68a1bc94fab7d9e5bb6eaac
 
 jobs:
-  deploy:
+  # The SPA and the Worker in one job: `cf build` checks that the SPA's dist
+  # exists before it runs the Worker's build command.
+  build-worker:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-
-    environment:
-      name: CAS-production
-      url: https://cas.mems.fun
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Prepare Node.js
+        id: node
+        uses: ./.github/actions/prepare-nodejs
+        background: true
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -57,59 +55,113 @@ jobs:
         with:
           version: '1.21.1'
 
-      # Everything is built before anything touches the database, and the
-      # migrations run before the upload: a build that fails never leaves the
-      # schema ahead of the deployed code. Node, the worker-build install and
-      # the cas-migrate build do not depend on each other and run in the
-      # background; each later step waits only for what it uses.
+      # The same version as the `worker` crate in apps/cas/Cargo.toml.
+      - name: Install worker-build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: cargo binstall worker-build@0.8.7 --no-confirm --disable-telemetry
+
+      - name: Wait for Node
+        wait: node
+
+      - name: Build the frontend
+        run: pnpm cas:front:build
+
+      # The Worker (apps/cas/wrangler.config.ts) with the SPA as its assets,
+      # into .cloudflare/output, which the release uploads as it is.
+      - name: Build the Worker
+        working-directory: apps/cas
+        run: pnpm exec cf build
+
+      - name: Upload the Worker
+        uses: actions/upload-artifact@v7
+        with:
+          name: cas-worker
+          path: apps/cas/.cloudflare/output
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
+  # On a runner of its own: no lock on target/ shared with the wasm build,
+  # and no contention for its CPUs.
+  build-migrate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Build cas-migrate
+        working-directory: apps/cas
+        env:
+          SQLX_OFFLINE: 'true'
+        run: cargo build --locked --bin cas-migrate
+
+      - name: Upload cas-migrate
+        uses: actions/upload-artifact@v7
+        with:
+          name: cas-migrate
+          path: target/debug/cas-migrate
+          if-no-files-found: error
+          retention-days: 7
+
+  # The approval is asked for only once both builds have passed, and the
+  # environment's secrets reach this job alone.
+  release:
+    needs: [build-worker, build-migrate]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    environment:
+      name: CAS-production
+      url: https://cas.mems.fun
+
+    # Never two releases at once, and never cancel one halfway through its
+    # migrations. On this job only, so a newer commit builds while an older
+    # release waits or runs.
+    concurrency:
+      group: cas-release
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Only `cf` needs it, so it installs while the migrations run.
       - name: Prepare Node.js
         id: node
         uses: ./.github/actions/prepare-nodejs
         background: true
 
-      # The same version as the `worker` crate in apps/cas/Cargo.toml.
-      - name: Install worker-build
-        id: worker-build
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: cargo binstall worker-build@0.8.7 --no-confirm --disable-telemetry
-        background: true
+      - name: Download cas-migrate
+        uses: actions/download-artifact@v8
+        with:
+          name: cas-migrate
+          path: ${{ runner.temp }}/cas-migrate
 
-      # A target directory of its own, so this native build and the Worker's
-      # wasm build below do not wait on each other's lock.
-      - name: Build cas-migrate
-        id: migrate-build
-        working-directory: apps/cas
-        env:
-          SQLX_OFFLINE: 'true'
-          CARGO_TARGET_DIR: ${{ github.workspace }}/target/migrate
-        run: cargo build --locked --bin cas-migrate
-        background: true
+      - name: Download the Worker
+        uses: actions/download-artifact@v8
+        with:
+          name: cas-worker
+          path: apps/cas/.cloudflare/output
 
-      - name: Wait for Node
-        wait: node
-
-      # Before the Worker's build, not inside its build command: Wrangler
-      # checks that the assets directory exists before it runs that command.
-      - name: Build the frontend
-        run: pnpm cas:front:build
-
-      - name: Wait for worker-build
-        wait: worker-build
-
-      # The Worker (apps/cas/wrangler.config.ts) with the SPA as its assets,
-      # into .cloudflare/output for the upload below.
-      - name: Build the Worker
-        working-directory: apps/cas
-        run: pnpm exec cf build
-
-      - name: Wait for the cas-migrate build
-        wait: migrate-build
-
+      # An artifact does not keep the executable bit.
       - name: Apply migrations
         env:
           DATABASE_URL: ${{ secrets.CAS_DATABASE_URL }}
-        run: target/migrate/debug/cas-migrate
+        run: |
+          chmod +x "$RUNNER_TEMP/cas-migrate/cas-migrate"
+          "$RUNNER_TEMP/cas-migrate/cas-migrate"
+
+      - name: Wait for Node
+        wait: node
 
       - name: Deploy
         working-directory: apps/cas
