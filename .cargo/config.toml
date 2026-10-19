@@ -1,0 +1,11 @@
+# getrandom 0.3 (reached through webauthn-rs-core's rand 0.9) picks its backend
+# from a cfg rather than a feature, and refuses to build for
+# wasm32-unknown-unknown until one is named: `wasm_js` is the JS host's
+# `crypto.getRandomValues`. The flag is scoped to the Worker target, so no
+# native build sees it. ADR 0022 (h).
+#
+# Deliberately no `[env]` section: `SQLX_OFFLINE` here would leak into native
+# builds, where `cargo sqlx prepare` has to reach the database. CI and the
+# documented commands set it per invocation.
+[target.wasm32-unknown-unknown]
+rustflags = ['--cfg', 'getrandom_backend="wasm_js"']

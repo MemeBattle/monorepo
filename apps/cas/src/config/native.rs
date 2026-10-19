@@ -1,9 +1,9 @@
-use std::cell::Cell;
 use std::path::Path;
 
 use axum::http::HeaderValue;
-use thiserror::Error;
 use webauthn_rs::prelude::Url;
+
+use super::{ConfigError, SigningKeyPem, is_valid_issuer, parse_cors_origins, resolve_signing_key};
 
 // All .env files live in the monorepo root, resolved at compile time. That is
 // safe because deployments supply real environment variables and missing files
@@ -24,66 +24,12 @@ const DEFAULT_ISSUER: &str = "http://localhost:3000";
 // release server cannot start on a key that is public by construction
 // (docs/adr/0009-signing-key-and-discovery.md (c)).
 #[cfg(debug_assertions)]
-const DEFAULT_SIGNING_KEY: Option<&str> = Some(include_str!("../dev/signing-key.pem"));
+const DEFAULT_SIGNING_KEY: Option<&str> = Some(include_str!("../../dev/signing-key.pem"));
 #[cfg(not(debug_assertions))]
 const DEFAULT_SIGNING_KEY: Option<&str> = None;
 
-#[derive(Debug, Error, miette::Diagnostic)]
-pub enum ConfigError {
-    #[error("{0} is not valid unicode")]
-    #[diagnostic(code(cas::config_error))]
-    NotUnicode(&'static str),
-
-    #[error("CAS_PORT: {0:?} is not a valid port number")]
-    #[diagnostic(code(cas::config_error))]
-    InvalidPort(String),
-
-    #[error("CAS_ORIGIN: {0:?} is not a valid origin URL")]
-    #[diagnostic(code(cas::config_error))]
-    InvalidOrigin(String),
-
-    #[error("CAS_CORS_ORIGINS: {0:?} is not a valid origin")]
-    #[diagnostic(code(cas::config_error))]
-    InvalidCorsOrigin(String),
-
-    #[error("DATABASE_URL: {0:?} is not a valid Postgres connection URL")]
-    #[diagnostic(code(cas::config_error))]
-    InvalidDatabaseUrl(String),
-
-    #[error(
-        "CAS_ISSUER: {0:?} is not a valid issuer (an http or https URL with a host, \
-         no query, no fragment, no trailing slash, written exactly as it is published)"
-    )]
-    #[diagnostic(code(cas::config_error))]
-    InvalidIssuer(String),
-
-    #[error("CAS_SIGNING_KEY is set but empty")]
-    #[diagnostic(code(cas::config_error))]
-    EmptySigningKey,
-}
-
-/// The PEM text of `CAS_SIGNING_KEY`, unparsed: config knows no context, so
-/// reading the key is `oidc::keys`' job when the server is built. The value
-/// is a secret, so `Debug` never prints it.
-#[derive(Clone)]
-pub struct SigningKeyPem(String);
-
-impl SigningKeyPem {
-    pub fn new(pem: impl Into<String>) -> Self {
-        Self(pem.into())
-    }
-
-    pub fn expose(&self) -> &str {
-        &self.0
-    }
-}
-
-impl std::fmt::Debug for SigningKeyPem {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("SigningKeyPem(<redacted>)")
-    }
-}
-
+/// What the native server runs on, from the process environment and the
+/// monorepo's `.env` files.
 #[derive(Debug, Clone)]
 pub struct Config {
     pub port: u16,
@@ -159,80 +105,6 @@ impl Config {
     }
 }
 
-/// The provided value wins over the default; an empty one is a mistake
-/// rather than "no key". `None` at the end is not a config error: only the
-/// server needs a key, and it says so itself.
-fn resolve_signing_key(
-    value: Option<String>,
-    default: Option<&str>,
-) -> Result<Option<SigningKeyPem>, ConfigError> {
-    match value {
-        Some(value) if value.trim().is_empty() => Err(ConfigError::EmptySigningKey),
-        Some(value) => Ok(Some(SigningKeyPem(value))),
-        None => Ok(default.map(SigningKeyPem::new)),
-    }
-}
-
-/// Whether `value` can be published as the OIDC `issuer` exactly as typed.
-///
-/// Discovery §4.3 requires the published `issuer` to be identical to the
-/// value a client was configured with, so nothing is trimmed or repaired: a
-/// value that needs repair is refused. The checks are the ones
-/// `clients/redirect_uri.rs` makes, for the same reason (the WHATWG parser
-/// silently repairs input), duplicated because config must not import a
-/// context: RFC 3986 characters only, a parse that reports no syntax
-/// violation, `http`/`https`, a host, no query and no fragment (Discovery
-/// §3). A trailing `/` is refused too: endpoints are `{issuer}/<path>`, and
-/// the operator drops the slash, CAS does not.
-fn is_valid_issuer(value: &str) -> bool {
-    let is_uri_byte = |b: u8| {
-        b.is_ascii_alphanumeric()
-            || matches!(
-                b,
-                b'-' | b'.'
-                    | b'_'
-                    | b'~'
-                    | b':'
-                    | b'/'
-                    | b'?'
-                    | b'#'
-                    | b'['
-                    | b']'
-                    | b'@'
-                    | b'!'
-                    | b'$'
-                    | b'&'
-                    | b'\''
-                    | b'('
-                    | b')'
-                    | b'*'
-                    | b'+'
-                    | b','
-                    | b';'
-                    | b'='
-                    | b'%'
-            )
-    };
-    if !value.bytes().all(is_uri_byte) {
-        return false;
-    }
-
-    let violated = Cell::new(false);
-    let Ok(url) = Url::options()
-        .syntax_violation_callback(Some(&|_| violated.set(true)))
-        .parse(value)
-    else {
-        return false;
-    };
-
-    !violated.get()
-        && matches!(url.scheme(), "http" | "https")
-        && url.host().is_some()
-        && url.query().is_none()
-        && url.fragment().is_none()
-        && !value.ends_with('/')
-}
-
 /// Loads the monorepo root .env files. `APP_ENV` selects the environment
 /// (default: development).
 ///
@@ -263,18 +135,6 @@ fn env_value(name: &'static str) -> Result<Option<String>, ConfigError> {
         Err(std::env::VarError::NotPresent) => Ok(None),
         Err(std::env::VarError::NotUnicode(_)) => Err(ConfigError::NotUnicode(name)),
     }
-}
-
-fn parse_cors_origins(value: &str) -> Result<Vec<HeaderValue>, ConfigError> {
-    value
-        .split(',')
-        .map(str::trim)
-        .filter(|origin| !origin.is_empty())
-        .map(|origin| {
-            HeaderValue::from_str(origin)
-                .map_err(|_| ConfigError::InvalidCorsOrigin(origin.to_string()))
-        })
-        .collect()
 }
 
 #[cfg(test)]
@@ -319,7 +179,7 @@ mod tests {
         // build has none, and the server refuses to start without one.
         let signing_key = config.signing_key.as_ref().map(SigningKeyPem::expose);
         if cfg!(debug_assertions) {
-            assert_eq!(signing_key, Some(include_str!("../dev/signing-key.pem")));
+            assert_eq!(signing_key, Some(include_str!("../../dev/signing-key.pem")));
         } else {
             assert_eq!(signing_key, None);
         }
@@ -453,34 +313,6 @@ mod tests {
         }
     }
 
-    /// The release-build path: no value and no default is not a config
-    /// error, so `cas-migrate` and `cas-client` still load their config.
-    #[test]
-    fn no_signing_key_and_no_default_is_none() {
-        assert!(resolve_signing_key(None, None).unwrap().is_none());
-    }
-
-    #[test]
-    fn rejects_an_empty_signing_key() {
-        for value in ["", " \n\t "] {
-            assert!(matches!(
-                resolve_signing_key(Some(value.to_string()), Some("default")),
-                Err(ConfigError::EmptySigningKey)
-            ));
-        }
-    }
-
-    #[test]
-    fn a_provided_signing_key_wins_over_the_default() {
-        let key = resolve_signing_key(Some("provided".to_string()), Some("default"))
-            .unwrap()
-            .unwrap();
-        assert_eq!(key.expose(), "provided");
-
-        let key = resolve_signing_key(None, Some("default")).unwrap().unwrap();
-        assert_eq!(key.expose(), "default");
-    }
-
     #[test]
     fn debug_of_the_config_redacts_the_signing_key() {
         let config = Config::from_values(
@@ -490,7 +322,7 @@ mod tests {
             None,
             None,
             None,
-            Some(include_str!("../dev/signing-key.pem").to_string()),
+            Some(include_str!("../../dev/signing-key.pem").to_string()),
         )
         .unwrap();
         assert!(config.signing_key.is_some());

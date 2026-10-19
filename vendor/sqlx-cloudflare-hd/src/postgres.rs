@@ -33,7 +33,8 @@ use sqlx_core::Error;
 use sqlx_postgres::{PgConnectOptions, PgConnection, PgSslMode};
 use worker::{Hyperdrive, SecureTransport};
 
-use crate::socket::HdSocket;
+use crate::abort::SocketAbort;
+use crate::socket::{js_error, HdSocket};
 
 /// A Postgres `SSLRequest`: length 8, then the request code 80877103.
 const SSL_REQUEST: [u8; 8] = [0, 0, 0, 8, 0x04, 0xd2, 0x16, 0x2f];
@@ -77,14 +78,37 @@ pub async fn connect_with(
     hyperdrive: &Hyperdrive,
     options: &PgConnectOptions,
 ) -> Result<PgConnection, Error> {
+    connect_with_abort(hyperdrive, options, &SocketAbort::new()).await
+}
+
+/// Connects through `hyperdrive` with `options`, registering the socket in
+/// `abort` so the caller can close it without the connection.
+///
+/// Everything [`connect_with`] says holds here too; the difference is the
+/// handle. Use it when the connection's socket must not outlive something the
+/// connection itself does not know about -- a deadline this call is raced
+/// against, the end of a Worker invocation -- because nothing on this stack
+/// closes a socket when it is dropped: see [`SocketAbort`]. The handle follows
+/// the socket across the TLS upgrade, which replaces it.
+///
+/// # Errors
+///
+/// When the socket, TLS or the Postgres handshake fails, or the credentials
+/// are rejected. On any of those the socket this call opened is left in
+/// `abort`, for the caller to close.
+pub async fn connect_with_abort(
+    hyperdrive: &Hyperdrive,
+    options: &PgConnectOptions,
+    abort: &SocketAbort,
+) -> Result<PgConnection, Error> {
     let mode = options.get_ssl_mode();
     let transport = if wants_tls(mode) {
         SecureTransport::StartTls
     } else {
         SecureTransport::Off
     };
-    let socket = HdSocket::connect(hyperdrive, transport)?;
-    let socket = negotiate_tls(socket, mode).await?;
+    let socket = HdSocket::connect(hyperdrive, &transport, abort)?;
+    let socket = negotiate_tls(socket, mode, abort).await?;
 
     // TLS is settled -- upgraded, or declined as `mode` allows -- so sqlx must
     // not ask the server again.
@@ -98,7 +122,11 @@ fn wants_tls(mode: PgSslMode) -> bool {
 
 /// Asks the server for TLS, as sqlx itself would, but upgrades through the
 /// Workers runtime's `startTls()` rather than a TLS library of sqlx's.
-async fn negotiate_tls(mut socket: HdSocket, mode: PgSslMode) -> Result<HdSocket, Error> {
+async fn negotiate_tls(
+    mut socket: HdSocket,
+    mode: PgSslMode,
+    abort: &SocketAbort,
+) -> Result<HdSocket, Error> {
     if !wants_tls(mode) {
         return Ok(socket);
     }
@@ -121,7 +149,15 @@ async fn negotiate_tls(mut socket: HdSocket, mode: PgSslMode) -> Result<HdSocket
     }
 
     match reply[0] {
-        b'S' => Ok(HdSocket::new(socket.into_inner()?.start_tls())),
+        b'S' => {
+            // `startTls()` abandons the pre-TLS socket and returns a new one,
+            // so the abort handle has to move with it. Both calls are
+            // synchronous and there is no await between them, so no dropped
+            // future can observe the handle pointing at the old socket.
+            let upgraded = socket.into_raw()?.start_tls().map_err(js_error)?;
+            abort.set(upgraded.clone());
+            Ok(HdSocket::new(upgraded))
+        }
         b'N' if matches!(mode, PgSslMode::Prefer) => Ok(socket),
         b'N' => Err(Error::Tls("server does not support TLS".into())),
         other => Err(Error::Protocol(format!(

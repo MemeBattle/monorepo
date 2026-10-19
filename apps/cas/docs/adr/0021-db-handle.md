@@ -6,6 +6,7 @@ Accepted (2026-10-18), with [#799](https://github.com/MemeBattle/monorepo/issues
 Follows ADR 0002 (any replica finishes a ceremony, so nothing is kept in
 memory) and the wasm work of ADR 0019 and ADR 0020. Nothing on the wire and
 nothing stored changes; no migration.
+(f) resolved by ADR 0022.
 
 ## Context
 

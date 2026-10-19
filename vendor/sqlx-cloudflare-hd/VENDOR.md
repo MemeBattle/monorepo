@@ -46,10 +46,17 @@ Copied verbatim, byte for byte:
 
 - `README.md`
 - `LICENSE` (from the repository root)
+- `tests/driver.rs`
+
+Changed here (see Changes):
+
 - `src/lib.rs`
 - `src/postgres.rs`
 - `src/socket.rs`
-- `tests/driver.rs`
+
+Added here:
+
+- `src/abort.rs`
 
 Not copied: `tests/worker/` (the test Worker, built separately with
 `worker-build` and `wrangler`). `tests/driver.rs` skips itself unless
@@ -78,5 +85,24 @@ Not copied: `tests/worker/` (the test Worker, built separately with
     upstream's `[patch.crates-io]` (lives in the root `Cargo.toml` here);
   - comments shortened to what applies in this workspace.
 - `VENDOR.md` added (this file).
+- **`SocketAbort`**, a handle that forcibly closes a connection's socket from
+  outside the future that owns it (`src/abort.rs`, exported from `src/lib.rs`;
+  `postgres::connect_with_abort` next to the unchanged `connect_with`;
+  `HdSocket` opens through `worker_sys::connect` and keeps the raw JS socket so
+  the handle can follow the `startTls()` swap).
 
-No source file was changed.
+  Why: nothing on this stack closes a socket on drop — sqlx sends `Terminate`
+  and shuts the stream down only inside `Connection::close`, and neither
+  `worker::Socket` nor `HdSocket` has a socket-closing `Drop` — and Cloudflare
+  documents no cleanup of unclosed sockets when an invocation ends, only the
+  explicit [`Socket.close()`][close] as the forcible close of both streams. A
+  caller that raced the connect against a deadline, or whose request is simply
+  over, therefore has no way to close the socket without this. CAS's Worker
+  entrypoint needs it on both paths (`apps/cas/docs/adr/0022-worker-entrypoint.md`,
+  (c)).
+
+  This diverges from upstream PR #16, which has none of it. `connect_with`
+  keeps its upstream signature and delegates with a throwaway handle, so a
+  re-sync only has to carry `abort.rs` and the connect plumbing.
+
+[close]: https://developers.cloudflare.com/workers/runtime-apis/tcp-sockets/#close-tcp-connections

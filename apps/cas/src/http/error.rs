@@ -86,6 +86,12 @@ impl ApiError {
 /// every operation; no table and no error set declares it.
 pub const INTERNAL_ERROR: &str = "internal_error";
 
+/// The code of a service that is reachable but cannot serve: the OIDC error
+/// page for a request a database failure stopped, and
+/// [`crate::http::not_started`] for a deployment that never came up. One
+/// definition, so the two cannot drift.
+pub const SERVICE_UNAVAILABLE: &str = "service_unavailable";
+
 /// Renders `Json` extractor rejections (malformed body, wrong content-type)
 /// in the standard error shape, keeping the rejection's status and message.
 impl From<JsonRejection> for ApiError {

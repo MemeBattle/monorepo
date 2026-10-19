@@ -12,9 +12,11 @@ apps/cas/
   docs/                workflow documents, ADRs, this file
   src/
     main.rs, bin/*.rs  binaries: load the config, call into the library, nothing else
+    worker.rs          the Cloudflare Workers entrypoint, wasm32 only (ADR 0022)
     lib.rs             the module list
     config.rs          ┐
     db.rs              │ shared infrastructure: knows no context
+    deadline.rs        │
     migrations.rs      ┘
     shared/            shared vocabulary: rules and types more than one context
       label.rs           needs and none owns (a user-facing label's rules)
