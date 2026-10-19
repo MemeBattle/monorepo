@@ -6,7 +6,8 @@ compile time (`sqlx::migrate!` in `src/migrations.rs`). They are forward-only
 
 Migrations are applied by the separate `cas-migrate` binary, **never by the
 app**: during a rollout, instances must keep serving on the previous schema.
-Later `cas-migrate` will run as a k8s job before deploys.
+A release runs `cas-migrate` right before the deploy, in the same job
+(`.github/workflows/cas-deploy.yml`), so a failed migration stops the deploy.
 
 ## Tooling
 

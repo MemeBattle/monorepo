@@ -72,8 +72,7 @@ jobs:
         run: cargo run --locked --bin cas-migrate
 
       # Builds the SPA and the Worker (apps/cas/wrangler.config.ts) and uploads
-      # both. CAS_SIGNING_KEY is not passed: a new version keeps the secret
-      # already set on the Worker.
+      # both.
       - name: Deploy
         working-directory: apps/cas
         env:
