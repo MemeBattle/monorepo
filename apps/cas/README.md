@@ -134,14 +134,20 @@ The build runs `vite build` for the SPA, then `worker-build --release` offline a
 Outside git, in the Cloudflare account:
 
 - the Hyperdrive config bound as `HYPERDRIVE`, with its query cache **disabled** (ADR 0022 (a));
-- its origin: for now the dev Postgres, reached through a Cloudflare Tunnel (`cas-pg.mems.fun`) behind an Access application that admits service tokens, in a database and role of its own (`cas_cf`). Hyperdrive requires TLS to the origin, so that Postgres runs with a certificate;
+- its origin: the `cas` database on the `production` branch of the Neon project `cas` (`aws-eu-central-1`), as the role `cas`, over the **direct** endpoint, not the `-pooler` one: Hyperdrive pools the connections itself;
 - `CAS_SIGNING_KEY`, a Worker secret. It was set once with `cf deploy --secrets-file`; a new version keeps it, so releases do not carry it.
 
-Migrations do not run through the Worker: the release opens the tunnel with `cloudflared access tcp` and runs `cas-migrate` over it before deploying. The `CAS-production` environment of the repository holds what the release needs:
+Migrations do not run through the Worker: the release runs `cas-migrate` over a direct connection to the origin before deploying, with `SQLX_OFFLINE=true` so the build does not check the queries against that database. By hand:
+
+```
+neon connection-string production --project-id <id> --role-name cas --database-name cas
+SQLX_OFFLINE=true DATABASE_URL='<that string>' cargo run -p cas --bin cas-migrate
+```
+
+The `CAS-production` environment of the repository holds what the release needs:
 
 - `CLOUDFLARE_API_TOKEN`: deploys the Worker, its assets and its custom domain;
-- `CAS_PG_ACCESS_CLIENT_ID`, `CAS_PG_ACCESS_CLIENT_SECRET`: a service token the Access application admits;
-- `CAS_DATABASE_URL`: `postgres://cas_cf:<password>@127.0.0.1:5434/cas_cf`, the origin as the tunnel exposes it on the runner.
+- `CAS_DATABASE_URL`: that connection string, for `cas-migrate`.
 
 ## OIDC clients
 

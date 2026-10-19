@@ -28,7 +28,6 @@ concurrency:
 
 env:
   CLOUDFLARE_ACCOUNT_ID: 2155fed9f68a1bc94fab7d9e5bb6eaac
-  CLOUDFLARED_VERSION: 2026.10.0
 
 jobs:
   deploy:
@@ -64,30 +63,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: cargo binstall worker-build@0.8.7 --no-confirm --disable-telemetry
-
-      - name: Install cloudflared
-        run: |
-          curl -fsSL -o /usr/local/bin/cloudflared \
-            "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-amd64"
-          chmod +x /usr/local/bin/cloudflared
-
-      # The origin is reachable only through its Cloudflare Tunnel, behind an
-      # Access application that admits service tokens. This opens a local port
-      # onto it for cas-migrate.
-      - name: Open the database tunnel
-        env:
-          ACCESS_CLIENT_ID: ${{ secrets.CAS_PG_ACCESS_CLIENT_ID }}
-          ACCESS_CLIENT_SECRET: ${{ secrets.CAS_PG_ACCESS_CLIENT_SECRET }}
-        run: |
-          cloudflared access tcp --hostname cas-pg.mems.fun --url 127.0.0.1:5434 \
-            --service-token-id "$ACCESS_CLIENT_ID" --service-token-secret "$ACCESS_CLIENT_SECRET" \
-            > cloudflared.log 2>&1 &
-          for _ in $(seq 1 30); do
-            nc -z 127.0.0.1 5434 && exit 0
-            sleep 1
-          done
-          cat cloudflared.log
-          exit 1
 
       - name: Apply migrations
         working-directory: apps/cas

@@ -23,7 +23,7 @@ export default defineConfig({
       // Query cache disabled: the cache answers sqlx's Parse/Describe itself
       // and the Bind that follows lands on the wrong statement (ADR 0022 (a)).
       HYPERDRIVE: bindings.hyperdrive({
-        id: '66007e57e9d442118a397263b8ec5b86',
+        id: 'c30b40cb57a948f29a74710d3f67e636',
         dev: {
           connectionString: 'postgres://cas:cas@localhost:5434/cas',
         },
