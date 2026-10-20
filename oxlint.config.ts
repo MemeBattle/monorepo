@@ -29,7 +29,12 @@ export default defineConfig({
   categories: {
     correctness: 'off',
   },
-  ignorePatterns: ['**/.adonisjs/**', '.storybook/public/mockServiceWorker.js', 'apps/cas-frontend/src/shared/api/generated/**'],
+  ignorePatterns: [
+    '**/.adonisjs/**',
+    '.storybook/public/mockServiceWorker.js',
+    'apps/cas-frontend/src/shared/api/generated/**',
+    'packages/ligretto-auth/src/generated/**',
+  ],
   settings: {
     react: {
       version: '19.2.4',

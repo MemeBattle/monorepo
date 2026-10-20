@@ -120,22 +120,35 @@ The workflow (creating migrations, immutability, expand/contract, CI ordering ch
 
 ## Cloudflare Workers
 
-`cas.mems.fun` is served by the Worker built from `src/worker.rs` (ADR 0022), configured in `cloudflare.config.ts` and deployed with `cf`:
+`cas.mems.fun` is one Worker: CAS from `src/worker.rs` (ADR 0022) on its own paths (`/api`, `/oidc`, `/.well-known`, `/health`, `/openapi.json`), and the cas-frontend SPA as its static assets on everything else, with `index.html` for any path that is not a file. It is configured in `cloudflare.config.ts` and `wrangler.config.ts`.
+
+Releases are continuous: every push to `master` that touches CAS or its frontend runs `.github/workflows/cas-deploy.yml`: it builds the Worker and `cas-migrate` in parallel, and once both have passed and the `CAS-production` environment approves the release, applies the migrations and uploads the build. By hand, from a machine with `worker-build` and the `wasm32-unknown-unknown` target:
 
 ```
+pnpm cas:front:build
 cd apps/cas
-pnpm exec cf deploy --secrets-file <file with CAS_SIGNING_KEY>
+pnpm exec cf deploy
 ```
 
-The build (`worker-build --release`, offline against `.sqlx`) runs from `wrangler.config.ts` and needs `worker-build` and the `wasm32-unknown-unknown` target. The Worker owns only CAS's paths on the hostname (`/api`, `/oidc`, `/.well-known`, `/health`, `/openapi.json`); everything else is the frontend's.
+The SPA is built first: Wrangler checks that its `dist` exists before it runs the Worker's build, `worker-build --release` offline against `.sqlx`.
 
 Outside git, in the Cloudflare account:
 
 - the Hyperdrive config bound as `HYPERDRIVE`, with its query cache **disabled** (ADR 0022 (a));
-- its origin: for now the dev Postgres, reached through a Cloudflare Tunnel (`cas-pg.mems.fun`) behind an Access service token, in a database and role of its own (`cas_cf`). Hyperdrive requires TLS to the origin, so that Postgres runs with a certificate;
-- `CAS_SIGNING_KEY`, a secret uploaded with the version (`--secrets-file`).
+- its origin: the `cas` database on the `production` branch of the Neon project `cas` (`aws-eu-central-1`), as the role `cas`, over the **direct** endpoint, not the `-pooler` one: Hyperdrive pools the connections itself;
+- `CAS_SIGNING_KEY`, a Worker secret. It was set once with `cf deploy --secrets-file`; a new version keeps it, so releases do not carry it.
 
-Migrations do not run through the Worker: apply them with `cas-migrate` over a direct connection to the origin before deploying a version that needs them.
+Migrations do not run through the Worker: the release runs `cas-migrate` over a direct connection to the origin before the upload, with `SQLX_OFFLINE=true` so the build does not check the queries against that database. By hand:
+
+```
+neon connection-string production --project-id <id> --role-name cas --database-name cas
+SQLX_OFFLINE=true DATABASE_URL='<that string>' cargo run -p cas --bin cas-migrate
+```
+
+The `CAS-production` environment of the repository holds what the release needs:
+
+- `CLOUDFLARE_API_TOKEN`: deploys the Worker, its assets and its custom domain;
+- `CAS_DATABASE_URL`: that connection string, for `cas-migrate`.
 
 ## OIDC clients
 
