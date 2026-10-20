@@ -15,8 +15,8 @@ import type { DiscoveryCache } from './discovery'
 import { createDiscoveryCache } from './discovery'
 import { DiscoveryError, InvalidTokenError } from './errors'
 import type { AccountType } from './generated/models/AccountType'
-import type { Jwks } from './generated/models/Jwks'
 import type { PublicJwk } from './generated/models/PublicJwk'
+import { publishedKey } from './signing-key'
 
 /** The claims of a verified access token (RFC 9068 §2.2, INTEGRATION.md §6). */
 export interface AccessTokenClaims {
@@ -52,22 +52,16 @@ export interface VerifyAccessTokenOptions {
 /** Shared by every call that does not bring its own: public documents, nothing of a user or a session in it. */
 const sharedCache = createDiscoveryCache()
 
-const keyWithKid = (set: Jwks, kid: string): PublicJwk | undefined => set.keys.find(key => key.kid === kid)
-
 /** The published key the token names, refetching the JWKS once when the `kid` is unknown: the key may be new. */
 const signingKey = async (kid: string | undefined, issuer: string, jwksUri: string, client: Client, cache: DiscoveryCache): Promise<PublicJwk> => {
   if (kid === undefined) {
     throw new InvalidTokenError('unknown_kid', 'The token names no `kid`, so no published key can be matched to it.')
   }
-  const known = keyWithKid(await cache.jwks(issuer, jwksUri, client), kid)
-  if (known !== undefined) {
-    return known
-  }
-  const republished = keyWithKid(await cache.refetchJwks(issuer, jwksUri, client), kid)
-  if (republished === undefined) {
+  const published = await publishedKey(kid, issuer, jwksUri, client, cache)
+  if (published === undefined) {
     throw new InvalidTokenError('unknown_kid', `${issuer} publishes no key with the kid ${JSON.stringify(kid)}.`)
   }
-  return republished
+  return published
 }
 
 /** jose's report of a failed verification, as one of this package's codes. */
