@@ -4,7 +4,7 @@ import { createCasClient, UnusableGrantError } from './cas-client'
 import type { PendingAuthorizationRequest, Session, SessionStore } from './session-store'
 import { createInMemorySessionStore } from './session-store'
 import type { SessionContext } from './sessions'
-import { beginSignIn, completeSignIn, GRANT_LIFETIME_MS, mintGuest, PENDING_REQUEST_TTL_MS, refreshSession } from './sessions'
+import { beginSignIn, completeSignIn, endSession, GRANT_LIFETIME_MS, mintGuest, PENDING_REQUEST_TTL_MS, refreshSession } from './sessions'
 import type { CasStub } from './test-support/cas'
 import { casStub, CLIENT_ID, CLIENT_SECRET, gate, nonceOf, POST_LOGOUT_REDIRECT_URI, REDIRECT_URI, SUB } from './test-support/cas'
 
@@ -284,6 +284,19 @@ describe('beginSignIn', () => {
     expect(pendingRequests[0]).toMatchObject({ sessionId: 'session-1', sub: GUEST_SUB })
   })
 
+  it('sends no hint for a full account, but still force-refreshes it and snapshots its sub', async () => {
+    const { cas, ctx, store, pendingRequests } = await context()
+    await store.saveSession(sessionWith({ accountType: 'full', sub: SUB, displayName: 'Ada' }))
+
+    const { url } = await beginSignIn(ctx, { sessionId: 'session-1' })
+
+    // §9's hint exists to upgrade a guest, and CAS ignores one naming a full account — but the force-refresh and the
+    // snapshot stay, so signing in again still retires the old session and still reports a `sub` switch.
+    expect(new URL(url).searchParams.has('id_token_hint')).toBe(false)
+    expect(cas.tokenRequests.map(request => request.grantType)).toEqual(['refresh_token'])
+    expect(pendingRequests[0]).toMatchObject({ sessionId: 'session-1', sub: SUB })
+  })
+
   it('does not start a sign-in for a guest whose grant has already ended', async () => {
     const { cas, ctx, store, pendingRequests } = await context()
     await store.saveSession(sessionWith())
@@ -505,6 +518,70 @@ describe('a refresh racing the callback of an upgrade', () => {
     await expect(refreshSession(ctx, 'session-1', { force: true })).rejects.toMatchObject({ name: 'UnknownSessionError' })
     await expect(store.getSession('session-1')).resolves.toBeUndefined()
     await expect(store.getSession(session.id)).resolves.toMatchObject({ sub: OTHER_SUB })
+  })
+})
+
+describe('endSession', () => {
+  it('builds the logout navigation from the ID token it read, then deletes the session', async () => {
+    const { ctx, store, calls } = await context()
+    await store.saveSession(sessionWith())
+    calls.length = 0
+
+    const ended = await endSession(ctx, 'session-1')
+
+    const url = new URL(ended?.url ?? '')
+    expect(url.searchParams.get('id_token_hint')).toBe('seed-id-token')
+    expect(url.searchParams.get('post_logout_redirect_uri')).toBe(POST_LOGOUT_REDIRECT_URI)
+    // The whole of it inside the lock, and the URL built before the row that holds the hint is gone.
+    expect(calls).toEqual(['lock session-1', 'get session-1', 'delete session-1'])
+    await expect(store.getSession('session-1')).resolves.toBeUndefined()
+  })
+
+  it('reports nothing to end for an id the store does not hold', async () => {
+    const { cas, ctx } = await context()
+
+    await expect(endSession(ctx, 'session-1')).resolves.toBeUndefined()
+    expect(cas.asked(`${cas.issuer}/.well-known/openid-configuration`)).toBe(0)
+  })
+
+  it('leaves the session in place when the navigation cannot be built', async () => {
+    const cas = await casStub()
+    const time = clock()
+    const store = createInMemorySessionStore({ now: time.now })
+    const unreachable: typeof globalThis.fetch = async (input, init) =>
+      String(input).endsWith('/.well-known/openid-configuration') ? Promise.reject(new Error('unreachable')) : await cas.fetch(input, init)
+    const ctx: SessionContext = { client: casClient(cas, { fetch: unreachable }), store, now: time.now }
+    await store.saveSession(sessionWith())
+
+    await expect(endSession(ctx, 'session-1')).rejects.toMatchObject({ name: 'DiscoveryError', code: 'discovery_unavailable' })
+    // Deleting first and failing afterwards would leave the user signed in to CAS with nothing to retry from.
+    await expect(store.getSession('session-1')).resolves.toMatchObject({ refreshToken: 'seed-refresh' })
+  })
+
+  it('does not let a refresh waiting on CAS resurrect the session it deleted', async () => {
+    const { cas, ctx, store, calls } = await context()
+    await store.saveSession(sessionWith())
+    calls.length = 0
+    const held = gate()
+    cas.answer({ until: held.promise, claims: { ...guestClaims(), nonce: undefined } })
+
+    const refreshing = refreshSession(ctx, 'session-1', { force: true })
+    await until(() => cas.tokenRequests.length === 1)
+    const ending = endSession(ctx, 'session-1')
+    // The logout is queued on the session's lock behind the refresh, which is in flight to CAS.
+    await until(() => counted(calls, 'lock session-1') === 2)
+
+    held.release()
+    const refreshed = await refreshing
+    const ended = await ending
+
+    // The refresh wrote the rotation, the logout re-read it and deleted it: the hint is the ID token the rotation
+    // issued, and nothing is written back afterwards. CAS's logout revokes no grant, so a resurrected row would be a
+    // working session (§11).
+    expect(new URL(ended?.url ?? '').searchParams.get('id_token_hint')).toBe(refreshed.idToken)
+    expect(refreshed.idToken).not.toBe('seed-id-token')
+    expect(calls.indexOf('save session-1 refresh-1')).toBeLessThan(calls.indexOf('delete session-1'))
+    await expect(store.getSession('session-1')).resolves.toBeUndefined()
   })
 })
 

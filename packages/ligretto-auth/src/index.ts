@@ -30,6 +30,7 @@ export {
   beginSignIn,
   CallbackStateError,
   completeSignIn,
+  endSession,
   GRANT_LIFETIME_MS,
   mintGuest,
   PENDING_REQUEST_TTL_MS,
@@ -44,6 +45,16 @@ export type {
   RefreshSessionOptions,
   SessionContext,
 } from './sessions'
+
+export { createAuthHandlers } from './handlers'
+export type { AuthHandlers, AuthHandlersOptions } from './handlers'
+
+export { SESSION_COOKIE_GRACE_MS, SESSION_COOKIE_NAME, STATE_COOKIE_NAME } from './transport'
+export type { SessionTransportKind } from './transport'
+
+// The route contract, for a server-side consumer; a browser bundle imports `@memebattle/ligretto-auth/contract`,
+// which is types alone and pulls none of the code above it in.
+export type { AuthErrorCode, AuthErrorResponse, AuthUser, MeResponse, NavigationResponse } from './contract'
 
 export { DiscoveryError, InvalidIdTokenError, InvalidTokenError, TokenEndpointError } from './errors'
 export type { DiscoveryErrorCode, IdTokenErrorCode, InvalidTokenCode, TokenEndpointErrorCode, TokenEndpointErrorOptions } from './errors'
