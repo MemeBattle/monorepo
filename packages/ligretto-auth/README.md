@@ -392,10 +392,58 @@ way to leave them out, only their default, which `kubb.config.ts` sets to
 `false`. The transport does not read them, and `Options` types the option as
 `never`, so a caller cannot ask for a throw that would never happen.
 
+## The integration test
+
+`tests/integration/` is this package's reference run against a **real CAS**, as
+[`apps/cas/tests/reference_client`](../../apps/cas/tests/reference_client) is
+CAS's own and [`apps/cas-frontend/e2e`](../../apps/cas-frontend/e2e) is the
+frontend's. Nothing is stubbed: CAS is the built binary on its database, the
+client is one `seed.sh` registered, the four handlers are served over a real
+local socket and driven with real `fetch`, and the sign-in ceremonies are
+performed with a software passkey against CAS's own `/api`.
+
+Three tests, each one sequential story:
+
+1. **Discovery parity** — the document CAS serves equals the one
+   `src/test-support/cas.ts` serves the unit suite, modulo the issuer. This is
+   what keeps the stub honest: a member or value CAS adds, drops or changes
+   fails here until the stub catches up.
+2. **The guest and its tokens** — a guest minted on the first `me`,
+   `verifyAccessToken` accepting that access token and refusing the grant's ID
+   token (`wrong_typ`), a forced refresh rotating the grant, and a replayed
+   refresh token answered `invalid_grant` with the whole grant revoked, after
+   which `me` mints a new guest.
+3. **Sign-in, upgrade, replacement and logout** — a guest upgraded through
+   `/create-account` keeping its `sub`, a sign-in to an existing account
+   replacing the session and reporting `previous_sub`, a full account's revoked
+   grant reported as `signedOut: true`, and a logout that reaches CAS's
+   `end_session` and ends the browser's CAS session.
+
+`ligretto-auth-pr.yml` runs it on every pull request touching this package or
+`apps/cas`. Locally:
+
+```sh
+cd apps/cas && docker compose up -d --wait && cargo run -p cas --bin cas-migrate
+packages/ligretto-auth/tests/integration/seed.sh   # once per database
+cargo run -p cas &                                  # from apps/cas
+pnpm exec wait-on --timeout 60000 http-get://127.0.0.1:3000/health
+LIGRETTO_AUTH_CLIENT_SECRET="$(cat packages/ligretto-auth/tests/integration/.client-secret)" \
+  pnpm run --filter @memebattle/ligretto-auth test:integration
+```
+
+`seed.sh` registers `ligretto-auth-test` — confidential, first-party,
+guest-login-allowed, scopes `openid profile email`, audience
+`ligretto-auth-test`, callback on the reserved `.test` TLD — and writes the
+secret CAS printed once to `tests/integration/.client-secret` (gitignored, mode
+600). It is not idempotent: a second run says "already exists", which is the
+signal that the client is there. `CAS_ISSUER` overrides
+`http://localhost:3000`.
+
 ## Scripts
 
 - `pnpm run --filter @memebattle/ligretto-auth ts-check`
 - `pnpm run --filter @memebattle/ligretto-auth test` / `test:ci`
+- `pnpm run --filter @memebattle/ligretto-auth test:integration`
 - `pnpm run --filter @memebattle/ligretto-auth generate:api`
 
 ## Decisions
@@ -544,6 +592,33 @@ repository keeps:
   `@memebattle/ligretto-shared` does. The first runtime consumer decides the
   build shape. The `./contract` entry is source too, and types alone, so a
   browser bundle gets no code from it.
+- The integration suite lives in `tests/integration/` behind a vitest config
+  and a tsconfig project of its own. `test:ci` keeps selecting `src/**` alone,
+  so it stays hermetic — the root `pnpm test:ci` runs every package in parallel
+  and must not need CAS — and `tsconfig.json` keeps checking `src` against web
+  standards alone, so the boundary above is checked rather than promised while
+  the tests may use `node:http`.
+- The handlers are driven **over HTTP**, from a test-only `node:http` adapter
+  on `127.0.0.1`, with a cookie jar over real `fetch` in front of it. The
+  status line, the two `Set-Cookie`s a callback sends and the cookies a browser
+  presents back all go through an HTTP stack rather than being read off a
+  `Response` in the same process. `node:http` is typed by a local
+  `declare module` under `tests/`, never by `@types/node`.
+- The software passkey is this suite's own, mirroring
+  `apps/cas/src/testing/soft_passkey.rs`: what it needs of CBOR and ASN.1 is
+  four encodings and one DER signature, which does not earn a test-only
+  dependency under the repository's supply-chain policy.
+- A refresh is forced by stamping the stored access token expired — the store
+  belongs to the test — never by faking CAS's clock or waiting a token out:
+  nothing in the suite sleeps.
+- Only the `cookie` transport is exercised end to end. The transports differ on
+  this package's side alone and both are unit-tested; the protocol toward CAS
+  is identical, so a `bearer` copy of the suite would re-prove CAS, not the
+  transport.
+- The CI client is registered per job by `tests/integration/seed.sh`, never
+  seeded by a migration (CAS ADR 0008), and the discovery-parity test is what
+  keeps `src/test-support/cas.ts` — and so every unit spec built on it — in
+  step with the CAS the package actually talks to.
 
 Background: [INTEGRATION.md](../../apps/cas/docs/INTEGRATION.md) §2–§9 and
 §11, and the CAS ADRs

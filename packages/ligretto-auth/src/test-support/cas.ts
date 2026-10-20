@@ -83,7 +83,12 @@ export interface CasStubOptions {
   keySets?: PublicJwk[][]
 }
 
-const documentOf = (issuer: string, jwksUri: string): Discovery => ({
+/**
+ * The discovery document this stub serves, which is also what CAS's own is asserted against: the integration suite's
+ * parity test fetches the real document and deep-equals it with this one, so a member or value CAS adds, drops or
+ * changes fails that test until this stub — and so the unit suite built on it — catches up.
+ */
+export const documentOf = (issuer: string, jwksUri: string): Discovery => ({
   issuer,
   authorization_endpoint: `${issuer}/oidc/authorize`,
   token_endpoint: `${issuer}/oidc/token`,
@@ -96,7 +101,9 @@ const documentOf = (issuer: string, jwksUri: string): Discovery => ({
   subject_types_supported: ['public'],
   id_token_signing_alg_values_supported: ['ES256'],
   scopes_supported: ['openid', 'profile', 'email'],
-  token_endpoint_auth_methods_supported: ['client_secret_basic'],
+  // All three CAS serves (`apps/cas/src/oidc/discovery.rs`), not only the one this package uses: the stub stands in
+  // for CAS, and advertising less than CAS does is a drift the parity test would have to report as CAS's fault.
+  token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post', 'none'],
   code_challenge_methods_supported: ['S256'],
   request_uri_parameter_supported: false,
 })
