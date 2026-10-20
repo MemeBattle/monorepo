@@ -7,14 +7,15 @@
  */
 
 import { expect, it } from 'vitest'
-import type { AuthHandlers } from '../../src/index'
 import { startAppServer } from './server'
 
 it('answers a handler that threw with a 500 carrying the failure', async () => {
   const failing = async (): Promise<Response> => {
     throw new Error('the handler exploded')
   }
-  const server = await startAppServer({ me: failing, signIn: failing, callback: failing, logout: failing } as unknown as AuthHandlers)
+  // Never cast: this literal is where `tests/` is checked against the real route surface, and a cast would let a
+  // renamed or added route compile into a test that only ever requests `/auth/me`.
+  const server = await startAppServer({ me: failing, signIn: failing, callback: failing, logout: failing })
   try {
     const response = await fetch(`${server.baseUrl}/auth/me`, { redirect: 'manual' })
     expect(response.status).toBe(500)
