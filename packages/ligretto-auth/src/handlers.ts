@@ -10,8 +10,9 @@
  *
  * **Known failures never become a 500.** Every typed refusal of the CAS client — `TokenEndpointError`, `ApiError`,
  * `InvalidIdTokenError`, `DiscoveryError`, `UnusableGrantError`, `CallbackStateError` — funnels through one mapping
- * to a 4xx or a 503 with a code of `AuthErrorCode`. Only what is genuinely unhandled, a `fetch` rejection or a bug
- * here, is left to the host.
+ * to a 4xx or a 503 with a code of `AuthErrorCode`. CAS being unreachable is one of them: the transport types a
+ * `fetch` rejection as an `ApiError`, so a provider outage is a 503 wherever it strikes. Only a bug here is left to
+ * the host.
  */
 
 import type { CasClient } from './cas-client'
@@ -33,6 +34,14 @@ import { clearStateCookie, createSessionTransport, redirect, setStateCookie, sta
 const UNAVAILABLE_CODES: readonly TokenEndpointErrorCode[] = ['temporarily_unavailable', 'server_error', 'internal_error']
 
 const isUnavailableCode = (code: string): boolean => (UNAVAILABLE_CODES as readonly string[]).includes(code)
+
+/**
+ * The codes the authorization endpoint sends back (RFC 6749 §4.1.2.1) that mean CAS refused *this client* — its
+ * registration, or the shape of the request built from it — rather than refusing the user or being away. Plain
+ * strings, not the token endpoint's union: these arrive as a query parameter, and the two endpoints' catalogues
+ * overlap without being the same one (`unsupported_response_type` is the authorization endpoint's alone).
+ */
+const REJECTED_AUTHORIZATION_CODES: readonly string[] = ['unauthorized_client', 'invalid_scope', 'invalid_request', 'unsupported_response_type']
 
 export interface AuthHandlersOptions {
   client: CasClient
@@ -121,6 +130,25 @@ const refusalOf = (failure: unknown): Refusal | undefined => {
   return undefined
 }
 
+/**
+ * The `error` CAS redirected the browser back with, as the answer it deserves.
+ *
+ * The same three buckets `refusalOf` sorts the token endpoint's codes into, because RFC 6749 §4.1.2.1 sends the same
+ * families through the authorization endpoint: CAS away is transient, a registration or request-shape fault is
+ * `cas_rejected` — permanent until an operator acts, which is the whole reason that code exists — and a user who
+ * said no, or a code this package does not know, is simply a sign-in that did not happen. Classifying on `away` alone
+ * would report a deployment with an unregistered scope as the user having cancelled, in every log line.
+ */
+const authorizationRefusalOf = (code: string, description: string): Refusal => {
+  if (isUnavailableCode(code)) {
+    return { status: 503, body: { error: 'cas_unavailable', description, casError: code } }
+  }
+  if (REJECTED_AUTHORIZATION_CODES.includes(code)) {
+    return { status: 503, body: { error: 'cas_rejected', description, casError: code } }
+  }
+  return { status: 400, body: { error: 'sign_in_failed', description, casError: code } }
+}
+
 const json = (status: number, body: unknown, headers: Headers = new Headers()): Response => {
   headers.set('Content-Type', 'application/json')
   headers.set('Cache-Control', 'no-store')
@@ -135,8 +163,25 @@ const refusalResponse = ({ status, body, retryAfterSeconds }: Refusal): Response
   return json(status, body, headers)
 }
 
+/**
+ * Where the browser is sent once a sign-in is done, parsed once at construction.
+ *
+ * A relative value — `'/'` — would pass every route but one and fail on the callback's success path, after the new
+ * session has been saved: an uncoded `TypeError` out of `new URL`, so a 500 at the very end of a real sign-in, with
+ * the session orphaned and never handed to the browser. Refused here instead, as `createSessionTransport` refuses a
+ * cookie name without its prefix: a mounting mistake belongs to the deploy, not to the first user who signs in.
+ */
+const appUrlOf = (appUrl: string): URL => {
+  try {
+    return new URL(appUrl)
+  } catch (cause) {
+    throw new TypeError(`The app URL must be absolute, since the callback redirects a browser to it; got ${JSON.stringify(appUrl)}.`, { cause })
+  }
+}
+
 export const createAuthHandlers = (options: AuthHandlersOptions): AuthHandlers => {
-  const { client, store, appUrl, cookieName, now = Date.now } = options
+  const { client, store, cookieName, now = Date.now } = options
+  const appUrl = appUrlOf(options.appUrl)
   const transport = createSessionTransport(options.transport, { cookieName })
   const ctx: SessionContext = { client, store, now }
 
@@ -153,25 +198,37 @@ export const createAuthHandlers = (options: AuthHandlersOptions): AuthHandlers =
     }
   }
 
-  const meBody = (session: Session, signedOut: boolean): MeResponse => ({
+  const meBody = (session: Session, signedOut: boolean, handedOver: boolean): MeResponse => ({
     user: { sub: session.sub, accountType: session.accountType, name: session.displayName, avatarUrl: session.avatarUrl },
     accessToken: session.accessToken,
     expiresAt: session.accessTokenExpiresAt,
     signedOut,
-    sessionId: transport.inBody(session),
+    sessionId: handedOver ? transport.inBody(session) : undefined,
   })
 
-  const meAnswer = (session: Session, signedOut: boolean): Response => {
+  /**
+   * The answer for a session the browser already presented: it hands no session over.
+   *
+   * Nothing is gained by handing one over again — the browser has it, and the cookie's `Max-Age` is counted to
+   * `grantEndsAt + SESSION_COOKIE_GRACE_MS`, which a refresh never moves — and something is lost. Responses are not
+   * delivered in the order they were produced: a `me` from a refresh timer in another tab can arrive after a callback
+   * has retired the session it names, and handing that id over again would put the retired one back on the browser
+   * and leave the next `me` replacing a freshly signed-in account with a guest.
+   */
+  const meAnswer = (session: Session, signedOut: boolean): Response => json(200, meBody(session, signedOut, false))
+
+  /** The answer for a session this request has just created: the browser is given it, the only way it ever learns it. */
+  const meHandover = (session: Session, signedOut: boolean): Response => {
     const headers = new Headers()
     transport.install(headers, session, now())
-    return json(200, meBody(session, signedOut), headers)
+    return json(200, meBody(session, signedOut, true), headers)
   }
 
   const me = async (request: Request): Promise<Response> =>
     await handled(async () => {
       const presented = transport.read(request)
       if (presented === undefined) {
-        return meAnswer(await mintGuest(ctx), false)
+        return meHandover(await mintGuest(ctx), false)
       }
 
       // Advisory, and deliberately outside the lock: it decides nothing but whether a `signedOut` report is due, so
@@ -187,7 +244,7 @@ export const createAuthHandlers = (options: AuthHandlersOptions): AuthHandlers =
         }
         // The id names nothing usable any more: the user gets a guest, and is told they were signed out if what the
         // id named was a full account. A guest whose grant simply ran out had nothing to be signed out of.
-        return meAnswer(await mintGuest(ctx), before?.accountType === 'full')
+        return meHandover(await mintGuest(ctx), before?.accountType === 'full')
       }
     })
 
@@ -232,15 +289,7 @@ export const createAuthHandlers = (options: AuthHandlersOptions): AuthHandlers =
 
       const casError = query.get('error')
       if (casError !== null) {
-        const away = isUnavailableCode(casError)
-        return refusalResponse({
-          status: away ? 503 : 400,
-          body: {
-            error: away ? 'cas_unavailable' : 'sign_in_failed',
-            description: query.get('error_description') ?? 'CAS refused the authorization request.',
-            casError,
-          },
-        })
+        return refusalResponse(authorizationRefusalOf(casError, query.get('error_description') ?? 'CAS refused the authorization request.'))
       }
 
       const code = query.get('code')
@@ -261,6 +310,7 @@ export const createAuthHandlers = (options: AuthHandlersOptions): AuthHandlers =
         return refusalResponse({ status: 400, body: { error: 'sign_in_failed', description: failure.message, casError: 'invalid_grant' } })
       }
 
+      // A copy of the parsed `appUrl`, since this redirect may carry a query of its own.
       const target = new URL(appUrl)
       if (completed.previousSub !== null) {
         // The browser was already signed in to CAS as somebody else, so the account was not upgraded: reported for
@@ -282,9 +332,14 @@ export const createAuthHandlers = (options: AuthHandlersOptions): AuthHandlers =
 
       const headers = new Headers()
       transport.uninstall(headers)
+      // The one refusal-free reason to take the `state` cookie back. A sign-in left in flight — the user clicked
+      // sign-in, came back to the application tab and logged out — would otherwise still complete from the CAS tab:
+      // both of the callback's gates are open, and it would sign the user back in with a brand-new session, undoing
+      // the logout they were told had happened. The pending request is left to its TTL; nothing is swept here.
+      clearStateCookie(headers)
       // Nothing to end — no id, or an id the store does not hold — is still a logout as far as the user is
       // concerned: the browser goes back to the application.
-      return transport.navigation(ended?.url ?? appUrl, headers)
+      return transport.navigation(ended?.url ?? appUrl.toString(), headers)
     })
 
   return { me, signIn, callback, logout }

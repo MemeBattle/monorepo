@@ -104,11 +104,17 @@ describe('createClient', () => {
     }
   })
 
-  it('lets a network failure through as it is', async () => {
-    const fetch = vi.fn<typeof globalThis.fetch>().mockRejectedValue(new TypeError('fetch failed'))
-    const call = createClient({ baseUrl: BASE_URL, fetch })({ method: 'GET', url: '/oidc/userinfo' })
+  it('throws a network failure as an `ApiError` with the rejection as its cause', async () => {
+    const cause = new TypeError('fetch failed')
+    const fetch = vi.fn<typeof globalThis.fetch>().mockRejectedValue(cause)
+    const thrown: unknown = await createClient({ baseUrl: BASE_URL, fetch })({ method: 'GET', url: '/oidc/userinfo' }).catch(
+      (error: unknown) => error,
+    )
 
-    await expect(call).rejects.toThrow(TypeError)
+    // A provider that cannot be reached is the most ordinary provider failure there is: a caller mapping known
+    // failures to statuses of its own has nothing to recognise a bare `TypeError` by, and would answer it with a 500.
+    expect(thrown).toBeInstanceOf(ApiError)
+    expect(thrown).toMatchObject({ code: 'unreachable', status: 0, cause })
   })
 
   it('throws an `ApiError` for a 2xx whose body is not JSON, as an interstitial page answers', async () => {

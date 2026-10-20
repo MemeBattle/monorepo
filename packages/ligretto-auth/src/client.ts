@@ -5,9 +5,11 @@
  * A call has two ways to fail. An error CAS answered with — a 4xx or a 5xx whose body carries a code, either the
  * OAuth2 `{ "error", "error_description" }` or the envelope `{ "error": { "code", "message" } }` — is part of the
  * contract: it comes back as a value, a `Result` whose `error.code` is typed as the codes the operation declares.
- * Only what is outside the contract is thrown: `fetch` rejecting (the network), an error response whose body carries
- * no code (a proxy's page, not CAS: `ApiError` with the code `unknown`), a 2xx whose body is not JSON, and any
- * redirect.
+ * Everything outside the contract is thrown, and always as an `ApiError`: `fetch` rejecting, so no response came back
+ * at all (`unreachable`), an error response whose body carries no code (a proxy's page, not CAS: `unknown`), a 2xx
+ * whose body is not JSON, and any redirect. One class for all of them because they are one thing to a caller — the
+ * provider cannot be used right now — and a caller that must answer every known failure with a status of its own
+ * cannot do that for a rejection it has no type for.
  *
  * Unlike a browser client there is no ambient origin here: a `Client` is made with `createClient({ baseUrl })` and
  * every request resolves against that base, or against the absolute URL `atUrl` puts in its place — which is how a
@@ -19,6 +21,12 @@ const UNKNOWN_ERROR_CODE = 'unknown'
 
 /** The code of any 3xx: the client follows no redirect, so the caller decides what a navigation endpoint answered. */
 const REDIRECT_REFUSED_CODE = 'redirect_refused'
+
+/** The code of a request that produced no response at all: DNS, TLS, a refused connection, a timeout. */
+const UNREACHABLE_CODE = 'unreachable'
+
+/** The status of an `ApiError` that has no response behind it: nothing answered, so nothing has a status. */
+const NO_RESPONSE_STATUS = 0
 
 /** An error CAS answered with: the status and the error code the operation lists for it. */
 export interface ApiFailure<Code extends string = string> {
@@ -43,13 +51,19 @@ export interface ApiErrorOptions extends ErrorOptions {
 }
 
 /**
- * A response outside the contract the callers handle: a redirect, an error response whose body carries no code
- * (`unknown`), or a 2xx whose body is not JSON (`unknown`).
+ * A call that gave the caller nothing it can use: a response outside the contract — a redirect, an error response
+ * whose body carries no code (`unknown`), a 2xx whose body is not JSON (`unknown`) — or no response at all, because
+ * `fetch` itself rejected (`unreachable`).
+ *
+ * The network belongs here rather than escaping as whatever `fetch` threw: a provider that cannot be reached is the
+ * most ordinary provider failure there is, and a caller mapping known failures to statuses of its own has no type to
+ * recognise a bare `TypeError` by — it would answer a routine outage with an unhandled 500.
  */
 export class ApiError extends Error {
+  /** The response's status, or `0` when the request produced no response. */
   readonly status: number
   readonly code: string
-  /** The response's headers: a refused redirect names its `Location`. */
+  /** The response's headers: a refused redirect names its `Location`. Empty when nothing answered. */
   readonly headers: Headers
 
   constructor(status: number, code: string, message: string, options: ApiErrorOptions = {}) {
@@ -242,12 +256,22 @@ export const createClient =
   async ({ method, url, body, contentType, headers }) => {
     const send = fetchImpl ?? ((input: RequestInfo | URL, init?: RequestInit) => globalThis.fetch(input, init))
     const encoded = encodeBody(body, contentType?.request)
-    const response = await send(urlOf(url, baseUrl), {
-      method,
-      redirect: 'manual',
-      headers: headersOf(encoded?.contentType, headers),
-      body: encoded?.body,
-    })
+
+    let response: Response
+    try {
+      response = await send(urlOf(url, baseUrl), {
+        method,
+        redirect: 'manual',
+        headers: headersOf(encoded?.contentType, headers),
+        body: encoded?.body,
+      })
+    } catch (cause) {
+      // Typed here, at the one place this package touches the network, so every call through it fails the same way:
+      // a caller cannot be expected to recognise `fetch`'s own rejection, which is a bare `TypeError`.
+      throw new ApiError(NO_RESPONSE_STATUS, UNREACHABLE_CODE, `${method} ${url} could not be sent: the provider could not be reached`, {
+        cause,
+      })
+    }
 
     // The caller decides what a navigation endpoint's redirect means; `redirect: 'manual'` reports it as an opaque
     // response in a browser-like runtime and as the 3xx itself elsewhere.

@@ -32,7 +32,13 @@ export interface MeResponse {
    * answer, a guest whose own grant ended included — there was nothing to sign out of.
    */
   signedOut: boolean
-  /** The session id, in the `bearer` transport only: the cookie transport never puts it in a body. */
+  /**
+   * The session id, in the `bearer` transport only, and only when this answer *created* the session: a guest minted
+   * because the request presented no id, or none the store still holds. An answer for a session the caller already
+   * presented carries none — the caller is holding that id already, and an answer delivered late (a refresh timer in
+   * another tab, arriving after a sign-in completed in this one) must not be able to put a retired id back in use.
+   * The cookie transport never puts the id in a body at all.
+   */
   sessionId?: string
 }
 

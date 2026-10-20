@@ -99,7 +99,11 @@ const cookieJar = (now: () => number) => {
 /** The browser as this transport makes it behave: what it presents, and what it keeps from an answer. */
 const driverFor = (kind: SessionTransportKind, now: () => number) => {
   const jar = cookieJar(now)
-  /** Every URL the driver has been asked to send to, so a test can prove no session id ever reached one. */
+  /**
+   * Every URL this browser has been sent to or told to go to: the ones the driver requested, and the ones a handler
+   * produced — a `Location`, or the `url` of a `NavigationResponse`. A test proves no session id ever reached a URL
+   * by filtering this, which only means anything because the handlers' own output is in it.
+   */
   const urls: string[] = []
   let bearerId: string | undefined
 
@@ -123,20 +127,29 @@ const driverFor = (kind: SessionTransportKind, now: () => number) => {
 
   const absorb = async (response: Response): Promise<void> => {
     jar.absorb(response)
+
+    const location = response.headers.get('Location')
+    if (location !== null) {
+      urls.push(location)
+    }
+    const body =
+      response.headers.get('Content-Type')?.includes('json') === true
+        ? ((await response.clone().json()) as { sessionId?: unknown; url?: unknown })
+        : {}
+    if (typeof body.url === 'string') {
+      urls.push(body.url)
+    }
+
     if (kind !== 'bearer') {
       return
     }
-    const location = response.headers.get('Location')
     const fragment = location === null ? '' : new URL(location).hash
     if (fragment.startsWith('#session_id=')) {
       bearerId = fragment.slice('#session_id='.length)
       return
     }
-    if (response.headers.get('Content-Type')?.includes('json') === true) {
-      const body = (await response.clone().json()) as { sessionId?: unknown }
-      if (typeof body.sessionId === 'string') {
-        bearerId = body.sessionId
-      }
+    if (typeof body.sessionId === 'string') {
+      bearerId = body.sessionId
     }
   }
 
@@ -260,6 +273,20 @@ const until = async (condition: () => boolean): Promise<void> => {
 }
 
 const counted = (calls: string[], call: string): number => calls.filter(seen => seen === call).length
+
+describe('createAuthHandlers', () => {
+  it('refuses an app URL that is not absolute, at construction rather than at the end of a sign-in', async () => {
+    const cas = await casStub()
+    const mount = (appUrl: string) => (): unknown =>
+      createAuthHandlers({ client: casClient(cas), store: createInMemorySessionStore(), transport: 'cookie', appUrl })
+
+    // `new URL('/')` throws, and the only parse used to be on the callback's success path — after the session was
+    // saved, so the first user to finish a sign-in got an uncoded 500 and an orphaned session.
+    expect(mount('/')).toThrow(TypeError)
+    expect(mount('/')).toThrow(/must be absolute/)
+    expect(mount(APP_URL)).not.toThrow()
+  })
+})
 
 describe.each(TRANSPORTS)('the %s transport', kind => {
   describe('me', () => {
@@ -415,6 +442,56 @@ describe.each(TRANSPORTS)('the %s transport', kind => {
       await expect(errorOf(response)).resolves.toMatchObject({ error: 'cas_unavailable', casError: 'unknown' })
       await expect(h.store.getSession('session-1')).resolves.toMatchObject({ refreshToken: 'seed-refresh' })
     })
+
+    it('answers 503 when the token endpoint cannot be reached, though the document was read', async () => {
+      const cas = await casStub()
+      // Discovery succeeds and the token endpoint refuses the connection: one outage, and it used to be a coded 503
+      // where it hit the document and an uncoded 500 where it hit the token endpoint.
+      const unreachable: typeof globalThis.fetch = async (input, init) =>
+        String(input) === cas.document.token_endpoint ? Promise.reject(new TypeError('fetch failed')) : await cas.fetch(input, init)
+      const h = await harness(kind, { fetch: unreachable })
+
+      const response = await h.me()
+
+      expect(response.status).toBe(503)
+      await expect(errorOf(response)).resolves.toMatchObject({ error: 'cas_unavailable', casError: 'unreachable' })
+      expect(h.saves).toEqual([])
+    })
+
+    it('hands no session back on an answer for a session the browser already presented', async () => {
+      const h = await harness(kind)
+      const seeded = await h.seed()
+
+      const response = await h.me()
+
+      // Restamping would buy nothing — the cookie's `Max-Age` counts to `grantEndsAt` plus the grace however often
+      // it is written, and the bearer caller is holding the id it presented.
+      expect(response.headers.getSetCookie()).toEqual([])
+      await expect(meOf(response).then(body => body.sessionId)).resolves.toBeUndefined()
+      expect(h.driver.sessionId()).toBe(seeded.id)
+    })
+
+    it('does not put a retired session back on the browser when a me answer arrives after the callback', async () => {
+      const h = await harness(kind)
+      await h.seed()
+      h.cas.answer({ claims: guestClaims() })
+      const { url, state } = await signInBegun(h)
+      h.cas.answer({ claims: { sub: GUEST_SUB, account_type: 'full', amr: ['webauthn'], name: 'Ada', nonce: nonceOf(url) } })
+
+      // A refresh timer in another tab asked `me` about the session that started the sign-in; its answer is produced
+      // now and delivered later. Nothing orders HTTP responses, so the browser can see it after the callback's.
+      const inFlight = await h.handlers.me(h.driver.request('/api/auth/me'))
+
+      await h.callback({ state, code: 'the-code' })
+      const signedIn = h.driver.sessionId() ?? ''
+
+      await h.driver.absorb(inFlight)
+
+      // The stale answer named an id the callback has retired: reinstating it would have left the next `me` minting
+      // a guest and silently discarding a sign-in that completed.
+      expect(h.driver.sessionId()).toBe(signedIn)
+      await expect(meOf(await h.me())).resolves.toMatchObject({ user: { sub: GUEST_SUB, accountType: 'full', name: 'Ada' } })
+    })
   })
 
   describe('sign-in', () => {
@@ -569,7 +646,7 @@ describe.each(TRANSPORTS)('the %s transport', kind => {
       await expect(h.store.getSession(h.driver.sessionId() ?? '')).resolves.toMatchObject({ sub: SUB })
     })
 
-    it('tells CAS being away at the authorization endpoint from CAS refusing the request', async () => {
+    it('sorts an error from the authorization endpoint into away, a refusal of this client, and a sign-in that failed', async () => {
       const h = await harness(kind)
       const { state } = await signInBegun(h)
 
@@ -577,13 +654,20 @@ describe.each(TRANSPORTS)('the %s transport', kind => {
       expect(away.status).toBe(503)
       await expect(errorOf(away)).resolves.toMatchObject({ error: 'cas_unavailable', casError: 'temporarily_unavailable' })
 
-      const refused = await h.callback({ state, error: 'invalid_request', error_description: 'the scope is not registered' })
-      expect(refused.status).toBe(400)
+      // A scope this client is not registered for is a configuration fault: every sign-in fails until an operator
+      // acts, and reporting it as `sign_in_failed` would make it indistinguishable from users cancelling. §4.1.2.1
+      // sends the same family through the authorization endpoint as §5.2 does through the token endpoint.
+      const refused = await h.callback({ state, error: 'invalid_scope', error_description: 'the scope is not registered' })
+      expect(refused.status).toBe(503)
       await expect(errorOf(refused)).resolves.toMatchObject({
-        error: 'sign_in_failed',
-        casError: 'invalid_request',
+        error: 'cas_rejected',
+        casError: 'invalid_scope',
         description: 'the scope is not registered',
       })
+
+      const cancelled = await h.callback({ state, error: 'access_denied' })
+      expect(cancelled.status).toBe(400)
+      await expect(errorOf(cancelled)).resolves.toMatchObject({ error: 'sign_in_failed', casError: 'access_denied' })
 
       expect(h.cas.tokenRequests).toEqual([])
     })
@@ -670,6 +754,28 @@ describe.each(TRANSPORTS)('the %s transport', kind => {
       await stale.store.deleteSession('session-1')
 
       await expect(stale.driver.navigationUrl(await stale.logout())).resolves.toBe(APP_URL)
+    })
+
+    it('takes the state cookie back, so a sign-in left in flight cannot undo the logout', async () => {
+      const h = await harness(kind)
+      await h.seed()
+      h.cas.answer({ claims: guestClaims() })
+      const { url, state } = await signInBegun(h)
+
+      await h.logout()
+
+      expect(h.driver.cookie(STATE_COOKIE_NAME)).toBeUndefined()
+
+      // The user finishes the passkey prompt in the CAS tab they had left open. Without the cookie the callback
+      // fails the browser-binding check of §4, so the logout stands instead of being undone by a new session.
+      h.cas.answer({ claims: { nonce: nonceOf(url) } })
+      const response = await h.callback({ state, code: 'the-code' })
+
+      expect(response.status).toBe(400)
+      await expect(errorOf(response)).resolves.toMatchObject({ error: 'unknown_state' })
+      // Only the sign-in's own force-refresh reached CAS: no code was exchanged and no session written.
+      expect(h.cas.tokenRequests.map(request => request.grantType)).toEqual(['refresh_token'])
+      expect(h.saves.filter(session => session.id !== 'session-1')).toEqual([])
     })
 
     it('keeps the session when CAS’s metadata cannot be read, so the user can retry a full logout', async () => {
@@ -770,7 +876,7 @@ describe('the cookie transport', () => {
 })
 
 describe('the bearer transport', () => {
-  it('hands the session id back in the body and sets no session cookie', async () => {
+  it('hands a session it minted back in the body and sets no session cookie', async () => {
     const h = await harness('bearer')
     h.cas.answer({ claims: guestClaims() })
 
@@ -788,8 +894,11 @@ describe('the bearer transport', () => {
       const seeded = await h.seed()
 
       const response = await h.handlers.me(new Request(`${ORIGIN}/api/auth/me`, { headers: { Authorization: `${scheme} ${seeded.id}` } }))
+      const body = await meOf(response)
 
-      await expect(meOf(response)).resolves.toMatchObject({ sessionId: seeded.id, accessToken: 'seed-access' })
+      // The id is read, and nothing is handed back: the caller presented it, so it already holds it.
+      expect(body).toMatchObject({ accessToken: 'seed-access' })
+      expect(body.sessionId).toBeUndefined()
       expect(h.cas.tokenRequests).toEqual([])
     }
   })
