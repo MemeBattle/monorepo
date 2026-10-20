@@ -397,8 +397,8 @@ way to leave them out, only their default, which `kubb.config.ts` sets to
 - `pnpm run --filter @memebattle/ligretto-auth ts-check`
 - `pnpm run --filter @memebattle/ligretto-auth test` / `test:ci`
 - `pnpm run --filter @memebattle/ligretto-auth build` — the CommonJS build in
-  `build/`, which a plain-Node consumer loads (see
-  [Decisions](#decisions)); only an image build needs it.
+  `build/` that a plain-Node consumer loads (see [Decisions](#decisions));
+  only an image build needs it.
 - `pnpm run --filter @memebattle/ligretto-auth generate:api`
 
 ## Decisions
@@ -544,17 +544,16 @@ repository keeps:
   callback with none would spend a sign-in the browser could still have
   completed, and send a junk exchange to CAS.
 - Two shapes behind one exports map, the `@memebattle/ligretto-shared` one:
-  TypeScript source under `types`, `development` and `default`, and a
-  CommonJS `tsc` build under `node`. The gameplay backend's image, the first
-  runtime consumer (`#815`), runs plain `node build/index.js`, and Node will
-  not type-strip `.ts` inside
-  `node_modules`, so a runtime consumer needs an artefact; `tsx`, vitest and
-  every bundler keep loading the source, and `types` first means no type
-  check ever waits for a build. The build is CommonJS — hence no
-  `"type": "module"` — and `module: nodenext` is what lets it `require()`
-  ESM-only `jose`, which Node 24 supports. The `./contract` entry is built
-  alongside the rest but stays types alone, so a browser bundle gets no code
-  from it.
+  TypeScript source under `types`, `development` and `default`, a CommonJS
+  `tsc` build under `node`. The first runtime consumer, the gameplay
+  backend's image (`#815`), runs plain `node build/index.js`, and Node will
+  not type-strip `.ts` inside `node_modules`, so a runtime consumer needs an
+  artefact; `tsx`, vitest and every bundler keep loading the source, and
+  `types` first means no type check ever waits for a build. The build is
+  CommonJS — hence no `"type": "module"` — and `module: nodenext` is what
+  lets it `require()` ESM-only `jose`, which Node 24 supports. The
+  `./contract` entry is built alongside the rest but stays types alone, so a
+  browser bundle gets no code from it.
 
 Background: [INTEGRATION.md](../../apps/cas/docs/INTEGRATION.md) §2–§9 and
 §11, and the CAS ADRs

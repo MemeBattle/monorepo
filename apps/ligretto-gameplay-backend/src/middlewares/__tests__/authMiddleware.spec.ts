@@ -7,8 +7,7 @@ import { authMiddleware } from '../authMiddleware'
 
 const verifyAccessToken = vi.hoisted(() => vi.fn())
 
-// Only the verifier is stubbed: `InvalidTokenError` stays the package's own, so a refusal here is the shape the real
-// verifier throws.
+// Only the verifier is stubbed: `InvalidTokenError` stays the package's own, so a refusal here has the real shape.
 vi.mock('@memebattle/ligretto-auth', async importOriginal => ({
   ...(await importOriginal<typeof import('@memebattle/ligretto-auth')>()),
   verifyAccessToken,
@@ -45,8 +44,7 @@ describe('authMiddleware', () => {
     expect(socket.data.userId).toBe('5f1e3e5c-0b2a-4d8e-9c3f-6a1b2c3d4e5f')
   })
 
-  // The refusals differ only in the code they carry, so each case asserts its own: the message is deliberately the
-  // same opaque one, and without the code these tests would be the same test written three times.
+  // The refusals differ only in the code they carry: the message is the same opaque one, so each case asserts its code.
   it('refuses an ID token under the `wrong_typ` code', async () => {
     verifyAccessToken.mockRejectedValue(new InvalidTokenError('wrong_typ', 'An access token says `typ: at+jwt`; this one says "JWT".'))
     const socket = createSocketMockImpl({ data: {}, handshake: { auth: { token: 'id-token' } } })
