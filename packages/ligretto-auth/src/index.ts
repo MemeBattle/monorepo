@@ -8,8 +8,44 @@
 export { verifyAccessToken } from './verify-access-token'
 export type { AccessTokenClaims, VerifyAccessTokenOptions } from './verify-access-token'
 
-export { DiscoveryError, InvalidTokenError } from './errors'
-export type { DiscoveryErrorCode, InvalidTokenCode } from './errors'
+export { createCasClient } from './cas-client'
+export type {
+  AuthorizationRequest,
+  AuthorizationRequestOptions,
+  CasClient,
+  CasClientOptions,
+  EndSessionUrlOptions,
+  ExchangeCodeOptions,
+  Tokens,
+} from './cas-client'
+
+export { profileOf, validateIdToken } from './id-token'
+export type { IdTokenClaims, ProfileSnapshot, ValidateIdTokenOptions } from './id-token'
+
+export { createInMemorySessionStore } from './session-store'
+export type { InMemorySessionStoreOptions, PendingAuthorizationRequest, Session, SessionStore } from './session-store'
+
+export {
+  beginSignIn,
+  CallbackStateError,
+  completeSignIn,
+  GRANT_LIFETIME_MS,
+  mintGuest,
+  PENDING_REQUEST_TTL_MS,
+  refreshSession,
+  UnknownSessionError,
+} from './sessions'
+export type {
+  BeginSignInOptions,
+  BeginSignInResult,
+  CompleteSignInOptions,
+  CompleteSignInResult,
+  RefreshSessionOptions,
+  SessionContext,
+} from './sessions'
+
+export { DiscoveryError, InvalidIdTokenError, InvalidTokenError, TokenEndpointError } from './errors'
+export type { DiscoveryErrorCode, IdTokenErrorCode, InvalidTokenCode, TokenEndpointErrorCode, TokenEndpointErrorOptions } from './errors'
 
 export { createDiscoveryCache } from './discovery'
 export type { DiscoveryCache, DiscoveryCacheOptions } from './discovery'
