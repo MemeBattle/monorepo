@@ -12,8 +12,8 @@ import { client } from '#client'
  * as `GET`, the body is not read (ADR 0013 (d)).
  * {@link /oidc/userinfo}
  */
-export function userinfoByPost<ThrowOnError extends boolean = true>(options: Options<UserinfoByPostOptions, ThrowOnError> = {}): Promise<RequestResult<UserinfoByPostResponses, ThrowOnError>> {
+export function userinfoByPost<ThrowOnError extends boolean = false>(options: Options<UserinfoByPostOptions, ThrowOnError> = {}): Promise<RequestResult<UserinfoByPostResponses, ThrowOnError>> {
   const { client: request = client, ...config } = options
 
-  return request({ method: 'POST', url: '/oidc/userinfo', security: [{ type: 'http', scheme: 'bearer' }], ...config, throwOnError: config.throwOnError ?? true }) as Promise<RequestResult<UserinfoByPostResponses, ThrowOnError>>
+  return request({ method: 'POST', url: '/oidc/userinfo', security: [{ type: 'http', scheme: 'bearer' }], ...config, throwOnError: config.throwOnError ?? false }) as Promise<RequestResult<UserinfoByPostResponses, ThrowOnError>>
 }

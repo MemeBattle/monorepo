@@ -22,8 +22,8 @@ import { client } from '#client'
  * the guest grant.
  * {@link /oidc/token}
  */
-export function token<ThrowOnError extends boolean = true>(options: Options<TokenOptions, ThrowOnError>): Promise<RequestResult<TokenResponses, ThrowOnError>> {
+export function token<ThrowOnError extends boolean = false>(options: Options<TokenOptions, ThrowOnError>): Promise<RequestResult<TokenResponses, ThrowOnError>> {
   const { client: request = client, ...config } = options
 
-  return request({ method: 'POST', url: '/oidc/token', security: [{ type: 'http', scheme: 'basic' }], contentType: { request: 'application/x-www-form-urlencoded' }, ...config, throwOnError: config.throwOnError ?? true }) as Promise<RequestResult<TokenResponses, ThrowOnError>>
+  return request({ method: 'POST', url: '/oidc/token', security: [{ type: 'http', scheme: 'basic' }], contentType: { request: 'application/x-www-form-urlencoded' }, ...config, throwOnError: config.throwOnError ?? false }) as Promise<RequestResult<TokenResponses, ThrowOnError>>
 }

@@ -1,6 +1,8 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { ApiError, atUrl, client, createClient } from './client'
-import type { Client, RequestConfig } from './client'
+import type { Client, ErrorCodeOf, RequestConfig } from './client'
+import type { AuthorizeResponses } from './generated/models/Authorize'
+import type { TokenResponses } from './generated/models/Token'
 import { token } from './generated/operations/token'
 import { userinfoByGet } from './generated/operations/userinfoByGet'
 
@@ -74,19 +76,39 @@ describe('createClient', () => {
     expect(!result.ok && result.error.headers.get('retry-after')).toBe('60')
   })
 
-  it('throws a 5xx and a body it cannot read, the response headers on the error either way', async () => {
-    const serverError = createClient({
-      baseUrl: BASE_URL,
-      fetch: stub(() => json(503, { error: 'temporarily_unavailable', error_description: 'Try later' }, { 'Retry-After': '5' })),
-    })
-    await expect(serverError({ method: 'GET', url: '/oidc/userinfo' })).rejects.toMatchObject({ code: 'temporarily_unavailable', status: 503 })
+  it('returns a 5xx with its code as a value, the response headers on it', async () => {
+    const fetch = stub(() => json(503, { error: 'temporarily_unavailable', error_description: 'Try later' }, { 'Retry-After': '5' }))
+    const result = await createClient({ baseUrl: BASE_URL, fetch })({ method: 'GET', url: '/oidc/userinfo' })
 
-    const thrown: unknown = await serverError({ method: 'GET', url: '/oidc/userinfo' }).catch((error: unknown) => error)
-    expect(thrown).toBeInstanceOf(ApiError)
-    expect(thrown instanceof ApiError && thrown.headers.get('retry-after')).toBe('5')
+    expect(result).toMatchObject({ ok: false, error: { status: 503, code: 'temporarily_unavailable', message: 'Try later' } })
+    expect(!result.ok && result.error.headers.get('retry-after')).toBe('5')
+  })
 
-    const unreadable = createClient({ baseUrl: BASE_URL, fetch: stub(() => new Response('<html>no</html>', { status: 400 })) })
-    await expect(unreadable({ method: 'GET', url: '/oidc/authorize' })).rejects.toMatchObject({ code: 'unknown', status: 400 })
+  it('returns the envelope of an internal error as a value with its code', async () => {
+    const fetch = stub(() => json(500, { error: { code: 'internal_error', message: 'Something broke' } }))
+    const result = await createClient({ baseUrl: BASE_URL, fetch })({ method: 'POST', url: '/oidc/token', body: 'grant_type=x' })
+
+    expect(result).toMatchObject({ ok: false, error: { status: 500, code: 'internal_error', message: 'Something broke' } })
+  })
+
+  it('throws an error response whose body carries no code, which is a proxy talking rather than CAS', async () => {
+    for (const status of [400, 502]) {
+      const fetch = stub(() => new Response('<html>no</html>', { status, headers: { 'Retry-After': '5' } }))
+      const thrown: unknown = await createClient({ baseUrl: BASE_URL, fetch })({ method: 'GET', url: '/oidc/userinfo' }).catch(
+        (error: unknown) => error,
+      )
+
+      expect(thrown).toBeInstanceOf(ApiError)
+      expect(thrown).toMatchObject({ code: 'unknown', status })
+      expect(thrown instanceof ApiError && thrown.headers.get('retry-after')).toBe('5')
+    }
+  })
+
+  it('lets a network failure through as it is', async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>().mockRejectedValue(new TypeError('fetch failed'))
+    const call = createClient({ baseUrl: BASE_URL, fetch })({ method: 'GET', url: '/oidc/userinfo' })
+
+    await expect(call).rejects.toThrow(TypeError)
   })
 
   it('throws an `ApiError` for a 2xx whose body is not JSON, as an interstitial page answers', async () => {
@@ -188,5 +210,27 @@ describe('the generated operations', () => {
 
     expect(result.ok).toBe(false)
     expect(!result.ok && result.error.code).toBe('invalid_client')
+  })
+
+  it('types the codes of every 4xx and 5xx the operation declares, both error shapes of a `500` included', async () => {
+    const fetch = stub(() => json(500, { error: { code: 'internal_error', message: 'Something broke' } }))
+
+    const result = await token({ client: createClient({ baseUrl: BASE_URL, fetch }), body: 'grant_type=refresh_token&refresh_token=r' })
+
+    expect(!result.ok && result.error.code).toBe('internal_error')
+    expectTypeOf<ErrorCodeOf<TokenResponses>>().toEqualTypeOf<
+      | 'invalid_grant'
+      | 'invalid_request'
+      | 'invalid_scope'
+      | 'unauthorized_client'
+      | 'unsupported_grant_type'
+      | 'invalid_client'
+      | 'rate_limit_exceeded'
+      | 'server_error'
+      | 'internal_error'
+      | 'temporarily_unavailable'
+    >()
+    // A status kubb describes per content type yields the codes of its JSON variant; the HTML pages carry none.
+    expectTypeOf<ErrorCodeOf<AuthorizeResponses>>().toEqualTypeOf<'internal_error'>()
   })
 })

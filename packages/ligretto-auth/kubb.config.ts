@@ -16,6 +16,8 @@ export default defineConfig({
   adapter: adapterOas({ integerType: 'number' }),
   plugins: [
     pluginTs({ output: { path: 'models' }, include: oidcOnly, enum: { type: 'inlineLiteral' } }),
-    pluginClient({ output: { path: 'operations' }, include: oidcOnly, importPath: '#client' }),
+    // plugin-client prints a `throwOnError` option into every operation and cannot leave it out; `false` makes the
+    // printed default say what `src/client.ts` does: an error CAS answered with comes back as a value.
+    pluginClient({ output: { path: 'operations' }, include: oidcOnly, importPath: '#client', throwOnErrorDefault: false }),
   ],
 })

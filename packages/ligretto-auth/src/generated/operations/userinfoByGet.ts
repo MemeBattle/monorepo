@@ -13,8 +13,8 @@ import { client } from '#client'
  * @summary The claims of the account behind the access token.
  * {@link /oidc/userinfo}
  */
-export function userinfoByGet<ThrowOnError extends boolean = true>(options: Options<UserinfoByGetOptions, ThrowOnError> = {}): Promise<RequestResult<UserinfoByGetResponses, ThrowOnError>> {
+export function userinfoByGet<ThrowOnError extends boolean = false>(options: Options<UserinfoByGetOptions, ThrowOnError> = {}): Promise<RequestResult<UserinfoByGetResponses, ThrowOnError>> {
   const { client: request = client, ...config } = options
 
-  return request({ method: 'GET', url: '/oidc/userinfo', security: [{ type: 'http', scheme: 'bearer' }], ...config, throwOnError: config.throwOnError ?? true }) as Promise<RequestResult<UserinfoByGetResponses, ThrowOnError>>
+  return request({ method: 'GET', url: '/oidc/userinfo', security: [{ type: 'http', scheme: 'bearer' }], ...config, throwOnError: config.throwOnError ?? false }) as Promise<RequestResult<UserinfoByGetResponses, ThrowOnError>>
 }

@@ -99,8 +99,11 @@ default, which is exact for a 64-bit identifier but is not what `JSON.parse`
 produces, so `kubb.config.ts` sets `integerType: 'number'` and the token
 endpoint's `expires_in` has the type the transport really delivers.
 
-The output is committed, and `ligretto-auth-pr.yml` regenerates it and fails on
-any difference, so the committed client always matches the description.
+The output is committed, and it may lag behind the description: nothing fails
+because `apps/cas/openapi.json` changed and nobody regenerated.
+`ligretto-auth-pr.yml` regenerates before the type check and the tests, so CI
+fails only when the package stops compiling or its tests stop passing against
+the description as it is in the commit.
 
 The transport the generated operations call is `src/client.ts`. It appends
 every path of the description to the `baseUrl` of `createClient({ baseUrl })`,
@@ -109,11 +112,19 @@ so a base URL that carries a path keeps it; follows no redirect
 winning over the content type the body encoding would set, whatever its casing;
 sends a string body verbatim as `application/x-www-form-urlencoded` (the token
 endpoint's form body, which must not be quoted into JSON) and any other body as
-JSON; and hands a declared 4xx back as a value whose `code` is typed from the
-description and whose `headers` are the response's, so a caller reads the
-`Retry-After` a `429` prescribes. Anything else — a redirect, a 5xx, a body
-that is not JSON whatever the status — is thrown as an `ApiError` carrying the
-same `code`, `status` and `headers`.
+JSON. An error CAS answered with — a 4xx or a 5xx whose body carries a code —
+comes back as a value whose `code` is typed from the codes the operation
+declares and whose `headers` are the response's, so a caller reads the
+`Retry-After` a `429` or a `503` prescribes. Only what is outside the contract
+is thrown: a network failure as `fetch` reports it, and as an `ApiError`
+carrying the `status` and `headers` a redirect, an error response whose body
+carries no code (a proxy's page, not CAS) and a 2xx whose body is not JSON.
+
+The generated operations take a `throwOnError` option and a `ThrowOnError` type
+parameter: kubb's plugin-client prints both into every operation and offers no
+way to leave them out, only their default, which `kubb.config.ts` sets to
+`false`. The transport does not read them, and `Options` types the option as
+`never`, so a caller cannot ask for a throw that would never happen.
 
 ## Scripts
 
@@ -128,8 +139,11 @@ repository keeps:
 
 - Web standards and server-only, as above; no Node API in `src/`, no
   `@types/node`, no framework import.
-- `src/generated/` is generator-owned, committed, and proven fresh in CI by
-  regenerate-and-diff, with untracked output counted as a difference.
+- `src/generated/` is generator-owned and committed; CI type-checks and tests
+  against freshly generated output rather than demanding the committed copy be
+  current.
+- An error CAS answered with is a value, never an exception; only the network
+  and responses outside the contract throw.
 - The transport lives in this package rather than being copied per consumer,
   and generated files are never edited: a call that must reach a discovered URL
   goes through `atUrl`, which replaces the request's URL and nothing else.

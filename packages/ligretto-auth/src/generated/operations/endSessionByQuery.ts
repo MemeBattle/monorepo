@@ -16,8 +16,8 @@ import { client } from '#client'
  * @summary RP-initiated logout, the parameters in the query.
  * {@link /oidc/end_session}
  */
-export function endSessionByQuery<ThrowOnError extends boolean = true>(options: Options<EndSessionByQueryOptions, ThrowOnError> = {}): Promise<RequestResult<EndSessionByQueryResponses, ThrowOnError>> {
+export function endSessionByQuery<ThrowOnError extends boolean = false>(options: Options<EndSessionByQueryOptions, ThrowOnError> = {}): Promise<RequestResult<EndSessionByQueryResponses, ThrowOnError>> {
   const { client: request = client, ...config } = options
 
-  return request({ method: 'GET', url: '/oidc/end_session', ...config, throwOnError: config.throwOnError ?? true }) as Promise<RequestResult<EndSessionByQueryResponses, ThrowOnError>>
+  return request({ method: 'GET', url: '/oidc/end_session', ...config, throwOnError: config.throwOnError ?? false }) as Promise<RequestResult<EndSessionByQueryResponses, ThrowOnError>>
 }

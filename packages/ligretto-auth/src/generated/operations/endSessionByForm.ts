@@ -14,8 +14,8 @@ import { client } from '#client'
  * read.
  * {@link /oidc/end_session}
  */
-export function endSessionByForm<ThrowOnError extends boolean = true>(options: Options<EndSessionByFormOptions, ThrowOnError>): Promise<RequestResult<EndSessionByFormResponses, ThrowOnError>> {
+export function endSessionByForm<ThrowOnError extends boolean = false>(options: Options<EndSessionByFormOptions, ThrowOnError>): Promise<RequestResult<EndSessionByFormResponses, ThrowOnError>> {
   const { client: request = client, ...config } = options
 
-  return request({ method: 'POST', url: '/oidc/end_session', contentType: { request: 'application/x-www-form-urlencoded' }, ...config, throwOnError: config.throwOnError ?? true }) as Promise<RequestResult<EndSessionByFormResponses, ThrowOnError>>
+  return request({ method: 'POST', url: '/oidc/end_session', contentType: { request: 'application/x-www-form-urlencoded' }, ...config, throwOnError: config.throwOnError ?? false }) as Promise<RequestResult<EndSessionByFormResponses, ThrowOnError>>
 }

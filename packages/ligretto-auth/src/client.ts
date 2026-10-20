@@ -2,10 +2,12 @@
  * The transport of the CAS OIDC endpoints: every generated function in `./generated/operations` calls a `Client`,
  * and nothing else in this package calls `fetch`.
  *
- * A call has two ways to fail. A 4xx with an OAuth2 error body (`{ "error", "error_description" }`, the shape every
- * JSON failure of these endpoints has) is part of the contract: it comes back as a value, a `Result` whose
- * `error.code` is typed as the codes the operation declares. Everything else is thrown: `fetch` rejecting, a 5xx, a
- * body that cannot be read or carries no code (`ApiError` with the code `unknown`), and any redirect.
+ * A call has two ways to fail. An error CAS answered with — a 4xx or a 5xx whose body carries a code, either the
+ * OAuth2 `{ "error", "error_description" }` or the envelope `{ "error": { "code", "message" } }` — is part of the
+ * contract: it comes back as a value, a `Result` whose `error.code` is typed as the codes the operation declares.
+ * Only what is outside the contract is thrown: `fetch` rejecting (the network), an error response whose body carries
+ * no code (a proxy's page, not CAS: `ApiError` with the code `unknown`), a 2xx whose body is not JSON, and any
+ * redirect.
  *
  * Unlike a browser client there is no ambient origin here: a `Client` is made with `createClient({ baseUrl })` and
  * every request resolves against that base, or against the absolute URL `atUrl` puts in its place — which is how a
@@ -18,7 +20,7 @@ const UNKNOWN_ERROR_CODE = 'unknown'
 /** The code of any 3xx: the client follows no redirect, so the caller decides what a navigation endpoint answered. */
 const REDIRECT_REFUSED_CODE = 'redirect_refused'
 
-/** A declared failure: the status and the error code the operation lists for it. */
+/** An error CAS answered with: the status and the error code the operation lists for it. */
 export interface ApiFailure<Code extends string = string> {
   status: number
   code: Code
@@ -31,7 +33,7 @@ export interface ApiFailure<Code extends string = string> {
   headers: Headers
 }
 
-/** What a call resolves to: the success body with the response's status and headers, or a failure the operation declares. */
+/** What a call resolves to: the success body with the response's status and headers, or an error CAS answered with. */
 export type Result<Data, Code extends string = string> =
   | { ok: true; status: number; headers: Headers; data: Data }
   | { ok: false; error: ApiFailure<Code> }
@@ -41,13 +43,13 @@ export interface ApiErrorOptions extends ErrorOptions {
 }
 
 /**
- * A response outside the contract the callers handle: a redirect, a 5xx, or a body that cannot be read or carries no
- * code (`unknown`).
+ * A response outside the contract the callers handle: a redirect, an error response whose body carries no code
+ * (`unknown`), or a 2xx whose body is not JSON (`unknown`).
  */
 export class ApiError extends Error {
   readonly status: number
   readonly code: string
-  /** The response's headers: a refused redirect names its `Location`, a 503 can carry a `Retry-After`. */
+  /** The response's headers: a refused redirect names its `Location`. */
   readonly headers: Headers
 
   constructor(status: number, code: string, message: string, options: ApiErrorOptions = {}) {
@@ -59,9 +61,22 @@ export class ApiError extends Error {
   }
 }
 
-/** The codes of the 4xx responses an operation declares: the failures that come back as a value. */
+/**
+ * The code an error body carries: the OAuth2 `error`, or the envelope's `error.code`. Distributive, so a status that
+ * answers either shape (a `500` is `server_error` or `internal_error`) yields both codes, and a status kubb describes
+ * per content type (`{ contentType, data }`) yields the codes of its JSON variant; an HTML page carries none.
+ */
+type CodeOfBody<Body> = Body extends { error: infer Code extends string }
+  ? Code
+  : Body extends { error: { code: infer Code extends string } }
+    ? Code
+    : Body extends { data: infer Data }
+      ? CodeOfBody<Data>
+      : never
+
+/** The codes of the 4xx and 5xx responses an operation declares: the failures that come back as a value. */
 export type ErrorCodeOf<Responses> = {
-  [Status in keyof Responses]: Status extends `4${string}` ? (Responses[Status] extends { error: infer Code extends string } ? Code : never) : never
+  [Status in keyof Responses]: Status extends `4${string}` | `5${string}` ? CodeOfBody<Responses[Status]> : never
 }[keyof Responses]
 
 /** The body of a successful call: the 2xx responses, with a 204 as the `undefined` the client returns for it. */
@@ -84,8 +99,11 @@ export interface RequestConfig {
   query?: unknown
   /** The security schemes the operation declares; the caller sends the credential as a header itself. */
   security?: readonly unknown[]
-  /** Ignored: a declared failure always comes back as a value, anything else is always thrown. */
-  throwOnError?: boolean
+  /**
+   * Always `false` (`throwOnErrorDefault` in `kubb.config.ts`) and not read: an error CAS answered with always comes
+   * back as a value, anything outside the contract is always thrown.
+   */
+  throwOnError?: false
 }
 
 export type Client = (config: RequestConfig) => Promise<Result<unknown>>
@@ -108,19 +126,24 @@ type DeclaredHeaders<TOptions> = TOptions extends { headers?: infer Declared }
  * `headers` is replaced rather than intersected: `never & Record<string, string>` admits nothing, so intersecting
  * would leave `token({ headers: { Authorization } })` un-typeable even though the generated function already spreads
  * the field into the request config.
+ *
+ * `ThrowOnError` is kubb's: plugin-client prints the generic and the `throwOnError` option into every operation and
+ * offers no option to leave them out, only their default. This transport has one policy, so the option admits no
+ * value — a caller cannot ask for a throw that would never happen.
  */
-export type Options<TOptions, ThrowOnError extends boolean = true> = Omit<TOptions, 'headers'> & {
+// oxlint-disable-next-line no-unused-vars -- the generated functions pass ThrowOnError
+export type Options<TOptions, ThrowOnError extends boolean = false> = Omit<TOptions, 'headers'> & {
   headers?: Record<string, string> & DeclaredHeaders<TOptions>
   client?: Client
-  throwOnError?: ThrowOnError
+  throwOnError?: never
 }
 
 /**
- * What a generated function resolves to: the success body or a declared 4xx failure. `ThrowOnError` is part of the
- * generated signature and is ignored (see `RequestConfig.throwOnError`).
+ * What a generated function resolves to: the success body or an error CAS answered with. `ThrowOnError` is kubb's and
+ * is ignored (see `Options`).
  */
 // oxlint-disable-next-line no-unused-vars -- the generated functions pass ThrowOnError
-export type RequestResult<Responses, ThrowOnError extends boolean = true> = Result<SuccessOf<Responses>, ErrorCodeOf<Responses>>
+export type RequestResult<Responses, ThrowOnError extends boolean = false> = Result<SuccessOf<Responses>, ErrorCodeOf<Responses>>
 
 /** The OAuth2 error body of a failed OIDC call (RFC 6749 §5.2), which every JSON failure of these endpoints uses. */
 interface OAuthErrorBody {
@@ -153,7 +176,7 @@ const readBody = async (response: Response): Promise<unknown> => {
 
 const asMessage = (value: unknown, fallback: string): string => (typeof value === 'string' ? value : fallback)
 
-/** A failed response as a declared failure (a 4xx with a readable code), or the `ApiError` to throw for anything else. */
+/** An error response as the failure CAS answered with, or the `ApiError` to throw when its body carries no code. */
 const toFailure = async (response: Response): Promise<{ ok: false; error: ApiFailure } | ApiError> => {
   const body = await readBody(response)
   const fallback = response.statusText || 'Request failed'
@@ -166,10 +189,7 @@ const toFailure = async (response: Response): Promise<{ ok: false; error: ApiFai
   if (declared === undefined) {
     return new ApiError(response.status, UNKNOWN_ERROR_CODE, fallback, { headers: response.headers })
   }
-  if (response.status >= 400 && response.status < 500) {
-    return { ok: false, error: { status: response.status, ...declared, headers: response.headers } }
-  }
-  return new ApiError(response.status, declared.code, declared.message, { headers: response.headers })
+  return { ok: false, error: { status: response.status, ...declared, headers: response.headers } }
 }
 
 /** The body as it goes on the wire, and the content type it needs when the caller named none. */

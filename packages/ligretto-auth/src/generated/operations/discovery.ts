@@ -11,8 +11,8 @@ import { client } from '#client'
  * @summary The OpenID Provider metadata (OpenID Connect Discovery 1.0 §3).
  * {@link /.well-known/openid-configuration}
  */
-export function discovery<ThrowOnError extends boolean = true>(options: Options<DiscoveryOptions, ThrowOnError> = {}): Promise<RequestResult<DiscoveryResponses, ThrowOnError>> {
+export function discovery<ThrowOnError extends boolean = false>(options: Options<DiscoveryOptions, ThrowOnError> = {}): Promise<RequestResult<DiscoveryResponses, ThrowOnError>> {
   const { client: request = client, ...config } = options
 
-  return request({ method: 'GET', url: '/.well-known/openid-configuration', ...config, throwOnError: config.throwOnError ?? true }) as Promise<RequestResult<DiscoveryResponses, ThrowOnError>>
+  return request({ method: 'GET', url: '/.well-known/openid-configuration', ...config, throwOnError: config.throwOnError ?? false }) as Promise<RequestResult<DiscoveryResponses, ThrowOnError>>
 }

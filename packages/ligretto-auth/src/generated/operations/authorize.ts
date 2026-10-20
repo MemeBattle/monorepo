@@ -18,8 +18,8 @@ import { client } from '#client'
  * @summary The authorization endpoint: the authorization code flow with PKCE.
  * {@link /oidc/authorize}
  */
-export function authorize<ThrowOnError extends boolean = true>(options: Options<AuthorizeOptions, ThrowOnError> = {}): Promise<RequestResult<AuthorizeResponses, ThrowOnError>> {
+export function authorize<ThrowOnError extends boolean = false>(options: Options<AuthorizeOptions, ThrowOnError> = {}): Promise<RequestResult<AuthorizeResponses, ThrowOnError>> {
   const { client: request = client, ...config } = options
 
-  return request({ method: 'GET', url: '/oidc/authorize', ...config, throwOnError: config.throwOnError ?? true }) as Promise<RequestResult<AuthorizeResponses, ThrowOnError>>
+  return request({ method: 'GET', url: '/oidc/authorize', ...config, throwOnError: config.throwOnError ?? false }) as Promise<RequestResult<AuthorizeResponses, ThrowOnError>>
 }

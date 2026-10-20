@@ -13,8 +13,8 @@ import { client } from '#client'
  * response nobody reads.
  * {@link /oidc/authorize}
  */
-export function authorizeHead<ThrowOnError extends boolean = true>(options: Options<AuthorizeHeadOptions, ThrowOnError> = {}): Promise<RequestResult<AuthorizeHeadResponses, ThrowOnError>> {
+export function authorizeHead<ThrowOnError extends boolean = false>(options: Options<AuthorizeHeadOptions, ThrowOnError> = {}): Promise<RequestResult<AuthorizeHeadResponses, ThrowOnError>> {
   const { client: request = client, ...config } = options
 
-  return request({ method: 'HEAD', url: '/oidc/authorize', ...config, throwOnError: config.throwOnError ?? true }) as Promise<RequestResult<AuthorizeHeadResponses, ThrowOnError>>
+  return request({ method: 'HEAD', url: '/oidc/authorize', ...config, throwOnError: config.throwOnError ?? false }) as Promise<RequestResult<AuthorizeHeadResponses, ThrowOnError>>
 }

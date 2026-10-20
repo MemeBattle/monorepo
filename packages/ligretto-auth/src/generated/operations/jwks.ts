@@ -11,8 +11,8 @@ import { client } from '#client'
  * @summary The published signing keys, a JWK Set (RFC 7517).
  * {@link /oidc/jwks.json}
  */
-export function jwks<ThrowOnError extends boolean = true>(options: Options<JwksOptions, ThrowOnError> = {}): Promise<RequestResult<JwksResponses, ThrowOnError>> {
+export function jwks<ThrowOnError extends boolean = false>(options: Options<JwksOptions, ThrowOnError> = {}): Promise<RequestResult<JwksResponses, ThrowOnError>> {
   const { client: request = client, ...config } = options
 
-  return request({ method: 'GET', url: '/oidc/jwks.json', ...config, throwOnError: config.throwOnError ?? true }) as Promise<RequestResult<JwksResponses, ThrowOnError>>
+  return request({ method: 'GET', url: '/oidc/jwks.json', ...config, throwOnError: config.throwOnError ?? false }) as Promise<RequestResult<JwksResponses, ThrowOnError>>
 }

@@ -12,8 +12,8 @@ import { client } from '#client'
  * handler and end a session for a response nobody reads.
  * {@link /oidc/end_session}
  */
-export function endSessionHead<ThrowOnError extends boolean = true>(options: Options<EndSessionHeadOptions, ThrowOnError> = {}): Promise<RequestResult<EndSessionHeadResponses, ThrowOnError>> {
+export function endSessionHead<ThrowOnError extends boolean = false>(options: Options<EndSessionHeadOptions, ThrowOnError> = {}): Promise<RequestResult<EndSessionHeadResponses, ThrowOnError>> {
   const { client: request = client, ...config } = options
 
-  return request({ method: 'HEAD', url: '/oidc/end_session', ...config, throwOnError: config.throwOnError ?? true }) as Promise<RequestResult<EndSessionHeadResponses, ThrowOnError>>
+  return request({ method: 'HEAD', url: '/oidc/end_session', ...config, throwOnError: config.throwOnError ?? false }) as Promise<RequestResult<EndSessionHeadResponses, ThrowOnError>>
 }

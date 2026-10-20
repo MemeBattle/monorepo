@@ -8,7 +8,7 @@
  *
  * The output is a pure function of the description: keys, statuses and codes are sorted with a plain comparison (no
  * locale), and the template is fixed with nothing stamped into it. Regenerating an unchanged description rewrites
- * the same bytes, which is what the pull request job diffs.
+ * the same bytes, so a regeneration shows up in a diff only when the description changed.
  *
  * Dev-time only. It runs under Node, after `kubb generate` has emptied `src/generated`; nothing in `src/` imports it.
  */
