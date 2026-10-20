@@ -93,7 +93,7 @@ impl utoipa::IntoResponses for AuthorizeResponses {
             )
             .extensions(Some(error_codes(&codes)))
             .build();
-        let mut responses = ErrorPage::responses();
+        let mut responses = ErrorPage::responses(&ErrorPage::DECLARED);
         responses.insert(StatusCode::FOUND.as_str().to_owned(), RefOr::T(redirect));
         responses
     }

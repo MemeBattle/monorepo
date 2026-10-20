@@ -13,6 +13,7 @@ pub(crate) mod extract;
 mod fetch_metadata;
 pub mod health;
 pub(crate) mod openapi;
+pub(crate) mod page;
 pub mod response;
 
 use axum::{
@@ -48,6 +49,8 @@ use crate::db::{CloseOutcome, Db};
 use crate::deadline::{DeadlineExpired, with_deadline};
 use crate::http::error::ApiError;
 use crate::http::fetch_metadata::AllowedOrigins;
+use crate::identities::http as identities_http;
+use crate::identities::{IdentityService, Providers};
 use crate::oidc::http::{self as oidc_http, Documents};
 use crate::oidc::{
     AuthorizationService, Discovery, EndSessionService, SigningKeyError, SigningKeys, TokenService,
@@ -96,6 +99,8 @@ pub struct ApiState {
     pub upgrade: UpgradeService,
     pub passkeys: PasskeyManagement,
     pub accounts: AccountManagement,
+    /// Signing in with, and linking, external identity providers (ADR 0023).
+    pub identities: IdentityService,
     pub sessions: SessionService,
     pub cookies: CookieSettings,
     pub authorization: AuthorizationService,
@@ -240,6 +245,10 @@ pub fn build_app(parts: AppParts, db: Db, health: OpenApiRouter) -> NormalizePat
     } = parts;
     let verifying_keys = signing_keys.verifying_keys();
 
+    // One handle on the sessions service: the identities service delegates
+    // session issuance to it rather than writing sessions of its own.
+    let sessions = SessionService::new(db.clone());
+
     let api_state = ApiState {
         registration: RegistrationService::new(webauthn.clone(), db.clone()),
         login: LoginService::new(webauthn.clone(), db.clone()),
@@ -247,7 +256,16 @@ pub fn build_app(parts: AppParts, db: Db, health: OpenApiRouter) -> NormalizePat
         upgrade: UpgradeService::new(webauthn, db.clone()),
         passkeys: PasskeyManagement::new(db.clone()),
         accounts: AccountManagement::new(db.clone()),
-        sessions: SessionService::new(db.clone()),
+        identities: IdentityService::new(
+            db.clone(),
+            // No real provider ships with this release: Telegram is #754,
+            // GitHub #759, the dev mock #760. Until one registers, every
+            // start answers `unknown_provider`.
+            Providers::empty(),
+            sessions.clone(),
+            issuer.clone(),
+        ),
+        sessions,
         cookies,
         authorization: AuthorizationService::new(db.clone()),
         tokens: TokenService::new(db.clone(), signing_keys.active().clone(), issuer.clone()),
@@ -269,6 +287,7 @@ pub fn build_app(parts: AppParts, db: Db, health: OpenApiRouter) -> NormalizePat
         .merge(oidc_http::authorize_router(api_state.clone()))
         .merge(oidc_http::token_router(api_state.clone()))
         .merge(oidc_http::end_session_router(api_state.clone()))
+        .merge(identities_http::callback_router(api_state.clone()))
         .nest(
             "/api",
             api_router(api_state, AllowedOrigins::new(cors_origins.clone())),
@@ -413,6 +432,7 @@ fn api_router(state: ApiState, origins: AllowedOrigins) -> OpenApiRouter {
     let api = OpenApiRouter::new()
         .nest("/webauthn", webauthn_http::router(state.clone()))
         .nest("/passkeys", webauthn_http::passkeys::router(state.clone()))
+        .nest("/identities", identities_http::router(state.clone()))
         .merge(sessions_http::router(state.clone()))
         .merge(accounts_http::router(state))
         .fallback(not_found);

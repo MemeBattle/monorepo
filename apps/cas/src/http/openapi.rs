@@ -404,7 +404,7 @@ mod tests {
     use uuid::Uuid;
 
     use super::*;
-    use crate::http::error::ApiError;
+    use crate::http::error::{ApiError, INVALID_PATH};
     use crate::http::fetch_metadata::{AllowedOrigins, CROSS_SITE_REQUEST};
     use crate::http::response::oauth_error_schema;
     use crate::http::{api_router, app};
@@ -557,6 +557,10 @@ mod tests {
             ("/api/passkeys/verify-registration", Method::POST),
             ("/api/passkeys/{id}", Method::PATCH),
             ("/api/passkeys/{id}", Method::DELETE),
+            ("/api/identities/{provider}/sign-in-options", Method::POST),
+            ("/api/identities/{provider}/link-options", Method::POST),
+            ("/identities/{provider}/callback", Method::GET),
+            ("/identities/{provider}/callback", Method::HEAD),
         ]
         .into_iter()
         .map(|(path, method)| (path.to_owned(), method))
@@ -601,7 +605,12 @@ mod tests {
                         "{method} {path}"
                     );
                 }
-                "/oidc/authorize" | "/oidc/end_session" if method != Method::HEAD => {
+                // The endpoints a browser navigates to answer a failure with
+                // CAS's own page, so their 500 carries the HTML shape beside
+                // the JSON fallback (`http::page`).
+                "/oidc/authorize" | "/oidc/end_session" | "/identities/{provider}/callback"
+                    if method != Method::HEAD =>
+                {
                     assert_eq!(codes, ["internal", "internal_error"], "{method} {path}");
                     assert_eq!(json_schema, &fallback, "{method} {path}");
                     assert_eq!(
@@ -789,8 +798,11 @@ mod tests {
     /// of its own (logout revokes the one it is given): a path parameter
     /// that is not a uuid is 400 `invalid_path`; a body that is not JSON,
     /// one of the wrong shape and one without a content type are
-    /// `invalid_body` at 400, 422 and 415. Cases come from the document:
-    /// an operation without the extractor gets none.
+    /// `invalid_body` at 400, 422 and 415. Cases come from the document: an
+    /// operation without the extractor gets none, and a path parameter that
+    /// is not a uuid — a provider's slug — is not one the `Path` extractor
+    /// can refuse, so only the operations declaring `invalid_path` are held
+    /// to it.
     #[sqlx::test]
     async fn every_api_operation_rejects_bad_input_as_declared_when_signed_in(pool: PgPool) {
         let api = api_router(test_state(pool.clone()), AllowedOrigins::new(vec![]));
@@ -800,8 +812,10 @@ mod tests {
         let mut cases = 0;
 
         for (path, method, operation) in operations(&document) {
-            let has_parameter = path.contains('{');
-            if has_parameter {
+            let declares_invalid_path = response_codes(&operation["responses"]["400"])
+                .iter()
+                .any(|code| code == INVALID_PATH);
+            if path.contains('{') && declares_invalid_path {
                 let cookie = signed_in(&pool, "Ada").await.cookie;
                 let mut request = Request::builder()
                     .method(method.clone())
@@ -824,9 +838,13 @@ mod tests {
                     "not json",
                     StatusCode::BAD_REQUEST,
                 ),
+                // A string is not a body shape any operation has: serde
+                // fills a struct from a map and from a sequence alike, so
+                // `[]` is a valid body for one whose every field has a
+                // default.
                 (
                     Some("application/json"),
-                    "[]",
+                    r#""not an object""#,
                     StatusCode::UNPROCESSABLE_ENTITY,
                 ),
                 (None, "{}", StatusCode::UNSUPPORTED_MEDIA_TYPE),
@@ -845,8 +863,8 @@ mod tests {
             }
         }
 
-        // Two path-parameter cases and six bodies times three.
-        assert_eq!(cases, 2 + 6 * 3);
+        // Two path-parameter cases and eight bodies times three.
+        assert_eq!(cases, 2 + 8 * 3);
     }
 
     async fn declared() -> &'static str {

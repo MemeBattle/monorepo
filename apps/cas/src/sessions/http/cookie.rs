@@ -1,10 +1,11 @@
 //! The session cookie: the one place its name and attributes are decided.
 
-use axum::http::{HeaderMap, header};
+use axum::http::HeaderMap;
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use time::OffsetDateTime;
 use webauthn_rs::prelude::Url;
 
+use crate::http::extract::presented_cookie;
 use crate::sessions::{Session, SessionToken};
 
 /// The name itself, as a macro so that the prefixed spelling below is this
@@ -62,28 +63,12 @@ impl CookieSettings {
     }
 
     /// The value the request presents under the session cookie's name, or
-    /// `None` when it presents nothing under that name. Read straight from
-    /// the `Cookie` header(s) with the name compared byte for byte, without
-    /// percent-decoding.
-    ///
-    /// The decoding jar (`axum_extra::extract::CookieJar`) is not used here
-    /// on purpose. It percent-decodes names, so `%5F%5FHost-cas_session`
-    /// would be read as `__Host-cas_session`, while a browser keeps names as
-    /// written (RFC 6265bis §5.6) and applies the `__Host-` rules only to a
-    /// name that literally starts with the prefix. A sibling subdomain could
-    /// therefore set a domain-wide cookie under the encoded spelling, which
-    /// the browser would accept and send here, and a decoding lookup would
-    /// take it for the real one: cookie tossing through the back door the
-    /// prefix is meant to close. Matching the wire name shuts it.
+    /// `None` when it presents nothing under that name. Matched on the wire,
+    /// undecoded, for the reason
+    /// [`presented_cookie`](crate::http::extract::presented_cookie) spells
+    /// out.
     pub fn presented(&self, headers: &HeaderMap) -> Option<String> {
-        headers
-            .get_all(header::COOKIE)
-            .iter()
-            .filter_map(|value| value.to_str().ok())
-            .flat_map(Cookie::split_parse)
-            .filter_map(Result::ok)
-            .find(|cookie| cookie.name() == self.name())
-            .map(|cookie| cookie.value().to_owned())
+        presented_cookie(headers, self.name())
     }
 
     /// The cookie that carries a session: sent when it is issued and again
@@ -126,6 +111,7 @@ impl CookieSettings {
 mod tests {
     use super::*;
     use crate::sessions::{SESSION_IDLE_TIMEOUT, SESSION_LIFETIME, as_time};
+    use axum::http::header;
     use uuid::Uuid;
 
     fn origin(value: &str) -> Url {

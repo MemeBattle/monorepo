@@ -61,6 +61,744 @@
         }
       }
     },
+    "/api/identities/{provider}/link-options": {
+      "post": {
+        "summary": "Starts linking an external provider to the signed-in account.",
+        "description": "The account comes from the session and is written into the flow row: the\ncallback finishes the link only under a session naming that same account\n(ADR 0023 (f)).",
+        "operationId": "start_identity_link",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "description": "The provider's slug.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlowStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The one-time flow cookie (`cas_identity_flow`, `__Host-cas_identity_flow` on an https origin): HttpOnly, SameSite=Lax, Path=/. The callback refuses a flow without it."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlowStartResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_body, invalid_return_to",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body",
+                            "invalid_return_to"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body",
+              "invalid_return_to"
+            ]
+          },
+          "401": {
+            "description": "unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unauthenticated"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "unauthenticated"
+            ]
+          },
+          "403": {
+            "description": "cross_site_request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "cross_site_request"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "cross_site_request"
+            ]
+          },
+          "404": {
+            "description": "unknown_provider",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unknown_provider"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "unknown_provider"
+            ]
+          },
+          "413": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "415": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "422": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "database_busy, database_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "database_busy",
+                            "database_unavailable"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "database_busy",
+              "database_unavailable"
+            ]
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/identities/{provider}/sign-in-options": {
+      "post": {
+        "summary": "Starts a sign-in with an external provider and answers with the address\nto send the browser to.",
+        "description": "Anonymous: signing in is what a browser with no session does. The flow\ncookie comes back with the URL, and the callback refuses a `state` without\nit.",
+        "operationId": "start_identity_sign_in",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "description": "The provider's slug.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlowStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The one-time flow cookie (`cas_identity_flow`, `__Host-cas_identity_flow` on an https origin): HttpOnly, SameSite=Lax, Path=/. The callback refuses a flow without it."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlowStartResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "invalid_body, invalid_return_to",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body",
+                            "invalid_return_to"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body",
+              "invalid_return_to"
+            ]
+          },
+          "403": {
+            "description": "cross_site_request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "cross_site_request"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "cross_site_request"
+            ]
+          },
+          "404": {
+            "description": "unknown_provider",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unknown_provider"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "unknown_provider"
+            ]
+          },
+          "413": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "415": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "422": {
+            "description": "invalid_body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_body"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_body"
+            ]
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "database_busy, database_unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "database_busy",
+                            "database_unavailable"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "database_busy",
+              "database_unavailable"
+            ]
+          }
+        }
+      }
+    },
     "/api/logout": {
       "post": {
         "summary": "Ends the session the cookie names and clears the cookie. Idempotent and\nnever a 401: a browser holding an expired or already revoked cookie is\nasking to forget it, and the answer to that is yes.",
@@ -3394,6 +4132,206 @@
         }
       }
     },
+    "/identities/{provider}/callback": {
+      "get": {
+        "summary": "Where the provider sends the browser back: finishes the flow the `state`\nnames and sends the browser on to the frontend.",
+        "operationId": "identity_callback",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "description": "The provider's slug.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "To the frontend at the flow's `return_to`: with the session cookie after a sign-in, with nothing new after a link. The flow cookie is cleared either way.",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Where the browser goes next."
+              },
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The removal of the flow cookie, the session cookie of the account that signed in, and the renewal of an existing session cookie when one was due."
+              }
+            }
+          },
+          "400": {
+            "description": "flow_not_found, foreign_flow, provider_denied, provider_exchange_failed",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "x-error-codes": [
+              "flow_not_found",
+              "foreign_flow",
+              "provider_denied",
+              "provider_exchange_failed"
+            ]
+          },
+          "403": {
+            "description": "link_session_mismatch",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "x-error-codes": [
+              "link_session_mismatch"
+            ]
+          },
+          "409": {
+            "description": "identity_already_linked",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "x-error-codes": [
+              "identity_already_linked"
+            ]
+          },
+          "500": {
+            "description": "internal, internal_error",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal",
+              "internal_error"
+            ]
+          },
+          "503": {
+            "description": "provider_unavailable, service_unavailable",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "x-error-codes": [
+              "provider_unavailable",
+              "service_unavailable"
+            ]
+          }
+        }
+      },
+      "head": {
+        "summary": "`HEAD /identities/{provider}/callback` is refused: axum would serve it\nfrom the `GET` handler, and a `HEAD` must not consume a flow.",
+        "operationId": "identity_callback_head",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "description": "The provider's slug.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "405": {
+            "description": "`HEAD` is refused: it must not act for a response nobody reads.",
+            "headers": {
+              "Allow": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The methods the endpoint serves."
+              }
+            }
+          },
+          "500": {
+            "description": "internal_error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "For the developer; clients branch on `code`."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ]
+          }
+        }
+      }
+    },
     "/oidc/authorize": {
       "get": {
         "summary": "The authorization endpoint: the authorization code flow with PKCE.",
@@ -4724,6 +5662,31 @@
             "description": "`none` is a public client, which authenticates with its `client_id`\nand proves itself with PKCE (OpenID Connect Core §9, ADR 0011)."
           },
           "userinfo_endpoint": {
+            "type": "string"
+          }
+        }
+      },
+      "FlowStartRequest": {
+        "type": "object",
+        "description": "What a start endpoint takes. `returnTo` is where the browser should end up\nonce the flow finishes: a path on the frontend, defaulted when absent.",
+        "properties": {
+          "returnTo": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A path, such as `/dashboard`. Anything that could send the browser\noff-site is refused rather than repaired."
+          }
+        }
+      },
+      "FlowStartResponse": {
+        "type": "object",
+        "description": "Where the frontend navigates to hand the browser over to the provider.",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
             "type": "string"
           }
         }

@@ -2,16 +2,20 @@
 //!
 //! List, rename and delete, each scoped to the account the session names: a
 //! passkey that belongs to someone else does not exist as far as this service
-//! is concerned. Deleting the last passkey is refused. There is no recovery
-//! in v1 (`docs/PLAN.md`), so an account without a passkey could never be
-//! signed into again; a second passkey is the safety net, and the rule keeps
-//! it from being kicked away. See `docs/adr/0006-passkey-management.md`.
+//! is concerned. Deleting the last **login method** is refused. There is no
+//! recovery in v1 (`docs/PLAN.md`), so an account with no way in could never
+//! be signed into again; a second way in is the safety net, and the rule
+//! keeps it from being kicked away. An external identity is such a way in
+//! (ADR 0023 (g)), so the count is passkeys plus identities. See
+//! `docs/adr/0006-passkey-management.md`.
 
 use sqlx::Connection;
 use thiserror::Error;
 use uuid::Uuid;
 
+use crate::accounts;
 use crate::db::Db;
+use crate::identities;
 use crate::webauthn::passkeys::{PasskeyCredential, PasskeyName};
 use crate::webauthn::repository::{self, PasskeyRepository};
 
@@ -23,10 +27,14 @@ pub enum ManagementError {
     #[error("passkey not found")]
     NotFound,
 
-    /// The account has exactly one passkey and it is the one to delete. With
-    /// no recovery in v1, removing it would lock the account out for good.
-    #[error("the last passkey cannot be removed; add another one first")]
-    LastPasskey,
+    /// This passkey is the account's only way in. With no recovery in v1,
+    /// removing it would lock the account out for good. An external identity
+    /// counts as a way in, so an account that has one may delete its last
+    /// passkey (ADR 0023 (g)).
+    #[error(
+        "the last login method cannot be removed; add another passkey or link an account first"
+    )]
+    LastLoginMethod,
 
     #[error(transparent)]
     Db(#[from] sqlx::Error),
@@ -68,23 +76,30 @@ impl PasskeyManagement {
         Ok(renamed)
     }
 
-    /// Deletes one of the account's passkeys, unless it is the last one.
+    /// Deletes one of the account's passkeys, unless it is its last login
+    /// method.
     ///
-    /// The account's passkey rows are locked first, so two deletes running
-    /// at once cannot both count two passkeys and both proceed: the second
-    /// waits, then counts what the first left. Sessions opened with the
-    /// deleted passkey are untouched (ADR 0004): a passkey is a way in, not
-    /// the session itself.
+    /// The transaction takes the account's row lock first, then the account's
+    /// passkey rows: two deletes of the two remaining passkeys at once would
+    /// both count two and both proceed, and the account row is where every
+    /// login-method change serialises — the future unlink of an identity
+    /// (#755) takes the same lock, so the two cannot pass each other by
+    /// counting different tables (ADR 0023 (g)). The second waits, then
+    /// counts what the first left.
+    ///
+    /// Sessions opened with the deleted passkey are untouched (ADR 0004): a
+    /// passkey is a way in, not the session itself.
     pub async fn delete(&self, account_id: Uuid, passkey_id: Uuid) -> Result<(), ManagementError> {
         let mut conn = self.db.acquire().await?;
         let mut tx = conn.begin().await?;
 
+        accounts::lock(&mut *tx, account_id).await?;
         let owned = repository::lock_passkeys(&mut *tx, account_id).await?;
         if !owned.contains(&passkey_id) {
             return Err(ManagementError::NotFound);
         }
-        if owned.len() == 1 {
-            return Err(ManagementError::LastPasskey);
+        if owned.len() == 1 && identities::count_identities(&mut *tx, account_id).await? == 0 {
+            return Err(ManagementError::LastLoginMethod);
         }
         // The row is locked and known to be the account's; a miss here would
         // be a bug in the lock, and treating it as "not found" is the honest
@@ -104,7 +119,7 @@ mod tests {
     use super::*;
     use sqlx::PgPool;
 
-    use crate::testing::{register_soft_passkey, test_passkey};
+    use crate::testing::{link_external_identity, register_soft_passkey, test_passkey};
     use crate::webauthn::passkeys::DEFAULT_PASSKEY_NAME;
 
     fn name(value: &str) -> PasskeyName {
@@ -182,7 +197,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn the_last_passkey_cannot_be_deleted(pool: PgPool) {
+    async fn the_last_login_method_cannot_be_deleted(pool: PgPool) {
         let (_, registered) = register_soft_passkey(&pool).await;
         let service = PasskeyManagement::new(pool);
 
@@ -191,8 +206,48 @@ mod tests {
             .await
             .unwrap_err();
 
-        assert!(matches!(error, ManagementError::LastPasskey));
+        assert!(
+            matches!(error, ManagementError::LastLoginMethod),
+            "{error:?}"
+        );
         assert_eq!(service.list(registered.account.id).await.unwrap().len(), 1);
+    }
+
+    /// An external identity is a way into the account, so the passkey is no
+    /// longer the last one (ADR 0023 (g)). The same account without the
+    /// identity is still refused, which the test above shows.
+    #[sqlx::test]
+    async fn the_only_passkey_goes_when_an_external_identity_remains(pool: PgPool) {
+        let (_, registered) = register_soft_passkey(&pool).await;
+        let account_id = registered.account.id;
+        link_external_identity(&pool, account_id, "42").await;
+        let service = PasskeyManagement::new(pool);
+
+        service
+            .delete(account_id, registered.credential.id)
+            .await
+            .expect("an account with an external identity keeps a way in");
+
+        assert!(service.list(account_id).await.unwrap().is_empty());
+    }
+
+    /// Someone else's identity is not a way into this account.
+    #[sqlx::test]
+    async fn another_accounts_identity_does_not_unlock_the_guard(pool: PgPool) {
+        let (_, registered) = register_soft_passkey(&pool).await;
+        let (_, other) = register_soft_passkey(&pool).await;
+        link_external_identity(&pool, other.account.id, "42").await;
+        let service = PasskeyManagement::new(pool);
+
+        let error = service
+            .delete(registered.account.id, registered.credential.id)
+            .await
+            .unwrap_err();
+
+        assert!(
+            matches!(error, ManagementError::LastLoginMethod),
+            "{error:?}"
+        );
     }
 
     #[sqlx::test]
@@ -237,7 +292,7 @@ mod tests {
         for delete in deletes {
             match delete.await.unwrap() {
                 Ok(()) => deleted += 1,
-                Err(ManagementError::LastPasskey) => refused += 1,
+                Err(ManagementError::LastLoginMethod) => refused += 1,
                 Err(error) => panic!("unexpected: {error}"),
             }
         }

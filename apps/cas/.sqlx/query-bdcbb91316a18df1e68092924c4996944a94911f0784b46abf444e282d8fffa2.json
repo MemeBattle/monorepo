@@ -1,0 +1,98 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM external_identity_flows\n           WHERE id = $1 AND expires_at > now()\n           RETURNING\n               provider AS \"provider: ProviderId\",\n               intent AS \"intent: Intent\",\n               pkce_verifier,\n               browser_hash,\n               account_id,\n               return_to",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "provider: ProviderId",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "external_identity_flows",
+            "name": "provider"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "intent: Intent",
+        "type_info": {
+          "Custom": {
+            "name": "external_identity_intent",
+            "kind": {
+              "Enum": [
+                "sign_in",
+                "link"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "external_identity_flows",
+            "name": "intent"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "pkce_verifier",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "external_identity_flows",
+            "name": "pkce_verifier"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "browser_hash",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "external_identity_flows",
+            "name": "browser_hash"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "account_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "external_identity_flows",
+            "name": "account_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "return_to",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "external_identity_flows",
+            "name": "return_to"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "bdcbb91316a18df1e68092924c4996944a94911f0784b46abf444e282d8fffa2"
+}

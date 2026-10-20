@@ -27,8 +27,12 @@ crate::api_errors!(PasskeyNameError => BAD_REQUEST "invalid_passkey_name",
 crate::api_errors! { ManagementError {
     NotFound => NOT_FOUND "passkey_not_found",
     // A conflict with the account's state, not a bad request: the same
-    // request succeeds once another passkey exists.
-    LastPasskey => CONFLICT "last_passkey",
+    // request succeeds once the account has another way in. The rule now
+    // counts login methods, not passkeys, but the wire code stays
+    // `last_passkey` — the generated client and the dashboard branch on it,
+    // and renaming it belongs with the frontend work that teaches them about
+    // identities (#758, ADR 0023 (g)).
+    LastLoginMethod => CONFLICT "last_passkey",
     Db(_) => from,
 } }
 
@@ -393,8 +397,11 @@ mod tests {
         assert_eq!(body["passkeys"][0]["name"], "Second");
     }
 
+    /// The rule counts login methods now (ADR 0023 (g)), but the wire code
+    /// stays `last_passkey`: the generated client and the dashboard branch on
+    /// it. The message is the one that changed, and it names both remedies.
     #[sqlx::test]
-    async fn deleting_the_last_passkey_is_a_conflict(pool: PgPool) {
+    async fn deleting_the_last_login_method_is_a_conflict(pool: PgPool) {
         let (cookie, _, passkey_id) = signed_in(&pool).await;
 
         let response = checked(router(test_state(pool)))
@@ -410,13 +417,29 @@ mod tests {
         assert_eq!(response.status(), StatusCode::CONFLICT);
         let body = body_json(response).await;
         assert_eq!(body["error"]["code"], "last_passkey");
-        assert!(
-            body["error"]["message"]
-                .as_str()
-                .unwrap()
-                .contains("add another one first"),
-            "{body}"
-        );
+        let message = body["error"]["message"].as_str().unwrap();
+        assert!(message.contains("add another passkey"), "{body}");
+        assert!(message.contains("link an account"), "{body}");
+    }
+
+    /// The same request succeeds once the account has another way in: an
+    /// external identity is one.
+    #[sqlx::test]
+    async fn the_last_passkey_goes_when_an_external_identity_remains(pool: PgPool) {
+        let (cookie, account_id, passkey_id) = signed_in(&pool).await;
+        crate::testing::link_external_identity(&pool, account_id, "42").await;
+
+        let response = checked(router(test_state(pool)))
+            .oneshot(request(
+                "DELETE",
+                &format!("/{passkey_id}"),
+                Some(&cookie),
+                None,
+            ))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
     }
 
     /// A path segment that is not a uuid is a 400 in the standard shape, not

@@ -191,6 +191,8 @@ pub enum SessionOrigin {
     IdTokenHint,
     /// The full session a finished guest upgrade rotated into.
     Upgrade,
+    /// A sign-in with an external identity provider (ADR 0023).
+    ExternalSignIn,
 }
 
 impl SessionOrigin {
@@ -202,6 +204,7 @@ impl SessionOrigin {
             Self::Login => "login",
             Self::IdTokenHint => "id_token_hint",
             Self::Upgrade => "upgrade",
+            Self::ExternalSignIn => "external_sign_in",
         }
     }
 }

@@ -78,7 +78,7 @@ impl utoipa::IntoResponses for EndSessionResponses {
                 string_header(r#"`"cache", "storage"`, when a session was ended."#),
             )
             .build();
-        let mut responses = ErrorPage::responses();
+        let mut responses = ErrorPage::responses(&ErrorPage::DECLARED);
         responses.insert(StatusCode::FOUND.as_str().to_owned(), RefOr::T(redirect));
         responses
     }
