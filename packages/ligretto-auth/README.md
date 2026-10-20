@@ -160,8 +160,10 @@ and §9:
   is over: the session is deleted and the typed error rethrown. An
   `UnusableGrantError` means CAS rotated and then answered an ID token this
   client cannot accept: the rotated tokens are written — the snapshot is not,
-  since the claims they came in were refused — and the error rethrown. Every
-  other failure leaves the session as it was.
+  since the claims they came in were refused — and the error rethrown. Their
+  access token is stored already expired, so the next ordinary call refreshes
+  for real instead of handing out a bundle this client refused. Every other
+  failure leaves the session as it was.
 - `beginSignIn(ctx, { sessionId?, scope?, prompt? })` starts a sign-in, and
   an upgrade when a session is named: it force-refreshes first and hints with
   the **newly issued** ID token, always, because CAS checks the hint's `exp`
@@ -304,7 +306,10 @@ repository keeps:
 - A rotation CAS has made is never dropped: a `refresh` whose ID token is
   refused leaves with the rotated tokens (`UnusableGrantError`) and
   `refreshSession` writes them, because the token the session presented is
-  spent either way and presenting it again would cost the whole grant.
+  spent either way and presenting it again would cost the whole grant. It
+  writes them as a spent access token, not a fresh session: tokens that
+  arrived with a refused ID token are stored to be presented, never to be
+  handed out.
 - A sign-in that completes retires the id it started from, the upgrade of the
   same account included: the session is the full account's afterwards, so the
   guest's id does not carry over (ADR 0015, session fixation). `sub` is what

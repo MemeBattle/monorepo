@@ -12,7 +12,12 @@ import type { AccountType } from './generated/models/AccountType'
 
 /** An application session: one grant, and the snapshot of the account it belongs to. Times are epoch milliseconds. */
 export interface Session {
-  /** This application's own session id, not CAS's: unguessable, and the key every lock is taken on. */
+  /**
+   * This application's own session id, not CAS's: unguessable, and the key every lock is taken on. Every code
+   * exchange brings a new one — a guest upgrade included, so that an id handed out to a guest never reaches a full
+   * account's grant (ADR 0015 on session fixation). Nothing outside a session's own row is keyed on it; `sub` is the
+   * id that stays.
+   */
   id: string
   /** The account id, stable across an upgrade. Key the application's data on it (§8). */
   sub: string
@@ -32,7 +37,7 @@ export interface Session {
   idToken: string
   /**
    * When this session's grant began, so `grantEndsAt` is always `createdAt` plus the 30 days. A refresh keeps it; a
-   * code exchange creates a new grant and moves both, even where the session keeps its id through an upgrade.
+   * code exchange creates a new grant, and with it a new session.
    */
   createdAt: number
 }

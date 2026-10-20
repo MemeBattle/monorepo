@@ -126,12 +126,17 @@ const sessionForNewGrant = (tokens: Tokens, at: number): Session => sessionOf(ne
  * The session with the tokens of a rotation that happened, and nothing else of it: the account snapshot stays the one
  * validated claims last gave, because the ID token these came in could not be validated. The rotated ID token is
  * stored all the same — it is the one CAS issued for this grant, and the one it was asked to replace is older still.
+ *
+ * The access token is stamped expired rather than given the lifetime CAS announced: this bundle came with an ID token
+ * the client refused, so the freshness skip below must not hand it out as a validated session. The next ordinary call
+ * therefore refreshes for real, presenting the rotated token — which validates once what refused the ID token (a key
+ * not yet published, a JWKS that could not be fetched) has passed, and fails again otherwise.
  */
 const withRotatedTokens = (session: Session, grant: Grant, at: number): Session => ({
   ...session,
   refreshToken: grant.refreshToken,
   accessToken: grant.accessToken,
-  accessTokenExpiresAt: at + grant.expiresIn * 1000,
+  accessTokenExpiresAt: at,
   idToken: grant.idToken,
 })
 
@@ -147,8 +152,9 @@ const isGrantOver = (failure: unknown): boolean => failure instanceof TokenEndpo
  * `invalid_grant` means the grant is over — expired, revoked, or retired by an upgrade: the session is deleted and
  * the typed error rethrown, for the caller to sign the user in again or mint a new guest. An `UnusableGrantError`
  * says CAS rotated and then answered an ID token this client cannot accept: the rotated tokens are written before
- * the error is rethrown, because the token the session presented is spent either way. Every other failure — CAS
- * away, the network — leaves the session as it was.
+ * the error is rethrown, because the token the session presented is spent either way — with the access token stamped
+ * expired, so a refusal never reads as a success on the next call. Every other failure — CAS away, the network —
+ * leaves the session as it was.
  */
 export const refreshSession = async (ctx: SessionContext, sessionId: string, options: RefreshSessionOptions = {}): Promise<Session> => {
   const { client, store, now = Date.now } = ctx

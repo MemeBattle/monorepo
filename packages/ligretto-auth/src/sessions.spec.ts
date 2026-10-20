@@ -215,9 +215,11 @@ describe('refreshSession', () => {
 
     expect(failure).toBeInstanceOf(UnusableGrantError)
     expect((failure as UnusableGrantError).cause).toMatchObject({ name: 'InvalidIdTokenError', code: 'invalid_signature' })
-    // The session holds what the rotation issued, and the snapshot is still the one validated claims gave it.
+    // The session holds what the rotation issued, and the snapshot is still the one validated claims gave it. The
+    // access token is stored expired: it came with the ID token that was refused, so it is not a validated session.
     await expect(store.getSession('session-1')).resolves.toMatchObject({
       refreshToken: cas.issuedRefreshTokens[0],
+      accessTokenExpiresAt: START,
       accountType: 'guest',
       displayName: null,
     })
@@ -225,6 +227,23 @@ describe('refreshSession', () => {
     // So the next refresh presents the rotated token, which is the one CAS expects: dropping it would have made this
     // a reuse, and CAS answers a reuse by revoking the grant.
     await expect(refreshSession(ctx, 'session-1', { force: true })).resolves.toMatchObject({ refreshToken: 'refresh-2' })
+    expect(cas.tokenRequests.map(request => request.form.get('refresh_token'))).toEqual(['seed-refresh', 'refresh-1'])
+  })
+
+  it('never answers an ordinary call with the bundle whose ID token it refused', async () => {
+    const { cas, ctx, store } = await context()
+    await store.saveSession(sessionWith())
+    cas.answer({ signWith: cas.otherKey, claims: { ...guestClaims(), nonce: undefined } }, { claims: { ...guestClaims(), nonce: undefined } })
+
+    await expect(refreshSession(ctx, 'session-1', { force: true })).rejects.toBeInstanceOf(UnusableGrantError)
+
+    // Default options, which is what every ordinary caller uses: the refusal must not turn into a success for the
+    // nine minutes the refused access token would otherwise have had. So this is a real refresh, validated, not the
+    // freshness skip handing out `access-1`.
+    const recovered = await refreshSession(ctx, 'session-1')
+
+    expect(recovered).toMatchObject({ accessToken: 'access-2', refreshToken: 'refresh-2' })
+    expect(cas.tokenRequests).toHaveLength(2)
     expect(cas.tokenRequests.map(request => request.form.get('refresh_token'))).toEqual(['seed-refresh', 'refresh-1'])
   })
 
