@@ -1,10 +1,10 @@
 {
   "compilerOptions": {
     "esModuleInterop": true,
-    // `@memebattle/ligretto-auth` exports source, so this project type-checks it: es2022 for `Error`'s `cause`, and
-    // dom for the fetch types `@types/node` does not declare (`RequestInfo`), as the package's own tsconfig has.
+    // `@memebattle/ligretto-auth` exports source, so this project type-checks it: es2022 for `Error`'s `cause`. The
+    // browser globals stay out — this service runs under plain Node, where `document` must be a type error.
     "target": "es2022",
-    "lib": ["es2022", "dom"],
+    "lib": ["es2022"],
     "types": ["node", "reflect-metadata"],
     "module": "NodeNext",
     "sourceMap": true,

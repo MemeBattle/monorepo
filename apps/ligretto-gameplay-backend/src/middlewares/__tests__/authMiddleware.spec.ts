@@ -1,4 +1,4 @@
-import { InvalidTokenError } from '@memebattle/ligretto-auth'
+import { DiscoveryError, InvalidTokenError } from '@memebattle/ligretto-auth'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createSocketMockImpl } from '../../../test/utils'
@@ -45,7 +45,9 @@ describe('authMiddleware', () => {
     expect(socket.data.userId).toBe('5f1e3e5c-0b2a-4d8e-9c3f-6a1b2c3d4e5f')
   })
 
-  it('refuses an ID token', async () => {
+  // The refusals differ only in the code they carry, so each case asserts its own: the message is deliberately the
+  // same opaque one, and without the code these tests would be the same test written three times.
+  it('refuses an ID token under the `wrong_typ` code', async () => {
     verifyAccessToken.mockRejectedValue(new InvalidTokenError('wrong_typ', 'An access token says `typ: at+jwt`; this one says "JWT".'))
     const socket = createSocketMockImpl({ data: {}, handshake: { auth: { token: 'id-token' } } })
     const next = vi.fn()
@@ -53,10 +55,11 @@ describe('authMiddleware', () => {
     await authMiddleware(socket, next)
 
     expect(next).toHaveBeenCalledWith(expect.any(Error))
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ message: 'Not authorized', data: { code: 'wrong_typ' } }))
     expect(socket.data.userId).toBeUndefined()
   })
 
-  it('refuses a token minted for another audience', async () => {
+  it('refuses a token minted for another audience under the `wrong_audience` code', async () => {
     verifyAccessToken.mockRejectedValue(new InvalidTokenError('wrong_audience', 'The token was minted for another audience.'))
     const socket = createSocketMockImpl({ data: {}, handshake: { auth: { token: 'other-audience-token' } } })
     const next = vi.fn()
@@ -64,6 +67,20 @@ describe('authMiddleware', () => {
     await authMiddleware(socket, next)
 
     expect(next).toHaveBeenCalledWith(expect.any(Error))
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ message: 'Not authorized', data: { code: 'wrong_audience' } }))
+    expect(socket.data.userId).toBeUndefined()
+  })
+
+  // Unreadable CAS metadata is not a judgement on the token: the client is told to retry, not to sign in again.
+  it('refuses the handshake under the discovery code when CAS metadata cannot be read', async () => {
+    verifyAccessToken.mockRejectedValue(new DiscoveryError('discovery_unavailable', 'The discovery document could not be fetched.'))
+    const socket = createSocketMockImpl({ data: {}, handshake: { auth: { token: 'access-token' } } })
+    const next = vi.fn()
+
+    await authMiddleware(socket, next)
+
+    expect(next).toHaveBeenCalledWith(expect.any(Error))
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ message: 'Not authorized', data: { code: 'discovery_unavailable' } }))
     expect(socket.data.userId).toBeUndefined()
   })
 
