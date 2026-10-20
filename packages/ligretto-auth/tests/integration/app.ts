@@ -9,6 +9,7 @@
 
 import { createAuthHandlers, createCasClient, createInMemorySessionStore } from '../../src/index'
 import type { CasClient, Session, SessionStore } from '../../src/index'
+import { parseSetCookie } from './cookies'
 import { startAppServer } from './server'
 import type { AppServer } from './server'
 
@@ -72,18 +73,6 @@ export interface Browser {
   present(name: string, value: string): void
 }
 
-/** A cookie's name and value from one `Set-Cookie`, with whether the answer was taking it back. */
-const parsed = (header: string): { name: string; value: string; removed: boolean } | undefined => {
-  const [pair, ...attributes] = header.split(';')
-  const separator = pair?.indexOf('=') ?? -1
-  if (pair === undefined || separator === -1) {
-    return undefined
-  }
-  const maxAge = attributes.map(attribute => attribute.trim().match(/^Max-Age=(-?\d+)$/i)?.[1]).find(value => value !== undefined)
-  const value = pair.slice(separator + 1).trim()
-  return { name: pair.slice(0, separator).trim(), value, removed: value === '' || (maxAge !== undefined && Number(maxAge) <= 0) }
-}
-
 const createBrowser = (baseUrl: string): Browser => {
   const jar = new Map<string, string>()
 
@@ -91,7 +80,7 @@ const createBrowser = (baseUrl: string): Browser => {
     const cookie = [...jar].map(([name, value]) => `${name}=${value}`).join('; ')
     const response = await fetch(url, { redirect: 'manual', headers: cookie === '' ? {} : { cookie } })
     for (const header of response.headers.getSetCookie()) {
-      const cookie = parsed(header)
+      const cookie = parseSetCookie(header)
       if (cookie === undefined) {
         continue
       }

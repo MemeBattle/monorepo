@@ -8,15 +8,16 @@
  */
 
 declare module 'node:http' {
-  interface IncomingMessage extends AsyncIterable<Uint8Array> {
+  interface IncomingMessage {
     readonly method?: string
     readonly url?: string
     readonly headers: Record<string, string | string[] | undefined>
   }
 
   interface ServerResponse {
+    readonly headersSent: boolean
     writeHead(status: number, headers?: Record<string, string | string[]>): void
-    end(body?: Uint8Array): void
+    end(body?: Uint8Array | string): void
   }
 
   interface Server {

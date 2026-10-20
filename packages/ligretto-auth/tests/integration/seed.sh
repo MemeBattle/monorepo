@@ -12,7 +12,8 @@
 #
 # Not idempotent, like apps/cas/scripts/seed-dev.sh and
 # apps/cas-frontend/e2e/seed.sh: a second run fails with "already exists",
-# which is the signal that the client is there. CAS keeps only a hash of the
+# which is the signal that the client is there and the only failure this
+# script reports as success. CAS keeps only a hash of the
 # secret, so a client that exists without .client-secret next to it (seeded
 # from another checkout) cannot be recovered: delete the client, or use a
 # fresh database, and run the script again.
@@ -34,7 +35,16 @@ cd "$integration_dir/../../../../apps/cas" || exit 1
 
 # stdout is the secret's channel (stderr carries the logs and the errors), so
 # it is captured whole and only the secret's line goes anywhere: to the file.
-if output="$(cargo run -p cas --bin cas-client -- register \
+#
+# stderr is captured too, and replayed below unchanged: a duplicate
+# registration is the one failure this script may treat as success, and the
+# only thing that tells it apart from Postgres being unreachable or the crate
+# not compiling is what cas-client said. Reading every nonzero exit as "it is
+# already there" would report a setup that never happened.
+errors="$(mktemp)"
+trap 'rm -f "$errors"' EXIT
+
+output="$(cargo run -p cas --bin cas-client -- register \
   --id ligretto-auth-test \
   --name "ligretto-auth integration" \
   --kind confidential \
@@ -45,7 +55,10 @@ if output="$(cargo run -p cas --bin cas-client -- register \
   --scope openid \
   --scope profile \
   --scope email \
-  --audience ligretto-auth-test)"; then
+  --audience ligretto-auth-test 2>"$errors")" && status=0 || status=$?
+cat "$errors" >&2
+
+if [ "$status" -eq 0 ]; then
   secret="$(printf '%s\n' "$output" | sed -n 's/^client_secret: //p')"
   if [ -z "$secret" ]; then
     echo "seed.sh: cas-client printed no client_secret for ligretto-auth-test" >&2
@@ -57,14 +70,21 @@ if output="$(cargo run -p cas --bin cas-client -- register \
   exit 0
 fi
 
+# `a client with the id ligretto-auth-test already exists`
+# (apps/cas/src/clients/registration.rs).
+if ! grep -q 'already exists' "$errors"; then
+  echo "seed.sh: registering ligretto-auth-test failed (cas-client exited $status); see the error above." >&2
+  exit 1
+fi
+
 if [ -s "$secret_file" ]; then
   echo "seed.sh: ligretto-auth-test is already registered and its secret is in .client-secret; nothing to do." >&2
   exit 0
 fi
 
 cat >&2 <<'EOF'
-seed.sh: ligretto-auth-test was not registered and tests/integration/.client-secret is missing.
-If the client already exists, its secret cannot be shown again. Remove it and run seed.sh again:
+seed.sh: ligretto-auth-test already exists and tests/integration/.client-secret is missing.
+Its secret cannot be shown again. Remove the client and run seed.sh again:
   psql "$DATABASE_URL" -c "DELETE FROM clients WHERE id = 'ligretto-auth-test'"
 or seed a fresh database.
 EOF

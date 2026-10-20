@@ -180,8 +180,12 @@ describe('ligretto-auth against a real CAS', () => {
 
       // Instead of registering: the login ceremony with Ada's passkey, which installs a **full** CAS session — what a
       // user parked on create-account does when they already have an account.
+      //
+      // The account type is what proves the promotion: the upgrade session this browser already carried answers
+      // `/api/me` too (ADR 0018), as a guest, so only `full` says `verify-login` replaced it with a full session.
+      expect(await other.accountType(), 'the upgrade session answers as the guest it belongs to').toBe('guest')
       await other.signIn()
-      expect(await other.isSignedIn()).toBe(true)
+      expect(await other.accountType(), 'the login ceremony installs a full CAS session').toBe('full')
       // The `return_to` CAS handed out carries no hint, so at authorize the full session wins and a code is issued.
       const secondCallback = redirectOf(await other.followReturnTo(secondScreen, '/create-account'))
       expect(secondCallback.pathname).toBe('/auth/callback')
@@ -210,6 +214,11 @@ describe('ligretto-auth against a real CAS', () => {
       expect(after.signedOut, 'the row the refresh read named a full account').toBe(true)
 
       // (d) Logout ends both sides.
+      //
+      // Kept aside before the logout: `end_session` answers with a removal cookie, so after following it this browser
+      // holds nothing and `/api/me` would be a 401 whatever CAS did server-side. Presenting this copy afterwards is
+      // what can only be refused by a session CAS actually ended.
+      const casCookie = other.heldCookie()
       const loggedOut = await second.browser.visit('/auth/logout')
       expect(loggedOut.status).toBe(302)
       const endSession = new URL(loggedOut.headers.get('location') ?? '')
@@ -221,7 +230,10 @@ describe('ligretto-auth against a real CAS', () => {
 
       const home = redirectOf(await other.visit(endSession))
       expect(home.toString()).toBe(APP_URL)
-      expect(await other.isSignedIn(), "end_session was reached and ended CAS's own session").toBe(false)
+      expect(other.holdsCookie(), "end_session takes CAS's own cookie off the browser").toBe(false)
+
+      other.present(casCookie)
+      expect(await other.isSignedIn(), "end_session ended CAS's session, not only the browser's copy of its cookie").toBe(false)
 
       // A stale copy of the logged-out id — another tab, another device, a cookie the `Set-Cookie` never reached:
       // presenting it mints a guest and reports nothing, because the row it would be refused against is gone

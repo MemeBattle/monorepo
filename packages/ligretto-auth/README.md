@@ -402,7 +402,7 @@ client is one `seed.sh` registered, the four handlers are served over a real
 local socket and driven with real `fetch`, and the sign-in ceremonies are
 performed with a software passkey against CAS's own `/api`.
 
-Three tests, each one sequential story:
+Three tests against CAS, each one sequential story:
 
 1. **Discovery parity** — the document CAS serves equals the one
    `src/test-support/cas.ts` serves the unit suite, modulo the issuer. This is
@@ -417,15 +417,21 @@ Three tests, each one sequential story:
    `/create-account` keeping its `sub`, a sign-in to an existing account
    replacing the session and reporting `previous_sub`, a full account's revoked
    grant reported as `signedOut: true`, and a logout that reaches CAS's
-   `end_session` and ends the browser's CAS session.
+   `end_session`, after which the CAS session cookie kept aside beforehand is
+   refused — the session itself ended, not only the browser's copy of it.
+
+`server.spec.ts` next to them pins the fixture's own failure path: a handler
+that throws is answered `500` with its failure rather than left unanswered for
+a test to report as a timeout.
 
 `ligretto-auth-pr.yml` runs it on every pull request touching this package or
-`apps/cas`. Locally:
+`apps/cas`. Locally, every line from the repository root:
 
 ```sh
-cd apps/cas && docker compose up -d --wait && cargo run -p cas --bin cas-migrate
+docker compose -f apps/cas/docker-compose.yml up -d --wait
+cargo run -p cas --bin cas-migrate
 packages/ligretto-auth/tests/integration/seed.sh   # once per database
-cargo run -p cas &                                  # from apps/cas
+cargo run -p cas &
 pnpm exec wait-on --timeout 60000 http-get://127.0.0.1:3000/health
 LIGRETTO_AUTH_CLIENT_SECRET="$(cat packages/ligretto-auth/tests/integration/.client-secret)" \
   pnpm run --filter @memebattle/ligretto-auth test:integration
@@ -436,7 +442,9 @@ guest-login-allowed, scopes `openid profile email`, audience
 `ligretto-auth-test`, callback on the reserved `.test` TLD — and writes the
 secret CAS printed once to `tests/integration/.client-secret` (gitignored, mode
 600). It is not idempotent: a second run says "already exists", which is the
-signal that the client is there. `CAS_ISSUER` overrides
+signal that the client is there, and exits zero when the secret is still next
+to it — the one failure it reads as success, so a database it could not reach
+is reported as the failure it is. `CAS_ISSUER` overrides
 `http://localhost:3000`.
 
 ## Scripts

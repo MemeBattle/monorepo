@@ -16,9 +16,6 @@ import { createServer } from 'node:http'
 import type { IncomingMessage } from 'node:http'
 import type { AuthHandlers } from '../../src/index'
 
-/** A request with no body is a `GET` or a `HEAD`, which `Request` refuses to carry one for. */
-const BODILESS_METHODS = new Set(['GET', 'HEAD'])
-
 /** The routes, at the paths `appUrl` and the registered redirect URI name. */
 const routeOf = (handlers: AuthHandlers, pathname: string): ((request: Request) => Promise<Response>) | undefined => {
   switch (pathname) {
@@ -54,22 +51,6 @@ const headersOf = (incoming: Record<string, string | string[] | undefined>): Hea
   return headers
 }
 
-const bodyOf = async (incoming: AsyncIterable<Uint8Array>): Promise<Uint8Array<ArrayBuffer>> => {
-  const chunks: Uint8Array[] = []
-  let size = 0
-  for await (const chunk of incoming) {
-    chunks.push(chunk)
-    size += chunk.length
-  }
-  const body = new Uint8Array(size)
-  let at = 0
-  for (const chunk of chunks) {
-    body.set(chunk, at)
-    at += chunk.length
-  }
-  return body
-}
-
 const answer = async (handlers: AuthHandlers, incoming: IncomingMessage): Promise<Response> => {
   const method = incoming.method ?? 'GET'
   const headers = headersOf(incoming.headers)
@@ -81,8 +62,9 @@ const answer = async (handlers: AuthHandlers, incoming: IncomingMessage): Promis
     return new Response(`No route at ${url.pathname}\n`, { status: 404, headers: { 'Content-Type': 'text/plain' } })
   }
 
-  const body = BODILESS_METHODS.has(method) ? undefined : await bodyOf(incoming)
-  return await route(new Request(url, { method, headers, body }))
+  // No body is read: all four handlers are `GET` by the package's contract, and every request the suite sends is a
+  // navigation. An adapter that carries a body belongs with the consumer-side adapter of #814, behind a test.
+  return await route(new Request(url, { method, headers }))
 }
 
 /**
@@ -108,7 +90,15 @@ export const startAppServer = async (handlers: AuthHandlers): Promise<AppServer>
       }
       outgoing.writeHead(response.status, headers)
       outgoing.end(new Uint8Array(await response.arrayBuffer()))
-    })()
+    })().catch((failure: unknown) => {
+      // A handler or the adapter itself threw, which is precisely the unhandled failure a 500 is for. Answering it
+      // is what keeps the socket from being left open: unanswered, the test would block until its 120 s timeout and
+      // report that timeout instead of the stack, and a story this long costs a whole CI run to diagnose twice.
+      if (!outgoing.headersSent) {
+        outgoing.writeHead(500, { 'Content-Type': 'text/plain' })
+      }
+      outgoing.end(`The test HTTP adapter failed: ${failure instanceof Error ? (failure.stack ?? failure.message) : String(failure)}\n`)
+    })
   })
 
   const port = await new Promise<number>(resolve => {

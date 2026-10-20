@@ -7,6 +7,7 @@
  * not the relying party, which takes every endpoint from the discovery document.
  */
 
+import { parseSetCookie } from './cookies'
 import { createSoftPasskey } from './soft-passkey'
 import type { CreationOptions, RequestOptions, SoftPasskey } from './soft-passkey'
 
@@ -41,10 +42,27 @@ export interface CasUser {
   createAccount(displayName: string): Promise<void>
   /** The login ceremony: an assertion from this authenticator's passkey, which installs a **full** CAS session. */
   signIn(): Promise<void>
-  /** Whether CAS sees a signed-in account behind the cookie, as cas-frontend asks it. */
+  /**
+   * Whether CAS answers the cookie the browser holds at all, as cas-frontend asks it.
+   *
+   * An upgrade session answers too (ADR 0018), so this says "CAS knows this cookie", not "a full account is signed
+   * in": a step that must know a ceremony promoted the session asks `accountType` instead.
+   */
   isSignedIn(): Promise<boolean>
+  /** What `/api/me` says the account behind the cookie is, or `undefined` when CAS refuses the cookie. */
+  accountType(): Promise<'guest' | 'full' | undefined>
   /** Whether the browser holds a cookie from CAS at all. */
   holdsCookie(): boolean
+  /**
+   * The cookie the browser holds, as `name=value`, for keeping one aside before an answer takes it back; a step that
+   * does that cannot proceed without one, so this fails rather than returning nothing.
+   */
+  heldCookie(): string
+  /**
+   * Puts a cookie back, for presenting one an answer took away: a browser logged out elsewhere still holds its
+   * session cookie, and whether CAS still honours it is a question only the cookie can ask.
+   */
+  present(cookie: string): void
   /**
    * What cas-frontend does after a ceremony: CAS sent the browser to `screen` with `return_to`, and the frontend
    * navigates back to that URL on CAS. The redirect is checked to be the screen expected before it is followed.
@@ -84,15 +102,12 @@ export const createCasUser = (issuer: string, passkey: SoftPasskey = createSoftP
     }
     const response = await fetch(url, { method, headers, redirect: 'manual', body: body === undefined ? undefined : JSON.stringify(body) })
     for (const header of response.headers.getSetCookie()) {
-      const [pair, ...attributes] = header.split(';')
-      const separator = pair?.indexOf('=') ?? -1
-      if (pair === undefined || separator === -1) {
+      // One cookie is all CAS sets, so the jar is that one value rather than a map: whatever the last answer said.
+      const set = parseSetCookie(header)
+      if (set === undefined) {
         continue
       }
-      const value = pair.slice(separator + 1).trim()
-      const maxAge = attributes.map(attribute => attribute.trim().match(/^Max-Age=(-?\d+)$/i)?.[1]).find(found => found !== undefined)
-      const removed = value === '' || (maxAge !== undefined && Number(maxAge) <= 0)
-      cookie = removed ? undefined : `${pair.slice(0, separator).trim()}=${value}`
+      cookie = set.removed ? undefined : `${set.name}=${set.value}`
     }
     return response
   }
@@ -126,20 +141,33 @@ export const createCasUser = (issuer: string, passkey: SoftPasskey = createSoftP
     await api('POST', 'webauthn/verify-login', { loginId: options.loginId, response: answer })
   }
 
-  const isSignedIn = async (): Promise<boolean> => {
+  /** `GET /api/me` as cas-frontend asks it: the account CAS resolved the cookie to, or `undefined` for a `401`. */
+  const whoAmI = async (): Promise<{ accountType: 'guest' | 'full' } | undefined> => {
     const response = await send('GET', new URL('/api/me', issuer))
-    if (response.status !== 200 && response.status !== 401) {
-      throw new Error(`GET /api/me answered ${response.status}: ${await response.text()}`)
+    const text = await response.text()
+    if (response.status === 401) {
+      return undefined
     }
-    return response.status === 200
+    if (response.status !== 200) {
+      throw new Error(`GET /api/me answered ${response.status}: ${text}`)
+    }
+    return JSON.parse(text) as { accountType: 'guest' | 'full' }
   }
 
   return {
     visit,
     createAccount,
     signIn,
-    isSignedIn,
+    isSignedIn: async () => (await whoAmI()) !== undefined,
+    accountType: async () => (await whoAmI())?.accountType,
     holdsCookie: () => cookie !== undefined,
+    heldCookie: () => {
+      if (cookie === undefined) {
+        throw new Error('The browser holds no cookie from CAS.')
+      }
+      return cookie
+    },
+    present: given => void (cookie = given),
     followReturnTo: async (location, screen) => await visit(new URL(returnToOf(location, screen), issuer)),
   }
 }
