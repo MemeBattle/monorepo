@@ -16,9 +16,7 @@ use super::{
     InsertError, NewClient, NewClientError, RedirectUri, Scope, default_scope, repository,
 };
 
-/// What an operator asked for. A confidential client's secret is not part of
-/// it: CAS draws that itself, so a low-entropy secret cannot enter the table
-/// through the supported path.
+/// What an operator asked for.
 #[derive(Debug, Clone)]
 pub struct Registration {
     pub id: ClientId,
@@ -34,6 +32,15 @@ pub struct Registration {
     pub scopes: Vec<Scope>,
     /// `None` means the default, the client's own id.
     pub audience: Option<Audience>,
+    /// The secret of a confidential client. `None`, the normal case, means
+    /// CAS draws one, so a low-entropy secret cannot enter the table through
+    /// the supported path (ADR 0008 (b)). A value here is still machine
+    /// entropy in a release build, where [`ClientSecret::generate`] is the
+    /// only constructor; a *chosen* secret exists in development builds
+    /// alone, through `ClientSecret::try_dev`
+    /// (`docs/adr/0023-dev-only-client-secret.md`). A public client has no
+    /// secret at all, so a value with [`ClientKind::Public`] is refused.
+    pub secret: Option<ClientSecret>,
 }
 
 /// The registered client and, for a confidential one, the secret. This is the
@@ -52,6 +59,14 @@ pub enum RegisterError {
     #[error("a client with the id {0} already exists")]
     AlreadyExists(ClientId),
 
+    /// A public client authenticates with PKCE alone and holds no secret, so
+    /// a supplied one is a mistake rather than a value to drop. The binary
+    /// refuses the same combination at parse time; the invariant is held in
+    /// both places, as the kind/`secret_hash` pairing itself is
+    /// (ADR 0008 (b)).
+    #[error("a public client has no secret")]
+    SecretForPublicClient,
+
     #[error(transparent)]
     NewClient(#[from] NewClientError),
 
@@ -62,8 +77,8 @@ pub enum RegisterError {
     Db(sqlx::Error),
 }
 
-/// Registers a client and returns it, with the generated secret when the
-/// client is confidential.
+/// Registers a client and returns it, with its secret when the client is
+/// confidential: the one the registration supplied, or a generated one.
 ///
 /// Logged at `info` with the id and the kind. The secret appears in no log:
 /// it is written once, to the caller's stdout, by the binary.
@@ -75,9 +90,11 @@ pub async fn register(
     let audience = registration
         .audience
         .unwrap_or_else(|| Audience::from(&registration.id));
-    let secret = match registration.kind {
-        ClientKind::Public => None,
-        ClientKind::Confidential => Some(ClientSecret::generate()?),
+    let secret = match (registration.kind, registration.secret) {
+        (ClientKind::Public, None) => None,
+        (ClientKind::Public, Some(_)) => return Err(RegisterError::SecretForPublicClient),
+        (ClientKind::Confidential, Some(secret)) => Some(secret),
+        (ClientKind::Confidential, None) => Some(ClientSecret::generate()?),
     };
 
     let new_client = match &secret {
@@ -143,6 +160,7 @@ mod tests {
             guest_grants_per_minute: None,
             scopes: vec![scope("openid"), scope("profile")],
             audience: None,
+            secret: None,
         }
     }
 
@@ -190,6 +208,51 @@ mod tests {
         assert_eq!(stored, registered.client);
         assert!(stored.verify_secret(secret.expose()));
         assert!(!stored.verify_secret("wrong"));
+    }
+
+    /// The supplied secret is drawn with `generate()` rather than
+    /// `try_dev()`, which exists in debug builds alone: what is under test is
+    /// that `register` stores the secret it was handed, in either profile.
+    #[sqlx::test]
+    async fn a_supplied_secret_is_the_one_the_stored_row_verifies(pool: PgPool) {
+        let supplied = ClientSecret::generate().unwrap();
+        let mut registration = registration(ClientKind::Confidential);
+        registration.secret = Some(supplied.clone());
+
+        let registered = register(&pool, registration).await.unwrap();
+
+        assert_eq!(
+            registered.secret.as_ref().map(ClientSecret::expose),
+            Some(supplied.expose())
+        );
+        let stored = ClientRepository::new(pool)
+            .get(&client_id("ligretto"))
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(stored.verify_secret(supplied.expose()));
+        assert!(!stored.verify_secret(ClientSecret::generate().unwrap().expose()));
+    }
+
+    #[sqlx::test]
+    async fn a_supplied_secret_for_a_public_client_is_refused(pool: PgPool) {
+        let mut registration = registration(ClientKind::Public);
+        registration.secret = Some(ClientSecret::generate().unwrap());
+
+        let error = register(&pool, registration).await.unwrap_err();
+
+        assert!(
+            matches!(error, RegisterError::SecretForPublicClient),
+            "{error:?}"
+        );
+        assert_eq!(
+            ClientRepository::new(pool)
+                .get(&client_id("ligretto"))
+                .await
+                .unwrap(),
+            None,
+            "nothing is written"
+        );
     }
 
     #[sqlx::test]

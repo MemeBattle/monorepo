@@ -2,7 +2,8 @@
 //!
 //! A client is a row in `clients`: an id an operator picked, what it is
 //! allowed to ask for, and — for a confidential client — the SHA-256 of a
-//! secret CAS drew once. The registry has no HTTP surface of its own;
+//! secret CAS drew once (or, in a development build alone, was handed:
+//! `docs/adr/0023-dev-only-client-secret.md`). The registry has no HTTP surface of its own;
 //! `/oidc/authorize` and `/oidc/token` read it and own their own error mapping. Until
 //! the admin panel exists, rows are written by the `cas-client` binary
 //! through [`registration::register`]. See
@@ -33,6 +34,8 @@ pub use registration::{RegisterError, Registered, Registration};
 pub(crate) use repository::lock_guest_grant_limit;
 pub use repository::{ClientRepository, InsertError};
 pub use scope::{Scope, ScopeError};
+#[cfg(debug_assertions)]
+pub use secret::DevClientSecretError;
 pub use secret::{ClientSecret, SecretHash};
 
 /// The scope every client may request unless registration says otherwise:

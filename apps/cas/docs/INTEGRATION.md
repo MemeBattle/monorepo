@@ -103,11 +103,11 @@ cargo run -p cas --bin cas-client -- register \
 ```
 
 The same origin, callback and audience are used in every section below.
-`scripts/seed-dev.sh` registers a `ligretto` client with
-`http://localhost:5173/oidc/callback`, but its redirect URIs are placeholders
-until ligretto is wired to CAS (the script says so), and port 5173 is the
-CAS frontend, whose dev server proxies `/oidc` to CAS: a callback there
-would never reach your application. Register a client of your own.
+`scripts/seed-dev.sh` registers the `ligretto` client of this monorepo, with
+its own callback on ligretto-core-backend and its own stable development
+secret; neither URI is on port 5173, which is the CAS frontend, whose dev
+server proxies `/oidc` to CAS — a callback there would never reach an
+application. Register a client of your own.
 
 What each choice means for the integration:
 
@@ -733,9 +733,12 @@ To run your application against a local CAS:
    ```
 
 2. Register your application with its own dev origin and callback, as in
-   section 2. `scripts/seed-dev.sh` only seeds ligretto's placeholder
-   client. Keep the printed secret in your application's local
-   configuration.
+   section 2, and keep the printed secret in your application's local
+   configuration. `scripts/seed-dev.sh` seeds the `ligretto` client of this
+   monorepo alone: its callback on ligretto-core-backend, and the stable
+   development secret the monorepo's `.env.development` holds, which is why
+   that one needs no secret copied anywhere
+   ([ADR 0023](adr/0023-dev-only-client-secret.md)).
 
 3. Start CAS with `bacon run` (or `cargo run`) in `apps/cas`. It listens on
    `:3000`, and its issuer is `http://localhost:3000` ([README, Prepare
@@ -750,6 +753,20 @@ To run your application against a local CAS:
 
    Its dev server proxies `/api` and `/oidc` to CAS
    ([cas-frontend docs/LAYOUT.md](../../cas-frontend/docs/LAYOUT.md)).
+
+5. Only for the monorepo's own stack: ligretto-frontend is served beside CAS
+   on `:5174`, the origin the seeded `ligretto` client returns to after a
+   logout, by
+
+   ```sh
+   pnpm --filter @memebattle/ligretto-frontend start:dev --port 5174 --strictPort
+   ```
+
+   with no `--` separator. pnpm forwards the flags into the script, so Vite
+   applies them; a separator makes Vite drop them and bind its default 5173,
+   which is the CAS frontend's port. `--strictPort` makes it fail rather than
+   drift to a port the client does not know. Run on its own, outside this
+   stack, ligretto-frontend keeps its plain `start:dev` on `:5173`.
 
 Every CAS setting has a development default
 ([README, Configuration](../README.md#configuration)). Three are the ones an
