@@ -2,7 +2,7 @@
   "name": "@memebattle/ligretto-auth",
   "version": "0.1.0",
   "private": true,
-  "description": "Server-side CAS client: the generated OIDC types and transport, and access-token verification",
+  "description": "Server-side CAS client: the generated OIDC types and transport, access-token verification, the confidential client and the session rules",
   "license": "MIT",
   "author": "MemeBattle",
   "type": "module",
