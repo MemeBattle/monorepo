@@ -127,10 +127,8 @@ const sessionForNewGrant = (tokens: Tokens, at: number): Session => sessionOf(ne
  * validated claims last gave, because the ID token these came in could not be validated. The rotated ID token is
  * stored all the same — it is the one CAS issued for this grant, and the one it was asked to replace is older still.
  *
- * The access token is stamped expired rather than given the lifetime CAS announced: this bundle came with an ID token
- * the client refused, so the freshness skip below must not hand it out as a validated session. The next ordinary call
- * therefore refreshes for real, presenting the rotated token — which validates once what refused the ID token (a key
- * not yet published, a JWKS that could not be fetched) has passed, and fails again otherwise.
+ * The access token is stamped expired rather than given the lifetime CAS announced, so the freshness skip below
+ * cannot hand out a bundle whose ID token was refused. The next ordinary call refreshes for real instead.
  */
 const withRotatedTokens = (session: Session, grant: Grant, at: number): Session => ({
   ...session,
@@ -178,15 +176,14 @@ export const refreshSession = async (ctx: SessionContext, sessionId: string, opt
         // refresh read and nothing a later writer put in its place.
         await store.deleteSession(sessionId)
       } else if (failure instanceof UnusableGrantError) {
-        // CAS rotated before its ID token turned out to be unusable. The session takes the tokens that rotation
-        // issued: keeping the one it presented would make the next refresh a reuse, which CAS reads as theft and
-        // answers by revoking the whole grant — a guest would lose its account over a key rotation.
+        // Keeping the token the session presented would make the next refresh a reuse, which CAS answers by revoking
+        // the whole grant (ADR 0012 (b)) — a guest would lose its account over a key rotation.
         await store.saveSession(withRotatedTokens(session, failure.grant, now()))
       }
       throw failure
     }
 
-    // The 30 days are the grant's and are not moved by a refresh; the snapshot is taken again, since a changed
+    // The 30 days are the grant's, and a refresh does not move them. The snapshot is taken again, since a changed
     // display name arrives with the refreshed ID token (§7).
     const refreshed = sessionOf(session.id, tokens, now(), session.grantEndsAt, session.createdAt)
     await store.saveSession(refreshed)
@@ -259,10 +256,7 @@ export const completeSignIn = async (ctx: SessionContext, { code, state }: Compl
   }
 
   return await store.withSessionLock(initiating, async () => {
-    // The id that started the sign-in is retired whatever came back, the upgrade of the same account included: the
-    // new grant is the full account's, and an id that was handed out while it was a guest's must not reach it. That
-    // is the session fixation ADR 0015 names as the upgrade's threat, and CAS's own revocation cannot reach a row of
-    // this store. The caller installs the id the result carries.
+    // Retired whatever came back, the upgrade of the same account included (ADR 0015 on session fixation).
     if ((await store.getSession(initiating)) !== undefined) {
       await store.deleteSession(initiating)
     }

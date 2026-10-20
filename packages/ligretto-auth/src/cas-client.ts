@@ -225,13 +225,12 @@ export const createCasClient = (options: CasClientOptions): CasClient => {
 
   const refresh = async (refreshToken: string): Promise<Tokens> => {
     const form = new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken })
-    // The 200 this resolves with has already spent `refreshToken`, whatever happens next.
+    // A 200 has already spent `refreshToken` (ADR 0012 (b)), whatever the ID token it came with turns out to be.
     const response = await postToken(form)
     try {
       // No nonce: the refreshed token answers no authorization request and carries none (ADR 0012 (f)).
       return await tokensOf(response, undefined)
     } catch (cause) {
-      // So a refusal of the ID token carries the rotation out rather than leaving it behind (see UnusableGrantError).
       throw new UnusableGrantError(grantOf(response), { cause })
     }
   }

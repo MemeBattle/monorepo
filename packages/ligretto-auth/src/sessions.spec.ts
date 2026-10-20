@@ -186,7 +186,7 @@ describe('refreshSession', () => {
     expect(cas.tokenRequests).toHaveLength(2)
   })
 
-  it('reports an unknown session rather than signing a nobody in', async () => {
+  it('reports a session the store does not hold', async () => {
     const { ctx } = await context()
 
     await expect(refreshSession(ctx, 'session-1')).rejects.toMatchObject({ name: 'UnknownSessionError', code: 'unknown_session' })

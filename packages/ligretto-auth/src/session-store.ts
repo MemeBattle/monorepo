@@ -94,8 +94,7 @@ export interface InMemorySessionStoreOptions {
 }
 
 /**
- * A `SessionStore` in the process's memory: everything a test needs, and nothing a deployment can use — sessions
- * live in one process and die with it.
+ * A `SessionStore` in the process's memory, for tests: its sessions live in one process and die with it.
  */
 export const createInMemorySessionStore = ({ now = Date.now }: InMemorySessionStoreOptions = {}): SessionStore => {
   const sessions = new Map<string, Session>()

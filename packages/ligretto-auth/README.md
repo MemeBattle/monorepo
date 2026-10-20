@@ -94,7 +94,7 @@ const cas = createCasClient({
   `scope` goes on the wire only when given: CAS defaults a guest to `openid`,
   and `profile` would release nothing.
 - `endSessionUrl({ idTokenHint, state? })` builds the logout navigation of
-  §11. Ending the application's own session is the caller's.
+  §11. The application ends its own session itself.
 
 Every token call is a form `POST` to the document's `token_endpoint`,
 authenticated with `client_secret_basic` —
@@ -127,7 +127,7 @@ carrying the rotated `grant` — the tokens, no account snapshot — with the
 `InvalidIdTokenError` or `DiscoveryError` as its `cause`. Record the grant
 before answering the failure: dropping it leaves the caller holding a token
 CAS has spent, and presenting that one again is read as theft and revokes the
-whole grant. `refreshSession` below does exactly that.
+whole grant. `refreshSession` below records it.
 
 ## Sessions
 

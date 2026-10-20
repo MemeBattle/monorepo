@@ -3,8 +3,8 @@
  * `typ`, `alg` from the discovery document, the key by `kid` with one refetch, the signature, `iss`, `aud` (this
  * client's id), an `exp` in the future, and the `nonce` of the authorization request this token answers.
  *
- * Nothing in an ID token is trusted before it passes: the claims are where the account's `sub`, kind and display
- * name come from, and the sign-in is what they decide.
+ * Nothing in an ID token is trusted before it passes: its claims are where the account's `sub`, kind and display
+ * name come from.
  */
 
 import { decodeProtectedHeader, errors as joseErrors, importJWK, jwtVerify } from 'jose'
@@ -180,7 +180,6 @@ export const validateIdToken = async (idToken: string, options: ValidateIdTokenO
   return claimsOf(payload)
 }
 
-/** What an application shows of the account, from the claims it was just handed. */
 export const profileOf = (claims: IdTokenClaims): ProfileSnapshot => ({
   sub: claims.sub,
   accountType: claims.account_type,
