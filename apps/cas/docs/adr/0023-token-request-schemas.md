@@ -65,9 +65,13 @@ reader: a table in `token.rs` transcribes each grant's read set by hand, and
 a unit test there asserts the document's `oneOf`, its discriminator, and per
 grant schema the required list, the `grant_type` literal and the described
 parameters against that table. So the document cannot drift from the table,
-and keeping the table in step with `token_request.rs` is a human step —
-caught, like a reader changed without the description, as an `openapi.json`
-diff in the same pull request (ADR 0016 (g)).
+while keeping the table in step with `token_request.rs` is a human step that
+no diff announces: a parameter moved in the reader alone leaves the schemas,
+the table and both document tests untouched, so generation and the committed
+`openapi.json` (ADR 0016 (g)) stay exactly as they were. A change to
+`token_request.rs` is therefore read against the schemas and that table by
+its reviewer, to whom a document diff expected and absent is the signal, not
+a check that fails.
 
 **(d) `client_secret_post` is part of every grant schema.** `client_id` and
 `client_secret` are optional on all three, described as the alternative to
@@ -109,8 +113,9 @@ ever need them typed, this record is the pattern.
   silence the lint would claim they are read on the wire, which is what (c)
   says they are not.
 - Changing which parameters a grant is read for means changing the grant's
-  schema and that test's table by hand; no check fails if only the reader
-  moves, so the `openapi.json` diff of the pull request is where it is
-  caught.
+  schema and that test's table by hand. Nothing catches it if only the
+  reader moves: no check fails, and the `openapi.json` diff is empty rather
+  than wrong, so a change to `token_request.rs` is reviewed against the
+  schemas and that table — a missing document diff included.
 - A fourth grant is a fourth schema, a variant and a mapping entry, and one
   row in that test's table.
