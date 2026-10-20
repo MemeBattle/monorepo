@@ -15,7 +15,7 @@
 
 const UNKNOWN_ERROR_CODE = 'unknown'
 
-/** Thrown for any 3xx: the client never follows a redirect, so a navigation endpoint answers the caller, not fetch. */
+/** The code of any 3xx: the client follows no redirect, so the caller decides what a navigation endpoint answered. */
 const REDIRECT_REFUSED_CODE = 'redirect_refused'
 
 /** A declared failure: the status and the error code the operation lists for it. */
@@ -25,9 +25,8 @@ export interface ApiFailure<Code extends string = string> {
   /** The server's `error_description`. For the developer; callers branch on `code`. */
   message: string
   /**
-   * The response's headers. A refusal can prescribe what to do next and say it in a header: `429
-   * rate_limit_exceeded` carries the delay to wait out in `Retry-After`
-   * ([INTEGRATION.md §8](../../../apps/cas/docs/INTEGRATION.md)).
+   * The response's headers: a refusal can carry what to do next, as `429 rate_limit_exceeded` carries the delay to
+   * wait out in `Retry-After` ([INTEGRATION.md §8](../../../apps/cas/docs/INTEGRATION.md)).
    */
   headers: Headers
 }
@@ -38,7 +37,6 @@ export type Result<Data, Code extends string = string> =
   | { ok: false; error: ApiFailure<Code> }
 
 export interface ApiErrorOptions extends ErrorOptions {
-  /** The response's headers, when there was a response. */
   headers?: Headers
 }
 
@@ -77,7 +75,7 @@ export interface RequestConfig {
   /** A path of the description, resolved against the base URL, or an absolute URL (what `atUrl` puts here). */
   url: string
   body?: unknown
-  /** The request content type the operation declares; `/oidc/token` and the end-session form declare one. */
+  /** The request content type the operation declares; `/oidc/token` and the end-session form have one. */
   contentType?: { request?: string; response?: string }
   /** The headers of the request: the token endpoint's `Authorization: Basic`, userinfo's `Authorization: Bearer`. */
   headers?: Record<string, string>
@@ -180,7 +178,7 @@ const encodeBody = (body: unknown, declared: string | undefined): { body: string
     return undefined
   }
   // `/oidc/token` and the end-session form take an already-encoded form body: send the string verbatim, never quoted
-  // into JSON. Anything else is a JSON body.
+  // into JSON.
   if (typeof body === 'string') {
     return { body, contentType: declared ?? 'application/x-www-form-urlencoded' }
   }
@@ -199,8 +197,8 @@ const urlOf = (url: string, baseUrl: string): URL =>
   isAbsolute(url) ? new URL(url) : new URL(`${baseUrl.replace(/\/+$/, '')}/${url.replace(/^\/+/, '')}`)
 
 /**
- * The headers of the request: the content type the body encoding needs, with each header the caller named set over
- * it. `Headers.set` normalises the name, so a caller's `content-type` replaces the computed `Content-Type` instead of
+ * The headers of the request: the content type the body encoding needs, overridden by every header the caller named.
+ * `Headers.set` normalises the name, so a caller's `content-type` replaces the computed `Content-Type` instead of
  * being joined to it into a value no content-type check accepts.
  */
 const headersOf = (contentType: string | undefined, headers: Record<string, string> | undefined): Headers => {

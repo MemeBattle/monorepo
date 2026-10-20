@@ -89,7 +89,7 @@ describe('createClient', () => {
     await expect(unreadable({ method: 'GET', url: '/oidc/authorize' })).rejects.toMatchObject({ code: 'unknown', status: 400 })
   })
 
-  it('throws a 2xx whose body is not JSON, which an interstitial answers with, as an `ApiError`', async () => {
+  it('throws an `ApiError` for a 2xx whose body is not JSON, as an interstitial page answers', async () => {
     const fetch = stub(() => new Response('<html>sign in here</html>', { status: 200, headers: { 'Content-Type': 'text/html' } }))
     const call = createClient({ baseUrl: BASE_URL, fetch })({ method: 'GET', url: '/oidc/userinfo' })
 

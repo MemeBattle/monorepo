@@ -70,7 +70,7 @@ const signingKey = async (kid: string | undefined, issuer: string, jwksUri: stri
   return republished
 }
 
-/** What jose reports a failed verification as, as one of this package's codes. */
+/** jose's report of a failed verification, as one of this package's codes. */
 const refusal = (cause: unknown): InvalidTokenError => {
   if (cause instanceof joseErrors.JWSSignatureVerificationFailed) {
     return new InvalidTokenError('invalid_signature', 'The signature does not match the published key.', { cause })

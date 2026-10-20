@@ -19,7 +19,7 @@ import { jwks as jwksOperation } from './generated/operations/jwks'
 
 const discoveryUrlOf = (issuer: string): string => `${issuer}/.well-known/openid-configuration`
 
-/** jose's own `createRemoteJWKSet` waits as long before asking for the keys again, and for the same reason. */
+/** The cooldown jose's own `createRemoteJWKSet` keeps between two asks for the keys. */
 const JWKS_REFETCH_COOLDOWN_MS = 30_000
 
 /**
@@ -32,8 +32,8 @@ const isJsonObject = (body: unknown): body is Record<string, unknown> => typeof 
 
 /**
  * The fields a verification reads: where to fetch the keys, and which algorithms the provider signs with. A document
- * that parsed but is missing one is not a provider description — caching it would answer every verification until it
- * expires with a failure of a kind this package's contract does not name.
+ * missing one is not a provider description; caching it would fail every verification until it expires, with a
+ * failure this package's contract does not name.
  */
 const describesTheProvider = (document: unknown): document is Discovery =>
   isJsonObject(document) &&
@@ -51,9 +51,8 @@ const holdsKeys = (set: unknown): set is Jwks => isJsonObject(set) && Array.isAr
 /**
  * The `kid`s of the keys WebCrypto will not take for the algorithm they name. A set is asked this before it is
  * cached: key material no verification can run on must not be what every token is judged against until the `max-age`
- * runs out, long after the provider has published the repaired key. One such key refuses the whole set, as a missing
- * field refuses the whole discovery document — metadata is trusted as a whole, and a key dropped out of a set would
- * instead have tokens that name it refused as if the provider had never published it.
+ * runs out, long after the provider has published the repaired key. One such key refuses the whole set rather than
+ * being dropped from it, so a token naming that key is not refused as if the provider had never published it.
  */
 const unusableKids = async (set: Jwks): Promise<string[]> => {
   const checked = await Promise.all(
@@ -96,9 +95,9 @@ export interface DiscoveryCache {
   jwks(issuer: string, jwksUri: string, client: Client): Promise<Jwks>
   /**
    * The keys read from the provider again, for a `kid` the cached set does not have. What is cached is replaced only
-   * once a usable answer has arrived: a token is reason to go looking for a new key, never reason to drop the keys a
-   * session in progress verifies against while the provider is away. A second ask inside the cooldown answers from
-   * the cache instead, so a flood of unknown `kid`s is not a flood of requests to the provider.
+   * once a usable answer has arrived: an unknown `kid` is reason to ask for new keys, not reason to drop the keys an
+   * open session verifies against while the provider is away. A second ask inside the cooldown answers from the
+   * cache, so many unknown `kid`s cost the provider one request.
    */
   refetchJwks(issuer: string, jwksUri: string, client: Client): Promise<Jwks>
 }
@@ -115,7 +114,7 @@ export interface DiscoveryCacheOptions {
 export const createDiscoveryCache = ({ now = Date.now }: DiscoveryCacheOptions = {}): DiscoveryCache => {
   const documents = new Map<string, Entry<Discovery>>()
   const keySets = new Map<string, Entry<Jwks>>()
-  /** When the keys of an issuer were last asked for out of turn, which is what the cooldown is read against. */
+  /** When the keys of an issuer were last refetched; the cooldown is measured from it. */
   const refetchedAt = new Map<string, number>()
 
   const cached = <Value>(entries: Map<string, Entry<Value>>, issuer: string): Value | undefined => {
@@ -161,8 +160,7 @@ export const createDiscoveryCache = ({ now = Date.now }: DiscoveryCacheOptions =
     }
     const url = discoveryUrlOf(issuer)
     const { data, headers } = await fetched(`The discovery document at ${url}`, () => discoveryOperation({ client: atUrl(client, url) }))
-    // The shape first: what is not a provider description has no `issuer` to compare, and asking it for one is how an
-    // answer of `null` or of no body becomes a `TypeError` rather than this package's own refusal.
+    // The shape first: what is not a provider description has no `issuer` to compare.
     if (!describesTheProvider(data)) {
       throw new DiscoveryError('malformed_metadata', `The document at ${url} does not advertise both a \`jwks_uri\` and the algorithms it signs with`)
     }
@@ -188,8 +186,8 @@ export const createDiscoveryCache = ({ now = Date.now }: DiscoveryCacheOptions =
         `The JWKS at ${jwksUri} publishes key material no verification can run on: ${unusable.map(kid => JSON.stringify(kid)).join(', ')}`,
       )
     }
-    // Only an answer that passed both checks replaces what is cached, so a set the provider cannot be verified
-    // against neither poisons the cache nor costs the keys an open session still verifies against.
+    // Only an answer that passed both checks replaces what is cached: an unusable set neither poisons the cache nor
+    // costs an open session the keys it verifies against.
     store(keySets, issuer, data, maxAgeOf(headers))
     return data
   }

@@ -38,8 +38,8 @@ It runs the check of
    unknown the JWKS is read again, once: a rotated key is published before it
    signs anything (ADR 0009 (d)). The cached keys are replaced only once a
    usable answer has arrived, and a second unknown `kid` within 30 seconds is
-   answered from the cache — a token is reason to go looking for a new key,
-   never reason to drop the keys open sessions verify against.
+   answered from the cache — an unknown `kid` is reason to ask for new keys,
+   not reason to drop the ones open sessions verify against.
 4. The signature matches that key.
 5. `iss` is the configured issuer, `aud` is this resource server's audience
    (not a client id, ADR 0011 (b)), and `exp` — a required numeric claim — is

@@ -66,7 +66,7 @@ const provider = (key: PublicJwk, options: ProviderOptions = {}) => {
   let documentAnswers = 0
   let jwksAnswers = 0
 
-  /** The successive answer of a sequence, the last one repeating, as a provider that recovers serves them. */
+  /** The answer for this turn, the last of the sequence repeating once it is reached. */
   const inTurn = (bodies: unknown[], answered: number): unknown => bodies[Math.min(answered, bodies.length - 1)]
 
   const json = (status: number, body: unknown): Response =>
@@ -166,7 +166,7 @@ describe('verifyAccessToken', () => {
     })
   })
 
-  it('refuses an ID token, which is the same key and says `typ: JWT`', async () => {
+  it('refuses an ID token, signed by the same key and saying `typ: JWT`', async () => {
     const cas = provider(publicJwk)
     const idToken = await accessToken(signing.privateKey, { header: { typ: 'JWT' } })
 
@@ -230,7 +230,7 @@ describe('verifyAccessToken', () => {
 
   it('refuses a soundly signed token whose payload is not an access token claim set', async () => {
     // The coupling to CAS's own `AccessTokenClaims`: a claim that goes missing or changes shape is a refusal, not a
-    // claim set a resource server reads half of.
+    // claim set a resource server reads in part.
     const amrAsText = await accessToken(signing.privateKey, { payload: { amr: 'webauthn' } })
     await expect(verify(amrAsText, provider(publicJwk))).rejects.toMatchObject({ name: 'InvalidTokenError', code: 'malformed' })
 

@@ -7,8 +7,8 @@
  * `400`/`503` of the navigation endpoints are HTML pages. A generator that read response schemas would drop them.
  *
  * The output is a pure function of the description: keys, statuses and codes are sorted with a plain comparison (no
- * locale), the template is fixed and nothing is stamped into it, so regenerating an unchanged description rewrites
- * the same bytes and the pull request job can diff it.
+ * locale), and the template is fixed with nothing stamped into it. Regenerating an unchanged description rewrites
+ * the same bytes, which is what the pull request job diffs.
  *
  * Dev-time only. It runs under Node, after `kubb generate` has emptied `src/generated`; nothing in `src/` imports it.
  */

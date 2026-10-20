@@ -50,7 +50,7 @@ describe('the generated error-codes map', () => {
     expect(fromTheGeneratedMap()).toEqual(fromTheDescription())
   })
 
-  it("keeps the codes of the `302`, which has no body at all: they ride in the redirect's `error` parameter", () => {
+  it("keeps the codes of the `302`, which has no body at all: they are carried in the redirect's `error` parameter", () => {
     expect(errorCodes['GET /oidc/authorize']['302']).toEqual([
       'invalid_request',
       'invalid_scope',
