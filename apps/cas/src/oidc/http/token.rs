@@ -1605,17 +1605,14 @@ mod tests {
     ];
 
     /// The request body is one schema per grant: the `oneOf` of exactly the
-    /// three, with the discriminator on `grant_type` and its mapping; each
-    /// schema requires `grant_type` and its grant's parameters, takes
-    /// `client_id` and `client_secret` (`client_secret_post`) and nothing
-    /// else, and describes every parameter as a string that is never null —
-    /// an omitted one is absent from the form, not null.
+    /// three, with the discriminator on `grant_type` and its mapping, and
+    /// per schema the required list, the `grant_type` literal and the
+    /// parameters described, every one a string that is never null — an
+    /// omitted parameter is absent from the form, not null.
     ///
-    /// The grant each schema is checked against is the row of [`GRANTS`],
-    /// not the reader: the request side has no equivalent of the check layer
-    /// that holds the responses to the handler, so this test holds the
-    /// document to that table and the table to the reader is a human step
-    /// (ADR 0023 (c)).
+    /// Each schema is checked against the row of [`GRANTS`], not against the
+    /// reader: the request side has no equivalent of the check layer that
+    /// holds the responses to the handler (ADR 0023 (c)).
     // `#[tokio::test]`, not `#[test]`: the lazy pool of the state needs a
     // Tokio context to be built, though nothing here opens a connection.
     #[tokio::test]

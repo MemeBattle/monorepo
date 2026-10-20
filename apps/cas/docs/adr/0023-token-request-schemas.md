@@ -64,14 +64,13 @@ RFC and by ADR 0011. The price is that nothing ties the description to the
 reader: a table in `token.rs` transcribes each grant's read set by hand, and
 a unit test there asserts the document's `oneOf`, its discriminator, and per
 grant schema the required list, the `grant_type` literal and the described
-parameters against that table. So the document cannot drift from the table,
-while keeping the table in step with `token_request.rs` is a human step that
-no diff announces: a parameter moved in the reader alone leaves the schemas,
-the table and both document tests untouched, so generation and the committed
-`openapi.json` (ADR 0016 (g)) stay exactly as they were. A change to
-`token_request.rs` is therefore read against the schemas and that table by
-its reviewer, to whom a document diff expected and absent is the signal, not
-a check that fails.
+parameters against that table. The document cannot drift from the table.
+Keeping the table in step with `token_request.rs` is a human step that no
+check makes: a parameter moved in the reader alone leaves the schemas, the
+table and both document tests untouched, so the committed `openapi.json`
+(ADR 0016 (g)) stays exactly as it was. A change to `token_request.rs` is
+therefore read against the schemas and that table by its reviewer, for whom
+a document diff expected and absent is the signal.
 
 **(d) `client_secret_post` is part of every grant schema.** `client_id` and
 `client_secret` are optional on all three, described as the alternative to
@@ -113,9 +112,7 @@ ever need them typed, this record is the pattern.
   silence the lint would claim they are read on the wire, which is what (c)
   says they are not.
 - Changing which parameters a grant is read for means changing the grant's
-  schema and that test's table by hand. Nothing catches it if only the
-  reader moves: no check fails, and the `openapi.json` diff is empty rather
-  than wrong, so a change to `token_request.rs` is reviewed against the
-  schemas and that table — a missing document diff included.
+  schema and that test's table by hand. No check catches a reader that moved
+  alone, which is why (c) leaves that to the reviewer.
 - A fourth grant is a fourth schema, a variant and a mapping entry, and one
   row in that test's table.

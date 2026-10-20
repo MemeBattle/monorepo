@@ -214,7 +214,7 @@ describe('the generated operations', () => {
     expect(result.ok && result.data.expires_in * 1000).toBe(600_000)
   })
 
-  it('sends the string body of the end-session form verbatim, the one form body the description still types as a string', async () => {
+  it('sends the string body of the end-session form verbatim, the one form body the description types as a string', async () => {
     const fetch = stub(() => new Response(null, { status: 302, headers: { Location: 'https://app.example/' } }))
     const body = 'id_token_hint=the-id-token&post_logout_redirect_uri=https%3A%2F%2Fapp.example%2F'
 

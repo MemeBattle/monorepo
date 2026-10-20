@@ -209,9 +209,9 @@ const toFailure = async (response: Response): Promise<{ ok: false; error: ApiFai
 const FORM_CONTENT_TYPE = 'application/x-www-form-urlencoded'
 
 /**
- * A form body as it goes on the wire: the object's entries in their order, every `undefined` left out, so an optional
- * parameter the caller omitted is absent from the form rather than the string `undefined`. Every value is a string —
- * the description's grant schemas carry nothing else (cas ADR 0023 (e)).
+ * A form body as it goes on the wire, the object's entries in their order. An `undefined` value is left out, so an
+ * optional parameter the caller omitted is absent from the form rather than the string `undefined`. Every value is a
+ * string — the description's grant schemas carry nothing else (cas ADR 0023 (e)).
  */
 const formBody = (body: object): string =>
   new URLSearchParams(Object.entries(body).filter((entry): entry is [string, string] => entry[1] !== undefined)).toString()
