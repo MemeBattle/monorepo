@@ -1,7 +1,7 @@
 *
 !apps/ligretto-gameplay-backend
 !packages/ligretto-shared
-!packages/cas-services
+!packages/ligretto-auth
 
 !pnpm-lock.yaml
 !pnpm-workspace.yaml

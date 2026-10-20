@@ -78,16 +78,12 @@ volumeMounts: []
 env:
   # Server configuration
   NODE_ENV: "production"
-  LIGRETTO_GAMEPLAY_CAS_KEY_PATH: "/ligretto-gameplay-backend/key.pem"
+  CAS_ISSUER: "https://cas.mems.fun"
   LIGRETTO_CORE_URL: "http://ligretto-core-backend-chart.ligretto-core-backend.svc.cluster.local:80/api"
   LIGRETTO_GAMEPLAY_SOCKET_PORT: "3005"
 
 # External Secrets configuration
 externalSecrets:
-  # CAS Key secret configuration
-  casKey:
-    key: "ligretto-cas-key"
-    property: "private"
   # Production environment secret configuration
   productionEnv:
     key: "ligretto-production-env"

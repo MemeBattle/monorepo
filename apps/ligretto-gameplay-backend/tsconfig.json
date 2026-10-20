@@ -1,8 +1,10 @@
 {
   "compilerOptions": {
     "esModuleInterop": true,
-    "target": "es2021",
-    "lib": ["es2021"],
+    // `@memebattle/ligretto-auth` exports source, so this project type-checks it: es2022 for `Error`'s `cause`, and
+    // dom for the fetch types `@types/node` does not declare (`RequestInfo`), as the package's own tsconfig has.
+    "target": "es2022",
+    "lib": ["es2022", "dom"],
     "types": ["node", "reflect-metadata"],
     "module": "NodeNext",
     "sourceMap": true,
