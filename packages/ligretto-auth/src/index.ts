@@ -8,7 +8,7 @@
 export { verifyAccessToken } from './verify-access-token'
 export type { AccessTokenClaims, VerifyAccessTokenOptions } from './verify-access-token'
 
-export { createCasClient } from './cas-client'
+export { createCasClient, UnusableGrantError } from './cas-client'
 export type {
   AuthorizationRequest,
   AuthorizationRequestOptions,
@@ -16,6 +16,7 @@ export type {
   CasClientOptions,
   EndSessionUrlOptions,
   ExchangeCodeOptions,
+  Grant,
   Tokens,
 } from './cas-client'
 

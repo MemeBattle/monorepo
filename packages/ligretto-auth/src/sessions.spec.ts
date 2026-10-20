@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CasClientOptions } from './cas-client'
-import { createCasClient } from './cas-client'
+import { createCasClient, UnusableGrantError } from './cas-client'
 import type { PendingAuthorizationRequest, Session, SessionStore } from './session-store'
 import { createInMemorySessionStore } from './session-store'
 import type { SessionContext } from './sessions'
@@ -36,6 +36,8 @@ const guestClaims = (sub = GUEST_SUB): Record<string, unknown> => ({ sub, accoun
 const recording = (store: SessionStore) => {
   const calls: string[] = []
   const pendingRequests: PendingAuthorizationRequest[] = []
+  /** What every save waits on from now, so a test can catch a write in flight and see who is waiting for it. */
+  let holding: Promise<unknown> | undefined
   const wrapped: SessionStore = {
     getSession: async id => {
       calls.push(`get ${id}`)
@@ -43,6 +45,7 @@ const recording = (store: SessionStore) => {
     },
     saveSession: async session => {
       calls.push(`save ${session.id} ${session.refreshToken}`)
+      await holding
       return await store.saveSession(session)
     },
     deleteSession: async id => {
@@ -59,7 +62,7 @@ const recording = (store: SessionStore) => {
       return await store.withSessionLock(sessionId, fn)
     },
   }
-  return { store: wrapped, calls, pendingRequests }
+  return { store: wrapped, calls, pendingRequests, holdSaves: (until: Promise<unknown>): void => void (holding = until) }
 }
 
 const sessionWith = (overrides: Partial<Session> = {}): Session => ({
@@ -78,12 +81,12 @@ const sessionWith = (overrides: Partial<Session> = {}): Session => ({
 })
 
 /** A context over a fresh stub, store and clock, with the recording wrapper every test can read. */
-const context = async (options: { keySets?: never } = {}) => {
-  const cas = await casStub(options)
+const context = async () => {
+  const cas = await casStub()
   const time = clock()
-  const { store, calls, pendingRequests } = recording(createInMemorySessionStore({ now: time.now }))
+  const { store, calls, pendingRequests, holdSaves } = recording(createInMemorySessionStore({ now: time.now }))
   const ctx: SessionContext = { client: casClient(cas), store, now: time.now }
-  return { cas, ctx, store, calls, pendingRequests, time }
+  return { cas, ctx, store, calls, pendingRequests, holdSaves, time }
 }
 
 /** Waits for something the code under test does on its own; the loop ends as soon as it has happened. */
@@ -99,17 +102,28 @@ const until = async (condition: () => boolean): Promise<void> => {
 const counted = (calls: string[], call: string): number => calls.filter(seen => seen === call).length
 
 describe('refreshSession', () => {
-  it('persists the rotated refresh token before it resolves', async () => {
-    const { cas, ctx, store, calls } = await context()
+  it('waits for the rotated refresh token to be written before it resolves', async () => {
+    const { cas, ctx, store, calls, holdSaves } = await context()
     await store.saveSession(sessionWith())
     cas.answer({ claims: { ...guestClaims(), nonce: undefined } })
     calls.length = 0
 
-    const refreshed = await refreshSession(ctx, 'session-1', { force: true })
-    calls.push('resolved')
+    // The write is held open, so the refresh is caught between having the new access token and having stored the new
+    // refresh token — the one state §7 forbids handing out.
+    const writing = gate()
+    holdSaves(writing.promise)
+    const refreshing = refreshSession(ctx, 'session-1', { force: true }).then(session => {
+      calls.push('resolved')
+      return session
+    })
 
+    await until(() => calls.includes('save session-1 refresh-1'))
+    await new Promise(resolve => setTimeout(resolve, 5))
+    expect(calls).toEqual(['lock session-1', 'get session-1', 'save session-1 refresh-1'])
+
+    writing.release()
+    await expect(refreshing).resolves.toMatchObject({ refreshToken: 'refresh-1', accessToken: 'access-1' })
     expect(calls).toEqual(['lock session-1', 'get session-1', 'save session-1 refresh-1', 'resolved'])
-    expect(refreshed).toMatchObject({ refreshToken: 'refresh-1', accessToken: 'access-1' })
     await expect(store.getSession('session-1')).resolves.toMatchObject({ refreshToken: 'refresh-1' })
   })
 
@@ -185,6 +199,33 @@ describe('refreshSession', () => {
 
     await expect(refreshSession(ctx, 'session-1', { force: true })).rejects.toMatchObject({ name: 'TokenEndpointError', code: 'invalid_grant' })
     await expect(store.getSession('session-1')).resolves.toBeUndefined()
+  })
+
+  it('records the rotation CAS already made when the ID token it answered cannot be validated', async () => {
+    const { cas, ctx, store } = await context()
+    await store.saveSession(sessionWith())
+    // A 200 — the presented token is spent — whose ID token is signed by a key this CAS never published: what a key
+    // rotation looks like to a client that has not seen the new key yet.
+    cas.answer({ signWith: cas.otherKey, claims: { ...guestClaims(), nonce: undefined } }, { claims: { ...guestClaims(), nonce: undefined } })
+
+    const failure = await refreshSession(ctx, 'session-1', { force: true }).then(
+      () => undefined,
+      (error: unknown) => error,
+    )
+
+    expect(failure).toBeInstanceOf(UnusableGrantError)
+    expect((failure as UnusableGrantError).cause).toMatchObject({ name: 'InvalidIdTokenError', code: 'invalid_signature' })
+    // The session holds what the rotation issued, and the snapshot is still the one validated claims gave it.
+    await expect(store.getSession('session-1')).resolves.toMatchObject({
+      refreshToken: cas.issuedRefreshTokens[0],
+      accountType: 'guest',
+      displayName: null,
+    })
+
+    // So the next refresh presents the rotated token, which is the one CAS expects: dropping it would have made this
+    // a reuse, and CAS answers a reuse by revoking the grant.
+    await expect(refreshSession(ctx, 'session-1', { force: true })).resolves.toMatchObject({ refreshToken: 'refresh-2' })
+    expect(cas.tokenRequests.map(request => request.form.get('refresh_token'))).toEqual(['seed-refresh', 'refresh-1'])
   })
 
   it('leaves the session untouched when CAS is only away', async () => {
@@ -275,7 +316,7 @@ describe('completeSignIn', () => {
     expect(cas.tokenRequests).toHaveLength(1)
   })
 
-  it('upgrades a guest in place: the session keeps its id and the grant’s 30 days start again', async () => {
+  it('upgrades a guest to the same account under a new session id, with the grant’s 30 days starting again', async () => {
     const { cas, ctx, store, time } = await context()
     await store.saveSession(sessionWith())
     cas.answer({ claims: { ...guestClaims(), nonce: undefined } })
@@ -285,14 +326,18 @@ describe('completeSignIn', () => {
 
     const { session, previousSub } = await completeSignIn(ctx, { code: 'the-code', state })
 
+    // The account is the same one — that is what `sub` surviving the upgrade means (§8) — and nothing is reported.
     expect(previousSub).toBeNull()
     expect(session).toMatchObject({
-      id: 'session-1',
       sub: GUEST_SUB,
       accountType: 'full',
       displayName: 'Ada',
       grantEndsAt: START + ACCESS_TOKEN_LIFETIME_MS + GRANT_LIFETIME_MS,
     })
+    // The id the guest was reached by is retired with it: a copy of it must not reach the full account's tokens.
+    expect(session.id).not.toBe('session-1')
+    await expect(store.getSession('session-1')).resolves.toBeUndefined()
+    await expect(store.getSession(session.id)).resolves.toEqual(session)
   })
 
   it('reports a callback for another account instead of merging it into the guest', async () => {
@@ -423,9 +468,13 @@ describe('a refresh racing the callback of an upgrade', () => {
     await expect(refreshing).resolves.toMatchObject({ accountType: 'guest' })
     const { session } = await completing
 
-    // The refresh wrote first and the callback replaced what it wrote; the delayed refresh never overwrites it.
-    expect(session).toMatchObject({ id: 'session-1', accountType: 'full', displayName: 'Ada' })
-    await expect(store.getSession('session-1')).resolves.toEqual(session)
+    // The refresh wrote the guest's rotated grant first, then the callback retired that session and created its own;
+    // the delayed refresh is behind the lock, so what it wrote can never come back.
+    expect(session).toMatchObject({ accountType: 'full', displayName: 'Ada' })
+    expect(session.id).not.toBe('session-1')
+    expect(calls.findIndex(call => call.startsWith('save session-1 '))).toBeLessThan(calls.indexOf('delete session-1'))
+    await expect(store.getSession('session-1')).resolves.toBeUndefined()
+    await expect(store.getSession(session.id)).resolves.toEqual(session)
   })
 
   it('does not resurrect a session the callback retired, when a refresh arrives after it', async () => {

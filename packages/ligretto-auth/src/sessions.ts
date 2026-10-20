@@ -12,7 +12,8 @@
  */
 
 import { base64url } from 'jose'
-import type { CasClient, Tokens } from './cas-client'
+import type { CasClient, Grant, Tokens } from './cas-client'
+import { UnusableGrantError } from './cas-client'
 import { TokenEndpointError } from './errors'
 import type { Session, SessionStore } from './session-store'
 
@@ -78,7 +79,8 @@ export interface BeginSignInOptions {
   /** The session starting the sign-in: a guest upgrading (§9), or a user signing in again. */
   sessionId?: string
   scope?: string
-  prompt?: string
+  /** `none` only: CAS answers every other `prompt` value `invalid_request` (§4). */
+  prompt?: 'none'
 }
 
 export interface BeginSignInResult {
@@ -118,7 +120,20 @@ const sessionOf = (id: string, tokens: Tokens, at: number, grantEndsAt: number, 
 })
 
 /** A session for a grant that has just been created: a fresh id, and the 30 days running from now. */
-const sessionForNewGrant = (tokens: Tokens, at: number, id: string = newSessionId()): Session => sessionOf(id, tokens, at, at + GRANT_LIFETIME_MS, at)
+const sessionForNewGrant = (tokens: Tokens, at: number): Session => sessionOf(newSessionId(), tokens, at, at + GRANT_LIFETIME_MS, at)
+
+/**
+ * The session with the tokens of a rotation that happened, and nothing else of it: the account snapshot stays the one
+ * validated claims last gave, because the ID token these came in could not be validated. The rotated ID token is
+ * stored all the same — it is the one CAS issued for this grant, and the one it was asked to replace is older still.
+ */
+const withRotatedTokens = (session: Session, grant: Grant, at: number): Session => ({
+  ...session,
+  refreshToken: grant.refreshToken,
+  accessToken: grant.accessToken,
+  accessTokenExpiresAt: at + grant.expiresIn * 1000,
+  idToken: grant.idToken,
+})
 
 const isGrantOver = (failure: unknown): boolean => failure instanceof TokenEndpointError && failure.code === 'invalid_grant'
 
@@ -130,8 +145,10 @@ const isGrantOver = (failure: unknown): boolean => failure instanceof TokenEndpo
  * saved before this resolves, so a caller never holds an access token whose refresh token was not persisted.
  *
  * `invalid_grant` means the grant is over — expired, revoked, or retired by an upgrade: the session is deleted and
- * the typed error rethrown, for the caller to sign the user in again or mint a new guest. Every other failure leaves
- * the session as it was.
+ * the typed error rethrown, for the caller to sign the user in again or mint a new guest. An `UnusableGrantError`
+ * says CAS rotated and then answered an ID token this client cannot accept: the rotated tokens are written before
+ * the error is rethrown, because the token the session presented is spent either way. Every other failure — CAS
+ * away, the network — leaves the session as it was.
  */
 export const refreshSession = async (ctx: SessionContext, sessionId: string, options: RefreshSessionOptions = {}): Promise<Session> => {
   const { client, store, now = Date.now } = ctx
@@ -154,6 +171,11 @@ export const refreshSession = async (ctx: SessionContext, sessionId: string, opt
         // The lock is still held and was held across the whole read-refresh-write, so this deletes the session the
         // refresh read and nothing a later writer put in its place.
         await store.deleteSession(sessionId)
+      } else if (failure instanceof UnusableGrantError) {
+        // CAS rotated before its ID token turned out to be unusable. The session takes the tokens that rotation
+        // issued: keeping the one it presented would make the next refresh a reuse, which CAS reads as theft and
+        // answers by revoking the whole grant — a guest would lose its account over a key rotation.
+        await store.saveSession(withRotatedTokens(session, failure.grant, now()))
       }
       throw failure
     }
@@ -201,9 +223,13 @@ export const beginSignIn = async (ctx: SessionContext, options: BeginSignInOptio
  * that the state exists in a store shared by every browser, so without that check a `state` captured from one
  * browser could be completed on another. The cookie that carries it belongs to the HTTP layer, not here.
  *
+ * The session returned always has a fresh id, and a session that started the sign-in is deleted — an upgrade of the
+ * very same account included: the tokens that come back are a full account's, so an id handed out while the account
+ * was a guest must not reach them (ADR 0015 on session fixation). The caller installs the id the result carries.
+ *
  * When the `sub` that comes back is not the one the sign-in started from, the browser was already signed in to CAS
- * as another account: the result reports the previous `sub`, the old session is deleted, and the returned session is
- * a new one carrying nothing of it (§9). The report comes from the snapshot taken at `beginSignIn`, so it survives
+ * as another account: the result reports the previous `sub`, the old session is deleted, and the returned session
+ * carries nothing of it (§9). The report comes from the snapshot taken at `beginSignIn`, so it survives
  * the old session having been deleted meanwhile — which an upgrade makes routine, since it revokes the guest's
  * grants and the next refresh deletes the session.
  */
@@ -227,15 +253,11 @@ export const completeSignIn = async (ctx: SessionContext, { code, state }: Compl
   }
 
   return await store.withSessionLock(initiating, async () => {
-    const existing = await store.getSession(initiating)
-    // The upgrade, or a plain re-sign-in: the same account, so the session keeps its id, and the exchange created a
-    // new grant whose 30 days start now.
-    if (existing !== undefined && existing.sub === tokens.profile.sub) {
-      const session = sessionForNewGrant(tokens, now(), existing.id)
-      await store.saveSession(session)
-      return { session, previousSub }
-    }
-    if (existing !== undefined) {
+    // The id that started the sign-in is retired whatever came back, the upgrade of the same account included: the
+    // new grant is the full account's, and an id that was handed out while it was a guest's must not reach it. That
+    // is the session fixation ADR 0015 names as the upgrade's threat, and CAS's own revocation cannot reach a row of
+    // this store. The caller installs the id the result carries.
+    if ((await store.getSession(initiating)) !== undefined) {
       await store.deleteSession(initiating)
     }
     const session = sessionForNewGrant(tokens, now())

@@ -1,7 +1,7 @@
 import { base64url } from 'jose'
 import { describe, expect, it } from 'vitest'
 import type { CasClientOptions } from './cas-client'
-import { createCasClient } from './cas-client'
+import { createCasClient, UnusableGrantError } from './cas-client'
 import type { CasStub, TokenAnswer } from './test-support/cas'
 import { basicCredentials, casStub, CLIENT_ID, CLIENT_SECRET, KID, POST_LOGOUT_REDIRECT_URI, REDIRECT_URI, SUB } from './test-support/cas'
 
@@ -253,6 +253,24 @@ describe('refresh', () => {
 
     await expect(casClient(cas).refresh('the-refresh-token')).resolves.toMatchObject({ scope: 'openid profile email' })
   })
+
+  it('carries the rotated tokens out with a refusal of the ID token they came in', async () => {
+    const cas = await casStub()
+    cas.answer({ signWith: cas.otherKey, claims: { nonce: undefined } })
+
+    const failure = await casClient(cas)
+      .refresh('the-refresh-token')
+      .then(
+        () => undefined,
+        (error: unknown) => error,
+      )
+
+    // The 200 spent `the-refresh-token` (ADR 0012 (b)), so a caller that is told nothing of the new one is left
+    // holding a token CAS reads as stolen the next time it is presented.
+    expect(failure).toBeInstanceOf(UnusableGrantError)
+    expect(failure).toMatchObject({ code: 'unusable_grant', grant: { refreshToken: 'refresh-1', accessToken: 'access-1', expiresIn: 600 } })
+    expect((failure as UnusableGrantError).cause).toMatchObject({ name: 'InvalidIdTokenError', code: 'invalid_signature' })
+  })
 })
 
 describe('guestGrant', () => {
@@ -324,5 +342,23 @@ describe('endSessionUrl', () => {
     const url = await casClient(cas).endSessionUrl({ idTokenHint: 'the-id-token', state: 'the-state' })
 
     expect(queryOf(url).state).toBe('the-state')
+  })
+})
+
+describe('a document that does not advertise an endpoint this client sends to', () => {
+  it('is refused as malformed metadata, rather than read as an `undefined` URL', async () => {
+    const withoutAuthorization = await casStub({ documentPatch: { authorization_endpoint: undefined } })
+    await expect(casClient(withoutAuthorization).authorizationRequest()).rejects.toMatchObject({
+      name: 'DiscoveryError',
+      code: 'malformed_metadata',
+    })
+
+    const withoutEndSession = await casStub({ documentPatch: { end_session_endpoint: undefined } })
+    await expect(casClient(withoutEndSession).endSessionUrl({ idTokenHint: 'the-id-token' })).rejects.toMatchObject({ code: 'malformed_metadata' })
+
+    // The quietest of the three on its own: a form `POST` to a wrong URL instead of a refusal of the metadata.
+    const withoutToken = await casStub({ documentPatch: { token_endpoint: undefined } })
+    await expect(casClient(withoutToken).refresh('the-refresh-token')).rejects.toMatchObject({ code: 'malformed_metadata' })
+    expect(withoutToken.tokenRequests).toEqual([])
   })
 })

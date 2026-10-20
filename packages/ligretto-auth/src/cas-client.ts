@@ -62,12 +62,15 @@ export interface AuthorizationRequestOptions {
   scope?: string
   /** A guest's freshly issued ID token, which starts the upgrade (§9). Never a stored one (ADR 0015 (c)). */
   idTokenHint?: string
-  /** `none` asks CAS whether the browser already has a session, without showing anything (§4). */
-  prompt?: string
+  /**
+   * `none` asks CAS whether the browser already has a session, without showing anything (§4). It is the only value
+   * CAS takes: every other one, `max_age` included, is answered `invalid_request` (§4).
+   */
+  prompt?: 'none'
 }
 
-/** A grant's tokens as this package hands them on: the response's fields, with the ID token already validated. */
-export interface Tokens {
+/** The tokens of a grant as CAS answered them, before the ID token was read: nothing of the account yet. */
+export interface Grant {
   accessToken: string
   refreshToken: string
   idToken: string
@@ -75,6 +78,10 @@ export interface Tokens {
   expiresIn: number
   /** The granted scopes, read from the response: a refresh never narrows them, whatever the request asked (§7). */
   scope: string
+}
+
+/** A grant's tokens as this package hands them on: the response's fields, with the ID token already validated. */
+export interface Tokens extends Grant {
   claims: IdTokenClaims
   profile: ProfileSnapshot
 }
@@ -94,13 +101,38 @@ export interface EndSessionUrlOptions {
   state?: string
 }
 
+/**
+ * A refresh CAS answered `200` whose ID token then failed validation — an unpublished `kid` in the middle of a key
+ * rotation, a JWKS that could not be refetched, a clock a second ahead.
+ *
+ * The rotation has already happened: CAS retired the presented refresh token the moment it answered (ADR 0012 (b)).
+ * So the new tokens leave with the failure instead of being dropped — a caller that loses them keeps a token CAS has
+ * spent, and the next refresh presenting it is read as theft and revokes the whole grant. Nothing of the account
+ * comes with them, since the claims they were carried in are not to be trusted; `cause` is the
+ * `InvalidIdTokenError` or `DiscoveryError` that refused the ID token.
+ */
+export class UnusableGrantError extends Error {
+  readonly code = 'unusable_grant'
+  /** The rotated tokens. Record them before answering this failure; read nothing of the account from them. */
+  readonly grant: Grant
+
+  constructor(grant: Grant, options: ErrorOptions) {
+    super('CAS rotated the grant, but the ID token it answered with cannot be accepted.', options)
+    this.name = 'UnusableGrantError'
+    this.grant = grant
+  }
+}
+
 /** A backend's view of CAS: build a request, redeem a code, refresh, mint a guest, build the logout navigation. */
 export interface CasClient {
   /** The authorization request of §4, with PKCE S256, a `state` and a `nonce` generated here. */
   authorizationRequest(options?: AuthorizationRequestOptions): Promise<AuthorizationRequest>
   /** The code exchange of §5. The ID token is validated against the `nonce` of its authorization request. */
   exchangeCode(options: ExchangeCodeOptions): Promise<Tokens>
-  /** The refresh of §7. Every call rotates the refresh token: persist the new one before using the new access token. */
+  /**
+   * The refresh of §7. Every call rotates the refresh token: persist the new one before using the new access token,
+   * and persist it on an `UnusableGrantError` too — the rotation happened before the ID token was judged.
+   */
   refresh(refreshToken: string): Promise<Tokens>
   /** The guest grant of §8, no browser involved. `scope` defaults to `openid` on CAS's side. */
   guestGrant(options?: { scope?: string }): Promise<Tokens>
@@ -147,18 +179,18 @@ export const createCasClient = (options: CasClientOptions): CasClient => {
     return result.data
   }
 
+  const grantOf = (response: TokenResponse): Grant => ({
+    accessToken: response.access_token,
+    refreshToken: response.refresh_token,
+    idToken: response.id_token,
+    expiresIn: response.expires_in,
+    scope: response.scope,
+  })
+
   /** A token response with its ID token validated: nothing of it is read before the validation passes (§5). */
   const tokensOf = async (response: TokenResponse, nonce: string | undefined): Promise<Tokens> => {
     const claims = await validateIdToken(response.id_token, { issuer, clientId, nonce, client: transport, cache })
-    return {
-      accessToken: response.access_token,
-      refreshToken: response.refresh_token,
-      idToken: response.id_token,
-      expiresIn: response.expires_in,
-      scope: response.scope,
-      claims,
-      profile: profileOf(claims),
-    }
+    return { ...grantOf(response), claims, profile: profileOf(claims) }
   }
 
   const authorizationRequest = async ({ scope, idTokenHint, prompt }: AuthorizationRequestOptions = {}): Promise<AuthorizationRequest> => {
@@ -193,8 +225,15 @@ export const createCasClient = (options: CasClientOptions): CasClient => {
 
   const refresh = async (refreshToken: string): Promise<Tokens> => {
     const form = new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken })
-    // No nonce: the refreshed token answers no authorization request and carries none (ADR 0012 (f)).
-    return await tokensOf(await postToken(form), undefined)
+    // The 200 this resolves with has already spent `refreshToken`, whatever happens next.
+    const response = await postToken(form)
+    try {
+      // No nonce: the refreshed token answers no authorization request and carries none (ADR 0012 (f)).
+      return await tokensOf(response, undefined)
+    } catch (cause) {
+      // So a refusal of the ID token carries the rotation out rather than leaving it behind (see UnusableGrantError).
+      throw new UnusableGrantError(grantOf(response), { cause })
+    }
   }
 
   const guestGrant = async ({ scope }: { scope?: string } = {}): Promise<Tokens> => {

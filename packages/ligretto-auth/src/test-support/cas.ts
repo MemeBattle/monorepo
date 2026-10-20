@@ -72,19 +72,11 @@ export interface TokenAnswer {
   /** Signs the ID token with this key instead of the published one. */
   signWith?: CryptoKey
   scope?: string
-  expiresIn?: number
-  /** Replaces the whole 200 body, for an answer that is not a token response at all. */
-  body?: unknown
   /** An answer served verbatim, for what is outside the contract: a proxy's HTML page rather than CAS's JSON. */
   raw?: { status: number; body: string; headers?: Record<string, string> }
 }
 
 export interface CasStubOptions {
-  issuer?: string
-  /** What the document advertises as `jwks_uri`; defaults to the OpenAPI path under the issuer. */
-  jwksUri?: string
-  /** The client the ID tokens are minted for; the `aud` of every one. */
-  clientId?: string
   /** Fields to override in the document that is served; `undefined` drops one from the JSON. */
   documentPatch?: Record<string, unknown>
   /** The successive JWKS answers; the last one repeats. Defaults to the one published key. */
@@ -119,11 +111,9 @@ const present = (claims: Record<string, unknown>): Record<string, unknown> =>
 export type CasStub = Awaited<ReturnType<typeof casStub>>
 
 export const casStub = async (options: CasStubOptions = {}) => {
-  const issuer = options.issuer ?? ISSUER
-  const clientId = options.clientId ?? CLIENT_ID
-  const jwksUri = options.jwksUri ?? `${issuer}/oidc/jwks.json`
-  const discoveryUrl = `${issuer}/.well-known/openid-configuration`
-  const served = { ...documentOf(issuer, jwksUri), ...options.documentPatch } as Discovery
+  const jwksUri = `${ISSUER}/oidc/jwks.json`
+  const discoveryUrl = `${ISSUER}/.well-known/openid-configuration`
+  const served = { ...documentOf(ISSUER, jwksUri), ...options.documentPatch } as Discovery
 
   const signing = await generateKeyPair('ES256', { extractable: true })
   const other = await generateKeyPair('ES256', { extractable: true })
@@ -141,8 +131,8 @@ export const casStub = async (options: CasStubOptions = {}) => {
 
   /** The default claim set of an ID token: a full account that signed in with a passkey. */
   const defaultClaims = (): Record<string, unknown> => ({
-    iss: issuer,
-    aud: clientId,
+    iss: ISSUER,
+    aud: CLIENT_ID,
     sub: SUB,
     account_type: 'full',
     amr: ['webauthn'],
@@ -173,9 +163,6 @@ export const casStub = async (options: CasStubOptions = {}) => {
       const { status, error, description, headers } = answer.failure
       return json(status, { error, error_description: description ?? error }, headers)
     }
-    if (answer.body !== undefined) {
-      return json(200, answer.body)
-    }
     issued += 1
     const refreshToken = `refresh-${issued}`
     issuedRefreshTokens.push(refreshToken)
@@ -184,7 +171,7 @@ export const casStub = async (options: CasStubOptions = {}) => {
       {
         access_token: `access-${issued}`,
         token_type: 'Bearer',
-        expires_in: answer.expiresIn ?? ACCESS_TOKEN_LIFETIME_SECONDS,
+        expires_in: ACCESS_TOKEN_LIFETIME_SECONDS,
         refresh_token: refreshToken,
         id_token: answer.idToken ?? (await idToken(answer)),
         scope: answer.scope ?? 'openid profile',
@@ -232,16 +219,11 @@ export const casStub = async (options: CasStubOptions = {}) => {
 
   return {
     fetch,
-    issuer,
-    clientId,
+    issuer: ISSUER,
     jwksUri,
-    discoveryUrl,
     document: served,
-    publicJwk,
-    signingKey: signing.privateKey,
+    /** A key this CAS never published, for a signature that does not match the one it did. */
     otherKey: other.privateKey,
-    /** Every URL the stub was asked for, in order. */
-    requested,
     /** Every token request it answered, in order. */
     tokenRequests,
     /** The refresh tokens it has handed out, in order. */
@@ -249,7 +231,6 @@ export const casStub = async (options: CasStubOptions = {}) => {
     asked: (url: string): number => requested.filter(seen => seen === url).length,
     /** Scripts the next answers of the token endpoint; an unscripted request gets an ordinary success. */
     answer: (...scripted: TokenAnswer[]): void => void answers.push(...scripted),
-    idToken,
     craftedIdToken,
   }
 }

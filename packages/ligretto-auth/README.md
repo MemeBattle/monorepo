@@ -81,8 +81,10 @@ const cas = createCasClient({
   request of [§4](../../apps/cas/docs/INTEGRATION.md): PKCE `S256` over
   WebCrypto, a `state` and a `nonce` of 32 random bytes each, `scope`
   defaulting to the client's (`openid profile`), and `id_token_hint` or
-  `prompt` only when given. It resolves with the URL and the three values the
-  callback is checked with — keep them for that browser.
+  `prompt` only when given. `prompt` takes `none` and nothing else: CAS
+  answers every other value `invalid_request`, so the type refuses what the
+  server would. It resolves with the URL and the three values the callback is
+  checked with — keep them for that browser.
 - `exchangeCode({ code, codeVerifier, nonce })` redeems the code (§5), and
   `refresh(refreshToken)` rotates the grant (§7). Both resolve with the
   tokens, the validated claims and a profile snapshot; `scope` is read from
@@ -118,6 +120,15 @@ refused sign-in from a refused bearer token. Anything outside the contract
 still arrives as the transport reported it: an `ApiError`, or the network's
 own failure.
 
+A `refresh` is the one call that refuses an ID token differently. CAS retires
+the presented refresh token the moment it answers `200` (ADR 0012 (b)), so a
+refusal that comes after that answer arrives as an `UnusableGrantError`
+carrying the rotated `grant` — the tokens, no account snapshot — with the
+`InvalidIdTokenError` or `DiscoveryError` as its `cause`. Record the grant
+before answering the failure: dropping it leaves the caller holding a token
+CAS has spent, and presenting that one again is read as theft and revokes the
+whole grant. `refreshSession` below does exactly that.
+
 ## Sessions
 
 `SessionStore` is a port: this package states the shape and the concurrency
@@ -146,7 +157,11 @@ and §9:
   concurrent callers into one token request. The rotated refresh token is
   persisted before the call resolves, so the caller never holds an access
   token whose refresh token was not stored. `invalid_grant` means the grant
-  is over: the session is deleted and the typed error rethrown.
+  is over: the session is deleted and the typed error rethrown. An
+  `UnusableGrantError` means CAS rotated and then answered an ID token this
+  client cannot accept: the rotated tokens are written — the snapshot is not,
+  since the claims they came in were refused — and the error rethrown. Every
+  other failure leaves the session as it was.
 - `beginSignIn(ctx, { sessionId?, scope?, prompt? })` starts a sign-in, and
   an upgrade when a session is named: it force-refreshes first and hints with
   the **newly issued** ID token, always, because CAS checks the hint's `exp`
@@ -157,11 +172,17 @@ and §9:
   has already checked that the callback arrived on the browser that started
   the sign-in. §4 requires `state` compared with the value stored _for this
   browser_; the store proves only that the state exists, so the cookie that
-  binds it to a browser belongs to the HTTP layer above this package. When
-  the `sub` that comes back is not the one the sign-in started from, the
-  result reports `previousSub`, the old session is deleted and the new one is
-  fresh — reported, never merged (§9). The report comes from the snapshot
-  taken at `beginSignIn`, so it survives the old session having been deleted
+  binds it to a browser belongs to the HTTP layer above this package. The
+  session it returns always carries a **new id**, and the session that
+  started the sign-in is deleted — the upgrade of the very same account
+  included, because the grant that comes back is a full account's and an id
+  handed out while the account was a guest must not reach it (ADR 0015 names
+  session fixation as the upgrade's threat, and CAS's own revocation cannot
+  reach a row of this store). Install the id the result carries. When the
+  `sub` that comes back is not the one the sign-in started from, the result
+  reports `previousSub` and the new session carries nothing of the old one —
+  reported, never merged (§9). The report comes from the snapshot taken at
+  `beginSignIn`, so it survives the old session having been deleted
   meanwhile, which an upgrade makes routine: it revokes the guest's grants.
 - `mintGuest(ctx, { scope? })` mints a guest and persists its session.
 
@@ -177,9 +198,11 @@ must equal the configured one byte for byte before it is trusted (ADR 0009 (e));
 and every other endpoint, the JWKS included, is the one the document advertises
 (ADR 0017). The document and the JWKS are cached for as long as their
 `Cache-Control: max-age` says, and an answer without one is not cached at all.
-Only metadata a verification can be run from is cached: a body that is no JSON
-object at all, a document that advertises no `jwks_uri` or algorithms and a key
-set that is not one are refused as `malformed_metadata`, and a key set holding
+Only metadata this package can work from is cached: a body that is no JSON
+object at all, a document that advertises no `jwks_uri`, no signing algorithms
+or none of the three endpoints that are sent to (`authorization_endpoint`,
+`token_endpoint`, `end_session_endpoint`) and a key set that is not one are
+refused as `malformed_metadata`, and a key set holding
 material WebCrypto will not take for the algorithm it names is refused as
 `unusable_key`. None of them is kept, so the next verification reads what the
 provider serves now instead of answering from a poisoned cache for an hour.
@@ -278,6 +301,15 @@ repository keeps:
   consumer: the rotated refresh token persisted before the new access token
   is used, the session deleted on `invalid_grant`, the force-refresh before
   an upgrade hint, and a `sub` mismatch reported rather than merged.
+- A rotation CAS has made is never dropped: a `refresh` whose ID token is
+  refused leaves with the rotated tokens (`UnusableGrantError`) and
+  `refreshSession` writes them, because the token the session presented is
+  spent either way and presenting it again would cost the whole grant.
+- A sign-in that completes retires the id it started from, the upgrade of the
+  same account included: the session is the full account's afterwards, so the
+  guest's id does not carry over (ADR 0015, session fixation). `sub` is what
+  stays stable across an upgrade, and it is what application data is keyed
+  on.
 - The mismatch is compared against the `sub` snapshot taken at
   `beginSignIn`, carried in the pending request, so the report survives the
   initiating session's deletion — routine after an upgrade, which revokes the

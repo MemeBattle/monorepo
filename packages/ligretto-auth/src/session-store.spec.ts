@@ -115,7 +115,8 @@ describe('withSessionLock', () => {
 
 describe('the pending authorization requests of the in-memory store', () => {
   it('consumes a request exactly once', async () => {
-    const store = createInMemorySessionStore()
+    // The injected clock, so the fixture's expiry is read against the time it was written for and not against today.
+    const store = createInMemorySessionStore({ now: clock().now })
     await store.savePendingRequest(pendingWith('the-state', { sessionId: 'session-1', sub: 'a-subject' }))
 
     await expect(store.takePendingRequest('the-state')).resolves.toMatchObject({ sessionId: 'session-1', sub: 'a-subject' })
