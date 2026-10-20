@@ -17,7 +17,7 @@
 import type { Session } from './session-store'
 import { PENDING_REQUEST_TTL_MS } from './sessions'
 
-/** Which way the session id travels. One option, chosen per deployment. */
+/** Which way the session id travels, chosen per deployment. */
 export type SessionTransportKind = 'cookie' | 'bearer'
 
 /** The default name of the session cookie. `__Host-` is required of any replacement (ADR 0013 on cookie prefixes). */
@@ -26,13 +26,13 @@ export const SESSION_COOKIE_NAME = '__Host-ligretto_session'
 /** The cookie that binds a callback's `state` to the browser that started the sign-in (§4). */
 export const STATE_COOKIE_NAME = '__Host-ligretto_auth_state'
 
-/** The prefix every cookie here carries: host-only, `Secure`, `Path=/`, which is what the prefix promises. */
+/** The prefix every cookie here carries: the browser then enforces host-only, `Secure` and `Path=/`. */
 const HOST_PREFIX = '__Host-'
 
 /**
  * How much longer than its grant the session cookie lives.
  *
- * The cookie deliberately outlives `grantEndsAt`: a cookie that died with the grant would simply stop being sent,
+ * The cookie deliberately outlives `grantEndsAt`: a cookie that died with the grant would stop being sent,
  * and the first visit afterwards would be indistinguishable from a new visitor's — so a user whose grant ran out
  * could never be told they had been signed out. Within the grace the stale id is still presented, the refresh is
  * answered `invalid_grant`, the session is deleted and `signedOut` reports it once. Past the grace the user is a

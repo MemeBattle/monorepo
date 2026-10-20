@@ -56,7 +56,7 @@ export interface AuthHandlersOptions {
   now?: () => number
 }
 
-/** The four routes, each mounted as it is. They read the request and answer; they never throw a known failure. */
+/** The four routes. None of them throws a known failure: it comes back as the answer it maps to. */
 export interface AuthHandlers {
   /** `GET me`: who the user is and the access token to call this application's API with, minting a guest if needed. */
   me(request: Request): Promise<Response>
@@ -87,9 +87,9 @@ const causeCodeOf = (cause: unknown): string | undefined =>
  * Every typed failure of the CAS client as the answer it deserves, in one place so no route can let one through.
  * `undefined` means the failure is not one of them, and the host may have it.
  *
- * The three failures that are route-aware — `invalid_grant`, `UnknownSessionError` and the callback's spent code —
- * are decided by the route before they ever reach here, because what they mean depends on what was being attempted:
- * on `me` an ended grant is a new guest, on `sign-in` it is a plain sign-in, at the callback it is a refused code.
+ * The failures that are route-aware — `invalid_grant` and `UnknownSessionError` — are decided by the route before
+ * they ever reach here, because what they mean depends on what was being attempted: on `me` an ended grant is a new
+ * guest, on `sign-in` it is a plain sign-in, at the callback it is a refused code.
  */
 const refusalOf = (failure: unknown): Refusal | undefined => {
   if (failure instanceof TokenEndpointError) {
@@ -135,9 +135,8 @@ const refusalOf = (failure: unknown): Refusal | undefined => {
  *
  * The same three buckets `refusalOf` sorts the token endpoint's codes into, because RFC 6749 §4.1.2.1 sends the same
  * families through the authorization endpoint: CAS away is transient, a registration or request-shape fault is
- * `cas_rejected` — permanent until an operator acts, which is the whole reason that code exists — and a user who
- * said no, or a code this package does not know, is simply a sign-in that did not happen. Classifying on `away` alone
- * would report a deployment with an unregistered scope as the user having cancelled, in every log line.
+ * `cas_rejected`, and a user who said no — or a code this package does not know — is a sign-in that did not happen.
+ * Sorting on transience alone would report a deployment with an unregistered scope as the user having cancelled.
  */
 const authorizationRefusalOf = (code: string, description: string): Refusal => {
   if (isUnavailableCode(code)) {
@@ -167,9 +166,9 @@ const refusalResponse = ({ status, body, retryAfterSeconds }: Refusal): Response
  * Where the browser is sent once a sign-in is done, parsed once at construction.
  *
  * A relative value — `'/'` — would pass every route but one and fail on the callback's success path, after the new
- * session has been saved: an uncoded `TypeError` out of `new URL`, so a 500 at the very end of a real sign-in, with
- * the session orphaned and never handed to the browser. Refused here instead, as `createSessionTransport` refuses a
- * cookie name without its prefix: a mounting mistake belongs to the deploy, not to the first user who signs in.
+ * session has been saved: an uncoded `TypeError` out of `new URL`, so a 500 at the end of a real sign-in with the
+ * session orphaned. Refused at construction instead, as `createSessionTransport` refuses a cookie name without its
+ * prefix: a mounting mistake belongs to the deploy, not to the first user who signs in.
  */
 const appUrlOf = (appUrl: string): URL => {
   try {
@@ -233,7 +232,7 @@ export const createAuthHandlers = (options: AuthHandlersOptions): AuthHandlers =
 
       // Advisory, and deliberately outside the lock: it decides nothing but whether a `signedOut` report is due, so
       // the worst a race costs is a mis-report. Reading it inside the refresh's lock would mean a second round of
-      // locking on every single `me`.
+      // locking on every `me`.
       const before = await store.getSession(presented)
 
       try {
@@ -243,7 +242,7 @@ export const createAuthHandlers = (options: AuthHandlersOptions): AuthHandlers =
           throw failure
         }
         // The id names nothing usable any more: the user gets a guest, and is told they were signed out if what the
-        // id named was a full account. A guest whose grant simply ran out had nothing to be signed out of.
+        // id named was a full account. A guest whose grant ran out had nothing to be signed out of.
         return meHandover(await mintGuest(ctx), before?.accountType === 'full')
       }
     })
@@ -332,10 +331,10 @@ export const createAuthHandlers = (options: AuthHandlersOptions): AuthHandlers =
 
       const headers = new Headers()
       transport.uninstall(headers)
-      // The one refusal-free reason to take the `state` cookie back. A sign-in left in flight — the user clicked
-      // sign-in, came back to the application tab and logged out — would otherwise still complete from the CAS tab:
-      // both of the callback's gates are open, and it would sign the user back in with a brand-new session, undoing
-      // the logout they were told had happened. The pending request is left to its TTL; nothing is swept here.
+      // A sign-in left in flight — the user clicked sign-in, came back to the application tab and logged out —
+      // would otherwise still complete from the CAS tab, both of the callback's gates being open, and sign the user
+      // back in with a new session, undoing the logout they were told had happened. The pending request is left to
+      // its own TTL; nothing is swept here.
       clearStateCookie(headers)
       // Nothing to end — no id, or an id the store does not hold — is still a logout as far as the user is
       // concerned: the browser goes back to the application.

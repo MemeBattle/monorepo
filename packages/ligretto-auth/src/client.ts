@@ -7,9 +7,8 @@
  * contract: it comes back as a value, a `Result` whose `error.code` is typed as the codes the operation declares.
  * Everything outside the contract is thrown, and always as an `ApiError`: `fetch` rejecting, so no response came back
  * at all (`unreachable`), an error response whose body carries no code (a proxy's page, not CAS: `unknown`), a 2xx
- * whose body is not JSON, and any redirect. One class for all of them because they are one thing to a caller — the
- * provider cannot be used right now — and a caller that must answer every known failure with a status of its own
- * cannot do that for a rejection it has no type for.
+ * whose body is not JSON, and any redirect. One class for all of them because they are one thing to a caller: the
+ * provider cannot be used right now.
  *
  * Unlike a browser client there is no ambient origin here: a `Client` is made with `createClient({ baseUrl })` and
  * every request resolves against that base, or against the absolute URL `atUrl` puts in its place — which is how a
@@ -55,9 +54,9 @@ export interface ApiErrorOptions extends ErrorOptions {
  * whose body carries no code (`unknown`), a 2xx whose body is not JSON (`unknown`) — or no response at all, because
  * `fetch` itself rejected (`unreachable`).
  *
- * The network belongs here rather than escaping as whatever `fetch` threw: a provider that cannot be reached is the
- * most ordinary provider failure there is, and a caller mapping known failures to statuses of its own has no type to
- * recognise a bare `TypeError` by — it would answer a routine outage with an unhandled 500.
+ * The network belongs here rather than escaping as whatever `fetch` threw: a caller mapping known failures to
+ * statuses of its own has no type to recognise a bare `TypeError` by, and would answer a routine outage with an
+ * unhandled 500.
  */
 export class ApiError extends Error {
   /** The response's status, or `0` when the request produced no response. */

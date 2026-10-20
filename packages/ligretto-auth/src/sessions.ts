@@ -274,11 +274,11 @@ export const completeSignIn = async (ctx: SessionContext, { code, state }: Compl
  * Logout's session half (§11): the session is ended here, and the navigation that ends CAS's own is returned for the
  * caller to send the browser to. `undefined` means the store holds no such session — nothing to end.
  *
- * The re-read, the URL and the delete all happen inside the session's lock, as the session-write rule demands, and
- * the lock matters more here than the read-then-write alone suggests: CAS's logout revokes no grant (§11), so a
- * refresh that was waiting on CAS and upserted the session after the delete would leave a *working* session behind a
- * logout the user was told had happened. Holding the lock across `endSessionUrl` is the trade `refreshSession`
- * already makes across its token `POST`, and the discovery document it reads is normally cached.
+ * The re-read, the URL and the delete all happen inside the session's lock, as the session-write rule demands.
+ * CAS's logout revokes no grant (§11), so a refresh that was waiting on CAS and upserted the session after the
+ * delete would leave a *working* session behind a logout the user was told had happened. Holding the lock across
+ * `endSessionUrl` is the trade `refreshSession` already makes across its token `POST`, and the discovery document it
+ * reads is normally cached.
  *
  * A `DiscoveryError` from the URL leaves the session in place, so the user can retry a logout that ends both sides
  * rather than being left signed in to CAS with no application session to retry from.

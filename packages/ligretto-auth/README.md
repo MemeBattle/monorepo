@@ -198,7 +198,7 @@ moved by a refresh (ADR 0012 (g)); CAS does not transmit it.
 
 `createAuthHandlers` is the HTTP half: four `(Request) => Promise<Response>`
 functions, so Hono, a bare Worker and an Adonis adapter mount the same
-handler. No framework is imported and no framework is assumed.
+handler. No framework is imported, and none is assumed.
 
 ```ts
 import { createAuthHandlers, createCasClient } from '@memebattle/ligretto-auth'
@@ -218,7 +218,7 @@ const auth = createAuthHandlers({
   `{ user: { sub, accountType, name, avatarUrl }, accessToken, expiresAt,
 signedOut }`, with `expiresAt` in epoch milliseconds. A grant that has
   ended (`invalid_grant`) or an id the store does not hold is answered with a
-  new guest rather than an error — the user keeps playing — and `signedOut`
+  new guest rather than an error — the user is not blocked — and `signedOut`
   is `true` when what the id named was a **full** account, so the UI can
   offer a sign-in instead of silently showing a guest. A session is handed
   over only by the answer that **created** it; an answer for a session the
@@ -496,10 +496,9 @@ repository keeps:
   on calls (scheme case-insensitive per RFC 6750 §2.1, ADR 0013 (d); the id
   itself case-sensitive), the callback redirect's fragment hands a new one
   over, and `sign-in`/`logout` answer JSON `{ url }` rather than a `302` a
-  fetch could not usefully follow. The literal `302` of the issue is traded
-  for that; the header contract is what the transport is.
+  fetch could not usefully follow.
 - The session cookie outlives its grant by `SESSION_COOKIE_GRACE_MS`, seven
-  days. A cookie that died at `grantEndsAt` would simply stop being sent, so
+  days. A cookie that died at `grantEndsAt` would stop being sent, so
   an ordinary grant expiry would be indistinguishable from a new visitor and
   `signedOut` could never be reported. Within the grace the stale id is
   presented once, refused `invalid_grant`, and reported. **A store's cleanup
@@ -533,9 +532,9 @@ repository keeps:
   endpoint code, not by "away or not": RFC 6749 §4.1.2.1 sends the
   registration-fault family (`unauthorized_client`, `invalid_scope`,
   `invalid_request`, `unsupported_response_type`) through the authorization
-  endpoint too, and answering those `sign_in_failed` would make a
-  deployment that fails every single sign-in look exactly like users
-  cancelling. `access_denied` and a code this package does not know stay
+  endpoint too, and answering those `sign_in_failed` would make a deployment
+  that fails every sign-in look like users cancelling. `access_denied` and a
+  code this package does not know stay
   `sign_in_failed`: the user said no, which is not an operator's problem.
 - The callback checks for a code itself, before `completeSignIn`, because
   that function consumes the pending request _before_ it redeems the code: a

@@ -111,8 +111,8 @@ describe('createClient', () => {
       (error: unknown) => error,
     )
 
-    // A provider that cannot be reached is the most ordinary provider failure there is: a caller mapping known
-    // failures to statuses of its own has nothing to recognise a bare `TypeError` by, and would answer it with a 500.
+    // A caller mapping known failures to statuses of its own has nothing to recognise a bare `TypeError` by, and
+    // would answer a routine outage with a 500.
     expect(thrown).toBeInstanceOf(ApiError)
     expect(thrown).toMatchObject({ code: 'unreachable', status: 0, cause })
   })

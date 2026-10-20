@@ -280,8 +280,9 @@ describe('createAuthHandlers', () => {
     const mount = (appUrl: string) => (): unknown =>
       createAuthHandlers({ client: casClient(cas), store: createInMemorySessionStore(), transport: 'cookie', appUrl })
 
-    // `new URL('/')` throws, and the only parse used to be on the callback's success path — after the session was
-    // saved, so the first user to finish a sign-in got an uncoded 500 and an orphaned session.
+    // `new URL('/')` throws, and the app URL's only use is the callback's redirect, after the session is saved. Left
+    // to the first request, a relative value would cost the first user to finish a sign-in an uncoded 500 and an
+    // orphaned session.
     expect(mount('/')).toThrow(TypeError)
     expect(mount('/')).toThrow(/must be absolute/)
     expect(mount(APP_URL)).not.toThrow()
@@ -445,8 +446,8 @@ describe.each(TRANSPORTS)('the %s transport', kind => {
 
     it('answers 503 when the token endpoint cannot be reached, though the document was read', async () => {
       const cas = await casStub()
-      // Discovery succeeds and the token endpoint refuses the connection: one outage, and it used to be a coded 503
-      // where it hit the document and an uncoded 500 where it hit the token endpoint.
+      // Discovery succeeds and the token endpoint refuses the connection. One outage answers the same wherever it
+      // strikes: a coded 503, not a 500 because this one came back as `fetch`'s own rejection.
       const unreachable: typeof globalThis.fetch = async (input, init) =>
         String(input) === cas.document.token_endpoint ? Promise.reject(new TypeError('fetch failed')) : await cas.fetch(input, init)
       const h = await harness(kind, { fetch: unreachable })
