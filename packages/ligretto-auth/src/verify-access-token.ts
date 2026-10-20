@@ -152,8 +152,9 @@ export const verifyAccessToken = async (token: string, options: VerifyAccessToke
   try {
     key = await importJWK(published, header.alg)
   } catch (cause) {
-    // The algorithm is one the document publishes and the key is one the provider published under that `kid`: a key
-    // WebCrypto will not take for it is the provider's metadata failing, not a judgement on the token.
+    // The cache refuses a set before storing it unless every key imports for the `alg` it names, so what is left here
+    // is the narrower case: the document lets the token name an algorithm this key is not published for. Either way a
+    // key WebCrypto will not take is the provider's metadata failing, not a judgement on the token.
     throw new DiscoveryError('unusable_key', `The key ${JSON.stringify(header.kid)} that ${issuer} publishes cannot verify ${header.alg}.`, { cause })
   }
 

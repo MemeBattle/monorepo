@@ -41,13 +41,15 @@ interface ProviderOptions {
   documentIssuer?: string
   /** Fields to override in the document that is served; `undefined` drops one from the JSON. */
   documentPatch?: Record<string, unknown>
+  /** The successive discovery bodies, for an answer that is not a document at all; takes the document's place. */
+  documentBodies?: unknown[]
   /** The successive JWKS answers; the last one repeats. */
   keySets?: PublicJwk[][]
   /** The successive JWKS bodies, for an answer that is not a key set at all; takes `keySets`' place. */
   jwksBodies?: unknown[]
   /** `null` serves no `Cache-Control` at all. */
   cacheControl?: string | null
-  /** A status for the discovery endpoint to fail with instead of serving the document. */
+  /** A status for the discovery endpoint to answer with instead of serving the document; a 204 carries no body. */
   discoveryStatus?: number
 }
 
@@ -61,10 +63,15 @@ const provider = (key: PublicJwk, options: ProviderOptions = {}) => {
   const cacheControl = options.cacheControl === undefined ? MAX_AGE : options.cacheControl
 
   const requested: string[] = []
+  let documentAnswers = 0
   let jwksAnswers = 0
 
+  /** The successive answer of a sequence, the last one repeating, as a provider that recovers serves them. */
+  const inTurn = (bodies: unknown[], answered: number): unknown => bodies[Math.min(answered, bodies.length - 1)]
+
   const json = (status: number, body: unknown): Response =>
-    new Response(JSON.stringify(body), {
+    // A 204 carries no body at all: what a proxy that answers one leaves a client to read.
+    new Response(status === 204 ? null : JSON.stringify(body), {
       status,
       headers: cacheControl === null ? { 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json', 'Cache-Control': cacheControl },
     })
@@ -73,12 +80,17 @@ const provider = (key: PublicJwk, options: ProviderOptions = {}) => {
     const url = String(input)
     requested.push(url)
     if (url === discoveryUrl) {
+      if (options.documentBodies !== undefined) {
+        const body = inTurn(options.documentBodies, documentAnswers)
+        documentAnswers += 1
+        return json(200, body)
+      }
       return options.discoveryStatus === undefined
         ? json(200, served)
         : json(options.discoveryStatus, { error: { code: 'internal_error', message: 'The document could not be built' } })
     }
     if (url === jwksUri) {
-      const body = jwksBodies[Math.min(jwksAnswers, jwksBodies.length - 1)]
+      const body = inTurn(jwksBodies, jwksAnswers)
       jwksAnswers += 1
       return json(200, body)
     }
@@ -306,22 +318,42 @@ describe('the provider metadata', () => {
     await expect(verify(token, withoutAlgorithms)).rejects.toMatchObject({ code: 'malformed_metadata' })
   })
 
+  it('refuses a document that is no object at all, and a response that carries no body', async () => {
+    // `null` is a JSON body like any other and a proxy may answer one, or none: a field read off it would leave an
+    // uncoded `TypeError` where the caller handles the provider's known failures.
+    const serving = provider(publicJwk, { documentBodies: [null, document(ISSUER, `${ISSUER}/oidc/jwks.json`)] })
+    const cache = createDiscoveryCache()
+    const token = await accessToken(signing.privateKey)
+
+    await expect(verify(token, serving, cache)).rejects.toMatchObject({ name: 'DiscoveryError', code: 'malformed_metadata' })
+    // Nothing of the refused answer is kept, so the next verification reads the document the provider serves now.
+    await expect(verify(token, serving, cache)).resolves.toMatchObject({ sub: SUB })
+
+    const bodiless = provider(publicJwk, { discoveryStatus: 204 })
+    await expect(verify(token, bodiless)).rejects.toMatchObject({ name: 'DiscoveryError', code: 'malformed_metadata' })
+  })
+
   it('refuses a key set that is not one, and recovers as soon as the provider serves a real one', async () => {
-    const cas = provider(publicJwk, { jwksBodies: [{}, { keys: [publicJwk] }] })
+    const cas = provider(publicJwk, { jwksBodies: [{}, null, { keys: [publicJwk] }] })
     const cache = createDiscoveryCache()
 
     await expect(verify(await accessToken(signing.privateKey), cas, cache)).rejects.toMatchObject({
       name: 'DiscoveryError',
       code: 'malformed_metadata',
     })
+    await expect(verify(await accessToken(signing.privateKey), cas, cache)).rejects.toMatchObject({ code: 'malformed_metadata' })
     await expect(verify(await accessToken(signing.privateKey), cas, cache)).resolves.toMatchObject({ sub: SUB })
   })
 
-  it('reports a published key that cannot verify the published algorithm as a metadata failure', async () => {
+  it('reports a published key that cannot verify the published algorithm as a metadata failure, and keeps none of it', async () => {
     const unusable: PublicJwk = { kty: 'EC', crv: 'P-256', x: 'AAAA', y: 'AAAA', kid: KID, use: 'sig', alg: 'ES256' }
-    const cas = provider(publicJwk, { keySets: [[unusable]] })
+    const cas = provider(publicJwk, { keySets: [[unusable], [publicJwk]] })
+    const cache = createDiscoveryCache()
 
-    await expect(verify(await accessToken(signing.privateKey), cas)).rejects.toMatchObject({ name: 'DiscoveryError', code: 'unusable_key' })
+    await expect(verify(await accessToken(signing.privateKey), cas, cache)).rejects.toMatchObject({ name: 'DiscoveryError', code: 'unusable_key' })
+    // The repaired key is read as soon as the provider publishes it, not once the broken set's `max-age` has run out.
+    await expect(verify(await accessToken(signing.privateKey), cas, cache)).resolves.toMatchObject({ sub: SUB })
+    expect(cas.asked(cas.jwksUri)).toBe(2)
   })
 
   it('reads the metadata once while its `max-age` lasts, and again after it', async () => {

@@ -8,6 +8,7 @@
  * `issuer` must equal the configured one byte for byte (ADR 0009 (e)).
  */
 
+import { importJWK } from 'jose'
 import type { Client, Result } from './client'
 import { atUrl } from './client'
 import { DiscoveryError } from './errors'
@@ -22,18 +23,51 @@ const discoveryUrlOf = (issuer: string): string => `${issuer}/.well-known/openid
 const JWKS_REFETCH_COOLDOWN_MS = 30_000
 
 /**
+ * A body that could be metadata at all: a JSON object. A provider or a proxy can answer `null`, a scalar, an array or
+ * no body at all, and `null` parses as JSON like any other body. Nothing is read out of a body before this check: a
+ * field read off one of those answers would leave this module with an uncoded `TypeError` where its callers handle a
+ * `DiscoveryError`.
+ */
+const isJsonObject = (body: unknown): body is Record<string, unknown> => typeof body === 'object' && body !== null && !Array.isArray(body)
+
+/**
  * The fields a verification reads: where to fetch the keys, and which algorithms the provider signs with. A document
  * that parsed but is missing one is not a provider description — caching it would answer every verification until it
  * expires with a failure of a kind this package's contract does not name.
  */
-const describesTheProvider = (document: Discovery): boolean =>
+const describesTheProvider = (document: unknown): document is Discovery =>
+  isJsonObject(document) &&
   typeof document.jwks_uri === 'string' &&
   document.jwks_uri !== '' &&
   Array.isArray(document.id_token_signing_alg_values_supported) &&
   document.id_token_signing_alg_values_supported.every(alg => typeof alg === 'string')
 
-/** A key set is usable when `keys` is there and holds JSON objects: every verification searches it by `kid`. */
-const holdsKeys = (set: Jwks): boolean => Array.isArray(set.keys) && set.keys.every(key => typeof key === 'object' && key !== null)
+/** A published key as this package uses it: found by its `kid`, imported for the `alg` it names. CAS requires both. */
+const describesAKey = (key: unknown): boolean => isJsonObject(key) && typeof key.kid === 'string' && typeof key.alg === 'string'
+
+/** A key set is usable when `keys` is there and holds keys: every verification searches it by `kid`. */
+const holdsKeys = (set: unknown): set is Jwks => isJsonObject(set) && Array.isArray(set.keys) && set.keys.every(describesAKey)
+
+/**
+ * The `kid`s of the keys WebCrypto will not take for the algorithm they name. A set is asked this before it is
+ * cached: key material no verification can run on must not be what every token is judged against until the `max-age`
+ * runs out, long after the provider has published the repaired key. One such key refuses the whole set, as a missing
+ * field refuses the whole discovery document — metadata is trusted as a whole, and a key dropped out of a set would
+ * instead have tokens that name it refused as if the provider had never published it.
+ */
+const unusableKids = async (set: Jwks): Promise<string[]> => {
+  const checked = await Promise.all(
+    set.keys.map(async key => {
+      try {
+        await importJWK(key, key.alg)
+        return undefined
+      } catch {
+        return key.kid
+      }
+    }),
+  )
+  return checked.filter((kid): kid is string => kid !== undefined)
+}
 
 /** The `max-age` of a response, in seconds, when it has a usable one. CAS sends `public, max-age=3600`. */
 const maxAgeOf = (headers: Headers): number | undefined => {
@@ -127,14 +161,16 @@ export const createDiscoveryCache = ({ now = Date.now }: DiscoveryCacheOptions =
     }
     const url = discoveryUrlOf(issuer)
     const { data, headers } = await fetched(`The discovery document at ${url}`, () => discoveryOperation({ client: atUrl(client, url) }))
+    // The shape first: what is not a provider description has no `issuer` to compare, and asking it for one is how an
+    // answer of `null` or of no body becomes a `TypeError` rather than this package's own refusal.
+    if (!describesTheProvider(data)) {
+      throw new DiscoveryError('malformed_metadata', `The document at ${url} does not advertise both a \`jwks_uri\` and the algorithms it signs with`)
+    }
     if (data.issuer !== issuer) {
       throw new DiscoveryError(
         'issuer_mismatch',
         `The document at ${url} names the issuer ${JSON.stringify(data.issuer)}, not ${JSON.stringify(issuer)}`,
       )
-    }
-    if (!describesTheProvider(data)) {
-      throw new DiscoveryError('malformed_metadata', `The document at ${url} does not advertise both a \`jwks_uri\` and the algorithms it signs with`)
     }
     store(documents, issuer, data, maxAgeOf(headers))
     return data
@@ -145,6 +181,15 @@ export const createDiscoveryCache = ({ now = Date.now }: DiscoveryCacheOptions =
     if (!holdsKeys(data)) {
       throw new DiscoveryError('malformed_metadata', `The JWKS at ${jwksUri} carries no \`keys\` array of JSON Web Keys`)
     }
+    const unusable = await unusableKids(data)
+    if (unusable.length > 0) {
+      throw new DiscoveryError(
+        'unusable_key',
+        `The JWKS at ${jwksUri} publishes key material no verification can run on: ${unusable.map(kid => JSON.stringify(kid)).join(', ')}`,
+      )
+    }
+    // Only an answer that passed both checks replaces what is cached, so a set the provider cannot be verified
+    // against neither poisons the cache nor costs the keys an open session still verifies against.
     store(keySets, issuer, data, maxAgeOf(headers))
     return data
   }

@@ -68,10 +68,12 @@ must equal the configured one byte for byte before it is trusted (ADR 0009 (e));
 and every other endpoint, the JWKS included, is the one the document advertises
 (ADR 0017). The document and the JWKS are cached for as long as their
 `Cache-Control: max-age` says, and an answer without one is not cached at all.
-Only metadata a verification can be run from is cached: a document that
-advertises no `jwks_uri` or algorithms, and a key set that is not one, are
-refused as `malformed_metadata` and kept nowhere, so the next verification asks
-again rather than answering from a poisoned cache for an hour.
+Only metadata a verification can be run from is cached: a body that is no JSON
+object at all, a document that advertises no `jwks_uri` or algorithms and a key
+set that is not one are refused as `malformed_metadata`, and a key set holding
+material WebCrypto will not take for the algorithm it names is refused as
+`unusable_key`. None of them is kept, so the next verification reads what the
+provider serves now instead of answering from a poisoned cache for an hour.
 
 ## Generated code
 
