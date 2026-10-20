@@ -35,8 +35,11 @@ It runs the check of
 2. `alg` is one the discovery document publishes (ES256), never the token's own
    choice — which is what refuses `none`.
 3. The key is the published one with the token's `kid`. When the `kid` is
-   unknown the JWKS is refetched once: a rotated key is published before it
-   signs anything (ADR 0009 (d)).
+   unknown the JWKS is read again, once: a rotated key is published before it
+   signs anything (ADR 0009 (d)). The cached keys are replaced only once a
+   usable answer has arrived, and a second unknown `kid` within 30 seconds is
+   answered from the cache — a token is reason to go looking for a new key,
+   never reason to drop the keys open sessions verify against.
 4. The signature matches that key.
 5. `iss` is the configured issuer, `aud` is this resource server's audience
    (not a client id, ADR 0011 (b)), and `exp` — a required numeric claim — is
@@ -49,10 +52,11 @@ there is nothing to look up.
 A refusal is an `InvalidTokenError` whose `code` names the failed check:
 `malformed`, `wrong_typ`, `alg_not_allowed`, `unknown_kid`,
 `invalid_signature`, `wrong_issuer`, `wrong_audience`, `invalid_exp`,
-`expired`. A `DiscoveryError` (`discovery_unavailable`, `issuer_mismatch`)
-means the provider's metadata could not be read or could not be trusted — the
-token was never judged. Both are known failures with stable codes, so a caller
-answers with a status of its own rather than letting them surface as an
+`expired`. A `DiscoveryError` (`discovery_unavailable`, `issuer_mismatch`,
+`malformed_metadata`, `unusable_key`) means the provider's metadata could not
+be read, could not be trusted, or says nothing a verification can be run from —
+the token was never judged. Both are known failures with stable codes, so a
+caller answers with a status of its own rather than letting them surface as an
 unhandled error.
 
 ## Endpoints come from the issuer
@@ -64,6 +68,10 @@ must equal the configured one byte for byte before it is trusted (ADR 0009 (e));
 and every other endpoint, the JWKS included, is the one the document advertises
 (ADR 0017). The document and the JWKS are cached for as long as their
 `Cache-Control: max-age` says, and an answer without one is not cached at all.
+Only metadata a verification can be run from is cached: a document that
+advertises no `jwks_uri` or algorithms, and a key set that is not one, are
+refused as `malformed_metadata` and kept nowhere, so the next verification asks
+again rather than answering from a poisoned cache for an hour.
 
 ## Generated code
 
@@ -84,16 +92,26 @@ live, whatever the response body (ADR 0016 (i)): the `302` of `/oidc/authorize`
 carries its ten codes in the redirect's `error` parameter and has no body, and
 the `400`/`503` of the navigation endpoints are HTML pages.
 
+An integer is generated as a `number`: kubb maps `format: int64` to `bigint` by
+default, which is exact for a 64-bit identifier but is not what `JSON.parse`
+produces, so `kubb.config.ts` sets `integerType: 'number'` and the token
+endpoint's `expires_in` has the type the transport really delivers.
+
 The output is committed, and `ligretto-auth-pr.yml` regenerates it and fails on
 any difference, so the committed client always matches the description.
 
-The transport the generated operations call is `src/client.ts`. It resolves
-every path against the `baseUrl` of `createClient({ baseUrl })`, follows no
-redirect (`redirect: 'manual'`; a 3xx is thrown), passes caller headers
-through, sends a string body verbatim as `application/x-www-form-urlencoded`
-(the token endpoint's form body, which must not be quoted into JSON) and any
-other body as JSON, and hands a declared 4xx back as a value whose `code` is
-typed from the description.
+The transport the generated operations call is `src/client.ts`. It appends
+every path of the description to the `baseUrl` of `createClient({ baseUrl })`,
+so a base URL that carries a path keeps it; follows no redirect
+(`redirect: 'manual'`; a 3xx is thrown); passes caller headers through, each
+winning over the content type the body encoding would set, whatever its casing;
+sends a string body verbatim as `application/x-www-form-urlencoded` (the token
+endpoint's form body, which must not be quoted into JSON) and any other body as
+JSON; and hands a declared 4xx back as a value whose `code` is typed from the
+description and whose `headers` are the response's, so a caller reads the
+`Retry-After` a `429` prescribes. Anything else — a redirect, a 5xx, a body
+that is not JSON whatever the status — is thrown as an `ApiError` carrying the
+same `code`, `status` and `headers`.
 
 ## Scripts
 

@@ -27,6 +27,22 @@ describe('createClient', () => {
     expect(sent(fetch).init.redirect).toBe('manual')
   })
 
+  it('appends the path to a base URL that carries a path of its own, as a path-bearing issuer does', async () => {
+    const fetch = stub(() => json(200, { keys: [] }))
+    await createClient({ baseUrl: 'https://cas.example/path', fetch })({ method: 'GET', url: '/oidc/jwks.json' })
+
+    // `new URL('/oidc/jwks.json', 'https://cas.example/path')` would answer `https://cas.example/oidc/jwks.json`.
+    expect(sent(fetch).url).toBe('https://cas.example/path/oidc/jwks.json')
+  })
+
+  it('sends an absolute URL as it stands, whatever path the base URL carries', async () => {
+    const fetch = stub(() => json(200, { keys: [] }))
+    const cas = createClient({ baseUrl: 'https://cas.example/path', fetch })
+    await atUrl(cas, 'https://keys.example/jwks')({ method: 'GET', url: '/oidc/jwks.json' })
+
+    expect(sent(fetch).url).toBe('https://keys.example/jwks')
+  })
+
   it('throws a redirect rather than following it', async () => {
     const fetch = stub(() => new Response(null, { status: 302, headers: { Location: 'https://elsewhere.example' } }))
     const call = createClient({ baseUrl: BASE_URL, fetch })({ method: 'GET', url: '/oidc/authorize' })
@@ -47,18 +63,37 @@ describe('createClient', () => {
     const fetch = stub(() => json(400, { error: 'invalid_grant', error_description: 'The code has been used' }))
     const result = await createClient({ baseUrl: BASE_URL, fetch })({ method: 'POST', url: '/oidc/token', body: 'grant_type=authorization_code' })
 
-    expect(result).toEqual({ ok: false, error: { status: 400, code: 'invalid_grant', message: 'The code has been used' } })
+    expect(result).toMatchObject({ ok: false, error: { status: 400, code: 'invalid_grant', message: 'The code has been used' } })
   })
 
-  it('throws a 5xx and a body it cannot read', async () => {
+  it('keeps the response headers on a declared failure, so a `429` can prescribe the wait', async () => {
+    const fetch = stub(() => json(429, { error: 'rate_limit_exceeded', error_description: 'Slow down' }, { 'Retry-After': '60' }))
+    const result = await createClient({ baseUrl: BASE_URL, fetch })({ method: 'POST', url: '/oidc/token', body: 'grant_type=x' })
+
+    expect(!result.ok && result.error.code).toBe('rate_limit_exceeded')
+    expect(!result.ok && result.error.headers.get('retry-after')).toBe('60')
+  })
+
+  it('throws a 5xx and a body it cannot read, the response headers on the error either way', async () => {
     const serverError = createClient({
       baseUrl: BASE_URL,
-      fetch: stub(() => json(503, { error: 'temporarily_unavailable', error_description: 'Try later' })),
+      fetch: stub(() => json(503, { error: 'temporarily_unavailable', error_description: 'Try later' }, { 'Retry-After': '5' })),
     })
     await expect(serverError({ method: 'GET', url: '/oidc/userinfo' })).rejects.toMatchObject({ code: 'temporarily_unavailable', status: 503 })
 
+    const thrown: unknown = await serverError({ method: 'GET', url: '/oidc/userinfo' }).catch((error: unknown) => error)
+    expect(thrown).toBeInstanceOf(ApiError)
+    expect(thrown instanceof ApiError && thrown.headers.get('retry-after')).toBe('5')
+
     const unreadable = createClient({ baseUrl: BASE_URL, fetch: stub(() => new Response('<html>no</html>', { status: 400 })) })
     await expect(unreadable({ method: 'GET', url: '/oidc/authorize' })).rejects.toMatchObject({ code: 'unknown', status: 400 })
+  })
+
+  it('throws a 2xx whose body is not JSON, which an interstitial answers with, as an `ApiError`', async () => {
+    const fetch = stub(() => new Response('<html>sign in here</html>', { status: 200, headers: { 'Content-Type': 'text/html' } }))
+    const call = createClient({ baseUrl: BASE_URL, fetch })({ method: 'GET', url: '/oidc/userinfo' })
+
+    await expect(call).rejects.toMatchObject({ name: 'ApiError', code: 'unknown', status: 200 })
   })
 
   it('JSON-encodes a body that is not a string', async () => {
@@ -69,11 +104,18 @@ describe('createClient', () => {
     expect(sent(fetch).init.body).toBe('{"hint":"none"}')
   })
 
-  it('lets a caller header win over the content type the body encoding would set', async () => {
-    const fetch = stub(() => json(200, {}))
-    await createClient({ baseUrl: BASE_URL, fetch })({ method: 'POST', url: '/oidc/token', body: 'a=b', headers: { 'Content-Type': 'text/plain' } })
+  it('lets a caller header win over the content type the body encoding would set, however it is spelled', async () => {
+    // HTTP header names are case-insensitive, so every spelling must replace the computed header rather than join a
+    // second value to it: `Content-Type: text/plain, application/x-www-form-urlencoded` passes no content-type check.
+    const contentTypeOf = async (name: string) => {
+      const fetch = stub(() => json(200, {}))
+      await createClient({ baseUrl: BASE_URL, fetch })({ method: 'POST', url: '/oidc/token', body: 'a=b', headers: { [name]: 'text/plain' } })
+      return sent(fetch).headers.get('content-type')
+    }
 
-    expect(sent(fetch).headers.get('content-type')).toBe('text/plain')
+    await expect(contentTypeOf('Content-Type')).resolves.toBe('text/plain')
+    await expect(contentTypeOf('content-type')).resolves.toBe('text/plain')
+    await expect(contentTypeOf('CONTENT-TYPE')).resolves.toBe('text/plain')
   })
 })
 
@@ -124,6 +166,9 @@ describe('the generated operations', () => {
 
     expect(result.ok && result.data.access_token).toBe('at')
     expect(result.ok && result.headers.get('cache-control')).toBe('no-store')
+    // `expires_in` is the JSON number the transport delivers, so expiry arithmetic works on it as it stands: were it
+    // typed as a `bigint` — kubb's default for `format: int64` — this line would not compile and would throw if it did.
+    expect(result.ok && result.data.expires_in * 1000).toBe(600_000)
   })
 
   it('authenticates userinfo with a Bearer header, which the spec declares as a security scheme and not a parameter', async () => {

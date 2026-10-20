@@ -24,12 +24,23 @@ export interface ApiFailure<Code extends string = string> {
   code: Code
   /** The server's `error_description`. For the developer; callers branch on `code`. */
   message: string
+  /**
+   * The response's headers. A refusal can prescribe what to do next and say it in a header: `429
+   * rate_limit_exceeded` carries the delay to wait out in `Retry-After`
+   * ([INTEGRATION.md §8](../../../apps/cas/docs/INTEGRATION.md)).
+   */
+  headers: Headers
 }
 
 /** What a call resolves to: the success body with the response's status and headers, or a failure the operation declares. */
 export type Result<Data, Code extends string = string> =
   | { ok: true; status: number; headers: Headers; data: Data }
   | { ok: false; error: ApiFailure<Code> }
+
+export interface ApiErrorOptions extends ErrorOptions {
+  /** The response's headers, when there was a response. */
+  headers?: Headers
+}
 
 /**
  * A response outside the contract the callers handle: a redirect, a 5xx, or a body that cannot be read or carries no
@@ -38,12 +49,15 @@ export type Result<Data, Code extends string = string> =
 export class ApiError extends Error {
   readonly status: number
   readonly code: string
+  /** The response's headers: a refused redirect names its `Location`, a 503 can carry a `Retry-After`. */
+  readonly headers: Headers
 
-  constructor(status: number, code: string, message: string, options?: ErrorOptions) {
+  constructor(status: number, code: string, message: string, options: ApiErrorOptions = {}) {
     super(message, options)
     this.name = 'ApiError'
     this.status = status
     this.code = code
+    this.headers = options.headers ?? new Headers()
   }
 }
 
@@ -152,12 +166,12 @@ const toFailure = async (response: Response): Promise<{ ok: false; error: ApiFai
       : undefined
 
   if (declared === undefined) {
-    return new ApiError(response.status, UNKNOWN_ERROR_CODE, fallback)
+    return new ApiError(response.status, UNKNOWN_ERROR_CODE, fallback, { headers: response.headers })
   }
   if (response.status >= 400 && response.status < 500) {
-    return { ok: false, error: { status: response.status, ...declared } }
+    return { ok: false, error: { status: response.status, ...declared, headers: response.headers } }
   }
-  return new ApiError(response.status, declared.code, declared.message)
+  return new ApiError(response.status, declared.code, declared.message, { headers: response.headers })
 }
 
 /** The body as it goes on the wire, and the content type it needs when the caller named none. */
@@ -173,6 +187,30 @@ const encodeBody = (body: unknown, declared: string | undefined): { body: string
   return { body: JSON.stringify(body), contentType: declared ?? 'application/json' }
 }
 
+/** Whether the request config carries a URL of its own — what `atUrl` puts there — rather than a path to resolve. */
+const isAbsolute = (url: string): boolean => /^[a-z][a-z\d+\-.]*:/i.test(url)
+
+/**
+ * Where a request goes. A path of the description is **appended** to the base URL, not resolved against it:
+ * `new URL('/oidc/token', 'https://cas.example/path')` is `https://cas.example/oidc/token`, which drops the path an
+ * issuer is allowed to carry — CAS advertises every endpoint as `{issuer}/<path>` and forbids a trailing slash.
+ */
+const urlOf = (url: string, baseUrl: string): URL =>
+  isAbsolute(url) ? new URL(url) : new URL(`${baseUrl.replace(/\/+$/, '')}/${url.replace(/^\/+/, '')}`)
+
+/**
+ * The headers of the request: the content type the body encoding needs, with each header the caller named set over
+ * it. `Headers.set` normalises the name, so a caller's `content-type` replaces the computed `Content-Type` instead of
+ * being joined to it into a value no content-type check accepts.
+ */
+const headersOf = (contentType: string | undefined, headers: Record<string, string> | undefined): Headers => {
+  const merged = new Headers(contentType === undefined ? undefined : { 'Content-Type': contentType })
+  for (const [name, value] of Object.entries(headers ?? {})) {
+    merged.set(name, value)
+  }
+  return merged
+}
+
 export interface ClientOptions {
   /** The CAS issuer, or any origin the description's paths hang off; `atUrl` overrides it per call. */
   baseUrl: string
@@ -186,18 +224,19 @@ export const createClient =
   async ({ method, url, body, contentType, headers }) => {
     const send = fetchImpl ?? ((input: RequestInfo | URL, init?: RequestInit) => globalThis.fetch(input, init))
     const encoded = encodeBody(body, contentType?.request)
-    const response = await send(new URL(url, baseUrl), {
+    const response = await send(urlOf(url, baseUrl), {
       method,
       redirect: 'manual',
-      // A header the caller named wins over the content type the body encoding would set.
-      headers: { ...(encoded === undefined ? {} : { 'Content-Type': encoded.contentType }), ...headers },
+      headers: headersOf(encoded?.contentType, headers),
       body: encoded?.body,
     })
 
     // The caller decides what a navigation endpoint's redirect means; `redirect: 'manual'` reports it as an opaque
     // response in a browser-like runtime and as the 3xx itself elsewhere.
     if (response.type === 'opaqueredirect' || (response.status >= 300 && response.status < 400)) {
-      throw new ApiError(response.status, REDIRECT_REFUSED_CODE, `${method} ${url} answered a redirect, which this client does not follow`)
+      throw new ApiError(response.status, REDIRECT_REFUSED_CODE, `${method} ${url} answered a redirect, which this client does not follow`, {
+        headers: response.headers,
+      })
     }
 
     if (!response.ok) {
@@ -212,7 +251,16 @@ export const createClient =
       return { ok: true, status: response.status, headers: response.headers, data: undefined }
     }
 
-    return { ok: true, status: response.status, headers: response.headers, data: await response.json() }
+    // A success is only a success once its body can be read: an interstitial that answers 200 with a page is not the
+    // contract, and a caller that branches on `ApiError` must see it as one rather than as a raw `SyntaxError`.
+    const data = await readBody(response)
+    if (data === undefined) {
+      throw new ApiError(response.status, UNKNOWN_ERROR_CODE, `${method} ${url} answered ${response.status} with a body that is not JSON`, {
+        headers: response.headers,
+      })
+    }
+
+    return { ok: true, status: response.status, headers: response.headers, data }
   }
 
 /**

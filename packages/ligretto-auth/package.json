@@ -23,6 +23,7 @@
     "jose": "catalog:"
   },
   "devDependencies": {
+    "@kubb/adapter-oas": "catalog:",
     "@kubb/plugin-client": "catalog:",
     "@kubb/plugin-ts": "catalog:",
     "kubb": "catalog:",

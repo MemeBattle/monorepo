@@ -44,6 +44,10 @@ export type DiscoveryErrorCode =
   | 'discovery_unavailable'
   /** The document's `issuer` is not byte-identical to the configured issuer (ADR 0009 (e)). */
   | 'issuer_mismatch'
+  /** The document or the JWKS parsed but says nothing a verification can be run from. */
+  | 'malformed_metadata'
+  /** The published key the token names cannot be imported for the algorithm the document publishes. */
+  | 'unusable_key'
 
 /** The provider's metadata could not be obtained or could not be trusted. */
 export class DiscoveryError extends Error {

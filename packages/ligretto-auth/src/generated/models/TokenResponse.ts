@@ -20,7 +20,7 @@ export type TokenResponse = {
      * @minLength 0
      * @type integer
     */
-    expires_in: bigint;
+    expires_in: number;
     id_token: string;
     /**
      * @description Opaque; rotated on every refresh.

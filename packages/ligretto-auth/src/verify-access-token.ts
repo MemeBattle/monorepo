@@ -13,7 +13,7 @@ import type { Client } from './client'
 import { createClient } from './client'
 import type { DiscoveryCache } from './discovery'
 import { createDiscoveryCache } from './discovery'
-import { InvalidTokenError } from './errors'
+import { DiscoveryError, InvalidTokenError } from './errors'
 import type { AccountType } from './generated/models/AccountType'
 import type { Jwks } from './generated/models/Jwks'
 import type { PublicJwk } from './generated/models/PublicJwk'
@@ -63,8 +63,7 @@ const signingKey = async (kid: string | undefined, issuer: string, jwksUri: stri
   if (known !== undefined) {
     return known
   }
-  cache.forgetJwks(issuer)
-  const republished = keyWithKid(await cache.jwks(issuer, jwksUri, client), kid)
+  const republished = keyWithKid(await cache.refetchJwks(issuer, jwksUri, client), kid)
   if (republished === undefined) {
     throw new InvalidTokenError('unknown_kid', `${issuer} publishes no key with the kid ${JSON.stringify(kid)}.`)
   }
@@ -148,7 +147,15 @@ export const verifyAccessToken = async (token: string, options: VerifyAccessToke
     throw new InvalidTokenError('alg_not_allowed', `${issuer} does not publish the algorithm ${JSON.stringify(header.alg)}.`)
   }
 
-  const key = await importJWK(await signingKey(header.kid, issuer, document.jwks_uri, client, cache), header.alg)
+  const published = await signingKey(header.kid, issuer, document.jwks_uri, client, cache)
+  let key
+  try {
+    key = await importJWK(published, header.alg)
+  } catch (cause) {
+    // The algorithm is one the document publishes and the key is one the provider published under that `kid`: a key
+    // WebCrypto will not take for it is the provider's metadata failing, not a judgement on the token.
+    throw new DiscoveryError('unusable_key', `The key ${JSON.stringify(header.kid)} that ${issuer} publishes cannot verify ${header.alg}.`, { cause })
+  }
 
   try {
     // `requiredClaims` makes `exp` mandatory: jose otherwise validates it only when the token carries it.

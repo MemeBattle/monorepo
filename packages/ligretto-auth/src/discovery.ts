@@ -18,6 +18,23 @@ import { jwks as jwksOperation } from './generated/operations/jwks'
 
 const discoveryUrlOf = (issuer: string): string => `${issuer}/.well-known/openid-configuration`
 
+/** jose's own `createRemoteJWKSet` waits as long before asking for the keys again, and for the same reason. */
+const JWKS_REFETCH_COOLDOWN_MS = 30_000
+
+/**
+ * The fields a verification reads: where to fetch the keys, and which algorithms the provider signs with. A document
+ * that parsed but is missing one is not a provider description — caching it would answer every verification until it
+ * expires with a failure of a kind this package's contract does not name.
+ */
+const describesTheProvider = (document: Discovery): boolean =>
+  typeof document.jwks_uri === 'string' &&
+  document.jwks_uri !== '' &&
+  Array.isArray(document.id_token_signing_alg_values_supported) &&
+  document.id_token_signing_alg_values_supported.every(alg => typeof alg === 'string')
+
+/** A key set is usable when `keys` is there and holds JSON objects: every verification searches it by `kid`. */
+const holdsKeys = (set: Jwks): boolean => Array.isArray(set.keys) && set.keys.every(key => typeof key === 'object' && key !== null)
+
 /** The `max-age` of a response, in seconds, when it has a usable one. CAS sends `public, max-age=3600`. */
 const maxAgeOf = (headers: Headers): number | undefined => {
   const cacheControl = headers.get('cache-control')
@@ -43,8 +60,13 @@ export interface DiscoveryCache {
   discovery(issuer: string, client: Client): Promise<Discovery>
   /** The keys of `issuer`, from the cache or from `jwksUri` — the `jwks_uri` its document advertises. */
   jwks(issuer: string, jwksUri: string, client: Client): Promise<Jwks>
-  /** Drop the cached JWKS, so the next read refetches it: what an unknown `kid` deserves, once. */
-  forgetJwks(issuer: string): void
+  /**
+   * The keys read from the provider again, for a `kid` the cached set does not have. What is cached is replaced only
+   * once a usable answer has arrived: a token is reason to go looking for a new key, never reason to drop the keys a
+   * session in progress verifies against while the provider is away. A second ask inside the cooldown answers from
+   * the cache instead, so a flood of unknown `kid`s is not a flood of requests to the provider.
+   */
+  refetchJwks(issuer: string, jwksUri: string, client: Client): Promise<Jwks>
 }
 
 export interface DiscoveryCacheOptions {
@@ -59,6 +81,8 @@ export interface DiscoveryCacheOptions {
 export const createDiscoveryCache = ({ now = Date.now }: DiscoveryCacheOptions = {}): DiscoveryCache => {
   const documents = new Map<string, Entry<Discovery>>()
   const keySets = new Map<string, Entry<Jwks>>()
+  /** When the keys of an issuer were last asked for out of turn, which is what the cooldown is read against. */
+  const refetchedAt = new Map<string, number>()
 
   const cached = <Value>(entries: Map<string, Entry<Value>>, issuer: string): Value | undefined => {
     const entry = entries.get(issuer)
@@ -73,11 +97,14 @@ export const createDiscoveryCache = ({ now = Date.now }: DiscoveryCacheOptions =
   }
 
   // A response without a usable `max-age` is not cached at all: the next verification refetches rather than guess
-  // how long a proxy that stripped the header meant the answer to live.
-  const keep = <Value>(entries: Map<string, Entry<Value>>, issuer: string, value: Value, maxAge: number | undefined): void => {
-    if (maxAge !== undefined) {
-      entries.set(issuer, { value, expiresAt: now() + maxAge * 1000 })
+  // how long a proxy that stripped the header meant the answer to live. An answer that replaces an entry drops it in
+  // that case, so what is cached is always the latest answer and never one an uncacheable answer has superseded.
+  const store = <Value>(entries: Map<string, Entry<Value>>, issuer: string, value: Value, maxAge: number | undefined): void => {
+    if (maxAge === undefined) {
+      entries.delete(issuer)
+      return
     }
+    entries.set(issuer, { value, expiresAt: now() + maxAge * 1000 })
   }
 
   const fetched = async <Data>(what: string, send: () => Promise<Result<Data, string>>): Promise<{ data: Data; headers: Headers }> => {
@@ -106,23 +133,39 @@ export const createDiscoveryCache = ({ now = Date.now }: DiscoveryCacheOptions =
         `The document at ${url} names the issuer ${JSON.stringify(data.issuer)}, not ${JSON.stringify(issuer)}`,
       )
     }
-    keep(documents, issuer, data, maxAgeOf(headers))
+    if (!describesTheProvider(data)) {
+      throw new DiscoveryError('malformed_metadata', `The document at ${url} does not advertise both a \`jwks_uri\` and the algorithms it signs with`)
+    }
+    store(documents, issuer, data, maxAgeOf(headers))
+    return data
+  }
+
+  const fetchJwks = async (issuer: string, jwksUri: string, client: Client): Promise<Jwks> => {
+    const { data, headers } = await fetched(`The JWKS at ${jwksUri}`, () => jwksOperation({ client: atUrl(client, jwksUri) }))
+    if (!holdsKeys(data)) {
+      throw new DiscoveryError('malformed_metadata', `The JWKS at ${jwksUri} carries no \`keys\` array of JSON Web Keys`)
+    }
+    store(keySets, issuer, data, maxAgeOf(headers))
     return data
   }
 
   const jwks = async (issuer: string, jwksUri: string, client: Client): Promise<Jwks> => {
     const known = cached(keySets, issuer)
-    if (known !== undefined) {
-      return known
+    return known ?? (await fetchJwks(issuer, jwksUri, client))
+  }
+
+  const refetchJwks = async (issuer: string, jwksUri: string, client: Client): Promise<Jwks> => {
+    const asked = refetchedAt.get(issuer)
+    if (asked !== undefined && asked + JWKS_REFETCH_COOLDOWN_MS > now()) {
+      const known = cached(keySets, issuer)
+      if (known !== undefined) {
+        return known
+      }
     }
-    const { data, headers } = await fetched(`The JWKS at ${jwksUri}`, () => jwksOperation({ client: atUrl(client, jwksUri) }))
-    keep(keySets, issuer, data, maxAgeOf(headers))
-    return data
+    // Stamped before the request, so a provider that cannot answer is not asked again on the next token either.
+    refetchedAt.set(issuer, now())
+    return await fetchJwks(issuer, jwksUri, client)
   }
 
-  const forgetJwks = (issuer: string): void => {
-    keySets.delete(issuer)
-  }
-
-  return { discovery, jwks, forgetJwks }
+  return { discovery, jwks, refetchJwks }
 }

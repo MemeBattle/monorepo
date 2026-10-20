@@ -39,8 +39,12 @@ interface ProviderOptions {
   jwksUri?: string
   /** What the document calls itself; defaults to the issuer it is served for. */
   documentIssuer?: string
+  /** Fields to override in the document that is served; `undefined` drops one from the JSON. */
+  documentPatch?: Record<string, unknown>
   /** The successive JWKS answers; the last one repeats. */
   keySets?: PublicJwk[][]
+  /** The successive JWKS bodies, for an answer that is not a key set at all; takes `keySets`' place. */
+  jwksBodies?: unknown[]
   /** `null` serves no `Cache-Control` at all. */
   cacheControl?: string | null
   /** A status for the discovery endpoint to fail with instead of serving the document. */
@@ -52,8 +56,8 @@ const provider = (key: PublicJwk, options: ProviderOptions = {}) => {
   const issuer = options.issuer ?? ISSUER
   const jwksUri = options.jwksUri ?? `${issuer}/oidc/jwks.json`
   const discoveryUrl = `${issuer}/.well-known/openid-configuration`
-  const served = { ...document(issuer, jwksUri), issuer: options.documentIssuer ?? issuer }
-  const keySets = options.keySets ?? [[key]]
+  const served = { ...document(issuer, jwksUri), issuer: options.documentIssuer ?? issuer, ...options.documentPatch }
+  const jwksBodies = options.jwksBodies ?? (options.keySets ?? [[key]]).map(keys => ({ keys }))
   const cacheControl = options.cacheControl === undefined ? MAX_AGE : options.cacheControl
 
   const requested: string[] = []
@@ -74,9 +78,9 @@ const provider = (key: PublicJwk, options: ProviderOptions = {}) => {
         : json(options.discoveryStatus, { error: { code: 'internal_error', message: 'The document could not be built' } })
     }
     if (url === jwksUri) {
-      const keys = keySets[Math.min(jwksAnswers, keySets.length - 1)]
+      const body = jwksBodies[Math.min(jwksAnswers, jwksBodies.length - 1)]
       jwksAnswers += 1
-      return json(200, { keys })
+      return json(200, body)
     }
     throw new Error(`Nothing is published at ${url}`)
   })
@@ -211,6 +215,50 @@ describe('verifyAccessToken', () => {
     await expect(verify(await accessToken(signing.privateKey), cas)).rejects.toMatchObject({ code: 'unknown_kid' })
     expect(cas.asked(cas.jwksUri)).toBe(2)
   })
+
+  it('refuses a soundly signed token whose payload is not an access token claim set', async () => {
+    // The coupling to CAS's own `AccessTokenClaims`: a claim that goes missing or changes shape is a refusal, not a
+    // claim set a resource server reads half of.
+    const amrAsText = await accessToken(signing.privateKey, { payload: { amr: 'webauthn' } })
+    await expect(verify(amrAsText, provider(publicJwk))).rejects.toMatchObject({ name: 'InvalidTokenError', code: 'malformed' })
+
+    const withoutJti = await accessToken(signing.privateKey, { payload: { jti: undefined } })
+    await expect(verify(withoutJti, provider(publicJwk))).rejects.toMatchObject({ code: 'malformed' })
+
+    const unknownAccountType = await accessToken(signing.privateKey, { payload: { account_type: 'admin' } })
+    await expect(verify(unknownAccountType, provider(publicJwk))).rejects.toMatchObject({ code: 'malformed' })
+  })
+})
+
+describe('an unknown `kid`', () => {
+  const stranger = (): Promise<string> => accessToken(signing.privateKey, { header: { kid: 'cas-2027-01' } })
+
+  it('does not cost the cached keys when the refetch it triggers fails', async () => {
+    const cas = provider(publicJwk)
+    const cache = createDiscoveryCache()
+    // A warm cache, as a resource server has while sessions are open.
+    await expect(verify(await accessToken(signing.privateKey), cas, cache)).resolves.toMatchObject({ sub: SUB })
+
+    cas.fetch.mockRejectedValue(new TypeError('fetch failed'))
+    await expect(verify(await stranger(), cas, cache)).rejects.toMatchObject({ name: 'DiscoveryError' })
+
+    // The keys an open session verifies against are still cached: one stranger does not end it (ADR 0011 (a)).
+    await expect(verify(await accessToken(signing.privateKey), cas, cache)).resolves.toMatchObject({ sub: SUB })
+  })
+
+  it('asks the provider for its keys once per cooldown, however many unknown `kid`s arrive', async () => {
+    const cas = provider(publicJwk)
+    const time = clock()
+    const cache = createDiscoveryCache({ now: time.now })
+
+    await expect(verify(await stranger(), cas, cache)).rejects.toMatchObject({ code: 'unknown_kid' })
+    await expect(verify(await stranger(), cas, cache)).rejects.toMatchObject({ code: 'unknown_kid' })
+    expect(cas.asked(cas.jwksUri)).toBe(2)
+
+    time.advance(30_001)
+    await expect(verify(await stranger(), cas, cache)).rejects.toMatchObject({ code: 'unknown_kid' })
+    expect(cas.asked(cas.jwksUri)).toBe(3)
+  })
 })
 
 describe('the provider metadata', () => {
@@ -242,6 +290,38 @@ describe('the provider metadata', () => {
     await expect(verify(token, cas, cache)).rejects.toMatchObject({ name: 'DiscoveryError', code: 'issuer_mismatch' })
     await expect(verify(token, cas, cache)).rejects.toMatchObject({ code: 'issuer_mismatch' })
     expect(cas.asked(cas.discoveryUrl)).toBe(2)
+  })
+
+  it('refuses a document that does not say where its keys are or what it signs with, and does not keep it', async () => {
+    const cas = provider(publicJwk, { documentPatch: { jwks_uri: undefined } })
+    const cache = createDiscoveryCache()
+    const token = await accessToken(signing.privateKey)
+
+    await expect(verify(token, cas, cache)).rejects.toMatchObject({ name: 'DiscoveryError', code: 'malformed_metadata' })
+    // Nothing of it is cached, so the refusal is not what every verification gets for the next hour.
+    await expect(verify(token, cas, cache)).rejects.toMatchObject({ code: 'malformed_metadata' })
+    expect(cas.asked(cas.discoveryUrl)).toBe(2)
+
+    const withoutAlgorithms = provider(publicJwk, { documentPatch: { id_token_signing_alg_values_supported: 'ES256' } })
+    await expect(verify(token, withoutAlgorithms)).rejects.toMatchObject({ code: 'malformed_metadata' })
+  })
+
+  it('refuses a key set that is not one, and recovers as soon as the provider serves a real one', async () => {
+    const cas = provider(publicJwk, { jwksBodies: [{}, { keys: [publicJwk] }] })
+    const cache = createDiscoveryCache()
+
+    await expect(verify(await accessToken(signing.privateKey), cas, cache)).rejects.toMatchObject({
+      name: 'DiscoveryError',
+      code: 'malformed_metadata',
+    })
+    await expect(verify(await accessToken(signing.privateKey), cas, cache)).resolves.toMatchObject({ sub: SUB })
+  })
+
+  it('reports a published key that cannot verify the published algorithm as a metadata failure', async () => {
+    const unusable: PublicJwk = { kty: 'EC', crv: 'P-256', x: 'AAAA', y: 'AAAA', kid: KID, use: 'sig', alg: 'ES256' }
+    const cas = provider(publicJwk, { keySets: [[unusable]] })
+
+    await expect(verify(await accessToken(signing.privateKey), cas)).rejects.toMatchObject({ name: 'DiscoveryError', code: 'unusable_key' })
   })
 
   it('reads the metadata once while its `max-age` lasts, and again after it', async () => {

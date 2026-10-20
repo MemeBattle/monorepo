@@ -15,7 +15,7 @@ export { createDiscoveryCache } from './discovery'
 export type { DiscoveryCache, DiscoveryCacheOptions } from './discovery'
 
 export { ApiError, atUrl, createClient } from './client'
-export type { ApiFailure, Client, ClientOptions, Options, RequestConfig, RequestResult, Result } from './client'
+export type { ApiErrorOptions, ApiFailure, Client, ClientOptions, Options, RequestConfig, RequestResult, Result } from './client'
 
 export { errorCodes } from './generated/error-codes'
 export type { OidcErrorCode } from './generated/error-codes'
