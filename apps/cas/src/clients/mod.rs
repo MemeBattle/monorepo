@@ -2,11 +2,11 @@
 //!
 //! A client is a row in `clients`: an id an operator picked, what it is
 //! allowed to ask for, and — for a confidential client — the SHA-256 of a
-//! secret CAS drew once (or, in a development build alone, was handed:
-//! `docs/adr/0023-dev-only-client-secret.md`). The registry has no HTTP surface of its own;
-//! `/oidc/authorize` and `/oidc/token` read it and own their own error mapping. Until
-//! the admin panel exists, rows are written by the `cas-client` binary
-//! through [`registration::register`]. See
+//! secret CAS drew once — or, in a development build alone, was handed
+//! (`docs/adr/0023-dev-only-client-secret.md`). The registry has no HTTP
+//! surface of its own; `/oidc/authorize` and `/oidc/token` read it and own
+//! their own error mapping. Until the admin panel exists, rows are written by
+//! the `cas-client` binary through [`registration::register`]. See
 //! `docs/adr/0008-oidc-clients-registry.md`.
 //!
 //! This module is the vocabulary: the row and the rules it answers with. The

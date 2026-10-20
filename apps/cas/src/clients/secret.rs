@@ -7,8 +7,8 @@
 //! is no low-entropy input to protect — and would cost a KDF on every
 //! `/oidc/token` call. A development build may also be handed a chosen value,
 //! through `try_dev` below, for a database whose secret has to be known in
-//! advance (`docs/adr/0023-dev-only-client-secret.md`); the hashing choice is
-//! unchanged by it, since that build's database is a local container. See
+//! advance (`docs/adr/0023-dev-only-client-secret.md`). That leaves the
+//! hashing choice as it is: such a database is a local container. See
 //! `docs/adr/0008-oidc-clients-registry.md`.
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};

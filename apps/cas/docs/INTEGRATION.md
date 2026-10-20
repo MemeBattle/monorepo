@@ -765,8 +765,8 @@ To run your application against a local CAS:
    with no `--` separator. pnpm forwards the flags into the script, so Vite
    applies them; a separator makes Vite drop them and bind its default 5173,
    which is the CAS frontend's port. `--strictPort` makes it fail rather than
-   drift to a port the client does not know. Run on its own, outside this
-   stack, ligretto-frontend keeps its plain `start:dev` on `:5173`.
+   drift to a port the client does not know. Run on its own, ligretto-frontend
+   keeps its plain `start:dev` on `:5173`.
 
 Every CAS setting has a development default
 ([README, Configuration](../README.md#configuration)). Three are the ones an

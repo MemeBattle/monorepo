@@ -12,12 +12,13 @@
 //! line, the usage, every error — goes to stderr, so a script can capture the
 //! secret by reading stdout alone.
 //!
-//! `--secret` is the one exception, and it exists in development builds only:
-//! `scripts/seed-dev.sh` gives `ligretto` the stable secret the monorepo's
-//! `.env.development` holds, so a fresh database agrees with the checked-in
-//! development configuration without anyone copying a printed value. A
-//! release build refuses the flag by name, as it has no development signing
-//! key to start on. See `docs/adr/0023-dev-only-client-secret.md`.
+//! `--secret` is the one way to choose that secret instead, and it exists in
+//! development builds only: `scripts/seed-dev.sh` gives `ligretto` the stable
+//! secret the monorepo's `.env.development` holds, so a fresh database agrees
+//! with the checked-in development configuration without anyone copying a
+//! printed value. A release build refuses the flag by name, where a chosen
+//! secret has no constructor at all. See
+//! `docs/adr/0023-dev-only-client-secret.md`.
 
 use sqlx::postgres::PgPoolOptions;
 use thiserror::Error;
@@ -29,9 +30,9 @@ use cas::clients::{
     GuestGrantsPerMinute, RedirectUri, RedirectUriError, RegisterError, Registration, Scope,
     ScopeError,
 };
-// A chosen secret exists in the development build alone, and with it the
-// error of refusing one and the kind it is cross-checked against; a release
-// build refuses the flag before either matters.
+// A release build refuses `--secret` before it reads a value, so neither the
+// error of an invalid one nor the kind it is cross-checked against is reached
+// there.
 #[cfg(debug_assertions)]
 use cas::clients::{ClientKind, DevClientSecretError};
 use cas::config::{Config, ConfigError, load_env_files};
@@ -232,10 +233,9 @@ fn parse(args: impl Iterator<Item = String>) -> Result<Command, UsageError> {
     })))
 }
 
-/// The value of `--secret`, which a development build may turn into a chosen
-/// [`ClientSecret`]. Two bodies rather than one with a branch: the release
-/// build must not be able to construct one at all
-/// (`docs/adr/0023-dev-only-client-secret.md`).
+/// The value of `--secret`, as a chosen [`ClientSecret`]. Two bodies rather
+/// than one with a branch: a release build must not be able to construct one
+/// at all (`docs/adr/0023-dev-only-client-secret.md`).
 #[cfg(debug_assertions)]
 fn secret_value(args: &mut impl Iterator<Item = String>) -> Result<ClientSecret, UsageError> {
     let value = value(args, "--secret")?;
@@ -561,9 +561,9 @@ mod tests {
         );
     }
 
-    /// `--secret` exists in this build, so the whole of its behaviour is
-    /// tested here; the release build's refusal is the test below it. Tests
-    /// run in both profiles (`cargo test --release`), so each is gated.
+    /// The suite runs in both profiles (`cargo test --release`), so the tests
+    /// of a flag that exists in one of them are gated. These cover the
+    /// development build; the release refusal is the test below them.
     #[cfg(debug_assertions)]
     #[test]
     fn a_given_secret_is_the_one_registered() {
@@ -600,8 +600,8 @@ mod tests {
         );
     }
 
-    /// Listed apart from `a_flag_without_its_value_is_named`, whose flags are
-    /// the same in either build.
+    /// Apart from `a_flag_without_its_value_is_named`, whose flag list is the
+    /// same in either build.
     #[cfg(debug_assertions)]
     #[test]
     fn a_secret_without_its_value_is_named() {
@@ -611,8 +611,8 @@ mod tests {
         );
     }
 
-    /// The release refusal, named rather than "unknown flag", and reached
-    /// before a value is even read.
+    /// The release refusal: named rather than "unknown flag", and reached
+    /// before a value is read.
     #[cfg(not(debug_assertions))]
     #[test]
     fn the_secret_flag_is_refused_by_a_release_build() {

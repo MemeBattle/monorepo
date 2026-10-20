@@ -5,10 +5,10 @@
 Accepted (2026-10-21), with [#811](https://github.com/MemeBattle/monorepo/issues/811).
 Resolves what ADR 0008's consequences deferred: ligretto now needs a stable
 development secret, so the dev-only `--secret` flag foreseen there exists and
-is decided here. Follows ADR 0009 (c), whose compile-time gate on the
-development signing key this applies to the one door a chosen secret could
-enter through. Nothing on the wire and nothing stored changes: no migration,
-no new error code, no `openapi.json` change.
+is decided here. Follows ADR 0009 (c): the compile-time gate it puts on the
+development signing key, applied to the one door a chosen secret could enter
+through. Nothing on the wire and nothing stored changes: no migration, no new
+error code, no `openapi.json` change.
 
 ## Context
 

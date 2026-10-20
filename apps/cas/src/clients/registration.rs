@@ -212,7 +212,8 @@ mod tests {
 
     /// The supplied secret is drawn with `generate()` rather than
     /// `try_dev()`, which exists in debug builds alone: what is under test is
-    /// that `register` stores the secret it was handed, in either profile.
+    /// that `register` stores the secret it was handed, and that holds in
+    /// either profile.
     #[sqlx::test]
     async fn a_supplied_secret_is_the_one_the_stored_row_verifies(pool: PgPool) {
         let supplied = ClientSecret::generate().unwrap();

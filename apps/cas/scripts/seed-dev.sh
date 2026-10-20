@@ -15,7 +15,7 @@
 #
 # The secret is the stable development one from the monorepo's
 # `.env.development`, passed with `--secret`, a flag that exists in
-# development builds alone. So a fresh database and ligretto's checked-in
+# development builds alone, so a fresh database and ligretto's checked-in
 # development configuration agree without anyone copying a printed value
 # (docs/adr/0023-dev-only-client-secret.md). An exported
 # `LIGRETTO_CLIENT_SECRET` wins over the file, as it does for the backend
@@ -45,9 +45,8 @@ usage() {
   exit 2
 }
 
-# One optional argument: an unknown second one is a mistake just as much as an
-# unknown first one, and what this script registers has to be exactly what
-# --dry-run prints.
+# An extra or unknown argument is refused rather than ignored, so --dry-run
+# prints what a real run would register.
 dry_run=false
 [ "$#" -le 1 ] || usage
 case "${1-}" in
@@ -58,11 +57,9 @@ esac
 
 # Seeding is for the development environment alone. The cas-client below
 # selects its own .env files from APP_ENV (src/config/native.rs::load_env_files)
-# when it resolves DATABASE_URL, so under another APP_ENV it would write to
-# that environment's database the values resolved here from the development
-# files. Honouring APP_ENV here instead would serve no dev-seed purpose and
-# would still mirror a loader that is not the one these two values must agree
-# with, so another environment is refused rather than half-read.
+# when it resolves DATABASE_URL, so under another APP_ENV it would write the
+# values resolved here from the development files into that environment's
+# database.
 app_env=${APP_ENV-development}
 if [ "$app_env" != development ]; then
   echo "error: seed-dev.sh seeds the development environment, but APP_ENV is '$app_env'" >&2
@@ -79,13 +76,8 @@ fi
 # The secret is why: the backend presents it through that loader, so an
 # export, or an override written in .env.local, reaches the seeded row and the
 # backend alike — the two halves have to agree. The port is read from the same
-# files only to keep the number out of this script; it is not a knob. No
-# application reads LIGRETTO_CORE_BACKEND_PORT, and the backend declares no
-# port variable (apps/ligretto-core-backend/start/env.ts): it serves Adonis's
-# own PORT, which nothing sets in development, hence 3333. Overriding
-# LIGRETTO_CORE_BACKEND_PORT therefore moves the registered redirect URI
-# alone, away from the callback the backend sends, and the two are compared
-# byte for byte.
+# files only to keep the number out of this script; it is not a knob, and the
+# monorepo's .env.development says why.
 #
 # The files are never `source`d — that would overwrite an exported value, and
 # the seeded row would then disagree with a backend started from the same
