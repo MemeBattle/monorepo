@@ -205,15 +205,30 @@ const toFailure = async (response: Response): Promise<{ ok: false; error: ApiFai
   return { ok: false, error: { status: response.status, ...declared, headers: response.headers } }
 }
 
+/** The content type of the two form-bodied operations CAS describes, `/oidc/token` and the end-session form. */
+const FORM_CONTENT_TYPE = 'application/x-www-form-urlencoded'
+
+/**
+ * A form body as it goes on the wire: the object's entries in their order, every `undefined` left out, so an optional
+ * parameter the caller omitted is absent from the form rather than the string `undefined`. Every value is a string —
+ * the description's grant schemas carry nothing else (cas ADR 0023 (e)).
+ */
+const formBody = (body: object): string =>
+  new URLSearchParams(Object.entries(body).filter((entry): entry is [string, string] => entry[1] !== undefined)).toString()
+
 /** The body as it goes on the wire, and the content type it needs when the caller named none. */
 const encodeBody = (body: unknown, declared: string | undefined): { body: string; contentType: string } | undefined => {
   if (body === undefined) {
     return undefined
   }
-  // `/oidc/token` and the end-session form take an already-encoded form body: send the string verbatim, never quoted
-  // into JSON.
+  // The end-session form is described as an already-encoded body: send the string verbatim, never quoted into JSON.
   if (typeof body === 'string') {
-    return { body, contentType: declared ?? 'application/x-www-form-urlencoded' }
+    return { body, contentType: declared ?? FORM_CONTENT_TYPE }
+  }
+  // `/oidc/token` describes one schema per grant (cas ADR 0023), so a grant arrives here as an object and goes on the
+  // wire as the form the operation declares.
+  if (declared === FORM_CONTENT_TYPE && typeof body === 'object' && body !== null) {
+    return { body: formBody(body), contentType: declared }
   }
   return { body: JSON.stringify(body), contentType: declared ?? 'application/json' }
 }

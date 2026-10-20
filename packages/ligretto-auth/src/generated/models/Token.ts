@@ -3,6 +3,9 @@
 * Do not edit manually.
 */
 
+import type { AuthorizationCodeGrant } from './AuthorizationCodeGrant'
+import type { GuestGrant } from './GuestGrant'
+import type { RefreshTokenGrant } from './RefreshTokenGrant'
 import type { TokenResponse } from './TokenResponse'
 
 /**
@@ -46,10 +49,15 @@ export type TokenStatus503 = {
 };
 
 /**
- * @description The grant\'s parameters, see the operation\'s description.
- * @type string
+ * @description The grant\'s parameters: one schema per `grant_type`.
 */
-export type TokenBody = string;
+export type TokenBody = ((AuthorizationCodeGrant & {
+    grant_type: "authorization_code";
+}) | (RefreshTokenGrant & {
+    grant_type: "refresh_token";
+}) | (GuestGrant & {
+    grant_type: "urn:memebattle:oauth:grant-type:guest";
+}));
 
 export type TokenOptions = {
     body: TokenBody;
