@@ -2,9 +2,14 @@
 //!
 //! Modelled on the session token (`sessions::SessionToken`, ADR 0004): CAS
 //! draws the secret, shows it once, and stores only its SHA-256. A slow
-//! password hash would buy nothing here — the secret is never chosen by a
-//! person, so there is no low-entropy input to protect — and would cost a KDF
-//! on every `/oidc/token` call. See `docs/adr/0008-oidc-clients-registry.md`.
+//! password hash would buy nothing here — in a release build `generate` is
+//! the only constructor, so the secret is never chosen by a person and there
+//! is no low-entropy input to protect — and would cost a KDF on every
+//! `/oidc/token` call. A development build may also be handed a chosen value,
+//! through `try_dev` below, for a database whose secret has to be known in
+//! advance (`docs/adr/0023-dev-only-client-secret.md`); the hashing choice is
+//! unchanged by it, since that build's database is a local container. See
+//! `docs/adr/0008-oidc-clients-registry.md`.
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use sha2::{Digest, Sha256};
@@ -16,9 +21,10 @@ use thiserror::Error;
 const SECRET_BYTES: usize = 32;
 
 /// The secret a confidential client holds: the base64url form of
-/// [`SECRET_BYTES`] random bytes. Shown once, at registration, and never
-/// stored — only its [`hash`](Self::hash) reaches the database. `Debug` is
-/// redacted for the same reason.
+/// [`SECRET_BYTES`] random bytes, or — in a development build alone — a value
+/// `try_dev` was handed. Shown once, at registration, and never stored —
+/// only its [`hash`](Self::hash) reaches the database. `Debug` is redacted
+/// for the same reason.
 #[derive(Clone, PartialEq, Eq)]
 pub struct ClientSecret(String);
 

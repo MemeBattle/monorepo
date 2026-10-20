@@ -7,6 +7,8 @@
 # Usage: scripts/seed-dev.sh             (reads DATABASE_URL exactly like the app)
 #        scripts/seed-dev.sh --dry-run   (prints the resolved arguments, runs nothing)
 #
+# Development only: it refuses to run with `APP_ENV` set to anything else.
+#
 # Not idempotent on purpose: a second run fails with "already exists", which
 # is the signal that the client is there. There is no update path until the
 # admin panel; re-register under another id, or reset the dev database.
@@ -16,7 +18,8 @@
 # development builds alone. So a fresh database and ligretto's checked-in
 # development configuration agree without anyone copying a printed value
 # (docs/adr/0023-dev-only-client-secret.md). An exported
-# `LIGRETTO_CLIENT_SECRET` wins over the file, as it does for the apps.
+# `LIGRETTO_CLIENT_SECRET` wins over the file, as it does for the backend
+# that will present it.
 #
 # The redirect URI is ligretto-auth's callback on ligretto-core-backend
 # (#814), on the port the same `.env.development` gives the backend. The
@@ -37,23 +40,46 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+usage() {
+  echo "usage: scripts/seed-dev.sh [--dry-run]" >&2
+  exit 2
+}
+
+# One optional argument: an unknown second one is a mistake just as much as an
+# unknown first one, and what this script registers has to be exactly what
+# --dry-run prints.
 dry_run=false
+[ "$#" -le 1 ] || usage
 case "${1-}" in
 "") ;;
 --dry-run) dry_run=true ;;
-*)
-  echo "usage: scripts/seed-dev.sh [--dry-run]" >&2
-  exit 2
-  ;;
+*) usage ;;
 esac
 
-# The value the apps would see, with the app's own precedence
-# (src/config/native.rs::load_env_files): a real environment variable always
-# wins, then the monorepo root's .env files, highest priority first. The files
-# are never `source`d — that would overwrite an exported value, and the
-# seeded row would then disagree with a backend started from the same
-# environment. They hold plain unquoted KEY=value lines, so the first matching
-# line of the first file that has one is the value.
+# Seeding is for the development environment alone. The cas-client below
+# selects its own .env files from APP_ENV (src/config/native.rs::load_env_files)
+# when it resolves DATABASE_URL, so under another APP_ENV it would write to
+# that environment's database the values resolved here from the development
+# files. Honouring APP_ENV here instead would serve no dev-seed purpose and
+# would still mirror a loader that is not the one these two values must agree
+# with, so another environment is refused rather than half-read.
+app_env=${APP_ENV-development}
+if [ "$app_env" != development ]; then
+  echo "error: seed-dev.sh seeds the development environment, but APP_ENV is '$app_env'" >&2
+  exit 1
+fi
+
+# The value ligretto-core-backend would see, with the precedence of the loader
+# that reads it there: @adonisjs/env under NODE_ENV=development, where a real
+# environment variable always wins and the monorepo root's files rank
+# .env.development.local, .env.local, .env.development, .env. That order is
+# not CAS's own (src/config/native.rs::load_env_files puts .env.development
+# above .env.local), and the backend is the half this has to agree with — an
+# override a developer writes in .env.local must reach both. The files are
+# never `source`d — that would overwrite an exported value, and the seeded row
+# would then disagree with a backend started from the same environment. They
+# hold plain unquoted KEY=value lines, so the first matching line of the first
+# file that has one is the value.
 env_value() {
   local name=$1
   local value
@@ -62,7 +88,7 @@ env_value() {
     return
   fi
   local file line
-  for file in ../../.env.development.local ../../.env.development ../../.env.local ../../.env; do
+  for file in ../../.env.development.local ../../.env.local ../../.env.development ../../.env; do
     [ -f "$file" ] || continue
     if line=$(grep -m 1 "^${name}=" "$file"); then
       printf '%s' "${line#*=}"

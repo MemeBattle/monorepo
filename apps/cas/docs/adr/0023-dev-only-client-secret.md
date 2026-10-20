@@ -72,14 +72,26 @@ that a reader or a secret scanner sees at once what it is not. It is
 worthless outside a development machine, because the production `ligretto`
 client is registered separately with a generated secret (#812).
 
-`seed-dev.sh` resolves the value with the app's own precedence
-(`config::load_env_files`): a real environment variable wins, then
-`.env.development.local`, `.env.development`, `.env.local`, `.env`. The files
-are read line by line rather than `source`d — sourcing would overwrite an
-exported value, so a backend started with `LIGRETTO_CLIENT_SECRET` in its
-environment would present one secret while the seeded row verified another.
-A `--dry-run` flag prints the resolved argument list and runs nothing, which
-is how that precedence is checked without a database.
+`seed-dev.sh` resolves the value with the precedence of the loader that will
+read it on the other side — ligretto-core-backend's `@adonisjs/env` under
+`NODE_ENV=development`, where a real environment variable wins, then
+`.env.development.local`, `.env.local`, `.env.development`, `.env`. That is
+deliberately not CAS's own order (`config::load_env_files` ranks
+`.env.development` above `.env.local`): the seeded row has to match what the
+backend presents, so an override a developer writes in `.env.local` must win
+on both sides or neither. The files are read line by line rather than
+`source`d — sourcing would overwrite an exported value, so a backend started
+with `LIGRETTO_CLIENT_SECRET` in its environment would present one secret
+while the seeded row verified another. A `--dry-run` flag prints the resolved
+argument list and runs nothing, which is how that precedence is checked
+without a database.
+
+Mirroring one loader means seeding one environment: `cas-client` picks its
+own `.env` files from `APP_ENV` when it resolves `DATABASE_URL`, so under
+another `APP_ENV` the script would write values read from the development
+files into another environment's database. It refuses to run with `APP_ENV`
+set to anything but `development` — a dev seed has no other use, and a
+half-read environment is worse than none.
 
 **(c) ADR 0008 (b)'s invariant now holds exactly for release builds, and by
 policy in development.** Only machine entropy can reach `secret_hash` from a
@@ -91,8 +103,16 @@ constant time, shown once, no update or rotate path before the admin panel.
 **(d) The seeded URIs stop being placeholders.** The redirect URI is
 `http://localhost:<LIGRETTO_CORE_BACKEND_PORT>/api/auth/callback` — the port
 from the same `.env.development`, so it has one source of truth, and
-`localhost` rather than `127.0.0.1` because that is what #814 configures and
-the comparison is byte for byte. The post-logout URI is
+`localhost` rather than `127.0.0.1` because the local stack has to be one
+host. CAS, the CAS frontend and ligretto-frontend are all on `localhost`;
+`@memebattle/ligretto-auth`'s cookies are `__Host-` prefixed and therefore
+host-only, so a sign-in begun on `127.0.0.1:3333` would not send its
+`__Host-ligretto_auth_state` cookie to a callback on `localhost:3333`, and
+the comparison that decides the callback is byte for byte either way. The
+monorepo's `LIGRETTO_CORE_URL` — the only checked-in way anything reaches the
+backend, and what ligretto-frontend navigates to — was the other host, so
+this change moves it to `localhost` too; #814 inherits that host rather than
+choosing it. The post-logout URI is
 `http://localhost:5174/`, ligretto-frontend's origin in the local SSO stack:
 5173 is the CAS frontend's, which is the wrong place to land after a logout.
 
