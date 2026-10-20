@@ -1,0 +1,32 @@
+{
+  "name": "@memebattle/ligretto-auth",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Server-side CAS client: the generated OIDC types and transport, and access-token verification",
+  "license": "MIT",
+  "author": "MemeBattle",
+  "type": "module",
+  "sideEffects": false,
+  "imports": {
+    "#client": "./src/client.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "ts-check": "tsc --noEmit",
+    "test": "vitest",
+    "test:ci": "vitest run",
+    "generate:api": "KUBB_DISABLE_TELEMETRY=1 kubb generate && node scripts/generate-error-codes.mjs"
+  },
+  "dependencies": {
+    "jose": "catalog:"
+  },
+  "devDependencies": {
+    "@kubb/plugin-client": "catalog:",
+    "@kubb/plugin-ts": "catalog:",
+    "kubb": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

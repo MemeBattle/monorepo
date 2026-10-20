@@ -1,0 +1,61 @@
+name: 'Ligretto auth pull request'
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'packages/ligretto-auth/**'
+      # The client is generated from the description, so a change to it has to keep the committed output honest.
+      - 'apps/cas/openapi.json'
+      - .github/workflows/ligretto-auth-pr.yml
+      - 'pnpm-lock.yaml'
+      - package.json
+      - pnpm-workspace.yaml
+
+jobs:
+  generated:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Regenerate the client and the error codes
+        run: pnpm run --filter @memebattle/ligretto-auth generate:api
+
+      # The committed output is this package's API surface, so it has to be the regenerated output exactly — the
+      # file set included. `git diff` sees a changed or deleted file; a newly emitted one is untracked until
+      # `git status` is asked for it.
+      - name: The committed output is up to date
+        run: |
+          git diff --exit-code -- packages/ligretto-auth/src/generated
+          test -z "$(git status --porcelain --untracked-files=all -- packages/ligretto-auth/src/generated)"
+
+  typecheck:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: TS check
+        run: pnpm run --filter @memebattle/ligretto-auth ts-check
+
+  tests:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Run tests
+        run: pnpm run --filter @memebattle/ligretto-auth test:ci
