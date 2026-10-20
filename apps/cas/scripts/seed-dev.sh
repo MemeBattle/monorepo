@@ -22,7 +22,7 @@
 # that will present it.
 #
 # The redirect URI is ligretto-auth's callback on ligretto-core-backend
-# (#814), on the port the same `.env.development` gives the backend. The
+# (#814), on the port the same `.env.development` records for it. The
 # post-logout URI is ligretto-frontend's origin in the local SSO stack, which
 # it serves when started as
 #
@@ -69,17 +69,28 @@ if [ "$app_env" != development ]; then
   exit 1
 fi
 
-# The value ligretto-core-backend would see, with the precedence of the loader
-# that reads it there: @adonisjs/env under NODE_ENV=development, where a real
-# environment variable always wins and the monorepo root's files rank
-# .env.development.local, .env.local, .env.development, .env. That order is
-# not CAS's own (src/config/native.rs::load_env_files puts .env.development
-# above .env.local), and the backend is the half this has to agree with — an
-# override a developer writes in .env.local must reach both. The files are
-# never `source`d — that would overwrite an exported value, and the seeded row
-# would then disagree with a backend started from the same environment. They
-# hold plain unquoted KEY=value lines, so the first matching line of the first
-# file that has one is the value.
+# A value with the precedence of the loader ligretto-core-backend reads:
+# @adonisjs/env under NODE_ENV=development, where a real environment variable
+# always wins and the monorepo root's files rank .env.development.local,
+# .env.local, .env.development, .env. That order is not CAS's own
+# (src/config/native.rs::load_env_files puts .env.development above
+# .env.local).
+#
+# The secret is why: the backend presents it through that loader, so an
+# export, or an override written in .env.local, reaches the seeded row and the
+# backend alike — the two halves have to agree. The port is read from the same
+# files only to keep the number out of this script; it is not a knob. No
+# application reads LIGRETTO_CORE_BACKEND_PORT, and the backend declares no
+# port variable (apps/ligretto-core-backend/start/env.ts): it serves Adonis's
+# own PORT, which nothing sets in development, hence 3333. Overriding
+# LIGRETTO_CORE_BACKEND_PORT therefore moves the registered redirect URI
+# alone, away from the callback the backend sends, and the two are compared
+# byte for byte.
+#
+# The files are never `source`d — that would overwrite an exported value, and
+# the seeded row would then disagree with a backend started from the same
+# environment. They hold plain unquoted KEY=value lines, so the first matching
+# line of the first file that has one is the value.
 env_value() {
   local name=$1
   local value
