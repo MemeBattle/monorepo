@@ -29,7 +29,7 @@ export type RefreshTokenGrant = {
     */
     refresh_token: string;
     /**
-     * @description The scopes to issue for, space-separated; omitted asks for the ones\nthe grant holds, and a request may repeat or narrow them, never\nwiden them (RFC 6749 §6).
+     * @description The scopes this request asks for, space-separated; omitted asks for\nthe ones the grant holds, and a request may repeat or narrow them,\nnever widen them (RFC 6749 §6). A narrower request is accepted and\nignored: the tokens carry the grant\'s full scopes, so read the\n`scope` of the response rather than assuming this narrowed anything\n(ADR 0012).
      * @type string | undefined
     */
     scope?: string;

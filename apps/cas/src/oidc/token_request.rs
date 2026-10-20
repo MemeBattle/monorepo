@@ -19,6 +19,12 @@ use crate::clients::{Client, ClientId, Scope};
 /// Every parameter a token request is read for. A repetition of any of them
 /// is refused before any other rule is looked at, as at `/oidc/authorize` (RFC
 /// 6749 §3.2: parameters MUST NOT be included more than once).
+///
+/// Which grant is read for which of them is the control flow of [`grant`]
+/// below. The description says the same in schemas, transcribed by hand in
+/// the `GRANTS` table of `oidc::http::token`'s tests: a parameter added or
+/// moved here belongs in that table and in the grant's schema too (ADR 0023
+/// (c)).
 const READ_PARAMETERS: [&str; 8] = [
     "grant_type",
     "code",

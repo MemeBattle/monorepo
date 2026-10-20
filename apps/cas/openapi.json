@@ -3884,7 +3884,7 @@
     "/oidc/token": {
       "post": {
         "summary": "The token endpoint: the authorization code exchange, the refresh, and\nthe guest grant.",
-        "description": "The body is `application/x-www-form-urlencoded` (RFC 6749 §3.2), read\nby hand under the RFC's rules, a repeated parameter refused:\n`grant_type=authorization_code` with `code`, `redirect_uri` and\n`code_verifier` (ADR 0011); `grant_type=refresh_token` with\n`refresh_token` and an optional `scope` (ADR 0012);\n`grant_type=urn:memebattle:oauth:grant-type:guest` with an optional\n`scope` (ADR 0014). A confidential client authenticates with\n`Authorization: Basic` or with `client_id` and `client_secret` in the\nbody, a public client sends `client_id` alone. Every answer is\n`Cache-Control: no-store` and `Pragma: no-cache`.",
+        "description": "The body is `application/x-www-form-urlencoded` (RFC 6749 §3.2); the\nschema of the grant being asked for says which parameters it carries.\nEvery answer is `Cache-Control: no-store` and `Pragma: no-cache`.",
         "operationId": "token",
         "requestBody": {
           "description": "The grant's parameters: one schema per `grant_type`.",
@@ -4788,14 +4788,14 @@
       },
       "GuestGrant": {
         "type": "object",
-        "description": "The guest grant, ADR 0014. No browser and no code: a client allowed to\nuse it gets a fresh guest account within its limit.",
+        "description": "The guest grant, ADR 0014. No browser and no code: a confidential\nclient allowed to use it gets a fresh guest account within its limit.",
         "required": [
           "grant_type"
         ],
         "properties": {
           "client_id": {
             "type": "string",
-            "description": "The client's id in the body, instead of `Authorization: Basic`; a\npublic client sends it alone."
+            "description": "The client's id in the body, instead of `Authorization: Basic`; it\ncomes with `client_secret`, since only a confidential client may\nuse this grant (ADR 0014)."
           },
           "client_secret": {
             "type": "string",
@@ -4991,7 +4991,7 @@
           },
           "scope": {
             "type": "string",
-            "description": "The scopes to issue for, space-separated; omitted asks for the ones\nthe grant holds, and a request may repeat or narrow them, never\nwiden them (RFC 6749 §6)."
+            "description": "The scopes this request asks for, space-separated; omitted asks for\nthe ones the grant holds, and a request may repeat or narrow them,\nnever widen them (RFC 6749 §6). A narrower request is accepted and\nignored: the tokens carry the grant's full scopes, so read the\n`scope` of the response rather than assuming this narrowed anything\n(ADR 0012)."
           }
         }
       },

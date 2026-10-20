@@ -116,16 +116,9 @@ impl utoipa::IntoResponses for TokenResponses {
 /// The token endpoint: the authorization code exchange, the refresh, and
 /// the guest grant.
 ///
-/// The body is `application/x-www-form-urlencoded` (RFC 6749 §3.2), read
-/// by hand under the RFC's rules, a repeated parameter refused:
-/// `grant_type=authorization_code` with `code`, `redirect_uri` and
-/// `code_verifier` (ADR 0011); `grant_type=refresh_token` with
-/// `refresh_token` and an optional `scope` (ADR 0012);
-/// `grant_type=urn:memebattle:oauth:grant-type:guest` with an optional
-/// `scope` (ADR 0014). A confidential client authenticates with
-/// `Authorization: Basic` or with `client_id` and `client_secret` in the
-/// body, a public client sends `client_id` alone. Every answer is
-/// `Cache-Control: no-store` and `Pragma: no-cache`.
+/// The body is `application/x-www-form-urlencoded` (RFC 6749 §3.2); the
+/// schema of the grant being asked for says which parameters it carries.
+/// Every answer is `Cache-Control: no-store` and `Pragma: no-cache`.
 #[utoipa::path(
     post,
     path = "/oidc/token",
@@ -255,9 +248,12 @@ mod request {
         grant_type: RefreshTokenGrantType,
         /// The refresh token of the grant, which this request spends.
         refresh_token: String,
-        /// The scopes to issue for, space-separated; omitted asks for the ones
-        /// the grant holds, and a request may repeat or narrow them, never
-        /// widen them (RFC 6749 §6).
+        /// The scopes this request asks for, space-separated; omitted asks for
+        /// the ones the grant holds, and a request may repeat or narrow them,
+        /// never widen them (RFC 6749 §6). A narrower request is accepted and
+        /// ignored: the tokens carry the grant's full scopes, so read the
+        /// `scope` of the response rather than assuming this narrowed anything
+        /// (ADR 0012).
         #[schema(nullable = false)]
         scope: Option<String>,
         /// The client's id in the body, instead of `Authorization: Basic`; a
@@ -270,8 +266,8 @@ mod request {
         client_secret: Option<String>,
     }
 
-    /// The guest grant, ADR 0014. No browser and no code: a client allowed to
-    /// use it gets a fresh guest account within its limit.
+    /// The guest grant, ADR 0014. No browser and no code: a confidential
+    /// client allowed to use it gets a fresh guest account within its limit.
     #[derive(ToSchema)]
     pub(super) struct GuestGrant {
         #[schema(inline)]
@@ -280,8 +276,9 @@ mod request {
         /// alone, which is all a guest has to release.
         #[schema(nullable = false)]
         scope: Option<String>,
-        /// The client's id in the body, instead of `Authorization: Basic`; a
-        /// public client sends it alone.
+        /// The client's id in the body, instead of `Authorization: Basic`; it
+        /// comes with `client_secret`, since only a confidential client may
+        /// use this grant (ADR 0014).
         #[schema(nullable = false)]
         client_id: Option<String>,
         /// The client's secret in the body, next to `client_id`; never together
@@ -1587,6 +1584,10 @@ mod tests {
     /// chooses it, the component schema that describes it, the parameters it
     /// requires and the optional ones it takes. `client_id` and
     /// `client_secret` are on every grant and are not listed here.
+    ///
+    /// The reader's parameter sets are transcribed here by hand; nothing
+    /// compares this table to `token_request::grant` (ADR 0023 (c)), so a row
+    /// is kept in step with the reader by whoever changes it.
     const GRANTS: [(&str, &str, &[&str], &[&str]); 3] = [
         (
             "authorization_code",
@@ -1610,9 +1611,11 @@ mod tests {
     /// else, and describes every parameter as a string that is never null —
     /// an omitted one is absent from the form, not null.
     ///
-    /// Nothing else holds the description to the reader the way the check
-    /// layer holds the responses to the handler (ADR 0023 (c)): this test
-    /// does.
+    /// The grant each schema is checked against is the row of [`GRANTS`],
+    /// not the reader: the request side has no equivalent of the check layer
+    /// that holds the responses to the handler, so this test holds the
+    /// document to that table and the table to the reader is a human step
+    /// (ADR 0023 (c)).
     // `#[tokio::test]`, not `#[test]`: the lazy pool of the state needs a
     // Tokio context to be built, though nothing here opens a connection.
     #[tokio::test]

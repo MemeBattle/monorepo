@@ -4,12 +4,12 @@
 */
 
 /**
- * @description The guest grant, ADR 0014. No browser and no code: a client allowed to\nuse it gets a fresh guest account within its limit.
+ * @description The guest grant, ADR 0014. No browser and no code: a confidential\nclient allowed to use it gets a fresh guest account within its limit.
  * @type object
 */
 export type GuestGrant = {
     /**
-     * @description The client\'s id in the body, instead of `Authorization: Basic`; a\npublic client sends it alone.
+     * @description The client\'s id in the body, instead of `Authorization: Basic`; it\ncomes with `client_secret`, since only a confidential client may\nuse this grant (ADR 0014).
      * @type string | undefined
     */
     client_id?: string;

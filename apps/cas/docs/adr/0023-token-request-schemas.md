@@ -60,21 +60,24 @@ sent twice is refused before any other rule is looked at (RFC 6749 §3.2), a
 value is form-decoded strictly, and the rules are applied in an order that
 decides which refusal a request gets. A schema-driven extractor would
 answer some of those requests differently, and the answers are fixed by the
-RFC and by ADR 0011. The price is that nothing in the type system ties the
-description to the reader; a unit test in `token.rs` asserts the document's
-`oneOf`, its discriminator, and per grant schema the required list, the
-`grant_type` literal and the described parameters against the grant's read
-set, so the two cannot drift silently. A reader changed without the
-description shows up as an `openapi.json` diff in the same pull request
-(ADR 0016 (g)).
+RFC and by ADR 0011. The price is that nothing ties the description to the
+reader: a table in `token.rs` transcribes each grant's read set by hand, and
+a unit test there asserts the document's `oneOf`, its discriminator, and per
+grant schema the required list, the `grant_type` literal and the described
+parameters against that table. So the document cannot drift from the table,
+and keeping the table in step with `token_request.rs` is a human step —
+caught, like a reader changed without the description, as an `openapi.json`
+diff in the same pull request (ADR 0016 (g)).
 
 **(d) `client_secret_post` is part of every grant schema.** `client_id` and
 `client_secret` are optional on all three, described as the alternative to
 the `Authorization: Basic` header — exclusive with it, since offering a
 secret both ways is two authentication methods at once, which RFC 6749 §2.3
-forbids — with `client_id` alone for a public client. They are not a fourth
-schema: they are orthogonal to the grant, and a client authenticating
-through the header simply omits them.
+forbids — with `client_id` alone for a public client, on the two grants a
+public client may use: the guest grant admits only a confidential client
+(ADR 0014), so its schema says the pair. They are not a fourth schema: they
+are orthogonal to the grant, and a client authenticating through the header
+simply omits them.
 
 **(e) An optional form parameter is optional, not nullable.**
 `#[schema(nullable = false)]` on every `Option` field, as `UserInfoClaims`
@@ -105,7 +108,9 @@ ever need them typed, this record is the pattern.
   they carry a `dead_code` allow. Deriving `Serialize` or `Deserialize` to
   silence the lint would claim they are read on the wire, which is what (c)
   says they are not.
-- Changing which parameters a grant is read for now means changing the
-  schema next to the reader, or the test in `token.rs` fails.
+- Changing which parameters a grant is read for means changing the grant's
+  schema and that test's table by hand; no check fails if only the reader
+  moves, so the `openapi.json` diff of the pull request is where it is
+  caught.
 - A fourth grant is a fourth schema, a variant and a mapping entry, and one
   row in that test's table.
