@@ -1,0 +1,50 @@
+name: 'Ligretto auth pull request'
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'packages/ligretto-auth/**'
+      # The types and the tests run against a client generated from the description, so a change to it is checked.
+      - 'apps/cas/openapi.json'
+      - .github/workflows/ligretto-auth-pr.yml
+      - 'pnpm-lock.yaml'
+      - package.json
+      - pnpm-workspace.yaml
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      # The types are checked against a client generated from the description as it is in this commit, not against
+      # the committed output, which may lag behind it.
+      - name: Regenerate the client and the error codes
+        run: pnpm run --filter @memebattle/ligretto-auth generate:api
+
+      - name: TS check
+        run: pnpm run --filter @memebattle/ligretto-auth ts-check
+
+  tests:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      # `error-codes.spec.ts` compares the generated error codes with the description: run against freshly generated
+      # output, it checks the generator rather than how recently someone regenerated.
+      - name: Regenerate the client and the error codes
+        run: pnpm run --filter @memebattle/ligretto-auth generate:api
+
+      - name: Run tests
+        run: pnpm run --filter @memebattle/ligretto-auth test:ci
