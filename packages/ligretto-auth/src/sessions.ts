@@ -194,17 +194,21 @@ export const refreshSession = async (ctx: SessionContext, sessionId: string, opt
 /**
  * The sign-in of §4, and the guest upgrade of §9 when `sessionId` is given.
  *
- * With a session the grant is force-refreshed first and the **newly issued** ID token becomes the `id_token_hint`:
- * CAS checks the hint's `exp` strictly and a stored ID token is never reused, so the refresh runs even when the
- * access token is fresh (ADR 0015 (c)). The pending request records the `sub` that session held, which is what the
- * callback's comparison runs against.
+ * With a session the grant is force-refreshed first: CAS checks a hint's `exp` strictly and a stored ID token is
+ * never reused, so the refresh runs even when the access token is fresh (ADR 0015 (c)), and the pending request
+ * records the `sub` that session held, which is what the callback's comparison runs against.
+ *
+ * The **newly issued** ID token becomes the `id_token_hint` only for a guest's session: the hint of §9 exists to
+ * start an upgrade, and CAS ignores one that names a full account. A full account signing in again still has its
+ * session force-refreshed and retired, and a `sub` switch still reported — only the hint is left off.
  */
 export const beginSignIn = async (ctx: SessionContext, options: BeginSignInOptions = {}): Promise<BeginSignInResult> => {
   const { client, store, now = Date.now } = ctx
   const { sessionId, scope, prompt } = options
 
   const session = sessionId === undefined ? undefined : await refreshSession(ctx, sessionId, { force: true })
-  const request = await client.authorizationRequest({ scope, prompt, idTokenHint: session?.idToken })
+  const idTokenHint = session?.accountType === 'guest' ? session.idToken : undefined
+  const request = await client.authorizationRequest({ scope, prompt, idTokenHint })
 
   await store.savePendingRequest({
     state: request.state,
@@ -263,6 +267,35 @@ export const completeSignIn = async (ctx: SessionContext, { code, state }: Compl
     const session = sessionForNewGrant(tokens, now())
     await store.saveSession(session)
     return { session, previousSub }
+  })
+}
+
+/**
+ * Logout's session half (§11): the session is ended here, and the navigation that ends CAS's own is returned for the
+ * caller to send the browser to. `undefined` means the store holds no such session — nothing to end.
+ *
+ * The re-read, the URL and the delete all happen inside the session's lock, as the session-write rule demands, and
+ * the lock matters more here than the read-then-write alone suggests: CAS's logout revokes no grant (§11), so a
+ * refresh that was waiting on CAS and upserted the session after the delete would leave a *working* session behind a
+ * logout the user was told had happened. Holding the lock across `endSessionUrl` is the trade `refreshSession`
+ * already makes across its token `POST`, and the discovery document it reads is normally cached.
+ *
+ * A `DiscoveryError` from the URL leaves the session in place, so the user can retry a logout that ends both sides
+ * rather than being left signed in to CAS with no application session to retry from.
+ */
+export const endSession = async (ctx: SessionContext, sessionId: string): Promise<{ url: string } | undefined> => {
+  const { client, store } = ctx
+
+  return await store.withSessionLock(sessionId, async () => {
+    const session = await store.getSession(sessionId)
+    if (session === undefined) {
+      return undefined
+    }
+    // Built before the delete, from the ID token read under this lock: §11 requires the hint, and the row that holds
+    // the latest one is about to be gone.
+    const url = await client.endSessionUrl({ idTokenHint: session.idToken })
+    await store.deleteSession(sessionId)
+    return { url }
   })
 }
 

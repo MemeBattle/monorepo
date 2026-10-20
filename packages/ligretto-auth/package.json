@@ -11,7 +11,8 @@
     "#client": "./src/client.ts"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./contract": "./src/contract.ts"
   },
   "scripts": {
     "ts-check": "tsc --noEmit",

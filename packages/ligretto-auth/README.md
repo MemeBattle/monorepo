@@ -8,7 +8,10 @@ without asking CAS anything.
 **Server-only.** The package verifies tokens and, from the confidential client
 on, holds a client secret. Nothing here belongs in a browser bundle: an
 application's frontend talks to its own backend, and that backend talks to CAS
-([INTEGRATION.md §1](../../apps/cas/docs/INTEGRATION.md)).
+([INTEGRATION.md §1](../../apps/cas/docs/INTEGRATION.md)). The one exception is
+`@memebattle/ligretto-auth/contract`, which is `export type` declarations and
+no code at all — the shapes [the handlers](#the-http-handlers) answer, so a
+frontend types its calls against the declaration the backend answers from.
 
 **Runtime-agnostic.** Web standards only — `fetch`, WebCrypto,
 `Request`/`Response` — and no framework imports, so the same source runs on
@@ -191,6 +194,114 @@ and §9:
 `grantEndsAt` is computed as 30 days from the grant's creation and never
 moved by a refresh (ADR 0012 (g)); CAS does not transmit it.
 
+## The HTTP handlers
+
+`createAuthHandlers` is the HTTP half: four `(Request) => Promise<Response>`
+functions, so Hono, a bare Worker and an Adonis adapter mount the same
+handler. No framework is imported and no framework is assumed.
+
+```ts
+import { createAuthHandlers, createCasClient } from '@memebattle/ligretto-auth'
+
+const auth = createAuthHandlers({
+  client: createCasClient({ ... }),
+  store, // a SessionStore
+  transport: 'cookie', // or 'bearer'
+  appUrl: 'https://ligretto.mems.fun/',
+})
+```
+
+- **`me`** keeps a usable access token in front of the browser. No session
+  presented means a guest is minted and installed; a session presented is
+  refreshed when its access token has less than a minute left, and answered
+  from the store otherwise. The answer is a `MeResponse`:
+  `{ user: { sub, accountType, name, avatarUrl }, accessToken, expiresAt,
+signedOut }`, with `expiresAt` in epoch milliseconds. A grant that has
+  ended (`invalid_grant`) or an id the store does not hold is answered with a
+  new guest rather than an error — the user keeps playing — and `signedOut`
+  is `true` when what the id named was a **full** account, so the UI can
+  offer a sign-in instead of silently showing a guest.
+- **`sign-in`** stores the sign-in in flight and sends the browser to CAS.
+  With a session it force-refreshes and, for a **guest**, hints with the
+  freshly issued ID token (§9). If that session turns out to be gone, the
+  sign-in starts again without one: the user asked to sign in either way.
+- **`callback`** compares the query's `state` with the cookie this browser
+  holds, handles an `error` CAS sent, checks that a code is actually there,
+  redeems it, installs the new session and redirects to `appUrl`. A `sub`
+  that is not the one the sign-in started from is reported as
+  `?previous_sub=<sub>` on that redirect, never merged (§9).
+- **`logout`** ends this application's session and sends the browser to
+  CAS's `end_session` with the `id_token_hint` and the registered
+  `post_logout_redirect_uri` (§11). Nothing to end is still a logout: the
+  browser goes back to `appUrl`.
+
+### The two transports
+
+One option decides where the session id travels; everything else is shared.
+
+**`cookie`** — the id lives in `__Host-ligretto_session`
+(`HttpOnly; Secure; Path=/; SameSite=Lax`), the name overridable with
+`cookieName` as long as it keeps the `__Host-` prefix, which is what makes
+the browser enforce `Secure`, `Path=/` and host-only. The frontend navigates
+to `sign-in` and `logout` top-level and gets a `302`. `__Host-` requires
+`Secure`, and Chrome and Firefox accept `Secure` cookies from
+`http://localhost`, so local development needs no accommodation.
+
+**`bearer`** — the id travels in `Authorization: Bearer <session id>` on
+`me`, `sign-in` and `logout`, with the scheme compared case-insensitively
+(RFC 6750 §2.1, ADR 0013 (d)) and the id passed through byte for byte. A
+navigation cannot set a header, so the frontend **fetches** `sign-in` and
+`logout` and gets `200` with a `NavigationResponse` `{ url }` to navigate to
+itself. `me` hands a new id back as `sessionId` in its body, and the
+callback — the one navigation CAS makes to us — hands it over in the
+redirect's **fragment**, `#session_id=<id>`, which browsers never send to a
+server and never write to a log. The id is in no query parameter anywhere.
+
+Both transports use the same `state` cookie, `__Host-ligretto_auth_state`,
+for the browser binding §4 demands: `completeSignIn` proves only that a
+`state` exists in a store shared by every browser, so without the cookie a
+`state` captured from one browser could be completed on another. The
+callback is a top-level GET navigation to the handlers' own origin, where a
+host-only `Lax` cookie is sent, so this works in both. In `bearer` mode the
+`Set-Cookie` rides the `sign-in` **fetch** answer, so that fetch must be
+credentialed (`credentials: 'include'`, or same-origin). The cookie is
+cleared when a sign-in completes and left in place on every refusal — a
+stray callback must not be able to kill a sign-in the browser legitimately
+has in flight.
+
+### The answers
+
+`@memebattle/ligretto-auth/contract` is a second entry holding `MeResponse`,
+`NavigationResponse`, `AuthUser`, `AuthErrorCode` and `AuthErrorResponse` as
+`export type` declarations and nothing else, so a browser bundle can import
+it: it is erased at build time and pulls none of the server-only code with
+it. The same types are re-exported from the main entry for a backend.
+
+Every known failure is a 4xx or a 503 carrying one of five stable codes;
+`500` is only ever the host's, for what is genuinely unhandled.
+
+| Status | `error`               | When                                                                                                                                       |
+| -----: | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+|  `400` | `unknown_state`       | The callback's `state` does not match this browser's cookie, or names no sign-in this backend still holds (`CallbackStateError`).          |
+|  `400` | `sign_in_failed`      | The callback carries no code, the code was spent (`invalid_grant`), or CAS refused the authorization request — its code is in `casError`.  |
+|  `429` | `rate_limit_exceeded` | CAS is rate-limiting this client; `Retry-After` echoes the delay it prescribed.                                                            |
+|  `503` | `cas_unavailable`     | Transient: `temporarily_unavailable`, `server_error`, `internal_error`, any `5xx`, an `ApiError`, a refused ID token, unreadable metadata. |
+|  `503` | `cas_rejected`        | Permanent until an operator acts: `invalid_client`, `unauthorized_client`, `invalid_scope`, `invalid_request`, `unsupported_grant_type`.   |
+
+The split between the two `503`s is the operators' signal: CAS being away is
+worth retrying, CAS refusing this client's registration or request shape is
+not. `ApiError` belongs to `cas_unavailable` because it means something
+answered **in CAS's place** and outside its contract — a proxy's HTML error
+page, an error body carrying no code, a `2xx` that is not JSON — which is the
+provider being unusable, not the provider refusing. Its `code` is `unknown`
+for every uncoded answer, so `casError` says `unknown` rather than naming
+what the proxy sent.
+
+`invalid_grant` and an unknown session are the only failures the routes read
+differently from one another, because what they mean depends on what was
+being attempted: on `me` an ended grant is a new guest, on `sign-in` it is a
+plain sign-in, at the callback it is a refused code.
+
 ## Endpoints come from the issuer
 
 No path is hard-coded. The discovery document is read at
@@ -323,9 +434,66 @@ repository keeps:
   existence, not origin, and the cookie comparison of §4 is the HTTP layer's.
 - `grantEndsAt` is computed client-side as 30 days from the grant's creation
   (ADR 0012 (g)); CAS does not transmit it.
+- The handlers are `(Request) => Promise<Response>` and nothing else: the
+  framework is the consumer's, and `#814` mounts the same four functions it
+  would mount on a bare Worker.
+- The `state` cookie is the browser binding of §4 in **both** transports,
+  not only the cookie one: `completeSignIn` proves a `state` exists in a
+  store every browser shares, which is not the same as it belonging to this
+  browser. In `bearer` mode it rides the `sign-in` fetch answer, so that
+  fetch must be credentialed; a genuinely cross-site consumer would fail
+  closed at the state check, which is the correct direction to fail.
+- It is cleared only when a sign-in completes, never on a refusal: clearing
+  it on a stray or malformed callback would let one tab's junk request end a
+  sign-in another tab legitimately has in flight. It expires with the
+  pending request anyway.
+- `bearer` keeps the session id out of every URL. It is a long-lived
+  reusable credential and an abandoned sign-in does not retire it, so a copy
+  left in a query string or a server log stays usable: the header carries it
+  on calls (scheme case-insensitive per RFC 6750 §2.1, ADR 0013 (d); the id
+  itself case-sensitive), the callback redirect's fragment hands a new one
+  over, and `sign-in`/`logout` answer JSON `{ url }` rather than a `302` a
+  fetch could not usefully follow. The literal `302` of the issue is traded
+  for that; the header contract is what the transport is.
+- The session cookie outlives its grant by `SESSION_COOKIE_GRACE_MS`, seven
+  days. A cookie that died at `grantEndsAt` would simply stop being sent, so
+  an ordinary grant expiry would be indistinguishable from a new visitor and
+  `signedOut` could never be reported. Within the grace the stale id is
+  presented once, refused `invalid_grant`, and reported. **A store's cleanup
+  job must therefore keep session rows until
+  `grantEndsAt + SESSION_COOKIE_GRACE_MS`** — the report needs the row to
+  refuse the id against (a constraint on the Postgres store of `#813`).
+  Past the grace the user is a plain new visitor, which no cookie lifetime
+  can avoid.
+- `signedOut` comes from an advisory read of the session taken _before_ the
+  refresh and outside the lock. It decides nothing but the report, so the
+  worst a race costs is one mis-report, and reading it under the lock would
+  mean a second round of locking on every `me`.
+- `beginSignIn` sends the `id_token_hint` only for a guest's session: §9's
+  hint exists to start an upgrade, and CAS ignores one naming a full
+  account. The force-refresh and the `sub` snapshot stay for every session,
+  so signing in again still retires the old session and still reports a
+  `sub` switch.
+- Logout's read, URL build and delete all run inside the session's lock
+  (`endSession`), and the URL is built from the ID token read there, before
+  the delete. CAS's logout revokes no grant (§11), so a refresh that was
+  waiting on CAS and wrote the session back after the delete would leave a
+  **working** session behind a logout the user was told had happened. A
+  `DiscoveryError` leaves the session in place, so a full logout can be
+  retried.
+- Two `503` codes, not one: `cas_unavailable` is transient and worth a
+  retry, `cas_rejected` is CAS refusing this client's registration or
+  request shape and stays broken until an operator acts. `ApiError` is
+  `cas_unavailable` — something answered in CAS's place, outside its
+  contract.
+- The callback checks for a code itself, before `completeSignIn`, because
+  that function consumes the pending request _before_ it redeems the code: a
+  callback with none would spend a sign-in the browser could still have
+  completed, and send a junk exchange to CAS.
 - No build step yet: the package exports TypeScript source, as
   `@memebattle/ligretto-shared` does. The first runtime consumer decides the
-  build shape.
+  build shape. The `./contract` entry is source too, and types alone, so a
+  browser bundle gets no code from it.
 
 Background: [INTEGRATION.md](../../apps/cas/docs/INTEGRATION.md) §2–§9 and
 §11, and the CAS ADRs
