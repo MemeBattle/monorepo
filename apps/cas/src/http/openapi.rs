@@ -798,11 +798,13 @@ mod tests {
     /// of its own (logout revokes the one it is given): a path parameter
     /// that is not a uuid is 400 `invalid_path`; a body that is not JSON,
     /// one of the wrong shape and one without a content type are
-    /// `invalid_body` at 400, 422 and 415. Cases come from the document: an
-    /// operation without the extractor gets none, and a path parameter that
-    /// is not a uuid — a provider's slug — is not one the `Path` extractor
-    /// can refuse, so only the operations declaring `invalid_path` are held
-    /// to it.
+    /// `invalid_body` at 400, 422 and 415. Cases come from the document, from
+    /// what an operation *takes* rather than from what it declares: an
+    /// operation without the body extractor gets no body case, and the path
+    /// case goes to the uuid parameters, the only ones `Path` can refuse —
+    /// a provider's slug is any string. Keying it on the declared
+    /// `invalid_path` would let an operation that declares nothing be held to
+    /// nothing, which is the opposite of what this test is for.
     #[sqlx::test]
     async fn every_api_operation_rejects_bad_input_as_declared_when_signed_in(pool: PgPool) {
         let api = api_router(test_state(pool.clone()), AllowedOrigins::new(vec![]));
@@ -812,10 +814,7 @@ mod tests {
         let mut cases = 0;
 
         for (path, method, operation) in operations(&document) {
-            let declares_invalid_path = response_codes(&operation["responses"]["400"])
-                .iter()
-                .any(|code| code == INVALID_PATH);
-            if path.contains('{') && declares_invalid_path {
+            if takes_a_uuid_in_its_path(&operation) {
                 let cookie = signed_in(&pool, "Ada").await.cookie;
                 let mut request = Request::builder()
                     .method(method.clone())
@@ -825,7 +824,7 @@ mod tests {
                     request = request.header(header::CONTENT_TYPE, "application/json");
                 }
                 let request = request.body(Body::from("{}")).unwrap();
-                expect_error(&router, request, StatusCode::BAD_REQUEST, "invalid_path").await;
+                expect_error(&router, request, StatusCode::BAD_REQUEST, INVALID_PATH).await;
                 cases += 1;
             }
 
@@ -865,6 +864,20 @@ mod tests {
 
         // Two path-parameter cases and eight bodies times three.
         assert_eq!(cases, 2 + 8 * 3);
+    }
+
+    /// Whether an operation's path carries a uuid, which is the parameter the
+    /// `Path` extractor can refuse — and therefore the one that must answer
+    /// `400 invalid_path`. Read from the parameter's own schema, so an
+    /// operation cannot exempt itself by declaring nothing.
+    fn takes_a_uuid_in_its_path(operation: &Value) -> bool {
+        operation["parameters"]
+            .as_array()
+            .is_some_and(|parameters| {
+                parameters.iter().any(|parameter| {
+                    parameter["in"] == "path" && parameter["schema"]["format"] == "uuid"
+                })
+            })
     }
 
     async fn declared() -> &'static str {

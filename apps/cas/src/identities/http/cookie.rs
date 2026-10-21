@@ -60,8 +60,10 @@ pub(crate) fn flow(settings: &CookieSettings, secret: &FlowSecret) -> Cookie<'st
 
 /// The cookie that removes the flow cookie: same name, path and flags,
 /// `Max-Age=0`. The attributes must match for the browser to treat it as the
-/// same cookie. The callback sends it whatever it answers — the flow is spent
-/// either way.
+/// same cookie. The callback sends it once it has consumed the flow this
+/// cookie was bound to, and only then: a browser holds one flow cookie at a
+/// time, so an answer that consumed nothing would be clearing whichever flow
+/// is current instead.
 pub(crate) fn removal(settings: &CookieSettings) -> Cookie<'static> {
     let mut cookie = base(settings, String::new());
     cookie.set_max_age(time::Duration::ZERO);

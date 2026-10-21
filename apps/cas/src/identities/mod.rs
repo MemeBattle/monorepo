@@ -56,7 +56,9 @@ pub const MAX_PROFILE_FIELD_LENGTH: usize = 256;
 
 /// Upper bound on a provider's own identifier for a person. Far above any
 /// provider's (an OIDC `sub` is at most 255 characters), and it bounds what a
-/// provider's answer can write into a row.
+/// provider's answer can write into a row. A longer answer is refused rather
+/// than cut: the subject is the key an identity is found by, and two subjects
+/// sharing a prefix are two people.
 pub const MAX_PROVIDER_SUBJECT_LENGTH: usize = 255;
 
 /// The display name a new account gets when the provider offered nothing CAS

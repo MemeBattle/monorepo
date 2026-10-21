@@ -29,13 +29,23 @@ use super::{
 };
 use crate::accounts::{self, DisplayName, NewAccount};
 use crate::db::Db;
+use crate::oidc::authorization::{MAX_NONCE_LENGTH, MAX_STATE_LENGTH};
 use crate::sessions::SessionOrigin;
 use crate::sessions::service::{CreateError, IssuedSession, SessionService};
 
-/// Upper bound on a `return_to`, in characters. It is a path on the
-/// frontend, which is CAS's own deployment, and the value travels in a
-/// redirect's `Location`.
-pub const MAX_RETURN_TO_LENGTH: usize = 512;
+/// Upper bound on a `return_to`, in characters.
+///
+/// The longest one CAS produces is an `/oidc/authorize` continuation: that
+/// endpoint hands an anonymous browser to the frontend with the whole
+/// authorization request as `return_to`
+/// ([`crate::oidc::http::authorize`]), and the request may carry a `state`
+/// and a `nonce` of [`MAX_STATE_LENGTH`] and [`MAX_NONCE_LENGTH`] each. So
+/// the bound is those two plus 1024 characters for everything else a request
+/// holds — the client id, the redirect URI, the scopes, the PKCE challenge —
+/// and a flow can always return to a request `/oidc/authorize` accepted. A
+/// bound there still is, because the value travels in a redirect's
+/// `Location`.
+pub const MAX_RETURN_TO_LENGTH: usize = MAX_STATE_LENGTH + MAX_NONCE_LENGTH + 1024;
 
 /// Where the browser goes when nothing was asked for.
 pub const DEFAULT_RETURN_TO: &str = "/";
@@ -310,15 +320,14 @@ impl IdentityService {
 
         // Phase 3 — exchange. A network call, with no connection and no lock
         // held.
-        let identity = provider
+        let NormalizedIdentity { subject, profile } = provider
             .exchange(
                 code,
                 &self.redirect_uri(&flow.provider),
                 &flow.pkce_verifier,
             )
             .await?;
-        let subject = subject_of(&identity);
-        let profile = identity.profile;
+        let subject = validated_subject(subject)?;
 
         // Phase 4 — write, by intent.
         match flow.intent {
@@ -493,15 +502,31 @@ fn presented_secret_matches(presented: Option<&str>, browser_hash: &[u8]) -> boo
     secret.hash().ct_eq(browser_hash).into()
 }
 
-/// The provider's subject, trimmed and capped: it is written into a row and
-/// looked up by, and a provider's answer is not CAS's to trust the length of.
-fn subject_of(identity: &NormalizedIdentity) -> String {
-    identity
-        .subject
-        .trim()
-        .chars()
-        .take(MAX_PROVIDER_SUBJECT_LENGTH)
-        .collect()
+/// The provider's subject exactly as it answered, or a refusal.
+///
+/// The subject is the key an identity is found by, so it is validated and
+/// never repaired. Trimming or cutting it would map two of a provider's
+/// distinct subjects onto one `(provider, provider_subject)` row — `"alice"`
+/// and `" alice"`, or two subjects sharing the first
+/// [`MAX_PROVIDER_SUBJECT_LENGTH`] characters — and the person who reached
+/// that row first would be the account the next one signs in to. The unique
+/// constraint cannot see a collision CAS made before the lookup.
+///
+/// A subject CAS cannot key by is a failed exchange: the provider answered,
+/// and the answer is unusable.
+fn validated_subject(subject: String) -> Result<String, FinishError> {
+    let refusal = if subject.trim().is_empty() {
+        "the provider answered with no subject"
+    } else if subject.chars().count() > MAX_PROVIDER_SUBJECT_LENGTH {
+        "the provider's subject is longer than CAS accepts"
+    } else {
+        return Ok(subject);
+    };
+
+    tracing::warn!(refusal, "a provider's subject cannot identify a person");
+    Err(FinishError::Exchange(ExchangeError::Rejected(
+        refusal.to_owned(),
+    )))
 }
 
 /// The display name a new account gets: the provider's name, then its
@@ -676,6 +701,10 @@ mod tests {
     #[sqlx::test]
     async fn start_validates_return_to(pool: PgPool) {
         let service = identity_service(pool, &fake());
+        // A path that only the length rule can refuse: `"/".repeat(n)` would
+        // be refused for starting with `//` even with that rule deleted.
+        let too_long = format!("/{}", "a".repeat(MAX_RETURN_TO_LENGTH));
+        let longest = format!("/{}", "a".repeat(MAX_RETURN_TO_LENGTH - 1));
 
         for value in [
             Some("//evil.example"),
@@ -685,7 +714,7 @@ mod tests {
             Some("/a b"),
             Some("/back\\slash"),
             Some("/\u{0}"),
-            Some(&"/".repeat(MAX_RETURN_TO_LENGTH + 1)),
+            Some(too_long.as_str()),
         ] {
             let error = service
                 .start(SLUG, Intent::SignIn, None, value)
@@ -713,6 +742,47 @@ mod tests {
         assert_eq!(
             taken(&service, state_of(&started.url)).await.return_to,
             "/dashboard?tab=1"
+        );
+
+        // The boundary from the other side: the longest accepted value is
+        // exactly the cap, so neither the rule nor the constant can move
+        // without this test saying so.
+        assert_eq!(longest.chars().count(), MAX_RETURN_TO_LENGTH);
+        let started = service
+            .start(SLUG, Intent::SignIn, None, Some(longest.as_str()))
+            .await
+            .unwrap();
+        assert_eq!(
+            taken(&service, state_of(&started.url)).await.return_to,
+            longest
+        );
+    }
+
+    /// The bound has to fit what CAS's own `/oidc/authorize` accepts: that
+    /// endpoint sends an anonymous browser to the frontend with the whole
+    /// authorization request as `return_to`, and the identity flow carries
+    /// that continuation on. A request with the longest `state` and `nonce`
+    /// the endpoint allows must therefore start a flow.
+    #[sqlx::test]
+    async fn start_accepts_the_longest_authorize_continuation(pool: PgPool) {
+        let service = identity_service(pool, &fake());
+        let continuation = format!(
+            "/oidc/authorize?client_id=ligretto&response_type=code\
+             &redirect_uri=https%3A%2F%2Fligretto.example%2Fcallback&scope=openid+profile\
+             &code_challenge={}&code_challenge_method=S256&state={}&nonce={}",
+            "c".repeat(43),
+            "s".repeat(MAX_STATE_LENGTH),
+            "n".repeat(MAX_NONCE_LENGTH),
+        );
+
+        let started = service
+            .start(SLUG, Intent::SignIn, None, Some(&continuation))
+            .await
+            .expect("a continuation /oidc/authorize accepts is a valid return_to");
+
+        assert_eq!(
+            taken(&service, state_of(&started.url)).await.return_to,
+            continuation
         );
     }
 
@@ -815,6 +885,97 @@ mod tests {
         );
         assert_eq!(accounts_count(&pool).await, 1);
         assert_eq!(identity_rows(&pool).await, 1);
+    }
+
+    /// Signs in through a provider answering `subject`, each call with its
+    /// own provider and service over the one database.
+    async fn sign_in_with_subject(pool: &PgPool, subject: &str) -> Result<Finished, FinishError> {
+        let provider = Arc::new(FakeProvider::new(SLUG).answering(subject, profile()));
+        let service = identity_service(pool.clone(), &provider);
+        let (state, secret) = start_sign_in(&service).await;
+        service
+            .finish(
+                SLUG,
+                state,
+                Callback::Code("c".to_owned()),
+                Some(secret.expose()),
+                None,
+            )
+            .await
+    }
+
+    /// The account a finished sign-in opened a session for.
+    fn account_of(finished: Finished) -> Uuid {
+        match finished {
+            Finished::SignedIn { session, .. } => session.session.account_id,
+            other => panic!("a sign-in: {other:?}"),
+        }
+    }
+
+    /// The subjects on file, in a stable order the collation cannot reorder.
+    /// Unchecked query: see docs/TESTS.md.
+    async fn subjects(pool: &PgPool) -> Vec<String> {
+        sqlx::query_scalar(
+            "SELECT provider_subject FROM external_identities ORDER BY provider_subject COLLATE \"C\"",
+        )
+        .fetch_all(pool)
+        .await
+        .unwrap()
+    }
+
+    /// The subject is the key an identity is found by, not display data: two
+    /// subjects a provider keeps apart stay apart, whitespace and all.
+    /// Trimming them would open the first person's account for the second.
+    #[sqlx::test]
+    async fn subjects_that_differ_only_in_whitespace_are_different_accounts(pool: PgPool) {
+        let first = account_of(sign_in_with_subject(&pool, "alice").await.unwrap());
+
+        let second = account_of(sign_in_with_subject(&pool, " alice").await.unwrap());
+
+        assert_ne!(
+            first, second,
+            "a subject with whitespace around it is another subject"
+        );
+        assert_eq!(accounts_count(&pool).await, 2);
+        assert_eq!(
+            subjects(&pool).await,
+            [" alice", "alice"],
+            "stored exactly as the provider answered"
+        );
+    }
+
+    /// A subject CAS cannot key an identity by is a failed exchange, not a
+    /// repaired one: an empty answer must not become a row that every later
+    /// empty answer resolves to, and an over-long one must not share a row
+    /// with everything that has its first [`MAX_PROVIDER_SUBJECT_LENGTH`]
+    /// characters.
+    #[sqlx::test]
+    async fn a_subject_cas_cannot_key_by_fails_the_exchange(pool: PgPool) {
+        let over_long = "a".repeat(MAX_PROVIDER_SUBJECT_LENGTH + 1);
+
+        for subject in ["", "   ", "\n", over_long.as_str()] {
+            // Twice, because the failure a trim or a cut would cause is two
+            // people landing on one account.
+            for attempt in 1..=2 {
+                let error = sign_in_with_subject(&pool, subject).await.unwrap_err();
+                assert!(
+                    matches!(error, FinishError::Exchange(ExchangeError::Rejected(_))),
+                    "{subject:?} ({attempt}): {error:?}"
+                );
+            }
+        }
+        assert_eq!(
+            accounts_count(&pool).await,
+            0,
+            "no account was created to be shared"
+        );
+        assert_eq!(identity_rows(&pool).await, 0);
+
+        // The boundary from the other side: the longest subject a provider
+        // may answer with signs in and is stored whole.
+        let longest = "a".repeat(MAX_PROVIDER_SUBJECT_LENGTH);
+        account_of(sign_in_with_subject(&pool, &longest).await.unwrap());
+        assert_eq!(subjects(&pool).await, [longest]);
     }
 
     /// A provider's name may be anything; CAS's display names may not. The

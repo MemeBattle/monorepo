@@ -323,7 +323,8 @@ impl utoipa::IntoResponses for CallbackResponses {
         let redirect = ResponseBuilder::new()
             .description(
                 "To the frontend at the flow's `return_to`: with the session cookie after a \
-                 sign-in, with nothing new after a link. The flow cookie is cleared either way.",
+                 sign-in, with nothing new after a link. The flow this request consumed is \
+                 spent, so its cookie is cleared.",
             )
             .header("Location", location_header())
             .header(
@@ -381,33 +382,40 @@ async fn answer(
     provider: Option<String>,
     query: CallbackQuery,
 ) -> Response {
-    // The flow cookie is spent whatever this answers, so it is cleared on
-    // every path out of here.
-    let clear = cookie::removal(&state.cookies);
-
+    // A request that consumes no flow of this browser's leaves its flow
+    // cookie alone. The browser holds one at a time, so that cookie belongs
+    // to whichever flow is current — possibly one still running, started in
+    // another tab — and clearing it would make that flow's own callback a
+    // `foreign_flow`. Any navigation to this address, from anywhere, would
+    // otherwise be enough to break a live flow.
     let Some((provider, state_id)) = provider.zip(
         query
             .state
             .as_deref()
             .and_then(|value| Uuid::parse_str(value).ok()),
     ) else {
-        return page(FLOW_NOT_FOUND, &clear);
+        return page(FLOW_NOT_FOUND, None);
     };
     let callback = match (query.error.as_deref(), query.code) {
         // A refusal is the provider's answer and consumes the flow.
         (Some(_), _) => Callback::Denied,
         (None, Some(code)) => Callback::Code(code),
         // Neither half: nothing a provider sends, and nothing to act on.
-        (None, None) => return page(FLOW_NOT_FOUND, &clear),
+        (None, None) => return page(FLOW_NOT_FOUND, None),
     };
 
     // The session a link flow is held to, resolved before the flow is
     // consumed so that a renewal it triggers reaches the slot.
     let current_account = match resolve_session(&state, &headers, &extensions, uri.path()).await {
         Ok(session) => session.map(|authenticated| authenticated.account.id),
-        Err(error) => return database_page(&error, &clear),
+        Err(error) => return database_page(&error, None),
     };
     let presented = cookie::presented(&state.cookies, &headers);
+
+    // Past the cookie check the flow this request consumed is the one the
+    // presented cookie was bound to, so the cookie is spent and goes out
+    // cleared — on the success and on every failure of the phases after it.
+    let clear = cookie::removal(&state.cookies);
 
     match state
         .identities
@@ -421,30 +429,37 @@ async fn answer(
         .await
     {
         Ok(finished) => succeed(&state, finished, &clear),
-        Err(FinishError::FlowNotFound) => page(FLOW_NOT_FOUND, &clear),
-        Err(FinishError::ForeignFlow) => page(FOREIGN_FLOW, &clear),
-        Err(FinishError::ProviderDenied) => page(PROVIDER_DENIED, &clear),
-        Err(FinishError::SessionMismatch) => page(LINK_SESSION_MISMATCH, &clear),
-        Err(FinishError::AlreadyLinked) => page(IDENTITY_ALREADY_LINKED, &clear),
+        // No row was consumed at all: the `state` named no live flow, so the
+        // cookie the browser presented belongs to some other flow.
+        Err(FinishError::FlowNotFound) => page(FLOW_NOT_FOUND, None),
+        // A flow was consumed, but not the one this cookie is bound to —
+        // which is the whole reason the cookie must survive.
+        Err(FinishError::ForeignFlow) => page(FOREIGN_FLOW, None),
+        Err(FinishError::ProviderDenied) => page(PROVIDER_DENIED, Some(&clear)),
+        Err(FinishError::SessionMismatch) => page(LINK_SESSION_MISMATCH, Some(&clear)),
+        Err(FinishError::AlreadyLinked) => page(IDENTITY_ALREADY_LINKED, Some(&clear)),
         Err(FinishError::Exchange(error)) => {
             let page_for = match &error {
                 crate::identities::ExchangeError::Rejected(_) => PROVIDER_EXCHANGE_FAILED,
                 crate::identities::ExchangeError::Unavailable(_) => PROVIDER_UNAVAILABLE,
             };
             tracing::warn!(code = page_for.code, error = %error, "an identity exchange failed");
-            page(page_for, &clear)
+            page(page_for, Some(&clear))
         }
         // A conflict that vanished again: the condition is retryable, and it
         // takes the page CAS already answers for "there, but cannot serve".
         Err(FinishError::Contended) => {
             tracing::warn!("an identity sign-in lost a race it could not resolve");
-            page(ErrorPage::SERVICE_UNAVAILABLE, &clear)
+            page(ErrorPage::SERVICE_UNAVAILABLE, Some(&clear))
         }
         Err(FinishError::Random(error)) => {
             tracing::error!(error = %error, "no randomness for a session");
-            page(ErrorPage::INTERNAL, &clear)
+            page(ErrorPage::INTERNAL, Some(&clear))
         }
-        Err(FinishError::Db(error)) => database_page(&error, &clear),
+        // The failure may be the consume itself, so which flow the cookie
+        // belongs to is unknown. A spent cookie left behind is harmless — its
+        // row went with it — while clearing a live flow's is not.
+        Err(FinishError::Db(error)) => database_page(&error, None),
     }
 }
 
@@ -477,16 +492,19 @@ fn to_frontend(frontend_origin: &Url, return_to: &str) -> Response {
     }
 }
 
-/// A page, with the flow cookie cleared beside it.
-fn page(page: ErrorPage, clear: &Cookie<'static>) -> Response {
+/// A page, with the flow cookie cleared beside it when this answer spent it
+/// and left alone when it did not.
+fn page(page: ErrorPage, clear: Option<&Cookie<'static>>) -> Response {
     let mut response = page.into_response();
-    add_cookie(&mut response, clear);
+    if let Some(clear) = clear {
+        add_cookie(&mut response, clear);
+    }
     response
 }
 
 /// A database failure, logged and rendered as a page like every other
 /// failure here.
-fn database_page(error: &sqlx::Error, clear: &Cookie<'static>) -> Response {
+fn database_page(error: &sqlx::Error, clear: Option<&Cookie<'static>>) -> Response {
     let for_database = ErrorPage::for_database(error);
     tracing::error!(code = for_database.code, source = ?error, "an identity callback failed");
     page(for_database, clear)
@@ -643,7 +661,16 @@ mod tests {
         format!("/identities/{provider}/callback?{query}")
     }
 
-    async fn assert_page(response: Response, status: StatusCode, code: &str) {
+    /// What a page does to the browser's flow cookie. Only an answer that
+    /// consumed the flow the cookie is bound to may clear it; the others have
+    /// to leave whichever flow the browser is holding alone.
+    #[derive(Debug, Clone, Copy)]
+    enum FlowCookie {
+        Cleared,
+        Untouched,
+    }
+
+    async fn assert_page(response: Response, status: StatusCode, code: &str, flow: FlowCookie) {
         assert_eq!(response.status(), status, "{code}");
         assert!(!response.headers().contains_key(header::LOCATION), "{code}");
         assert_eq!(
@@ -651,11 +678,19 @@ mod tests {
             Some("text/html; charset=utf-8"),
             "{code}"
         );
-        assert_eq!(
-            cookie_named(&response, flow_cookie_name()).map(|cookie| cookie.value().to_owned()),
-            Some(String::new()),
-            "{code}: a spent flow's cookie is cleared"
-        );
+        let set =
+            cookie_named(&response, flow_cookie_name()).map(|cookie| cookie.value().to_owned());
+        match flow {
+            FlowCookie::Cleared => assert_eq!(
+                set,
+                Some(String::new()),
+                "{code}: a spent flow's cookie is cleared"
+            ),
+            FlowCookie::Untouched => assert_eq!(
+                set, None,
+                "{code}: this answer consumed no flow of this browser's, so its cookie stays"
+            ),
+        }
         let body = body_text(response).await;
         assert!(body.starts_with("<!doctype html>"), "{body}");
         assert!(body.contains(&format!("<code>{code}</code>")), "{body}");
@@ -870,7 +905,13 @@ mod tests {
             ))
             .await
             .unwrap();
-        assert_page(response, StatusCode::BAD_REQUEST, "flow_not_found").await;
+        assert_page(
+            response,
+            StatusCode::BAD_REQUEST,
+            "flow_not_found",
+            FlowCookie::Untouched,
+        )
+        .await;
 
         // A state that is not even a uuid, and one that is missing.
         for query in ["state=not-a-uuid&code=c", "code=c", ""] {
@@ -884,7 +925,13 @@ mod tests {
                 ))
                 .await
                 .unwrap();
-            assert_page(response, StatusCode::BAD_REQUEST, "flow_not_found").await;
+            assert_page(
+                response,
+                StatusCode::BAD_REQUEST,
+                "flow_not_found",
+                FlowCookie::Untouched,
+            )
+            .await;
         }
 
         // A replayed callback: the second one finds nothing.
@@ -901,7 +948,13 @@ mod tests {
             .oneshot(request("GET", &uri, &[&started.cookie], None))
             .await
             .unwrap();
-        assert_page(replay, StatusCode::BAD_REQUEST, "flow_not_found").await;
+        assert_page(
+            replay,
+            StatusCode::BAD_REQUEST,
+            "flow_not_found",
+            FlowCookie::Untouched,
+        )
+        .await;
 
         // An expired flow, by the database's clock.
         let expired = start(&app, path, None, "{}").await;
@@ -920,7 +973,13 @@ mod tests {
             ))
             .await
             .unwrap();
-        assert_page(response, StatusCode::BAD_REQUEST, "flow_not_found").await;
+        assert_page(
+            response,
+            StatusCode::BAD_REQUEST,
+            "flow_not_found",
+            FlowCookie::Untouched,
+        )
+        .await;
 
         // A state arriving on another provider's callback path.
         let other_path = start(&app, path, None, "{}").await;
@@ -933,7 +992,13 @@ mod tests {
             ))
             .await
             .unwrap();
-        assert_page(response, StatusCode::BAD_REQUEST, "flow_not_found").await;
+        assert_page(
+            response,
+            StatusCode::BAD_REQUEST,
+            "flow_not_found",
+            FlowCookie::Untouched,
+        )
+        .await;
     }
 
     /// The browser binding: a `state` minted for another browser, or for
@@ -958,8 +1023,110 @@ mod tests {
                 .await
                 .unwrap();
 
-            assert_page(response, StatusCode::BAD_REQUEST, "foreign_flow").await;
+            assert_page(
+                response,
+                StatusCode::BAD_REQUEST,
+                "foreign_flow",
+                FlowCookie::Untouched,
+            )
+            .await;
         }
+    }
+
+    /// A browser's cookie jar: what the responses so far left behind, which is
+    /// what the next request sends. The tests above resend a saved cookie
+    /// string, which cannot notice a removal; this one has to.
+    #[derive(Debug, Default)]
+    struct Jar(std::collections::BTreeMap<String, String>);
+
+    impl Jar {
+        /// Applies a response's `Set-Cookie` headers, treating a cookie with
+        /// an empty value as the removal it is.
+        fn apply(&mut self, response: &Response) {
+            for cookie in response
+                .headers()
+                .get_all(header::SET_COOKIE)
+                .iter()
+                .filter_map(|value| value.to_str().ok())
+                .filter_map(|value| Cookie::parse(value.to_owned()).ok())
+            {
+                if cookie.value().is_empty() {
+                    self.0.remove(cookie.name());
+                } else {
+                    self.0
+                        .insert(cookie.name().to_owned(), cookie.value().to_owned());
+                }
+            }
+        }
+
+        fn header(&self) -> Vec<String> {
+            self.0
+                .iter()
+                .map(|(name, value)| format!("{name}={value}"))
+                .collect()
+        }
+    }
+
+    /// A callback that consumes nothing must leave the browser's flow cookie
+    /// where it is: that cookie belongs to whichever flow is current, and a
+    /// navigation to this address from anywhere — another tab on an old
+    /// callback, a link on someone else's page — would otherwise spend it and
+    /// turn the live flow's own callback into a `foreign_flow`.
+    #[sqlx::test]
+    async fn a_callback_that_consumes_nothing_leaves_a_live_flow_alone(pool: PgPool) {
+        let app = both_mounts(state_with(pool.clone(), &fake()));
+        let live = start(&app, "/api/identities/telegram/sign-in-options", None, "{}").await;
+        let mut jar = Jar::default();
+        jar.apply(&live.response);
+        assert!(
+            jar.header()
+                .iter()
+                .any(|cookie| cookie.contains(flow_cookie_name())),
+            "the premise: the browser is holding the live flow's cookie"
+        );
+
+        // The drive-by: a `state` nobody minted, carrying the cookie the
+        // browser holds, and whatever it answers is applied to the jar.
+        let drive_by = app
+            .clone()
+            .oneshot(request(
+                "GET",
+                &callback_uri(SLUG, &format!("state={}&code=c", Uuid::new_v4())),
+                &jar.header().iter().map(String::as_str).collect::<Vec<_>>(),
+                None,
+            ))
+            .await
+            .unwrap();
+        jar.apply(&drive_by);
+        assert_page(
+            drive_by,
+            StatusCode::BAD_REQUEST,
+            "flow_not_found",
+            FlowCookie::Untouched,
+        )
+        .await;
+
+        // The live flow still finishes, with the jar as the browser now holds
+        // it.
+        let finished = app
+            .oneshot(request(
+                "GET",
+                &callback_uri(SLUG, &format!("state={}&code=c", live.state)),
+                &jar.header().iter().map(String::as_str).collect::<Vec<_>>(),
+                None,
+            ))
+            .await
+            .unwrap();
+
+        assert_eq!(
+            finished.status(),
+            StatusCode::FOUND,
+            "the flow the browser started is still its own"
+        );
+        assert!(
+            session_cookie_of(&finished).is_some(),
+            "and it signs in, rather than answering foreign_flow"
+        );
     }
 
     /// A link may only finish under a session naming the account it was
@@ -997,7 +1164,13 @@ mod tests {
                 .await
                 .unwrap();
 
-            assert_page(response, StatusCode::FORBIDDEN, "link_session_mismatch").await;
+            assert_page(
+                response,
+                StatusCode::FORBIDDEN,
+                "link_session_mismatch",
+                FlowCookie::Cleared,
+            )
+            .await;
         }
     }
 
@@ -1026,7 +1199,13 @@ mod tests {
             .await
             .unwrap();
 
-        assert_page(response, StatusCode::CONFLICT, "identity_already_linked").await;
+        assert_page(
+            response,
+            StatusCode::CONFLICT,
+            "identity_already_linked",
+            FlowCookie::Cleared,
+        )
+        .await;
     }
 
     /// What the provider itself can go wrong with, each with its own code and
@@ -1049,7 +1228,13 @@ mod tests {
             ))
             .await
             .unwrap();
-        assert_page(response, StatusCode::BAD_REQUEST, "provider_denied").await;
+        assert_page(
+            response,
+            StatusCode::BAD_REQUEST,
+            "provider_denied",
+            FlowCookie::Cleared,
+        )
+        .await;
         assert_eq!(denied.exchanges(), 0, "a refusal is not exchanged");
 
         for (provider, status, code) in [
@@ -1077,7 +1262,7 @@ mod tests {
                 .await
                 .unwrap();
 
-            assert_page(response, status, code).await;
+            assert_page(response, status, code, FlowCookie::Cleared).await;
         }
     }
 

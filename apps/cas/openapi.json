@@ -4149,7 +4149,7 @@
         ],
         "responses": {
           "302": {
-            "description": "To the frontend at the flow's `return_to`: with the session cookie after a sign-in, with nothing new after a link. The flow cookie is cleared either way.",
+            "description": "To the frontend at the flow's `return_to`: with the session cookie after a sign-in, with nothing new after a link. The flow this request consumed is spent, so its cookie is cleared.",
             "headers": {
               "Location": {
                 "schema": {

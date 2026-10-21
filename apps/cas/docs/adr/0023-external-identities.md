@@ -65,10 +65,20 @@ violation to a domain conflict rather than letting a 23505 escape;
 `ON DELETE CASCADE` from `accounts`, like every other row that belongs to an
 account.
 
-CAS does not merge accounts. The snapshot is data for a screen, never a
-credential and never a label CAS holds to its own rules: the account's
-display name is derived from it once, when the account is created, and
-validated then. Two first sign-ins of the same unknown subject race at the
+CAS does not merge accounts. `provider_subject` is written exactly as the
+provider answered: it is the key an identity is found by, so it is validated
+rather than repaired. An empty, whitespace-only or over-long subject is a
+failed exchange (`400 provider_exchange_failed`), because trimming or cutting
+one would map two of a provider's distinct subjects onto a single row —
+`"alice"` and `" alice"`, or two subjects sharing the first 255 characters —
+and the person who reached that row first would be the account the next one
+signs in to. The unique constraint cannot see a collision CAS made before the
+lookup.
+
+The snapshot, unlike the subject, is data for a screen, never a credential
+and never a label CAS holds to its own rules: it is length-capped as
+received, and the account's display name is derived from it once, when the
+account is created, and validated then. Two first sign-ins of the same unknown subject race at the
 unique index; the loser rolls its provisional account back, looks the winner
 up, and signs in to the winning account. A sign-in whose identity is proven
 never fails over a race it can resolve.
@@ -128,6 +138,15 @@ That is both halves of what the ticket and RFC 9700 ask for: a `state` minted
 for another browser, or for none, cannot finish a flow, which is the
 login-CSRF defence every provider inherits without implementing it.
 
+The cookie is cleared only by an answer that consumed the flow it is bound
+to: the success and every failure past that comparison. A browser holds one
+flow cookie at a time, so an answer that consumed nothing — `flow_not_found`,
+or `foreign_flow`, where the row taken was not this cookie's — would be
+clearing whichever flow the browser is currently running. Otherwise any
+navigation to the callback, an old tab reloaded or a link on someone else's
+page, would spend a live flow's cookie and leave its own callback answering
+`foreign_flow`.
+
 **(e) Two intents on one callback, read from the row and never from the
 URL.** `sign_in` finds the identity's account or creates a full one;
 `link` attaches the identity to the account the flow was started for. The
@@ -182,7 +201,11 @@ the frontend at the flow's `return_to` on success, CAS's own fixed-string
 error page with a stable code on failure, `405` for a `HEAD`. `return_to` is
 validated as a path — it must start with `/` and may not begin another
 authority — so a flow can never redirect the browser off the frontend's
-origin.
+origin. Its length bound is derived from what `/oidc/authorize` itself
+accepts (`MAX_STATE_LENGTH` + `MAX_NONCE_LENGTH`, plus room for the rest of a
+request), because the continuation that endpoint hands to the frontend is the
+longest `return_to` CAS produces: a bound below it would refuse a sign-in for
+a request CAS had just accepted.
 
 The page family and the plain `302` move to the transport root
 (`http::page`), because two contexts now have endpoints a browser navigates

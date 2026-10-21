@@ -98,8 +98,9 @@ impl PkceChallenge {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NormalizedIdentity {
     /// The provider's own stable identifier: an OIDC `sub`, or whatever the
-    /// provider's API calls its user id. Trimmed and capped by the service
-    /// before it reaches a row.
+    /// provider's API calls its user id. Written as it is answered — it is
+    /// what the identity is keyed by, so the service validates it and
+    /// refuses what it cannot key by, rather than repairing it.
     pub subject: String,
     pub profile: ProfileSnapshot,
 }
