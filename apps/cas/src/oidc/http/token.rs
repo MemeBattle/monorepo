@@ -2051,6 +2051,7 @@ mod tests {
                     .map(|limit| GuestGrantsPerMinute::try_new(limit).unwrap()),
                 scopes: scopes(&["openid", "profile", "email"]),
                 audience: Some(Audience::try_new(AUDIENCE).unwrap()),
+                secret: None,
             },
         )
         .await
