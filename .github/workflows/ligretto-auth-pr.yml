@@ -64,31 +64,33 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
 
-    # The suite drives the real CAS, as cas-frontend's e2e job does: the Postgres of cas-pr.yml, the binary built
-    # here, and the suite's own OIDC client registered by its seed script.
-    #
-    # The independent preparations run as background steps: Postgres and the Node.js install overlap with the Rust
-    # build, which is the longest part of the job. Postgres is a step rather than a service container so that pulling
-    # and starting it does not hold back the first step. Every background step is joined by a `wait` before its
-    # result is used, and the long-running ones are stopped with `cancel` at the end, since the job otherwise waits
-    # for them before it finishes.
+    # The suite drives the real CAS, as cas-frontend's e2e job does: the Postgres
+    # service of cas-pr.yml, the binary built here, and the suite's own OIDC
+    # client registered by its seed script.
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: cas
+          POSTGRES_PASSWORD: cas
+          POSTGRES_DB: cas
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       DATABASE_URL: postgres://cas:cas@localhost:5434/cas
       SQLX_OFFLINE: 'true'
 
     steps:
-      # Attached, so the server's own log is this step's log; `cancel` stops it at the end of the job.
-      - name: Start Postgres
-        id: postgres
-        background: true
-        run: >-
-          docker run --rm --name postgres
-          -e POSTGRES_USER=cas -e POSTGRES_PASSWORD=cas -e POSTGRES_DB=cas
-          -p 5434:5432 postgres:18
-
       - name: Checkout
         uses: actions/checkout@v7
 
+      # In the background, so the install overlaps with the Rust build below.
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
         id: node
@@ -112,11 +114,6 @@ jobs:
       - name: Regenerate the client and the error codes
         run: pnpm run --filter @memebattle/ligretto-auth generate:api
 
-      # Over TCP: while the image initialises the database, its temporary server listens on the Unix socket only,
-      # so a socket check would pass before the real server is up.
-      - name: Wait for Postgres
-        run: timeout 60 bash -c 'until docker exec postgres pg_isready -h 127.0.0.1 -U cas -d cas; do sleep 1; done'
-
       - name: Apply migrations
         run: ./target/debug/cas-migrate
 
@@ -127,10 +124,11 @@ jobs:
 
       # The defaults are the ones the suite needs: :3000, issuer http://localhost:3000, RP id `localhost`,
       # WebAuthn origin http://localhost:5173. The log goes to a file, uploaded below when the job fails.
+      #
+      # Detached with `&` rather than a `background` step: the job waits for every background step before it ends,
+      # so a server there would need a `cancel` step, while a detached process is killed in the job's cleanup.
       - name: Start CAS
-        id: cas
-        background: true
-        run: ./target/debug/cas > /tmp/cas.log 2>&1
+        run: ./target/debug/cas > /tmp/cas.log 2>&1 &
 
       - name: Wait for CAS
         run: pnpm exec wait-on --timeout 60000 http-get://127.0.0.1:3000/health
@@ -145,10 +143,3 @@ jobs:
           name: ligretto-auth-integration-cas-log
           path: /tmp/cas.log
           retention-days: 2
-
-      # `cancel` always runs, so the servers are stopped whether the suite passed or not.
-      - name: Stop CAS
-        cancel: cas
-
-      - name: Stop Postgres
-        cancel: postgres
