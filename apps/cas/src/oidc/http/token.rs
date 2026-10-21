@@ -30,6 +30,7 @@ use crate::http::error::ErrorCode;
 use crate::http::extract::Json;
 use crate::http::response::{Documented, ErrorShape, error_responses, string_header};
 use crate::oidc::{IssuedTokens, Params, TokenError};
+use request::{AuthorizationCodeGrant, GuestGrant, RefreshTokenGrant, TokenRequest};
 
 /// The largest body a token request may have. The longest legitimate one —
 /// a code, a verifier of 128 characters, a redirect URI and a client's
@@ -66,9 +67,17 @@ pub fn token_router(state: ApiState) -> OpenApiRouter {
         .with_state(state)
 }
 
-/// The success body, for the description.
+/// The request forms and the success body, for the description. The three
+/// grant schemas are registered here, not collected from the operation: the
+/// request body inlines their `oneOf` (see [`TokenRequest`]), so only the
+/// `$ref`s inside it name them.
 #[derive(OpenApi)]
-#[openapi(components(schemas(TokenResponse)))]
+#[openapi(components(schemas(
+    TokenResponse,
+    AuthorizationCodeGrant,
+    RefreshTokenGrant,
+    GuestGrant
+)))]
 struct TokenApi;
 
 /// What `/oidc/token` answers, for the description: the tokens, or an RFC 6749
@@ -107,23 +116,16 @@ impl utoipa::IntoResponses for TokenResponses {
 /// The token endpoint: the authorization code exchange, the refresh, and
 /// the guest grant.
 ///
-/// The body is `application/x-www-form-urlencoded` (RFC 6749 §3.2), read
-/// by hand under the RFC's rules, a repeated parameter refused:
-/// `grant_type=authorization_code` with `code`, `redirect_uri` and
-/// `code_verifier` (ADR 0011); `grant_type=refresh_token` with
-/// `refresh_token` and an optional `scope` (ADR 0012);
-/// `grant_type=urn:memebattle:oauth:grant-type:guest` with an optional
-/// `scope` (ADR 0014). A confidential client authenticates with
-/// `Authorization: Basic` or with `client_id` and `client_secret` in the
-/// body, a public client sends `client_id` alone. Every answer is
-/// `Cache-Control: no-store` and `Pragma: no-cache`.
+/// The body is `application/x-www-form-urlencoded` (RFC 6749 §3.2); the
+/// schema of the grant being asked for says which parameters it carries.
+/// Every answer is `Cache-Control: no-store` and `Pragma: no-cache`.
 #[utoipa::path(
     post,
     path = "/oidc/token",
     request_body(
-        content = String,
+        content = inline(TokenRequest),
         content_type = "application/x-www-form-urlencoded",
-        description = "The grant's parameters, see the operation's description.",
+        description = "The grant's parameters: one schema per `grant_type`.",
     ),
     security((), ("basic" = []))
 )]
@@ -181,6 +183,137 @@ fn authorization(headers: &HeaderMap) -> Result<Option<&[u8]>, TokenError> {
         return Err(TokenError::InvalidClient { basic: true });
     }
     Ok(first)
+}
+
+/// What a token request carries, for the description alone. The `ToSchema`
+/// derives are the only readers of these types and nothing ever constructs
+/// one: they describe the form, they never parse it (ADR 0023 (c)), which is
+/// what the `dead_code` allow says. Their names are the component names of
+/// the document, so a generated client gets one request type per grant.
+#[allow(dead_code)]
+mod request {
+    use utoipa::ToSchema;
+
+    /// The form of a token request: one schema per grant, chosen by
+    /// `grant_type` (RFC 6749 §3.2). The parameters are read by hand under
+    /// the RFC's rules — a repeated parameter refused, a strict form decode,
+    /// the rules applied in order — which no schema expresses, so these
+    /// schemas describe the form and never parse it (ADR 0023).
+    ///
+    /// Every grant takes the client's credentials in the body
+    /// (`client_secret_post`) as the alternative to `Authorization: Basic`;
+    /// using both is using two authentication methods at once, which RFC 6749
+    /// §2.3 forbids.
+    #[derive(ToSchema)]
+    #[serde(untagged)]
+    #[schema(discriminator(
+        property_name = "grant_type",
+        mapping(
+            ("authorization_code" = "#/components/schemas/AuthorizationCodeGrant"),
+            ("refresh_token" = "#/components/schemas/RefreshTokenGrant"),
+            ("urn:memebattle:oauth:grant-type:guest" = "#/components/schemas/GuestGrant"),
+        )
+    ))]
+    pub(super) enum TokenRequest {
+        AuthorizationCode(AuthorizationCodeGrant),
+        RefreshToken(RefreshTokenGrant),
+        Guest(GuestGrant),
+    }
+
+    /// The code exchange, RFC 6749 §4.1.3 and ADR 0011.
+    #[derive(ToSchema)]
+    pub(super) struct AuthorizationCodeGrant {
+        #[schema(inline)]
+        grant_type: AuthorizationCodeGrantType,
+        /// The code `GET /oidc/authorize` sent to the redirect URI.
+        code: String,
+        /// The `redirect_uri` of that authorization request, byte for byte.
+        redirect_uri: String,
+        /// The PKCE verifier of that authorization request (RFC 7636 §4.5).
+        code_verifier: String,
+        /// The client's id in the body, instead of `Authorization: Basic`; a
+        /// public client sends it alone.
+        #[schema(nullable = false)]
+        client_id: Option<String>,
+        /// The client's secret in the body, next to `client_id`; never together
+        /// with `Authorization: Basic`.
+        #[schema(nullable = false)]
+        client_secret: Option<String>,
+    }
+
+    /// The refresh with rotation, RFC 6749 §6 and ADR 0012.
+    #[derive(ToSchema)]
+    pub(super) struct RefreshTokenGrant {
+        #[schema(inline)]
+        grant_type: RefreshTokenGrantType,
+        /// The refresh token of the grant, which this request spends.
+        refresh_token: String,
+        /// The scopes this request asks for, space-separated; omitted asks for
+        /// the ones the grant holds, and a request may repeat or narrow them,
+        /// never widen them (RFC 6749 §6). A narrower request is accepted and
+        /// ignored: the tokens carry the grant's full scopes, so read the
+        /// `scope` of the response rather than assuming this narrowed anything
+        /// (ADR 0012).
+        #[schema(nullable = false)]
+        scope: Option<String>,
+        /// The client's id in the body, instead of `Authorization: Basic`; a
+        /// public client sends it alone.
+        #[schema(nullable = false)]
+        client_id: Option<String>,
+        /// The client's secret in the body, next to `client_id`; never together
+        /// with `Authorization: Basic`.
+        #[schema(nullable = false)]
+        client_secret: Option<String>,
+    }
+
+    /// The guest grant, ADR 0014. No browser and no code: a confidential
+    /// client allowed to use it gets a fresh guest account within its limit.
+    #[derive(ToSchema)]
+    pub(super) struct GuestGrant {
+        #[schema(inline)]
+        grant_type: GuestGrantType,
+        /// The scopes to issue for, space-separated; omitted asks for `openid`
+        /// alone, which is all a guest has to release.
+        #[schema(nullable = false)]
+        scope: Option<String>,
+        /// The client's id in the body, instead of `Authorization: Basic`; it
+        /// comes with `client_secret`, since only a confidential client may
+        /// use this grant (ADR 0014).
+        #[schema(nullable = false)]
+        client_id: Option<String>,
+        /// The client's secret in the body, next to `client_id`; never together
+        /// with `Authorization: Basic`.
+        #[schema(nullable = false)]
+        client_secret: Option<String>,
+    }
+
+    // The `grant_type` literal of each grant below. The doc comments are the
+    // property's description in the document, so they are written for a
+    // client; a doc comment on the field instead would wrap the literal in an
+    // `allOf`, which no generator reads as a single value.
+
+    /// `authorization_code`, the one value this grant's `grant_type` has.
+    #[derive(ToSchema)]
+    enum AuthorizationCodeGrantType {
+        #[schema(rename = "authorization_code")]
+        AuthorizationCode,
+    }
+
+    /// `refresh_token`, the one value this grant's `grant_type` has.
+    #[derive(ToSchema)]
+    enum RefreshTokenGrantType {
+        #[schema(rename = "refresh_token")]
+        RefreshToken,
+    }
+
+    /// `urn:memebattle:oauth:grant-type:guest`, the one value this grant's
+    /// `grant_type` has; the discovery document lists the same URN in
+    /// `grant_types_supported`.
+    #[derive(ToSchema)]
+    enum GuestGrantType {
+        #[schema(rename = "urn:memebattle:oauth:grant-type:guest")]
+        Guest,
+    }
 }
 
 /// The tokens, RFC 6749 §5.1 and OpenID Connect Core §3.1.3.3.
@@ -1445,6 +1578,98 @@ mod tests {
             .await
             .unwrap();
         assert_error(response, StatusCode::BAD_REQUEST, "invalid_request").await;
+    }
+
+    /// Each grant as `token_request.rs` reads it: the `grant_type` that
+    /// chooses it, the component schema that describes it, the parameters it
+    /// requires and the optional ones it takes. `client_id` and
+    /// `client_secret` are on every grant and are not listed here.
+    ///
+    /// The reader's parameter sets are transcribed here by hand; nothing
+    /// compares this table to `token_request::grant` (ADR 0023 (c)), so a row
+    /// is kept in step with the reader by whoever changes it.
+    const GRANTS: [(&str, &str, &[&str], &[&str]); 3] = [
+        (
+            "authorization_code",
+            "AuthorizationCodeGrant",
+            &["code", "redirect_uri", "code_verifier"],
+            &[],
+        ),
+        (
+            "refresh_token",
+            "RefreshTokenGrant",
+            &["refresh_token"],
+            &["scope"],
+        ),
+        (GUEST_GRANT_TYPE, "GuestGrant", &[], &["scope"]),
+    ];
+
+    /// The request body is one schema per grant: the `oneOf` of exactly the
+    /// three, with the discriminator on `grant_type` and its mapping, and
+    /// per schema the required list, the `grant_type` literal and the
+    /// parameters described, every one a string that is never null — an
+    /// omitted parameter is absent from the form, not null.
+    ///
+    /// Each schema is checked against the row of [`GRANTS`], not against the
+    /// reader: the request side has no equivalent of the check layer that
+    /// holds the responses to the handler (ADR 0023 (c)).
+    // `#[tokio::test]`, not `#[test]`: the lazy pool of the state needs a
+    // Tokio context to be built, though nothing here opens a connection.
+    #[tokio::test]
+    async fn the_request_body_describes_one_schema_per_grant() {
+        let pool = PgPoolOptions::new()
+            .connect_lazy("postgres://cas:cas@localhost:1/cas")
+            .unwrap();
+        let document = serde_json::to_value(token_router(test_state(pool)).get_openapi()).unwrap();
+        let body = &document["paths"]["/oidc/token"]["post"]["requestBody"]["content"]
+            [FORM_CONTENT_TYPE]["schema"];
+        let reference = |name: &str| format!("#/components/schemas/{name}");
+
+        let one_of: Vec<String> = body["oneOf"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| item["$ref"].as_str().unwrap().to_owned())
+            .collect();
+        assert_eq!(one_of, GRANTS.map(|(_, name, ..)| reference(name)));
+
+        let mapping: serde_json::Map<String, serde_json::Value> = GRANTS
+            .iter()
+            .map(|(grant_type, name, ..)| ((*grant_type).to_owned(), json!(reference(name))))
+            .collect();
+        assert_eq!(
+            body["discriminator"],
+            json!({ "propertyName": "grant_type", "mapping": mapping })
+        );
+
+        for (grant_type, name, required, optional) in GRANTS {
+            let schema = &document["components"]["schemas"][name];
+            let mut expected = vec!["grant_type"];
+            expected.extend(required);
+            assert_eq!(schema["required"], json!(expected), "{name}");
+
+            let properties = &schema["properties"];
+            assert_eq!(
+                properties["grant_type"]["enum"],
+                json!([grant_type]),
+                "{name}"
+            );
+            let mut described = vec!["grant_type", "client_id", "client_secret"];
+            described.extend(required);
+            described.extend(optional);
+            assert_eq!(
+                properties.as_object().unwrap().len(),
+                described.len(),
+                "{name} describes exactly the parameters its grant is read for"
+            );
+            for parameter in described {
+                let property = &properties[parameter];
+                // A bare `"string"` rather than `["string", "null"]`, and no
+                // `nullable`: these parameters are optional, never null.
+                assert_eq!(property["type"], json!("string"), "{name}.{parameter}");
+                assert_eq!(property.get("nullable"), None, "{name}.{parameter}");
+            }
+        }
     }
 
     /// Neither the code, the verifier, the client secret nor any token

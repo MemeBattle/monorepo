@@ -374,17 +374,20 @@ every path of the description to the `baseUrl` of `createClient({ baseUrl })`,
 so a base URL that carries a path keeps it; follows no redirect
 (`redirect: 'manual'`; a 3xx is thrown); passes caller headers through, each
 winning over the content type the body encoding would set, whatever its casing;
-sends a string body verbatim as `application/x-www-form-urlencoded` (the token
-endpoint's form body, which must not be quoted into JSON) and any other body as
-JSON. An error CAS answered with — a 4xx or a 5xx whose body carries a code —
-comes back as a value whose `code` is typed from the codes the operation
-declares and whose `headers` are the response's, so a caller reads the
-`Retry-After` a `429` or a `503` prescribes. Everything outside the contract is
-thrown as an `ApiError` carrying the `status` and `headers`: a redirect, an
-error response whose body carries no code (a proxy's page, not CAS), a 2xx
-whose body is not JSON, and a `fetch` that rejected, which has no response
-behind it and so carries the code `unreachable` and the status `0`, with the
-rejection as its `cause`.
+sends a string body verbatim as `application/x-www-form-urlencoded` (the
+end-session form, whose body the description types as a string and which must
+not be quoted into JSON); encodes an object as a form when the operation
+declares that content type, an `undefined` property left out, which is how a
+grant of the token endpoint goes on the wire (cas ADR 0023); and sends any
+other body as JSON. An error CAS answered with — a 4xx or a 5xx whose body
+carries a code — comes back as a value whose `code` is typed from the codes
+the operation declares and whose `headers` are the response's, so a caller
+reads the `Retry-After` a `429` or a `503` prescribes. Everything outside the
+contract is thrown as an `ApiError` carrying the `status` and `headers`: a
+redirect, an error response whose body carries no code (a proxy's page, not
+CAS), a 2xx whose body is not JSON, and a `fetch` that rejected, which has no
+response behind it and so carries the code `unreachable` and the status `0`,
+with the rejection as its `cause`.
 
 The generated operations take a `throwOnError` option and a `ThrowOnError` type
 parameter: kubb's plugin-client prints both into every operation and offers no

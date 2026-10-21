@@ -16,6 +16,7 @@ import { atUrl, createClient } from './client'
 import type { DiscoveryCache } from './discovery'
 import { createDiscoveryCache } from './discovery'
 import { TokenEndpointError } from './errors'
+import type { TokenBody } from './generated/models/Token'
 import type { TokenResponse } from './generated/models/TokenResponse'
 import { token as tokenOperation } from './generated/operations/token'
 import type { IdTokenClaims, ProfileSnapshot } from './id-token'
@@ -162,15 +163,16 @@ export const createCasClient = (options: CasClientOptions): CasClient => {
   const authorization = basicAuthorization(clientId, clientSecret)
 
   /**
-   * One form `POST` to the discovered token endpoint. A failure CAS declared comes back from the transport as a
-   * value and leaves here as a `TokenEndpointError`; anything outside the contract — the network, a proxy's page —
-   * passes through as the transport reported it.
+   * One form `POST` to the discovered token endpoint, `grant` the generated request type of its grant: the transport
+   * encodes it as the form the operation declares. A failure CAS declared comes back from the transport as a value
+   * and leaves here as a `TokenEndpointError`; anything outside the contract — the network, a proxy's page — passes
+   * through as the transport reported it.
    */
-  const postToken = async (form: URLSearchParams): Promise<TokenResponse> => {
+  const postToken = async (grant: TokenBody): Promise<TokenResponse> => {
     const document = await cache.discovery(issuer, transport)
     const result = await tokenOperation({
       client: atUrl(transport, document.token_endpoint),
-      body: form.toString(),
+      body: grant,
       headers: { Authorization: authorization },
     })
     if (!result.ok) {
@@ -218,15 +220,12 @@ export const createCasClient = (options: CasClientOptions): CasClient => {
     return { url: url.toString(), state, nonce, codeVerifier }
   }
 
-  const exchangeCode = async ({ code, codeVerifier, nonce }: ExchangeCodeOptions): Promise<Tokens> => {
-    const form = new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: redirectUri, code_verifier: codeVerifier })
-    return await tokensOf(await postToken(form), nonce)
-  }
+  const exchangeCode = async ({ code, codeVerifier, nonce }: ExchangeCodeOptions): Promise<Tokens> =>
+    await tokensOf(await postToken({ grant_type: 'authorization_code', code, redirect_uri: redirectUri, code_verifier: codeVerifier }), nonce)
 
   const refresh = async (refreshToken: string): Promise<Tokens> => {
-    const form = new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken })
     // A 200 has already spent `refreshToken` (ADR 0012 (b)), whatever the ID token it came with turns out to be.
-    const response = await postToken(form)
+    const response = await postToken({ grant_type: 'refresh_token', refresh_token: refreshToken })
     try {
       // No nonce: the refreshed token answers no authorization request and carries none (ADR 0012 (f)).
       return await tokensOf(response, undefined)
@@ -235,14 +234,10 @@ export const createCasClient = (options: CasClientOptions): CasClient => {
     }
   }
 
-  const guestGrant = async ({ scope }: { scope?: string } = {}): Promise<Tokens> => {
-    const form = new URLSearchParams({ grant_type: GUEST_GRANT_TYPE })
-    // Sent only when asked for: CAS defaults a guest to `openid`, and `profile` or `email` would release nothing (§8).
-    if (scope !== undefined) {
-      form.set('scope', scope)
-    }
-    return await tokensOf(await postToken(form), undefined)
-  }
+  const guestGrant = async ({ scope }: { scope?: string } = {}): Promise<Tokens> =>
+    // `scope` goes on the wire only when asked for — an `undefined` is left out of the form — because CAS defaults a
+    // guest to `openid`, and `profile` or `email` would release nothing (§8).
+    await tokensOf(await postToken({ grant_type: GUEST_GRANT_TYPE, scope }), undefined)
 
   const endSessionUrl = async ({ idTokenHint, state }: EndSessionUrlOptions): Promise<string> => {
     const document = await cache.discovery(issuer, transport)
