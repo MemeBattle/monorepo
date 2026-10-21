@@ -253,7 +253,9 @@ export interface ClientOptions {
 export const createClient =
   ({ baseUrl, fetch: fetchImpl }: ClientOptions): Client =>
   async ({ method, url, body, contentType, headers }) => {
-    const send = fetchImpl ?? ((input: RequestInfo | URL, init?: RequestInit) => globalThis.fetch(input, init))
+    // Typed from `globalThis.fetch` itself rather than from `RequestInfo`, which only `lib.dom` declares: a Node
+    // consumer type-checks this source and must not have to load the browser globals to do it.
+    const send = fetchImpl ?? ((...args: Parameters<typeof globalThis.fetch>) => globalThis.fetch(...args))
     const encoded = encodeBody(body, contentType?.request)
 
     let response: Response
