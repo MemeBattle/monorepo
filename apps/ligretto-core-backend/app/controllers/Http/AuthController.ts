@@ -10,7 +10,7 @@ export default class AuthController {
     if (token) {
       const casGetMeResult = await casServices.getMe({ token })
       if (casGetMeResult.success) {
-        const user = await UserModel.firstOrCreate({ casId: casGetMeResult.data.user._id }, {})
+        const user = await UserModel.firstOrCreate({ casId: casGetMeResult.data.user._id }, { accountType: 'full' })
         return { user: user.mergeWithCasUser(casGetMeResult.data.user), token }
       }
       if (casGetMeResult.error.errorCode !== 403) {
@@ -19,7 +19,7 @@ export default class AuthController {
     }
     const temporaryResult = await casServices.createTemporaryToken()
     if (temporaryResult.success) {
-      const user = await UserModel.create({ casId: temporaryResult.data.temporaryUser._id, isTemporary: true })
+      const user = await UserModel.create({ casId: temporaryResult.data.temporaryUser._id, accountType: 'guest' })
 
       return { user: user.mergeWithCasUser(temporaryResult.data.temporaryUser), token: temporaryResult.data.temporaryToken }
     }

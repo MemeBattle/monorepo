@@ -7,6 +7,23 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import type { DateTime } from 'luxon'
 
+export class AuthRequestSchema extends BaseModel {
+  static $columns = ['codeVerifier', 'expiresAt', 'nonce', 'sessionId', 'state', 'sub'] as const
+  $columns = AuthRequestSchema.$columns
+  @column()
+  declare codeVerifier: string
+  @column()
+  declare expiresAt: bigint | number
+  @column()
+  declare nonce: string
+  @column()
+  declare sessionId: string | null
+  @column({ isPrimary: true })
+  declare state: string
+  @column()
+  declare sub: string | null
+}
+
 export class GameSchema extends BaseModel {
   static $columns = ['createdAt', 'id', 'updatedAt'] as const
   $columns = GameSchema.$columns
@@ -48,15 +65,65 @@ export class RoundSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class SessionLockSchema extends BaseModel {
+  static $columns = ['id'] as const
+  $columns = SessionLockSchema.$columns
+  @column({ isPrimary: true })
+  declare id: string
+}
+
+export class SessionSchema extends BaseModel {
+  static $columns = [
+    'accessToken',
+    'accessTokenExpiresAt',
+    'accountType',
+    'avatarUrl',
+    'displayName',
+    'grantEndsAt',
+    'grantStartedAt',
+    'id',
+    'idToken',
+    'refreshToken',
+    'sub',
+  ] as const
+  $columns = SessionSchema.$columns
+  @column()
+  declare accessToken: string
+  @column()
+  declare accessTokenExpiresAt: bigint | number
+  @column()
+  declare accountType: string
+  @column()
+  declare avatarUrl: string | null
+  @column()
+  declare displayName: string | null
+  @column()
+  declare grantEndsAt: bigint | number
+  @column()
+  declare grantStartedAt: bigint | number
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare idToken: string
+  @column()
+  declare refreshToken: string
+  @column()
+  declare sub: string
+}
+
 export class UserSchema extends BaseModel {
-  static $columns = ['casId', 'createdAt', 'isTemporary', 'updatedAt'] as const
+  static $columns = ['accountType', 'avatarUrl', 'casId', 'createdAt', 'displayName', 'updatedAt'] as const
   $columns = UserSchema.$columns
+  @column()
+  declare accountType: string
+  @column()
+  declare avatarUrl: string | null
   @column({ isPrimary: true })
   declare casId: string
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime | null
   @column()
-  declare isTemporary: boolean | null
+  declare displayName: string | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }

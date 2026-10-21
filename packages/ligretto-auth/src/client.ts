@@ -142,21 +142,23 @@ type DeclaredHeaders<TOptions> = TOptions extends { headers?: infer Declared }
  *
  * `ThrowOnError` is kubb's: plugin-client prints the generic and the `throwOnError` option into every operation and
  * offers no option to leave them out, only their default. This transport has one policy, so the option admits no
- * value — a caller cannot ask for a throw that would never happen.
+ * value — a caller cannot ask for a throw that would never happen. The leading underscore keeps a consumer
+ * type-checking this source under `noUnusedParameters` from failing on the unused generic; the generated callers
+ * pass it positionally and are unaffected.
  */
 // oxlint-disable-next-line no-unused-vars -- the generated functions pass ThrowOnError
-export type Options<TOptions, ThrowOnError extends boolean = false> = Omit<TOptions, 'headers'> & {
+export type Options<TOptions, _ThrowOnError extends boolean = false> = Omit<TOptions, 'headers'> & {
   headers?: Record<string, string> & DeclaredHeaders<TOptions>
   client?: Client
   throwOnError?: never
 }
 
 /**
- * What a generated function resolves to: the success body or an error CAS answered with. `ThrowOnError` is kubb's and
- * is ignored (see `Options`).
+ * What a generated function resolves to: the success body or an error CAS answered with. `ThrowOnError` is kubb's,
+ * ignored and underscored for the reasons `Options` gives.
  */
 // oxlint-disable-next-line no-unused-vars -- the generated functions pass ThrowOnError
-export type RequestResult<Responses, ThrowOnError extends boolean = false> = Result<SuccessOf<Responses>, ErrorCodeOf<Responses>>
+export type RequestResult<Responses, _ThrowOnError extends boolean = false> = Result<SuccessOf<Responses>, ErrorCodeOf<Responses>>
 
 /** The OAuth2 error body of a failed OIDC call (RFC 6749 §5.2), which every JSON failure of these endpoints uses. */
 interface OAuthErrorBody {
