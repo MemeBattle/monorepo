@@ -203,13 +203,25 @@ validated as a path — it must start with `/` and may not begin another
 authority — so a flow can never redirect the browser off the frontend's
 origin. Its length bound is derived from what `/oidc/authorize` itself
 accepts, because the continuation that endpoint hands to the frontend is the
-longest `return_to` CAS produces: a bound below it would refuse a sign-in for
-a request CAS had just accepted. The two measure different forms of the same
+longest `return_to` CAS produces. The two measure different forms of the same
 request, though — `/oidc/authorize` caps `state` and `nonce` decoded, in
 bytes, while the continuation keeps the request as sent, percent-encoded — so
-the bound is the encoded worst case: three characters per byte of
-`MAX_STATE_LENGTH` + `MAX_NONCE_LENGTH`, plus room for the rest of a request
-as sent, which is 4096 characters and still a short `Location`.
+the bound takes the encoded worst case: three characters per byte of
+`MAX_STATE_LENGTH` + `MAX_NONCE_LENGTH`, plus a 1024-character allowance for
+the remainder of the request as sent, which is 4096 characters and still a
+short `Location`.
+
+That allowance is the enforced contract, not an invariant over every accepted
+request. `/oidc/authorize` judges only the parameters it reads, so the
+remainder is bounded nowhere: a request padded with parameters outside that
+set, or one for a client whose registered redirect URI is extraordinarily
+long, is a request CAS authorizes while external sign-in start refuses its
+continuation with `invalid_return_to`. That is the deliberate trade. 1024
+characters covers every registered client with wide margin, the refusal is
+loud and immediate for whoever configures such a client, and the passkey path
+of the same continuation is unaffected — whereas lifting the cap would unbound
+a value an anonymous request writes into a flow row and a redirect's
+`Location` echoes, and no finite constant bounds a remainder nothing bounds.
 
 The page family and the plain `302` move to the transport root
 (`http::page`), because two contexts now have endpoints a browser navigates

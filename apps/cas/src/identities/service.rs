@@ -43,12 +43,21 @@ use crate::sessions::service::{CreateError, IssuedSession, SessionService};
 /// `/oidc/authorize` bounds is the other form: [`MAX_STATE_LENGTH`] and
 /// [`MAX_NONCE_LENGTH`] cap `state` and `nonce` *decoded*, in bytes. Since
 /// percent-encoding costs at most three characters per byte, three times
-/// those two is what the continuation can carry, and 1024 characters on top
-/// is room for the rest of a request as sent — the client id, the redirect
-/// URI, the scopes, the PKCE challenge. So a flow can always return to a
-/// request `/oidc/authorize` accepted, however that request encodes. A bound
-/// there still is, because the value travels in a redirect's `Location`, and
-/// 4096 characters is a short one.
+/// those two is what the continuation can carry of them however the client
+/// writes them, and 1024 characters on top is the allowance for the rest of
+/// the request as sent — the client id, the redirect URI, the scopes, the
+/// PKCE challenge.
+///
+/// That allowance is the contract, not a promise about every request
+/// `/oidc/authorize` accepts. The endpoint judges only the parameters it
+/// reads, so the remainder of a request is not bounded anywhere: parameters
+/// outside that set, or an extraordinarily long registered redirect URI, can
+/// push a continuation past 4096 characters. Such a request authorizes
+/// normally, and starting external sign-in from its continuation is refused
+/// with `invalid_return_to` — deliberately, because 1024 characters covers
+/// every registered client with wide margin, while the value an anonymous
+/// request writes into a flow row and a redirect's `Location` echoes has to
+/// stay bounded.
 pub const MAX_RETURN_TO_LENGTH: usize = 3 * (MAX_STATE_LENGTH + MAX_NONCE_LENGTH) + 1024;
 
 /// Where the browser goes when nothing was asked for.
