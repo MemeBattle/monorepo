@@ -86,19 +86,22 @@ env:
   PORT: "3333"
   HOST: "0.0.0.0"
   NODE_ENV: "production"
-  # CAS configuration
-  CAS_PARTNER_ID: "685706c5ef9a1d005c9ef9b4"
-  CAS_URL: "https://cas.mems.fun"
-  LIGRETTO_CORE_CAS_PUBLIC_KEY_PATH: "/ligretto-core-backend/key.pem"
+  # CAS configuration, as @memebattle/ligretto-auth asks for it. The `ligretto` client is not registered in the
+  # production CAS until #812 and the cutover is #818, so the secret is a placeholder: until then the auth routes
+  # answer 503 with a stable code (`cas_rejected`), while /games, /health and the hourly sweep are unaffected.
+  # Production sign-in is already gone with the legacy CAS, so nothing working today is lost.
+  CAS_ISSUER: "https://cas.mems.fun"
+  LIGRETTO_CLIENT_ID: "ligretto"
+  LIGRETTO_CLIENT_SECRET: "not-registered-until-812"
+  LIGRETTO_CORE_AUTH_REDIRECT_URI: "https://core.ligretto.app/api/auth/callback"
+  LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI: "https://ligretto.app/"
+  LIGRETTO_CORE_AUTH_APP_URL: "https://ligretto.app/"
+  LIGRETTO_CORE_AUTH_SESSION_TRANSPORT: "cookie"
   # Application configuration
   LIGRETTO_CORE_APP_NAME: "ligretto-core-backend"
 
 # External Secrets configuration
 externalSecrets:
-  # CAS Key secret configuration
-  casKey:
-    key: "ligretto-cas-key"
-    property: "private"
   # Production environment secret configuration
   productionEnv:
     key: "ligretto-production-env"
