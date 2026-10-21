@@ -15,6 +15,14 @@ on:
       - 'Cargo.toml'
       - 'Cargo.lock'
 
+# A new push makes the run for the previous one obsolete.
+concurrency:
+  group: ligretto-auth-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   typecheck:
     runs-on: ubuntu-24.04
@@ -56,39 +64,35 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
 
-    # The suite drives the real CAS, as cas-frontend's e2e job does: the Postgres
-    # service of cas-pr.yml, the binary built here, and the suite's own OIDC
-    # client registered by its seed script.
-    services:
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_USER: cas
-          POSTGRES_PASSWORD: cas
-          POSTGRES_DB: cas
-        ports:
-          - 5434:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
+    # The suite drives the real CAS, as cas-frontend's e2e job does: the Postgres of cas-pr.yml, the binary built
+    # here, and the suite's own OIDC client registered by its seed script.
+    #
+    # The independent preparations run as background steps: Postgres and the Node.js install overlap with the Rust
+    # build, which is the longest part of the job. Postgres is a step rather than a service container so that pulling
+    # and starting it does not hold back the first step. Every background step is joined by a `wait` before its
+    # result is used, and the long-running ones are stopped with `cancel` at the end, since the job otherwise waits
+    # for them before it finishes.
     env:
       DATABASE_URL: postgres://cas:cas@localhost:5434/cas
       SQLX_OFFLINE: 'true'
 
     steps:
+      # Attached, so the server's own log is this step's log; `cancel` stops it at the end of the job.
+      - name: Start Postgres
+        id: postgres
+        background: true
+        run: >-
+          docker run --rm --name postgres
+          -e POSTGRES_USER=cas -e POSTGRES_PASSWORD=cas -e POSTGRES_DB=cas
+          -p 5434:5432 postgres:18
+
       - name: Checkout
         uses: actions/checkout@v7
 
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
-
-      # The suite's `verifyAccessToken` and its discovery-parity test run against a client generated from the
-      # description as it is in this commit.
-      - name: Regenerate the client and the error codes
-        run: pnpm run --filter @memebattle/ligretto-auth generate:api
+        id: node
+        background: true
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -99,6 +103,20 @@ jobs:
       - name: Build CAS
         run: cargo build -p cas --bins
 
+      # pnpm and node reach PATH only once the background step is joined.
+      - name: Wait for Node.js
+        wait: node
+
+      # The suite's `verifyAccessToken` and its discovery-parity test run against a client generated from the
+      # description as it is in this commit.
+      - name: Regenerate the client and the error codes
+        run: pnpm run --filter @memebattle/ligretto-auth generate:api
+
+      # Over TCP: while the image initialises the database, its temporary server listens on the Unix socket only,
+      # so a socket check would pass before the real server is up.
+      - name: Wait for Postgres
+        run: timeout 60 bash -c 'until docker exec postgres pg_isready -h 127.0.0.1 -U cas -d cas; do sleep 1; done'
+
       - name: Apply migrations
         run: ./target/debug/cas-migrate
 
@@ -108,9 +126,11 @@ jobs:
         run: ./packages/ligretto-auth/tests/integration/seed.sh
 
       # The defaults are the ones the suite needs: :3000, issuer http://localhost:3000, RP id `localhost`,
-      # WebAuthn origin http://localhost:5173.
+      # WebAuthn origin http://localhost:5173. The log goes to a file, uploaded below when the job fails.
       - name: Start CAS
-        run: ./target/debug/cas > /tmp/cas.log 2>&1 &
+        id: cas
+        background: true
+        run: ./target/debug/cas > /tmp/cas.log 2>&1
 
       - name: Wait for CAS
         run: pnpm exec wait-on --timeout 60000 http-get://127.0.0.1:3000/health
@@ -118,9 +138,17 @@ jobs:
       - name: Run the integration suite
         run: LIGRETTO_AUTH_CLIENT_SECRET="$(cat packages/ligretto-auth/tests/integration/.client-secret)" pnpm run --filter @memebattle/ligretto-auth test:integration
 
-      - uses: actions/upload-artifact@v7
+      - name: Upload the CAS log
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: ligretto-auth-integration-cas-log
           path: /tmp/cas.log
-          retention-days: 7
+          retention-days: 2
+
+      # `cancel` always runs, so the servers are stopped whether the suite passed or not.
+      - name: Stop CAS
+        cancel: cas
+
+      - name: Stop Postgres
+        cancel: postgres
