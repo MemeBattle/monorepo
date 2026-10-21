@@ -105,8 +105,13 @@ const corsConfig = defineConfig({
   |
   | https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials
   |
+  | Required by the cookie session transport: the frontend is served from another origin than this API in
+  | development (localhost:5174 against :3333), and without the header the browser refuses to send the session
+  | cookie with a cross-origin `me`. Safe here because `origin` above is a restricted list and never a wildcard,
+  | which is the only combination the specification allows alongside credentials.
+  |
   */
-  credentials: false,
+  credentials: true,
 
   /*
   |--------------------------------------------------------------------------
