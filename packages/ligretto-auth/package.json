@@ -32,10 +32,11 @@
     }
   },
   "scripts": {
-    "ts-check": "tsc --noEmit",
+    "ts-check": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.tests.json",
     "test": "vitest",
     "test:ci": "vitest run",
     "build": "tsc --project tsconfig.build.json",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "generate:api": "KUBB_DISABLE_TELEMETRY=1 kubb generate && node scripts/generate-error-codes.mjs"
   },
   "dependencies": {

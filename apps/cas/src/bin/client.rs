@@ -11,6 +11,14 @@
 //! never stored: the table keeps only its SHA-256. Everything else — the log
 //! line, the usage, every error — goes to stderr, so a script can capture the
 //! secret by reading stdout alone.
+//!
+//! `--secret` is the one way to choose that secret instead, and it exists in
+//! development builds only: `scripts/seed-dev.sh` gives `ligretto` the stable
+//! secret the monorepo's `.env.development` holds, so a fresh database agrees
+//! with the checked-in development configuration without anyone copying a
+//! printed value. A release build refuses the flag by name, where a chosen
+//! secret has no constructor at all. See
+//! `docs/adr/0023-dev-only-client-secret.md`.
 
 use sqlx::postgres::PgPoolOptions;
 use thiserror::Error;
@@ -18,10 +26,15 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use cas::clients::registration::register;
 use cas::clients::{
-    Audience, ClientId, ClientIdError, ClientKindError, ClientName, ClientNameError,
+    Audience, ClientId, ClientIdError, ClientKindError, ClientName, ClientNameError, ClientSecret,
     GuestGrantsPerMinute, RedirectUri, RedirectUriError, RegisterError, Registration, Scope,
     ScopeError,
 };
+// A release build refuses `--secret` before it reads a value, so neither the
+// error of an invalid one nor the kind it is cross-checked against is reached
+// there.
+#[cfg(debug_assertions)]
+use cas::clients::{ClientKind, DevClientSecretError};
 use cas::config::{Config, ConfigError, load_env_files};
 
 const USAGE: &str = "\
@@ -31,10 +44,15 @@ cas-client register --id <client_id> --name <name> --kind <public|confidential>
                     [--first-party]
                     [--guest-login-allowed [--guest-grants-per-minute <n>]]
                     [--scope <scope>]... [--audience <resource>]
+                    [--secret <value>]
 
 Registers an OIDC client. --scope defaults to 'openid', --audience to the
 client id, --guest-grants-per-minute to 60. A confidential client's secret
-is printed once and cannot be shown again.";
+is printed once and cannot be shown again.
+
+--secret sets that secret instead of drawing one, for a known value in a
+development database (scripts/seed-dev.sh). It exists in development builds
+only; a release build refuses it.";
 
 /// Exit code for a command line that could not be understood, so a script can
 /// tell it apart from a registration that was refused.
@@ -95,6 +113,25 @@ enum UsageError {
     /// default to keep.
     #[error("--guest-grants-per-minute needs --guest-login-allowed")]
     GuestGrantsPerMinuteWithoutGuestLogin,
+
+    #[cfg(debug_assertions)]
+    #[error("--secret: {0}")]
+    InvalidSecret(DevClientSecretError),
+
+    /// A public client authenticates with PKCE alone and has no secret, so a
+    /// value for one is a mistake, not a value to drop. `register` refuses
+    /// the same combination.
+    #[cfg(debug_assertions)]
+    #[error("--secret needs --kind confidential")]
+    SecretNeedsConfidentialKind,
+
+    /// A chosen secret can be constructed in a development build alone, so a
+    /// release build names the flag rather than calling it unknown: the
+    /// operator is not mistyping, the build is the wrong one
+    /// (`docs/adr/0023-dev-only-client-secret.md`).
+    #[cfg(not(debug_assertions))]
+    #[error("--secret is available in development builds only")]
+    SecretIsDevelopmentOnly,
 }
 
 /// Parses the command line by hand: one subcommand and ten flags is less
@@ -117,6 +154,7 @@ fn parse(args: impl Iterator<Item = String>) -> Result<Command, UsageError> {
     let mut guest_grants_per_minute = None;
     let mut scopes = Vec::new();
     let mut audience = None;
+    let mut secret = None;
 
     while let Some(flag) = args.next() {
         match flag.as_str() {
@@ -160,6 +198,9 @@ fn parse(args: impl Iterator<Item = String>) -> Result<Command, UsageError> {
                 let value = value(&mut args, "--audience")?;
                 audience = Some(Audience::try_new(value).map_err(UsageError::InvalidAudience)?);
             }
+            "--secret" => {
+                secret = Some(secret_value(&mut args)?);
+            }
             other => return Err(UsageError::UnknownFlag(other.to_owned())),
         }
     }
@@ -169,6 +210,12 @@ fn parse(args: impl Iterator<Item = String>) -> Result<Command, UsageError> {
     }
     if guest_grants_per_minute.is_some() && !guest_login_allowed {
         return Err(UsageError::GuestGrantsPerMinuteWithoutGuestLogin);
+    }
+    // In a release build `--secret` is refused above, so there is nothing
+    // left to cross-check and the variant does not exist.
+    #[cfg(debug_assertions)]
+    if secret.is_some() && kind == Some(ClientKind::Public) {
+        return Err(UsageError::SecretNeedsConfidentialKind);
     }
 
     Ok(Command::Register(Box::new(Registration {
@@ -182,7 +229,24 @@ fn parse(args: impl Iterator<Item = String>) -> Result<Command, UsageError> {
         guest_grants_per_minute,
         scopes,
         audience,
+        secret,
     })))
+}
+
+/// The value of `--secret`, as a chosen [`ClientSecret`]. Two bodies rather
+/// than one with a branch: a release build must not be able to construct one
+/// at all (`docs/adr/0023-dev-only-client-secret.md`).
+#[cfg(debug_assertions)]
+fn secret_value(args: &mut impl Iterator<Item = String>) -> Result<ClientSecret, UsageError> {
+    let value = value(args, "--secret")?;
+    ClientSecret::try_dev(value).map_err(UsageError::InvalidSecret)
+}
+
+/// Refused before the value is consumed, so a release operator reads why the
+/// flag is gone rather than which argument was unknown.
+#[cfg(not(debug_assertions))]
+fn secret_value(_args: &mut impl Iterator<Item = String>) -> Result<ClientSecret, UsageError> {
+    Err(UsageError::SecretIsDevelopmentOnly)
 }
 
 fn value(
@@ -381,8 +445,9 @@ mod tests {
 
     /// The flags that are not given are the defaults the service applies: no
     /// logout URI, not first party, no guest grant, and the default scope
-    /// (which `register` fills in, so the parsed list is empty), and the
-    /// client's own id as its audience (`None` here, filled in likewise).
+    /// (which `register` fills in, so the parsed list is empty), the client's
+    /// own id as its audience (`None` here, filled in likewise), and a
+    /// generated secret (`None` likewise).
     #[test]
     fn omitted_flags_leave_the_defaults() {
         let registration = parse_args(&minimal()).unwrap();
@@ -393,6 +458,7 @@ mod tests {
         assert!(registration.guest_grants_per_minute.is_none());
         assert!(registration.scopes.is_empty());
         assert!(registration.audience.is_none());
+        assert!(registration.secret.is_none());
     }
 
     #[test]
@@ -487,11 +553,76 @@ mod tests {
     #[test]
     fn an_unknown_flag_is_named() {
         let mut args = minimal();
-        args.push("--secret");
+        args.push("--rotate");
 
         assert_eq!(
             parse_error(&args),
-            UsageError::UnknownFlag("--secret".to_owned())
+            UsageError::UnknownFlag("--rotate".to_owned())
+        );
+    }
+
+    /// The suite runs in both profiles (`cargo test --release`), so the tests
+    /// of a flag that exists in one of them are gated. These cover the
+    /// development build; the release refusal is the test below them.
+    #[cfg(debug_assertions)]
+    #[test]
+    fn a_given_secret_is_the_one_registered() {
+        let mut args = minimal();
+        args.extend(["--secret", "dev-only-ligretto-secret"]);
+
+        let registration = parse_args(&args).unwrap();
+
+        assert_eq!(
+            registration.secret.map(|secret| secret.expose().to_owned()),
+            Some("dev-only-ligretto-secret".to_owned())
+        );
+    }
+
+    #[cfg(debug_assertions)]
+    #[test]
+    fn a_secret_for_a_public_client_is_refused() {
+        let mut args = minimal();
+        args[6] = "public";
+        args.extend(["--secret", "dev-only-ligretto-secret"]);
+
+        assert_eq!(parse_error(&args), UsageError::SecretNeedsConfidentialKind);
+    }
+
+    #[cfg(debug_assertions)]
+    #[test]
+    fn an_empty_secret_is_refused() {
+        let mut args = minimal();
+        args.extend(["--secret", ""]);
+
+        assert_eq!(
+            parse_error(&args),
+            UsageError::InvalidSecret(DevClientSecretError::Empty)
+        );
+    }
+
+    /// Apart from `a_flag_without_its_value_is_named`, whose flag list is the
+    /// same in either build.
+    #[cfg(debug_assertions)]
+    #[test]
+    fn a_secret_without_its_value_is_named() {
+        assert_eq!(
+            parse_error(&["register", "--secret"]),
+            UsageError::MissingValue("--secret")
+        );
+    }
+
+    /// The release refusal: named rather than "unknown flag", and reached
+    /// before a value is read.
+    #[cfg(not(debug_assertions))]
+    #[test]
+    fn the_secret_flag_is_refused_by_a_release_build() {
+        let mut args = minimal();
+        args.extend(["--secret", "dev-only-ligretto-secret"]);
+        assert_eq!(parse_error(&args), UsageError::SecretIsDevelopmentOnly);
+
+        assert_eq!(
+            parse_error(&["register", "--secret"]),
+            UsageError::SecretIsDevelopmentOnly
         );
     }
 
