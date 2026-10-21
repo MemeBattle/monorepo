@@ -5,8 +5,7 @@ import { defineConfig } from 'vitest/config'
  * include of `vitest.config.ts`.
  *
  * The timeouts are generous because one test is a whole story — several token round trips and two passkey ceremonies
- * against a CAS sharing a CI runner with Postgres — and a story that is merely slow must not be reported as a
- * failure of the protocol.
+ * against a CAS sharing a CI runner with Postgres — and a slow story must not be reported as a protocol failure.
  */
 export default defineConfig({
   test: {

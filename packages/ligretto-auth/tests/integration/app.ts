@@ -64,11 +64,10 @@ export interface Browser {
    * and query are then fetched from the socket the handlers are really served on.
    */
   deliver(location: string): Promise<Response>
-  /** The value of a cookie the jar holds, or `undefined`. */
   cookie(name: string): string | undefined
   /**
-   * Puts a cookie back in the jar, for presenting one an answer took away: a browser that was logged out in another
-   * tab, or on another device, still holds its session cookie until the `Set-Cookie` reaches it.
+   * Puts a cookie back in the jar, for presenting one an answer took away: a browser logged out in another tab still
+   * holds its session cookie until the `Set-Cookie` reaches it.
    */
   present(name: string, value: string): void
 }
@@ -115,7 +114,6 @@ export interface AppContext {
   close(): Promise<void>
 }
 
-/** One deployment of the application with one browser in front of it. */
 export const startApp = async (): Promise<AppContext> => {
   const client = casClient()
   const store = createInMemorySessionStore()
@@ -140,7 +138,7 @@ export const storedSession = async (store: SessionStore, id: string): Promise<Se
  * Stamps the stored access token expired, so the next `me` refreshes.
  *
  * The store belongs to the test, so a refresh is forced by rewriting what the application persisted rather than by
- * faking CAS's clock or sleeping out a ten-minute token: nothing in the suite waits on a timer.
+ * faking CAS's clock or sleeping out a ten-minute token.
  */
 export const forceExpiry = async (store: SessionStore, id: string): Promise<void> => {
   const session = await storedSession(store, id)

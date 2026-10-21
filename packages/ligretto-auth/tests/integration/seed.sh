@@ -13,16 +13,13 @@
 # Not idempotent, like apps/cas/scripts/seed-dev.sh and
 # apps/cas-frontend/e2e/seed.sh: a second run fails with "already exists",
 # which is the signal that the client is there and the only failure this
-# script reports as success. CAS keeps only a hash of the
-# secret, so a client that exists without .client-secret next to it (seeded
-# from another checkout) cannot be recovered: delete the client, or use a
-# fresh database, and run the script again.
+# script reports as success. CAS keeps only a hash of the secret, so a client
+# that exists without .client-secret next to it cannot be recovered: delete the
+# client, or use a fresh database, and run the script again.
 #
-# The redirect URIs are on a reserved TLD (`.test`, RFC 2606) on purpose, as
-# in apps/cas-frontend/e2e/seed.sh: nothing has to serve that origin. CAS
-# redirects the test's browser there, the suite asserts the Location is on it,
-# and then delivers that one navigation to the local HTTP server the handlers
-# are mounted on — the DNS mapping a deployment would have.
+# The redirect URIs are on a reserved TLD (`.test`, RFC 2606), as in
+# apps/cas-frontend/e2e/seed.sh: nothing has to serve that origin, and the
+# suite delivers CAS's redirect to the local socket the handlers are on.
 #
 # The audience equals the id and is spelled out, because it is the contract
 # the suite's `verifyAccessToken` call checks `aud` against rather than a

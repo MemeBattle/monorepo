@@ -398,11 +398,11 @@ way to leave them out, only their default, which `kubb.config.ts` sets to
 [`apps/cas/tests/reference_client`](../../apps/cas/tests/reference_client) is
 CAS's own and [`apps/cas-frontend/e2e`](../../apps/cas-frontend/e2e) is the
 frontend's. Nothing is stubbed: CAS is the built binary on its database, the
-client is one `seed.sh` registered, the four handlers are served over a real
-local socket and driven with real `fetch`, and the sign-in ceremonies are
+client is the one `seed.sh` registered, the four handlers are served over a
+real local socket and driven with real `fetch`, and the sign-in ceremonies are
 performed with a software passkey against CAS's own `/api`.
 
-Three tests against CAS, each one sequential story:
+Three tests against CAS, each one a sequential story:
 
 1. **Discovery parity** — the document CAS serves equals the one
    `src/test-support/cas.ts` serves the unit suite, modulo the issuer. This is
@@ -443,9 +443,8 @@ guest-login-allowed, scopes `openid profile email`, audience
 secret CAS printed once to `tests/integration/.client-secret` (gitignored, mode
 600). It is not idempotent: a second run says "already exists", which is the
 signal that the client is there, and exits zero when the secret is still next
-to it — the one failure it reads as success, so a database it could not reach
-is reported as the failure it is. `CAS_ISSUER` overrides
-`http://localhost:3000`.
+to it. That is the one failure it reads as success, so an unreachable database
+is still reported as a failure. `CAS_ISSUER` overrides `http://localhost:3000`.
 
 ## Scripts
 
@@ -602,8 +601,8 @@ repository keeps:
   browser bundle gets no code from it.
 - The integration suite lives in `tests/integration/` behind a vitest config
   and a tsconfig project of its own. `test:ci` keeps selecting `src/**` alone,
-  so it stays hermetic — the root `pnpm test:ci` runs every package in parallel
-  and must not need CAS — and `tsconfig.json` keeps checking `src` against web
+  so it stays hermetic: the root `pnpm test:ci` runs every package in parallel
+  and must not need CAS. `tsconfig.json` keeps checking `src` against web
   standards alone, so the boundary above is checked rather than promised while
   the tests may use `node:http`.
 - The handlers are driven **over HTTP**, from a test-only `node:http` adapter
@@ -617,7 +616,7 @@ repository keeps:
   four encodings and one DER signature, which does not earn a test-only
   dependency under the repository's supply-chain policy.
 - A refresh is forced by stamping the stored access token expired — the store
-  belongs to the test — never by faking CAS's clock or waiting a token out:
+  belongs to the test — never by faking CAS's clock or waiting a token out, so
   nothing in the suite sleeps.
 - Only the `cookie` transport is exercised end to end. The transports differ on
   this package's side alone and both are unit-tested; the protocol toward CAS

@@ -2,9 +2,8 @@
  * How both cookie jars of this suite read a `Set-Cookie`: the application's (`./app.ts`) and the user's toward CAS
  * (`./cas-user.ts`).
  *
- * "This answer took the cookie back" is one rule, and both jars must agree on it: a logout the application-side jar
- * read as a removal and the CAS-side jar did not would make the two browsers disagree about what they still hold,
- * which is the very thing the logout scenario asserts.
+ * Shared because "this answer took the cookie back" has to mean the same on both sides: the logout scenario asserts
+ * what each of the two browsers still holds.
  */
 
 /** A cookie's name and value from one `Set-Cookie`, with whether the answer was taking it back. */
@@ -17,9 +16,9 @@ export interface SetCookie {
 /**
  * One `Set-Cookie` header, or `undefined` for a value with no `name=value` pair in front.
  *
- * Only the attributes a jar has to act on are read: an empty value or a non-positive `Max-Age` is a removal, and the
- * rest — `Path`, `HttpOnly`, `SameSite`, `Expires` — is what a real browser scopes a cookie by and what this suite,
- * which keeps one jar per browser against one origin, has nothing to decide with.
+ * Only the attributes a jar has to act on are read: an empty value or a non-positive `Max-Age` is a removal. The
+ * rest — `Path`, `HttpOnly`, `SameSite`, `Expires` — scopes a cookie in a real browser, and this suite keeps one jar
+ * per browser against one origin, so there is nothing to scope.
  */
 export const parseSetCookie = (header: string): SetCookie | undefined => {
   const [pair, ...attributes] = header.split(';')

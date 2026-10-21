@@ -3,8 +3,8 @@
  *
  * Nothing is stubbed: CAS is the built binary on its dev database, the client is the one `seed.sh` registered, the
  * handlers are served over a real local socket, and the sign-in ceremonies are performed with a software passkey
- * against CAS's own `/api` — the shape `apps/cas/tests/reference_client` proves CAS with from the Rust side, and
- * `apps/cas-frontend/e2e` from the browser's.
+ * against CAS's own `/api`. `apps/cas/tests/reference_client` proves CAS this way from Rust, and
+ * `apps/cas-frontend/e2e` from the browser.
  *
  * Each test is one sequential story, as the Rust reference tests are, and each creates its own accounts, sessions and
  * store: the CI database is shared, so no test may depend on another's rows, and the passkey ceremonies are scoped by
@@ -79,15 +79,15 @@ describe('ligretto-auth against a real CAS', () => {
   it('mints a guest, rotates its grant, and revokes it on a replayed refresh token', async () => {
     const app = await startApp()
     try {
-      // Scenario 1: nothing is presented, so a guest is minted and installed.
+      // Nothing is presented, so a guest is minted and installed.
       const guest = await me(app.browser)
       expect(guest.user.accountType).toBe('guest')
       expect(guest.signedOut).toBe(false)
       expect(guest.accessToken).toBeTruthy()
       const id = sessionId(app.browser)
 
-      // Scenario 7: the resource-server check accepts the minted access token, and the `typ` check is what refuses
-      // the ID token of the very same grant — one key signs both.
+      // The resource-server check accepts the minted access token, and the `typ` check is what refuses the ID token
+      // of the very same grant — one key signs both.
       const claims = await verifyAccessToken(guest.accessToken, { issuer: CAS, audience: CLIENT_ID })
       expect(claims.sub).toBe(guest.user.sub)
       expect(claims.account_type).toBe('guest')
@@ -97,7 +97,7 @@ describe('ligretto-auth against a real CAS', () => {
       expect(wrongTyp).toBeInstanceOf(InvalidTokenError)
       expect(wrongTyp).toMatchObject({ code: 'wrong_typ' })
 
-      // Scenario 2: the access token is stamped expired, so the next `me` refreshes, and the refresh rotates.
+      // The access token is stamped expired, so the next `me` refreshes, and the refresh rotates.
       await forceExpiry(app.store, id)
       const refreshed = await me(app.browser)
       expect(refreshed.user.sub).toBe(guest.user.sub)
@@ -105,8 +105,8 @@ describe('ligretto-auth against a real CAS', () => {
       const rotated = await storedSession(app.store, id)
       expect(rotated.refreshToken).not.toBe(stored.refreshToken)
 
-      // Scenario 3: the token the rotation retired is presented again. CAS reads a reuse as theft and revokes the
-      // whole grant (ADR 0012 (b)), so the session's own refresh token dies with it.
+      // The token the rotation retired is presented again. CAS reads a reuse as theft and revokes the whole grant
+      // (ADR 0012 (b)), so the session's own refresh token dies with it.
       const replay = await refused(app.client.refresh(stored.refreshToken))
       expect(replay).toBeInstanceOf(TokenEndpointError)
       expect(replay).toMatchObject({ code: 'invalid_grant' })

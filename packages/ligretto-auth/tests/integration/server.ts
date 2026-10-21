@@ -2,14 +2,13 @@
  * The application's HTTP face: the four handlers of `src/handlers.ts` mounted on a real local socket, so the suite
  * drives them with real `fetch` requests over TCP rather than by calling the functions.
  *
- * That is what the issue asks for — "the handlers driven over HTTP" — and it is not only ceremony: the status line,
- * the repeated `Set-Cookie` headers a callback sends, the cookies a browser then presents back and the `Location` a
- * redirect carries all go through an HTTP stack here instead of being read off a `Response` object in the same
- * process.
+ * The status line, the repeated `Set-Cookie` headers a callback sends, the cookies a browser then presents back and
+ * the `Location` a redirect carries all go through an HTTP stack here instead of being read off a `Response` object
+ * in the same process.
  *
  * The adapter is a test fixture, not part of the package: `node:http` lives behind the local declaration in
  * `./node-http.d.ts`, and `src/` keeps using web standards alone. A consumer mounting the handlers brings its own
- * framework (#814).
+ * framework.
  */
 
 import { createServer } from 'node:http'
@@ -91,9 +90,9 @@ export const startAppServer = async (handlers: AuthHandlers): Promise<AppServer>
       outgoing.writeHead(response.status, headers)
       outgoing.end(new Uint8Array(await response.arrayBuffer()))
     })().catch((failure: unknown) => {
-      // A handler or the adapter itself threw, which is precisely the unhandled failure a 500 is for. Answering it
-      // is what keeps the socket from being left open: unanswered, the test would block until its 120 s timeout and
-      // report that timeout instead of the stack, and a story this long costs a whole CI run to diagnose twice.
+      // A handler or the adapter itself threw, which is the unhandled failure a 500 is for. Answering it keeps the
+      // socket from being left open: unanswered, the test would block until its 120 s timeout and report that
+      // timeout instead of the stack.
       if (!outgoing.headersSent) {
         outgoing.writeHead(500, { 'Content-Type': 'text/plain' })
       }

@@ -51,16 +51,15 @@ export interface CasUser {
   isSignedIn(): Promise<boolean>
   /** What `/api/me` says the account behind the cookie is, or `undefined` when CAS refuses the cookie. */
   accountType(): Promise<'guest' | 'full' | undefined>
-  /** Whether the browser holds a cookie from CAS at all. */
   holdsCookie(): boolean
   /**
-   * The cookie the browser holds, as `name=value`, for keeping one aside before an answer takes it back; a step that
-   * does that cannot proceed without one, so this fails rather than returning nothing.
+   * The cookie the browser holds, as `name=value`, for keeping one aside before an answer takes it back. A step that
+   * does that cannot proceed without one, so this throws rather than returning nothing.
    */
   heldCookie(): string
   /**
-   * Puts a cookie back, for presenting one an answer took away: a browser logged out elsewhere still holds its
-   * session cookie, and whether CAS still honours it is a question only the cookie can ask.
+   * Puts a cookie back, for presenting one an answer took away: whether CAS still honours a cookie it removed from
+   * one browser can only be asked with that cookie.
    */
   present(cookie: string): void
   /**

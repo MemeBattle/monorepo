@@ -3,10 +3,10 @@
  * `apps/cas/src/testing/soft_passkey.rs`, which the Rust reference client drives CAS's ceremonies with.
  *
  * Written against WebCrypto rather than pulled from npm. What is needed of CBOR is four shapes — a map, a byte
- * string, a text string and a small integer — and of ASN.1 one DER-encoded signature; a dependency for that would be
- * a supply-chain decision (the repository's `minimumReleaseAge` policy) for less code than it saves.
+ * string, a text string and a small integer — and of ASN.1 one DER-encoded signature, which does not earn a
+ * dependency under the repository's `minimumReleaseAge` policy.
  *
- * What CAS requires of it, read from CAS's own code rather than guessed:
+ * What CAS requires of it, taken from CAS's own code:
  *
  * - **User verification.** `start_discoverable_registration` sets `UserVerificationPolicy::Required`, as does the
  *   login ceremony, so the `UV` flag is set in both directions.
@@ -33,7 +33,6 @@ const COSE_ES256 = -7
 const EC_P256 = { name: 'ECDSA', namedCurve: 'P-256' } as const
 const ES256 = { name: 'ECDSA', hash: 'SHA-256' } as const
 
-/** The bytes of a credential id this authenticator mints, and of a P-256 coordinate. */
 const CREDENTIAL_ID_BYTES = 32
 const COORDINATE_BYTES = 32
 

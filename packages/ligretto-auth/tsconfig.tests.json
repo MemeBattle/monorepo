@@ -1,8 +1,7 @@
 {
   // The tests are their own project so that the test-only `node:http` declaration under `tests/` cannot reach `src/`:
-  // `tsconfig.json` still checks `src` against web standards alone, which is what keeps the runtime-agnostic boundary
-  // checked rather than merely promised. The imports pull `src/` in transitively, so it is type-checked twice, once
-  // under each view.
+  // `tsconfig.json` still checks `src` against web standards alone, so the runtime-agnostic boundary is checked
+  // rather than promised. The imports pull `src/` in transitively, so it is type-checked twice, once under each view.
   "extends": "./tsconfig.json",
   "include": ["tests", "vitest.config.ts", "vitest.integration.config.ts"]
 }
