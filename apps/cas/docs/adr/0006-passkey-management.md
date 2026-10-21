@@ -6,6 +6,12 @@ Accepted (2026-09-12), with [#668](https://github.com/MemeBattle/monorepo/issues
 Amended (2026-09-19) by [#719](https://github.com/MemeBattle/monorepo/issues/719):
 decision (g) adds the ceremony that registers another passkey for a
 signed-in account and closes the gap the Consequences recorded.
+Amended (2026-10-21) by [#753](https://github.com/MemeBattle/monorepo/issues/753):
+(c) counts login methods rather than passkeys — an account with an external
+identity may delete its last passkey — and (d)'s count is taken under the
+account's row lock as well, so a passkey delete and an identity unlink cannot
+both pass by counting different tables. The wire code stays `last_passkey`.
+See ADR 0023 (g).
 
 ## Context
 

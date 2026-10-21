@@ -25,6 +25,7 @@ use crate::clients::{
 };
 use crate::config::{Config, SigningKeyPem};
 use crate::http::ApiState;
+use crate::identities::{IdentityService, Providers};
 use crate::oidc::authorization::tests::CALLBACK;
 use crate::oidc::{
     AccessTokenClaims, AuthorizationService, EndSessionService, IdTokenClaims, SigningKey,
@@ -41,15 +42,33 @@ use crate::webauthn::registration::{
 };
 use crate::webauthn::upgrade::UpgradeService;
 
+mod fake_provider;
 mod fixed_key_passkey;
 mod soft_passkey;
+pub use fake_provider::FakeProvider;
 pub use fixed_key_passkey::FixedKeyPasskey;
 pub use soft_passkey::ResidentSoftPasskey;
 
 /// The API state the handler tests run against: every service on the given
-/// pool, cookies as the development origin would have them.
+/// pool, cookies as the development origin would have them, and no identity
+/// provider — as production has until #754.
 pub fn test_state(pool: PgPool) -> ApiState {
     test_state_with_cookies(pool, test_cookies())
+}
+
+/// The same state with identity providers registered, for the tests that
+/// drive a flow end to end. Production builds `Providers::empty()`, so only
+/// a test ever has one.
+pub fn test_state_with_providers(pool: PgPool, providers: Providers) -> ApiState {
+    ApiState {
+        identities: IdentityService::new(
+            pool.clone(),
+            providers,
+            SessionService::new(pool.clone()),
+            test_config().issuer,
+        ),
+        ..test_state(pool)
+    }
 }
 
 /// The same state with the cookie settings of another deployment, for a test
@@ -62,6 +81,12 @@ pub fn test_state_with_cookies(pool: PgPool, cookies: CookieSettings) -> ApiStat
         upgrade: UpgradeService::new(test_webauthn(), pool.clone()),
         passkeys: PasskeyManagement::new(pool.clone()),
         accounts: AccountManagement::new(pool.clone()),
+        identities: IdentityService::new(
+            pool.clone(),
+            Providers::empty(),
+            SessionService::new(pool.clone()),
+            test_config().issuer,
+        ),
         sessions: SessionService::new(pool.clone()),
         cookies,
         authorization: AuthorizationService::new(pool.clone()),
@@ -386,6 +411,25 @@ pub async fn signed_in(pool: &PgPool, name: &str) -> SignedIn {
         token: issued.token,
         session_id: issued.session.id,
     }
+}
+
+/// Gives `account_id` an external identity at the `telegram` provider, for a
+/// test that needs an account whose way in is not a passkey. Written straight
+/// into the table rather than through a flow: what the caller is after is the
+/// row, not the dance that produces it.
+///
+/// Unchecked query: see docs/TESTS.md.
+pub async fn link_external_identity(pool: &PgPool, account_id: Uuid, subject: &str) -> Uuid {
+    sqlx::query_scalar(
+        "INSERT INTO external_identities (account_id, provider, provider_subject)
+         VALUES ($1, 'telegram', $2)
+         RETURNING id",
+    )
+    .bind(account_id)
+    .bind(subject)
+    .fetch_one(pool)
+    .await
+    .expect("the test identity is linked")
 }
 
 /// A guest, minted by a public client of its own (`guest-maker`), holding an

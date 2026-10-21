@@ -4,13 +4,16 @@
 //! is reset, but an extractor cannot touch the response. This layer gives
 //! every request a [`RenewalSlot`]; the extractor drops the fresh cookie into
 //! it, and the layer adds it to the response on the way out. A handler that
-//! sets the cookie itself wins: the layer never adds a second `Set-Cookie`.
+//! sets the **session** cookie itself wins: the layer never sends a second one
+//! under that name. Cookies of any other name are left alone and the renewal
+//! goes out beside them — a handler setting an unrelated cookie must not cost
+//! the browser a renewal the database row has already had (ADR 0023 (h)).
 
 use std::sync::{Arc, OnceLock};
 
 use axum::{
     extract::Request,
-    http::header,
+    http::{HeaderMap, header},
     middleware::{self, Next},
     response::Response,
 };
@@ -42,12 +45,29 @@ async fn renew_cookie(mut request: Request, next: Next) -> Response {
     let mut response = next.run(request).await;
 
     if let Some(cookie) = slot.0.get()
-        && !response.headers().contains_key(header::SET_COOKIE)
+        && !already_sets(response.headers(), cookie.name())
         && let Ok(value) = cookie.encoded().to_string().parse()
     {
-        response.headers_mut().insert(header::SET_COOKIE, value);
+        // Appended, so whatever unrelated cookies the handler set stay on the
+        // response next to the renewal.
+        response.headers_mut().append(header::SET_COOKIE, value);
     }
     response
+}
+
+/// Whether the response already sets a cookie called `name` — the session
+/// cookie, for the only caller — so the layer must stay out of it. A
+/// `Set-Cookie` this code cannot read counts as that cookie: the point of the
+/// check is never to send a second one, and a header of unknown name could be
+/// it.
+fn already_sets(headers: &HeaderMap, name: &str) -> bool {
+    headers.get_all(header::SET_COOKIE).iter().any(|value| {
+        value
+            .to_str()
+            .ok()
+            .and_then(|value| Cookie::parse(value).ok())
+            .is_none_or(|cookie| cookie.name() == name)
+    })
 }
 
 #[cfg(test)]
@@ -116,15 +136,41 @@ mod tests {
         )
     }
 
+    /// The name of a cookie that is nobody's session: what the identity flow
+    /// cookie is to this layer.
+    const UNRELATED: &str = "cas_identity_flow";
+
+    /// A handler that takes the session and sets a cookie of its own, which
+    /// has nothing to do with the session: starting an identity flow does
+    /// exactly this.
+    async fn start_flow(_authenticated: Authenticated, jar: CookieJar) -> (CookieJar, StatusCode) {
+        (
+            jar.add(Cookie::build((UNRELATED, "s3cret")).path("/").build()),
+            StatusCode::NO_CONTENT,
+        )
+    }
+
     fn app(state: ApiState) -> Router {
         with_cookie_renewal(
             Router::new()
                 .route("/whoami", get(whoami))
                 .route("/sign-out", post(sign_out))
+                .route("/start-flow", post(start_flow))
                 .with_state(state)
                 .into(),
         )
         .into()
+    }
+
+    /// Every cookie a response set.
+    fn set_cookies(response: &Response) -> Vec<Cookie<'static>> {
+        response
+            .headers()
+            .get_all(header::SET_COOKIE)
+            .iter()
+            .filter_map(|value| value.to_str().ok())
+            .filter_map(|value| Cookie::parse(value.to_owned()).ok())
+            .collect()
     }
 
     fn request(method: &str, uri: &str, cookie: &str) -> Request<Body> {
@@ -204,6 +250,51 @@ mod tests {
             "{:?}",
             set_cookies[0]
         );
+    }
+
+    /// A handler that sets a cookie of its own has not answered the session
+    /// question, so the renewal goes out beside it. Suppressing it would
+    /// leave the browser's `Max-Age` behind the row the extractor already
+    /// renewed.
+    #[sqlx::test]
+    async fn a_handler_that_sets_an_unrelated_cookie_gets_the_renewal_too(pool: PgPool) {
+        let (id, cookie) = signed_in(&pool).await;
+        last_seen(&pool, id, "2 hours").await;
+
+        let response = app(test_state(pool))
+            .oneshot(request("POST", "/start-flow", &cookie))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+        let sent = set_cookies(&response);
+        assert_eq!(sent.len(), 2, "{sent:?}");
+        let unrelated = sent
+            .iter()
+            .find(|sent| sent.name() == UNRELATED)
+            .expect("the handler's own cookie");
+        assert_eq!(unrelated.value(), "s3cret");
+        let renewal = sent
+            .iter()
+            .find(|sent| sent.name() == cookie_name())
+            .expect("the renewal rides along");
+        assert_eq!(format!("{}={}", cookie_name(), renewal.value()), cookie);
+        assert!(renewal.max_age().is_some());
+    }
+
+    /// Nothing to renew, nothing added: the handler's cookie is alone.
+    #[sqlx::test]
+    async fn an_unrelated_cookie_inside_the_window_stays_alone(pool: PgPool) {
+        let (_, cookie) = signed_in(&pool).await;
+
+        let response = app(test_state(pool))
+            .oneshot(request("POST", "/start-flow", &cookie))
+            .await
+            .unwrap();
+
+        let sent = set_cookies(&response);
+        assert_eq!(sent.len(), 1, "{sent:?}");
+        assert_eq!(sent[0].name(), UNRELATED);
     }
 
     #[sqlx::test]

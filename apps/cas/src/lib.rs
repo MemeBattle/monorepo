@@ -6,6 +6,7 @@ pub mod config;
 pub mod db;
 pub mod deadline;
 pub mod http;
+pub mod identities;
 pub mod migrations;
 pub mod oidc;
 pub mod sessions;

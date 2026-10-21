@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO external_identity_flows (\n               id, provider, intent, pkce_verifier, browser_hash, account_id, return_to, expires_at\n           )\n           VALUES ($1, $2, $3, $4, $5, $6, $7, now() + make_interval(secs => $8))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        {
+          "Custom": {
+            "name": "external_identity_intent",
+            "kind": {
+              "Enum": [
+                "sign_in",
+                "link"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Bytea",
+        "Uuid",
+        "Text",
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e9456a6547403630983bc3e96eea7e68ce3da0c50e10aeaff172e7a204ac9a9f"
+}

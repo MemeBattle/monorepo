@@ -20,6 +20,35 @@ pub(crate) fn original_path<'r>(extensions: &'r Extensions, uri: &'r Uri) -> &'r
         .map_or(uri.path(), |original| original.0.path())
 }
 
+/// The value a request presents under the cookie called `name`, or `None`
+/// when it presents nothing under that name. Read straight from the `Cookie`
+/// header(s) with the name compared byte for byte, without percent-decoding.
+///
+/// The decoding jar (`axum_extra::extract::CookieJar`) is not used here on
+/// purpose. It percent-decodes names, so `%5F%5FHost-cas_session` would be
+/// read as `__Host-cas_session`, while a browser keeps names as written
+/// (RFC 6265bis §5.6) and applies the `__Host-` rules only to a name that
+/// literally starts with the prefix. A sibling subdomain could therefore set
+/// a domain-wide cookie under the encoded spelling, which the browser would
+/// accept and send here, and a decoding lookup would take it for the real
+/// one: cookie tossing through the back door the prefix is meant to close.
+/// Matching the wire name shuts it.
+///
+/// It lives here rather than with either cookie because the rule holds for
+/// every cookie CAS reads — the session cookie
+/// ([`CookieSettings::presented`](crate::sessions::http::CookieSettings::presented))
+/// and the identity flow cookie — and a second copy of it could only drift.
+pub(crate) fn presented_cookie(headers: &axum::http::HeaderMap, name: &str) -> Option<String> {
+    headers
+        .get_all(axum::http::header::COOKIE)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .flat_map(axum_extra::extract::cookie::Cookie::split_parse)
+        .filter_map(Result::ok)
+        .find(|cookie| cookie.name() == name)
+        .map(|cookie| cookie.value().to_owned())
+}
+
 /// JSON in both directions. As an extractor, its rejections render as
 /// [`ApiError`] instead of axum's plain-text responses (declare
 /// [`InvalidBody`] in the handler's error set). As a response, it is

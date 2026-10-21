@@ -1,0 +1,113 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n               id,\n               account_id,\n               provider AS \"provider: ProviderId\",\n               provider_subject,\n               profile_name,\n               profile_username,\n               profile_picture_url,\n               linked_at\n           FROM external_identities\n           WHERE provider = $1 AND provider_subject = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "external_identities",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "account_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "external_identities",
+            "name": "account_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "provider: ProviderId",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "external_identities",
+            "name": "provider"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "provider_subject",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "external_identities",
+            "name": "provider_subject"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "profile_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "external_identities",
+            "name": "profile_name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "profile_username",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "external_identities",
+            "name": "profile_username"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "profile_picture_url",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "external_identities",
+            "name": "profile_picture_url"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "linked_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "external_identities",
+            "name": "linked_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "2d9cd0ad52580b285d73c58ec58d80f8dd41ec606969f7b3d532ebacb0ae9e71"
+}
