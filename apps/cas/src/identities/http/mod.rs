@@ -834,8 +834,7 @@ mod tests {
     /// A link started under a session that is due for renewal: the start
     /// endpoint answers with the flow cookie *and* the renewed session
     /// cookie, and the callback keeps the renewal beside the flow-clearing
-    /// cookie. Before the renewal layer keyed its suppression to the session
-    /// cookie's name, the flow cookie silently swallowed both.
+    /// cookie.
     #[sqlx::test]
     async fn a_renewal_rides_along_with_the_flow_cookie(pool: PgPool) {
         let app = both_mounts(state_with(pool.clone(), &fake()));

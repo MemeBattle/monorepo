@@ -133,8 +133,8 @@ impl Finished {
 /// Why a callback did not finish its flow.
 ///
 /// Most of them leave the flow consumed: the row was taken before any of
-/// that could fail. Two do not always, which is why no answer reads the
-/// right to clear the flow cookie off the variant: [`Self::FlowNotFound`]
+/// that could fail. Two do not always, which is why no answer decides from
+/// the variant whether to clear the flow cookie: [`Self::FlowNotFound`]
 /// consumed nothing when the `state` named no live flow, though it did
 /// consume a row when the flow was another provider's, and [`Self::Db`] can
 /// be the take itself. What decides whether the cookie goes out cleared is

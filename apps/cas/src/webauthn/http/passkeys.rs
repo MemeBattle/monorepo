@@ -27,11 +27,11 @@ crate::api_errors!(PasskeyNameError => BAD_REQUEST "invalid_passkey_name",
 crate::api_errors! { ManagementError {
     NotFound => NOT_FOUND "passkey_not_found",
     // A conflict with the account's state, not a bad request: the same
-    // request succeeds once the account has another way in. The rule now
-    // counts login methods, not passkeys, but the wire code stays
-    // `last_passkey` — the generated client and the dashboard branch on it,
-    // and renaming it belongs with the frontend work that teaches them about
-    // identities (#758, ADR 0023 (g)).
+    // request succeeds once the account has another way in. The rule counts
+    // login methods, not passkeys, but the wire code stays `last_passkey` —
+    // the generated client and the dashboard branch on it, and renaming it
+    // belongs with the frontend work that teaches them about identities
+    // (#758, ADR 0023 (g)).
     LastLoginMethod => CONFLICT "last_passkey",
     Db(_) => from,
 } }
@@ -397,9 +397,9 @@ mod tests {
         assert_eq!(body["passkeys"][0]["name"], "Second");
     }
 
-    /// The rule counts login methods now (ADR 0023 (g)), but the wire code
-    /// stays `last_passkey`: the generated client and the dashboard branch on
-    /// it. The message is the one that changed, and it names both remedies.
+    /// The rule counts login methods (ADR 0023 (g)), but the wire code stays
+    /// `last_passkey`: the generated client and the dashboard branch on it.
+    /// The message names both remedies.
     #[sqlx::test]
     async fn deleting_the_last_login_method_is_a_conflict(pool: PgPool) {
         let (cookie, _, passkey_id) = signed_in(&pool).await;

@@ -362,8 +362,8 @@ mod tests {
         assert!(!format!("{secret:?}").contains(secret.expose()));
     }
 
-    /// The browser's cookie must outlive nothing: the row is kept longer than
-    /// the cookie is sent, so the server is never the first to give up.
+    /// The row is kept longer than the browser sends its cookie, so the
+    /// server is never the first to give up.
     #[test]
     fn the_server_keeps_a_flow_longer_than_the_browser_sends_its_cookie() {
         assert!(FLOW_GRACE > Duration::ZERO);

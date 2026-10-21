@@ -78,10 +78,12 @@ lookup.
 The snapshot, unlike the subject, is data for a screen, never a credential
 and never a label CAS holds to its own rules: it is length-capped as
 received, and the account's display name is derived from it once, when the
-account is created, and validated then. Two first sign-ins of the same unknown subject race at the
-unique index; the loser rolls its provisional account back, looks the winner
-up, and signs in to the winning account. A sign-in whose identity is proven
-never fails over a race it can resolve.
+account is created, and validated then.
+
+Two first sign-ins of the same unknown subject race at the unique index; the
+loser rolls its provisional account back, looks the winner up, and signs in
+to the winning account. A sign-in whose identity is proven never fails over a
+race it can resolve.
 
 **(b) A provider is two operations and a normalized identity.** The
 `Provider` trait builds an authorization URL from the redirect URI, the
@@ -186,8 +188,7 @@ unchanged, one lock earlier.
 The wire code stays `409 last_passkey`. cas-frontend's generated client and
 its dashboard branch on it, and renaming it would break them for no
 user-visible gain; the rename belongs with the frontend work that teaches
-them about identities (#758). The message changed, and now names both
-remedies.
+them about identities (#758). The message names both remedies.
 
 **(h) Starting a flow is an `/api` call; finishing one is a navigation at the
 root.** `POST /api/identities/{provider}/sign-in-options` (anonymous) and

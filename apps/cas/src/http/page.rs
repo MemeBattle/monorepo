@@ -54,8 +54,8 @@ pub(crate) struct ErrorPage {
 }
 
 impl ErrorPage {
-    /// A service that is there but cannot serve: the page a database failure
-    /// `crate::db::classify` names retryable answers.
+    /// A service that is there but cannot serve: the page for a database
+    /// failure `crate::db::classify` names retryable.
     pub(crate) const SERVICE_UNAVAILABLE: Self = Self {
         status: StatusCode::SERVICE_UNAVAILABLE,
         code: SERVICE_UNAVAILABLE,

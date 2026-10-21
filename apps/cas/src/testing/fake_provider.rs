@@ -77,7 +77,7 @@ impl FakeProvider {
         self
     }
 
-    /// Cannot be reached, as a provider that is down is.
+    /// Cannot be reached, as a provider that is down.
     #[must_use]
     pub fn unavailable(mut self) -> Self {
         self.answer = Answer::Unavailable;

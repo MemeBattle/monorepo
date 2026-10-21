@@ -176,7 +176,7 @@ impl Providers {
         self.0.get(id).cloned()
     }
 
-    /// The registered slugs, sorted: what a log line and a test name.
+    /// The registered slugs, in a stable order for a log line and a test.
     pub fn slugs(&self) -> Vec<&str> {
         let mut slugs: Vec<&str> = self.0.keys().map(ProviderId::as_ref).collect();
         slugs.sort_unstable();

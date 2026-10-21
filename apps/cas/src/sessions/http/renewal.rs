@@ -48,8 +48,8 @@ async fn renew_cookie(mut request: Request, next: Next) -> Response {
         && !already_sets(response.headers(), cookie.name())
         && let Ok(value) = cookie.encoded().to_string().parse()
     {
-        // Appended, not inserted: whatever unrelated cookies the handler set
-        // stay on the response next to the renewal.
+        // Appended, so whatever unrelated cookies the handler set stay on the
+        // response next to the renewal.
         response.headers_mut().append(header::SET_COOKIE, value);
     }
     response
@@ -162,7 +162,7 @@ mod tests {
         .into()
     }
 
-    /// Every cookie a response set, by name.
+    /// Every cookie a response set.
     fn set_cookies(response: &Response) -> Vec<Cookie<'static>> {
         response
             .headers()
