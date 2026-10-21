@@ -30,10 +30,7 @@ export default class User extends BaseModel {
   @column()
   public avatarUrl: string | null
 
-  /**
-   * The field the serialized API has always carried. It stays until the frontend moves to `accountType` (#816);
-   * only the column it used to come from is gone.
-   */
+  /** The field the serialized API carries. It stays until the frontend moves to `accountType` (#816). */
   @computed()
   public get isTemporary(): boolean {
     return this.accountType === 'guest'

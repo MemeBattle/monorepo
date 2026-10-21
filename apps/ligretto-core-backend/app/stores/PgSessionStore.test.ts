@@ -100,7 +100,7 @@ test.group('PgSessionStore — the lock', group => {
       'an unusable grant',
     )
 
-    // What `refreshSession` depends on where it saves the rotated tokens and then rethrows: the write committed
+    // What `refreshSession` depends on when it saves the rotated tokens and then rethrows: the write committed
     // on its own connection, so releasing the lock did not take it back.
     assert.equal((await store.getSession(session.id))?.refreshToken, session.refreshToken)
     assert.equal(await store.withSessionLock(session.id, async () => 'held'), 'held')
@@ -183,7 +183,7 @@ test.group('PgSessionStore — sessions and the users snapshot', group => {
     await store.saveSession(session)
 
     assert.equal((await store.getSession(session.id))?.avatarUrl, avatarUrl)
-    // The users snapshot is written from the same claim in the same transaction, so it is bounded or not alike.
+    // The users snapshot is written from the same claim in the same transaction, so whatever bounds one bounds it.
     const [account] = await db.connection('pg').from('users').where('cas_id', session.sub)
     assert.equal(account.avatar_url, avatarUrl)
   })

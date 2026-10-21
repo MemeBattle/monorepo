@@ -16,7 +16,7 @@ All commands run from `apps/ligretto-core-backend`:
 
 ### The store suite's Postgres
 
-`store` (`app/stores/**/*.test.ts`, `database/**/*.test.ts`) covers the session store, whose lock is a real
+`store` (`app/stores/**/*.test.ts`, `database/tests/**/*.test.ts`) covers the session store, whose lock is a real
 `SELECT … FOR UPDATE`; sqlite cannot stand in for it. The service is `ligretto-core-pg-test` in the root
 `docker-compose.yml`: `postgres:13.4` (the version CI's e2e job runs — the oldest engine in play), host port
 **5435**, database `ligretto-core-test`, data on tmpfs so every container starts from an empty cluster. Separate

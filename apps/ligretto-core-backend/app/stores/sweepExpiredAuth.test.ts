@@ -47,7 +47,7 @@ test.group('sweepExpiredAuth — the session retention window', group => {
     assert.equal(counts.sessions, 2)
     const left = await db.connection('pg').from('sessions').select('id')
     assert.deepEqual(left, [{ id: 'within-grace' }])
-    // Every lock the sweep took to delete under was removed in the same transaction, leaving no orphans behind.
+    // Every lock the sweep deleted under was removed in the same transaction, so no orphan is left behind.
     assert.equal(counts.sessionLocks, 0)
     assert.lengthOf(await db.connection('pg').from('session_locks'), 0)
   })
@@ -133,7 +133,7 @@ test.group('sweepExpiredAuth — against a writer holding the lock', group => {
     }
     const counts = await sweeping
 
-    // The cutoff is re-checked under the lock, so what the sweep selected is not what it acts on.
+    // Selecting a candidate does not decide it: the cutoff is re-checked under the lock.
     assert.equal(counts.sessions, 0)
     assert.isDefined(await store.getSession(stale.id))
   })
@@ -193,9 +193,9 @@ test.group('sweepExpiredAuth — orphaned locks', group => {
     const store = createPgSessionStore({ db, now })
     await db.connection('pg').table('session_locks').insert({ id: 'orphaned' })
 
-    // Taken once to completion first, so the row is committed and outlives that holder — which is the only way
-    // a lock row the sweep can actually see comes to be held: a holder that inserted its own row has not
-    // committed it yet, so no other transaction can see it, let alone delete it.
+    // Taken once to completion first, so the row is committed and outlives that holder. That is the only way a
+    // lock row the sweep can see comes to be held: a holder that inserted its own row has not committed it yet,
+    // so no other transaction can see it, let alone delete it.
     await store.withSessionLock('held-right-now', async () => undefined)
 
     let entered = false

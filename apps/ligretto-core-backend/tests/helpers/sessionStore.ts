@@ -150,7 +150,7 @@ export const createGatedCas = ({
 
 export const sleep = async (ms: number): Promise<void> => await new Promise(resolve => setTimeout(resolve, ms))
 
-/** Waits for `condition`, rather than guessing how long the thing being waited for takes. */
+/** Waits for `condition` instead of guessing how long it takes to hold. */
 export const until = async (condition: () => boolean, { timeout = 10_000, label = 'condition' } = {}): Promise<void> => {
   const deadline = Date.now() + timeout
   while (!condition()) {

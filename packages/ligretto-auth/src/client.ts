@@ -142,9 +142,9 @@ type DeclaredHeaders<TOptions> = TOptions extends { headers?: infer Declared }
  *
  * `ThrowOnError` is kubb's: plugin-client prints the generic and the `throwOnError` option into every operation and
  * offers no option to leave them out, only their default. This transport has one policy, so the option admits no
- * value — a caller cannot ask for a throw that would never happen. The parameter is named with the leading
- * underscore that marks an intentionally unused one, because a consumer type-checking this source under
- * `noUnusedParameters` would otherwise fail on it; the generated callers pass it positionally and are unaffected.
+ * value — a caller cannot ask for a throw that would never happen. The leading underscore keeps a consumer
+ * type-checking this source under `noUnusedParameters` from failing on the unused generic; the generated callers
+ * pass it positionally and are unaffected.
  */
 // oxlint-disable-next-line no-unused-vars -- the generated functions pass ThrowOnError
 export type Options<TOptions, _ThrowOnError extends boolean = false> = Omit<TOptions, 'headers'> & {
@@ -154,8 +154,8 @@ export type Options<TOptions, _ThrowOnError extends boolean = false> = Omit<TOpt
 }
 
 /**
- * What a generated function resolves to: the success body or an error CAS answered with. `ThrowOnError` is kubb's and
- * is ignored, and underscored, for the reasons `Options` gives above.
+ * What a generated function resolves to: the success body or an error CAS answered with. `ThrowOnError` is kubb's,
+ * ignored and underscored for the reasons `Options` gives.
  */
 // oxlint-disable-next-line no-unused-vars -- the generated functions pass ThrowOnError
 export type RequestResult<Responses, _ThrowOnError extends boolean = false> = Result<SuccessOf<Responses>, ErrorCodeOf<Responses>>

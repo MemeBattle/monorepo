@@ -17,8 +17,7 @@
  * moments after the sweep deleted it, leaving a row nothing will ever come back for.
  *
  * A candidate whose lock the run cannot take is counted, reported and left: it costs the rest of the run nothing,
- * and the next run takes it. The alternative is an hourly job whose partial result is indistinguishable from a
- * job that does not work.
+ * and the next run takes it.
  */
 
 import type { Database } from '@adonisjs/lucid/database'
@@ -70,8 +69,8 @@ export const sweepExpiredAuth = async ({
   for (const candidate of candidates) {
     const id = (candidate as { id: string }).id
     try {
-      // One lock per transaction, so there is no ordering to deadlock on; a sweep that meets a refresh in progress
-      // simply waits for it.
+      // One lock per transaction, so there is no ordering to deadlock on; a sweep that meets a refresh in
+      // progress waits for it.
       sessions += await acquireSessionLock(locks(), id, async lock => {
         // Re-checked under the lock: a session recreated on this id while the sweep was waiting is fresh and stays.
         const deleted = deletedBy(await main().rawQuery('delete from sessions where id = ? and grant_ends_at <= ?', [id, retainUntil]))
@@ -82,9 +81,9 @@ export const sweepExpiredAuth = async ({
         return deleted
       })
     } catch (failure) {
-      // One candidate is not the run. A lock held past the pool's acquire timeout — a refresh parked on an
-      // unresponsive CAS — would otherwise abort everything behind it and report none of what was already
-      // deleted. The locked re-check makes a skipped candidate safe to take again, so it simply waits an hour.
+      // A lock held past the pool's acquire timeout — a refresh parked on an unresponsive CAS — would otherwise
+      // abort every candidate behind it and report none of what was already deleted. The locked re-check makes a
+      // skipped candidate safe to take again on the next run.
       failedSessions += 1
       onSessionFailure?.(id, failure)
     }

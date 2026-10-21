@@ -3,7 +3,7 @@ import { BaseSchema } from '@adonisjs/lucid/schema'
 /**
  * The sign-ins in flight of `@memebattle/ligretto-auth`'s `SessionStore` port.
  *
- * `session_id` and `sub` snapshot the session that started the sign-in and carry deliberately no foreign key:
+ * `session_id` and `sub` snapshot the session that started the sign-in and deliberately carry no foreign key:
  * an upgrade revokes the guest's grants, so the initiating session is routinely deleted before the callback
  * arrives, and the snapshot is exactly what the callback's `sub` comparison still needs then.
  */
