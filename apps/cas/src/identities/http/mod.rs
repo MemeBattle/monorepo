@@ -429,8 +429,9 @@ async fn answer(
         .await
     {
         Ok(finished) => succeed(&state, finished, &clear),
-        // No row was consumed at all: the `state` named no live flow, so the
-        // cookie the browser presented belongs to some other flow.
+        // The presented cookie was never matched against a consumed row —
+        // the `state` named no live flow, or named another provider's — so it
+        // may still belong to a live flow, which clearing it would strand.
         Err(FinishError::FlowNotFound) => page(FLOW_NOT_FOUND, None),
         // A flow was consumed, but not the one this cookie is bound to —
         // which is the whole reason the cookie must survive.

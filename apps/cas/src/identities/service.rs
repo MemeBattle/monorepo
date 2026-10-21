@@ -33,19 +33,23 @@ use crate::oidc::authorization::{MAX_NONCE_LENGTH, MAX_STATE_LENGTH};
 use crate::sessions::SessionOrigin;
 use crate::sessions::service::{CreateError, IssuedSession, SessionService};
 
-/// Upper bound on a `return_to`, in characters.
+/// Upper bound on a `return_to`, in characters of the value as it travels.
 ///
 /// The longest one CAS produces is an `/oidc/authorize` continuation: that
 /// endpoint hands an anonymous browser to the frontend with the whole
 /// authorization request as `return_to`
-/// ([`crate::oidc::http::authorize`]), and the request may carry a `state`
-/// and a `nonce` of [`MAX_STATE_LENGTH`] and [`MAX_NONCE_LENGTH`] each. So
-/// the bound is those two plus 1024 characters for everything else a request
-/// holds — the client id, the redirect URI, the scopes, the PKCE challenge —
-/// and a flow can always return to a request `/oidc/authorize` accepted. A
-/// bound there still is, because the value travels in a redirect's
-/// `Location`.
-pub const MAX_RETURN_TO_LENGTH: usize = MAX_STATE_LENGTH + MAX_NONCE_LENGTH + 1024;
+/// ([`crate::oidc::http::authorize`]), byte for byte as the browser sent it,
+/// so the request's parameters are still percent-encoded. What
+/// `/oidc/authorize` bounds is the other form: [`MAX_STATE_LENGTH`] and
+/// [`MAX_NONCE_LENGTH`] cap `state` and `nonce` *decoded*, in bytes. Since
+/// percent-encoding costs at most three characters per byte, three times
+/// those two is what the continuation can carry, and 1024 characters on top
+/// is room for the rest of a request as sent — the client id, the redirect
+/// URI, the scopes, the PKCE challenge. So a flow can always return to a
+/// request `/oidc/authorize` accepted, however that request encodes. A bound
+/// there still is, because the value travels in a redirect's `Location`, and
+/// 4096 characters is a short one.
+pub const MAX_RETURN_TO_LENGTH: usize = 3 * (MAX_STATE_LENGTH + MAX_NONCE_LENGTH) + 1024;
 
 /// Where the browser goes when nothing was asked for.
 pub const DEFAULT_RETURN_TO: &str = "/";
@@ -117,8 +121,16 @@ impl Finished {
     }
 }
 
-/// Why a callback did not finish its flow. Every one of them leaves the flow
-/// consumed: it was taken before any of this could fail.
+/// Why a callback did not finish its flow.
+///
+/// Most of them leave the flow consumed: the row was taken before any of
+/// that could fail. Two do not always, which is why no answer reads the
+/// right to clear the flow cookie off the variant: [`Self::FlowNotFound`]
+/// consumed nothing when the `state` named no live flow, though it did
+/// consume a row when the flow was another provider's, and [`Self::Db`] can
+/// be the take itself. What decides whether the cookie goes out cleared is
+/// the predicate [`crate::identities::http`] keys on (ADR 0023 (d)): the
+/// presented cookie was matched against the row this request consumed.
 #[derive(Debug, Error)]
 pub enum FinishError {
     /// The `state` names no live flow: unknown, expired, already used, or
@@ -758,32 +770,57 @@ mod tests {
         );
     }
 
-    /// The bound has to fit what CAS's own `/oidc/authorize` accepts: that
-    /// endpoint sends an anonymous browser to the frontend with the whole
-    /// authorization request as `return_to`, and the identity flow carries
-    /// that continuation on. A request with the longest `state` and `nonce`
-    /// the endpoint allows must therefore start a flow.
-    #[sqlx::test]
-    async fn start_accepts_the_longest_authorize_continuation(pool: PgPool) {
-        let service = identity_service(pool, &fake());
-        let continuation = format!(
+    /// An `/oidc/authorize` continuation with `state` and `nonce` written as
+    /// the given escapes repeated to the endpoint's decoded byte limit. The
+    /// continuation is the request as sent, so an escape that costs three
+    /// characters per byte is what the bound has to survive.
+    fn authorize_continuation(state_escape: &str, nonce_escape: &str) -> String {
+        format!(
             "/oidc/authorize?client_id=ligretto&response_type=code\
              &redirect_uri=https%3A%2F%2Fligretto.example%2Fcallback&scope=openid+profile\
              &code_challenge={}&code_challenge_method=S256&state={}&nonce={}",
             "c".repeat(43),
-            "s".repeat(MAX_STATE_LENGTH),
-            "n".repeat(MAX_NONCE_LENGTH),
-        );
+            state_escape.repeat(MAX_STATE_LENGTH),
+            nonce_escape.repeat(MAX_NONCE_LENGTH),
+        )
+    }
 
-        let started = service
-            .start(SLUG, Intent::SignIn, None, Some(&continuation))
-            .await
-            .expect("a continuation /oidc/authorize accepts is a valid return_to");
-
+    /// The bound has to fit what CAS's own `/oidc/authorize` accepts: that
+    /// endpoint sends an anonymous browser to the frontend with the whole
+    /// authorization request as `return_to`, and the identity flow carries
+    /// that continuation on. A request with the longest `state` and `nonce`
+    /// the endpoint allows must therefore start a flow — including when the
+    /// client writes them as escapes, which `/oidc/authorize` measures
+    /// decoded while the continuation carries them encoded.
+    #[sqlx::test]
+    async fn start_accepts_the_longest_authorize_continuation(pool: PgPool) {
+        let service = identity_service(pool, &fake());
+        // `%2B` is a `+` as a client must send it (a raw `+` decodes to a
+        // space), the worst case any byte can take: three characters each.
+        let widest = authorize_continuation("%2B", "%2B");
+        let query = widest.split_once('?').expect("the continuation has one").1;
+        let params = crate::oidc::authorization::Params::from_query(query);
         assert_eq!(
-            taken(&service, state_of(&started.url)).await.return_to,
-            continuation
+            params.get("state").unwrap().map(str::len),
+            Some(MAX_STATE_LENGTH),
+            "the escapes must decode to exactly what /oidc/authorize accepts"
         );
+        assert_eq!(
+            params.get("nonce").unwrap().map(str::len),
+            Some(MAX_NONCE_LENGTH)
+        );
+
+        for continuation in [authorize_continuation("s", "n"), widest.clone()] {
+            let started = service
+                .start(SLUG, Intent::SignIn, None, Some(&continuation))
+                .await
+                .expect("a continuation /oidc/authorize accepts is a valid return_to");
+
+            assert_eq!(
+                taken(&service, state_of(&started.url)).await.return_to,
+                continuation
+            );
+        }
     }
 
     /// Reads a flow row out, consuming it, to see what `start` wrote.

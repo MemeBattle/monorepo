@@ -202,10 +202,14 @@ error page with a stable code on failure, `405` for a `HEAD`. `return_to` is
 validated as a path — it must start with `/` and may not begin another
 authority — so a flow can never redirect the browser off the frontend's
 origin. Its length bound is derived from what `/oidc/authorize` itself
-accepts (`MAX_STATE_LENGTH` + `MAX_NONCE_LENGTH`, plus room for the rest of a
-request), because the continuation that endpoint hands to the frontend is the
+accepts, because the continuation that endpoint hands to the frontend is the
 longest `return_to` CAS produces: a bound below it would refuse a sign-in for
-a request CAS had just accepted.
+a request CAS had just accepted. The two measure different forms of the same
+request, though — `/oidc/authorize` caps `state` and `nonce` decoded, in
+bytes, while the continuation keeps the request as sent, percent-encoded — so
+the bound is the encoded worst case: three characters per byte of
+`MAX_STATE_LENGTH` + `MAX_NONCE_LENGTH`, plus room for the rest of a request
+as sent, which is 4096 characters and still a short `Location`.
 
 The page family and the plain `302` move to the transport root
 (`http::page`), because two contexts now have endpoints a browser navigates
