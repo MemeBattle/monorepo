@@ -139,6 +139,53 @@ test.group('sweepExpiredAuth — against a writer holding the lock', group => {
   })
 })
 
+test.group('sweepExpiredAuth — a candidate it cannot take', group => {
+  group.each.setup(() => truncateAuthTables(db))
+  group.each.teardown(async () => {
+    await db.connection('pg').rawQuery('drop trigger if exists sweep_test_refuse_lock on session_locks')
+    await db.connection('pg').rawQuery('drop function if exists sweep_test_refuse_lock()')
+  })
+
+  test('a session whose lock cannot be taken costs the run nothing but that session', async ({ assert }) => {
+    const store = createPgSessionStore({ db, now })
+    const pastTheBoundary = NOW - SESSION_COOKIE_GRACE_MS - 1
+    for (const name of ['refused', 'swept-a', 'swept-b']) {
+      await store.saveSession(sessionOf({ id: name, sub: `sub-${name}`, grantEndsAt: pastTheBoundary }))
+    }
+    await store.savePendingRequest({ state: 'expired', codeVerifier: 'a-verifier', nonce: 'a-nonce', sessionId: null, sub: null, expiresAt: NOW - 1 })
+
+    // In production the cause is a lock held past the lock pool's 60s acquire timeout — a refresh parked on an
+    // unresponsive CAS. Waiting that out would make this test a minute long, so the same failure (a throw out of
+    // the lock transaction) is raised from the lock table itself, for one id only.
+    await db.connection('pg').rawQuery(`
+      create function sweep_test_refuse_lock() returns trigger language plpgsql as $$
+      begin
+        if new.id = 'refused' then
+          raise exception 'the lock could not be taken';
+        end if;
+        return new;
+      end
+      $$`)
+    await db
+      .connection('pg')
+      .rawQuery('create trigger sweep_test_refuse_lock before insert on session_locks for each row execute function sweep_test_refuse_lock()')
+
+    const failures: string[] = []
+    const counts = await sweepExpiredAuth({ db, now, onSessionFailure: id => failures.push(id) })
+
+    // Named, so an operator reading the job's log knows which session was left rather than only that a run failed.
+    assert.deepEqual(failures, ['refused'])
+    assert.equal(counts.failedSessions, 1)
+    // Everything else the run was there for happened, and is still reported: the counts of a run that throws
+    // part-way through are lost, and the deletes it had already committed go unrecorded.
+    assert.equal(counts.sessions, 2)
+    assert.equal(counts.authRequests, 1)
+    assert.deepEqual(await db.connection('pg').from('sessions').select('id'), [{ id: 'refused' }])
+    // Nothing was left holding the lock table either: the refused attempt rolled its insert back.
+    assert.lengthOf(await db.connection('pg').from('session_locks'), 0)
+  })
+})
+
 test.group('sweepExpiredAuth — orphaned locks', group => {
   group.each.setup(() => truncateAuthTables(db))
 

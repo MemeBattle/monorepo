@@ -173,6 +173,21 @@ test.group('PgSessionStore — sessions and the users snapshot', group => {
     assert.isNumber(stored?.createdAt)
   })
 
+  test('an avatar URL longer than a varchar survives the save whole', async ({ assert }) => {
+    const store = createPgSessionStore({ db })
+    // Nothing bounds the `picture` claim, so nothing may bound the column it lands in: over 255 characters a
+    // varchar would answer 22001 and take the session write — on a refresh, the rotated token — down with it.
+    const avatarUrl = `https://example.com/avatars/${'a'.repeat(400)}.png`
+    const session = sessionOf({ id: 'long-avatar', sub: 'sub-long-avatar', avatarUrl })
+
+    await store.saveSession(session)
+
+    assert.equal((await store.getSession(session.id))?.avatarUrl, avatarUrl)
+    // The users snapshot is written from the same claim in the same transaction, so it is bounded or not alike.
+    const [account] = await db.connection('pg').from('users').where('cas_id', session.sub)
+    assert.equal(account.avatar_url, avatarUrl)
+  })
+
   test('an unknown id answers undefined', async ({ assert }) => {
     const store = createPgSessionStore({ db })
     assert.isUndefined(await store.getSession('nothing-was-ever-saved-here'))

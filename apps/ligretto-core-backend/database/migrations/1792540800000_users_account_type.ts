@@ -14,7 +14,10 @@ export default class extends BaseSchema {
     this.schema.alterTable(this.tableName, table => {
       table.string('account_type').notNullable().defaultTo('full')
       table.string('display_name').nullable()
-      table.string('avatar_url').nullable()
+      // `text`, not `string`: knex compiles `string` to `varchar(255)`, and nothing bounds the length of the
+      // `picture` claim a URL arrives in. A URL over that limit would fail the save with a 22001 instead of
+      // storing an avatar — and on a refresh that aborts the rotated token's write with it.
+      table.text('avatar_url').nullable()
     })
 
     // The query builder rather than raw SQL: the functional suites migrate this chain on sqlite.

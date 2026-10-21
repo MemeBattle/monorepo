@@ -15,6 +15,10 @@
  * Every session is removed under its own lock, because the port holds a session against *every* other writer and
  * makes no exception for cleanup: without it, a refresh that was waiting on CAS could save the session back
  * moments after the sweep deleted it, leaving a row nothing will ever come back for.
+ *
+ * A candidate whose lock the run cannot take is counted, reported and left: it costs the rest of the run nothing,
+ * and the next run takes it. The alternative is an hourly job whose partial result is indistinguishable from a
+ * job that does not work.
  */
 
 import type { Database } from '@adonisjs/lucid/database'
@@ -27,12 +31,19 @@ export interface SweepExpiredAuthOptions {
   now?: () => number
   connectionName?: string
   lockConnectionName?: string
+  /**
+   * Told about each candidate the run could not take, so the caller can name it in a log. The run itself carries
+   * on, so without this there is no record of which sessions were left.
+   */
+  onSessionFailure?: (sessionId: string, failure: unknown) => void
 }
 
 export interface SweepExpiredAuthCounts {
   authRequests: number
   sessions: number
   sessionLocks: number
+  /** Candidates whose lock could not be taken, left for the next run. */
+  failedSessions: number
 }
 
 /** How many rows a statement removed: `pg` reports it as `rowCount`. */
@@ -43,6 +54,7 @@ export const sweepExpiredAuth = async ({
   now = Date.now,
   connectionName = 'pg',
   lockConnectionName = 'pgLocks',
+  onSessionFailure,
 }: SweepExpiredAuthOptions): Promise<SweepExpiredAuthCounts> => {
   const main = () => db.connection(connectionName)
   const locks = () => db.connection(lockConnectionName)
@@ -54,19 +66,28 @@ export const sweepExpiredAuth = async ({
   const candidates = await main().from('sessions').where('grant_ends_at', '<=', retainUntil).select('id')
 
   let sessions = 0
+  let failedSessions = 0
   for (const candidate of candidates) {
     const id = (candidate as { id: string }).id
-    // One lock per transaction, so there is no ordering to deadlock on; a sweep that meets a refresh in progress
-    // simply waits for it.
-    sessions += await acquireSessionLock(locks(), id, async lock => {
-      // Re-checked under the lock: a session recreated on this id while the sweep was waiting is fresh and stays.
-      const deleted = deletedBy(await main().rawQuery('delete from sessions where id = ? and grant_ends_at <= ?', [id, retainUntil]))
-      if (deleted > 0) {
-        // Removed in the transaction holding it, so a waiter wakes to find no row and takes a fresh one.
-        await lock.rawQuery('delete from session_locks where id = ?', [id])
-      }
-      return deleted
-    })
+    try {
+      // One lock per transaction, so there is no ordering to deadlock on; a sweep that meets a refresh in progress
+      // simply waits for it.
+      sessions += await acquireSessionLock(locks(), id, async lock => {
+        // Re-checked under the lock: a session recreated on this id while the sweep was waiting is fresh and stays.
+        const deleted = deletedBy(await main().rawQuery('delete from sessions where id = ? and grant_ends_at <= ?', [id, retainUntil]))
+        if (deleted > 0) {
+          // Removed in the transaction holding it, so a waiter wakes to find no row and takes a fresh one.
+          await lock.rawQuery('delete from session_locks where id = ?', [id])
+        }
+        return deleted
+      })
+    } catch (failure) {
+      // One candidate is not the run. A lock held past the pool's acquire timeout — a refresh parked on an
+      // unresponsive CAS — would otherwise abort everything behind it and report none of what was already
+      // deleted. The locked re-check makes a skipped candidate safe to take again, so it simply waits an hour.
+      failedSessions += 1
+      onSessionFailure?.(id, failure)
+    }
   }
 
   // Lock rows left by sessions that are gone. One currently held — a writer deciding whether to recreate the
@@ -82,5 +103,5 @@ export const sweepExpiredAuth = async ({
     ),
   )
 
-  return { authRequests, sessions, sessionLocks }
+  return { authRequests, sessions, sessionLocks, failedSessions }
 }

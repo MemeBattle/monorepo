@@ -16,8 +16,14 @@ spec:
       backoffLimit: 3
       template:
         metadata:
+          # Deliberately not `common.selectorLabels`: those are exactly what the HTTP Service selects on
+          # (`service.yaml`), and a sweep pod runs no HTTP listener — `ace` with `startApp` boots the container,
+          # not the server. Wearing them, every hourly run would join the Service's endpoints and get user
+          # requests refused on the target port. A distinct `app.kubernetes.io/name` keeps it out.
           labels:
-            {{- include "common.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/name: {{ include "common.name" . }}-auth-sweep
+            app.kubernetes.io/instance: {{ .Release.Name }}
+            app.kubernetes.io/component: auth-sweep
         spec:
           imagePullSecrets:
             - name: github-registry-secret

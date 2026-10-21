@@ -19,7 +19,9 @@ export default class extends BaseSchema {
       table.string('sub').notNullable().references('users.cas_id').index()
       table.string('account_type').notNullable()
       table.string('display_name').nullable()
-      table.string('avatar_url').nullable()
+      // `text` for the same reason as in the `users` migration: the `picture` claim has no documented length,
+      // and a varchar(255) would turn a long avatar URL into a failed session write.
+      table.text('avatar_url').nullable()
       table.text('refresh_token').notNullable()
       table.text('access_token').notNullable()
       table.text('id_token').notNullable()
