@@ -7,7 +7,8 @@ import type { CommandOptions } from '@adonisjs/core/types/ace'
  *
  * Needs `@memebattle/ligretto-auth` built, since the sweep's retention window is that package's constant — which
  * is why the deployed CronJob runs the built app image. Locally: `pnpm --filter @memebattle/ligretto-auth build`
- * first, or `node --conditions=development ace auth:sweep` to run it from source.
+ * first. There is no source-mode alternative, `--conditions=development` least of all: it resolves the package to
+ * `src/`, whose extensionless re-exports Node's own ESM resolver cannot follow. See AGENTS.md, "The sweep".
  */
 export default class AuthSweep extends BaseCommand {
   public static commandName = 'auth:sweep'

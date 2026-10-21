@@ -32,9 +32,14 @@ at the same time.
 
 `node ace auth:sweep` removes expired authorization requests and sessions past the cookie grace window — the
 scheduled half of the session store, which `chart/templates/sweep-cronjob.yaml` runs hourly. It needs
-`@memebattle/ligretto-auth` built (the retention window is that package's constant): either
-`pnpm --filter @memebattle/ligretto-auth build` first, or `node --conditions=development ace auth:sweep` to run
-it from source.
+`@memebattle/ligretto-auth` built (the retention window is that package's constant), so run
+`pnpm --filter @memebattle/ligretto-auth build` first — the build `test:setup` already does.
+
+There is no source-mode alternative under `node ace`, and `--conditions=development` is not one: the condition
+resolves the package to `src/`, whose re-exports carry no file extension (`from './verify-access-token'`), and
+`node ace` leaves resolution to Node's ESM resolver, which requires the extension. The sweep then dies with
+`ERR_MODULE_NOT_FOUND` before it starts. `apps/ligretto-gameplay-backend` can use the condition only because
+`tsx` — a bundling resolver, which fills the extension in — runs it there.
 
 ## Migrations
 
