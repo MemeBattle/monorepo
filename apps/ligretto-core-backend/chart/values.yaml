@@ -71,6 +71,11 @@ volumeMounts: []
 #   mountPath: "/etc/foo"
 #   readOnly: true
 
+# Removal of expired authorization requests and of sessions past the cookie grace window. Hourly is ample:
+# sessions are kept a week past their grant by design, so a run never has much to do.
+sweep:
+  schedule: "17 * * * *"
+
 # App Key configuration
 # If not provided, a random 32-character string will be generated
 appKey: ""

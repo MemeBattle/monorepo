@@ -31,8 +31,9 @@
     "migrate": "node ace migration:run --force",
     "production-migrate": "node ace migration:run --force",
     "ts-check": "tsc --noEmit",
-    "test": "node ace test",
-    "test:ci": "node ace test"
+    "test": "pnpm run test:setup && node ace test",
+    "test:ci": "pnpm run test:setup && node ace test",
+    "test:setup": "pnpm run --filter @memebattle/ligretto-auth build && docker compose -f ../../docker-compose.yml up -d --wait ligretto-core-pg-test"
   },
   "dependencies": {
     "@adonisjs/core": "catalog:",
@@ -40,6 +41,7 @@
     "@adonisjs/lucid": "catalog:",
     "@codexsoft/dotenv-flow": "catalog:",
     "@memebattle/cas-services": "workspace:^",
+    "@memebattle/ligretto-auth": "workspace:^",
     "@memebattle/ligretto-shared": "workspace:^",
     "@vinejs/vine": "catalog:",
     "lodash": "catalog:",

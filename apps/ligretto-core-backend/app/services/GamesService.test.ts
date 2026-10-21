@@ -17,7 +17,7 @@ test.group('GamesService.saveRound', group => {
   test('correctly calculates gameScore across multiple rounds', async ({ assert }) => {
     const service = new GamesService()
     const game = await GameModel.create({})
-    const user = await UserModel.firstOrCreate({ casId: 'unit-player-1' }, { isTemporary: false })
+    const user = await UserModel.firstOrCreate({ casId: 'unit-player-1' }, { accountType: 'full' })
 
     await service.saveRound(game.id, [{ playerId: user.casId, score: 10 }])
     const result = await service.saveRound(game.id, [{ playerId: user.casId, score: 5 }])
@@ -29,8 +29,8 @@ test.group('GamesService.saveRound', group => {
   test('correctly fills roundResults from pivot table', async ({ assert }) => {
     const service = new GamesService()
     const game = await GameModel.create({})
-    const user1 = await UserModel.firstOrCreate({ casId: 'unit-player-a' }, { isTemporary: false })
-    const user2 = await UserModel.firstOrCreate({ casId: 'unit-player-b' }, { isTemporary: false })
+    const user1 = await UserModel.firstOrCreate({ casId: 'unit-player-a' }, { accountType: 'full' })
+    const user2 = await UserModel.firstOrCreate({ casId: 'unit-player-b' }, { accountType: 'full' })
 
     const result = await service.saveRound(game.id, [
       { playerId: user1.casId, score: 7 },

@@ -7,7 +7,7 @@ test.group('GET /api/users', group => {
   group.each.setup(() => resetCasMock())
 
   test('with valid ids — returns merged users', async ({ client, assert }) => {
-    await UserModel.firstOrCreate({ casId: mockCasUser._id }, { isTemporary: false })
+    await UserModel.firstOrCreate({ casId: mockCasUser._id }, { accountType: 'full' })
 
     const response = await client.get('/api/users').qs({ ids: [mockCasUser._id] })
     response.assertStatus(200)

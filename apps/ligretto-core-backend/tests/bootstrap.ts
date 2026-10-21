@@ -33,4 +33,10 @@ export const configureSuite: Config['configureSuite'] = suite => {
     suite.setup(() => testUtils.db().migrate())
     suite.teardown(() => testUtils.db().truncate())
   }
+
+  // The store suite talks to the throwaway `ligretto-core-pg-test` server, which its own `test` script brings up;
+  // the empty database is already there, so migrating it is the whole of the setup.
+  if (suite.name === 'store') {
+    suite.setup(() => testUtils.db('pg').migrate())
+  }
 }
