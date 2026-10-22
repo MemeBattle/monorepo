@@ -87,9 +87,12 @@ env:
   HOST: "0.0.0.0"
   NODE_ENV: "production"
   # CAS configuration, as @memebattle/ligretto-auth asks for it. The `ligretto` client is not registered in the
-  # production CAS until #812 and the cutover is #818, so the secret is a placeholder: until then the auth routes
-  # answer 503 with a stable code (`cas_rejected`), while /games, /health and the hourly sweep are unaffected.
-  # Production sign-in is already gone with the legacy CAS, so nothing working today is lost.
+  # production CAS until #812 and the cutover is #818, so the secret below is a placeholder, and until #812 every
+  # call that authenticates this client against CAS fails: no sign-in can complete and no guest can be minted,
+  # both answering 503 with the stable code `cas_rejected`. The routes themselves behave normally otherwise —
+  # /auth/sign-in still redirects to CAS with its state cookie, a callback that matches no state is a 400, and a
+  # sessionless /auth/logout redirects back to the app. /games, /health and the hourly sweep are unaffected, and
+  # production sign-in is already gone with the legacy CAS, so nothing working today is lost.
   CAS_ISSUER: "https://cas.mems.fun"
   LIGRETTO_CLIENT_ID: "ligretto"
   LIGRETTO_CLIENT_SECRET: "not-registered-until-812"
