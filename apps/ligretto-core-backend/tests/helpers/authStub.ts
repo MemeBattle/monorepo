@@ -3,8 +3,8 @@
  *
  * The stub sits at the `CasClient` object, not at HTTP: the package's own suites already drive the protocol against
  * a fake CAS (`packages/ligretto-auth/src/test-support/cas.ts`, deliberately not exported), so what is left to the
- * functional suite here is that the routes are mounted and that the Adonis adapter carries the answers across
- * faithfully. Every method is a plain property, so a test reassigns one to script a failure.
+ * functional suite here is that the routes are mounted and that the Adonis adapter carries the answers across.
+ * Every method is a plain property, so a test reassigns one to script a failure.
  */
 
 import app from '@adonisjs/core/services/app'

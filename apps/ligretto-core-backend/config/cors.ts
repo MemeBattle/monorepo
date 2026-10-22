@@ -38,7 +38,6 @@ const corsConfig = defineConfig({
   |                     one of the above values.
   |
   */
-  // The policy itself is `#helpers/allowedOrigin`, a pure predicate the unit suite covers for both environments.
   origin: requestOrigin => isOriginAllowed(requestOrigin, process.env.NODE_ENV),
   /*
   |--------------------------------------------------------------------------

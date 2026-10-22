@@ -10,8 +10,8 @@
  * else is; that arm is off in production. An origin that does not parse, or that carries anything beyond scheme,
  * host and port, is refused.
  *
- * The environment comes in as an argument rather than being read here, which keeps the predicate a pure function
- * the unit suite can cover for both environments.
+ * The environment is an argument rather than read here, so the predicate stays pure and the unit suite can cover
+ * both environments.
  */
 
 const PRODUCTION_ORIGIN = 'https://ligretto.app'

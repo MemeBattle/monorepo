@@ -1,6 +1,6 @@
 /**
- * `GET /api/users` answers from the `users` snapshot alone. No CAS client is bound in this suite at all, which is
- * itself the proof: a route that still called CAS could not pass here.
+ * `GET /api/users` answers from the `users` snapshot alone. No CAS client is bound in this suite, so a route that
+ * still called CAS could not pass here.
  */
 
 import { test } from '@japa/runner'
@@ -20,19 +20,19 @@ test.group('GET /api/users', group => {
     const response = await client.get('/api/users').qs({ ids: [ACCOUNT.casId, GUEST.casId] })
 
     response.assertStatus(200)
-    // The ticket's shape exactly: no `isTemporary`, no timestamps. #816 is the consumer of this one. By membership,
-    // because a lookup by a set of ids promises no order.
+    // The four fields and no more: no `isTemporary`, no timestamps. By membership, because a lookup by a set of
+    // ids promises no order.
     assert.sameDeepMembers(response.body(), [ACCOUNT, GUEST])
   })
 
-  test('with an id nothing is known about — absent from the answer', async ({ client, assert }) => {
+  test('with an unknown id — absent from the answer', async ({ client, assert }) => {
     const response = await client.get('/api/users').qs({ ids: [ACCOUNT.casId, 'never-seen'] })
 
     response.assertStatus(200)
     assert.deepEqual(response.body(), [ACCOUNT])
   })
 
-  test('with a single id — one repeated parameter and one bare one are the same query', async ({ client, assert }) => {
+  test('with one bare ids parameter — the same answer as the array form', async ({ client, assert }) => {
     const response = await client.get(`/api/users?ids=${GUEST.casId}`)
 
     response.assertStatus(200)

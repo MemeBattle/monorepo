@@ -1,8 +1,8 @@
 /**
- * The CORS policy as the browser sees it. `#helpers/allowedOrigin` is covered on its own in the unit suite; what
- * these cases pin is that the policy is the one actually wired into `config/cors.ts`, and that it is answered
- * together with `access-control-allow-credentials` — the pair that decides whether a foreign origin can read a
- * response carrying the session cookie.
+ * The CORS policy as the browser sees it. `#helpers/allowedOrigin` is covered on its own in the unit suite; these
+ * cases pin that it is the predicate `config/cors.ts` wires in, and that its answer comes with
+ * `access-control-allow-credentials` — the pair that decides whether a foreign origin can read a response carrying
+ * the session cookie.
  */
 
 import { test } from '@japa/runner'

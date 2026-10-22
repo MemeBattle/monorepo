@@ -3,8 +3,8 @@
  * container for `AuthController` to delegate to.
  *
  * A singleton rather than a per-request binding: the CAS client carries the discovery cache, so rebuilding it per
- * request would refetch the metadata document on every `me`. It is still resolved lazily, which is what lets a
- * functional test rebind `authHandlers` over a scripted client before the first request is made.
+ * request would refetch the metadata document on every `me`. It is still resolved lazily, so a functional test can
+ * rebind `authHandlers` over a scripted client before the first request is made.
  */
 
 import type { ApplicationService } from '@adonisjs/core/types'

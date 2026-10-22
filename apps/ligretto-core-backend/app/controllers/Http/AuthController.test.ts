@@ -1,7 +1,7 @@
 /**
- * That the four routes are mounted where they belong, and that `#helpers/webHandler` carries the package's answers
- * across without losing anything. What the handlers *decide* is proved in `packages/ligretto-auth`, against a fake
- * CAS; here the CAS client is a scripted object (`tests/helpers/authStub.ts`) and the subject is the seam.
+ * The four routes are mounted, and `#helpers/webHandler` carries the package's answers across intact. What the
+ * handlers decide is proved in `packages/ligretto-auth` against a fake CAS; here the CAS client is a scripted
+ * object (`tests/helpers/authStub.ts`) and the subject is the seam.
  */
 
 import { test } from '@japa/runner'
@@ -20,10 +20,8 @@ import {
 } from '../../../tests/helpers/authStub.js'
 
 /**
- * The `Set-Cookie` values of an answer, one string per header.
- *
- * Typed as a single string by `@japa/api-client`, while Node's client hands repeated headers over as a list — which
- * is exactly what the adapter has to preserve, so the list is the case that matters here.
+ * The `Set-Cookie` values of an answer, one string per header. `@japa/api-client` types the header as a single
+ * string, while Node's client hands repeated headers over as a list — and the list is the case that matters here.
  */
 const setCookiesOf = (response: ApiResponse): string[] => {
   const header = response.headers()['set-cookie'] as string | string[] | undefined
@@ -43,9 +41,8 @@ const cookiePairOf = (response: ApiResponse, name: string): string => {
 const valueOf = (pair: string, name: string): string => pair.slice(`${name}=`.length)
 
 /**
- * The `description` of the package's `unknown_state` refusal, copied here on purpose: the case below compares the
- * answer's bytes with it, which only pins the package's own encoding as long as the expectation is a literal rather
- * than something derived from the answer itself.
+ * The `description` of the package's `unknown_state` refusal, duplicated as a literal: an expectation derived from
+ * the answer itself would pin none of the package's encoding.
  */
 const UNKNOWN_STATE = 'The callback does not match a sign-in this browser started.'
 
@@ -56,7 +53,7 @@ test.group('/api/auth/*', group => {
     stub = bindAuthHandlers()
   })
 
-  test('me with no session — a guest, handed the session that was minted for it', async ({ client, assert }) => {
+  test('me with no session — a guest, and the session minted for it', async ({ client, assert }) => {
     const response = await client.get('/api/auth/me')
 
     response.assertStatus(200)
@@ -68,7 +65,7 @@ test.group('/api/auth/*', group => {
     assert.exists(cookiePairOf(response, SESSION_COOKIE_NAME))
   })
 
-  test('me presenting that session — the same account, and no second handover', async ({ client, assert }) => {
+  test('me with that session — the same account, and no new session cookie', async ({ client, assert }) => {
     const minted = await client.get('/api/auth/me')
     const session = cookiePairOf(minted, SESSION_COOKIE_NAME)
 
@@ -91,7 +88,7 @@ test.group('/api/auth/*', group => {
     assert.equal(cookiePairOf(response, STATE_COOKIE_NAME), `${STATE_COOKIE_NAME}=${STATE}`)
   })
 
-  test('callback — the session installed and the state taken back, as two cookies', async ({ client, assert }) => {
+  test('callback — the session set and the state cleared, as two cookies', async ({ client, assert }) => {
     const begun = await client.get('/api/auth/sign-in').redirects(0)
 
     const response = await client
@@ -102,8 +99,7 @@ test.group('/api/auth/*', group => {
 
     response.assertStatus(302)
     assert.equal(response.header('location'), APP_URL)
-    // Two headers, not one comma-joined value: no browser splits a folded `Set-Cookie` back correctly, so this is
-    // the case the adapter exists for.
+    // Two headers, not one comma-joined value: no browser splits a folded `Set-Cookie` back correctly.
     assert.lengthOf(setCookiesOf(response), 2)
     assert.equal(cookiePairOf(response, STATE_COOKIE_NAME), `${STATE_COOKIE_NAME}=`)
 
@@ -115,10 +111,9 @@ test.group('/api/auth/*', group => {
     const response = await client.get('/api/auth/callback').qs({ code: 'the-code', state: STATE }).redirects(0)
 
     response.assertStatus(400)
-    // The refusal as the package wrote it: its stable code, its compact encoding with no whitespace of its own, and
-    // its `content-type`, compared against literals rather than against anything derived from the answer. A flat
-    // JSON body is the one thing that survives being reserialized, so this case says nothing about the adapter's
-    // Buffer path; the case below is what pins that.
+    // The refusal as the package wrote it, compared against literals: its stable code, its compact encoding and
+    // its `content-type`. A flat JSON body survives being reserialized, so the Buffer path is the next case's
+    // subject, not this one's.
     assert.equal(response.header('content-type'), 'application/json')
     assert.equal(response.text(), JSON.stringify({ error: 'unknown_state', description: UNKNOWN_STATE }))
     assert.equal(response.body().error, 'unknown_state')
@@ -126,9 +121,9 @@ test.group('/api/auth/*', group => {
 
   test('an answer that is not JSON — the bytes the handler produced, under its own content type', async ({ client, assert }) => {
     const bytes = 'sub,name\n1,a\n'
-    // No route of the package can stand in here: all four answer JSON or nothing, and JSON round-trips through a
-    // reserialization unchanged. Only a body that is not JSON separates forwarding the handler's bytes from parsing
-    // and re-encoding them — `JSON.parse` of this one throws.
+    // No route of the package can stand in here: all four answer JSON or nothing, and JSON survives a
+    // reserialization unchanged. Only a body `JSON.parse` would reject separates forwarding the handler's bytes
+    // from parsing and re-encoding them.
     bindAuthHandlersOver(stub, { me: async () => new Response(bytes, { headers: { 'content-type': 'text/csv' } }) })
 
     const response = await client.get('/api/auth/me')
@@ -149,7 +144,7 @@ test.group('/api/auth/*', group => {
     assert.equal(response.body().error, 'cas_unavailable')
   })
 
-  test('logout with a session — on to CAS, with the session taken back', async ({ client, assert }) => {
+  test('logout with a session — a redirect to CAS, and the session cleared', async ({ client, assert }) => {
     const minted = await client.get('/api/auth/me')
 
     const response = await client.get('/api/auth/logout').header('cookie', cookiePairOf(minted, SESSION_COOKIE_NAME)).redirects(0)
@@ -159,7 +154,7 @@ test.group('/api/auth/*', group => {
     assert.equal(cookiePairOf(response, SESSION_COOKIE_NAME), `${SESSION_COOKIE_NAME}=`)
   })
 
-  test('logout with nothing to end — still a logout, back to the application', async ({ client, assert }) => {
+  test('logout with no session — still a redirect back to the application', async ({ client, assert }) => {
     const response = await client.get('/api/auth/logout').redirects(0)
 
     response.assertStatus(302)

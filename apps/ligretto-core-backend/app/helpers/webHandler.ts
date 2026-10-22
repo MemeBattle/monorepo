@@ -2,7 +2,7 @@
  * Adonis's `HttpContext` as the web `Request`/`Response` pair `@memebattle/ligretto-auth`'s handlers are written
  * against — transport and nothing else, so the routes of `AuthController` add no behaviour of their own.
  *
- * Two details are the reason this is a named helper with tests over it rather than a line in each action:
+ * Two details make this a named helper with tests over it rather than a line in each action:
  *
  * - `Set-Cookie` is taken from `getSetCookie()` and appended one value at a time. A callback sends two of them —
  *   the session it installs and the state it takes back — and `Headers.forEach` folds repeated headers into one
@@ -16,7 +16,6 @@
 
 import type { HttpContext } from '@adonisjs/core/http'
 
-/** A route of the package: web standards in, web standards out. */
 export type WebHandler = (request: Request) => Promise<Response>
 
 /**
