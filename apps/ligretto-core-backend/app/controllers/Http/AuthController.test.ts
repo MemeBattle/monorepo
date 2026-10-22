@@ -33,6 +33,13 @@ const cookiePairOf = (response: ApiResponse, name: string): string => {
 
 const valueOf = (pair: string, name: string): string => pair.slice(`${name}=`.length)
 
+/**
+ * The `description` of the package's `unknown_state` refusal, copied here on purpose: the case below compares the
+ * answer's bytes with it, which only pins the adapter's Buffer path as long as the expectation is a literal rather
+ * than something derived from the answer itself.
+ */
+const UNKNOWN_STATE = 'The callback does not match a sign-in this browser started.'
+
 test.group('/api/auth/*', group => {
   let stub: AuthStub
 
@@ -99,8 +106,12 @@ test.group('/api/auth/*', group => {
     const response = await client.get('/api/auth/callback').qs({ code: 'the-code', state: STATE }).redirects(0)
 
     response.assertStatus(400)
-    // The handler's own content type, not one Adonis derived from a reserialized body.
-    assert.include(response.header('content-type') ?? '', 'application/json')
+    // The refusal as the package wrote it, byte for byte and under its own content type — the Buffer path. Pinned
+    // on the bytes rather than on the parsed body, which a `response.json()` over `await answer.json()` would
+    // satisfy just as well, and on a `content-type` with no `charset` of the kind Adonis appends to a body it
+    // serialized itself.
+    assert.equal(response.header('content-type'), 'application/json')
+    assert.equal(response.text(), JSON.stringify({ error: 'unknown_state', description: UNKNOWN_STATE }))
     assert.equal(response.body().error, 'unknown_state')
   })
 
