@@ -64,3 +64,11 @@ export const bindAuthHandlers = (): AuthStub => {
   app.container.bind('authHandlers', () => stub.handlers)
   return stub
 }
+
+/**
+ * The bound stub with one of its handlers replaced, for a case that needs an answer the package itself would never
+ * send. `AuthController` resolves the binding per request, so this takes effect from the next request on.
+ */
+export const bindAuthHandlersOver = (stub: AuthStub, overrides: Partial<AuthHandlers>): void => {
+  app.container.bind('authHandlers', () => ({ ...stub.handlers, ...overrides }))
+}

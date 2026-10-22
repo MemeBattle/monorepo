@@ -8,7 +8,16 @@ import { test } from '@japa/runner'
 import type { ApiResponse } from '@japa/api-client'
 import { ApiError, SESSION_COOKIE_NAME, STATE_COOKIE_NAME } from '@memebattle/ligretto-auth'
 import type { AuthStub } from '../../../tests/helpers/authStub.js'
-import { APP_URL, AUTHORIZATION_URL, END_SESSION_URL, FULL_SUB, GUEST_SUB, STATE, bindAuthHandlers } from '../../../tests/helpers/authStub.js'
+import {
+  APP_URL,
+  AUTHORIZATION_URL,
+  END_SESSION_URL,
+  FULL_SUB,
+  GUEST_SUB,
+  STATE,
+  bindAuthHandlers,
+  bindAuthHandlersOver,
+} from '../../../tests/helpers/authStub.js'
 
 /**
  * The `Set-Cookie` values of an answer, one string per header.
@@ -35,7 +44,7 @@ const valueOf = (pair: string, name: string): string => pair.slice(`${name}=`.le
 
 /**
  * The `description` of the package's `unknown_state` refusal, copied here on purpose: the case below compares the
- * answer's bytes with it, which only pins the adapter's Buffer path as long as the expectation is a literal rather
+ * answer's bytes with it, which only pins the package's own encoding as long as the expectation is a literal rather
  * than something derived from the answer itself.
  */
 const UNKNOWN_STATE = 'The callback does not match a sign-in this browser started.'
@@ -106,13 +115,27 @@ test.group('/api/auth/*', group => {
     const response = await client.get('/api/auth/callback').qs({ code: 'the-code', state: STATE }).redirects(0)
 
     response.assertStatus(400)
-    // The refusal as the package wrote it, byte for byte and under its own content type — the Buffer path. Pinned
-    // on the bytes rather than on the parsed body, which a `response.json()` over `await answer.json()` would
-    // satisfy just as well, and on a `content-type` with no `charset` of the kind Adonis appends to a body it
-    // serialized itself.
+    // The refusal as the package wrote it: its stable code, its compact encoding with no whitespace of its own, and
+    // its `content-type`, compared against literals rather than against anything derived from the answer. A flat
+    // JSON body is the one thing that survives being reserialized, so this case says nothing about the adapter's
+    // Buffer path; the case below is what pins that.
     assert.equal(response.header('content-type'), 'application/json')
     assert.equal(response.text(), JSON.stringify({ error: 'unknown_state', description: UNKNOWN_STATE }))
     assert.equal(response.body().error, 'unknown_state')
+  })
+
+  test('an answer that is not JSON — the bytes the handler produced, under its own content type', async ({ client, assert }) => {
+    const bytes = 'sub,name\n1,a\n'
+    // No route of the package can stand in here: all four answer JSON or nothing, and JSON round-trips through a
+    // reserialization unchanged. Only a body that is not JSON separates forwarding the handler's bytes from parsing
+    // and re-encoding them — `JSON.parse` of this one throws.
+    bindAuthHandlersOver(stub, { me: async () => new Response(bytes, { headers: { 'content-type': 'text/csv' } }) })
+
+    const response = await client.get('/api/auth/me')
+
+    response.assertStatus(200)
+    assert.equal(response.header('content-type'), 'text/csv')
+    assert.equal(response.text(), bytes)
   })
 
   test('me when CAS cannot be reached — 503 with a stable code, never a 500', async ({ client, assert }) => {
