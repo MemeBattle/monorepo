@@ -1,4 +1,5 @@
 import { defineConfig } from '@adonisjs/cors'
+import { isOriginAllowed } from '#helpers/allowedOrigin'
 
 const corsConfig = defineConfig({
   /*
@@ -37,11 +38,8 @@ const corsConfig = defineConfig({
   |                     one of the above values.
   |
   */
-  origin: requestOrigin =>
-    /**
-     * Allow localhost on any port during development.
-     */
-    requestOrigin.startsWith('http://localhost') || requestOrigin === 'https://ligretto.app',
+  // The policy itself is `#helpers/allowedOrigin`, a pure predicate the unit suite covers for both environments.
+  origin: requestOrigin => isOriginAllowed(requestOrigin, process.env.NODE_ENV),
   /*
   |--------------------------------------------------------------------------
   | Methods
@@ -107,8 +105,8 @@ const corsConfig = defineConfig({
   |
   | Required by the cookie session transport: the frontend is served from another origin than this API in
   | development (localhost:5174 against :3333), and without the header the browser refuses to send the session
-  | cookie with a cross-origin `me`. Safe here because `origin` above is a restricted list and never a wildcard,
-  | which is the only combination the specification allows alongside credentials.
+  | cookie with a cross-origin `me`. This is why `origin` above must answer with an exact match and never a
+  | wildcard or a prefix: a credentialed response hands the session to whatever origin it echoes back.
   |
   */
   credentials: true,
