@@ -37,6 +37,7 @@
         "contracts/**/*.ts",
         "providers/**/*.ts",
         "database/migrations/**/*.ts",
+        "database/tests/**/*.test.ts",
         "tests/**/*.ts",
         "app/**/*.test.ts"
       ],

@@ -161,27 +161,29 @@ cargo run -p cas --bin cas-client -- register \
   [--post-logout-redirect-uri <uri>]... \
   [--first-party] \
   [--guest-login-allowed [--guest-grants-per-minute <n>]] \
-  [--scope <scope>]... [--audience <resource>]
+  [--scope <scope>]... [--audience <resource>] \
+  [--secret <value>]
 ```
 
-| Flag                         | Meaning                                                                              |
-| ---------------------------- | ------------------------------------------------------------------------------------ |
-| `--id`                       | The OIDC `client_id`: a slug of `[a-z0-9._-]`, at most 64 characters.                |
-| `--name`                     | What a consent screen shows for the client.                                          |
-| `--kind`                     | `confidential` (a server that authenticates with a secret) or `public` (PKCE alone). |
-| `--redirect-uri`             | Repeatable, at least one. Absolute `http`/`https`, no fragment.                      |
-| `--post-logout-redirect-uri` | Repeatable. Where RP-initiated logout may return the browser.                        |
-| `--first-party`              | The client skips the consent screen.                                                 |
-| `--guest-login-allowed`      | The client may mint guest accounts through the guest grant.                          |
-| `--guest-grants-per-minute`  | With `--guest-login-allowed`: how many guests it may mint per minute. Default 60.    |
-| `--scope`                    | Repeatable allow-list of what the client may request. Defaults to `openid`.          |
-| `--audience`                 | The `aud` of its access tokens, naming the resource server. Defaults to the id.      |
+| Flag                         | Meaning                                                                                                                                                                       |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--id`                       | The OIDC `client_id`: a slug of `[a-z0-9._-]`, at most 64 characters.                                                                                                         |
+| `--name`                     | What a consent screen shows for the client.                                                                                                                                   |
+| `--kind`                     | `confidential` (a server that authenticates with a secret) or `public` (PKCE alone).                                                                                          |
+| `--redirect-uri`             | Repeatable, at least one. Absolute `http`/`https`, no fragment.                                                                                                               |
+| `--post-logout-redirect-uri` | Repeatable. Where RP-initiated logout may return the browser.                                                                                                                 |
+| `--first-party`              | The client skips the consent screen.                                                                                                                                          |
+| `--guest-login-allowed`      | The client may mint guest accounts through the guest grant.                                                                                                                   |
+| `--guest-grants-per-minute`  | With `--guest-login-allowed`: how many guests it may mint per minute. Default 60.                                                                                             |
+| `--scope`                    | Repeatable allow-list of what the client may request. Defaults to `openid`.                                                                                                   |
+| `--audience`                 | The `aud` of its access tokens, naming the resource server. Defaults to the id.                                                                                               |
+| `--secret`                   | Development builds only: the secret of a confidential client, instead of a generated one. A release build refuses it ([ADR 0023](./docs/adr/0023-dev-only-client-secret.md)). |
 
 A redirect URI is matched by exact string comparison, so it must be registered exactly as the client will send it: `https://app.example` and `https://app.example/` are two different registrations.
 
 Give a client `--guest-login-allowed` only once every serving instance runs a release with the guest grant and the guest upgrade: an older instance that refreshes a guest's tokens would release its generated `Guest <n>` display name as its `name`, and one without the upgrade would treat an upgrade session as a signed-in one.
 
-A confidential client's secret is generated by CAS and printed once, on stdout; the table stores only its SHA-256, so it cannot be shown again. A mistake is fixed by registering another id — there is no update, delete or rotate until the admin panel.
+A confidential client's secret is generated by CAS and printed once, on stdout; the table stores only its SHA-256, so it cannot be shown again. A mistake is fixed by registering another id — there is no update, delete or rotate until the admin panel. `--secret` is the one way to choose the value instead, and it exists in development builds only, for a database whose secret has to be known in advance.
 
 The development database gets a `ligretto` client from:
 
@@ -189,7 +191,21 @@ The development database gets a `ligretto` client from:
 apps/cas/scripts/seed-dev.sh
 ```
 
-Its redirect URIs are placeholders until ligretto is wired to CAS. A second run fails with "already exists", which is the signal that the client is already there. See [docs/adr/0008-oidc-clients-registry.md](./docs/adr/0008-oidc-clients-registry.md).
+It registers ligretto's development URIs — the callback `http://localhost:<LIGRETTO_CORE_BACKEND_PORT>/api/auth/callback` on ligretto-core-backend, and `http://localhost:5174/` to return to after a logout — and passes `--secret` the stable development secret from the monorepo's `.env.development`, `LIGRETTO_CLIENT_SECRET`, so a reset development database needs no printed secret copied anywhere.
+
+Both values are resolved with `@adonisjs/env`'s development precedence: the process environment first, then `.env.development.local`, `.env.local`, `.env.development`, `.env`. That is not CAS's own order, and it is the secret that needs it — ligretto-core-backend presents the secret through that loader, so an export, or an override written in `.env.local`, reaches the seeded row and the backend alike. The port is read from the same files only to keep the number out of the script; it is not a knob, as the monorepo's `.env.development` says. Overriding it moves the registered callback alone, away from the one the backend sends, and the two are compared byte for byte.
+
+`scripts/seed-dev.sh --dry-run` prints what would be registered and runs nothing. With `APP_ENV` set to anything but `development` the script refuses to run, because `cas-client` would take `DATABASE_URL` from that environment while these two values came from the development files. A second run fails with "already exists", which is the signal that the client is already there.
+
+The post-logout origin is the one ligretto-frontend serves next to a local CAS, where 5173 is the CAS frontend's:
+
+```
+pnpm --filter @memebattle/ligretto-frontend start:dev --port 5174 --strictPort
+```
+
+with no `--` separator — pnpm forwards the flags into the script, while a separator makes Vite drop them and bind 5173. Run standalone, ligretto-frontend keeps its plain `start:dev`.
+
+See [docs/adr/0008-oidc-clients-registry.md](./docs/adr/0008-oidc-clients-registry.md) and [docs/adr/0023-dev-only-client-secret.md](./docs/adr/0023-dev-only-client-secret.md).
 
 ## Prepare bacon (used for dev server reload)
 

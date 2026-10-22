@@ -3884,14 +3884,33 @@
     "/oidc/token": {
       "post": {
         "summary": "The token endpoint: the authorization code exchange, the refresh, and\nthe guest grant.",
-        "description": "The body is `application/x-www-form-urlencoded` (RFC 6749 §3.2), read\nby hand under the RFC's rules, a repeated parameter refused:\n`grant_type=authorization_code` with `code`, `redirect_uri` and\n`code_verifier` (ADR 0011); `grant_type=refresh_token` with\n`refresh_token` and an optional `scope` (ADR 0012);\n`grant_type=urn:memebattle:oauth:grant-type:guest` with an optional\n`scope` (ADR 0014). A confidential client authenticates with\n`Authorization: Basic` or with `client_id` and `client_secret` in the\nbody, a public client sends `client_id` alone. Every answer is\n`Cache-Control: no-store` and `Pragma: no-cache`.",
+        "description": "The body is `application/x-www-form-urlencoded` (RFC 6749 §3.2); the\nschema of the grant being asked for says which parameters it carries.\nEvery answer is `Cache-Control: no-store` and `Pragma: no-cache`.",
         "operationId": "token",
         "requestBody": {
-          "description": "The grant's parameters, see the operation's description.",
+          "description": "The grant's parameters: one schema per `grant_type`.",
           "content": {
             "application/x-www-form-urlencoded": {
               "schema": {
-                "type": "string"
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/AuthorizationCodeGrant"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RefreshTokenGrant"
+                  },
+                  {
+                    "$ref": "#/components/schemas/GuestGrant"
+                  }
+                ],
+                "description": "The form of a token request: one schema per grant, chosen by\n`grant_type` (RFC 6749 §3.2). The parameters are read by hand under\nthe RFC's rules — a repeated parameter refused, a strict form decode,\nthe rules applied in order — which no schema expresses, so these\nschemas describe the form and never parse it (ADR 0023).\n\nEvery grant takes the client's credentials in the body\n(`client_secret_post`) as the alternative to `Authorization: Basic`;\nusing both is using two authentication methods at once, which RFC 6749\n§2.3 forbids.",
+                "discriminator": {
+                  "propertyName": "grant_type",
+                  "mapping": {
+                    "authorization_code": "#/components/schemas/AuthorizationCodeGrant",
+                    "refresh_token": "#/components/schemas/RefreshTokenGrant",
+                    "urn:memebattle:oauth:grant-type:guest": "#/components/schemas/GuestGrant"
+                  }
+                }
               }
             }
           },
@@ -4634,6 +4653,45 @@
           }
         }
       },
+      "AuthorizationCodeGrant": {
+        "type": "object",
+        "description": "The code exchange, RFC 6749 §4.1.3 and ADR 0011.",
+        "required": [
+          "grant_type",
+          "code",
+          "redirect_uri",
+          "code_verifier"
+        ],
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "description": "The client's id in the body, instead of `Authorization: Basic`; a\npublic client sends it alone."
+          },
+          "client_secret": {
+            "type": "string",
+            "description": "The client's secret in the body, next to `client_id`; never together\nwith `Authorization: Basic`."
+          },
+          "code": {
+            "type": "string",
+            "description": "The code `GET /oidc/authorize` sent to the redirect URI."
+          },
+          "code_verifier": {
+            "type": "string",
+            "description": "The PKCE verifier of that authorization request (RFC 7636 §4.5)."
+          },
+          "grant_type": {
+            "type": "string",
+            "description": "`authorization_code`, the one value this grant's `grant_type` has.",
+            "enum": [
+              "authorization_code"
+            ]
+          },
+          "redirect_uri": {
+            "type": "string",
+            "description": "The `redirect_uri` of that authorization request, byte for byte."
+          }
+        }
+      },
       "Discovery": {
         "type": "object",
         "description": "The discovery document. It advertises the whole SSO milestone, including\nthe endpoints later tickets add, so that it stays the same across their\nreleases (ADR 0009 (f)).",
@@ -4725,6 +4783,34 @@
           },
           "userinfo_endpoint": {
             "type": "string"
+          }
+        }
+      },
+      "GuestGrant": {
+        "type": "object",
+        "description": "The guest grant, ADR 0014. No browser and no code: a confidential\nclient allowed to use it gets a fresh guest account within its limit.",
+        "required": [
+          "grant_type"
+        ],
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "description": "The client's id in the body, instead of `Authorization: Basic`; it\ncomes with `client_secret`, since only a confidential client may\nuse this grant (ADR 0014)."
+          },
+          "client_secret": {
+            "type": "string",
+            "description": "The client's secret in the body, next to `client_id`; never together\nwith `Authorization: Basic`."
+          },
+          "grant_type": {
+            "type": "string",
+            "description": "`urn:memebattle:oauth:grant-type:guest`, the one value this grant's\n`grant_type` has; the discovery document lists the same URN in\n`grant_types_supported`.",
+            "enum": [
+              "urn:memebattle:oauth:grant-type:guest"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "description": "The scopes to issue for, space-separated; omitted asks for `openid`\nalone, which is all a guest has to release."
           }
         }
       },
@@ -4873,6 +4959,39 @@
           },
           "y": {
             "type": "string"
+          }
+        }
+      },
+      "RefreshTokenGrant": {
+        "type": "object",
+        "description": "The refresh with rotation, RFC 6749 §6 and ADR 0012.",
+        "required": [
+          "grant_type",
+          "refresh_token"
+        ],
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "description": "The client's id in the body, instead of `Authorization: Basic`; a\npublic client sends it alone."
+          },
+          "client_secret": {
+            "type": "string",
+            "description": "The client's secret in the body, next to `client_id`; never together\nwith `Authorization: Basic`."
+          },
+          "grant_type": {
+            "type": "string",
+            "description": "`refresh_token`, the one value this grant's `grant_type` has.",
+            "enum": [
+              "refresh_token"
+            ]
+          },
+          "refresh_token": {
+            "type": "string",
+            "description": "The refresh token of the grant, which this request spends."
+          },
+          "scope": {
+            "type": "string",
+            "description": "The scopes this request asks for, space-separated; omitted asks for\nthe ones the grant holds, and a request may repeat or narrow them,\nnever widen them (RFC 6749 §6). A narrower request is accepted and\nignored: the tokens carry the grant's full scopes, so read the\n`scope` of the response rather than assuming this narrowed anything\n(ADR 0012)."
           }
         }
       },

@@ -731,6 +731,9 @@ importers:
       '@memebattle/cas-services':
         specifier: workspace:^
         version: link:../../packages/cas-services
+      '@memebattle/ligretto-auth':
+        specifier: workspace:^
+        version: link:../../packages/ligretto-auth
       '@memebattle/ligretto-shared':
         specifier: workspace:^
         version: link:../../packages/ligretto-shared
@@ -916,9 +919,9 @@ importers:
       '@codexsoft/dotenv-flow':
         specifier: 'catalog:'
         version: 3.3.5
-      '@memebattle/cas-services':
+      '@memebattle/ligretto-auth':
         specifier: workspace:^
-        version: link:../../packages/cas-services
+        version: link:../../packages/ligretto-auth
       '@memebattle/ligretto-shared':
         specifier: workspace:^
         version: link:../../packages/ligretto-shared

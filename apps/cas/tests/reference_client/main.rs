@@ -64,6 +64,7 @@ fn registration(id: &str, kind: ClientKind, redirect_uri: &str) -> Registration 
             .map(|scope| Scope::try_new(scope).expect("a valid scope"))
             .collect(),
         audience: None,
+        secret: None,
     }
 }
 

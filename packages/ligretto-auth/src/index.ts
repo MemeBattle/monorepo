@@ -8,8 +8,56 @@
 export { verifyAccessToken } from './verify-access-token'
 export type { AccessTokenClaims, VerifyAccessTokenOptions } from './verify-access-token'
 
-export { DiscoveryError, InvalidTokenError } from './errors'
-export type { DiscoveryErrorCode, InvalidTokenCode } from './errors'
+export { createCasClient, UnusableGrantError } from './cas-client'
+export type {
+  AuthorizationRequest,
+  AuthorizationRequestOptions,
+  CasClient,
+  CasClientOptions,
+  EndSessionUrlOptions,
+  ExchangeCodeOptions,
+  Grant,
+  Tokens,
+} from './cas-client'
+
+export { profileOf, validateIdToken } from './id-token'
+export type { IdTokenClaims, ProfileSnapshot, ValidateIdTokenOptions } from './id-token'
+
+export { createInMemorySessionStore } from './session-store'
+export type { InMemorySessionStoreOptions, PendingAuthorizationRequest, Session, SessionStore } from './session-store'
+
+export {
+  beginSignIn,
+  CallbackStateError,
+  completeSignIn,
+  endSession,
+  GRANT_LIFETIME_MS,
+  mintGuest,
+  PENDING_REQUEST_TTL_MS,
+  refreshSession,
+  UnknownSessionError,
+} from './sessions'
+export type {
+  BeginSignInOptions,
+  BeginSignInResult,
+  CompleteSignInOptions,
+  CompleteSignInResult,
+  RefreshSessionOptions,
+  SessionContext,
+} from './sessions'
+
+export { createAuthHandlers } from './handlers'
+export type { AuthHandlers, AuthHandlersOptions } from './handlers'
+
+export { SESSION_COOKIE_GRACE_MS, SESSION_COOKIE_NAME, STATE_COOKIE_NAME } from './transport'
+export type { SessionTransportKind } from './transport'
+
+// The route contract, for a server-side consumer; a browser bundle imports `@memebattle/ligretto-auth/contract`,
+// which is types alone and pulls none of the code above it in.
+export type { AuthErrorCode, AuthErrorResponse, AuthUser, MeResponse, NavigationResponse } from './contract'
+
+export { DiscoveryError, InvalidIdTokenError, InvalidTokenError, TokenEndpointError } from './errors'
+export type { DiscoveryErrorCode, IdTokenErrorCode, InvalidTokenCode, TokenEndpointErrorCode, TokenEndpointErrorOptions } from './errors'
 
 export { createDiscoveryCache } from './discovery'
 export type { DiscoveryCache, DiscoveryCacheOptions } from './discovery'

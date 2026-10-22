@@ -5,6 +5,7 @@ on:
     branches: [master]
     paths:
       - 'apps/ligretto-**'
+      - 'packages/ligretto-auth/**'
       - 'packages/ligretto-shared/**'
       - 'packages/auth-front/**'
       - 'packages/cas-services/**'

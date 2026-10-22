@@ -38,18 +38,12 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+          {{- with .Values.volumeMounts }}
           volumeMounts:
-            - name: cas-key-volume
-              mountPath: {{ .Values.env.LIGRETTO_GAMEPLAY_CAS_KEY_PATH }}
-              subPath: key.pem
-            {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
-            {{- end }}
+          {{- end }}
+      {{- with .Values.volumes }}
       volumes:
-        - name: cas-key-volume
-          secret:
-            secretName: {{ include "common.fullname" . }}-cas-key-secret
-        {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}
-        {{- end }}
+      {{- end }}
 

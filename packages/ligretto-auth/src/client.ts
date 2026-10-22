@@ -5,9 +5,10 @@
  * A call has two ways to fail. An error CAS answered with — a 4xx or a 5xx whose body carries a code, either the
  * OAuth2 `{ "error", "error_description" }` or the envelope `{ "error": { "code", "message" } }` — is part of the
  * contract: it comes back as a value, a `Result` whose `error.code` is typed as the codes the operation declares.
- * Only what is outside the contract is thrown: `fetch` rejecting (the network), an error response whose body carries
- * no code (a proxy's page, not CAS: `ApiError` with the code `unknown`), a 2xx whose body is not JSON, and any
- * redirect.
+ * Everything outside the contract is thrown, and always as an `ApiError`: `fetch` rejecting, so no response came back
+ * at all (`unreachable`), an error response whose body carries no code (a proxy's page, not CAS: `unknown`), a 2xx
+ * whose body is not JSON, and any redirect. One class for all of them because they are one thing to a caller: the
+ * provider cannot be used right now.
  *
  * Unlike a browser client there is no ambient origin here: a `Client` is made with `createClient({ baseUrl })` and
  * every request resolves against that base, or against the absolute URL `atUrl` puts in its place — which is how a
@@ -19,6 +20,12 @@ const UNKNOWN_ERROR_CODE = 'unknown'
 
 /** The code of any 3xx: the client follows no redirect, so the caller decides what a navigation endpoint answered. */
 const REDIRECT_REFUSED_CODE = 'redirect_refused'
+
+/** The code of a request that produced no response at all: DNS, TLS, a refused connection, a timeout. */
+const UNREACHABLE_CODE = 'unreachable'
+
+/** The status of an `ApiError` that has no response behind it: nothing answered, so nothing has a status. */
+const NO_RESPONSE_STATUS = 0
 
 /** An error CAS answered with: the status and the error code the operation lists for it. */
 export interface ApiFailure<Code extends string = string> {
@@ -43,13 +50,19 @@ export interface ApiErrorOptions extends ErrorOptions {
 }
 
 /**
- * A response outside the contract the callers handle: a redirect, an error response whose body carries no code
- * (`unknown`), or a 2xx whose body is not JSON (`unknown`).
+ * A call that gave the caller nothing it can use: a response outside the contract — a redirect, an error response
+ * whose body carries no code (`unknown`), a 2xx whose body is not JSON (`unknown`) — or no response at all, because
+ * `fetch` itself rejected (`unreachable`).
+ *
+ * The network belongs here rather than escaping as whatever `fetch` threw: a caller mapping known failures to
+ * statuses of its own has no type to recognise a bare `TypeError` by, and would answer a routine outage with an
+ * unhandled 500.
  */
 export class ApiError extends Error {
+  /** The response's status, or `0` when the request produced no response. */
   readonly status: number
   readonly code: string
-  /** The response's headers: a refused redirect names its `Location`. */
+  /** The response's headers: a refused redirect names its `Location`. Empty when nothing answered. */
   readonly headers: Headers
 
   constructor(status: number, code: string, message: string, options: ApiErrorOptions = {}) {
@@ -129,21 +142,23 @@ type DeclaredHeaders<TOptions> = TOptions extends { headers?: infer Declared }
  *
  * `ThrowOnError` is kubb's: plugin-client prints the generic and the `throwOnError` option into every operation and
  * offers no option to leave them out, only their default. This transport has one policy, so the option admits no
- * value — a caller cannot ask for a throw that would never happen.
+ * value — a caller cannot ask for a throw that would never happen. The leading underscore keeps a consumer
+ * type-checking this source under `noUnusedParameters` from failing on the unused generic; the generated callers
+ * pass it positionally and are unaffected.
  */
 // oxlint-disable-next-line no-unused-vars -- the generated functions pass ThrowOnError
-export type Options<TOptions, ThrowOnError extends boolean = false> = Omit<TOptions, 'headers'> & {
+export type Options<TOptions, _ThrowOnError extends boolean = false> = Omit<TOptions, 'headers'> & {
   headers?: Record<string, string> & DeclaredHeaders<TOptions>
   client?: Client
   throwOnError?: never
 }
 
 /**
- * What a generated function resolves to: the success body or an error CAS answered with. `ThrowOnError` is kubb's and
- * is ignored (see `Options`).
+ * What a generated function resolves to: the success body or an error CAS answered with. `ThrowOnError` is kubb's,
+ * ignored and underscored for the reasons `Options` gives.
  */
 // oxlint-disable-next-line no-unused-vars -- the generated functions pass ThrowOnError
-export type RequestResult<Responses, ThrowOnError extends boolean = false> = Result<SuccessOf<Responses>, ErrorCodeOf<Responses>>
+export type RequestResult<Responses, _ThrowOnError extends boolean = false> = Result<SuccessOf<Responses>, ErrorCodeOf<Responses>>
 
 /** The OAuth2 error body of a failed OIDC call (RFC 6749 §5.2), which every JSON failure of these endpoints uses. */
 interface OAuthErrorBody {
@@ -192,15 +207,30 @@ const toFailure = async (response: Response): Promise<{ ok: false; error: ApiFai
   return { ok: false, error: { status: response.status, ...declared, headers: response.headers } }
 }
 
+/** The content type of the two form-bodied operations CAS describes, `/oidc/token` and the end-session form. */
+const FORM_CONTENT_TYPE = 'application/x-www-form-urlencoded'
+
+/**
+ * A form body as it goes on the wire, the object's entries in their order. An `undefined` value is left out, so an
+ * optional parameter the caller omitted is absent from the form rather than the string `undefined`. Every value is a
+ * string — the description's grant schemas carry nothing else (cas ADR 0023 (e)).
+ */
+const formBody = (body: object): string =>
+  new URLSearchParams(Object.entries(body).filter((entry): entry is [string, string] => entry[1] !== undefined)).toString()
+
 /** The body as it goes on the wire, and the content type it needs when the caller named none. */
 const encodeBody = (body: unknown, declared: string | undefined): { body: string; contentType: string } | undefined => {
   if (body === undefined) {
     return undefined
   }
-  // `/oidc/token` and the end-session form take an already-encoded form body: send the string verbatim, never quoted
-  // into JSON.
+  // The end-session form is described as an already-encoded body: send the string verbatim, never quoted into JSON.
   if (typeof body === 'string') {
-    return { body, contentType: declared ?? 'application/x-www-form-urlencoded' }
+    return { body, contentType: declared ?? FORM_CONTENT_TYPE }
+  }
+  // `/oidc/token` describes one schema per grant (cas ADR 0023), so a grant arrives here as an object and goes on the
+  // wire as the form the operation declares.
+  if (declared === FORM_CONTENT_TYPE && typeof body === 'object' && body !== null) {
+    return { body: formBody(body), contentType: declared }
   }
   return { body: JSON.stringify(body), contentType: declared ?? 'application/json' }
 }
@@ -240,14 +270,26 @@ export interface ClientOptions {
 export const createClient =
   ({ baseUrl, fetch: fetchImpl }: ClientOptions): Client =>
   async ({ method, url, body, contentType, headers }) => {
-    const send = fetchImpl ?? ((input: RequestInfo | URL, init?: RequestInit) => globalThis.fetch(input, init))
+    // Typed from `globalThis.fetch` itself rather than from `RequestInfo`, which only `lib.dom` declares: a Node
+    // consumer type-checks this source and must not have to load the browser globals to do it.
+    const send = fetchImpl ?? ((...args: Parameters<typeof globalThis.fetch>) => globalThis.fetch(...args))
     const encoded = encodeBody(body, contentType?.request)
-    const response = await send(urlOf(url, baseUrl), {
-      method,
-      redirect: 'manual',
-      headers: headersOf(encoded?.contentType, headers),
-      body: encoded?.body,
-    })
+
+    let response: Response
+    try {
+      response = await send(urlOf(url, baseUrl), {
+        method,
+        redirect: 'manual',
+        headers: headersOf(encoded?.contentType, headers),
+        body: encoded?.body,
+      })
+    } catch (cause) {
+      // Typed here, at the one place this package touches the network, so every call through it fails the same way:
+      // a caller cannot be expected to recognise `fetch`'s own rejection, which is a bare `TypeError`.
+      throw new ApiError(NO_RESPONSE_STATUS, UNREACHABLE_CODE, `${method} ${url} could not be sent: the provider could not be reached`, {
+        cause,
+      })
+    }
 
     // The caller decides what a navigation endpoint's redirect means; `redirect: 'manual'` reports it as an opaque
     // response in a browser-like runtime and as the 3xx itself elsewhere.

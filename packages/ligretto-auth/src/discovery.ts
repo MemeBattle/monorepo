@@ -30,15 +30,22 @@ const JWKS_REFETCH_COOLDOWN_MS = 30_000
  */
 const isJsonObject = (body: unknown): body is Record<string, unknown> => typeof body === 'object' && body !== null && !Array.isArray(body)
 
+/** A field a URL or a request is built from: advertised at all, and not the empty string. */
+const advertises = (document: Record<string, unknown>, field: string): boolean => typeof document[field] === 'string' && document[field] !== ''
+
 /**
- * The fields a verification reads: where to fetch the keys, and which algorithms the provider signs with. A document
- * missing one is not a provider description; caching it would fail every verification until it expires, with a
- * failure this package's contract does not name.
+ * The fields this package reads off a document: where to fetch the keys, which algorithms the provider signs with,
+ * and the three endpoints a sign-in is sent to. A document missing one is not a provider description; caching it
+ * would fail every verification and every token call until it expires, with a failure this package's contract does
+ * not name — an uncoded `TypeError` out of `new URL(undefined)`, or, for the token endpoint, a form `POST` sent to
+ * the wrong URL rather than a refusal.
  */
 const describesTheProvider = (document: unknown): document is Discovery =>
   isJsonObject(document) &&
-  typeof document.jwks_uri === 'string' &&
-  document.jwks_uri !== '' &&
+  advertises(document, 'jwks_uri') &&
+  advertises(document, 'authorization_endpoint') &&
+  advertises(document, 'token_endpoint') &&
+  advertises(document, 'end_session_endpoint') &&
   Array.isArray(document.id_token_signing_alg_values_supported) &&
   document.id_token_signing_alg_values_supported.every(alg => typeof alg === 'string')
 
@@ -162,7 +169,10 @@ export const createDiscoveryCache = ({ now = Date.now }: DiscoveryCacheOptions =
     const { data, headers } = await fetched(`The discovery document at ${url}`, () => discoveryOperation({ client: atUrl(client, url) }))
     // The shape first: what is not a provider description has no `issuer` to compare.
     if (!describesTheProvider(data)) {
-      throw new DiscoveryError('malformed_metadata', `The document at ${url} does not advertise both a \`jwks_uri\` and the algorithms it signs with`)
+      throw new DiscoveryError(
+        'malformed_metadata',
+        `The document at ${url} does not advertise all of a \`jwks_uri\`, the endpoints to send to and the algorithms it signs with`,
+      )
     }
     if (data.issuer !== issuer) {
       throw new DiscoveryError(

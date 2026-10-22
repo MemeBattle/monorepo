@@ -11,5 +11,26 @@ services:
     volumes:
       - pg-ligretto:/var/lib/postgresql/data
 
+  # The store suite's own server, brought up by ligretto-core-backend's `test` script. Separate from
+  # ligretto-core-pg so a test run can never truncate the database used for development, and on tmpfs so
+  # every run starts from an empty cluster.
+  ligretto-core-pg-test:
+    # Pinned to the version the e2e job runs, so the suite validates the oldest engine in play.
+    image: postgres:13.4
+    ports:
+      # 5435 avoids a local Postgres (5432), ligretto-core-pg (5433) and cas-pg (5434).
+      - 5435:5432
+    environment:
+      POSTGRES_PASSWORD: ligretto_pg_password
+      POSTGRES_USER: ligretto-core-user
+      POSTGRES_DB: ligretto-core-test
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ligretto-core-user -d ligretto-core-test']
+      interval: 1s
+      timeout: 5s
+      retries: 30
+
 volumes:
   pg-ligretto: {}

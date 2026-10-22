@@ -57,6 +57,14 @@ export default defineConfig({
         name: 'unit',
         files: ['app/models/**/*.test.{ts,js}', 'app/services/**/*.test.{ts,js}', 'app/helpers/**/*.test.{ts,js}'],
       },
+      {
+        // Against a real Postgres rather than the sqlite the suites above run on: row locks and `ON CONFLICT`
+        // are the subject. The glob reaches `database/tests/`, never `database/migrations/` — Lucid's runner
+        // imports every script file it finds there and demands a migration of it.
+        name: 'store',
+        files: ['app/stores/**/*.test.{ts,js}', 'database/tests/**/*.test.{ts,js}'],
+        timeout: 30000,
+      },
     ],
   },
   providers: [

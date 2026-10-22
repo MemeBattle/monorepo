@@ -2,21 +2,41 @@
   "name": "@memebattle/ligretto-auth",
   "version": "0.1.0",
   "private": true,
-  "description": "Server-side CAS client: the generated OIDC types and transport, and access-token verification",
+  "description": "Server-side CAS client: the generated OIDC types and transport, access-token verification, the confidential client and the session rules",
   "license": "MIT",
   "author": "MemeBattle",
-  "type": "module",
+  "files": [
+    "build"
+  ],
   "sideEffects": false,
   "imports": {
-    "#client": "./src/client.ts"
+    "#client": {
+      "types": "./src/client.ts",
+      "development": "./src/client.ts",
+      "node": "./build/client.js",
+      "default": "./src/client.ts"
+    }
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "node": "./build/index.js",
+      "default": "./src/index.ts"
+    },
+    "./contract": {
+      "types": "./src/contract.ts",
+      "development": "./src/contract.ts",
+      "node": "./build/contract.js",
+      "default": "./src/contract.ts"
+    }
   },
   "scripts": {
-    "ts-check": "tsc --noEmit",
+    "ts-check": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.tests.json",
     "test": "vitest",
     "test:ci": "vitest run",
+    "build": "tsc --project tsconfig.build.json",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "generate:api": "KUBB_DISABLE_TELEMETRY=1 kubb generate && node scripts/generate-error-codes.mjs"
   },
   "dependencies": {
