@@ -18,6 +18,17 @@ export const buildSearchParams = (params: Record<string, unknown>): URLSearchPar
   return searchParams
 }
 
+/** A non-2xx answer: its status and its parsed JSON body (`undefined` when the body is not JSON). */
+export class RequestError extends Error {
+  constructor(
+    readonly status: number,
+    readonly body: unknown,
+  ) {
+    super(`Request failed with status ${status}`)
+    this.name = 'RequestError'
+  }
+}
+
 async function fetchRequest<T>(method: string, path: string, body?: unknown, params?: Record<string, unknown>): Promise<{ data: T }> {
   let url = `${LIGRETTO_CORE_URL}${path}`
   if (params) {
@@ -25,9 +36,15 @@ async function fetchRequest<T>(method: string, path: string, body?: unknown, par
   }
   const response = await fetch(url, {
     method,
+    // The session is a cookie on the API origin, cross-origin in development.
+    credentials: 'include',
     headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => undefined)
+    throw new RequestError(response.status, body)
+  }
   const data = (await response.json()) as T
   return { data }
 }

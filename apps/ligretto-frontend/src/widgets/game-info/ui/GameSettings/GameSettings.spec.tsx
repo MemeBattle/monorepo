@@ -6,6 +6,7 @@ import { Provider } from 'react-redux'
 import { MemoryRouter } from 'react-router'
 import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 
+import { authInitialState } from '#ducks/auth/authSlice'
 import { createMockStore } from '#testing/lib/createMockStore'
 import { initialState, resumeGameAction } from '#ducks/game'
 import { GameSettings } from './GameSettings'
@@ -64,7 +65,7 @@ describe('GameSettings', () => {
     }
     const store = createMockStore({
       preloadedState: {
-        auth: { userId: player.id, token: '', isLoading: false },
+        auth: { ...authInitialState, userId: player.id, isBootstrapped: true },
         game: {
           ...initialState,
           game: {
@@ -108,7 +109,7 @@ describe('GameSettings', () => {
     }
     const store = createMockStore({
       preloadedState: {
-        auth: { userId: host.id, token: '', isLoading: false },
+        auth: { ...authInitialState, userId: host.id, isBootstrapped: true },
         game: {
           ...initialState,
           game: {
@@ -143,7 +144,7 @@ describe('GameSettings', () => {
     }
     const store = createMockStore({
       preloadedState: {
-        auth: { userId: player.id, token: '', isLoading: false },
+        auth: { ...authInitialState, userId: player.id, isBootstrapped: true },
         game: {
           ...initialState,
           game: {

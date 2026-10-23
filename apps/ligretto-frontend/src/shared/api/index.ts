@@ -1,13 +1,12 @@
+import type { MeResponse } from '@memebattle/ligretto-auth/contract'
+
 import { request } from '#shared/api/request'
 
 import type { UserModel } from './apiTypes'
 
-export interface GetMeResponse {
-  user: UserModel
-  token: string
-}
+export { RequestError } from './request'
 
-export const getMe = (token?: string) => request.post<GetMeResponse>('/auth/me', { token })
+export const getMe = () => request.get<MeResponse>('/auth/me')
 
 export type GetUsersResponse = Array<UserModel>
 

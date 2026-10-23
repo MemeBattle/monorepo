@@ -6,6 +6,7 @@ import { Provider } from 'react-redux'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { initialState, tapLigrettoDeckCardAction, tapStackDeckCardAction, updateGameAction } from '#ducks/game'
+import { authInitialState } from '#ducks/auth/authSlice'
 import { createMockStore } from '#testing/lib/createMockStore'
 import { GameContainer } from './GameContainer'
 
@@ -23,8 +24,8 @@ const renderGame = () => {
   }
   const store = createMockStore({
     preloadedState: {
-      auth: { userId: player.id, token: '', isLoading: false },
-      users: { ids: [player.id], entities: { [player.id]: { casId: player.id, isTemporary: true } } },
+      auth: { ...authInitialState, userId: player.id, isBootstrapped: true },
+      users: { ids: [player.id], entities: { [player.id]: { casId: player.id, accountType: 'guest', displayName: null, avatarUrl: null } } },
       game: {
         ...initialState,
         game: {
