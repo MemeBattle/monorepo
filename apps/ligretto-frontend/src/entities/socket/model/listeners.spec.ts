@@ -35,7 +35,12 @@ const setup = (getAccessToken: () => string) => {
     listeners
       .find(config => config.actionCreator?.type === getMeSuccess.type)!
       .effect(getMeSuccess({ userId: 'sub-1', accessToken: 't', expiresAt: 0, accountType: 'guest' }))
-  return { socket, stops, cleanup, onGetMeSuccess }
+  /** Delivers the socket-level `connect_error` the way socket.io emits it, to the handler the module registered. */
+  const onConnectError = () => {
+    const [, handler] = socket.on.mock.calls.find(([event]) => event === 'connect_error')!
+    handler(new Error('refused'))
+  }
+  return { socket, stops, cleanup, onGetMeSuccess, onConnectError }
 }
 
 /** The `auth` option socket.io calls on every connection attempt. */
@@ -82,12 +87,48 @@ describe('socket listeners', () => {
     expect(socket.connect).not.toHaveBeenCalled()
   })
 
+  it('retries a refused handshake once the store holds a newer token than the one it presented', () => {
+    let token = 'token-1'
+    const { socket, onConnectError } = setup(() => token)
+    readHandshakeAuth()
+
+    // The refresh landed while the handshake with token-1 was in flight; the refusal arrives after it.
+    token = 'token-2'
+    onConnectError()
+
+    expect(socket.connect).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not retry a refusal of the token the store still holds', () => {
+    const { socket, onConnectError } = setup(() => 'token-1')
+    readHandshakeAuth()
+
+    onConnectError()
+
+    expect(socket.connect).not.toHaveBeenCalled()
+  })
+
+  it('leaves a transport error to the reconnection socket.io runs on its own', () => {
+    let token = 'token-1'
+    const { socket, onConnectError } = setup(() => token)
+    readHandshakeAuth()
+    socket.active = true
+
+    token = 'token-2'
+    onConnectError()
+
+    expect(socket.connect).not.toHaveBeenCalled()
+  })
+
   it('disconnects and unsubscribes on cleanup', () => {
     const { socket, stops, cleanup } = setup(() => 'token')
 
     cleanup?.()
 
     expect(socket.disconnect).toHaveBeenCalled()
+    for (const [event, handler] of socket.on.mock.calls) {
+      expect(socket.off).toHaveBeenCalledWith(event, handler)
+    }
     expect(stops).not.toHaveLength(0)
     for (const stop of stops) {
       expect(stop).toHaveBeenCalled()

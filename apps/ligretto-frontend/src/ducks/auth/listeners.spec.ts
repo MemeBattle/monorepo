@@ -120,6 +120,21 @@ describe('auth listeners through the listener middleware', () => {
     expect(getMe).toHaveBeenCalledTimes(1)
   })
 
+  it('bounds the refreshes while the backend answers the same expiresAt inside the lead window', async () => {
+    // A browser clock ahead of the backend: every answer carries a token the browser sees inside the lead window,
+    // while the backend, outside its own refresh window, keeps answering it unchanged.
+    const sameToken = (): MeResponse => ({ ...meResponse(), expiresAt: Date.now() + REFRESH_LEAD_MS - 5_000 })
+    vi.mocked(getMe).mockImplementation(async () => ({ data: sameToken() }))
+    const store = createStore()
+
+    store.dispatch(getMeRequest())
+    await vi.advanceTimersByTimeAsync(0)
+    await vi.advanceTimersByTimeAsync(3 * RETRY_DELAY_MS - 1)
+
+    // The bootstrap and one refresh per elapsed retry delay, not one per round trip.
+    expect(getMe).toHaveBeenCalledTimes(3)
+  })
+
   it('asks me once while a request is in flight', async () => {
     answerMe(meResponse())
     const store = createStore()
@@ -191,7 +206,7 @@ describe('auth listener effects', () => {
     expect(listenerApi.dispatch).toHaveBeenCalledExactlyOnceWith(getMeRequest())
   })
 
-  it('refreshes at once when expiresAt is already past', async () => {
+  it('waits at least RETRY_DELAY_MS when expiresAt is already past', async () => {
     const listenerApi = createListenerApi()
 
     await captureEffect(getMeSuccess.type)(
@@ -199,7 +214,7 @@ describe('auth listener effects', () => {
       listenerApi,
     )
 
-    expect(listenerApi.delay).toHaveBeenCalledExactlyOnceWith(0)
+    expect(listenerApi.delay).toHaveBeenCalledExactlyOnceWith(RETRY_DELAY_MS)
     expect(listenerApi.dispatch).toHaveBeenCalledExactlyOnceWith(getMeRequest())
   })
 

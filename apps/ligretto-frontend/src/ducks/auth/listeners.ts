@@ -12,12 +12,18 @@ import type { All } from '#types/store'
 
 /**
  * `me` runs again this long before `expiresAt`. It must stay below the backend's refresh window (the grant is refreshed
- * when the access token has less than a minute left), or the answer carries the same token and the timer fires again
- * at once; and it leaves the old token comfortably alive until the new one arrives.
+ * when the access token has less than a minute left), or the answer carries the same token; and it leaves the old token
+ * comfortably alive until the new one arrives. `expiresAt` is the backend's clock and the timer runs on the browser's,
+ * so a browser clock ahead by more than the margin still reaches the backend outside its window and gets the same
+ * token back: the timer then waits at least `RETRY_DELAY_MS`, which bounds those refreshes to one per retry delay until
+ * the backend's window opens, instead of a request per round trip.
  */
 export const REFRESH_LEAD_MS = 30_000
 
-/** A failed `me` is tried again after this long: a failed bootstrap keeps the loader up, a failed refresh still holds a working token. */
+/**
+ * A failed `me` is tried again after this long: a failed bootstrap keeps the loader up, a failed refresh still holds a
+ * working token. It is also the shortest delay the refresh timer schedules.
+ */
 export const RETRY_DELAY_MS = 5_000
 
 export function addListeners(startListener: TypedStartListening<All>) {
@@ -76,7 +82,7 @@ export function addListeners(startListener: TypedStartListening<All>) {
     actionCreator: getMeSuccess,
     effect: async ({ payload }, listenerApi) => {
       listenerApi.cancelActiveListeners()
-      await listenerApi.delay(Math.max(0, payload.expiresAt - Date.now() - REFRESH_LEAD_MS))
+      await listenerApi.delay(Math.max(RETRY_DELAY_MS, payload.expiresAt - Date.now() - REFRESH_LEAD_MS))
       listenerApi.dispatch(getMeRequest())
     },
   })
