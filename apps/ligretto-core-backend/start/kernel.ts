@@ -39,6 +39,4 @@ server.use([() => import('@adonisjs/core/bodyparser_middleware'), () => import('
 | Route.get('dashboard', 'UserController.dashboard').middleware('auth')
 |
 */
-router.named({
-  casAuth: () => import('#middleware/CasAuth'),
-})
+router.named({})

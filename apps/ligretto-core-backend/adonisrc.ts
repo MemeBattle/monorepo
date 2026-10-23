@@ -70,7 +70,7 @@ export default defineConfig({
   providers: [
     () => import('@adonisjs/core/providers/app_provider'),
     () => import('@adonisjs/core/providers/hash_provider'),
-    () => import('./providers/CasServiceProvider.js'),
+    () => import('./providers/AuthProvider.js'),
     () => import('@adonisjs/lucid/database_provider'),
     () => import('@adonisjs/cors/cors_provider'),
   ],

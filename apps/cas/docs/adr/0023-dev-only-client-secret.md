@@ -64,7 +64,7 @@ binary refuses `--secret` with `--kind public` at parse time, and
 without the binary.
 
 **(b) The stable development secret lives in the monorepo's
-`.env.development`, as `LIGRETTO_CLIENT_SECRET`.** The name is the one
+`.env.development`, as `LIGRETTO_CAS_CLIENT_SECRET`.** The name is the one
 ligretto-core-backend will read (#814); this ADR only puts the value there.
 The value is `dev-only-ligretto-secret-public-by-construction`: public by
 construction, like `apps/cas/dev/signing-key.pem`, and self-describing so
@@ -81,7 +81,7 @@ deliberately not CAS's own order (`config::load_env_files` ranks
 backend presents, so an override a developer writes in `.env.local` must win
 on both sides or neither. The files are read line by line rather than
 `source`d — sourcing would overwrite an exported value, so a backend started
-with `LIGRETTO_CLIENT_SECRET` in its environment would present one secret
+with `LIGRETTO_CAS_CLIENT_SECRET` in its environment would present one secret
 while the seeded row verified another. A `--dry-run` flag prints the resolved
 argument list and runs nothing, which is how that precedence is checked
 without a database.
@@ -140,7 +140,7 @@ instead, it replaces the command and costs one re-seed of a reset database.
 - A fresh checkout reaches a working local SSO stack with no step that cannot
   be written down: reset the database, run the seed, start the backend with
   the checked-in development configuration. #814 reads
-  `LIGRETTO_CLIENT_SECRET` from the same file the seed resolved it from.
+  `LIGRETTO_CAS_CLIENT_SECRET` from the same file the seed resolved it from.
 - The crate is compiled in two shapes, so the test suite is too: the tests of
   `try_dev` and of the flag are `cfg(debug_assertions)`, the release
   refusal has its own `cfg(not(debug_assertions))` test, and the registration
