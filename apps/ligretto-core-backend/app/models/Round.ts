@@ -36,7 +36,7 @@ export default class Round extends BaseModel {
   public game: BelongsTo<typeof Game>
 
   @beforeCreate()
-  public static assignUuid(user: Game) {
-    user.id = randomUUID()
+  public static assignUuid(round: Round) {
+    round.id = randomUUID()
   }
 }
