@@ -191,7 +191,7 @@ The development database gets a `ligretto` client from:
 apps/cas/scripts/seed-dev.sh
 ```
 
-It registers ligretto's development URIs — the callback `http://localhost:<LIGRETTO_CORE_BACKEND_PORT>/api/auth/callback` on ligretto-core-backend, and `http://localhost:5174/` to return to after a logout — and passes `--secret` the stable development secret from the monorepo's `.env.development`, `LIGRETTO_CLIENT_SECRET`, so a reset development database needs no printed secret copied anywhere.
+It registers ligretto's development URIs — the callback `http://localhost:<LIGRETTO_CORE_BACKEND_PORT>/api/auth/callback` on ligretto-core-backend, and `http://localhost:5174/` to return to after a logout — and passes `--secret` the stable development secret from the monorepo's `.env.development`, `LIGRETTO_CAS_CLIENT_SECRET`, so a reset development database needs no printed secret copied anywhere.
 
 Both values are resolved with `@adonisjs/env`'s development precedence: the process environment first, then `.env.development.local`, `.env.local`, `.env.development`, `.env`. That is not CAS's own order, and it is the secret that needs it — ligretto-core-backend presents the secret through that loader, so an export, or an override written in `.env.local`, reaches the seeded row and the backend alike. The port is read from the same files only to keep the number out of the script; it is not a knob, as the monorepo's `.env.development` says. Overriding it moves the registered callback alone, away from the one the backend sends, and the two are compared byte for byte.
 

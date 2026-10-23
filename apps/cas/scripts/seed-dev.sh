@@ -18,7 +18,7 @@
 # development builds alone, so a fresh database and ligretto's checked-in
 # development configuration agree without anyone copying a printed value
 # (docs/adr/0023-dev-only-client-secret.md). An exported
-# `LIGRETTO_CLIENT_SECRET` wins over the file, as it does for the backend
+# `LIGRETTO_CAS_CLIENT_SECRET` wins over the file, as it does for the backend
 # that will present it.
 #
 # The redirect URI is ligretto-auth's callback on ligretto-core-backend
@@ -103,7 +103,7 @@ env_value() {
 }
 
 core_backend_port=$(env_value LIGRETTO_CORE_BACKEND_PORT)
-client_secret=$(env_value LIGRETTO_CLIENT_SECRET)
+client_secret=$(env_value LIGRETTO_CAS_CLIENT_SECRET)
 
 args=(
   register

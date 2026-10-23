@@ -30,8 +30,8 @@ export default class AuthProvider {
       return createAuthHandlers({
         client: createCasClient({
           issuer: Env.get('CAS_ISSUER'),
-          clientId: Env.get('LIGRETTO_CLIENT_ID'),
-          clientSecret: Env.get('LIGRETTO_CLIENT_SECRET'),
+          clientId: Env.get('LIGRETTO_CAS_CLIENT_ID'),
+          clientSecret: Env.get('LIGRETTO_CAS_CLIENT_SECRET'),
           redirectUri: Env.get('LIGRETTO_CORE_AUTH_REDIRECT_URI'),
           postLogoutRedirectUri: Env.get('LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI'),
         }),

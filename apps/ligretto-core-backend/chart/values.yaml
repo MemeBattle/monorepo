@@ -98,7 +98,7 @@ env:
   # and ligretto-deploy.yml hands this file to helm straight from the checkout, so a real secret written here is
   # committed to git and readable in the rendered Deployment. #812 delivers it the way the database credentials
   # already arrive: an ExternalSecret in templates/secrets.yaml feeding a `secretKeyRef` in the three pod
-  # templates, with LIGRETTO_CLIENT_SECRET leaving `env` at that point.
+  # templates, with LIGRETTO_CAS_CLIENT_SECRET leaving `env` at that point.
   #
   # The frontend is the other half of this contract, and it moves in #817. ligretto-frontend bootstraps with
   # `POST /api/auth/me`, which this release answers with a 404 — only GET is mounted — and it renders no route
@@ -106,9 +106,9 @@ env:
   # screen, guests included. ligretto-deploy.yml rebuilds and redeploys both apps from every push to master, so
   # this backend must not reach production separated from the new frontend.
   CAS_ISSUER: "https://cas.mems.fun"
-  LIGRETTO_CLIENT_ID: "ligretto"
+  LIGRETTO_CAS_CLIENT_ID: "ligretto"
   # A placeholder, not a secret: see the ExternalSecret note above before putting a real value here.
-  LIGRETTO_CLIENT_SECRET: "not-registered-until-812"
+  LIGRETTO_CAS_CLIENT_SECRET: "not-registered-until-812"
   LIGRETTO_CORE_AUTH_REDIRECT_URI: "https://core.ligretto.app/api/auth/callback"
   LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI: "https://ligretto.app/"
   LIGRETTO_CORE_AUTH_APP_URL: "https://ligretto.app/"

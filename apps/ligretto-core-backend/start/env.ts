@@ -31,8 +31,8 @@ export default await Env.create(new URL('../../../', import.meta.url), {
   | `localhost` and `127.0.0.1`, which the validator otherwise rejects for having no TLD.
   */
   CAS_ISSUER: Env.schema.string({ format: 'url', tld: false }),
-  LIGRETTO_CLIENT_ID: Env.schema.string(),
-  LIGRETTO_CLIENT_SECRET: Env.schema.string(),
+  LIGRETTO_CAS_CLIENT_ID: Env.schema.string(),
+  LIGRETTO_CAS_CLIENT_SECRET: Env.schema.string(),
   LIGRETTO_CORE_AUTH_REDIRECT_URI: Env.schema.string({ format: 'url', tld: false }),
   LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI: Env.schema.string({ format: 'url', tld: false }),
   /** Where the callback sends the browser once it is signed in, and where a logout with nothing to end goes. */
