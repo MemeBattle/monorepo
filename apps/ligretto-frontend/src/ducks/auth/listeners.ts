@@ -11,12 +11,11 @@ import { restartOnHome } from '#shared/api/authNavigation'
 import type { All } from '#types/store'
 
 /**
- * `me` runs again this long before `expiresAt`. It must stay below the backend's refresh window (the grant is refreshed
- * when the access token has less than a minute left), or the answer carries the same token; and it leaves the old token
- * comfortably alive until the new one arrives. `expiresAt` is the backend's clock and the timer runs on the browser's,
- * so a browser clock ahead by more than the margin still reaches the backend outside its window and gets the same
- * token back: the timer then waits at least `RETRY_DELAY_MS`, which bounds those refreshes to one per retry delay until
- * the backend's window opens, instead of a request per round trip.
+ * `me` runs again this long before `expiresAt`. The backend refreshes the grant only when the access token has less
+ * than a minute left, so the lead stays below that minute, or the answer carries the same token. The lead also keeps
+ * the old token alive until the new one arrives. `expiresAt` is on the backend's clock and the timer on the browser's.
+ * A browser clock ahead by more than the margin reaches the backend outside its window and gets the same token back.
+ * The timer then waits at least `RETRY_DELAY_MS`, so those refreshes run once per retry delay, not once per round trip.
  */
 export const REFRESH_LEAD_MS = 30_000
 
@@ -30,8 +29,8 @@ export function addListeners(startListener: TypedStartListening<All>) {
   startListener({
     actionCreator: getMeRequest,
     effect: async (_action, listenerApi) => {
-      // RTK allows getOriginalState() only synchronously: after the first `await` it throws. These three values are
-      // read once, here, and are what the rest of the effect decides on.
+      // RTK allows getOriginalState() only synchronously: after the first `await` it throws. The effect reads these
+      // three values once, here.
       const { isLoading, isBootstrapped: wasBootstrapped, userId: previousUserId } = listenerApi.getOriginalState().auth
 
       // The reducer sets isLoading synchronously, so a value of `true` *before* this action means another identity
