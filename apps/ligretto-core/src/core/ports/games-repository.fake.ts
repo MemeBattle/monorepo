@@ -46,7 +46,8 @@ export const createFakeGamesRepository = (users: Pick<FakeUsersRepository, 'has'
         // Another game's callback holds the id: wait for it to commit or roll back, as the unique index makes Postgres.
         for (let held = reservations.get(roundId); held !== undefined && held !== settled; held = reservations.get(roundId)) {
           await held
-          if (rounds.has(roundId)) {
+          // Recheck staged rounds too: another insert of this callback may have staged the id while this one waited.
+          if (find(roundId) !== undefined) {
             return { inserted: false }
           }
         }

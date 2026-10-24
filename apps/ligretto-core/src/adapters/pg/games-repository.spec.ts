@@ -283,4 +283,28 @@ describe('GamesRepository: in-memory fake, one round id raced by two games', () 
     expect(secondResult).toEqual({ status: 'fulfilled', value: { status: 'ok', value: { inserted: true } } })
     expect([...repo.rounds]).toEqual([[roundId, { gameId: second, results: [{ playerId: 'bob', score: 2 }] }]])
   })
+
+  it('answers the second of two waiting inserts in one callback inserted: false after a rollback', async () => {
+    const { repo, first, second, roundId, enterSecond, secondEntered } = await setup()
+    const rollback = new Error('rolled back')
+    const [firstResult, secondResult] = await Promise.allSettled([
+      repo.withGame(first, async game => {
+        expect(await game.insertRound(roundId, [{ playerId: 'alice', score: 1 }])).toEqual({ inserted: true })
+        await secondEntered
+        throw rollback
+      }),
+      repo.withGame(second, async game => {
+        // Both inserts start before either resolves, so both wait on the first game's reservation.
+        const answers = Promise.all([
+          game.insertRound(roundId, [{ playerId: 'bob', score: 2 }]),
+          game.insertRound(roundId, [{ playerId: 'bob', score: 3 }]),
+        ])
+        enterSecond()
+        return answers
+      }),
+    ])
+    expect(firstResult).toEqual({ status: 'rejected', reason: rollback })
+    expect(secondResult).toEqual({ status: 'fulfilled', value: { status: 'ok', value: [{ inserted: true }, { inserted: false }] } })
+    expect([...repo.rounds]).toEqual([[roundId, { gameId: second, results: [{ playerId: 'bob', score: 2 }] }]])
+  })
 })
