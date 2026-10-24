@@ -169,6 +169,7 @@ catalog:
   wrangler: 4.149.0
   youch: 4.1.1
   youch-terminal: 2.2.3
+  zod: 4.6.5
 
 # @adonisjs/assembler (peer `typescript: ^5.0.0 || ^6.0.0`) drives `node ace build` through
 # the TypeScript JS API, which TS 7 dropped — `ts.getParsedCommandLineOfConfigFile` is gone.

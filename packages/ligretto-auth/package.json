@@ -29,6 +29,12 @@
       "development": "./src/contract.ts",
       "node": "./build/contract.js",
       "default": "./src/contract.ts"
+    },
+    "./schema": {
+      "types": "./src/schema.ts",
+      "development": "./src/schema.ts",
+      "node": "./build/schema.js",
+      "default": "./src/schema.ts"
     }
   },
   "scripts": {
@@ -40,7 +46,8 @@
     "generate:api": "KUBB_DISABLE_TELEMETRY=1 kubb generate && node scripts/generate-error-codes.mjs"
   },
   "dependencies": {
-    "jose": "catalog:"
+    "jose": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@kubb/adapter-oas": "catalog:",

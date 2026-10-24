@@ -21,11 +21,21 @@ const UNKNOWN_ERROR_CODE = 'unknown'
 /** The code of any 3xx: the client follows no redirect, so the caller decides what a navigation endpoint answered. */
 const REDIRECT_REFUSED_CODE = 'redirect_refused'
 
-/** The code of a request that produced no response at all: DNS, TLS, a refused connection, a timeout. */
+/**
+ * The code of a request that produced no usable response: no response at all — DNS, TLS, a refused connection — or
+ * a response whose body never arrived within the request timeout.
+ */
 const UNREACHABLE_CODE = 'unreachable'
 
-/** The status of an `ApiError` that has no response behind it: nothing answered, so nothing has a status. */
+/** The status of an `ApiError` that has no usable response behind it: nothing answered in full, so nothing has a status. */
 const NO_RESPONSE_STATUS = 0
+
+/**
+ * The longest request timeout accepted: timers are 32-bit signed milliseconds on every runtime, and Node turns a
+ * larger value into 1 ms with a warning. `0` is excluded on purpose (it aborts before the request is sent), and a
+ * fraction is excluded because `AbortSignal.timeout` throws on one.
+ */
+const MAX_TIMEOUT_MS = 2_147_483_647
 
 /** An error CAS answered with: the status and the error code the operation lists for it. */
 export interface ApiFailure<Code extends string = string> {
@@ -59,7 +69,7 @@ export interface ApiErrorOptions extends ErrorOptions {
  * unhandled 500.
  */
 export class ApiError extends Error {
-  /** The response's status, or `0` when the request produced no response. */
+  /** The response's status, or `0` when the request produced no usable response. */
   readonly status: number
   readonly code: string
   /** The response's headers: a refused redirect names its `Location`. Empty when nothing answered. */
@@ -181,10 +191,28 @@ const isEnvelopeErrorBody = (body: unknown): body is EnvelopeErrorBody => {
   return typeof error === 'object' && error !== null && typeof (error as EnvelopeErrorBody['error']).code === 'string'
 }
 
-const readBody = async (response: Response): Promise<unknown> => {
+/** Bounds one step of a request by its deadline: the work, or the timeout's `ApiError` once the deadline fires. */
+type Bounded = <T>(work: Promise<T>) => Promise<T>
+
+/** A request without a deadline: every step is the work itself. */
+const unbounded: Bounded = async work => await work
+
+/**
+ * The body as JSON, or `undefined` when it is not JSON. A deadline that fires while the body is read is not "not
+ * JSON": it leaves as the timeout's `ApiError` — the `bounded` race's own rejection, or the signal's reason a real
+ * `fetch` errors the body stream with — so a stalled body is reported as the outage it is.
+ */
+const readBody = async (response: Response, bounded: Bounded, timedOut: (cause: unknown) => ApiError | undefined): Promise<unknown> => {
   try {
-    return await response.json()
-  } catch {
+    return await bounded(response.json())
+  } catch (cause) {
+    const timeout = cause instanceof ApiError ? cause : timedOut(cause)
+    if (timeout !== undefined) {
+      // Best effort: a body nobody will read any more must not keep a real connection open. A real `fetch` has
+      // already errored the stream with the signal's reason; a stream still locked by the pending read refuses.
+      response.body?.cancel(timeout.cause).catch(() => undefined)
+      throw timeout
+    }
     return undefined
   }
 }
@@ -192,8 +220,12 @@ const readBody = async (response: Response): Promise<unknown> => {
 const asMessage = (value: unknown, fallback: string): string => (typeof value === 'string' ? value : fallback)
 
 /** An error response as the failure CAS answered with, or the `ApiError` to throw when its body carries no code. */
-const toFailure = async (response: Response): Promise<{ ok: false; error: ApiFailure } | ApiError> => {
-  const body = await readBody(response)
+const toFailure = async (
+  response: Response,
+  bounded: Bounded,
+  timedOut: (cause: unknown) => ApiError | undefined,
+): Promise<{ ok: false; error: ApiFailure } | ApiError> => {
+  const body = await readBody(response, bounded, timedOut)
   const fallback = response.statusText || 'Request failed'
   const declared = isOAuthErrorBody(body)
     ? { code: body.error, message: asMessage(body.error_description, fallback) }
@@ -264,31 +296,88 @@ export interface ClientOptions {
   baseUrl: string
   /** The `fetch` to send with, for a runtime that does not have a global one and for tests. */
   fetch?: typeof globalThis.fetch
+  /**
+   * Bounds one request from the call to `fetch` to the end of its body. An integer from 1 to 2147483647
+   * milliseconds, the range `AbortSignal.timeout` supports on every runtime; no bound when left out. A request that
+   * outlives it fails as an `ApiError` `unreachable`, its `cause` the `TimeoutError`.
+   */
+  requestTimeoutMs?: number
+}
+
+/** The timeout as given, refused at construction when no runtime can honour it as it stands. */
+const requestTimeoutOf = (value: unknown): number | undefined => {
+  if (value === undefined) {
+    return undefined
+  }
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > MAX_TIMEOUT_MS) {
+    throw new TypeError(`The request timeout must be an integer from 1 to ${MAX_TIMEOUT_MS} milliseconds; got ${String(value)}.`)
+  }
+  return value
 }
 
 /** A client that sends every request to `baseUrl`, following no redirect. */
-export const createClient =
-  ({ baseUrl, fetch: fetchImpl }: ClientOptions): Client =>
-  async ({ method, url, body, contentType, headers }) => {
+export const createClient = ({ baseUrl, fetch: fetchImpl, requestTimeoutMs: requested }: ClientOptions): Client => {
+  // Validated once, here, so that no accepted configuration can throw on the request path or silently become 1 ms.
+  const requestTimeoutMs = requestTimeoutOf(requested)
+
+  return async ({ method, url, body, contentType, headers }) => {
     // Typed from `globalThis.fetch` itself rather than from `RequestInfo`, which only `lib.dom` declares: a Node
     // consumer type-checks this source and must not have to load the browser globals to do it.
     const send = fetchImpl ?? ((...args: Parameters<typeof globalThis.fetch>) => globalThis.fetch(...args))
     const encoded = encodeBody(body, contentType?.request)
 
+    // One deadline for the whole request: the headers and the body alike, so a caller holding a lock across this call
+    // waits no longer than the bound whichever phase the provider stalls in.
+    const deadline = requestTimeoutMs === undefined ? undefined : AbortSignal.timeout(requestTimeoutMs)
+    const timeoutError = (cause: unknown): ApiError =>
+      new ApiError(NO_RESPONSE_STATUS, UNREACHABLE_CODE, `${method} ${url} did not answer within ${requestTimeoutMs} ms`, { cause })
+    /** The timeout's `ApiError` when the deadline is what failed the step, `undefined` for any other failure. */
+    const timedOut = (cause: unknown): ApiError | undefined => (deadline?.aborted === true ? timeoutError(cause) : undefined)
+    const bounded: Bounded =
+      deadline === undefined
+        ? unbounded
+        : async work => {
+            let onAbort = (): void => undefined
+            const expired = new Promise<never>((_, reject) => {
+              onAbort = () => reject(timeoutError(deadline.reason))
+              if (deadline.aborted) {
+                onAbort()
+              } else {
+                deadline.addEventListener('abort', onAbort, { once: true })
+              }
+            })
+            try {
+              return await Promise.race([work, expired])
+            } finally {
+              // A deadline that fires after the work settled must reject nothing: `expired` is never awaited again.
+              deadline.removeEventListener('abort', onAbort)
+            }
+          }
+
     let response: Response
     try {
-      response = await send(urlOf(url, baseUrl), {
-        method,
-        redirect: 'manual',
-        headers: headersOf(encoded?.contentType, headers),
-        body: encoded?.body,
-      })
+      response = await bounded(
+        send(urlOf(url, baseUrl), {
+          method,
+          redirect: 'manual',
+          headers: headersOf(encoded?.contentType, headers),
+          body: encoded?.body,
+          ...(deadline === undefined ? {} : { signal: deadline }),
+        }),
+      )
     } catch (cause) {
+      if (cause instanceof ApiError) {
+        throw cause
+      }
       // Typed here, at the one place this package touches the network, so every call through it fails the same way:
-      // a caller cannot be expected to recognise `fetch`'s own rejection, which is a bare `TypeError`.
-      throw new ApiError(NO_RESPONSE_STATUS, UNREACHABLE_CODE, `${method} ${url} could not be sent: the provider could not be reached`, {
-        cause,
-      })
+      // a caller cannot be expected to recognise `fetch`'s own rejection, which is a bare `TypeError`. A `fetch` given
+      // the deadline rejects with its reason once it fires; the `aborted` flag is the test, not the error's name.
+      throw (
+        timedOut(cause) ??
+        new ApiError(NO_RESPONSE_STATUS, UNREACHABLE_CODE, `${method} ${url} could not be sent: the provider could not be reached`, {
+          cause,
+        })
+      )
     }
 
     // The caller decides what a navigation endpoint's redirect means; `redirect: 'manual'` reports it as an opaque
@@ -300,7 +389,7 @@ export const createClient =
     }
 
     if (!response.ok) {
-      const failure = await toFailure(response)
+      const failure = await toFailure(response, bounded, timedOut)
       if (failure instanceof ApiError) {
         throw failure
       }
@@ -313,7 +402,7 @@ export const createClient =
 
     // A success is only a success once its body can be read: an interstitial that answers 200 with a page is not the
     // contract, and a caller that branches on `ApiError` must see it as one rather than as a raw `SyntaxError`.
-    const data = await readBody(response)
+    const data = await readBody(response, bounded, timedOut)
     if (data === undefined) {
       throw new ApiError(response.status, UNKNOWN_ERROR_CODE, `${method} ${url} answered ${response.status} with a body that is not JSON`, {
         headers: response.headers,
@@ -322,6 +411,7 @@ export const createClient =
 
     return { ok: true, status: response.status, headers: response.headers, data }
   }
+}
 
 /**
  * `client` with the request's URL replaced by an absolute one. It is how a generated operation reaches the endpoint

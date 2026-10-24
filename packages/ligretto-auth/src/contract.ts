@@ -1,74 +1,40 @@
 /**
- * What the handlers of `./handlers` answer, as types alone: `export type` only, so this module is erased from
- * whatever bundles it and carries nothing a browser must not hold — no client secret, no `fetch`, no code at all.
+ * What the handlers of `./handlers` answer, as types alone: derived from the schemas of `./schema` with `z.infer`, and
+ * imported with `import type` only, so this module is erased from whatever bundles it and carries nothing a browser
+ * must not hold — no client secret, no `fetch`, no zod, no code at all.
  *
  * It is the package's second entry, `@memebattle/ligretto-auth/contract`, so a frontend types its calls against the
  * same declaration the backend answers from instead of a copy that drifts. The rest of the package stays server-only.
+ * The field documentation lives on the schemas, where the OpenAPI document picks it up.
  */
 
+import type { z } from 'zod'
 import type { AccountType } from './generated/models/AccountType'
+import type {
+  AuthErrorCodeSchema,
+  AuthErrorResponseSchema,
+  AuthUserSchema,
+  CallbackQuerySchema,
+  MeResponseSchema,
+  NavigationResponseSchema,
+} from './schema'
 
 export type { AccountType }
 
-/** The account as a page may show it: the snapshot the latest validated ID token gave, nothing of the grant. */
-export interface AuthUser {
-  /** The account id, stable across a guest upgrade. Application data is keyed on it (§8). */
-  sub: string
-  accountType: AccountType
-  /** The display name, `null` for a guest and for a full account that has none. */
-  name: string | null
-  avatarUrl: string | null
-}
+/** The account as a page may show it; `AuthUserSchema`. */
+export type AuthUser = z.infer<typeof AuthUserSchema>
 
-/** The answer of `GET me`: who the user is, and the access token to call this application's own API with. */
-export interface MeResponse {
-  user: AuthUser
-  accessToken: string
-  /** When the access token expires, epoch milliseconds: what a refresh timer in the browser is scheduled from. */
-  expiresAt: number
-  /**
-   * `true` when a full account's grant had ended and the guest in this answer replaced it: the user was signed in
-   * and is not any more, so the UI offers a sign-in rather than silently showing a guest. `false` for every other
-   * answer, a guest whose own grant ended included — there was nothing to sign out of.
-   */
-  signedOut: boolean
-  /**
-   * The session id, in the `bearer` transport only, and only when this answer *created* the session: a guest minted
-   * because the request presented no id, or none the store still holds. An answer for a session the caller already
-   * presented carries none — the caller is holding that id already, and an answer delivered late (a refresh timer in
-   * another tab, arriving after a sign-in completed in this one) must not be able to put a retired id back in use.
-   * The cookie transport never puts the id in a body at all.
-   */
-  sessionId?: string
-}
+/** The answer of `GET me`; `MeResponseSchema`. */
+export type MeResponse = z.infer<typeof MeResponseSchema>
 
-/**
- * Where the browser is to navigate, for a route the `bearer` transport cannot answer with a redirect: the session id
- * travels in a header, which a navigation cannot set, so `sign-in` and `logout` are fetched and the navigation is
- * the caller's. The `cookie` transport answers these routes `302` and never this.
- */
-export interface NavigationResponse {
-  url: string
-}
+/** Where the browser is to navigate, in the `bearer` transport; `NavigationResponseSchema`. */
+export type NavigationResponse = z.infer<typeof NavigationResponseSchema>
 
-/** Why a handler refused. Stable: a caller branches on it, and 500 is never one of these — it is the unhandled. */
-export type AuthErrorCode =
-  /** The callback carries no `state` this browser started a sign-in with, or one that has expired or been used. */
-  | 'unknown_state'
-  /** The sign-in itself failed: no code came back, the code was spent, or CAS refused the request (400). */
-  | 'sign_in_failed'
-  /** CAS is rate-limiting this client; `Retry-After` carries the delay to wait out (429). */
-  | 'rate_limit_exceeded'
-  /** CAS, or whatever answered in its place, cannot be used right now. Transient; try again (503). */
-  | 'cas_unavailable'
-  /** CAS refused this client's registration or the shape of its request. Not transient: an operator must act (503). */
-  | 'cas_rejected'
+/** Why a handler refused, as a union of literals; `AuthErrorCodeSchema`. */
+export type AuthErrorCode = z.infer<typeof AuthErrorCodeSchema>
 
-/** A handler's refusal, as JSON. */
-export interface AuthErrorResponse {
-  error: AuthErrorCode
-  /** For the developer and the logs; a caller branches on `error`. */
-  description?: string
-  /** The code CAS itself named, when the refusal came from CAS. */
-  casError?: string
-}
+/** A handler's refusal, as JSON; `AuthErrorResponseSchema`. */
+export type AuthErrorResponse = z.infer<typeof AuthErrorResponseSchema>
+
+/** The query CAS sends the browser back to the callback with; `CallbackQuerySchema`. */
+export type CallbackQuery = z.infer<typeof CallbackQuerySchema>

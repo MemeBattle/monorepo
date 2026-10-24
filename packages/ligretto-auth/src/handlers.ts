@@ -5,8 +5,9 @@
  *
  * They are the HTTP half of what `./sessions` decides: `me` keeps a usable access token in front of the browser,
  * `sign-in` and `callback` run the authorization code flow of §4 and §5, `logout` the RP-initiated logout of §11.
- * Where the session id travels is `./transport`'s, and what the answers look like is declared in `./contract`, which
- * a browser bundle may import.
+ * Where the session id travels is `./transport`'s, and what the answers look like is declared in `./schema`, whose
+ * types `./contract` derives for a browser bundle to import. The callback's query is the one input parsed with its
+ * schema; every body is built as a value of a derived type and never parsed.
  *
  * **Known failures never become a 500.** Every typed refusal of the CAS client — `TokenEndpointError`, `ApiError`,
  * `InvalidIdTokenError`, `DiscoveryError`, `UnusableGrantError`, `CallbackStateError` — funnels through one mapping
@@ -18,10 +19,11 @@
 import type { CasClient } from './cas-client'
 import { UnusableGrantError } from './cas-client'
 import { ApiError } from './client'
-import type { AuthErrorResponse, MeResponse } from './contract'
+import type { AuthErrorResponse, CallbackQuery, MeResponse } from './contract'
 import type { TokenEndpointErrorCode } from './errors'
 import { DiscoveryError, InvalidIdTokenError, TokenEndpointError } from './errors'
 import type { Session, SessionStore } from './session-store'
+import { CallbackQuerySchema } from './schema'
 import type { BeginSignInResult, CompleteSignInResult, SessionContext } from './sessions'
 import { beginSignIn, CallbackStateError, completeSignIn, endSession, mintGuest, refreshSession, UnknownSessionError } from './sessions'
 import type { SessionTransportKind } from './transport'
@@ -148,6 +150,22 @@ const authorizationRefusalOf = (code: string, description: string): Refusal => {
   return { status: 400, body: { error: 'sign_in_failed', description, casError: code } }
 }
 
+/**
+ * The callback's query, parsed with its schema, or `undefined` when it does not satisfy it — which, `state` being the
+ * only required parameter, is a callback without one. A repeated parameter keeps its first value, as
+ * `URLSearchParams.get` does: `Object.fromEntries` would keep the last.
+ */
+const callbackQueryOf = (request: Request): CallbackQuery | undefined => {
+  const raw: Record<string, string> = {}
+  for (const [name, value] of new URL(request.url).searchParams) {
+    if (!Object.hasOwn(raw, name)) {
+      raw[name] = value
+    }
+  }
+  const parsed = CallbackQuerySchema.safeParse(raw)
+  return parsed.success ? parsed.data : undefined
+}
+
 const json = (status: number, body: unknown, headers: Headers = new Headers()): Response => {
   headers.set('Content-Type', 'application/json')
   headers.set('Cache-Control', 'no-store')
@@ -272,29 +290,27 @@ export const createAuthHandlers = (options: AuthHandlersOptions): AuthHandlers =
 
   const callback = async (request: Request): Promise<Response> =>
     await handled(async () => {
-      const query = new URL(request.url).searchParams
-      const state = query.get('state')
+      const query = callbackQueryOf(request)
       const expected = stateCookieOf(request)
 
       // §4: the `state` is compared with the value stored for *this* browser, before anything is exchanged. The
       // cookie is left in place on every refusal below — clearing it would let a stray callback kill a sign-in this
       // browser legitimately has in flight, and it expires with the pending request anyway.
-      if (expected === undefined || state === null || state !== expected) {
+      if (expected === undefined || query === undefined || query.state !== expected) {
         return refusalResponse({
           status: 400,
           body: { error: 'unknown_state', description: 'The callback does not match a sign-in this browser started.' },
         })
       }
 
-      const casError = query.get('error')
-      if (casError !== null) {
-        return refusalResponse(authorizationRefusalOf(casError, query.get('error_description') ?? 'CAS refused the authorization request.'))
+      const { state, code, error: casError, error_description: casErrorDescription } = query
+      if (casError !== undefined) {
+        return refusalResponse(authorizationRefusalOf(casError, casErrorDescription ?? 'CAS refused the authorization request.'))
       }
 
-      const code = query.get('code')
       // Checked here rather than left to `completeSignIn`, which consumes the pending request *before* it redeems
       // the code: a callback with no code would spend a sign-in this browser could still have completed.
-      if (code === null || code === '') {
+      if (code === undefined || code === '') {
         return refusalResponse({ status: 400, body: { error: 'sign_in_failed', description: 'The callback carries no authorization code.' } })
       }
 

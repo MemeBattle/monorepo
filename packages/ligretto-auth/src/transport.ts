@@ -14,6 +14,7 @@
  * cookie reaches it even when the application's page is cross-origin.
  */
 
+import type { NavigationResponse } from './contract'
 import type { Session } from './session-store'
 import { PENDING_REQUEST_TTL_MS } from './sessions'
 
@@ -164,7 +165,8 @@ const bearerTransport = (): SessionTransport => ({
   },
   navigation: (url, headers) => {
     headers.set('Content-Type', 'application/json')
-    return new Response(JSON.stringify({ url }), { status: 200, headers: noStore(headers) })
+    const body: NavigationResponse = { url }
+    return new Response(JSON.stringify(body), { status: 200, headers: noStore(headers) })
   },
 })
 

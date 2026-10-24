@@ -41,6 +41,25 @@ export const gate = (): Gate => {
   return { promise, release }
 }
 
+/**
+ * A promise that never settles without a signal, and rejects with the signal's reason once it aborts — at once when
+ * it already has. It is how a stalled CAS gives up the way a real `fetch` does when the caller's deadline fires.
+ */
+export const untilAborted = async (signal: AbortSignal | null | undefined): Promise<never> =>
+  await new Promise<never>((_, reject) => {
+    if (signal === null || signal === undefined) {
+      return
+    }
+    if (signal.aborted) {
+      reject(signal.reason)
+      return
+    }
+    signal.addEventListener('abort', () => reject(signal.reason), { once: true })
+  })
+
+/** A body whose bytes never arrive: the headers are sent and the stream stays open, linked to no signal. */
+export const stalledBody = (): ReadableStream<Uint8Array> => new ReadableStream({ pull: () => new Promise<void>(() => undefined) })
+
 /** A token request as the stub saw it on the wire. */
 export interface RecordedTokenRequest {
   authorization: string | null
@@ -74,6 +93,8 @@ export interface TokenAnswer {
   scope?: string
   /** An answer served verbatim, for what is outside the contract: a proxy's HTML page rather than CAS's JSON. */
   raw?: { status: number; body: string; headers?: Record<string, string> }
+  /** Sends the answer's status and headers, then a body that never ends: a CAS that stalls after the headers. */
+  stalledBody?: boolean
 }
 
 export interface CasStubOptions {
@@ -161,8 +182,12 @@ export const casStub = async (options: CasStubOptions = {}) => {
   const json = (status: number, body: unknown, headers: Record<string, string> = {}): Response =>
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } })
 
-  const tokenAnswer = async (answer: TokenAnswer): Promise<Response> => {
-    await answer.until
+  const tokenAnswer = async (answer: TokenAnswer, signal: AbortSignal | null | undefined): Promise<Response> => {
+    // A held answer is given up when the caller's deadline fires, as a real `fetch` gives up on a server that stalls.
+    await Promise.race([answer.until, untilAborted(signal)])
+    if (answer.stalledBody === true) {
+      return new Response(stalledBody(), { status: answer.failure?.status ?? 200, headers: { 'Content-Type': 'application/json' } })
+    }
     if (answer.raw !== undefined) {
       return new Response(answer.raw.body, { status: answer.raw.status, headers: answer.raw.headers })
     }
@@ -200,7 +225,7 @@ export const casStub = async (options: CasStubOptions = {}) => {
     }
 
     const answer = answers.shift() ?? {}
-    const response = await tokenAnswer(answer)
+    const response = await tokenAnswer(answer, init?.signal)
     if (response.status === 200 && grantType === 'refresh_token' && presented !== null) {
       retired.add(presented)
     }
