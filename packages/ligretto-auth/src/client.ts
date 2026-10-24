@@ -198,9 +198,9 @@ type Bounded = <T>(work: Promise<T>) => Promise<T>
 const unbounded: Bounded = async work => await work
 
 /**
- * The body as JSON, or `undefined` when it is not JSON. A deadline that fires while the body is read is not "not
- * JSON": it leaves as the timeout's `ApiError` — the `bounded` race's own rejection, or the signal's reason a real
- * `fetch` errors the body stream with — so a stalled body is reported as the outage it is.
+ * The body as JSON, or `undefined` when it is not JSON. A deadline that fires while the body is read throws the
+ * timeout's `ApiError` instead, whether the `bounded` race rejected or a real `fetch` errored the body stream with the
+ * signal's reason: a stalled body is an outage, not a body that is not JSON.
  */
 const readBody = async (response: Response, bounded: Bounded, timedOut: (cause: unknown) => ApiError | undefined): Promise<unknown> => {
   try {

@@ -239,13 +239,13 @@ signedOut }`, with `expiresAt` in epoch milliseconds. A grant that has
   With a session it force-refreshes and, for a **guest**, hints with the
   freshly issued ID token (§9). If that session turns out to be gone, the
   sign-in starts again without one: the user asked to sign in either way.
-- **`callback`** parses its query with `CallbackQuerySchema` — the one
-  input a handler validates; a parameter it does not read is ignored, and a
-  query without `state` is `unknown_state` — compares the `state` with the
-  cookie this browser holds, handles an `error` CAS sent, checks that a code is actually there,
-  redeems it, installs the new session and redirects to `appUrl`. A `sub`
-  that is not the one the sign-in started from is reported as
-  `?previous_sub=<sub>` on that redirect, never merged (§9).
+- **`callback`** parses its query with `CallbackQuerySchema`, the one input
+  a handler validates: a parameter it does not read is ignored, and a query
+  without `state` is `unknown_state`. It then compares the `state` with the
+  cookie this browser holds, handles an `error` CAS sent, checks that a code
+  is actually there, redeems it, installs the new session and redirects to
+  `appUrl`. A `sub` that is not the one the sign-in started from is reported
+  as `?previous_sub=<sub>` on that redirect, never merged (§9).
 - **`logout`** ends this application's session and sends the browser to
   CAS's `end_session` with the `id_token_hint` and the registered
   `post_logout_redirect_uri` (§11). It also takes the `state` cookie back, so
@@ -635,10 +635,10 @@ repository keeps:
   that function consumes the pending request _before_ it redeems the code: a
   callback with none would spend a sign-in the browser could still have
   completed, and send a junk exchange to CAS.
-- Schemas and types exist in both directions, run-time validation is for
-  input only: the callback's query is parsed with its schema, no outgoing
-  body is parsed in production, and the tests parse every answer against its
-  route's fragment — the rule `apps/ligretto-core` follows
+- Run-time validation is for input only: the callback's query is parsed
+  with its schema, no outgoing body is parsed in production, and the tests
+  parse every answer against its route's fragment — the rule
+  `apps/ligretto-core` follows
   ([api-contract-openapi-and-client-package.md](../../apps/ligretto-core/docs/adrs/api-contract-openapi-and-client-package.md)).
   The fragments are plain objects, not the library's type: the package
   depends on no framework, and compatibility with `RouteConfig` is compiled

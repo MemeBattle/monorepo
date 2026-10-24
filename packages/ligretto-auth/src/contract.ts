@@ -31,7 +31,7 @@ export type MeResponse = z.infer<typeof MeResponseSchema>
 /** Where the browser is to navigate, in the `bearer` transport; `NavigationResponseSchema`. */
 export type NavigationResponse = z.infer<typeof NavigationResponseSchema>
 
-/** Why a handler refused, as a union of literals; `AuthErrorCodeSchema`. */
+/** Why a handler refused; `AuthErrorCodeSchema`. */
 export type AuthErrorCode = z.infer<typeof AuthErrorCodeSchema>
 
 /** A handler's refusal, as JSON; `AuthErrorResponseSchema`. */

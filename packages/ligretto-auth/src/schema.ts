@@ -4,9 +4,8 @@
  * contract — `./contract` derives its types from it, and a host documents the routes it mounts from it
  * (`apps/ligretto-core/docs/adrs/api-contract-openapi-and-client-package.md`).
  *
- * Schemas and types exist in both directions, run-time validation is for input only: the callback parses its query
- * with `CallbackQuerySchema`, and every body a handler answers is built as a value of a type derived here and never
- * parsed in production. The tests parse the answers; production does not.
+ * Run-time validation is for input only: the callback parses its query with `CallbackQuerySchema`, and every body a
+ * handler answers is built as a value of a type derived here. Only the tests parse the answers.
  */
 
 import { z } from 'zod'
@@ -19,7 +18,7 @@ import type { AccountType } from './generated/models/AccountType'
  */
 export type SessionTransportKind = 'cookie' | 'bearer'
 
-/** The account types, in the order the description lists them. */
+/** The account types, in the order of CAS's generated `AccountType`. */
 export const ACCOUNT_TYPES = ['guest', 'full'] as const satisfies readonly AccountType[]
 
 /**

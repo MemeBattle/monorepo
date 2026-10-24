@@ -774,7 +774,7 @@ describe.each(TRANSPORTS)('the %s transport', kind => {
       expect(h.cas.tokenRequests).toEqual([])
     })
 
-    it('sorts an error CAS sent back with a parameter this package does not read', async () => {
+    it('refuses an error CAS sent back as `sign_in_failed`, ignoring a parameter this package does not read', async () => {
       const h = await harness(kind)
       const { state } = await signInBegun(h)
 
@@ -786,7 +786,7 @@ describe.each(TRANSPORTS)('the %s transport', kind => {
       expect(h.cas.tokenRequests).toEqual([])
     })
 
-    it('reads the first value of a repeated state, as the query parser always has', async () => {
+    it('reads the first value of a repeated state, as `URLSearchParams.get` does', async () => {
       const h = await harness(kind)
       const { url, state } = await signInBegun(h)
       h.cas.answer({ claims: { nonce: nonceOf(url) } })
