@@ -47,23 +47,31 @@ describe('the migrate entry', () => {
   it('creates the schema on an empty database, then has nothing to do', async () => {
     const first = await runEntry('src/entry/migrate.ts', url)
     expect(first.code, first.stderr).toBe(0)
+    // Not the exact lists: the code-previous CI job runs this spec of master on the schema of a pull request, which
+    // may add migrations and tables. The committed row types pin the schema (the codegen diff of schema-current).
     const applied = lines(first.stdout).filter(line => line.message === 'migration')
-    expect(applied).toEqual([expect.objectContaining({ status: 'Success', direction: 'Up', name: expect.stringMatching(/_initial_schema$/) })])
+    expect(applied.length).toBeGreaterThan(0)
+    for (const line of applied) {
+      expect(line).toMatchObject({ status: 'Success', direction: 'Up' })
+    }
+    expect(applied[0]).toMatchObject({ name: expect.stringMatching(/_initial_schema$/) })
 
     const tables = await query<{ table_name: string }>(
       "select table_name from information_schema.tables where table_schema = 'public' order by table_name",
     )
-    expect(tables.map(row => row.table_name)).toEqual([
-      'auth_requests',
-      'games',
-      'kysely_migration',
-      'kysely_migration_lock',
-      'round_users',
-      'rounds',
-      'session_locks',
-      'sessions',
-      'users',
-    ])
+    expect(tables.map(row => row.table_name)).toEqual(
+      expect.arrayContaining([
+        'auth_requests',
+        'games',
+        'kysely_migration',
+        'kysely_migration_lock',
+        'round_users',
+        'rounds',
+        'session_locks',
+        'sessions',
+        'users',
+      ]),
+    )
 
     const sessionColumns = await query<{ column_name: string; is_nullable: string }>(
       "select column_name, is_nullable from information_schema.columns where table_schema = 'public' and table_name = 'sessions'",

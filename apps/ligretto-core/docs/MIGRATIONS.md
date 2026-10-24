@@ -61,13 +61,117 @@ and the result is committed with the migration. It is `src/entry/codegen.ts`, wh
 the same loader as `pnpm migrate` and hands it to `kysely-codegen` as a literal URL, so it reads the database the
 migration just ran against. The generator's own env-file handling never runs. Nobody edits the generated file.
 
-`pnpm db:codegen --verify` compares instead of writing and exits 1 on a difference. CI migrates an empty Postgres
-twice, regenerates the file and fails when `git diff` shows a change.
+`pnpm db:codegen --verify` compares instead of writing and exits 1 on a difference. The `schema-current` CI job
+migrates an empty Postgres twice, regenerates the file and fails when `git diff` shows a change (§ What CI checks).
 
 ## Immutability
 
 A migration that is on master is never edited, renamed or deleted: every database has run it, and Kysely keeps
-only its name, not a checksum. Git is the checksum. A mistake gets a new migration.
+only its name, not a checksum. Git is the checksum. A mistake gets a new migration. `scripts/check-migrations.sh`
+enforces it at review time (§ What CI checks).
+
+## The compatibility window
+
+During a rollout two releases of the code serve at once, and the migration may run before or after the new code
+starts. A migration therefore keeps both the previous and the next release working: expand, then contract, across
+releases (`adrs/additive-migrations-and-compatibility-matrix.md`).
+
+1. A migration adds: tables, nullable columns, columns with a `DEFAULT`, indexes.
+2. Code starts using the new shape only in the release _after_ the migration that created it.
+3. Code stops using the old shape; the release _after_ that may ship the migration that removes it.
+4. A rename is add + backfill + switch + drop, never `ALTER … RENAME`. `SET NOT NULL` ships only after a backfill,
+   with a `DEFAULT`, and once no deployed writer can still write `NULL`. The matrix cannot prove the last part: the
+   pull request says which release removed the last writer of `NULL`.
+
+So a column cannot be added and used in the same pull request, and a schema change costs two or three small pull
+requests.
+
+## Contract statements
+
+A migration that drops, renames or tightens something carries the marker
+`-- contract: <what it removes and which release stopped using it>` as the first line inside the `sql` tag of
+its first contract statement. Postgres receives it as a comment, and the reviewer reads it with the SQL:
+
+```ts
+export async function up(db: Kysely<unknown>): Promise<void> {
+  await sql`
+    -- contract: removes users.locale, unused since 0.3.0
+    alter table users drop column locale
+  `.execute(db)
+}
+```
+
+`scripts/check-migrations.sh` treats `DROP`, `RENAME`, `ALTER COLUMN … TYPE` (and `SET DATA TYPE`) and
+`SET NOT NULL` as contract statements wherever they appear in the file, in any case, across line breaks and
+around quoted identifiers. It over-approximates: `DROP NOT NULL`, `DROP DEFAULT`, `DROP INDEX` and
+`DROP CONSTRAINT` need the marker too, which costs one line. Only the SQL comment `-- contract:` is the marker; a
+`// contract:` comment is not. Other `//` and `--` comments are ignored, so a comment that mentions a drop is not a
+statement, and neither are the marker's own words. The marker must come before the first contract statement of the
+file in reading order: one after the statement, including one at the end of the statement's own line, does not
+count. One marker per migration. The script does not judge the marker's text or the release named for
+`SET NOT NULL`; review does.
+
+## What CI checks
+
+`.github/workflows/ligretto-core-pr.yml` runs, on every pull request of this package:
+
+- `migration-checks`: `scripts/check-migrations.sh` against the base branch, with full history. It fails when
+  the pull request
+  - edits, renames or deletes a migration that is on master: restore it and add a new migration;
+  - adds a file to `migrations/` not named `<yyyymmddHHMMSS>_<name>.ts` (lowercase name, digits and `_`): rename
+    it, or move what is not a migration out of the folder;
+  - adds a migration whose timestamp is not newer than the newest on master, which Kysely would refuse at run time:
+    recreate it with `date -u +%Y%m%d%H%M%S`;
+  - adds a contract statement without a leading marker (§ Contract statements): add the marker, after checking the
+    release order above.
+
+  The script compares commits (`<base>...HEAD`): a migration is checked once it is committed, not while it is
+  staged. Run it locally with `apps/ligretto-core/scripts/check-migrations.sh origin/master`.
+
+- The compatibility matrix, `scripts/check-schema-compat.sh` with three sets of arguments. Each job applies one
+  tree's migrations to its own empty Postgres with `pnpm migrate`, regenerates the other tree's
+  `schema.generated.ts` from that schema and runs `pnpm ts-check` there. "master" is the tip of the base branch.
+
+  | Job               | Migrations | Code                             | A failure means                                                                                                                                                                                      |
+  | ----------------- | ---------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `schema-current`  | PR         | PR                               | `schema.generated.ts` is stale (migrate, `pnpm db:codegen`, commit it), or the code does not compile on its own schema.                                                                              |
+  | `schema-previous` | master     | PR                               | the code uses a shape this pull request's migration introduces: ship the migration alone first, the code in the next release.                                                                        |
+  | `code-previous`   | PR         | master, and master's store suite | the migration removes or tightens a shape master still uses, or master's store suite (the raw lock statements, the migrate entry) breaks on the new schema: ship the code that stops using it first. |
+
+## What the matrix proves and what it does not
+
+It proves that every _builder_ statement of either release names columns the other release's schema has, with
+compatible types, and that every `INSERT` supplies what the schema requires (`Insertable<>` makes a `NOT NULL`
+column without a default mandatory). It does not see identifiers inside raw SQL, `CHECK` and `UNIQUE` constraints,
+the semantics of data (an old writer putting a value the new reader interprets differently) or the behaviour of
+defaults. Those stay with review and the store tests. Running master's store suite in `code-previous` at least
+executes the raw lock statements on the new schema.
+
+## Rehearsing the matrix locally
+
+`scripts/check-schema-compat.sh --migrations <tree> --code <tree> [--store]` is the script of the three jobs; a tree
+is a repository root. When the trees differ, it swaps the chosen `migrations/` folder into the code tree and
+restores it on exit, Ctrl-C included, so uncommitted migrations survive. If the process is killed outright, the
+original folder is in the temporary directory the script printed, and `git checkout -- apps/ligretto-core/migrations`
+recovers the committed files. The regenerated `schema.generated.ts` stays in place. Kysely refuses a database that
+recorded a migration the tree lacks, so every variant needs an empty schema. From the repository root, against the
+store test database:
+
+```sh
+docker compose up -d --wait ligretto-core-pg-test
+export DATABASE_URL=postgres://ligretto-core-user:ligretto_pg_password@localhost:5435/ligretto-core-test
+export LIGRETTO_CORE_TEST_DATABASE_URL=$DATABASE_URL
+reset() { docker compose exec -T ligretto-core-pg-test psql -U ligretto-core-user -d ligretto-core-test \
+  -c 'drop schema public cascade' -c 'create schema public'; }
+base=$(mktemp -d); git archive origin/master apps/ligretto-core/migrations | tar -x -C "$base"
+prev=$(mktemp -d); git archive origin/master | tar -x -C "$prev"; (cd "$prev" && pnpm install --frozen-lockfile)
+compat=apps/ligretto-core/scripts/check-schema-compat.sh
+
+reset; $compat --migrations . --code .                    # schema-current
+reset; $compat --migrations "$base" --code .              # schema-previous
+reset; $compat --migrations . --code "$prev" --store      # code-previous
+git checkout -- apps/ligretto-core/src/adapters/pg/schema.generated.ts; rm -rf "$base" "$prev"
+```
 
 ## A development database
 
