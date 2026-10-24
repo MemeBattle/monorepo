@@ -5,6 +5,8 @@ on:
     branches: [master]
     paths:
       - 'apps/ligretto-core/**'
+      # The public document and the auth routes are built from this package's schemas and route fragments.
+      - 'packages/ligretto-auth/**'
       - .github/workflows/ligretto-core-pr.yml
       - 'pnpm-lock.yaml'
       - package.json
@@ -288,8 +290,9 @@ jobs:
 
       # No NODE_ENV, so the entry loads the package and root .env.development as on a developer's machine. Detached
       # with `&`: the process is killed in the job's cleanup, and its log is uploaded below when the job fails.
+      # `--conditions=development` resolves @memebattle/ligretto-auth from source, as `pnpm start:dev` does.
       - name: Start the Node entry
-        run: pnpm --filter @memebattle/ligretto-core exec tsx src/entry/node.ts > /tmp/ligretto-core.log 2>&1 &
+        run: pnpm --filter @memebattle/ligretto-core exec tsx --conditions=development src/entry/node.ts > /tmp/ligretto-core.log 2>&1 &
 
       - name: Wait for the Node entry
         run: pnpm exec wait-on --timeout 60000 http-get://127.0.0.1:3333/health
@@ -312,6 +315,17 @@ jobs:
             -H 'authorization: Bearer dev-only-internal-api-token-public-by-construction' \
             -H 'content-type: application/json' -d '{}' \
             http://127.0.0.1:3333/internal/games/00000000-0000-4000-8000-000000000000/rounds)" = 400
+
+      # The access-token guard answers before any query and before CAS is asked for anything.
+      - name: GET /api/users without an access token is a 401
+        run: test "$(curl -s -o /dev/null -w '%{http_code}' 'http://127.0.0.1:3333/api/users?ids=someone')" = 401
+
+      # A logout with no session ends nothing, so it needs neither the database nor CAS: the auth handlers are mounted.
+      - name: GET /api/auth/logout without a session redirects to the application
+        run: test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3333/api/auth/logout)" = 302
+
+      - name: GET /openapi.json serves the public document
+        run: curl -fsS http://127.0.0.1:3333/openapi.json | jq -e '.paths["/api/users"].get'
 
       - name: Upload the Node entry log
         uses: actions/upload-artifact@v7

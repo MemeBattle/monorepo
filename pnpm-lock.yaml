@@ -755,6 +755,9 @@ importers:
       cf:
         specifier: 'catalog:'
         version: 1.0.0-beta.14(@types/node@24.13.3)
+      jose:
+        specifier: 'catalog:'
+        version: 6.2.12
       kysely-codegen:
         specifier: 'catalog:'
         version: 0.20.0(kysely@0.29.7)(pg@8.22.0)(tarn@3.1.2)(typescript@7.0.2)

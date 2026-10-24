@@ -30,6 +30,15 @@ export default defineConfig({
       // The shared secret of the internal API: locally from .dev.vars, in production set once with
       // `cf deploy --secrets-file` (#843).
       LIGRETTO_INTERNAL_API_TOKEN: bindings.secret(),
+      // The CAS client and the auth handlers, with the development values of the root .env.development; #843 sets the
+      // production ones. The client secret is a secret like the internal token: .dev.vars locally.
+      CAS_ISSUER: bindings.text('http://localhost:3000'),
+      LIGRETTO_CAS_CLIENT_ID: bindings.text('ligretto'),
+      LIGRETTO_CAS_CLIENT_SECRET: bindings.secret(),
+      LIGRETTO_CORE_AUTH_REDIRECT_URI: bindings.text('http://localhost:3333/api/auth/callback'),
+      LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI: bindings.text('http://localhost:5174/'),
+      LIGRETTO_CORE_AUTH_APP_URL: bindings.text('http://localhost:5174/'),
+      LIGRETTO_CORE_AUTH_SESSION_TRANSPORT: bindings.text('cookie'),
     },
     exports: {
       // The named WorkerEntrypoint other Workers reach through a service binding.

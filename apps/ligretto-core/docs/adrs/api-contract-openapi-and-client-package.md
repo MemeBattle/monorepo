@@ -3,9 +3,10 @@ title: API contract, OpenAPI and the client package
 description: >-
   Every route of this service is declared once with zod schemas through @hono/zod-openapi; that declaration
   validates the request, types the handler's response at compile time and produces the OpenAPI document. The four
-  auth routes of ligretto-auth are mounted as plain handlers and documented from the schemas that package exports.
-  Two documents (openapi.json, openapi.internal.json) are committed and checked in CI; consumers use the
-  kubb-generated @memebattle/ligretto-core-client, never hand-written types.
+  auth routes of ligretto-auth are mounted as plain handlers and documented, for both session transports, from the
+  schemas that package exports; GET /api/users takes a CAS access token with aud ligretto. Two documents
+  (openapi.json, openapi.internal.json) are committed and checked in CI; consumers use the kubb-generated
+  @memebattle/ligretto-core-client, never hand-written types.
 read_when:
   - adding or changing a route, a request or a response shape
   - changing an error code a client may branch on
@@ -43,16 +44,27 @@ handlers.me(c.req.raw))`), which pass the `Response` through unchanged, cookies 
   the package exports from its `./schema` entry. The package derives its `./contract` types from those schemas,
   validates the _incoming_ data (the callback's query) with them, and builds its answers as values of the derived
   types; neither it nor this service parses an outgoing body — the same rule as for every route here: schemas and
-  types in both directions, run-time validation of input only.
+  types in both directions, run-time validation of input only. The mount answers one failure itself: the session
+  store's `SessionBusyError` is `503 session_busy`, declared on every auth route as a union with the package's `503`
+  codes; everything else the handlers throw reaches the error handler unchanged.
+- **Access token on public data routes.** `GET /api/users` is guarded by `verifyAccessToken` of `ligretto-auth` with
+  the fixed audience `ligretto` (the CAS registration, not configuration), guest and full accounts alike. A refused
+  token is `401 unauthorized`; CAS metadata that cannot be read is `503 cas_unavailable`, since the token was never
+  judged. The guard runs before the query is validated. The document declares it as the `accessToken` bearer
+  scheme.
 - **Input is validated once, where it enters.** For this service's routes that is the route declaration; for the
   auth routes it is the handler of `ligretto-auth`, and this service runs no validator in front of it — the plain
   `app.get` registration is also what keeps a second validation out. Downstream of that point use cases, adapters
   and repositories trust the types they receive and do not re-check the same data.
 - **Two documents.** `createPublicApp` yields `openapi.json`, `createInternalApp` yields `openapi.internal.json`
   (`internal-api-and-service-authentication.md`). A script writes both; a CI job regenerates and fails on a diff.
-  The public document is served at `/openapi.json`; the internal one is not served. Query arrays are described as
-  `style: form, explode: true` (`?ids=a&ids=b`), and the schema accepts a single value by normalising it to an
-  array before validation, since Hono hands one value over as a string.
+  The public document is served at `/openapi.json`, equal to the committed file; the internal one is not served.
+  Neither depends on the deployment's configuration: the auth routes are described from
+  `authRouteFragments('cookie')` and `authRouteFragments('bearer')` merged, so `sign-in` and `logout` list the cookie
+  transport's `302` and the bearer transport's `200 NavigationResponse` alike, and a client generated once fits
+  either deployment. `AuthUser` is a named component, the item type of `GET /api/users`. Query arrays are
+  described as `style: form, explode: true` (`?ids=a&ids=b`), and the schema accepts a single value by normalising
+  it to an array before validation, since Hono hands one value over as a string.
 - **Clients.** `packages/ligretto-core-client` runs kubb over both documents and exposes two entries: the root for
   the public API (ligretto-frontend) and `./internal` for the internal API (ligretto-gameplay-backend). Operations
   return a result rather than throwing on an error status (`throwOnErrorDefault: false`). The transport is this
@@ -76,3 +88,7 @@ handlers.me(c.req.raw))`), which pass the `Response` through unchanged, cookies 
   tests exercise them against `app.request()` like every other route.
 - `DESIGN.md` lists the routes and their shapes in prose for orientation; the schemas are the truth when they
   disagree, and the disagreement is a bug in `DESIGN.md`.
+
+upd (2026-10-24): the auth routes are mounted and documented for both transports, the mount answers
+`SessionBusyError` as `503 session_busy`, and `GET /api/users` is guarded by a CAS access token
+([#837](https://github.com/MemeBattle/monorepo/issues/837)).
