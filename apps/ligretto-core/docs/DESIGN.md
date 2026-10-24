@@ -150,14 +150,16 @@ successor.
 | `entry/node.ts`    | `@hono/node-server`, both apps on one port, `.env` through `dotenv-flow` in development                                                                                                      | two `pg.Pool`s for the process (`adrs/session-store-locking.md`)                          |
 | `entry/worker.ts`  | `fetch` dispatching on the request hostname (public hostname → public app, internal hostname → internal app, else 404); a `WorkerEntrypoint` for service bindings; `scheduled` for the sweep | per-request `pg` clients on two cache-disabled Hyperdrive bindings, closed in `waitUntil` |
 | `entry/migrate.ts` | Kysely `Migrator`, `migrateToLatest()`, result inspected, exits non-zero on failure                                                                                                          | `DATABASE_URL` (the database section of the configuration only)                           |
-| `entry/sweep.ts`   | expired `auth_requests` and sessions past the cookie grace, each session under its lock                                                                                                      | `DATABASE_URL`; scheduled by whatever runs the Node entry                                 |
+| `entry/sweep.ts`   | `pnpm sweep`: expired `auth_requests` and sessions past the cookie grace, each session under its lock                                                                                        | `DATABASE_URL`; scheduled by whatever runs the Node entry                                 |
 
 Locally: Postgres from the root `docker-compose.yml`, the entries from the host (`pnpm start:dev` runs
 `entry/node.ts` under `tsx watch`; `pnpm dev:worker` runs `cf dev`, which drives `wrangler dev` from
 `cloudflare.config.ts`, with the Hyperdrive bindings' `dev.connectionString` pointing at the same database). Nothing
 of this service runs inside Docker in development. `DATABASE_URL` comes from this package's `.env.development`
 (overridable in `.env.development.local`), not from the root files, which CAS reads for its own database;
-`migrate`, `db:codegen` and the Node entry resolve it through one loader (`src/entry/env.ts`, `MIGRATIONS.md`). The
+`migrate`, `db:codegen`, `sweep` and the Node entry resolve it through one loader (`src/entry/env.ts`,
+`MIGRATIONS.md`). `pnpm sweep` runs the sweep once against `DATABASE_URL` through `tsx --conditions=development`,
+which resolves `@memebattle/ligretto-auth` from source. The
 root `pnpm ligretto:start` leaves this package out until the cutover from `ligretto-core-backend`: both serve port 3333.
 
 ## Deployment

@@ -32,7 +32,8 @@ produce failures that are only explainable next to the request that triggered th
   one, and the stack. Expected refusals (a 401, a 404, a 422) are not errors and are not logged beyond the
   request line.
 - Never logged: request or response bodies, cookies, `Authorization` headers, tokens of any kind, the internal
-  secret. A field whose name suggests a secret is dropped by the adapter.
+  secret. A field whose name suggests a secret is dropped by the adapter. A session id is a credential (it is the
+  cookie value or the bearer token); a line about a session names its `sub`.
 
 ## Consequences
 
@@ -40,3 +41,6 @@ produce failures that are only explainable next to the request that triggered th
 - A use case that wants to log receives the `Logger` as a dependency, like any other port; it never imports a
   logger module.
 - `LOG_LEVEL` is the only logging configuration; it exists for `debug` and nothing else.
+
+upd (2026-10-24): a session id is named as a credential that is never logged; a line about a session carries its
+`sub` ([#836](https://github.com/MemeBattle/monorepo/issues/836)).

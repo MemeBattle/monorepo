@@ -2,9 +2,10 @@
 title: Database access with Kysely
 description: >-
   Kysely over pg is the only way to the database; application statements use the query builder, raw SQL is for the
-  lock statements alone. Row types are generated from the migrated schema by kysely-codegen and committed; migrations
-  are TypeScript files applied by Kysely's Migrator from a dedicated entry, never by the serving process. On Workers
-  every connection goes through cache-disabled Hyperdrive configurations.
+  lock transaction's SET LOCAL lock_timeout and the DDL of migrations alone. Row types are generated from the
+  migrated schema by kysely-codegen and committed; migrations are TypeScript files applied by Kysely's Migrator from a
+  dedicated entry, never by the serving process. On Workers every connection goes through cache-disabled Hyperdrive
+  configurations.
 read_when:
   - writing or changing a query, a table or a migration
   - running migrations against a database, locally or in a release
@@ -31,8 +32,9 @@ written moments ago; a cached read of a refresh token that was just rotated is a
 
 - **Query builder, not ORM.** `kysely` with `PostgresDialect` over `pg`. Application statements (every `SELECT`,
   `INSERT`, `UPDATE`, `DELETE` of the repositories, the store and the sweep) use the builder, so their identifiers
-  are checked against the generated `DB` type. Raw SQL through Kysely's `sql` tag is allowed for the two lock
-  statements of `session-store-locking.md` and for DDL in migrations, nowhere else: the compiler cannot see
+  are checked against the generated `DB` type. Raw SQL through Kysely's `sql` tag is the lock transaction's
+  `SET LOCAL lock_timeout` (`session-store-locking.md`), which takes no bind parameter, and the DDL of migrations,
+  nowhere else; the lock insert and the `FOR UPDATE` select go through the builder. The compiler cannot see
   identifiers inside a raw string, and the compatibility matrix relies on it seeing them.
 - **Types from the schema.** `kysely-codegen` connects to a database that has every migration applied and writes
   `src/adapters/pg/schema.generated.ts`. It runs from `src/entry/codegen.ts` (`pnpm db:codegen`) with the database
@@ -59,8 +61,10 @@ written moments ago; a cached read of a refresh token that was just rotated is a
   composed once per isolate, so there is one `Kysely<DB>` per handle per isolate. Its `PostgresDialect` gets a
   pool-shaped object (`connect()` returning a client with `query` and `release`) that hands out the current
   request's client, found through an `AsyncLocalStorage` scope the entry runs every request in
-  (`src/entry/request-scope.ts`). A request opens a `pg` client on `HYPERDRIVE_MAIN` lazily, on its first
-  statement, and one on `HYPERDRIVE_LOCKS` only when it takes a session lock. The scope closes them in
+  (`src/entry/request-scope.ts`), and leases that client to one acquirer at a time, so a transaction and a later
+  statement of the same request on one handle never interleave on the client; the lease is per client, so another
+  request's client on the same handle is never delayed. A request opens a `pg` client on `HYPERDRIVE_MAIN` lazily,
+  on its first statement, and one on `HYPERDRIVE_LOCKS` only when it takes a session lock. The scope closes them in
   `ctx.waitUntil` after the response; nothing that must be durable happens there — every write is awaited before
   the response is sent.
 - **Tests.** Repository tests and HTTP tests that do not go through the session store run against PGlite
@@ -78,7 +82,7 @@ answer; one configuration per pool, both uncached, is simpler to reason about).
 ## Consequences
 
 - A column rename or removal is a compile error in every builder statement that used it, in this code and in the
-  code the compatibility matrix type-checks; the lock statements are the one place a reviewer checks by hand.
+  code the compatibility matrix type-checks; the migrations are the one place a reviewer checks by hand.
 - A new table or column is written twice: the migration and, after regenerating, nothing — the types follow.
 - The bookkeeping tables are Kysely's defaults, `kysely_migration` and `kysely_migration_lock`; `pnpm migrate` is
   the only way they are touched, `pnpm db:codegen` regenerates the types.
@@ -91,3 +95,7 @@ upd (2026-10-24): the Worker's handles are one `Kysely<DB>` each per isolate, re
 client through an `AsyncLocalStorage` scope owned by the entry; the row types are generated from
 `src/entry/codegen.ts` with the configuration's database section, like the migrator
 ([#833](https://github.com/MemeBattle/monorepo/issues/833)).
+
+upd (2026-10-24): raw SQL in the store is only `SET LOCAL lock_timeout`, the lock statements use the builder; the
+Worker's pool-shaped object leases each request's client to one acquirer at a time
+([#836](https://github.com/MemeBattle/monorepo/issues/836)).

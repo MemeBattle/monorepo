@@ -2,7 +2,8 @@
 title: Session store locking
 description: >-
   The SessionStore port of ligretto-auth is met with a row lock (SELECT … FOR UPDATE on session_locks) held in its
-  own transaction on its own connection, bounded by lock_timeout, while the locked callback's statements commit
+  own transaction on its own connection, bounded by lock_timeout and one deadline per take that answers 503
+  session_busy, while the locked callback's statements commit
   independently on a second connection. On Node that is two pools; on Workers two per-request clients on two
   Hyperdrive configurations.
 read_when:
@@ -30,9 +31,14 @@ previous service (`apps/ligretto-core-backend/app/stores/PgSessionStore.ts`) unc
   (ten seconds unless configured) first — the `INSERT` below can block on a concurrent insert of the same id, not
   only the select — then `INSERT … ON CONFLICT DO NOTHING` of the id into `session_locks`, then `SELECT … FOR UPDATE`
   on it. A concurrent holder blocks the select until it commits. If the select finds no row
-  (the sweep deleted it while this transaction waited), the transaction is committed and the whole take is
-  retried, at most a few times and within one overall deadline for the whole take (`lock_timeout` bounds each
-  acquisition separately, not the loop). A `lock_timeout` expiry or an exhausted deadline surfaces as
+  (the sweep deleted it while this transaction waited), the transaction ends and the whole take is retried, at
+  most three times and within one overall deadline for the whole take (fifteen seconds; all three bounds are
+  constructor options of the store, `src/adapters/pg/session-store.ts`). The deadline covers the wait for a lock
+  connection too: each statement's `lock_timeout` is the smaller of the configured timeout and the budget left when
+  the statement starts, the budget is re-read before admitting the callback, and an attempt the deadline overtakes
+  before it reached Postgres is abandoned and rolls back when it gets its connection; the callback never starts
+  after the deadline, and once started it is outside it. A `lock_timeout` expiry, an exhausted deadline or an
+  exhausted retry count is a `SessionBusyError` (`src/core/ports/session-store.ts`) that surfaces as
   `503 session_busy`, never as a 500: the request can be repeated.
 - **The callback writes elsewhere.** `fn` runs while the lock transaction is open, but its own statements go
   through the _main_ connection and commit on their own. A failing `fn` releases the lock without undoing what it
@@ -47,16 +53,22 @@ previous service (`apps/ligretto-core-backend/app/stores/PgSessionStore.ts`) unc
   `HYPERDRIVE_MAIN` and `HYPERDRIVE_LOCKS`: Hyperdrive pools origin connections across requests, so per-request
   clients alone would not isolate lock waiters from ordinary traffic. Hyperdrive's limits are soft, so the two
   configurations are budgeted together against the Neon plan's connection limit with headroom for every other
-  client, and #836 ships a saturation test: a holder must still be able to persist rotated tokens while lock
-  traffic is saturated. Every wait inside the lock is bounded: the
+  client, and `test/store/session-store.spec.ts` proves a holder persists rotated tokens while the lock pool is
+  saturated; Node runs `main` with 5 connections and `locks` with 10. On Workers a per-request handle leases each
+  request's client to one acquirer at a time — the lease is keyed to the client, not to the handle the isolate
+  shares — so an abandoned take has rolled back before that request's next statement on the handle runs, while a
+  holder waiting on CAS never holds up another request's take; a request scope that has closed refuses to open a
+  client, so a statement that outlives its request fails instead of leaking a connection. Every wait inside the
+  lock is bounded: the
   `lock_timeout` above and a request timeout on the CAS client (`createCasClient`'s `requestTimeoutMs`, opt-in,
   covering the response body; this service sets it).
 - **The sweep** (`src/entry/sweep.ts` on Node, the `scheduled` handler of `src/entry/worker.ts` on Workers)
   removes `auth_requests` with `expires_at <= now` and `sessions` with `grant_ends_at <= now − SESSION_COOKIE_GRACE_MS`.
   Each session goes under its own lock, the predicate is re-checked inside the lock, and the lock row is deleted
   in the holding transaction; orphan lock rows are collected afterwards with `SKIP LOCKED`. A session whose lock
-  the run cannot take within `lock_timeout` is counted, reported and left to the next run. This is the current
-  `sweepExpiredAuth.ts`, statement for statement.
+  the run cannot take within the store's bounds is counted, reported by account (`sub`), never by id
+  (`logging.md`), and left to the next run. The use case is `src/core/sweep.ts`, its statements
+  `src/adapters/pg/auth-sweep-store.ts`.
 
 An advisory lock (`pg_advisory_xact_lock`) on one connection was considered: it would still need the second
 connection for the independent commits, so it saves nothing and loses the visible row the sweep can reason about.
@@ -73,3 +85,8 @@ sessions` outside it is a bug. Inserting a fresh session is not subject to that 
   (`testing-strategy.md`).
 
 upd (2026-10-24): createCasClient gained the requestTimeoutMs option (#835); the body names it instead of the to-do.
+
+upd (2026-10-24): the bounds have their numbers (three attempts, a fifteen-second deadline that covers the connection
+wait and caps every `lock_timeout`, ten seconds of `lock_timeout`), the per-client lease of the Worker's handles and
+the closed scope are stated, the saturation test exists, and the sweep names a left session by its account
+([#836](https://github.com/MemeBattle/monorepo/issues/836)).
