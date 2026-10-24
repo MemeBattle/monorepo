@@ -15,7 +15,7 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config({ default_node_env: 'development', path: fileURLToPath(new URL('../../../../', import.meta.url)), silent: true })
 }
 
-// The sections this entry uses so far; `loadConfig` whole once the database and auth are wired in. A ConfigError
+// Only the sections this entry uses; it moves to `loadConfig` once the database and auth are wired in. A ConfigError
 // escapes on purpose: a bad environment stops the process with every offending variable named.
 const http = loadHttpConfig(process.env)
 const logging = loadLoggingConfig(process.env)

@@ -1,7 +1,7 @@
 import type { DatabaseProbe } from '../core/ports/database-probe'
 
 /**
- * Always answers: the service has no database yet. Replaced by the probe over the real connection in
- * https://github.com/MemeBattle/monorepo/issues/833; the route and its report do not change.
+ * Always resolves: the service has no database yet. https://github.com/MemeBattle/monorepo/issues/833 replaces it with
+ * a probe over the real connection; the route and its report stay the same.
  */
 export const stubDatabaseProbe: DatabaseProbe = { ping: () => Promise.resolve() }
