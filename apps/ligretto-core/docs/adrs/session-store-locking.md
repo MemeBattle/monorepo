@@ -49,7 +49,8 @@ previous service (`apps/ligretto-core-backend/app/stores/PgSessionStore.ts`) unc
   configurations are budgeted together against the Neon plan's connection limit with headroom for every other
   client, and #836 ships a saturation test: a holder must still be able to persist rotated tokens while lock
   traffic is saturated. Every wait inside the lock is bounded: the
-  `lock_timeout` above and a request timeout on the CAS client (`createCasClient` has none today; #835 adds one).
+  `lock_timeout` above and a request timeout on the CAS client (`createCasClient`'s `requestTimeoutMs`, opt-in,
+  covering the response body; this service sets it).
 - **The sweep** (`src/entry/sweep.ts` on Node, the `scheduled` handler of `src/entry/worker.ts` on Workers)
   removes `auth_requests` with `expires_at <= now` and `sessions` with `grant_ends_at <= now − SESSION_COOKIE_GRACE_MS`.
   Each session goes under its own lock, the predicate is re-checked inside the lock, and the lock row is deleted
@@ -70,3 +71,5 @@ sessions` outside it is a bug. Inserting a fresh session is not subject to that 
   two separately bounded sources.
 - The store's tests need two real connections, which is why they run on the Docker Postgres and not on PGlite
   (`testing-strategy.md`).
+
+upd (2026-10-24): createCasClient gained the requestTimeoutMs option (#835); the body names it instead of the to-do.

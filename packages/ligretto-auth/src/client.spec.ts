@@ -267,3 +267,88 @@ describe('the generated operations', () => {
     expectTypeOf<ErrorCodeOf<AuthorizeResponses>>().toEqualTypeOf<'internal_error'>()
   })
 })
+
+describe('the request timeout', () => {
+  const TIMEOUT_MS = 20
+
+  /** A `fetch` that never answers, and gives up with the signal's reason once the caller's deadline fires. */
+  const stalling = () =>
+    vi.fn<typeof globalThis.fetch>().mockImplementation(
+      async (_input, init) =>
+        await new Promise<never>((_, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true })
+        }),
+    )
+
+  /** A response whose headers arrive at once and whose body never does, linked to no signal. */
+  const stalledBody = (status: number): Response =>
+    new Response(new ReadableStream({ pull: () => new Promise<void>(() => undefined) }), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+  const failureOf = async (call: Promise<unknown>): Promise<unknown> =>
+    await call.then(
+      () => undefined,
+      (error: unknown) => error,
+    )
+
+  it('hands `fetch` a signal only when a timeout is configured, leaving the default request as it was', async () => {
+    const bounded = stub(() => json(200, {}))
+    await createClient({ baseUrl: BASE_URL, fetch: bounded, requestTimeoutMs: TIMEOUT_MS })({ method: 'GET', url: '/oidc/jwks.json' })
+    expect(sent(bounded).init.signal).toBeInstanceOf(AbortSignal)
+
+    const unbounded = stub(() => json(200, {}))
+    await createClient({ baseUrl: BASE_URL, fetch: unbounded })({ method: 'GET', url: '/oidc/jwks.json' })
+    expect(sent(unbounded).init).not.toHaveProperty('signal')
+  })
+
+  it('throws a request that gets no answer in time as `unreachable`, the timeout as its cause', async () => {
+    const thrown = await failureOf(
+      createClient({ baseUrl: BASE_URL, fetch: stalling(), requestTimeoutMs: TIMEOUT_MS })({ method: 'GET', url: '/oidc/jwks.json' }),
+    )
+
+    expect(thrown).toBeInstanceOf(ApiError)
+    expect(thrown).toMatchObject({ code: 'unreachable', status: 0, cause: { name: 'TimeoutError' } })
+    expect(thrown instanceof ApiError && thrown.message).toContain(`${TIMEOUT_MS} ms`)
+  })
+
+  it('bounds the body too: a success or an error whose body never ends is `unreachable`, not a body that is not JSON', async () => {
+    for (const status of [200, 503]) {
+      const fetch = stub(() => stalledBody(status))
+      const thrown = await failureOf(
+        createClient({ baseUrl: BASE_URL, fetch, requestTimeoutMs: TIMEOUT_MS })({ method: 'GET', url: '/oidc/jwks.json' }),
+      )
+
+      expect(thrown).toBeInstanceOf(ApiError)
+      expect(thrown).toMatchObject({ code: 'unreachable', status: 0, cause: { name: 'TimeoutError' } })
+    }
+  })
+
+  it('answers a body that arrives within the bound as it always has', async () => {
+    const fetch = stub(() => json(200, { keys: [] }))
+
+    const result = await createClient({ baseUrl: BASE_URL, fetch, requestTimeoutMs: TIMEOUT_MS })({ method: 'GET', url: '/oidc/jwks.json' })
+
+    expect(result).toMatchObject({ ok: true, status: 200, data: { keys: [] } })
+  })
+
+  it('still reports a body that is not JSON as `unknown` when no timeout is configured', async () => {
+    const fetch = stub(() => new Response('<html>no</html>', { status: 200, headers: { 'Content-Type': 'text/html' } }))
+
+    await expect(createClient({ baseUrl: BASE_URL, fetch })({ method: 'GET', url: '/oidc/userinfo' })).rejects.toMatchObject({
+      name: 'ApiError',
+      code: 'unknown',
+      status: 200,
+    })
+  })
+
+  it('leaves nothing behind once a call completed within the bound', async () => {
+    const fetch = stub(() => json(200, {}))
+    await createClient({ baseUrl: BASE_URL, fetch, requestTimeoutMs: TIMEOUT_MS })({ method: 'GET', url: '/oidc/jwks.json' })
+
+    // The deadline fires after the call settled; a rejection it left armed would surface now as an unhandled one,
+    // which vitest reports as an error of the run.
+    await new Promise(resolve => setTimeout(resolve, TIMEOUT_MS * 3))
+  })
+})
