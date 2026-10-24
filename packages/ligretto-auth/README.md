@@ -660,7 +660,11 @@ repository keeps:
   lets it `require()` ESM-only `jose`, which Node 24 supports. The
   `./contract` entry is built alongside the rest but stays types alone, so a
   browser bundle gets no code from it; `./schema` is built the same way and
-  carries zod.
+  carries zod. `tsconfig.contract.json` type-checks `./contract` the way a
+  browser does, on ES2021 and DOM with no ambient types, so its import graph
+  staying within `./schema` and the generated models is checked rather than
+  promised: `SessionTransportKind` is declared in `./schema` for that reason,
+  and `./transport` re-exports it.
 - The integration suite lives in `tests/integration/` behind a vitest config
   and a tsconfig project of its own. `test:ci` keeps selecting `src/**` alone,
   so it stays hermetic: the root `pnpm test:ci` runs every package in parallel

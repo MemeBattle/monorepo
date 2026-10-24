@@ -15,11 +15,12 @@
  */
 
 import type { NavigationResponse } from './contract'
+import type { SessionTransportKind } from './schema'
 import type { Session } from './session-store'
 import { PENDING_REQUEST_TTL_MS } from './sessions'
 
-/** Which way the session id travels, chosen per deployment. */
-export type SessionTransportKind = 'cookie' | 'bearer'
+/** Which way the session id travels, chosen per deployment; declared in `./schema`, which must not import this module. */
+export type { SessionTransportKind }
 
 /** The default name of the session cookie. `__Host-` is required of any replacement (ADR 0013 on cookie prefixes). */
 export const SESSION_COOKIE_NAME = '__Host-ligretto_session'

@@ -11,7 +11,13 @@
 
 import { z } from 'zod'
 import type { AccountType } from './generated/models/AccountType'
-import type { SessionTransportKind } from './transport'
+
+/**
+ * Which way the session id travels, chosen per deployment; `./transport` re-exports it. It is declared here rather
+ * than there so that this module, and `./contract` with it, imports nothing but zod and the generated models: a
+ * browser that types its calls against `./contract` must not type-check the server code `./transport` leads to.
+ */
+export type SessionTransportKind = 'cookie' | 'bearer'
 
 /** The account types, in the order the description lists them. */
 export const ACCOUNT_TYPES = ['guest', 'full'] as const satisfies readonly AccountType[]

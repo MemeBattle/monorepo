@@ -38,7 +38,7 @@
     }
   },
   "scripts": {
-    "ts-check": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.tests.json",
+    "ts-check": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.tests.json && tsc --noEmit -p tsconfig.contract.json",
     "test": "vitest",
     "test:ci": "vitest run",
     "build": "tsc --project tsconfig.build.json",

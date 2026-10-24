@@ -9,8 +9,8 @@
  */
 
 import type { z } from 'zod'
-import type { AccountType } from './generated/models/AccountType'
 import type {
+  AccountTypeSchema,
   AuthErrorCodeSchema,
   AuthErrorResponseSchema,
   AuthUserSchema,
@@ -19,7 +19,8 @@ import type {
   NavigationResponseSchema,
 } from './schema'
 
-export type { AccountType }
+/** Whether an account has credentials of its own; `AccountTypeSchema`, kept equal to CAS's generated model. */
+export type AccountType = z.infer<typeof AccountTypeSchema>
 
 /** The account as a page may show it; `AuthUserSchema`. */
 export type AuthUser = z.infer<typeof AuthUserSchema>

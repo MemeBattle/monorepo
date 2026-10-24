@@ -1,0 +1,17 @@
+{
+  // `./contract` as a browser consumer type-checks it (the settings of `apps/ligretto-frontend`): ES2021 and DOM,
+  // no ambient types. It fails when the entry's import graph reaches server code, which needs newer libraries — the
+  // entry is to lead to `./schema` and the generated models alone.
+  "compilerOptions": {
+    "lib": ["ES2021", "DOM"],
+    "target": "ES2021",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "types": []
+  },
+  "files": ["src/contract.ts"]
+}
