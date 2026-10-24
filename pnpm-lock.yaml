@@ -728,9 +728,6 @@ importers:
       '@adonisjs/lucid':
         specifier: 'catalog:'
         version: 22.4.2(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@adonisjs/core@7.3.5(@adonisjs/assembler@8.4.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(@vinejs/vine@4.4.0)(pino-pretty@13.1.3)(supports-color@10.2.2)(youch@4.1.1))(@vinejs/vine@4.4.0)(better-sqlite3@13.0.1)(luxon@3.7.2)(pg@8.22.0)(supports-color@10.2.2)
-      '@memebattle/cas-services':
-        specifier: workspace:^
-        version: link:../../packages/cas-services
       '@memebattle/ligretto-auth':
         specifier: workspace:^
         version: link:../../packages/ligretto-auth
@@ -740,9 +737,6 @@ importers:
       '@vinejs/vine':
         specifier: 'catalog:'
         version: 4.4.0
-      lodash:
-        specifier: 'catalog:'
-        version: 4.18.1
       luxon:
         specifier: 'catalog:'
         version: 3.7.2
@@ -771,9 +765,6 @@ importers:
       '@poppinss/ts-exec':
         specifier: 'catalog:'
         version: 1.4.4(@swc/helpers@0.5.23)
-      '@types/lodash':
-        specifier: 'catalog:'
-        version: 4.17.24
       '@types/luxon':
         specifier: 'catalog:'
         version: 3.7.2

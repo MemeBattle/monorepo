@@ -73,14 +73,6 @@ spec:
                 - name: {{ $key }}
                   value: {{ $value | quote }}
                 {{- end }}
-              volumeMounts:
-                - name: cas-key-volume
-                  mountPath: {{ .Values.env.LIGRETTO_CORE_CAS_PUBLIC_KEY_PATH }}
-                  subPath: key.pem
               resources:
                 {{- toYaml .Values.resources | nindent 16 }}
-          volumes:
-            - name: cas-key-volume
-              secret:
-                secretName: {{ include "common.fullname" . }}-cas-key-secret
           restartPolicy: OnFailure

@@ -1,8 +1,6 @@
 import type { DateTime } from 'luxon'
-import lodash from 'lodash'
 import { BaseModel, column, computed, manyToMany } from '@adonisjs/lucid/orm'
 import type { AccountType } from '@memebattle/ligretto-auth'
-import type { User as CasUser, TemporaryUser as CasTemporaryUser } from '#contracts/CasServices'
 import Round from '#models/Round'
 import { type ManyToMany } from '@adonisjs/lucid/types/relations'
 
@@ -34,10 +32,6 @@ export default class User extends BaseModel {
   @computed()
   public get isTemporary(): boolean {
     return this.accountType === 'guest'
-  }
-
-  public mergeWithCasUser(casUser: CasUser | CasTemporaryUser | undefined) {
-    return { ...this.serialize(), ...lodash.omit(casUser, '_id') }
   }
 
   @manyToMany(() => Round, {
