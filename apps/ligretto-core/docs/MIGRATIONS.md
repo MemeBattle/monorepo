@@ -36,7 +36,7 @@ CONCURRENTLY`, no `ALTER TYPE … ADD VALUE`. The tables are small enough for a 
 `FileMigrationProvider` import the TypeScript sources; there is no compiled copy of the migrations. A Node image that
 cannot run `tsx` would need the migrations compiled next to a compiled entry, which is a change to this document.
 
-The entry reads `DATABASE_URL` and nothing else of the configuration, through `src/entry/env.ts`:
+The entry needs `DATABASE_URL` and, optionally, `LOG_LEVEL`. `src/entry/env.ts` resolves them from, in order:
 
 1. the shell;
 2. this package's `.env.development.local` (gitignored), then its `.env.development`;

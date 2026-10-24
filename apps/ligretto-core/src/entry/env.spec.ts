@@ -14,7 +14,7 @@ describe('loadDevelopmentEnv', () => {
   let rootDir: string
 
   const write = (dir: string, file: string, value: string) => writeFile(path.join(dir, file), `${KEY}=${value}\n`)
-  // An environment without NODE_ENV: the development files, whatever the test runner set.
+  // An empty environment by default, so the development files load whatever NODE_ENV the test runner set.
   const load = (env: NodeJS.ProcessEnv = {}) => loadDevelopmentEnv({ env, packageDir, rootDir })
 
   beforeEach(async () => {

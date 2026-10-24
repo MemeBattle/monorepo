@@ -6,7 +6,6 @@ import type { DB } from '../../src/adapters/pg/schema.generated'
 import { resetDatabase } from './disposable-database'
 import { migrate } from './migrations'
 
-/** Wipes the disposable database and applies every migration to it. */
 export const resetAndMigrate = async (url: string): Promise<void> => {
   await resetDatabase(url)
   const db = new Kysely<unknown>({ dialect: new PostgresDialect({ pool: new pg.Pool({ connectionString: url, max: 1 }) }) })
