@@ -1,7 +1,9 @@
 import { defineConfig } from 'oxfmt'
 
 export default defineConfig({
+  // Keep the generated MSW worker byte-for-byte reproducible with `msw init`.
   ignorePatterns: [
+    '.storybook/public/mockServiceWorker.js',
     'dist/',
     '**/chart/**/*.yaml',
     '**/.adonisjs/**',

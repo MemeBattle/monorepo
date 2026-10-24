@@ -27,6 +27,11 @@ apps/cas-frontend/
                        loading/ and error/ are the root route's fallbacks
     entities/<name>/   API calls and types of one domain concept: session
                        (/api/me, /api/logout, the ceremonies), passkey (/api/passkeys)
+    entities/<name>/testing/
+                       separate testing entry point, fresh builders, domain mocks;
+                       private stages only for the owning entity ceremony specs
+    shared/testing/    MSW server/setup for specs, browser adapter for Storybook,
+                       internal request primitive and injected spy runtime
     shared/api/        the wire contract with CAS: client.ts (client(), the
                        only fetch, Result, unwrap, ApiError, ErrorCodeOf) and
                        generated/ (kubb's output, never edited by hand:
@@ -67,3 +72,7 @@ origin; in development the proxy keeps it that way. The session cookie is
 therefore same-origin everywhere and CORS never enters the frontend's code
 (ADR 0001 (f)). The API contract itself is described in `apps/cas/README.md`
 and the ADRs under `apps/cas/docs/adr`.
+
+Storybook serves its MSW worker from root `.storybook/public/`; production
+`public/` and the real-CAS `e2e/` lane contain no mocking runtime. See TESTS.md
+for scenario setup, teardown and boundary restrictions.
