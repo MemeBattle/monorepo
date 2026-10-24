@@ -131,16 +131,17 @@ successor.
 
 ## Runtimes and entries
 
-| Entry              | Runs                                                                                                                                                                           | Database                                                                                  |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| `entry/node.ts`    | `@hono/node-server`, both apps on one port, `.env` through `dotenv-flow` in development                                                                                        | two `pg.Pool`s for the process (`adrs/session-store-locking.md`)                          |
-| `entry/worker.ts`  | `fetch` dispatching on `Host` (public hostname → public app, internal hostname → internal app, else 404); a `WorkerEntrypoint` for service bindings; `scheduled` for the sweep | per-request `pg` clients on two cache-disabled Hyperdrive bindings, closed in `waitUntil` |
-| `entry/migrate.ts` | Kysely `Migrator`, `migrateToLatest()`, result inspected, exits non-zero on failure                                                                                            | `DATABASE_URL` (the database section of the configuration only)                           |
-| `entry/sweep.ts`   | expired `auth_requests` and sessions past the cookie grace, each session under its lock                                                                                        | `DATABASE_URL`; scheduled by whatever runs the Node entry                                 |
+| Entry              | Runs                                                                                                                                                                                         | Database                                                                                  |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `entry/node.ts`    | `@hono/node-server`, both apps on one port, `.env` through `dotenv-flow` in development                                                                                                      | two `pg.Pool`s for the process (`adrs/session-store-locking.md`)                          |
+| `entry/worker.ts`  | `fetch` dispatching on the request hostname (public hostname → public app, internal hostname → internal app, else 404); a `WorkerEntrypoint` for service bindings; `scheduled` for the sweep | per-request `pg` clients on two cache-disabled Hyperdrive bindings, closed in `waitUntil` |
+| `entry/migrate.ts` | Kysely `Migrator`, `migrateToLatest()`, result inspected, exits non-zero on failure                                                                                                          | `DATABASE_URL` (the database section of the configuration only)                           |
+| `entry/sweep.ts`   | expired `auth_requests` and sessions past the cookie grace, each session under its lock                                                                                                      | `DATABASE_URL`; scheduled by whatever runs the Node entry                                 |
 
 Locally: Postgres from the root `docker-compose.yml`, the entries from the host (`pnpm start:dev` runs
-`entry/node.ts` under `tsx watch`; `pnpm dev:worker` runs `wrangler dev` with the Hyperdrive bindings'
-`dev.connectionString` pointing at the same database). Nothing of this service runs inside Docker in development.
+`entry/node.ts` under `tsx watch`; `pnpm dev:worker` runs `cf dev`, which drives `wrangler dev` from
+`cloudflare.config.ts`, with the Hyperdrive bindings' `dev.connectionString` pointing at the same database). Nothing
+of this service runs inside Docker in development.
 
 ## Deployment
 
@@ -160,7 +161,7 @@ being built in CI as the packaging of the Node entry.
 ## CI (per pull request)
 
 - lint, format, `tsc`, vitest (PGlite suites); the store suite against the job's Postgres;
-- both entries smoke-tested (`/health`);
+- both entries smoke-tested (`/health`): Node booted, the Worker under `workerd` through `@cloudflare/vitest-plugin`;
 - `openapi.json`, `openapi.internal.json` and `schema.generated.ts` regenerated and diffed against the commit;
 - the compatibility matrix and the migration checks (`adrs/additive-migrations-and-compatibility-matrix.md`);
 - `packages/ligretto-core-client` regenerated from the committed documents and type-checked, with its contract
