@@ -2,9 +2,10 @@ import { WorkerEntrypoint } from 'cloudflare:workers'
 import { z } from 'zod'
 
 import { createConsoleLogger } from '../adapters/console-logger'
+import { createPgGamesRepository } from '../adapters/pg/games-repository'
 import { createPgDatabaseProbe } from '../adapters/pg/probe'
 import { systemClock } from '../adapters/system-clock'
-import { loadHttpConfig, loadLoggingConfig } from '../core/config'
+import { loadHttpConfig, loadInternalApiConfig, loadLoggingConfig } from '../core/config'
 import { createInternalApp } from '../http/internal-app'
 import { createPublicApp } from '../http/public-app'
 import { createRequestScopeRunner } from './request-scope'
@@ -17,6 +18,8 @@ export interface WorkerEnv {
   LIGRETTO_CORE_INTERNAL_HOST: string
   LIGRETTO_CORE_CORS_ORIGINS?: string
   LOG_LEVEL?: string
+  /** A secret: `.dev.vars` in development, `cf deploy --secrets-file` in production (#843). */
+  LIGRETTO_INTERNAL_API_TOKEN: string
 }
 
 /** Which hostname reaches which app: the deployment topology of this runtime, not part of the service's `Config`. */
@@ -29,6 +32,7 @@ const build = (env: WorkerEnv) => {
   const hosts = hostsSchema.parse(env)
   const http = loadHttpConfig(env as unknown as Record<string, unknown>)
   const logging = loadLoggingConfig(env as unknown as Record<string, unknown>)
+  const internalApi = loadInternalApiConfig(env as unknown as Record<string, unknown>)
   const logger = createConsoleLogger({ level: logging.level })
   // One database per handle for the isolate; each request gets its own clients through the runner's scope.
   const runner = createRequestScopeRunner()
@@ -40,7 +44,8 @@ const build = (env: WorkerEnv) => {
     publicHost: hosts.LIGRETTO_CORE_PUBLIC_HOST,
     internalHost: hosts.LIGRETTO_CORE_INTERNAL_HOST,
     public: createPublicApp({ ...deps, corsOrigins: http.corsOrigins }),
-    internal: createInternalApp(deps),
+    // The scoped `main` handle runs the transaction and every statement of the locked game on the request's one client.
+    internal: createInternalApp({ ...deps, games: createPgGamesRepository(runner.handles.main), internalTokens: internalApi.tokens }),
   }
 }
 

@@ -37,7 +37,7 @@ export default await Env.create(new URL('../../../', import.meta.url), {
   LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI: Env.schema.string({ format: 'url', tld: false }),
   /** Where the callback sends the browser once it is signed in, and where a logout with nothing to end goes. */
   LIGRETTO_CORE_AUTH_APP_URL: Env.schema.string({ format: 'url', tld: false }),
-  /** How the session id travels. The production origin layout, and with it the final choice, is #818's. */
+  /** How the session id travels. The final choice follows the production origin layout, still open in apps/cas/docs/PLAN.md. */
   LIGRETTO_CORE_AUTH_SESSION_TRANSPORT: Env.schema.enum(['cookie', 'bearer'] as const),
 
   LIGRETTO_CORE_DB_CONNECTION: Env.schema.enum(['pg'] as const),

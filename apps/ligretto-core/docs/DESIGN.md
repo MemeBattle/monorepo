@@ -41,7 +41,8 @@ apps/ligretto-core/
   src/adapters/    pg/ (Kysely repositories, session store, schema.generated.ts), logger, clock
   src/entry/       node.ts, worker.ts, migrate.ts, codegen.ts, sweep.ts; env.ts (the development .env loader)
   migrations/      <timestamp>_<name>.ts, SQL inside (MIGRATIONS.md)
-  test/            worker/ (the Worker smoke suite), store/ (the Docker Postgres suite), support/ (harnesses)
+  test/            worker/ (the Worker smoke suite), store/ (the Docker Postgres suite), http/ (HTTP suites on the
+                   real adapters over PGlite), support/ (harnesses)
   .env.development DATABASE_URL for development
   openapi.json, openapi.internal.json      committed, regenerated and diffed in CI
   docs/            this file, ADR.md, adrs/
@@ -122,10 +123,10 @@ the API are on different origins. The internal app sends no CORS headers.
 Authentication on every route: `Authorization: Bearer <LIGRETTO_INTERNAL_API_TOKEN>`; `401 invalid_internal_token`
 otherwise.
 
-| Route                              | Request                                                                                                                                        | Responses                                                                                                                                                                                                                                                                                                                |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `POST /internal/games`             | empty body                                                                                                                                     | `201 { id: uuid }`                                                                                                                                                                                                                                                                                                       |
-| `POST /internal/games/{id}/rounds` | `{ roundId: uuid, results: [{ playerId: sub, score: int }] }`, 1+ entries, distinct `playerId`s; `roundId` minted by the caller once per round | `200 { gameResults: Record<sub, { roundScore, gameScore }> }` — every player of every round of the game, `gameScore` the sum so far, `roundScore` this round's or `0`. `404 game_not_found`. `422 unknown_players { playerIds }`. `409 round_conflict` when `roundId` already exists with another game or other results. |
+| Route                              | Request                                                                                                                                                                                       | Responses                                                                                                                                                                                                                                                                                                                |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `POST /internal/games`             | empty body                                                                                                                                                                                    | `201 { id: uuid }`                                                                                                                                                                                                                                                                                                       |
+| `POST /internal/games/{id}/rounds` | `{ roundId: uuid, results: [{ playerId: sub, score: int32 }] }`, 1+ entries, distinct `playerId`s, `score` within the `integer` column's range; `roundId` minted by the caller once per round | `200 { gameResults: Record<sub, { roundScore, gameScore }> }` — every player of every round of the game, `gameScore` the sum so far, `roundScore` this round's or `0`. `404 game_not_found`. `422 unknown_players { playerIds }`. `409 round_conflict` when `roundId` already exists with another game or other results. |
 
 Saving a round is one transaction: lock the game row (`SELECT … FOR UPDATE`, so saves of one game are serialised
 and totals are consistent), check the players exist in `users`, insert the round and its `round_users` unless a
@@ -139,6 +140,10 @@ Every statement of that transaction, the `users` check included, goes through th
 `GamesRepository.withGame`) on the transaction's connection, never through another repository or handle. The round
 insert is `ON CONFLICT (id) DO NOTHING`, so a `roundId` raced between two games ends as a typed `409
 round_conflict`, never as a unique violation.
+
+Both uuids, the game id in the path and `roundId`, are accepted in any letter case and normalised to lowercase by
+the contract, the spelling Postgres returns, so a retry spelled differently is still a repeat. `gameScore` in the
+answer is a sum and may exceed the range of one round's `score`.
 
 The previous `GET /api/games` (every game with every column, no caller) and the public game-creation routes have no
 successor.
@@ -158,6 +163,8 @@ Locally: Postgres from the root `docker-compose.yml`, the entries from the host 
 of this service runs inside Docker in development. `DATABASE_URL` comes from this package's `.env.development`
 (overridable in `.env.development.local`), not from the root files, which CAS reads for its own database;
 `migrate`, `db:codegen` and the Node entry resolve it through one loader (`src/entry/env.ts`, `MIGRATIONS.md`). The
+development `LIGRETTO_INTERNAL_API_TOKEN` comes from the root `.env.development` for the Node entry and from this
+package's `.dev.vars` for `cf dev` and the Worker suite; both hold the same public-by-construction value. The
 root `pnpm ligretto:start` leaves this package out until the cutover from `ligretto-core-backend`: both serve port 3333.
 
 ## Deployment
@@ -167,9 +174,9 @@ workflow builds the Worker, applies the migrations with `entry/migrate.ts` again
 (an Actions secret of the release environment), then uploads with `cf deploy --prebuilt`. The database is Neon
 behind **two cache-disabled Hyperdrive configurations** (`HYPERDRIVE_MAIN`, `HYPERDRIVE_LOCKS`,
 `adrs/database-access-with-kysely.md`), budgeted together against the Neon plan's connection limit. Worker secrets:
-`LIGRETTO_CAS_CLIENT_SECRET`, `LIGRETTO_INTERNAL_API_TOKEN`. The public hostname follows the origin layout the
-cutover issue ([#818](https://github.com/MemeBattle/monorepo/issues/818)) records: one origin with the SPA and
-`/api/*` under the cookie transport, or separate hosts under the bearer transport. The internal app answers on a
+`LIGRETTO_CAS_CLIENT_SECRET`, `LIGRETTO_INTERNAL_API_TOKEN`. The public hostname follows ligretto's production
+origin layout, an open question in `apps/cas/docs/PLAN.md`: one origin with the SPA and `/api/*` under the cookie
+transport, or separate hosts under the bearer transport. The internal app answers on a
 dedicated hostname, since the gameplay backend is not a Worker and cannot use a service binding; the shared secret
 is what protects it on either path. The sweep runs from a Workers cron trigger (`scheduled` in `entry/worker.ts`);
 `entry/sweep.ts` remains for any other runtime. The Node image (`.docker/Ligretto-core-backend_Dockerfile`) keeps
@@ -179,7 +186,8 @@ being built in CI as the packaging of the Node entry.
 
 - lint, format, `tsc`, vitest (PGlite suites); the store suite against the job's Postgres;
 - both entries smoke-tested (`/health`): Node booted, the Worker under `workerd` through `@cloudflare/vitest-plugin`;
-- `openapi.json`, `openapi.internal.json` and `schema.generated.ts` regenerated and diffed against the commit;
+- `openapi.json`, `openapi.internal.json` and `schema.generated.ts` regenerated and diffed against the commit (the
+  `openapi` job runs `pnpm openapi:generate`, `schema-codegen` runs `pnpm db:codegen`);
 - the compatibility matrix and the migration checks (`adrs/additive-migrations-and-compatibility-matrix.md`);
 - `packages/ligretto-core-client` regenerated from the committed documents and type-checked, with its contract
   tests against `app.request()`.
@@ -189,8 +197,7 @@ being built in CI as the packaging of the Node entry.
 - `apps/ligretto-gameplay-backend` → `@memebattle/ligretto-core-client/internal` with the shared secret; it mints
   `roundId` when a round finishes and keeps it, with the frozen results, across retries.
 - `apps/ligretto-frontend` → `@memebattle/ligretto-core-client` for `/api/users` (with the access token
-  `/api/auth/me` returns once [#817](https://github.com/MemeBattle/monorepo/issues/817) has moved the frontend onto
-  the new auth flow) and the `/api/auth/*` navigations.
+  `/api/auth/me` returns) and the `/api/auth/*` navigations.
 - `packages/ligretto-shared/apiTypes.ts` is deleted when both are on the generated client.
 
 The consumers' new calls (`/internal/*`, `sub`/`name` in users) do not exist on the old package, so switching a

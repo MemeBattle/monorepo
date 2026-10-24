@@ -87,7 +87,7 @@ env:
   HOST: "0.0.0.0"
   NODE_ENV: "production"
   # CAS configuration, as @memebattle/ligretto-auth asks for it. The `ligretto` client is not registered in the
-  # production CAS until #812, and the cutover is #818, so the secret below is a placeholder. Until #812 every
+  # production CAS until #812, so the secret below is a placeholder. Until #812 every
   # call that authenticates this client against CAS fails: no sign-in can complete and no guest can be minted,
   # both answering 503 with the stable code `cas_rejected`. The other paths behave normally — /auth/sign-in still
   # redirects to CAS with its state cookie, a callback that matches no state is a 400, and a sessionless
@@ -99,12 +99,6 @@ env:
   # committed to git and readable in the rendered Deployment. #812 delivers it the way the database credentials
   # already arrive: an ExternalSecret in templates/secrets.yaml feeding a `secretKeyRef` in the three pod
   # templates, with LIGRETTO_CAS_CLIENT_SECRET leaving `env` at that point.
-  #
-  # The frontend is the other half of this contract, and it moves in #817. ligretto-frontend bootstraps with
-  # `POST /api/auth/me`, which this release answers with a 404 — only GET is mounted — and it renders no route
-  # until that call succeeds, so between this deploy and #817 every visitor to ligretto.app sits on the loader
-  # screen, guests included. ligretto-deploy.yml rebuilds and redeploys both apps from every push to master, so
-  # this backend must not reach production separated from the new frontend.
   CAS_ISSUER: "https://cas.mems.fun"
   LIGRETTO_CAS_CLIENT_ID: "ligretto"
   # A placeholder, not a secret: see the ExternalSecret note above before putting a real value here.

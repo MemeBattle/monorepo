@@ -2,9 +2,10 @@ import { serve } from '@hono/node-server'
 
 import { createConsoleLogger } from '../adapters/console-logger'
 import { createNodeDatabases } from '../adapters/pg/database'
+import { createPgGamesRepository } from '../adapters/pg/games-repository'
 import { createPgDatabaseProbe } from '../adapters/pg/probe'
 import { systemClock } from '../adapters/system-clock'
-import { loadDatabaseConfig, loadHttpConfig, loadLoggingConfig } from '../core/config'
+import { loadDatabaseConfig, loadHttpConfig, loadInternalApiConfig, loadLoggingConfig } from '../core/config'
 import { createInternalApp } from '../http/internal-app'
 import { createPublicApp } from '../http/public-app'
 import { loadDevelopmentEnv } from './env'
@@ -18,6 +19,7 @@ loadDevelopmentEnv()
 const http = loadHttpConfig(process.env)
 const logging = loadLoggingConfig(process.env)
 const database = loadDatabaseConfig(process.env)
+const internalApi = loadInternalApiConfig(process.env)
 
 const logger = createConsoleLogger({ level: logging.level })
 // Both pools for the process; `databases.locks` is the session store's (#836) and opens nothing until then. A pool
@@ -29,7 +31,7 @@ const databases = createNodeDatabases(database, {
 })
 const deps = { logger, clock: systemClock, database: createPgDatabaseProbe(databases.main) }
 const publicApp = createPublicApp({ ...deps, corsOrigins: http.corsOrigins })
-const internalApp = createInternalApp(deps)
+const internalApp = createInternalApp({ ...deps, games: createPgGamesRepository(databases.main), internalTokens: internalApi.tokens })
 
 /** One port for both apps: `/internal` and below is the internal app, everything else the public one. */
 const dispatch = (request: Request): Response | Promise<Response> => {

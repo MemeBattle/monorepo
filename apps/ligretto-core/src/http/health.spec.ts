@@ -4,12 +4,19 @@ import { healthReportSchema } from '../contract/health'
 import { createFixedClock } from '../core/ports/clock.fake'
 import type { DatabaseProbe } from '../core/ports/database-probe'
 import { failingProbe, okProbe } from '../core/ports/database-probe.fake'
+import { createFakeGamesRepository } from '../core/ports/games-repository.fake'
 import { createRecordingLogger } from '../core/ports/logger.fake'
 import { createInternalApp } from './internal-app'
 import { createPublicApp } from './public-app'
-import type { AppDeps } from './types'
+import type { InternalAppDeps } from './types'
 
-const deps = (database: DatabaseProbe): AppDeps => ({ logger: createRecordingLogger().logger, clock: createFixedClock(), database })
+const deps = (database: DatabaseProbe): InternalAppDeps => ({
+  logger: createRecordingLogger().logger,
+  clock: createFixedClock(),
+  database,
+  games: createFakeGamesRepository(),
+  internalTokens: ['test-token'],
+})
 
 describe.each([
   ['public', createPublicApp],

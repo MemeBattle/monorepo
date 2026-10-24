@@ -2,16 +2,19 @@ import { describe, expect, it } from 'vitest'
 
 import { createFixedClock } from '../core/ports/clock.fake'
 import { okProbe } from '../core/ports/database-probe.fake'
+import { createFakeGamesRepository } from '../core/ports/games-repository.fake'
 import { createRecordingLogger } from '../core/ports/logger.fake'
 import { createInternalApp } from './internal-app'
 import { createPublicApp } from './public-app'
-import type { AppDeps } from './types'
+import type { InternalAppDeps } from './types'
 
-const deps: AppDeps = {
+const deps: InternalAppDeps = {
   logger: createRecordingLogger().logger,
   clock: createFixedClock(),
   database: okProbe(),
   corsOrigins: ['http://localhost:5173', 'http://localhost:5174'],
+  games: createFakeGamesRepository(),
+  internalTokens: ['test-token'],
 }
 
 describe('CORS on the public app', () => {
