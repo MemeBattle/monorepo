@@ -35,20 +35,6 @@ jobs:
       - name: Lint
         run: pnpm run --filter @memebattle/ligretto-core lint
 
-  typecheck:
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - uses: ./.github/actions/prepare-nodejs
-        name: Prepare Node.js
-
-      # Two programs: Node with the shared layers, and the Worker with the same layers against the Workers types.
-      - name: TS check
-        run: pnpm run --filter @memebattle/ligretto-core ts-check
-
   tests:
     runs-on: ubuntu-24.04
 
@@ -95,7 +81,30 @@ jobs:
           LIGRETTO_CORE_TEST_DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5435/ligretto-core-test
         run: pnpm run --filter @memebattle/ligretto-core test:store:run
 
-  schema-codegen:
+  # The rules of apps/ligretto-core/docs/MIGRATIONS.md: a migration on the base branch is never edited, renamed or
+  # deleted; an added one is well named, newer than the newest on the base branch, and marks a contract statement.
+  migration-checks:
+    runs-on: ubuntu-24.04
+
+    steps:
+      # Full history: the script compares the pull request with the base branch.
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check the migrations against the base branch
+        run: apps/ligretto-core/scripts/check-migrations.sh "origin/${{ github.base_ref }}"
+
+  # The compatibility matrix of apps/ligretto-core/docs/adrs/additive-migrations-and-compatibility-matrix.md. Each
+  # job applies one tree's migrations to its own Postgres, regenerates the other tree's row types from that schema
+  # and type-checks it, through apps/ligretto-core/scripts/check-schema-compat.sh:
+  #   schema-current   PR migrations, PR code: the ordinary check, and the committed row types match the schema.
+  #   schema-previous  master's migrations, PR code: new code started before the migration ran.
+  #   code-previous    PR migrations, master's code and store suite: old code still running after the migration,
+  #                    or a rollback of the code.
+  # The base branch's tree is its tip, the schema and code that are live when this pull request merges.
+  schema-current:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     services:
@@ -114,7 +123,7 @@ jobs:
           --health-timeout 5s
           --health-retries 30
 
-    # Exported for both steps: the shared loader lets the shell win over the package's .env.development.
+    # Exported for every step: the shared loader lets the shell win over the package's .env.development.
     env:
       DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5433/ligretto-core
 
@@ -125,14 +134,13 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
-      - name: Migrate an empty database
-        run: pnpm run --filter @memebattle/ligretto-core migrate
+      # Migrate an empty database, regenerate the row types, type-check both programs (Node, and the Worker with the
+      # same layers against the Workers types).
+      - name: PR migrations, PR code
+        run: apps/ligretto-core/scripts/check-schema-compat.sh --migrations . --code .
 
       - name: Migrate again, which applies nothing
         run: pnpm run --filter @memebattle/ligretto-core migrate
-
-      - name: Regenerate the row types
-        run: pnpm run --filter @memebattle/ligretto-core db:codegen
 
       # Written and diffed rather than `db:codegen --verify`, so the log shows the difference.
       - name: The committed row types match the migrated schema
@@ -141,6 +149,93 @@ jobs:
             echo "::error::schema.generated.ts is out of date: run 'pnpm db:codegen' in apps/ligretto-core after migrating and commit the result"
             exit 1
           }
+
+  schema-previous:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        # The engine of the compose test service: the oldest in play.
+        image: postgres:13.4
+        env:
+          POSTGRES_USER: ligretto-core-user
+          POSTGRES_PASSWORD: ligretto_pg_password
+          POSTGRES_DB: ligretto-core
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U ligretto-core-user -d ligretto-core"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+
+    env:
+      DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5433/ligretto-core
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # The tip of the base branch: the schema that is live when this code starts.
+      - name: Checkout the base branch
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.base_ref }}
+          path: previous
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      # A failure means the code uses a shape this pull request's migration introduces: ship the migration alone first.
+      - name: Master's migrations, PR code
+        run: apps/ligretto-core/scripts/check-schema-compat.sh --migrations previous --code .
+
+  code-previous:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        # The engine of the compose test service: the oldest in play.
+        image: postgres:13.4
+        env:
+          POSTGRES_USER: ligretto-core-user
+          POSTGRES_PASSWORD: ligretto_pg_password
+          POSTGRES_DB: ligretto-core-test
+        ports:
+          - 5435:5432
+        options: >-
+          --health-cmd "pg_isready -U ligretto-core-user -d ligretto-core-test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+
+    # One database for both: the type check reads the migrated schema, then the store suite wipes and re-migrates it.
+    env:
+      DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5435/ligretto-core-test
+      LIGRETTO_CORE_TEST_DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5435/ligretto-core-test
+
+    steps:
+      # The scripts and the migrations come from the pull request.
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # The tip of the base branch: the code that still runs when this pull request's migration is applied.
+      - name: Checkout the base branch
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.base_ref }}
+          path: previous
+
+      # Only master's tree runs here, so only it is installed.
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+        with:
+          working-directory: previous
+
+      # A failure means the migration removes or tightens a shape master still uses, or master's store suite (the raw
+      # lock statements, the migrate entry) breaks on the new schema: ship the code that stops using it first.
+      - name: PR migrations, master's code and store suite
+        run: apps/ligretto-core/scripts/check-schema-compat.sh --migrations . --code previous --store
 
   openapi:
     runs-on: ubuntu-24.04

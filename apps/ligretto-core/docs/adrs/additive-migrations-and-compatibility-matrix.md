@@ -36,8 +36,9 @@ mechanical in both directions, within what types can see.
    says how it knows (the writer was removed in a named release).
 
 A migration that drops, renames or tightens a column carries a leading comment `-- contract: <what it removes and
-which release stopped using it>`. A CI script fails a PR whose migration contains `DROP`, `RENAME`,
-`ALTER COLUMN … TYPE` or `SET NOT NULL` without that marker.
+which release stopped using it>`. A CI script (`scripts/check-migrations.sh`) fails a PR whose migration
+contains `DROP`, `RENAME`, `ALTER COLUMN … TYPE` or `SET NOT NULL` without that marker before it, scanning
+statements across line breaks.
 
 **Matrix.** Three CI jobs, each with its own Postgres service, each ending in `tsc --noEmit`:
 
@@ -47,8 +48,10 @@ which release stopped using it>`. A CI script fails a PR whose migration contain
 | `schema-previous` | master             | PR                                            | new code started before the migration ran                                      |
 | `code-previous`   | PR                 | master, checked out into a separate directory | old code still running after the migration, or a rollback of the code          |
 
-Each job: apply the chosen migrations with `pnpm migrate`, run `kysely-codegen` into the chosen tree, type-check
-that tree. The row types are the only input the matrix needs, which is why they are generated rather than written
+Each job runs `scripts/check-schema-compat.sh` with its parameters: apply the chosen migrations with
+`pnpm migrate`, run `kysely-codegen` into the chosen tree, type-check that tree. The script swaps the chosen
+migration set into the type-checked tree and restores it on exit, so that tree's own entries and store suite run
+on it. The row types are the only input the matrix needs, which is why they are generated rather than written
 (`database-access-with-kysely.md`).
 
 **What the matrix proves, and what it does not.** It proves that every _builder_ statement of either release
@@ -59,9 +62,10 @@ constraints, the semantics of data (an old writer putting a value the new reader
 behaviour of defaults. Those stay with review and the store tests; the `code-previous` job also runs master's
 store suite against the PR's schema, so the raw lock statements are at least executed on both.
 
-**Immutability and order.** A second script fails a PR that modifies or deletes a migration file present on
-master, or adds one whose timestamp is older than the newest on master (Kysely would refuse it at run time; the
-script says so at review time). Both scripts are adapted from `apps/cas/scripts/check-migration-order.sh`.
+**Immutability and order.** The same script (`scripts/check-migrations.sh`) fails a PR that modifies, renames or
+deletes a migration file present on master, or adds one that is misnamed or whose timestamp is not newer than the
+newest on master (Kysely would refuse it at run time; the script says so at review time). It is adapted from
+`apps/cas/scripts/check-migration-order.sh`.
 
 **Release order.** Not fixed. The matrix makes both orders safe, so the release workflow of each target runs the
 migration entry wherever is convenient for it.
@@ -72,3 +76,8 @@ migration entry wherever is convenient for it.
   rather than a reviewer remembering it.
 - Every schema change costs two or three small PRs instead of one. At this service's rate of schema change (nine
   migrations in five years) that is the right trade.
+
+upd (2026-10-24): one script, scripts/check-migrations.sh, holds the marker, immutability, naming and order checks
+and scans statements across line breaks; the matrix jobs share scripts/check-schema-compat.sh, which swaps the
+chosen migration set into the type-checked tree (and restores it) so that tree's own entries and store suite run on
+it.
