@@ -12,7 +12,7 @@ import { client } from '#client'
  * @summary Who the user is
  * {@link /api/auth/me}
  */
-export function getMe<ThrowOnError extends boolean = false>(options: Options<GetMeOptions, ThrowOnError> = {}): Promise<RequestResult<GetMeResponses, ThrowOnError>> {
+export function getMe<ThrowOnError extends boolean = false>(options: Options<GetMeOptions, ThrowOnError>): Promise<RequestResult<GetMeResponses, ThrowOnError>> {
   const { client: request = client, ...config } = options
 
   return request({ method: 'GET', url: '/api/auth/me', ...config, throwOnError: config.throwOnError ?? false }) as Promise<RequestResult<GetMeResponses, ThrowOnError>>

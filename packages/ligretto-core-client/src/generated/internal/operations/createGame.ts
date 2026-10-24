@@ -11,7 +11,7 @@ import { client } from '#client'
  * @summary Create a game
  * {@link /internal/games}
  */
-export function createGame<ThrowOnError extends boolean = false>(options: Options<CreateGameOptions, ThrowOnError> = {}): Promise<RequestResult<CreateGameResponses, ThrowOnError>> {
+export function createGame<ThrowOnError extends boolean = false>(options: Options<CreateGameOptions, ThrowOnError>): Promise<RequestResult<CreateGameResponses, ThrowOnError>> {
   const { client: request = client, ...config } = options
 
   return request({ method: 'POST', url: '/internal/games', security: [{ type: 'http', scheme: 'bearer' }], ...config, throwOnError: config.throwOnError ?? false }) as Promise<RequestResult<CreateGameResponses, ThrowOnError>>

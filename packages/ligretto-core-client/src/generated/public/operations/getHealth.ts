@@ -11,7 +11,7 @@ import { client } from '#client'
  * @summary Whether the service and its database answer
  * {@link /health}
  */
-export function getHealth<ThrowOnError extends boolean = false>(options: Options<GetHealthOptions, ThrowOnError> = {}): Promise<RequestResult<GetHealthResponses, ThrowOnError>> {
+export function getHealth<ThrowOnError extends boolean = false>(options: Options<GetHealthOptions, ThrowOnError>): Promise<RequestResult<GetHealthResponses, ThrowOnError>> {
   const { client: request = client, ...config } = options
 
   return request({ method: 'GET', url: '/health', ...config, throwOnError: config.throwOnError ?? false }) as Promise<RequestResult<GetHealthResponses, ThrowOnError>>

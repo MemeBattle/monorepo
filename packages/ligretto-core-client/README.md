@@ -15,7 +15,8 @@ Both entries export `getHealth`. A consumer that imports both aliases one of the
 
 ## Making a client
 
-There is no default base URL. Every call takes a `client` made with `createClient`:
+There is no default base URL. Every call takes a `client` made with `createClient`, and the types require it: a call
+without one does not compile.
 
 ```ts
 import { createClient, saveRound } from '@memebattle/ligretto-core-client/internal'
@@ -79,7 +80,9 @@ pnpm --filter @memebattle/ligretto-core-client generate:api
 ```
 
 `generate:api` runs kubb into `src/generated/public` and `src/generated/internal`, then
-`scripts/generate-declared-statuses.mjs`, which writes `src/generated/declared-statuses.ts`. The transport reads that
+`scripts/require-client-option.mjs`, which removes the `= {}` default kubb prints for an operation's `options` so that
+`client` stays required, then `scripts/generate-declared-statuses.mjs`, which writes
+`src/generated/declared-statuses.ts`. The transport reads that
 map to tell a declared answer from an unexpected one. `ligretto-core-client-pr.yml` regenerates both and fails when
 the commit differs.
 

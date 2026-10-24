@@ -123,6 +123,10 @@ type DeclaredHeaders<TOptions> = TOptions extends { headers?: infer Declared }
 /**
  * The options of a generated function: the operation's own, plus the client to call and an `AbortSignal`.
  *
+ * `client` is required: the default `client` the generated functions fall back to is a guard that always throws, so
+ * a call without one is a mistake the compiler rejects. `scripts/require-client-option.mjs` removes the `= {}` default
+ * kubb prints for an operation with nothing else required, which `{}` would no longer satisfy.
+ *
  * `headers` is replaced rather than intersected: `never & Record<string, string>` admits nothing, and the
  * `Authorization` of `listUsers` or of the internal API, or a session cookie, has to go somewhere. `throwOnError`
  * admits no value: a caller cannot ask for a throw that would never happen. `ThrowOnError` is ignored as in
@@ -131,7 +135,7 @@ type DeclaredHeaders<TOptions> = TOptions extends { headers?: infer Declared }
 // oxlint-disable-next-line no-unused-vars -- the generated functions pass ThrowOnError
 export type Options<TOptions, _ThrowOnError extends boolean = false> = Omit<TOptions, 'headers'> & {
   headers?: Record<string, string> & DeclaredHeaders<TOptions>
-  client?: Client
+  client: Client
   signal?: AbortSignal
   throwOnError?: never
 }

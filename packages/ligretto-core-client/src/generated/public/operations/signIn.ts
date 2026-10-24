@@ -12,7 +12,7 @@ import { client } from '#client'
  * @summary Start a sign-in
  * {@link /api/auth/sign-in}
  */
-export function signIn<ThrowOnError extends boolean = false>(options: Options<SignInOptions, ThrowOnError> = {}): Promise<RequestResult<SignInResponses, ThrowOnError>> {
+export function signIn<ThrowOnError extends boolean = false>(options: Options<SignInOptions, ThrowOnError>): Promise<RequestResult<SignInResponses, ThrowOnError>> {
   const { client: request = client, ...config } = options
 
   return request({ method: 'GET', url: '/api/auth/sign-in', ...config, throwOnError: config.throwOnError ?? false }) as Promise<RequestResult<SignInResponses, ThrowOnError>>

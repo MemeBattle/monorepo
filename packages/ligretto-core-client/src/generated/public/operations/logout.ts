@@ -12,7 +12,7 @@ import { client } from '#client'
  * @summary Sign out
  * {@link /api/auth/logout}
  */
-export function logout<ThrowOnError extends boolean = false>(options: Options<LogoutOptions, ThrowOnError> = {}): Promise<RequestResult<LogoutResponses, ThrowOnError>> {
+export function logout<ThrowOnError extends boolean = false>(options: Options<LogoutOptions, ThrowOnError>): Promise<RequestResult<LogoutResponses, ThrowOnError>> {
   const { client: request = client, ...config } = options
 
   return request({ method: 'GET', url: '/api/auth/logout', ...config, throwOnError: config.throwOnError ?? false }) as Promise<RequestResult<LogoutResponses, ThrowOnError>>

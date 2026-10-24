@@ -236,7 +236,13 @@ describe('the result', () => {
 describe('the default client', () => {
   it('is a guard: there is no ambient base URL', () => {
     expect(() => client({ method: 'GET', url: '/health' })).toThrow('make a client with createClient({ baseUrl })')
+  })
+
+  it('is out of reach of a typed call: `client` is required, and an untyped call still meets the guard', () => {
+    // @ts-expect-error `client` is required, even for an operation with nothing else to pass
     expect(() => getHealth({})).toThrow('make a client with createClient({ baseUrl })')
+    // @ts-expect-error `client` is required next to the operation's own options
+    expect(() => listUsers({ query: { ids: ['a'] } })).toThrow('make a client with createClient({ baseUrl })')
   })
 })
 

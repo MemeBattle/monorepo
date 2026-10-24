@@ -36,7 +36,7 @@
     "test": "vitest",
     "test:ci": "vitest run",
     "build": "tsc --project tsconfig.build.json",
-    "generate:api": "KUBB_DISABLE_TELEMETRY=1 kubb generate && node scripts/generate-declared-statuses.mjs"
+    "generate:api": "KUBB_DISABLE_TELEMETRY=1 kubb generate && node scripts/require-client-option.mjs && node scripts/generate-declared-statuses.mjs"
   },
   "devDependencies": {
     "@kubb/adapter-oas": "catalog:",
