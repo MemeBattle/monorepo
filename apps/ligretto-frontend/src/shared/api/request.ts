@@ -18,7 +18,6 @@ export const buildSearchParams = (params: Record<string, unknown>): URLSearchPar
   return searchParams
 }
 
-/** A non-2xx answer: its status and its parsed JSON body (`undefined` when the body is not JSON). */
 export class RequestError extends Error {
   constructor(
     readonly status: number,

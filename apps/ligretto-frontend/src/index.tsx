@@ -18,10 +18,7 @@ if (!reactRootContainer) {
 
 const root = createRoot(reactRootContainer)
 
-// A single explicit auth bootstrap. Doing this with a fire-on-any-action
-// listener is unsafe: nested dispatch cascades (e.g. the connect-to-room chain
-// on a direct /game/:id load) run it once per snapshotted dispatch, minting
-// several temporary users at once.
+// Bootstrap once; nested dispatches can trigger an action-based bootstrap multiple times.
 store.dispatch(getMeRequest())
 
 root.render(

@@ -12,7 +12,6 @@ export interface UserInfoProps {
   onButtonClick?: MouseEventHandler
   onLogoutClick?: MouseEventHandler
   displayName?: string
-  /** A guest sees "Sign in" instead of a name, and no logout. */
   isGuest: boolean
 }
 

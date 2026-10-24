@@ -71,7 +71,6 @@ const createScriptWalker = (page: Page, onboarding: OnboardingPage) => {
 }
 
 test.describe('Onboarding', () => {
-  // The suite exercises the auth gate only, no backend data, so it runs without a backend.
   test.beforeEach(({ page }) => stubAuthMe(page))
 
   test('walks the canonical script from the first step to the results', async ({ page }) => {

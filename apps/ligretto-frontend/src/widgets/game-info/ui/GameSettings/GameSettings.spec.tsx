@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import { Provider } from 'react-redux'
 import { MemoryRouter } from 'react-router'
 import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
@@ -11,8 +11,6 @@ import { createMockStore } from '#testing/lib/createMockStore'
 import { initialState, resumeGameAction } from '#ducks/game'
 import { GameSettings } from './GameSettings'
 import { GameSettingsContainer } from './GameSettingsContainer'
-
-afterEach(cleanup)
 
 describe('GameSettings', () => {
   it('labels the host action as Resume while the round is paused', () => {

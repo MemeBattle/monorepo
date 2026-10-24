@@ -18,7 +18,6 @@ export const UserInfoContainer = () => {
 
   const onButtonClick = useCallback(() => {
     if (isGuest) {
-      // The guest upgrade is the same route: the backend tells CAS the session is a guest's.
       navigateToSignIn()
     } else {
       navigate(authRoutes.PROFILE)

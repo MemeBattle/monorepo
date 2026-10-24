@@ -1,11 +1,9 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 
 import { UserInfo } from './UserInfo'
-
-afterEach(cleanup)
 
 describe('UserInfo', () => {
   it('offers a guest the sign-in and no logout', () => {

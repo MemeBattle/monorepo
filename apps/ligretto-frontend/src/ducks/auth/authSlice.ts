@@ -27,7 +27,6 @@ export const authSlice = createSlice({
       state.isLoading = false
       state.isBootstrapped = true
     },
-    // The loader stays over the routes while no identity exists: the app stays behind auth.
     getMeFailure: state => {
       state.isLoading = false
     },
