@@ -4,7 +4,7 @@ description: >-
   vitest everywhere. Use cases are tested with fakes for their ports; HTTP and repository tests drive app.request()
   against PGlite with the real migrations applied in-process and the in-memory SessionStore for the auth routes;
   everything that exercises the real session store runs against the Docker Postgres on port 5435; both runtime
-  entries get a smoke test in CI.
+  entries have a vitest smoke suite (test/node, test/worker) that CI runs as a script.
 read_when:
   - writing a test and deciding which database it gets
   - adding a port and wondering what fake it needs
@@ -38,9 +38,12 @@ two independent connections for a single request (`session-store-locking.md`), a
   the lock, the two-connection arrangement, the sweep's lock handling — runs against the Docker Postgres
   (`ligretto-core-pg-test`, host port 5435, the same container and rules as before: one run at a time per host).
   They are a separate vitest project (`pnpm test:store`) so `pnpm test` without Docker still passes everything else.
-- **Entries**: CI boots `entry/node.ts` and `GET /health`; builds the Worker and runs the same request under
-  `workerd` (`@cloudflare/vitest-plugin`, reading `cloudflare.config.ts`), with Hyperdrive connection strings
-  pointing at the job's Postgres. These are smoke tests of the wiring, not of behaviour.
+- **Entries**: each runtime entry has a vitest smoke suite. `pnpm test:node` (`test/node`) boots `entry/node.ts` as
+  a child process on a free port with the development `.env` files and asserts over `fetch`; `pnpm test:worker`
+  (`test/worker`) runs the Worker under `workerd` (`@cloudflare/vitest-plugin`, reading `cloudflare.config.ts`),
+  with Hyperdrive connection strings pointing at the job's Postgres. Both need only the Postgres their `/health`
+  probes and stay out of `pnpm test`. CI workflows run these scripts and never assert over HTTP themselves: a new
+  route's smoke check is a spec, not a workflow step. These are smoke tests of the wiring, not of behaviour.
 - **Fixtures**: a seed helper inserts users through the same repository the service uses, never raw rows, so a
   schema change breaks the helper in one place.
 
@@ -59,6 +62,9 @@ does not load under vitest 5); the Worker smoke suite reads cloudflare.config.ts
 
 upd (2026-10-24): HTTP suites that compose the real adapters over PGlite live in test/http, because the lint boundary
 of src/http forbids importing src/adapters and grants tests no exception; HTTP suites on fakes stay beside the code.
+
+upd (2026-10-25): the Node entry's smoke checks moved from curl steps in the workflow to the vitest project test/node;
+workflows run scripts and never assert over HTTP.
 
 upd (2026-10-25): the contract tests of packages/ligretto-core-client compose both apps through this package's
 `./contract-harness` export (test/support/contract-harness.ts), which keeps one PGlite database and rebuilds every
