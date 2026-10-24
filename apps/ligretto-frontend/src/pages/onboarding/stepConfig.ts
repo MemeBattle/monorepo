@@ -15,7 +15,7 @@ export type DescriptionTargetId = 'stack' | 'row' | 'ligretto' | 'playground' | 
  * Wide-screen placement of a description bubble. Narrow screens always fall
  * back to the shared bottom-anchored variant (above the player's cards panel).
  */
-export type DescriptionPlacement =
+type DescriptionPlacement =
   /** Bubble right above the target, arrow straight down. */
   | { mode: 'aboveTarget'; offset: number; twist?: number }
   /**
@@ -36,7 +36,7 @@ export interface AnchoredStepDescription {
   isTargetAbove?: boolean
 }
 
-export type StepDescription =
+type StepDescription =
   /** Special case — a centered bubble with an arrow to each opponent. */
   { kind: 'opponents'; text: string } | AnchoredStepDescription
 

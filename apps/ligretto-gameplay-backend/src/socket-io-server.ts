@@ -22,7 +22,7 @@ const httpServer = createServer(async (req, res) => {
   }
 })
 
-export const io = new Server(httpServer, {
+const io = new Server(httpServer, {
   serveClient: false,
   connectionStateRecovery: {
     maxDisconnectionDuration: CONNECTION_STATE_RECOVERY_TIMEOUT_MS,
@@ -34,7 +34,7 @@ export const io = new Server(httpServer, {
   },
 })
 
-export const webSocketHandler = IOC.get<WebSocketHandler>(IOC_TYPES.WebSocketHandler)
+const webSocketHandler = IOC.get<WebSocketHandler>(IOC_TYPES.WebSocketHandler)
 
 webSocketHandler.connect(io)
 
