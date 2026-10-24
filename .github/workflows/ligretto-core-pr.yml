@@ -62,9 +62,24 @@ jobs:
       - name: Run the unit and HTTP suites
         run: pnpm run --filter @memebattle/ligretto-core test:unit
 
-  node-smoke:
+  store-tests:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    services:
+      postgres:
+        # The engine of the compose test service: the oldest in play.
+        image: postgres:13.4
+        env:
+          POSTGRES_USER: ligretto-core-user
+          POSTGRES_PASSWORD: ligretto_pg_password
+          POSTGRES_DB: ligretto-core-test
+        ports:
+          - 5435:5432
+        options: >-
+          --health-cmd "pg_isready -U ligretto-core-user -d ligretto-core-test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
 
     steps:
       - name: Checkout
@@ -73,8 +88,89 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
-      # No NODE_ENV, so the entry loads the root .env.development as on a developer's machine. Detached with `&`: the
-      # process is killed in the job's cleanup, and its log is uploaded below when the job fails.
+      # What needs a real Postgres: row locks, two connections, the migrate and codegen entries. The suite wipes the
+      # database it is given and refuses one whose name does not end in -test.
+      - name: Run the store suite
+        env:
+          LIGRETTO_CORE_TEST_DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5435/ligretto-core-test
+        run: pnpm run --filter @memebattle/ligretto-core test:store:run
+
+  schema-codegen:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        # The engine of the compose test service: the oldest in play.
+        image: postgres:13.4
+        env:
+          POSTGRES_USER: ligretto-core-user
+          POSTGRES_PASSWORD: ligretto_pg_password
+          POSTGRES_DB: ligretto-core
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U ligretto-core-user -d ligretto-core"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+
+    # Exported for both steps: the shared loader lets the shell win over the package's .env.development.
+    env:
+      DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5433/ligretto-core
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Migrate an empty database
+        run: pnpm run --filter @memebattle/ligretto-core migrate
+
+      - name: Migrate again, which applies nothing
+        run: pnpm run --filter @memebattle/ligretto-core migrate
+
+      - name: Regenerate the row types
+        run: pnpm run --filter @memebattle/ligretto-core db:codegen
+
+      # Written and diffed rather than `db:codegen --verify`, so the log shows the difference.
+      - name: The committed row types match the migrated schema
+        run: |
+          git diff --exit-code -- apps/ligretto-core/src/adapters/pg/schema.generated.ts || {
+            echo "::error::schema.generated.ts is out of date: run 'pnpm db:codegen' in apps/ligretto-core after migrating and commit the result"
+            exit 1
+          }
+
+  node-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # The package's .env.development points DATABASE_URL here; /health runs a constant select, so no migration.
+    services:
+      postgres:
+        # The engine of the compose test service: the oldest in play.
+        image: postgres:13.4
+        env:
+          POSTGRES_USER: ligretto-core-user
+          POSTGRES_PASSWORD: ligretto_pg_password
+          POSTGRES_DB: ligretto-core
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U ligretto-core-user -d ligretto-core"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      # No NODE_ENV, so the entry loads the package and root .env.development as on a developer's machine. Detached
+      # with `&`: the process is killed in the job's cleanup, and its log is uploaded below when the job fails.
       - name: Start the Node entry
         run: pnpm --filter @memebattle/ligretto-core exec tsx src/entry/node.ts > /tmp/ligretto-core.log 2>&1 &
 
@@ -98,6 +194,22 @@ jobs:
   worker-smoke:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    # The Hyperdrive bindings' dev.connectionString in cloudflare.config.ts points here.
+    services:
+      postgres:
+        # The engine of the compose test service: the oldest in play.
+        image: postgres:13.4
+        env:
+          POSTGRES_USER: ligretto-core-user
+          POSTGRES_PASSWORD: ligretto_pg_password
+          POSTGRES_DB: ligretto-core
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U ligretto-core-user -d ligretto-core"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
 
     steps:
       - name: Checkout
@@ -111,6 +223,6 @@ jobs:
         run: pnpm run --filter @memebattle/ligretto-core build:worker
 
       # The same entry under workerd, through @cloudflare/vitest-plugin: /health on both hostnames and through the
-      # InternalApi service binding.
+      # InternalApi service binding, each with its database check over the emulated Hyperdrive bindings.
       - name: Run the Worker smoke suite
         run: pnpm run --filter @memebattle/ligretto-core test:worker
