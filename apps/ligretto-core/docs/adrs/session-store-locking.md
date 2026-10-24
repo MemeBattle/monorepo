@@ -25,7 +25,7 @@ needs two connections; the design predates the rewrite and is carried over uncha
   select finds no row (the sweep deleted it while this transaction waited), the transaction is committed and the
   whole take is retried.
 - **The callback writes elsewhere.** `fn` runs while the lock transaction is open, but its own statements go
-  through a *different* connection and commit on their own. A failing `fn` releases the lock without undoing what
+  through a _different_ connection and commit on their own. A failing `fn` releases the lock without undoing what
   it wrote: `refreshSession` saves the rotated tokens and only then may throw, and rolling that save back would
   make the next refresh a token reuse.
 - **Two sources of connections.** A holder occupies its connection for as long as it holds, which includes a round
@@ -44,7 +44,7 @@ connection for the independent commits, so it saves nothing and loses the visibl
 ## Consequences
 
 - Any new writer of `sessions` or `users`-snapshot rows goes through `withSessionLock`; a direct `UPDATE
-  sessions` outside it is a bug.
+sessions` outside it is a bug.
 - A runtime adapter for the database must be able to hand out two independent connections to one request.
 - The store's concurrency tests need two real connections, which is why they run on the Docker Postgres and not
   on PGlite (`testing-strategy.md`).

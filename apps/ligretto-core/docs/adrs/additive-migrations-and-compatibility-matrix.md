@@ -24,8 +24,8 @@ mechanical in both directions.
 
 1. A migration adds: tables, nullable columns, columns with a `DEFAULT`, indexes (`CONCURRENTLY` where the table
    is live).
-2. Code starts using the new shape only in the release *after* the migration that created it.
-3. Code stops using the old shape; the release *after* that may ship the migration that removes it.
+2. Code starts using the new shape only in the release _after_ the migration that created it.
+3. Code stops using the old shape; the release _after_ that may ship the migration that removes it.
 4. A rename is add + backfill + switch + drop, never `ALTER … RENAME`. `SET NOT NULL` ships only after a backfill
    and with a `DEFAULT`, or not at all.
 
@@ -35,11 +35,11 @@ which release stopped using it>`. A CI script fails a PR whose migration contain
 
 **Matrix.** Three CI jobs, each with its own Postgres service, each ending in `tsc --noEmit`:
 
-| Job | Migrations applied | Code type-checked | Window it guards |
-| --- | --- | --- | --- |
-| `schema-current` | PR | PR | the ordinary check; also regenerates `schema.generated.ts` and fails on a diff |
-| `schema-previous` | master | PR | new code started before the migration ran |
-| `code-previous` | PR | master, checked out into a separate directory | old code still running after the migration, or a rollback of the code |
+| Job               | Migrations applied | Code type-checked                             | Window it guards                                                               |
+| ----------------- | ------------------ | --------------------------------------------- | ------------------------------------------------------------------------------ |
+| `schema-current`  | PR                 | PR                                            | the ordinary check; also regenerates `schema.generated.ts` and fails on a diff |
+| `schema-previous` | master             | PR                                            | new code started before the migration ran                                      |
+| `code-previous`   | PR                 | master, checked out into a separate directory | old code still running after the migration, or a rollback of the code          |
 
 Each job: apply the chosen migrations with `pnpm migrate`, run `kysely-codegen` into the chosen tree, type-check
 that tree. The row types are the only input the matrix needs, which is why they are generated rather than written

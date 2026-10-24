@@ -23,13 +23,13 @@ runtime of development, CI and a possible return to Kubernetes. Neither may rot 
 
 One package, five directories, each allowed a fixed set of imports:
 
-| Directory | Holds | May import |
-| --- | --- | --- |
-| `src/core` | use cases, domain types, ports (interfaces) | web-standard globals only (`Request`, `crypto`, `fetch`, `URL`); `zod` for the contract; nothing from `node:*`, `hono`, `pg`, `kysely`, `cloudflare:*` |
-| `src/contract` | zod schemas of requests, responses and error bodies; the types derived from them | `zod`, the schemas `@memebattle/ligretto-auth` exports |
-| `src/http` | `createPublicApp(deps)` and `createInternalApp(deps)`: routes, validation, mapping of use-case results to responses, OpenAPI | `hono`, `@hono/zod-openapi`, `src/core`, `src/contract` |
-| `src/adapters` | implementations of the ports: Postgres repositories and the session store over Kysely, the console logger, the clock | `kysely`, `pg`, `src/core` |
-| `src/entry` | one file per way the code is started: `node.ts`, `worker.ts`, `migrate.ts`, `sweep.ts` | everything, including `node:*`, `@hono/node-server`, `cloudflare:workers` |
+| Directory      | Holds                                                                                                                        | May import                                                                                                                                             |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/core`     | use cases, domain types, ports (interfaces)                                                                                  | web-standard globals only (`Request`, `crypto`, `fetch`, `URL`); `zod` for the contract; nothing from `node:*`, `hono`, `pg`, `kysely`, `cloudflare:*` |
+| `src/contract` | zod schemas of requests, responses and error bodies; the types derived from them                                             | `zod`, the schemas `@memebattle/ligretto-auth` exports                                                                                                 |
+| `src/http`     | `createPublicApp(deps)` and `createInternalApp(deps)`: routes, validation, mapping of use-case results to responses, OpenAPI | `hono`, `@hono/zod-openapi`, `src/core`, `src/contract`                                                                                                |
+| `src/adapters` | implementations of the ports: Postgres repositories and the session store over Kysely, the console logger, the clock         | `kysely`, `pg`, `src/core`                                                                                                                             |
+| `src/entry`    | one file per way the code is started: `node.ts`, `worker.ts`, `migrate.ts`, `sweep.ts`                                       | everything, including `node:*`, `@hono/node-server`, `cloudflare:workers`                                                                              |
 
 Rules:
 

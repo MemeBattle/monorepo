@@ -28,9 +28,7 @@ data to carry over: the schema starts from scratch.
   database and fails on a diff, the way CAS checks its `.sqlx` cache. Nobody edits the generated file.
 - **Migrations.** `migrations/<timestamp>_<name>.ts` exporting `up` (and `down` only where it is cheap and true;
   migrations are forward-only in practice). SQL inside via `sql\`…\`.execute(db)`, so a reviewer reads SQL. Applied
-  by Kysely's `Migrator` with `FileMigrationProvider` from `src/entry/migrate.ts`, which loads the same `Config`
-  as the service, runs `migrateToLatest()` and exits non-zero on failure. The serving process never migrates.
-  `allowUnorderedMigrations` stays off: a migration older than one already applied is an error, which is the
+by Kysely's `Migrator`with`FileMigrationProvider`from`src/entry/migrate.ts`, which loads the same `Config`as the service, runs`migrateToLatest()`and exits non-zero on failure. The serving process never migrates.`allowUnorderedMigrations` stays off: a migration older than one already applied is an error, which is the
   ordering guard.
 - **First migration.** Creates the whole schema of `DESIGN.md` (`users`, `games`, `rounds`, `round_users`,
   `sessions`, `auth_requests`, `session_locks`) with this package's conventions. Nothing is inherited from the

@@ -55,13 +55,13 @@ The schema is this package's own: the first migration creates it from scratch, a
 kept or migrated — there is no production data. Conventions: snake_case names everywhere, `created_at`/`updated_at`
 as `timestamptz`, the session timestamps as `bigint` epoch milliseconds (the unit the `SessionStore` port uses).
 
-| Table | Purpose | Key |
-| --- | --- | --- |
-| `users` | profile snapshot written on every grant by the session store: `cas_id`, `account_type`, `display_name`, `avatar_url` | `cas_id` |
-| `games` | a game created by the gameplay backend | `id` uuid |
-| `rounds` | a round of a game | `id` uuid, `game_id` |
-| `round_users` | a player's score in a round: `round_id`, `user_id` (= `users.cas_id`), `score` | (`round_id`, `user_id`) — the primary key; the old serial `id` has no successor |
-| `sessions`, `auth_requests`, `session_locks` | the `SessionStore` of `ligretto-auth`; see `adrs/session-store-locking.md` | |
+| Table                                        | Purpose                                                                                                              | Key                                                                             |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `users`                                      | profile snapshot written on every grant by the session store: `cas_id`, `account_type`, `display_name`, `avatar_url` | `cas_id`                                                                        |
+| `games`                                      | a game created by the gameplay backend                                                                               | `id` uuid                                                                       |
+| `rounds`                                     | a round of a game                                                                                                    | `id` uuid, `game_id`                                                            |
+| `round_users`                                | a player's score in a round: `round_id`, `user_id` (= `users.cas_id`), `score`                                       | (`round_id`, `user_id`) — the primary key; the old serial `id` has no successor |
+| `sessions`, `auth_requests`, `session_locks` | the `SessionStore` of `ligretto-auth`; see `adrs/session-store-locking.md`                                           |                                                                                 |
 
 ## Routes
 
@@ -71,14 +71,14 @@ Status codes and bodies are declared per route in `src/contract`; this is the re
 
 ### Public: `/api`, served on the public hostname
 
-| Route | Auth | Request | Responses |
-| --- | --- | --- | --- |
-| `GET /health` | none | | `200` / `503` with the check report (database reachable within a timeout) |
-| `GET /api/auth/me` | session (cookie or bearer, per transport) | | `MeResponse` and the auth error codes, as `ligretto-auth` defines them |
-| `GET /api/auth/sign-in` | session | | `302` (cookie transport) or `200 NavigationResponse` (bearer) |
-| `GET /api/auth/callback` | session | `?state&code` | `302` / `200 NavigationResponse`; `400 unknown_state`, `400 sign_in_failed`, `429`, `503` |
-| `GET /api/auth/logout` | session | | `302` / `200 NavigationResponse` |
-| `GET /api/users` | `Authorization: Bearer <access token>` (`aud: ligretto`, guest or account) | `?ids=<sub>&ids=<sub>`, 1–100 values | `200 AuthUser[]`: `{ sub, accountType, name, avatarUrl }` for each id that has a row; unknown ids are absent. `401 unauthorized` |
+| Route                    | Auth                                                                       | Request                              | Responses                                                                                                                        |
+| ------------------------ | -------------------------------------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /health`            | none                                                                       |                                      | `200` / `503` with the check report (database reachable within a timeout)                                                        |
+| `GET /api/auth/me`       | session (cookie or bearer, per transport)                                  |                                      | `MeResponse` and the auth error codes, as `ligretto-auth` defines them                                                           |
+| `GET /api/auth/sign-in`  | session                                                                    |                                      | `302` (cookie transport) or `200 NavigationResponse` (bearer)                                                                    |
+| `GET /api/auth/callback` | session                                                                    | `?state&code`                        | `302` / `200 NavigationResponse`; `400 unknown_state`, `400 sign_in_failed`, `429`, `503`                                        |
+| `GET /api/auth/logout`   | session                                                                    |                                      | `302` / `200 NavigationResponse`                                                                                                 |
+| `GET /api/users`         | `Authorization: Bearer <access token>` (`aud: ligretto`, guest or account) | `?ids=<sub>&ids=<sub>`, 1–100 values | `200 AuthUser[]`: `{ sub, accountType, name, avatarUrl }` for each id that has a row; unknown ids are absent. `401 unauthorized` |
 
 The auth routes are `ligretto-auth`'s handlers mounted as they are; their contract is the package's, described
 from the schemas it exports. `GET /api/users` reuses `AuthUser` from that contract so a frontend holds one user
@@ -89,9 +89,9 @@ type. The answer is a lookup, not a claim that every id exists.
 Authentication on every route: `Authorization: Bearer <LIGRETTO_INTERNAL_API_TOKEN>`; `401 invalid_internal_token`
 otherwise.
 
-| Route | Request | Responses |
-| --- | --- | --- |
-| `POST /internal/games` | empty body | `201 { id: uuid }` |
+| Route                              | Request                                                                          | Responses                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `POST /internal/games`             | empty body                                                                       | `201 { id: uuid }`                                                                                                                                                                                                                                                                                                                                                                   |
 | `POST /internal/games/{id}/rounds` | `{ results: [{ playerId: sub, score: int }] }`, 1+ entries, distinct `playerId`s | `200 { gameResults: Record<sub, { roundScore, gameScore }> }` — every player of every round of the game, `gameScore` the sum so far, `roundScore` this round's or `0`. `404 game_not_found`. `422 unknown_players { playerIds }` when a `playerId` has no `users` row (a player exists in `users` from the moment of their first grant, so this is a bug in the caller, not a race). |
 
 The previous `GET /api/games` (every game with every column, no caller) and the public game-creation routes have no
@@ -99,12 +99,12 @@ successor.
 
 ## Runtimes and entries
 
-| Entry | Runs | Database |
-| --- | --- | --- |
-| `entry/node.ts` | `@hono/node-server`, both apps on one port, `.env` through `dotenv-flow` in development | two `pg.Pool`s for the process (`adrs/session-store-locking.md`) |
-| `entry/worker.ts` | `fetch` → public app; a `WorkerEntrypoint`/service binding → internal app | `pg` clients per request on the Hyperdrive binding, closed in `waitUntil` |
-| `entry/migrate.ts` | Kysely `Migrator`, `migrateToLatest()`, exits non-zero on failure | `DATABASE_URL` |
-| `entry/sweep.ts` | expired `auth_requests` and sessions past the cookie grace, each session under its lock; on Workers the same use case runs from the `scheduled` handler of `entry/worker.ts` | `DATABASE_URL`; scheduled by whatever runs the service (a cron job on Node, a cron trigger on Workers) |
+| Entry              | Runs                                                                                                                                                                         | Database                                                                                               |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `entry/node.ts`    | `@hono/node-server`, both apps on one port, `.env` through `dotenv-flow` in development                                                                                      | two `pg.Pool`s for the process (`adrs/session-store-locking.md`)                                       |
+| `entry/worker.ts`  | `fetch` → public app; a `WorkerEntrypoint`/service binding → internal app                                                                                                    | `pg` clients per request on the Hyperdrive binding, closed in `waitUntil`                              |
+| `entry/migrate.ts` | Kysely `Migrator`, `migrateToLatest()`, exits non-zero on failure                                                                                                            | `DATABASE_URL`                                                                                         |
+| `entry/sweep.ts`   | expired `auth_requests` and sessions past the cookie grace, each session under its lock; on Workers the same use case runs from the `scheduled` handler of `entry/worker.ts` | `DATABASE_URL`; scheduled by whatever runs the service (a cron job on Node, a cron trigger on Workers) |
 
 Locally: Postgres from the root `docker-compose.yml`, the entries from the host (`pnpm start:dev` runs
 `entry/node.ts` under `tsx watch`; `pnpm dev:worker` runs `wrangler dev` with the Hyperdrive binding's

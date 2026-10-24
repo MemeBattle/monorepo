@@ -7,8 +7,8 @@ module (a field name, the shape of one route) is not: it lives in `DESIGN.md`, i
 ## Why they exist
 
 An agent or a person picking up a task must be able to find the decisions that constrain it without reading
-everything. So every ADR starts with front matter that answers one question: *do I need to read this for what I am
-doing now?* The body is read only when the answer is yes.
+everything. So every ADR starts with front matter that answers one question: _do I need to read this for what I am
+doing now?_ The body is read only when the answer is yes.
 
 ## One file per decision
 
