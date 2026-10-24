@@ -59,3 +59,7 @@ does not load under vitest 5); the Worker smoke suite reads cloudflare.config.ts
 
 upd (2026-10-24): HTTP suites that compose the real adapters over PGlite live in test/http, because the lint boundary
 of src/http forbids importing src/adapters and grants tests no exception; HTTP suites on fakes stay beside the code.
+
+upd (2026-10-25): the contract tests of packages/ligretto-core-client compose both apps through this package's
+`./contract-harness` export (test/support/contract-harness.ts), which keeps one PGlite database and rebuilds every
+other part per case ([#839](https://github.com/MemeBattle/monorepo/issues/839)).
