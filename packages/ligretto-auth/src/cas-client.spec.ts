@@ -2,8 +2,21 @@ import { base64url } from 'jose'
 import { describe, expect, it } from 'vitest'
 import type { CasClientOptions } from './cas-client'
 import { createCasClient, UnusableGrantError } from './cas-client'
+import { ApiError } from './client'
+import { DiscoveryError } from './errors'
 import type { CasStub, TokenAnswer } from './test-support/cas'
-import { basicCredentials, casStub, CLIENT_ID, CLIENT_SECRET, KID, POST_LOGOUT_REDIRECT_URI, REDIRECT_URI, SUB } from './test-support/cas'
+import {
+  basicCredentials,
+  casStub,
+  CLIENT_ID,
+  CLIENT_SECRET,
+  gate,
+  KID,
+  POST_LOGOUT_REDIRECT_URI,
+  REDIRECT_URI,
+  SUB,
+  untilAborted,
+} from './test-support/cas'
 
 const seconds = (): number => Math.floor(Date.now() / 1000)
 
@@ -360,5 +373,76 @@ describe('a document that does not advertise an endpoint this client sends to', 
     const withoutToken = await casStub({ documentPatch: { token_endpoint: undefined } })
     await expect(casClient(withoutToken).refresh('the-refresh-token')).rejects.toMatchObject({ code: 'malformed_metadata' })
     expect(withoutToken.tokenRequests).toEqual([])
+  })
+})
+
+describe('the request timeout', () => {
+  const TIMEOUT_MS = 20
+
+  /** The stub's `fetch`, with the request to `url` stalled until the caller's deadline fires. */
+  const stalledAt =
+    (cas: CasStub, url: string): typeof globalThis.fetch =>
+    async (input, init) =>
+      String(input) === url ? await untilAborted(init?.signal) : await cas.fetch(input, init)
+
+  const failureOf = async (call: Promise<unknown>): Promise<unknown> =>
+    await call.then(
+      () => undefined,
+      (error: unknown) => error,
+    )
+
+  it('fails a token call CAS holds past the bound as `unreachable`, and lets one answered in time through', async () => {
+    const cas = await casStub()
+    cas.answer({ until: gate().promise })
+
+    const thrown = await failureOf(casClient(cas, { requestTimeoutMs: TIMEOUT_MS }).guestGrant())
+
+    expect(thrown).toBeInstanceOf(ApiError)
+    expect(thrown).toMatchObject({ code: 'unreachable', status: 0, cause: { name: 'TimeoutError' } })
+    expect(thrown instanceof ApiError && thrown.message).toContain(`${TIMEOUT_MS} ms`)
+
+    const held = gate()
+    cas.answer({ until: held.promise, claims: { account_type: 'guest', amr: ['anon'], name: undefined } })
+    const granted = casClient(cas, { requestTimeoutMs: 1_000 }).guestGrant()
+    held.release()
+
+    await expect(granted).resolves.toMatchObject({ accessToken: 'access-1' })
+  })
+
+  it('keeps the rotated grant when the keys to validate a refreshed ID token outlive the bound', async () => {
+    const cas = await casStub()
+    const client = casClient(cas, { requestTimeoutMs: TIMEOUT_MS, fetch: stalledAt(cas, cas.jwksUri) })
+
+    const thrown = await failureOf(client.refresh('seed-refresh'))
+
+    expect(thrown).toBeInstanceOf(UnusableGrantError)
+    expect(thrown).toMatchObject({ grant: { refreshToken: 'refresh-1', accessToken: 'access-1' } })
+    const cause = thrown instanceof UnusableGrantError ? thrown.cause : undefined
+    expect(cause).toBeInstanceOf(DiscoveryError)
+    expect(cause).toMatchObject({ code: 'discovery_unavailable', cause: { name: 'ApiError', code: 'unreachable', cause: { name: 'TimeoutError' } } })
+  })
+
+  it('fails a discovery read that outlives the bound as unreadable metadata, the timeout underneath', async () => {
+    const cas = await casStub()
+    const client = casClient(cas, { requestTimeoutMs: TIMEOUT_MS, fetch: stalledAt(cas, `${cas.issuer}/.well-known/openid-configuration`) })
+
+    const thrown = await failureOf(client.authorizationRequest())
+
+    expect(thrown).toBeInstanceOf(DiscoveryError)
+    expect(thrown).toMatchObject({ code: 'discovery_unavailable', cause: { name: 'ApiError', code: 'unreachable', cause: { name: 'TimeoutError' } } })
+  })
+
+  it('refuses at construction a bound no runtime can honour as it stands', async () => {
+    const cas = await casStub()
+
+    for (const requestTimeoutMs of [0, 0.5, 1.5, -1, Number.NaN, Number.POSITIVE_INFINITY, 2_147_483_648, '20']) {
+      // A string comes from an environment variable nobody parsed; the type says number, the configuration may not.
+      const make = (): unknown => casClient(cas, { requestTimeoutMs: requestTimeoutMs as number })
+      expect(make).toThrow(TypeError)
+      expect(make).toThrow(/integer from 1 to 2147483647/)
+    }
+    for (const requestTimeoutMs of [1, 2_147_483_647, undefined]) {
+      expect(() => casClient(cas, { requestTimeoutMs })).not.toThrow()
+    }
   })
 })

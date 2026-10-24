@@ -356,6 +356,9 @@ catalogs:
     youch:
       specifier: 4.1.1
       version: 4.1.1
+    zod:
+      specifier: 4.6.5
+      version: 4.6.5
 
 overrides:
   '@types/react': ^19.2.17
@@ -994,6 +997,9 @@ importers:
       jose:
         specifier: 'catalog:'
         version: 6.2.12
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.5
     devDependencies:
       '@kubb/adapter-oas':
         specifier: 'catalog:'

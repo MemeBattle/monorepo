@@ -54,7 +54,23 @@ export type { SessionTransportKind } from './transport'
 
 // The route contract, for a server-side consumer; a browser bundle imports `@memebattle/ligretto-auth/contract`,
 // which is types alone and pulls none of the code above it in.
-export type { AuthErrorCode, AuthErrorResponse, AuthUser, MeResponse, NavigationResponse } from './contract'
+export type { AuthErrorCode, AuthErrorResponse, AuthUser, CallbackQuery, MeResponse, NavigationResponse } from './contract'
+
+// The schemas the contract is derived from, and the route fragments a host documents the routes from; also the
+// package's `@memebattle/ligretto-auth/schema` entry.
+export {
+  ACCOUNT_TYPES,
+  AccountTypeSchema,
+  AUTH_ERROR_CODES,
+  AuthErrorCodeSchema,
+  AuthErrorResponseSchema,
+  authRouteFragments,
+  AuthUserSchema,
+  CallbackQuerySchema,
+  MeResponseSchema,
+  NavigationResponseSchema,
+} from './schema'
+export type { AuthResponseFragment, AuthRouteFragment, AuthRouteFragments } from './schema'
 
 export { DiscoveryError, InvalidIdTokenError, InvalidTokenError, TokenEndpointError } from './errors'
 export type { DiscoveryErrorCode, IdTokenErrorCode, InvalidTokenCode, TokenEndpointErrorCode, TokenEndpointErrorOptions } from './errors'

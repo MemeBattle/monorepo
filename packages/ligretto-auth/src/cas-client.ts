@@ -47,6 +47,14 @@ export interface CasClientOptions {
   fetch?: typeof globalThis.fetch
   /** The metadata cache to read through; defaults to one of this client's own. */
   cache?: DiscoveryCache
+  /**
+   * Bounds every request this client sends — discovery, JWKS and the token endpoint — from `fetch` to the end of the
+   * body, so a caller holding a lock across a CAS call never waits unbounded
+   * (`apps/ligretto-core/docs/adrs/session-store-locking.md`). An integer from 1 to 2147483647 milliseconds, refused
+   * at construction otherwise; no bound when left out. A request that outlives it is an `ApiError` `unreachable`,
+   * which the handlers answer `503 cas_unavailable`.
+   */
+  requestTimeoutMs?: number
 }
 
 /** An authorization request as it was built: the URL to send the browser to, and what the callback is checked with. */
@@ -159,7 +167,9 @@ const basicAuthorization = (clientId: string, clientSecret: string): string =>
 export const createCasClient = (options: CasClientOptions): CasClient => {
   const { issuer, clientId, clientSecret, redirectUri, postLogoutRedirectUri, scope: defaultScope = DEFAULT_SCOPE } = options
   const cache = options.cache ?? createDiscoveryCache()
-  const transport: Client = createClient({ baseUrl: issuer, fetch: options.fetch })
+  // The one transport every round trip goes through — `validateIdToken` and the discovery cache are handed it too —
+  // so the timeout bounds them all.
+  const transport: Client = createClient({ baseUrl: issuer, fetch: options.fetch, requestTimeoutMs: options.requestTimeoutMs })
   const authorization = basicAuthorization(clientId, clientSecret)
 
   /**

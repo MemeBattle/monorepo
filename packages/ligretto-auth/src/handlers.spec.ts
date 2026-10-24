@@ -9,13 +9,15 @@
 import { describe, expect, it } from 'vitest'
 import type { CasClientOptions } from './cas-client'
 import { createCasClient } from './cas-client'
-import type { AuthErrorResponse, MeResponse, NavigationResponse } from './contract'
+import type { AuthErrorResponse, MeResponse } from './contract'
+import type { AuthHandlers } from './handlers'
 import { createAuthHandlers } from './handlers'
+import { AuthErrorResponseSchema, authRouteFragments, MeResponseSchema, NavigationResponseSchema } from './schema'
 import type { PendingAuthorizationRequest, Session, SessionStore } from './session-store'
 import { createInMemorySessionStore } from './session-store'
 import { GRANT_LIFETIME_MS, PENDING_REQUEST_TTL_MS } from './sessions'
 import type { CasStub } from './test-support/cas'
-import { casStub, CLIENT_ID, CLIENT_SECRET, gate, nonceOf, POST_LOGOUT_REDIRECT_URI, REDIRECT_URI, SUB } from './test-support/cas'
+import { casStub, CLIENT_ID, CLIENT_SECRET, gate, nonceOf, POST_LOGOUT_REDIRECT_URI, REDIRECT_URI, SUB, untilAborted } from './test-support/cas'
 import type { SessionTransportKind } from './transport'
 import { SESSION_COOKIE_GRACE_MS, SESSION_COOKIE_NAME, sessionCookieMaxAge, STATE_COOKIE_NAME } from './transport'
 
@@ -170,7 +172,7 @@ const driverFor = (kind: SessionTransportKind, now: () => number) => {
     cookie: (name: string): string | undefined => jar.get(name),
     /** Where a `sign-in` or `logout` answer sends the browser: the `Location`, or the URL the JSON carries. */
     navigationUrl: async (response: Response): Promise<string> =>
-      kind === 'cookie' ? (response.headers.get('Location') ?? '') : ((await response.clone().json()) as NavigationResponse).url,
+      kind === 'cookie' ? (response.headers.get('Location') ?? '') : NavigationResponseSchema.parse(await response.clone().json()).url,
   }
 }
 
@@ -218,12 +220,34 @@ const harness = async (kind: SessionTransportKind, overrides: Partial<CasClientO
     now: time.now,
   })
   const driver = driverFor(kind, time.now)
+  const fragments = authRouteFragments(kind)
 
-  const run = async (handler: (request: Request) => Promise<Response>, path: string, query: Record<string, string> = {}): Promise<Response> => {
-    const response = await handler(driver.request(path, query))
+  /**
+   * Every answer a test receives through the harness, checked against the route's fragment for this transport: its
+   * status is declared, and its JSON body parses with the declared schema. The test parses; production does not.
+   */
+  const conforms = async (route: keyof AuthHandlers, response: Response): Promise<void> => {
+    const declared = fragments[route].responses[String(response.status)]
+    if (declared === undefined) {
+      throw new Error(`${route} answered ${response.status} in the ${kind} transport, which its fragment does not declare`)
+    }
+    const schema = declared.content?.['application/json'].schema
+    if (schema === undefined) {
+      expect(response.body).toBeNull()
+      return
+    }
+    schema.parse(await response.clone().json())
+  }
+
+  const send = async (route: keyof AuthHandlers, request: Request): Promise<Response> => {
+    const response = await handlers[route](request)
+    await conforms(route, response)
     await driver.absorb(response)
     return response
   }
+
+  const run = async (route: keyof AuthHandlers, path: string, query: Record<string, string> = {}): Promise<Response> =>
+    await send(route, driver.request(path, query))
 
   return {
     cas,
@@ -243,10 +267,12 @@ const harness = async (kind: SessionTransportKind, overrides: Partial<CasClientO
       recorded.saves.length = 0
       return session
     },
-    me: async (): Promise<Response> => await run(handlers.me, '/api/auth/me'),
-    signIn: async (): Promise<Response> => await run(handlers.signIn, '/api/auth/sign-in'),
-    callback: async (query: Record<string, string>): Promise<Response> => await run(handlers.callback, '/api/auth/callback', query),
-    logout: async (): Promise<Response> => await run(handlers.logout, '/api/auth/logout'),
+    /** Sends a request built by hand, for a query the driver cannot express; the answer is checked and absorbed. */
+    send,
+    me: async (): Promise<Response> => await run('me', '/api/auth/me'),
+    signIn: async (): Promise<Response> => await run('signIn', '/api/auth/sign-in'),
+    callback: async (query: Record<string, string>): Promise<Response> => await run('callback', '/api/auth/callback', query),
+    logout: async (): Promise<Response> => await run('logout', '/api/auth/logout'),
   }
 }
 
@@ -259,8 +285,11 @@ const signInBegun = async (h: Harness): Promise<{ url: string; state: string }> 
   return { url, state: new URL(url).searchParams.get('state') ?? '' }
 }
 
-const meOf = async (response: Response): Promise<MeResponse> => (await response.json()) as MeResponse
-const errorOf = async (response: Response): Promise<AuthErrorResponse> => (await response.json()) as AuthErrorResponse
+const meOf = async (response: Response): Promise<MeResponse> => MeResponseSchema.parse(await response.json())
+const errorOf = async (response: Response): Promise<AuthErrorResponse> => AuthErrorResponseSchema.parse(await response.json())
+
+/** The bound the timeout cases give the CAS client: short, so a stalled CAS fails the test quickly. */
+const REQUEST_TIMEOUT_MS = 20
 
 /** Waits for something the code under test does on its own; the loop ends as soon as it has happened. */
 const until = async (condition: () => boolean): Promise<void> => {
@@ -493,6 +522,66 @@ describe.each(TRANSPORTS)('the %s transport', kind => {
       expect(h.driver.sessionId()).toBe(signedIn)
       await expect(meOf(await h.me())).resolves.toMatchObject({ user: { sub: GUEST_SUB, accountType: 'full', name: 'Ada' } })
     })
+
+    it('answers 503 when the guest grant outlives the request timeout, storing nothing', async () => {
+      const h = await harness(kind, { requestTimeoutMs: REQUEST_TIMEOUT_MS })
+      h.cas.answer({ until: gate().promise, claims: guestClaims() })
+
+      const response = await h.me()
+
+      expect(response.status).toBe(503)
+      await expect(errorOf(response)).resolves.toMatchObject({ error: 'cas_unavailable', casError: 'unreachable' })
+      expect(h.saves).toEqual([])
+    })
+
+    it('releases the session’s lock when the refresh outlives the request timeout, keeping the session', async () => {
+      const h = await harness(kind, { requestTimeoutMs: REQUEST_TIMEOUT_MS })
+      await h.seed({ accessTokenExpiresAt: START })
+      h.cas.answer({ until: gate().promise, claims: guestClaims() })
+
+      const timedOut = await h.me()
+
+      expect(timedOut.status).toBe(503)
+      await expect(errorOf(timedOut)).resolves.toMatchObject({ error: 'cas_unavailable', casError: 'unreachable' })
+      await expect(h.store.getSession('session-1')).resolves.toMatchObject({ refreshToken: 'seed-refresh' })
+
+      // The in-memory lock chains promises: had the timed-out refresh kept it, this call would hang until vitest's
+      // own timeout instead of taking it again.
+      h.cas.answer({ claims: guestClaims() })
+      const retried = await h.me()
+
+      expect(retried.status).toBe(200)
+      await expect(meOf(retried)).resolves.toMatchObject({ accessToken: 'access-1' })
+      expect(counted(h.calls, 'lock session-1')).toBe(2)
+    })
+
+    it('answers 503 when the refresh’s body never finishes arriving, persisting nothing of it', async () => {
+      const h = await harness(kind, { requestTimeoutMs: REQUEST_TIMEOUT_MS })
+      await h.seed({ accessTokenExpiresAt: START })
+      h.cas.answer({ stalledBody: true })
+
+      const response = await h.me()
+
+      expect(response.status).toBe(503)
+      await expect(errorOf(response)).resolves.toMatchObject({ error: 'cas_unavailable', casError: 'unreachable' })
+      await expect(h.store.getSession('session-1')).resolves.toMatchObject({ refreshToken: 'seed-refresh' })
+      expect(h.saves).toEqual([])
+    })
+
+    it('answers 503 when the discovery document outlives the request timeout, keeping the session', async () => {
+      const cas = await casStub()
+      const stalled: typeof globalThis.fetch = async (input, init) =>
+        String(input).endsWith('/.well-known/openid-configuration') ? await untilAborted(init?.signal) : await cas.fetch(input, init)
+      const h = await harness(kind, { requestTimeoutMs: REQUEST_TIMEOUT_MS, fetch: stalled })
+      await h.seed({ accessTokenExpiresAt: START })
+
+      const response = await h.me()
+
+      // The timeout reaches the answer through the discovery cache's own wrapper, as any unreadable metadata does.
+      expect(response.status).toBe(503)
+      await expect(errorOf(response)).resolves.toMatchObject({ error: 'cas_unavailable', casError: 'discovery_unavailable' })
+      await expect(h.store.getSession('session-1')).resolves.toMatchObject({ refreshToken: 'seed-refresh' })
+    })
   })
 
   describe('sign-in', () => {
@@ -671,6 +760,44 @@ describe.each(TRANSPORTS)('the %s transport', kind => {
       await expect(errorOf(cancelled)).resolves.toMatchObject({ error: 'sign_in_failed', casError: 'access_denied' })
 
       expect(h.cas.tokenRequests).toEqual([])
+    })
+
+    it('refuses a callback that carries a code but no state, keeping the sign-in this browser has in flight', async () => {
+      const h = await harness(kind)
+      const { state } = await signInBegun(h)
+
+      const response = await h.callback({ code: 'the-code' })
+
+      expect(response.status).toBe(400)
+      await expect(errorOf(response)).resolves.toMatchObject({ error: 'unknown_state' })
+      expect(h.driver.cookie(STATE_COOKIE_NAME)).toBe(state)
+      expect(h.cas.tokenRequests).toEqual([])
+    })
+
+    it('refuses an error CAS sent back as `sign_in_failed`, ignoring a parameter this package does not read', async () => {
+      const h = await harness(kind)
+      const { state } = await signInBegun(h)
+
+      // RFC 9207's `iss` rides along with the error: it is ignored, never a reason to refuse the callback.
+      const response = await h.callback({ state, error: 'access_denied', iss: h.cas.issuer })
+
+      expect(response.status).toBe(400)
+      await expect(errorOf(response)).resolves.toMatchObject({ error: 'sign_in_failed', casError: 'access_denied' })
+      expect(h.cas.tokenRequests).toEqual([])
+    })
+
+    it('reads the first value of a repeated state, as `URLSearchParams.get` does', async () => {
+      const h = await harness(kind)
+      const { url, state } = await signInBegun(h)
+      h.cas.answer({ claims: { nonce: nonceOf(url) } })
+
+      const base = h.driver.request('/api/auth/callback', { state, code: 'the-code' })
+      const repeated = new URL(base.url)
+      repeated.searchParams.append('state', 'another-state')
+      const response = await h.send('callback', new Request(repeated, { headers: base.headers }))
+
+      expect(response.status).toBe(302)
+      await expect(h.store.getSession(h.driver.sessionId() ?? '')).resolves.toMatchObject({ sub: SUB })
     })
 
     it('reports a callback for another account instead of merging it into the guest', async () => {

@@ -29,10 +29,16 @@
       "development": "./src/contract.ts",
       "node": "./build/contract.js",
       "default": "./src/contract.ts"
+    },
+    "./schema": {
+      "types": "./src/schema.ts",
+      "development": "./src/schema.ts",
+      "node": "./build/schema.js",
+      "default": "./src/schema.ts"
     }
   },
   "scripts": {
-    "ts-check": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.tests.json",
+    "ts-check": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.tests.json && tsc --noEmit -p tsconfig.contract.json",
     "test": "vitest",
     "test:ci": "vitest run",
     "build": "tsc --project tsconfig.build.json",
@@ -40,7 +46,8 @@
     "generate:api": "KUBB_DISABLE_TELEMETRY=1 kubb generate && node scripts/generate-error-codes.mjs"
   },
   "dependencies": {
-    "jose": "catalog:"
+    "jose": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@kubb/adapter-oas": "catalog:",

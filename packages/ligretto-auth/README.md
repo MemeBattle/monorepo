@@ -77,8 +77,20 @@ const cas = createCasClient({
   clientSecret: process.env.CAS_CLIENT_SECRET,
   redirectUri: 'https://ligretto.mems.fun/auth/callback',
   postLogoutRedirectUri: 'https://ligretto.mems.fun/',
+  requestTimeoutMs: 5_000, // optional
 })
 ```
+
+`requestTimeoutMs` bounds every request the client sends — discovery, JWKS
+and the token endpoint — from the call to `fetch` to the last byte of the
+body, so a caller holding a session lock across a CAS call never waits
+unbounded
+([session-store-locking.md](../../apps/ligretto-core/docs/adrs/session-store-locking.md)).
+It is an integer from 1 to 2147483647 milliseconds, the range
+`AbortSignal.timeout` supports everywhere, and anything else is refused at
+construction with a `TypeError`. A request that outlives it, before or after
+the headers arrived, is an `ApiError` `unreachable` whose `cause` is the
+`TimeoutError`. Left out, there is no bound.
 
 - `authorizationRequest({ scope?, idTokenHint?, prompt? })` builds the
   request of [§4](../../apps/cas/docs/INTEGRATION.md): PKCE `S256` over
@@ -227,11 +239,13 @@ signedOut }`, with `expiresAt` in epoch milliseconds. A grant that has
   With a session it force-refreshes and, for a **guest**, hints with the
   freshly issued ID token (§9). If that session turns out to be gone, the
   sign-in starts again without one: the user asked to sign in either way.
-- **`callback`** compares the query's `state` with the cookie this browser
-  holds, handles an `error` CAS sent, checks that a code is actually there,
-  redeems it, installs the new session and redirects to `appUrl`. A `sub`
-  that is not the one the sign-in started from is reported as
-  `?previous_sub=<sub>` on that redirect, never merged (§9).
+- **`callback`** parses its query with `CallbackQuerySchema`, the one input
+  a handler validates: a parameter it does not read is ignored, and a query
+  without `state` is `unknown_state`. It then compares the `state` with the
+  cookie this browser holds, handles an `error` CAS sent, checks that a code
+  is actually there, redeems it, installs the new session and redirects to
+  `appUrl`. A `sub` that is not the one the sign-in started from is reported
+  as `?previous_sub=<sub>` on that redirect, never merged (§9).
 - **`logout`** ends this application's session and sends the browser to
   CAS's `end_session` with the `id_token_hint` and the registered
   `post_logout_redirect_uri` (§11). It also takes the `state` cookie back, so
@@ -280,22 +294,42 @@ has in flight.
 
 ### The answers
 
-`@memebattle/ligretto-auth/contract` is a second entry holding `MeResponse`,
-`NavigationResponse`, `AuthUser`, `AuthErrorCode` and `AuthErrorResponse` as
-`export type` declarations and nothing else, so a browser bundle can import
-it: it is erased at build time and pulls none of the server-only code with
-it. The same types are re-exported from the main entry for a backend.
+`@memebattle/ligretto-auth/schema` is the source of truth of the routes'
+contract: zod schemas of every body and query the handlers exchange
+(`MeResponseSchema`, `AuthUserSchema`, `NavigationResponseSchema`,
+`AuthErrorResponseSchema`, `AuthErrorCodeSchema`, `CallbackQuerySchema`), with
+descriptions in `.meta()`, and `authRouteFragments(transport)`, which returns
+for each of the four routes its method, summary, request schema and responses
+by status for the transport the handlers are mounted with. A fragment is
+shaped as zod-to-openapi's `RouteConfig` without `path`, so a Hono host
+registers a route without restating anything:
+
+```ts
+const fragments = authRouteFragments('cookie')
+app.openAPIRegistry.registerPath({ path: '/api/auth/me', ...fragments.me })
+```
+
+Each error status of a fragment narrows `error` to the codes that route
+answers with it. Only the callback's query is parsed at run time; every
+answer is built as a value of a schema-derived type and never parsed.
+
+`@memebattle/ligretto-auth/contract` holds `MeResponse`,
+`NavigationResponse`, `AuthUser`, `AuthErrorCode`, `AuthErrorResponse` and
+`CallbackQuery` as types derived with `z.infer` from those schemas, imported
+with `import type` only, so a browser bundle can import it: it is erased at
+build time and pulls neither zod nor any server-only code with it. The same
+types and the schemas are re-exported from the main entry for a backend.
 
 Every known failure is a 4xx or a 503 carrying one of five stable codes;
 `500` is only ever the host's, for what is genuinely unhandled.
 
-| Status | `error`               | When                                                                                                                                                                            |
-| -----: | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|  `400` | `unknown_state`       | The callback's `state` does not match this browser's cookie, or names no sign-in this backend still holds (`CallbackStateError`).                                               |
-|  `400` | `sign_in_failed`      | The callback carries no code, the code was spent (`invalid_grant`), or the user said no (`access_denied`) — the code CAS named is in `casError`.                                |
-|  `429` | `rate_limit_exceeded` | CAS is rate-limiting this client; `Retry-After` echoes the delay it prescribed.                                                                                                 |
-|  `503` | `cas_unavailable`     | Transient: `temporarily_unavailable`, `server_error`, `internal_error`, any `5xx`, an `ApiError` (a proxy's page, or CAS unreachable), a refused ID token, unreadable metadata. |
-|  `503` | `cas_rejected`        | Permanent until an operator acts: `invalid_client`, `unauthorized_client`, `invalid_scope`, `invalid_request`, `unsupported_grant_type`, `unsupported_response_type`.           |
+| Status | `error`               | When                                                                                                                                                                                                                          |
+| -----: | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|  `400` | `unknown_state`       | The callback's `state` does not match this browser's cookie, or names no sign-in this backend still holds (`CallbackStateError`).                                                                                             |
+|  `400` | `sign_in_failed`      | The callback carries no code, the code was spent (`invalid_grant`), or the user said no (`access_denied`) — the code CAS named is in `casError`.                                                                              |
+|  `429` | `rate_limit_exceeded` | CAS is rate-limiting this client; `Retry-After` echoes the delay it prescribed.                                                                                                                                               |
+|  `503` | `cas_unavailable`     | Transient: `temporarily_unavailable`, `server_error`, `internal_error`, any `5xx`, an `ApiError` (a proxy's page, CAS unreachable, or CAS not answering within the request timeout), a refused ID token, unreadable metadata. |
+|  `503` | `cas_rejected`        | Permanent until an operator acts: `invalid_client`, `unauthorized_client`, `invalid_scope`, `invalid_request`, `unsupported_grant_type`, `unsupported_response_type`.                                                         |
 
 The same three buckets sort what either CAS endpoint sent, because the same
 faults reach both: the token endpoint's codes (RFC 6749 §5.2) and the `error`
@@ -601,6 +635,20 @@ repository keeps:
   that function consumes the pending request _before_ it redeems the code: a
   callback with none would spend a sign-in the browser could still have
   completed, and send a junk exchange to CAS.
+- Run-time validation is for input only: the callback's query is parsed
+  with its schema, no outgoing body is parsed in production, and the tests
+  parse every answer against its route's fragment — the rule
+  `apps/ligretto-core` follows
+  ([api-contract-openapi-and-client-package.md](../../apps/ligretto-core/docs/adrs/api-contract-openapi-and-client-package.md)).
+  The fragments are plain objects, not the library's type: the package
+  depends on no framework, and compatibility with `RouteConfig` is compiled
+  where the routes are registered.
+- The CAS client's request timeout is opt-in with no default — a default
+  would change every deployment that mounts the client today — and bounds
+  the body as well as the headers, since a response that stalls after its
+  status line holds a lock just as long. A timeout in any phase is the
+  transport's `unreachable`, never a new code, so the handlers' contract
+  grows nothing.
 - Two shapes behind one exports map, the `@memebattle/ligretto-shared` one:
   TypeScript source under `types`, `development` and `default`, a CommonJS
   `tsc` build under `node`. The first runtime consumer, the gameplay
@@ -611,7 +659,12 @@ repository keeps:
   CommonJS — hence no `"type": "module"` — and `module: nodenext` is what
   lets it `require()` ESM-only `jose`, which Node 24 supports. The
   `./contract` entry is built alongside the rest but stays types alone, so a
-  browser bundle gets no code from it.
+  browser bundle gets no code from it; `./schema` is built the same way and
+  carries zod. `tsconfig.contract.json` type-checks `./contract` the way a
+  browser does, on ES2021 and DOM with no ambient types, so its import graph
+  staying within `./schema` and the generated models is checked rather than
+  promised: `SessionTransportKind` is declared in `./schema` for that reason,
+  and `./transport` re-exports it.
 - The integration suite lives in `tests/integration/` behind a vitest config
   and a tsconfig project of its own. `test:ci` keeps selecting `src/**` alone,
   so it stays hermetic: the root `pnpm test:ci` runs every package in parallel
