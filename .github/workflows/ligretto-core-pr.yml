@@ -209,6 +209,15 @@ jobs:
       - name: An internal route without the token is a 401
         run: test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3333/internal/games)" = 401
 
+      # The token of the root .env.development, public by construction. The request validator runs after the guard
+      # and before any query, so a 400 for an empty body proves the token was accepted without a migrated database.
+      - name: An internal route with the configured token passes the guard
+        run: |
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+            -H 'authorization: Bearer dev-only-internal-api-token-public-by-construction' \
+            -H 'content-type: application/json' -d '{}' \
+            http://127.0.0.1:3333/internal/games/00000000-0000-4000-8000-000000000000/rounds)" = 400
+
       - name: Upload the Node entry log
         uses: actions/upload-artifact@v7
         if: failure()
@@ -250,6 +259,6 @@ jobs:
 
       # The same entry under workerd, through @cloudflare/vitest-plugin: /health on both hostnames and through the
       # InternalApi service binding, each with its database check over the emulated Hyperdrive bindings, and the
-      # internal token's 401 with the token from .dev.vars.
+      # internal token from .dev.vars: refused when missing or wrong, accepted when it is the configured one.
       - name: Run the Worker smoke suite
         run: pnpm run --filter @memebattle/ligretto-core test:worker

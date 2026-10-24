@@ -66,6 +66,11 @@ describe('saveRoundRequestSchema', () => {
     expect(issuePaths(result)).toEqual(['results.0.score'])
   })
 
+  it('rejects a null character in a playerId with an issue at results.0.playerId', () => {
+    const result = saveRoundRequestSchema.safeParse(body({ results: [{ playerId: 'alice\u0000', score: 1 }] }))
+    expect(issuePaths(result)).toEqual(['results.0.playerId'])
+  })
+
   it('reads an uppercase roundId as its lowercase spelling', () => {
     expect(saveRoundRequestSchema.parse(body({ roundId: ROUND_ID.toUpperCase() })).roundId).toBe(ROUND_ID)
   })

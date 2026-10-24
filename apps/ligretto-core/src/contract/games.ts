@@ -29,7 +29,12 @@ export const createGameResponseSchema = z
   .meta({ id: 'CreateGameResponse', description: 'The game just created' })
 
 const roundResultSchema = z.object({
-  playerId: z.string().min(1).meta({ description: 'The CAS subject of the player' }),
+  // Postgres text cannot hold U+0000, so the lookup would fail with a database error rather than a 400.
+  playerId: z
+    .string()
+    .min(1)
+    .refine(id => !id.includes('\u0000'), { message: 'playerId must not contain the null character' })
+    .meta({ description: 'The CAS subject of the player' }),
   score: scoreSchema,
 })
 

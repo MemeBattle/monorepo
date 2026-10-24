@@ -238,6 +238,28 @@ describe('POST /internal/games/{id}/rounds', () => {
   })
 })
 
+describe('player ids', () => {
+  it('answers a player whose id is a property of Object.prototype', async () => {
+    await seedUsers(database.db, [{ sub: '__proto__', accountType: 'full', displayName: 'proto', avatarUrl: null }])
+    const gameId = await createGame()
+    const res = await postRound(gameId, { roundId: crypto.randomUUID(), results: [{ playerId: '__proto__', score: 7 }] })
+    expect(res.status).toBe(200)
+    // Read without zod, whose record parsing would hide a missing own key behind the same prototype write.
+    const { gameResults } = JSON.parse(await res.text()) as { gameResults: Record<string, unknown> }
+    expect(Object.keys(gameResults)).toEqual(['__proto__'])
+    expect(Object.getOwnPropertyDescriptor(gameResults, '__proto__')?.value).toEqual({ roundScore: 7, gameScore: 7 })
+  })
+
+  it('answers 400 validation_failed for a null character in a playerId and writes nothing', async () => {
+    const gameId = await createGame()
+    await expectValidationFailed(
+      await postRound(gameId, { roundId: crypto.randomUUID(), results: [{ playerId: 'alice\u0000', score: 1 }] }),
+      'results.0.playerId',
+    )
+    expect(await counts()).toEqual({ rounds: 0, roundUsers: 0 })
+  })
+})
+
 describe('uuids in any letter case', () => {
   it('reads both ids as lowercase, so a retry in another spelling is a repeat', async () => {
     const gameId = await createGame()

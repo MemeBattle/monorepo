@@ -64,10 +64,10 @@ export const createSaveRound =
 
       const roundScores = new Map(results.map(result => [result.playerId, result.score]))
       const totals = await game.totals()
-      const gameResults: GameResults = {}
-      for (const { playerId, gameScore } of totals) {
-        gameResults[playerId] = { roundScore: roundScores.get(playerId) ?? 0, gameScore }
-      }
+      // `Object.fromEntries` defines own properties, so an id such as `__proto__` is a key rather than a prototype write.
+      const gameResults: GameResults = Object.fromEntries(
+        totals.map(({ playerId, gameScore }) => [playerId, { roundScore: roundScores.get(playerId) ?? 0, gameScore }]),
+      )
       return { ok: true, value: { gameResults } }
     })
     return outcome.status === 'game_not_found' ? { ok: false, error: 'game_not_found' } : outcome.value

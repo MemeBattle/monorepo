@@ -61,6 +61,19 @@ describe('saveRound', () => {
     })
   })
 
+  it('answers a player whose id is a property of Object.prototype as an own key', async () => {
+    const users = createFakeUsersRepository([{ sub: '__proto__', accountType: 'full', displayName: 'proto', avatarUrl: null }])
+    const games = createFakeGamesRepository(users)
+    const { id } = await createCreateGame({ games })()
+    const result = await createSaveRound({ games })(id, roundId(), [{ playerId: '__proto__', score: 7 }])
+    if (!result.ok) {
+      throw new Error(`expected a saved round, got ${result.error}`)
+    }
+    const { gameResults } = result.value
+    expect(Object.keys(gameResults)).toEqual(['__proto__'])
+    expect(JSON.parse(JSON.stringify(gameResults))).toEqual(JSON.parse('{"__proto__":{"roundScore":7,"gameScore":7}}'))
+  })
+
   it('answers every player of a round', async () => {
     const { id } = await createGame()
     expect(
