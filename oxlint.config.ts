@@ -5,7 +5,12 @@ export default defineConfig({
   categories: {
     correctness: 'off',
   },
-  ignorePatterns: ['**/.adonisjs/**', 'apps/cas-frontend/src/shared/api/generated/**', 'packages/ligretto-auth/src/generated/**'],
+  ignorePatterns: [
+    '**/.adonisjs/**',
+    'apps/cas-frontend/src/shared/api/generated/**',
+    'packages/ligretto-auth/src/generated/**',
+    'apps/ligretto-core/src/adapters/pg/schema.generated.ts',
+  ],
   settings: {
     react: {
       version: '19.2.4',
