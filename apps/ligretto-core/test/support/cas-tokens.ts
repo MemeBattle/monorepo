@@ -64,14 +64,26 @@ export interface CasFetch {
   fetch: typeof globalThis.fetch
   /** From now on every request fails as an unreachable CAS does. */
   fail(): void
+  /**
+   * From now on every request stalls, as a CAS that accepted the connection and never answers: it settles only when
+   * its signal aborts, and then rejects with the signal's reason, as a real `fetch` does.
+   */
+  stall(): void
 }
 
 /** The metadata of `ISSUER`, cacheable for an hour, through a `fetch` that can be switched to fail. */
 export const casFetch = (): CasFetch => {
   let failing = false
-  const fetch: typeof globalThis.fetch = async input => {
+  let stalling = false
+  const fetch: typeof globalThis.fetch = async (input, init) => {
     if (failing) {
       throw new TypeError('fetch failed')
+    }
+    if (stalling) {
+      const signal = init?.signal
+      return await new Promise<never>((_, reject) => {
+        signal?.addEventListener('abort', () => reject(signal.reason), { once: true })
+      })
     }
     const url = input instanceof Request ? input.url : String(input)
     const headers = { 'content-type': 'application/json', 'cache-control': 'public, max-age=3600' }
@@ -87,6 +99,9 @@ export const casFetch = (): CasFetch => {
     fetch,
     fail: () => {
       failing = true
+    },
+    stall: () => {
+      stalling = true
     },
   }
 }

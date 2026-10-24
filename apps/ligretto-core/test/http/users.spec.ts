@@ -152,4 +152,28 @@ describe('GET /api/users', () => {
     expect(res.status).toBe(503)
     expect(casUnavailableSchema.parse(await res.json()).error).toBe('cas_unavailable')
   })
+
+  it('answers 503 cas_unavailable when CAS stalls, within the CAS request bound', async () => {
+    // A cold metadata cache, as after a start: the verifier's own discovery request is the one that stalls.
+    const stalled = casFetch()
+    stalled.stall()
+    const { handlers, verifyAccessToken } = createAuth({
+      config,
+      databases: { main: database.db, locks: database.db },
+      clock: createFixedClock(),
+      fetch: stalled.fetch,
+      casRequestTimeoutMs: 50,
+    })
+    const stallingApp = createPublicApp({
+      logger: createRecordingLogger().logger,
+      clock: createFixedClock(),
+      database: createPgDatabaseProbe(database.db),
+      auth: handlers,
+      users: createPgUsersRepository(database.db),
+      verifyAccessToken,
+    })
+    const res = await stallingApp.request(`/api/users?ids=${ACCOUNT.sub}`, { headers: { authorization: `Bearer ${token}` } })
+    expect(res.status).toBe(503)
+    expect(casUnavailableSchema.parse(await res.json()).error).toBe('cas_unavailable')
+  }, 2_000)
 })

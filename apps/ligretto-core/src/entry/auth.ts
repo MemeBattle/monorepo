@@ -18,6 +18,22 @@ export const ACCESS_TOKEN_AUDIENCE = 'ligretto'
  */
 export const CAS_REQUEST_TIMEOUT_MS = 5_000
 
+/**
+ * `fetch` bounded by `timeoutMs`, for the access-token verifier: `verifyAccessToken` builds its own transport without a
+ * timeout, so the bound goes on the `fetch` it is given. The deadline is the request's signal, joined to any signal the
+ * caller passed, so it aborts a stalled body read as well as a stalled connection. The abort rejects inside the
+ * package's transport, which fails it as `unreachable`, and the metadata cache reports that as a `DiscoveryError`: the
+ * access-token middleware's `503 cas_unavailable`, not a 500.
+ */
+const boundedFetch =
+  (fetch: typeof globalThis.fetch | undefined, timeoutMs: number): typeof globalThis.fetch =>
+  async (input, init) => {
+    const deadline = AbortSignal.timeout(timeoutMs)
+    const signal = init?.signal ? AbortSignal.any([init.signal, deadline]) : deadline
+    const send = fetch ?? globalThis.fetch
+    return await send(input, { ...init, signal })
+  }
+
 export interface AuthComposition {
   handlers: AuthHandlers
   /** `verifyAccessToken` with this service's issuer and audience, over the shared metadata cache. */
@@ -34,11 +50,14 @@ export const createAuth = ({
   databases,
   clock,
   fetch,
+  casRequestTimeoutMs = CAS_REQUEST_TIMEOUT_MS,
 }: {
   config: AuthConfig
   databases: DatabaseHandles
   clock: Clock
   fetch?: typeof globalThis.fetch
+  /** `CAS_REQUEST_TIMEOUT_MS` unless a test needs a shorter bound. */
+  casRequestTimeoutMs?: number
 }): AuthComposition => {
   const cache = createDiscoveryCache()
   const client = createCasClient({
@@ -47,14 +66,15 @@ export const createAuth = ({
     clientSecret: config.clientSecret,
     redirectUri: config.redirectUri,
     postLogoutRedirectUri: config.postLogoutRedirectUri,
-    requestTimeoutMs: CAS_REQUEST_TIMEOUT_MS,
+    requestTimeoutMs: casRequestTimeoutMs,
     cache,
     fetch,
   })
   const store = createPgSessionStore(databases, { clock })
+  const verifierFetch = boundedFetch(fetch, casRequestTimeoutMs)
   const handlers = createAuthHandlers({ client, store, transport: config.sessionTransport, appUrl: config.appUrl, now: () => clock.now() })
   return {
     handlers,
-    verifyAccessToken: token => verifyAccessToken(token, { issuer: config.casIssuer, audience: ACCESS_TOKEN_AUDIENCE, cache, fetch }),
+    verifyAccessToken: token => verifyAccessToken(token, { issuer: config.casIssuer, audience: ACCESS_TOKEN_AUDIENCE, cache, fetch: verifierFetch }),
   }
 }

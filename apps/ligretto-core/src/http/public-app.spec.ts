@@ -50,6 +50,16 @@ describe('CORS on the public app', () => {
     expect(corsHeaders(res)).toEqual([])
   })
 
+  it.each([
+    ['an allowed origin', { origin: 'http://localhost:5173' }],
+    ['a refused origin', { origin: 'http://localhost.attacker.example' }],
+    ['no origin', {}],
+  ])('says Vary: Origin to %s, so a cache never hands one answer to another origin', async (_name, headers) => {
+    const res = await app.request('/openapi.json', { headers })
+    expect(res.status).toBe(200)
+    expect(res.headers.get('vary')?.split(/\s*,\s*/)).toContain('Origin')
+  })
+
   it("keeps an auth handler's own headers beside the CORS ones", async () => {
     const res = await app.request('/api/auth/me', { headers: { origin: 'http://localhost:5173' } })
     expect(res.status).toBe(204)

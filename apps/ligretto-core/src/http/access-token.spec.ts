@@ -53,13 +53,26 @@ describe('the access token of GET /api/users', () => {
     await expectUnauthorized(await listUsers('Bearer some-token'))
   })
 
-  it("answers 503 cas_unavailable when CAS's metadata cannot be read", async () => {
-    const { listUsers } = setup(async () => {
+  it("answers 503 cas_unavailable when CAS's metadata cannot be read, and logs the cause once", async () => {
+    const { listUsers, entries } = setup(async () => {
       throw new DiscoveryError('discovery_unavailable', 'CAS did not answer.')
     })
-    const res = await listUsers('Bearer some-token')
+    const res = await listUsers('Bearer secret-some-token')
     expect(res.status).toBe(503)
     expect(casUnavailableSchema.parse(await res.json()).error).toBe('cas_unavailable')
+    const errors = entries.filter(entry => entry.level === 'error')
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toMatchObject({
+      message: 'request_failed',
+      fields: {
+        requestId: expect.any(String),
+        status: 503,
+        error: 'cas_unavailable',
+        reason: 'discovery_unavailable',
+        errorMessage: 'CAS did not answer.',
+      },
+    })
+    expect(JSON.stringify(entries)).not.toContain('secret-some-token')
   })
 
   it('answers 500 internal_error for any other failure of the verifier', async () => {

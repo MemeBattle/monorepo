@@ -114,8 +114,9 @@ The auth routes are `ligretto-auth`'s handlers mounted as they are; their contra
 from the schemas it exports, and the rows above summarise `packages/ligretto-auth/src/handlers.ts`. The public
 document describes them for both transports, whichever one a deployment runs. `503 session_busy` is this service's
 addition: the Postgres session store did not get the session's lock in time, and the mount answers it.
-`GET /api/users` reuses `AuthUser` from that contract so a frontend holds one user type. The answer is a lookup, not
-a claim that every id exists.
+`GET /api/users` reuses `AuthUser` from that contract and names it as a component of the document, its item type.
+`MeResponse.user` of `/api/auth/me` has the same shape, but the package's fragment renders it inline, so a generated
+client sees two structurally equal types. The answer is a lookup, not a claim that every id exists.
 
 CORS on the public app: the allowed origins come from configuration (`LIGRETTO_CORE_CORS_ORIGINS`, a list), with
 credentials allowed for them and for nothing else; the cookie transport needs it in development, where the SPA and

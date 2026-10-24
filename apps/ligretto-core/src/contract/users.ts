@@ -20,8 +20,9 @@ export const listUsersQuerySchema = z.object({
 })
 
 /**
- * One user as the public API shows it: `AuthUser` of `@memebattle/ligretto-auth`, registered as a named component so
- * the generated client exposes one user type for `/api/auth/me` and `/api/users` alike.
+ * One user as the public API shows it: `AuthUser` of `@memebattle/ligretto-auth`, registered as the named item type of
+ * `GET /api/users`. `MeResponse.user` of `/api/auth/me` has the same shape, but the package's route fragment renders it
+ * inline, so the document names the type for `/api/users` only.
  */
 export const authUserSchema = AuthUserSchema.meta({
   id: 'AuthUser',

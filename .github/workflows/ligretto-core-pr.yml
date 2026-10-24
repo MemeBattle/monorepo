@@ -5,6 +5,8 @@ on:
     branches: [master]
     paths:
       - 'apps/ligretto-core/**'
+      # The public document and the auth routes are built from this package's schemas and route fragments.
+      - 'packages/ligretto-auth/**'
       - .github/workflows/ligretto-core-pr.yml
       - 'pnpm-lock.yaml'
       - package.json

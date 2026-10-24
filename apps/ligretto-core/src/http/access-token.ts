@@ -12,7 +12,8 @@ import type { AppEnv, PublicAppDeps } from './types'
  *
  * No token, or one `verify` refuses (`InvalidTokenError`), is `401 unauthorized` with `WWW-Authenticate: Bearer`.
  * CAS's metadata that cannot be read (`DiscoveryError`) is `503 cas_unavailable`: the token was never judged, so it
- * is not an invalid credential. Anything else is a bug and reaches the error handler as the one 500. The refusals are
+ * is not an invalid credential, and it is logged once at `error` with the `DiscoveryError`'s code, as the error handler
+ * logs a 5xx it answers. Anything else is a bug and reaches the error handler as the one 500. The refusals are
  * answered here rather than through `HTTPException`, so they carry their own description. The token is never logged,
  * and nothing is put on the context: no route reads the claims yet.
  */
@@ -34,6 +35,13 @@ export const accessToken = (verify: PublicAppDeps['verifyAccessToken']) =>
         return unauthorized()
       }
       if (failure instanceof DiscoveryError) {
+        c.get('logger').error('request_failed', {
+          requestId: c.get('requestId'),
+          status: 503,
+          error: 'cas_unavailable',
+          reason: failure.code,
+          errorMessage: failure.message,
+        })
         return c.json(
           { error: 'cas_unavailable', description: "CAS's metadata could not be read to verify the access token" } satisfies CasUnavailable,
           503,
