@@ -10,7 +10,7 @@ export const usersSlice = createSlice({
   initialState: usersEntityAdapter.getInitialState(),
   name: '@@users',
   reducers: {
-    addUser: usersEntityAdapter.addOne,
+    addUser: usersEntityAdapter.upsertOne,
     addUsers: usersEntityAdapter.addMany,
   },
 })

@@ -22,7 +22,7 @@ onboardingAddListener(startAppListening)
 let socketStarted = false
 startAppListening({
   actionCreator: getMeSuccess,
-  effect: (action, listenerApi) => {
+  effect: (_action, listenerApi) => {
     // A plain flag instead of unsubscribe(): RTK snapshots the listener map
     // per dispatch, so unsubscribe alone does not stop re-entrant dispatches
     // that are already in flight.
@@ -30,6 +30,6 @@ startAppListening({
       return
     }
     socketStarted = true
-    socketAddListener(startAppListening, listenerApi.dispatch, action.payload.token)
+    socketAddListener(startAppListening, listenerApi.dispatch, () => listenerApi.getState().auth.accessToken)
   },
 })

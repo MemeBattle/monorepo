@@ -7,22 +7,26 @@ const meta: Meta<typeof UserInfo> = {
   argTypes: {
     onClick: { action: 'clicked' },
     onButtonClick: { action: 'buttonClicked' },
+    onLogoutClick: { action: 'logoutClicked' },
   },
 }
 export default meta
 
 type Story = StoryObj<typeof UserInfo>
 
-export const DefaultView: Story = {}
+export const Guest: Story = {
+  args: {
+    isGuest: true,
+  },
+}
 
-export const Authorized: Story = {
+export const FullAccount: Story = {
   argTypes: {
-    onClick: { action: 'clicked' },
-    username: { control: 'text' },
-    onButtonClick: { action: 'button clicked' },
+    displayName: { control: 'text' },
     img: { control: 'text' },
   },
   args: {
-    username: 'themezv',
+    isGuest: false,
+    displayName: 'themezv',
   },
 }

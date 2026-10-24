@@ -1,14 +1,15 @@
 import type { Player as SharedPlayer } from '@memebattle/ligretto-shared'
 
 import type { User } from '../users/usersTypes'
+import { userAvatarUrl, userLabel } from '../users/userPresentation'
 
 export const mergePlayerAndUser = (player: SharedPlayer, user: User) =>
   ({
     status: player.status,
     isHost: player.isHost,
-    username: user.isTemporary ? 'Guest' : user.username,
+    username: userLabel(user),
     id: user.casId,
-    avatar: user.isTemporary ? '' : user.avatar,
+    avatar: userAvatarUrl(user),
     cards: player.cards,
     stackOpenDeck: player.stackOpenDeck,
   }) as const

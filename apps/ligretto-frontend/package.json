@@ -33,6 +33,7 @@
     "@memebattle/analytics": "workspace:^",
     "@memebattle/auth-front": "workspace:^",
     "@memebattle/cas-services": "workspace:^",
+    "@memebattle/ligretto-auth": "workspace:^",
     "@memebattle/ligretto-shared": "workspace:^",
     "@memebattle/ui": "workspace:^",
     "@mui/icons-material": "catalog:",

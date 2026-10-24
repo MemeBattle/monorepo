@@ -11,7 +11,8 @@ export interface UserInfoProps {
   onClick?: MouseEventHandler
   onButtonClick?: MouseEventHandler
   onLogoutClick?: MouseEventHandler
-  username?: string
+  displayName?: string
+  isGuest: boolean
 }
 
 const StyledLogoutButton = styled(Button)(({ theme }) => ({
@@ -33,29 +34,29 @@ const StyledAuthorizedButton = styled(Button)(() => ({
   },
 }))
 
-export const UserInfo: React.FC<UserInfoProps> = ({ onClick, username, onButtonClick, onLogoutClick, img }) => (
+export const UserInfo: React.FC<UserInfoProps> = ({ onClick, displayName, isGuest, onButtonClick, onLogoutClick, img }) => (
   <Paper>
     <Box display="flex" position="relative" height="13rem" alignItems="center" flexDirection="column">
       <Box marginTop="0.5rem" maxWidth="100%" width="9rem" height="9rem" minHeight="9rem" onClick={onClick}>
-        <Avatar src={img} alt={username} size="auto" />
+        <Avatar src={img} alt={displayName} size="auto" />
       </Box>
       <Box height="100%" width="100%" display="flex" justifyContent="center">
-        {username ? (
+        {!isGuest ? (
           <StyledLogoutButton title="logout" onClick={onLogoutClick}>
             <ClearIcon />
           </StyledLogoutButton>
         ) : null}
-        <StyledAuthorizedButton color="primary" variant="contained" size="large" endIcon={username ? <CreateIcon /> : null} onClick={onButtonClick}>
+        <StyledAuthorizedButton color="primary" variant="contained" size="large" endIcon={!isGuest ? <CreateIcon /> : null} onClick={onButtonClick}>
           <Typography
             fontSize="1.5rem"
             textOverflow="ellipsis"
             maxWidth="80%"
             whiteSpace="nowrap"
             overflow="hidden"
-            marginLeft={username ? '1.375rem' : '0'}
+            marginLeft={!isGuest ? '1.375rem' : '0'}
             padding="0rem 0.5rem"
           >
-            {username || 'Sign in'}
+            {isGuest ? 'Sign in' : displayName}
           </Typography>
         </StyledAuthorizedButton>
       </Box>

@@ -1,10 +1,8 @@
-export type UserModel = { casId: string } & (
-  | {
-      isTemporary: false
-      username: string
-      avatar?: string
-    }
-  | {
-      isTemporary: true
-    }
-)
+import type { AccountType } from '@memebattle/ligretto-auth/contract'
+
+export interface UserModel {
+  casId: string
+  accountType: AccountType
+  displayName: string | null
+  avatarUrl: string | null
+}

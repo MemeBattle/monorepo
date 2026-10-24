@@ -937,6 +937,9 @@ importers:
       '@memebattle/cas-services':
         specifier: workspace:^
         version: link:../../packages/cas-services
+      '@memebattle/ligretto-auth':
+        specifier: workspace:^
+        version: link:../../packages/ligretto-auth
       '@memebattle/ligretto-shared':
         specifier: workspace:^
         version: link:../../packages/ligretto-shared

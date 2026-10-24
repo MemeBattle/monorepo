@@ -1,25 +1,33 @@
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice } from '@reduxjs/toolkit'
 
-import type { AuthState } from './authTypes'
+import type { AuthIdentity, AuthState } from './authTypes'
 
 export const authInitialState: AuthState = {
   userId: '',
-  token: '',
+  accessToken: '',
+  expiresAt: 0,
+  accountType: null,
   isLoading: false,
+  isBootstrapped: false,
 }
 
 export const authSlice = createSlice({
   initialState: authInitialState,
   name: '@@auth',
   reducers: {
-    logout: () => authInitialState,
-    getMeRequest: (state, _action: PayloadAction<{ token?: string }>) => {
+    getMeRequest: state => {
       state.isLoading = true
     },
-    getMeSuccess: (state, { payload }: PayloadAction<{ userId: string; token: string; isTemporary: boolean }>) => {
+    getMeSuccess: (state, { payload }: PayloadAction<AuthIdentity>) => {
       state.userId = payload.userId
-      state.token = payload.token
+      state.accessToken = payload.accessToken
+      state.expiresAt = payload.expiresAt
+      state.accountType = payload.accountType
+      state.isLoading = false
+      state.isBootstrapped = true
+    },
+    getMeFailure: state => {
       state.isLoading = false
     },
   },

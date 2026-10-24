@@ -53,6 +53,7 @@ export default defineConfig(({ mode }) => {
       ],
     },
     test: {
+      setupFiles: ['./.config/setup.ts'],
       exclude: [...configDefaults.exclude, 'e2e'],
     },
   }
