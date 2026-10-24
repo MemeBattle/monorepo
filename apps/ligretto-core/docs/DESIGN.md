@@ -141,7 +141,8 @@ successor.
 Locally: Postgres from the root `docker-compose.yml`, the entries from the host (`pnpm start:dev` runs
 `entry/node.ts` under `tsx watch`; `pnpm dev:worker` runs `cf dev`, which drives `wrangler dev` from
 `cloudflare.config.ts`, with the Hyperdrive bindings' `dev.connectionString` pointing at the same database). Nothing
-of this service runs inside Docker in development.
+of this service runs inside Docker in development. The root `pnpm ligretto:start` leaves this package out until the
+cutover from `ligretto-core-backend`: both serve port 3333.
 
 ## Deployment
 
