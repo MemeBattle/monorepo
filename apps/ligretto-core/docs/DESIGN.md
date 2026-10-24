@@ -167,9 +167,9 @@ workflow builds the Worker, applies the migrations with `entry/migrate.ts` again
 (an Actions secret of the release environment), then uploads with `cf deploy --prebuilt`. The database is Neon
 behind **two cache-disabled Hyperdrive configurations** (`HYPERDRIVE_MAIN`, `HYPERDRIVE_LOCKS`,
 `adrs/database-access-with-kysely.md`), budgeted together against the Neon plan's connection limit. Worker secrets:
-`LIGRETTO_CAS_CLIENT_SECRET`, `LIGRETTO_INTERNAL_API_TOKEN`. The public hostname follows the origin layout the
-cutover issue ([#818](https://github.com/MemeBattle/monorepo/issues/818)) records: one origin with the SPA and
-`/api/*` under the cookie transport, or separate hosts under the bearer transport. The internal app answers on a
+`LIGRETTO_CAS_CLIENT_SECRET`, `LIGRETTO_INTERNAL_API_TOKEN`. The public hostname follows ligretto's production
+origin layout, an open question in `apps/cas/docs/PLAN.md`: one origin with the SPA and `/api/*` under the cookie
+transport, or separate hosts under the bearer transport. The internal app answers on a
 dedicated hostname, since the gameplay backend is not a Worker and cannot use a service binding; the shared secret
 is what protects it on either path. The sweep runs from a Workers cron trigger (`scheduled` in `entry/worker.ts`);
 `entry/sweep.ts` remains for any other runtime. The Node image (`.docker/Ligretto-core-backend_Dockerfile`) keeps
@@ -189,8 +189,7 @@ being built in CI as the packaging of the Node entry.
 - `apps/ligretto-gameplay-backend` → `@memebattle/ligretto-core-client/internal` with the shared secret; it mints
   `roundId` when a round finishes and keeps it, with the frozen results, across retries.
 - `apps/ligretto-frontend` → `@memebattle/ligretto-core-client` for `/api/users` (with the access token
-  `/api/auth/me` returns once [#817](https://github.com/MemeBattle/monorepo/issues/817) has moved the frontend onto
-  the new auth flow) and the `/api/auth/*` navigations.
+  `/api/auth/me` returns) and the `/api/auth/*` navigations.
 - `packages/ligretto-shared/apiTypes.ts` is deleted when both are on the generated client.
 
 The consumers' new calls (`/internal/*`, `sub`/`name` in users) do not exist on the old package, so switching a

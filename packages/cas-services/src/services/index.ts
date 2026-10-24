@@ -1,7 +1,0 @@
-export { createLoginService } from './login'
-export { createSignUpService } from './signup'
-export { createHealthService } from './health'
-export { createUpdateUserProfileService } from './updateUserProfile'
-export { createGetMeService } from './getMe'
-export { createGetUsersService } from './getUsers'
-export { createCreateTemporaryTokenService } from './createTemporaryToken'
