@@ -1,7 +1,10 @@
+import type { AccessTokenClaims, AuthHandlers } from '@memebattle/ligretto-auth'
+
 import type { Clock } from '../core/ports/clock'
 import type { DatabaseProbe } from '../core/ports/database-probe'
 import type { GamesRepository } from '../core/ports/games-repository'
 import type { Logger } from '../core/ports/logger'
+import type { UsersRepository } from '../core/ports/users-repository'
 
 /** What the middleware puts on the context for everything after it. */
 export type AppEnv = {
@@ -26,4 +29,17 @@ export interface InternalAppDeps extends AppDeps {
   games: GamesRepository
   /** The accepted values of `LIGRETTO_INTERNAL_API_TOKEN`: one, or two while it is rotated. */
   internalTokens: readonly string[]
+}
+
+/** What the public app needs besides the shared ports. */
+export interface PublicAppDeps extends AppDeps {
+  /** The four handlers of `@memebattle/ligretto-auth`, composed by the entry over its session store and CAS client. */
+  auth: AuthHandlers
+  users: UsersRepository
+  /**
+   * Verifies a CAS access token for this service. A function rather than a call inside `src/http`, so the issuer,
+   * the audience, the metadata cache and `fetch` stay in the composition. Throws `InvalidTokenError` for a refused
+   * token and `DiscoveryError` when CAS's metadata cannot be read.
+   */
+  verifyAccessToken: (token: string) => Promise<AccessTokenClaims>
 }

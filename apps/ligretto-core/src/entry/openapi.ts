@@ -9,6 +9,7 @@ import { createConsoleLogger } from '../adapters/console-logger'
 import { systemClock } from '../adapters/system-clock'
 import type { DatabaseProbe } from '../core/ports/database-probe'
 import type { GamesRepository } from '../core/ports/games-repository'
+import type { UsersRepository } from '../core/ports/users-repository'
 import { createInternalApp } from '../http/internal-app'
 import { internalApiDocument, publicApiDocument } from '../http/openapi'
 import { createPublicApp } from '../http/public-app'
@@ -20,10 +21,20 @@ const inert = (name: string) => () => {
 const database: DatabaseProbe = { ping: inert('the database probe') }
 const games: GamesRepository = { createGame: inert('the games repository'), withGame: inert('the games repository') }
 const logger = createConsoleLogger({ level: 'info' })
+const users: UsersRepository = { findBySubs: inert('the users repository') }
+const auth = {
+  me: inert('the auth handlers'),
+  signIn: inert('the auth handlers'),
+  callback: inert('the auth handlers'),
+  logout: inert('the auth handlers'),
+}
 const deps = { logger, clock: systemClock, database }
 
 const documents = [
-  { file: 'openapi.json', document: publicApiDocument(createPublicApp(deps)) },
+  {
+    file: 'openapi.json',
+    document: publicApiDocument(createPublicApp({ ...deps, auth, users, verifyAccessToken: inert('the access-token verifier') })),
+  },
   { file: 'openapi.internal.json', document: internalApiDocument(createInternalApp({ ...deps, games, internalTokens: [] })) },
 ]
 

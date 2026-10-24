@@ -2,10 +2,8 @@ import { createMiddleware } from 'hono/factory'
 import { timingSafeEqual } from 'hono/utils/buffer'
 
 import type { InvalidInternalToken } from '../contract/internal-auth'
+import { bearerTokenOf } from './bearer'
 import type { AppEnv } from './types'
-
-/** RFC 6750: the scheme in any case, one or more spaces, a token without whitespace; no quoting, no parameters. */
-const BEARER = /^Bearer\s+(\S+)$/i
 
 /**
  * The shared secret of the internal API (docs/adrs/internal-api-and-service-authentication.md): the bearer token
@@ -15,7 +13,7 @@ const BEARER = /^Bearer\s+(\S+)$/i
  */
 export const internalAuth = (tokens: readonly string[]) =>
   createMiddleware<AppEnv>(async (c, next) => {
-    const presented = BEARER.exec(c.req.header('authorization') ?? '')?.[1]
+    const presented = bearerTokenOf(c.req.header('authorization'))
     let accepted = false
     if (presented !== undefined) {
       for (const token of tokens) {

@@ -39,7 +39,8 @@ apps/ligretto-core/
   src/contract/    zod schemas of requests, responses, errors
   src/http/        createPublicApp(deps), createInternalApp(deps), middleware, OpenAPI
   src/adapters/    pg/ (Kysely repositories, session store, schema.generated.ts), logger, clock
-  src/entry/       node.ts, worker.ts, migrate.ts, codegen.ts, sweep.ts; env.ts (the development .env loader)
+  src/entry/       node.ts, worker.ts, migrate.ts, codegen.ts, sweep.ts, openapi.ts; auth.ts (the auth composition
+                   both runtimes share), env.ts (the development .env loader)
   migrations/      <timestamp>_<name>.ts, SQL inside (MIGRATIONS.md)
   test/            worker/ (the Worker smoke suite), store/ (the Docker Postgres suite), http/ (HTTP suites on the
                    real adapters over PGlite), support/ (harnesses)
@@ -100,19 +101,21 @@ Status codes and bodies are declared per route in `src/contract`; this is the re
 
 ### Public: `/api`, served on the public hostname
 
-| Route                    | Auth                                                                       | Request                                                                                                 | Responses                                                                                                                                                                                        |
-| ------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GET /health`            | none                                                                       |                                                                                                         | `200` / `503` with the check report (database reachable within a timeout)                                                                                                                        |
-| `GET /api/auth/me`       | session cookie or `Authorization: Bearer <session id>`, per transport      |                                                                                                         | `200 MeResponse` (a guest session is minted when none is presented); `429 rate_limit_exceeded`, `503 cas_unavailable`, `503 cas_rejected`                                                        |
-| `GET /api/auth/sign-in`  | optional session (an upgrade carries the current one)                      |                                                                                                         | cookie transport: `302` to CAS; bearer: `200 NavigationResponse`. `429 rate_limit_exceeded`, `503 cas_unavailable`, `503 cas_rejected`                                                           |
-| `GET /api/auth/callback` | the state cookie set by sign-in                                            | `?state&code`, or `?state&error&error_description` from CAS                                             | `302` to the application in **both** transports (bearer carries the session id in the URL fragment); `400 unknown_state`, `400 sign_in_failed`, `429`, `503 cas_unavailable`, `503 cas_rejected` |
-| `GET /api/auth/logout`   | session                                                                    |                                                                                                         | cookie: `302` to CAS end-session or the app; bearer: `200 NavigationResponse`. `503 cas_unavailable`                                                                                             |
-| `GET /api/users`         | `Authorization: Bearer <access token>` (`aud: ligretto`, guest or account) | `?ids=<sub>&ids=<sub>`, 1–100 values; a single `ids=` is accepted and normalised to a one-element array | `200 AuthUser[]`: `{ sub, accountType, name, avatarUrl }` for each id that has a row; unknown ids are absent. `401 unauthorized`                                                                 |
+| Route                    | Auth                                                                       | Request                                                                                                 | Responses                                                                                                                                                                                                                                                          |
+| ------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /health`            | none                                                                       |                                                                                                         | `200` / `503` with the check report (database reachable within a timeout)                                                                                                                                                                                          |
+| `GET /api/auth/me`       | session cookie or `Authorization: Bearer <session id>`, per transport      |                                                                                                         | `200 MeResponse` (a guest session is minted when none is presented); `429 rate_limit_exceeded`, `503 cas_unavailable`, `503 cas_rejected`, `503 session_busy`                                                                                                      |
+| `GET /api/auth/sign-in`  | optional session (an upgrade carries the current one)                      |                                                                                                         | cookie transport: `302` to CAS; bearer: `200 NavigationResponse`. `429 rate_limit_exceeded`, `503 cas_unavailable`, `503 cas_rejected`, `503 session_busy`                                                                                                         |
+| `GET /api/auth/callback` | the state cookie set by sign-in                                            | `?state&code`, or `?state&error&error_description` from CAS                                             | `302` to the application in **both** transports (bearer carries the session id in the URL fragment); `400 unknown_state`, `400 sign_in_failed`, `429`, `503 cas_unavailable`, `503 cas_rejected`, `503 session_busy`                                               |
+| `GET /api/auth/logout`   | session                                                                    |                                                                                                         | cookie: `302` to CAS end-session or the app; bearer: `200 NavigationResponse`. `503 cas_unavailable`, `503 session_busy`                                                                                                                                           |
+| `GET /api/users`         | `Authorization: Bearer <access token>` (`aud: ligretto`, guest or account) | `?ids=<sub>&ids=<sub>`, 1–100 values; a single `ids=` is accepted and normalised to a one-element array | `200 AuthUser[]`: `{ sub, accountType, name, avatarUrl }` for each id that has a row; unknown ids are absent. `400 validation_failed`, `401 unauthorized` (checked before the query), `503 cas_unavailable` (CAS's metadata could not be read to verify the token) |
 
 The auth routes are `ligretto-auth`'s handlers mounted as they are; their contract is the package's, described
-from the schemas it exports, and the rows above summarise `packages/ligretto-auth/src/handlers.ts`. `GET /api/users`
-reuses `AuthUser` from that contract so a frontend holds one user type. The answer is a lookup, not a claim that
-every id exists.
+from the schemas it exports, and the rows above summarise `packages/ligretto-auth/src/handlers.ts`. The public
+document describes them for both transports, whichever one a deployment runs. `503 session_busy` is this service's
+addition: the Postgres session store did not get the session's lock in time, and the mount answers it.
+`GET /api/users` reuses `AuthUser` from that contract so a frontend holds one user type. The answer is a lookup, not
+a claim that every id exists.
 
 CORS on the public app: the allowed origins come from configuration (`LIGRETTO_CORE_CORS_ORIGINS`, a list), with
 credentials allowed for them and for nothing else; the cookie transport needs it in development, where the SPA and
@@ -158,15 +161,16 @@ successor.
 | `entry/sweep.ts`   | `pnpm sweep`: expired `auth_requests` and sessions past the cookie grace, each session under its lock                                                                                        | `DATABASE_URL`; scheduled by whatever runs the Node entry                                 |
 
 Locally: Postgres from the root `docker-compose.yml`, the entries from the host (`pnpm start:dev` runs
-`entry/node.ts` under `tsx watch`; `pnpm dev:worker` runs `cf dev`, which drives `wrangler dev` from
+`entry/node.ts` under `tsx watch --conditions=development`; `pnpm dev:worker` runs `cf dev`, which drives `wrangler dev` from
 `cloudflare.config.ts`, with the Hyperdrive bindings' `dev.connectionString` pointing at the same database). Nothing
 of this service runs inside Docker in development. `DATABASE_URL` comes from this package's `.env.development`
 (overridable in `.env.development.local`), not from the root files, which CAS reads for its own database;
 `migrate`, `db:codegen`, `sweep` and the Node entry resolve it through one loader (`src/entry/env.ts`,
-`MIGRATIONS.md`). `pnpm sweep` runs the sweep once against `DATABASE_URL` through `tsx --conditions=development`,
-which resolves `@memebattle/ligretto-auth` from source. The development `LIGRETTO_INTERNAL_API_TOKEN` comes from the
-root `.env.development` for the Node entry and from this package's `.dev.vars` for `cf dev` and the Worker suite; both
-hold the same public-by-construction value. The
+`MIGRATIONS.md`). `pnpm sweep` runs the sweep once against `DATABASE_URL`. `start:dev`, `sweep` and
+`openapi:generate` run through `tsx --conditions=development`, which resolves `@memebattle/ligretto-auth` from source:
+the package's `node` export points at a build the tree does not hold. The development `LIGRETTO_INTERNAL_API_TOKEN`
+and `LIGRETTO_CAS_CLIENT_SECRET` come from the root `.env.development` for the Node entry and from this package's
+`.dev.vars` for `cf dev` and the Worker suite; both hold the same public-by-construction values. The
 root `pnpm ligretto:start` leaves this package out until the cutover from `ligretto-core-backend`: both serve port 3333.
 
 ## Deployment

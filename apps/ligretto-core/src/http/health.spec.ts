@@ -6,11 +6,13 @@ import type { DatabaseProbe } from '../core/ports/database-probe'
 import { failingProbe, okProbe } from '../core/ports/database-probe.fake'
 import { createFakeGamesRepository } from '../core/ports/games-repository.fake'
 import { createRecordingLogger } from '../core/ports/logger.fake'
+import { createFakePublicDeps } from './deps.fake'
 import { createInternalApp } from './internal-app'
 import { createPublicApp } from './public-app'
-import type { InternalAppDeps } from './types'
+import type { InternalAppDeps, PublicAppDeps } from './types'
 
-const deps = (database: DatabaseProbe): InternalAppDeps => ({
+const deps = (database: DatabaseProbe): InternalAppDeps & PublicAppDeps => ({
+  ...createFakePublicDeps(),
   logger: createRecordingLogger().logger,
   clock: createFixedClock(),
   database,

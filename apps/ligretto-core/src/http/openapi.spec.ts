@@ -4,6 +4,7 @@ import { createFixedClock } from '../core/ports/clock.fake'
 import { okProbe } from '../core/ports/database-probe.fake'
 import { createFakeGamesRepository } from '../core/ports/games-repository.fake'
 import { createRecordingLogger } from '../core/ports/logger.fake'
+import { createFakePublicDeps } from './deps.fake'
 import { createInternalApp } from './internal-app'
 import { internalApiDocument, publicApiDocument } from './openapi'
 import { createPublicApp } from './public-app'
@@ -45,10 +46,67 @@ describe('the internal document', () => {
 })
 
 describe('the public document', () => {
-  const document = publicApiDocument(createPublicApp(deps()))
+  const document = publicApiDocument(createPublicApp(createFakePublicDeps()))
+  const get = (path: string) => document.paths?.[path]?.get
+  const AUTH_ROUTES = ['/api/auth/me', '/api/auth/sign-in', '/api/auth/callback', '/api/auth/logout']
 
-  it('has /health only and no security scheme', () => {
-    expect(Object.keys(document.paths ?? {})).toEqual(['/health'])
-    expect(document.components?.securitySchemes).toBeUndefined()
+  it('lists exactly the public routes, and not /openapi.json itself', () => {
+    expect(Object.keys(document.paths ?? {}).sort()).toEqual(
+      ['/health', '/api/auth/me', '/api/auth/sign-in', '/api/auth/callback', '/api/auth/logout', '/api/users'].sort(),
+    )
+  })
+
+  it.each([
+    ['/api/auth/me', ['200', '429', '503']],
+    ['/api/auth/sign-in', ['200', '302', '429', '503']],
+    ['/api/auth/callback', ['302', '400', '429', '503']],
+    ['/api/auth/logout', ['200', '302', '503']],
+    ['/api/users', ['200', '400', '401', '503']],
+  ])('declares the statuses of %s for both session transports', (path, statuses) => {
+    expect(Object.keys(get(path)?.responses ?? {}).sort()).toEqual(statuses)
+  })
+
+  it.each(AUTH_ROUTES)('admits session_busy beside the package codes in the 503 of %s', path => {
+    const schema = (get(path)?.responses?.['503'] as { content: { 'application/json': { schema: { anyOf: object[] } } } }).content['application/json']
+      .schema
+    expect(schema.anyOf).toContainEqual({ $ref: '#/components/schemas/SessionBusy' })
+    expect(schema.anyOf).toContainEqual(
+      expect.objectContaining({
+        properties: expect.objectContaining({ error: expect.objectContaining({ enum: expect.arrayContaining(['cas_unavailable']) }) }),
+      }),
+    )
+  })
+
+  it.each(AUTH_ROUTES)('tags %s auth', path => {
+    expect(get(path)?.tags).toEqual(['auth'])
+  })
+
+  it('requires the state of the callback', () => {
+    expect(get('/api/auth/callback')?.parameters).toContainEqual(expect.objectContaining({ name: 'state', in: 'query', required: true }))
+  })
+
+  it('describes ids as a repeated query parameter of 1 to 100 strings', () => {
+    expect(get('/api/users')?.parameters).toEqual([
+      expect.objectContaining({
+        name: 'ids',
+        in: 'query',
+        required: true,
+        style: 'form',
+        explode: true,
+        schema: expect.objectContaining({ type: 'array', items: expect.objectContaining({ type: 'string' }), minItems: 1, maxItems: 100 }),
+      }),
+    ])
+  })
+
+  it('puts /api/users alone under the access-token scheme', () => {
+    expect(get('/api/users')?.security).toEqual([{ accessToken: [] }])
+    expect(document.components?.securitySchemes?.accessToken).toMatchObject({ type: 'http', scheme: 'bearer' })
+    for (const path of ['/health', ...AUTH_ROUTES]) {
+      expect(get(path)?.security).toBeUndefined()
+    }
+  })
+
+  it('names the AuthUser component', () => {
+    expect(document.components?.schemas?.AuthUser).toMatchObject({ type: 'object', required: ['sub', 'accountType', 'name', 'avatarUrl'] })
   })
 })

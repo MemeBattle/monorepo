@@ -4,10 +4,12 @@ import { z } from 'zod'
 import { createConsoleLogger } from '../adapters/console-logger'
 import { createPgGamesRepository } from '../adapters/pg/games-repository'
 import { createPgDatabaseProbe } from '../adapters/pg/probe'
+import { createPgUsersRepository } from '../adapters/pg/users-repository'
 import { systemClock } from '../adapters/system-clock'
-import { loadHttpConfig, loadInternalApiConfig, loadLoggingConfig } from '../core/config'
+import { loadAuthConfig, loadHttpConfig, loadInternalApiConfig, loadLoggingConfig } from '../core/config'
 import { createInternalApp } from '../http/internal-app'
 import { createPublicApp } from '../http/public-app'
+import { createAuth } from './auth'
 import { createRequestScopeRunner } from './request-scope'
 
 /** The bindings declared in cloudflare.config.ts. */
@@ -20,6 +22,14 @@ export interface WorkerEnv {
   LOG_LEVEL?: string
   /** A secret: `.dev.vars` in development, `cf deploy --secrets-file` in production (#843). */
   LIGRETTO_INTERNAL_API_TOKEN: string
+  CAS_ISSUER: string
+  LIGRETTO_CAS_CLIENT_ID: string
+  /** A secret, like `LIGRETTO_INTERNAL_API_TOKEN`. */
+  LIGRETTO_CAS_CLIENT_SECRET: string
+  LIGRETTO_CORE_AUTH_REDIRECT_URI: string
+  LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI: string
+  LIGRETTO_CORE_AUTH_APP_URL: string
+  LIGRETTO_CORE_AUTH_SESSION_TRANSPORT: string
 }
 
 /** Which hostname reaches which app: the deployment topology of this runtime, not part of the service's `Config`. */
@@ -33,17 +43,25 @@ const build = (env: WorkerEnv) => {
   const http = loadHttpConfig(env as unknown as Record<string, unknown>)
   const logging = loadLoggingConfig(env as unknown as Record<string, unknown>)
   const internalApi = loadInternalApiConfig(env as unknown as Record<string, unknown>)
+  // Not `loadConfig`: there is no DATABASE_URL on Workers, the Hyperdrive bindings stand in for it.
+  const authConfig = loadAuthConfig(env as unknown as Record<string, unknown>)
   const logger = createConsoleLogger({ level: logging.level })
   // One database per handle for the isolate; each request gets its own clients through the runner's scope.
   const runner = createRequestScopeRunner()
   const deps = { logger, clock: systemClock, database: createPgDatabaseProbe(runner.handles.main) }
+  // The session store takes its locks on the scoped `locks` handle and everything else on `main`.
+  const { handlers, verifyAccessToken } = createAuth({ config: authConfig, databases: runner.handles, clock: systemClock })
   return {
     runner,
-    // The session store's handle (#836).
-    locks: runner.handles.locks,
     publicHost: hosts.LIGRETTO_CORE_PUBLIC_HOST,
     internalHost: hosts.LIGRETTO_CORE_INTERNAL_HOST,
-    public: createPublicApp({ ...deps, corsOrigins: http.corsOrigins }),
+    public: createPublicApp({
+      ...deps,
+      corsOrigins: http.corsOrigins,
+      auth: handlers,
+      users: createPgUsersRepository(runner.handles.main),
+      verifyAccessToken,
+    }),
     // The scoped `main` handle runs the transaction and every statement of the locked game on the request's one client.
     internal: createInternalApp({ ...deps, games: createPgGamesRepository(runner.handles.main), internalTokens: internalApi.tokens }),
   }
