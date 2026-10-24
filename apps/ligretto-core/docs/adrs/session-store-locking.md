@@ -3,9 +3,8 @@ title: Session store locking
 description: >-
   The SessionStore port of ligretto-auth is met with a row lock (SELECT … FOR UPDATE on session_locks) held in its
   own transaction on its own connection, bounded by lock_timeout and one deadline per take that answers 503
-  session_busy, while the locked callback's statements commit
-  independently on a second connection. On Node that is two pools; on Workers two per-request clients on two
-  Hyperdrive configurations.
+  session_busy, while the locked callback's statements commit independently on a second connection. On Node that is
+  two pools; on Workers two per-request clients on two Hyperdrive configurations.
 read_when:
   - touching the session store, the sweep or the session_locks table
   - writing anything that updates a sessions row or the users snapshot
@@ -54,12 +53,11 @@ previous service (`apps/ligretto-core-backend/app/stores/PgSessionStore.ts`) unc
   clients alone would not isolate lock waiters from ordinary traffic. Hyperdrive's limits are soft, so the two
   configurations are budgeted together against the Neon plan's connection limit with headroom for every other
   client, and `test/store/session-store.spec.ts` proves a holder persists rotated tokens while the lock pool is
-  saturated; Node runs `main` with 5 connections and `locks` with 10. On Workers a per-request handle leases each
-  request's client to one acquirer at a time — the lease is keyed to the client, not to the handle the isolate
-  shares — so an abandoned take has rolled back before that request's next statement on the handle runs, while a
-  holder waiting on CAS never holds up another request's take; a request scope that has closed refuses to open a
-  client, so a statement that outlives its request fails instead of leaking a connection. Every wait inside the
-  lock is bounded: the
+  saturated; Node runs `main` with 5 connections and `locks` with 10. On Workers a handle leases each request's
+  client to one acquirer at a time. The lease is keyed to the client, not to the handle the isolate shares: an
+  abandoned take has rolled back before that request's next statement on the handle runs, and a holder waiting on
+  CAS never holds up another request's take. A closed request scope refuses to open a client, so a statement that
+  outlives its request fails instead of leaking a connection. Every wait inside the lock is bounded: the
   `lock_timeout` above and a request timeout on the CAS client (`createCasClient`'s `requestTimeoutMs`, opt-in,
   covering the response body; this service sets it).
 - **The sweep** (`src/entry/sweep.ts` on Node, the `scheduled` handler of `src/entry/worker.ts` on Workers)

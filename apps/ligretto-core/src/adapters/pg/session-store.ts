@@ -49,8 +49,8 @@ type LockSettings = Required<SessionLockOptions>
 const MAX_BOUND = 2_147_483_647
 
 const positiveInteger = (name: string, value: number): number => {
-  // The timeout is rendered into the SQL as a literal and arms a timer; anything the mechanism cannot honour is a
-  // programming mistake, refused here rather than on the first take.
+  // `lockTimeoutMs` is rendered into the SQL as a literal and `deadlineMs` arms a timer. A bound the mechanism cannot
+  // honour is a programming mistake, refused here rather than on the first take.
   if (!Number.isSafeInteger(value) || value <= 0 || value > MAX_BOUND) {
     throw new Error(`${name} must be a positive integer no greater than ${MAX_BOUND}, got ${value}`)
   }
@@ -185,7 +185,7 @@ export const acquireSessionLock = async <T>(
         .values({ id: sessionId })
         .onConflict(oc => oc.column('id').doNothing())
         .execute()
-      // The insert's wait has been paid for: lower the cap if it shrank, which with the defaults never happens.
+      // The insert may have waited: lower the cap when the budget left is now below it.
       const next = budget()
       if (next < timeout) {
         timeout = next
