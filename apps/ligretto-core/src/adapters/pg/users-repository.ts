@@ -18,7 +18,7 @@ export const createPgUsersRepository = (db: Database): UsersRepository => ({
     }
     const rows = await db
       .selectFrom('users')
-      .select(['cas_id', 'account_type', 'display_name', 'avatar_url'])
+      .select(['cas_id', 'account_type', 'display_name', 'avatar_url', 'locale'])
       .where('cas_id', 'in', [...subs])
       .execute()
     return rows.map(row => ({
