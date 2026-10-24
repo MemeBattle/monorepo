@@ -1,5 +1,6 @@
 import type { Clock } from '../core/ports/clock'
 import type { DatabaseProbe } from '../core/ports/database-probe'
+import type { GamesRepository } from '../core/ports/games-repository'
 import type { Logger } from '../core/ports/logger'
 
 /** What the middleware puts on the context for everything after it. */
@@ -18,4 +19,11 @@ export interface AppDeps {
   database: DatabaseProbe
   /** The origins the public app allows credentialed CORS requests from; the internal app ignores it. */
   corsOrigins?: string[]
+}
+
+/** What the internal app needs besides the shared ports. */
+export interface InternalAppDeps extends AppDeps {
+  games: GamesRepository
+  /** The accepted values of `LIGRETTO_INTERNAL_API_TOKEN`: one, or two while it is rotated. */
+  internalTokens: readonly string[]
 }

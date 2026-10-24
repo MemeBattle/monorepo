@@ -27,6 +27,9 @@ export default defineConfig({
       LIGRETTO_CORE_INTERNAL_HOST: bindings.text('internal.localhost'),
       LIGRETTO_CORE_CORS_ORIGINS: bindings.text('http://localhost:5173,http://localhost:5174'),
       LOG_LEVEL: bindings.text('info'),
+      // The shared secret of the internal API: locally from .dev.vars, in production set once with
+      // `cf deploy --secrets-file` (#843).
+      LIGRETTO_INTERNAL_API_TOKEN: bindings.secret(),
     },
     exports: {
       // The named WorkerEntrypoint other Workers reach through a service binding.
