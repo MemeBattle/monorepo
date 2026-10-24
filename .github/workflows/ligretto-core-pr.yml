@@ -289,9 +289,8 @@ jobs:
         name: Prepare Node.js
 
       # test/node boots src/entry/node.ts as a child process on a free port with the package and root
-      # .env.development, as `pnpm start:dev` does, and asserts over fetch: /health with its database check, an unknown
-      # route, the internal token refused and accepted, /api/users without an access token, a logout without a session,
-      # and /openapi.json equal to the committed document. The entry's output goes to the log uploaded below.
+      # .env.development, as `pnpm start:dev` does, and asserts over fetch. The entry's output goes to the log uploaded
+      # below.
       - name: Run the Node smoke suite
         env:
           LIGRETTO_CORE_NODE_LOG: ${{ runner.temp }}/ligretto-core-node.log

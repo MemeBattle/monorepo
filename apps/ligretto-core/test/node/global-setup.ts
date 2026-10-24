@@ -96,7 +96,7 @@ export default async function setup(project: TestProject) {
       try {
         fs.closeSync(logFd)
       } catch {
-        // A close error must not mask the one that brought us here.
+        // A close error must not mask the error that triggered the cleanup.
       }
     }
   }
