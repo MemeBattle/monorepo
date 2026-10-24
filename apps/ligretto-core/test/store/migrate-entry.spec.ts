@@ -47,8 +47,8 @@ describe('the migrate entry', () => {
   it('creates the schema on an empty database, then has nothing to do', async () => {
     const first = await runEntry('src/entry/migrate.ts', url)
     expect(first.code, first.stderr).toBe(0)
-    // Not the exact lists: the code-previous CI job runs this spec of master on the schema of a pull request, which
-    // may add migrations and tables. The committed row types pin the schema (the codegen diff of schema-current).
+    // Not exact lists: the code-previous CI job runs master's copy of this spec on a pull request's schema, which may
+    // add migrations and tables. The codegen diff of the schema-current job pins the exact schema.
     const applied = lines(first.stdout).filter(line => line.message === 'migration')
     expect(applied.length).toBeGreaterThan(0)
     for (const line of applied) {

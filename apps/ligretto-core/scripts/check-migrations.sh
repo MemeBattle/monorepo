@@ -43,15 +43,13 @@ while IFS= read -r file; do
   fi
 done < <(git ls-tree -r --name-only "$base_ref" -- "$migrations_dir")
 
-# A migration's source reduced to what the rules below read, on one line. One left-to-right pass over the whole file
-# removes the comments, and the comment that starts first wins, so a `--` or a `//` inside a block comment, a `/*` or a
-# `--` inside a `//` comment, and a `/*` or a `//` inside a `--` comment are all part of that one comment. The three
-# kinds: a `/* ... */` block comment, which may span lines; a `//` comment at the start of a line or after whitespace
-# (a `//` right after another character, as in a 'https://' literal, stays); a `--` comment to the end of its line. Each becomes a space,
-# except a `--` comment that starts with `contract:`, which becomes one marker token: the SQL before it on its line
-# stays, its own words never count as a statement, a trailing marker never leads, and a `-- contract:` inside another
-# comment is that comment and not the marker. Whitespace then collapses, so a statement split over lines is one run
-# of words.
+# A migration's source with its comments removed and its whitespace collapsed, so a statement split over lines is one
+# run of words. One left-to-right pass removes three kinds of comment: `/* ... */`, which may span lines; `//` at the
+# start of a line or after whitespace (the `//` of a 'https://' literal stays); `--` to the end of its line. The comment
+# that starts first runs to its own end, whatever it contains. Each comment becomes a space, except a `--` comment that
+# starts with `contract:`, which becomes one marker token. So the marker's own words never count as a statement, a
+# marker after its statement on the same line does not lead, and a `-- contract:` inside another comment is not the
+# marker.
 stripped_source() {
   git show "HEAD:$1" |
     perl -0777 -pe 's{/\*.*?\*/|(?<!\S)//[^\n]*|--[^\n]*}{$& =~ /^--\s*contract:/ ? " __CONTRACT_MARKER__ " : " "}gse' |
