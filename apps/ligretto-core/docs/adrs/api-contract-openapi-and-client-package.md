@@ -44,6 +44,10 @@ handlers.me(c.req.raw))`), which pass the `Response` through unchanged, cookies 
   validates the *incoming* data (the callback's query) with them, and builds its answers as values of the derived
   types; neither it nor this service parses an outgoing body — the same rule as for every route here: schemas and
   types in both directions, run-time validation of input only.
+- **Input is validated once, where it enters.** For this service's routes that is the route declaration; for the
+  auth routes it is the handler of `ligretto-auth`, and this service runs no validator in front of it — the plain
+  `app.get` registration is also what keeps a second validation out. Downstream of that point use cases, adapters
+  and repositories trust the types they receive and do not re-check the same data.
 - **Two documents.** `createPublicApp` yields `openapi.json`, `createInternalApp` yields `openapi.internal.json`
   (`internal-api-and-service-authentication.md`). A script writes both; a CI job regenerates and fails on a diff.
   The public document is served at `/openapi.json`; the internal one is not served. Query arrays are described as
