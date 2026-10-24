@@ -20,8 +20,13 @@ const logging = loadLoggingConfig(process.env)
 const database = loadDatabaseConfig(process.env)
 
 const logger = createConsoleLogger({ level: logging.level })
-// Both pools for the process; `databases.locks` is the session store's (#836) and opens nothing until then.
-const databases = createNodeDatabases(database)
+// Both pools for the process; `databases.locks` is the session store's (#836) and opens nothing until then. A pool
+// error is logged and survived: the broken client is already gone and `/health` reports the database until it is back.
+const databases = createNodeDatabases(database, {
+  onError: (error, handle) => {
+    logger.error('database_pool_error', { handle, error: error instanceof Error ? error.message : String(error) })
+  },
+})
 const deps = { logger, clock: systemClock, database: createPgDatabaseProbe(databases.main) }
 const publicApp = createPublicApp({ ...deps, corsOrigins: http.corsOrigins })
 const internalApp = createInternalApp(deps)

@@ -226,3 +226,61 @@ describe.each([
     expect(log).toEqual(['first start', 'first end', 'second start', 'second end'])
   })
 })
+
+// Two games' callbacks run concurrently only in the fake: PGlite has one connection. The same race against Postgres
+// is the store suite's (test/store/games-repository.lock.spec.ts).
+describe('GamesRepository: in-memory fake, one round id raced by two games', () => {
+  const setup = async () => {
+    const users = createFakeUsersRepository()
+    for (const sub of ['alice', 'bob']) {
+      users.set({ sub, accountType: 'full', displayName: sub, avatarUrl: null })
+    }
+    const repo = createFakeGamesRepository(users)
+    const [first, second] = [await repo.createGame(), await repo.createGame()]
+    let enterSecond = () => {}
+    const secondEntered = new Promise<void>(resolve => {
+      enterSecond = resolve
+    })
+    return { repo, first: first.id, second: second.id, roundId: crypto.randomUUID(), enterSecond, secondEntered }
+  }
+
+  it('lets one writer insert and answers the other inserted: false once the first commits', async () => {
+    const { repo, first, second, roundId, enterSecond, secondEntered } = await setup()
+    const results = await Promise.all([
+      repo.withGame(first, async game => {
+        const answer = await game.insertRound(roundId, [{ playerId: 'alice', score: 1 }])
+        // Hold the insert uncommitted until the second game's callback has run into it.
+        await secondEntered
+        return answer
+      }),
+      repo.withGame(second, async game => {
+        enterSecond()
+        return game.insertRound(roundId, [{ playerId: 'bob', score: 2 }])
+      }),
+    ])
+    expect(results).toEqual([
+      { status: 'ok', value: { inserted: true } },
+      { status: 'ok', value: { inserted: false } },
+    ])
+    expect([...repo.rounds]).toEqual([[roundId, { gameId: first, results: [{ playerId: 'alice', score: 1 }] }]])
+  })
+
+  it('lets the waiting writer insert when the first one rolls back', async () => {
+    const { repo, first, second, roundId, enterSecond, secondEntered } = await setup()
+    const rollback = new Error('rolled back')
+    const [firstResult, secondResult] = await Promise.allSettled([
+      repo.withGame(first, async game => {
+        expect(await game.insertRound(roundId, [{ playerId: 'alice', score: 1 }])).toEqual({ inserted: true })
+        await secondEntered
+        throw rollback
+      }),
+      repo.withGame(second, async game => {
+        enterSecond()
+        return game.insertRound(roundId, [{ playerId: 'bob', score: 2 }])
+      }),
+    ])
+    expect(firstResult).toEqual({ status: 'rejected', reason: rollback })
+    expect(secondResult).toEqual({ status: 'fulfilled', value: { status: 'ok', value: { inserted: true } } })
+    expect([...repo.rounds]).toEqual([[roundId, { gameId: second, results: [{ playerId: 'bob', score: 2 }] }]])
+  })
+})

@@ -1,3 +1,5 @@
+import { EventEmitter } from 'node:events'
+
 import type pg from 'pg'
 import { describe, expect, it } from 'vitest'
 
@@ -5,7 +7,7 @@ import { createLazyClient } from '../adapters/pg/database'
 import { createRequestScopeRunner } from './request-scope'
 
 /** A `pg.Client` stand-in that records its lifecycle and answers every query with one fixed row. */
-class RecordingClient {
+class RecordingClient extends EventEmitter {
   static created: RecordingClient[] = []
   readonly connectionString: string
   connects = 0
@@ -13,6 +15,7 @@ class RecordingClient {
   queries: string[] = []
 
   constructor({ connectionString }: { connectionString: string }) {
+    super()
     this.connectionString = connectionString
     RecordingClient.created.push(this)
   }

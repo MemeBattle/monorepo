@@ -6,9 +6,9 @@ import { fileURLToPath } from 'node:url'
 
 import { Kysely, PostgresDialect } from 'kysely'
 import { FileMigrationProvider, Migrator } from 'kysely/migration'
-import pg from 'pg'
 
 import { createConsoleLogger } from '../adapters/console-logger'
+import { createPool } from '../adapters/pg/database'
 import { loadDatabaseConfig, loadLoggingConfig } from '../core/config'
 import { loadDevelopmentEnv } from './env'
 
@@ -19,9 +19,11 @@ const database = loadDatabaseConfig(process.env)
 const logging = loadLoggingConfig(process.env)
 const logger = createConsoleLogger({ level: logging.level })
 
-const db = new Kysely<unknown>({
-  dialect: new PostgresDialect({ pool: new pg.Pool({ connectionString: database.url, max: 1 }) }),
+// A pool error is logged; the statement that runs into the broken connection fails the migration on its own.
+const pool = createPool(database.url, { max: 1 }, error => {
+  logger.error('database_pool_error', { error: error instanceof Error ? error.message : String(error) })
 })
+const db = new Kysely<unknown>({ dialect: new PostgresDialect({ pool }) })
 
 const migrator = new Migrator({
   db,

@@ -9,7 +9,12 @@ const DEFAULT_URL = 'postgres://ligretto-core-user:ligretto_pg_password@localhos
  */
 export const disposableDatabaseUrl = (env: Record<string, string | undefined> = process.env): string => {
   const url = env.LIGRETTO_CORE_TEST_DATABASE_URL || DEFAULT_URL
-  const name = decodeURIComponent(new URL(url).pathname.replace(/^\//, ''))
+  const { protocol, pathname } = new URL(url)
+  // pg reads the database from the path of these two schemes only; `socket:` takes it from `?db=`, for one.
+  if (protocol !== 'postgres:' && protocol !== 'postgresql:') {
+    throw new Error(`refusing to run destructive tests against a ${protocol} URL: only postgres: and postgresql: are accepted`)
+  }
+  const name = decodeURIComponent(pathname.replace(/^\//, ''))
   if (!name.endsWith('-test')) {
     throw new Error(`refusing to run destructive tests against ${name || '(no database)'}: the database name must end in -test`)
   }

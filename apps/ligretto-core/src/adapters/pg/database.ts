@@ -17,19 +17,41 @@ export interface DatabaseHandles {
   locks: Database
 }
 
+/** Which handle a pool belongs to, for the report of its errors. */
+export type DatabaseHandleName = keyof DatabaseHandles
+
+/**
+ * Reports an error `pg.Pool` emits for an idle client: a database restart, a terminated backend, an idle-session
+ * timeout or a dropped connection. The pool has already discarded that client and the next statement connects anew,
+ * so the callback only reports.
+ */
+export type PoolErrorHandler = (error: unknown, handle: DatabaseHandleName) => void
+
+/**
+ * A `pg.Pool` with its `error` listener attached before anything can use it. `pg.Pool` re-emits an idle client's
+ * error on itself, and an `EventEmitter` with no `error` listener throws, which would end the process.
+ */
+export const createPool = (connectionString: string, poolConfig: pg.PoolConfig, onError: (error: unknown) => void): pg.Pool => {
+  const pool = new pg.Pool({ ...poolConfig, connectionString })
+  pool.on('error', onError)
+  return pool
+}
+
 /**
  * Node: two `pg.Pool`s on the configured database for the life of the process. pg's default sizes until the session
  * store's saturation test (#836) sets them through `options`; a pool connects on its first statement, so an unused
- * handle costs nothing.
+ * handle costs nothing. `onError` receives what a pool reports about its idle clients (see `PoolErrorHandler`).
  */
 export const createNodeDatabases = (
   config: DatabaseConfig,
-  options: { main?: pg.PoolConfig; locks?: pg.PoolConfig } = {},
+  options: { onError: PoolErrorHandler; main?: pg.PoolConfig; locks?: pg.PoolConfig },
 ): DatabaseHandles & { close(): Promise<void> } => {
-  const open = (poolConfig: pg.PoolConfig = {}) =>
-    new Kysely<DB>({ dialect: new PostgresDialect({ pool: new pg.Pool({ ...poolConfig, connectionString: config.url }) }) })
-  const main = open(options.main)
-  const locks = open(options.locks)
+  const open = (handle: DatabaseHandleName, poolConfig: pg.PoolConfig = {}) =>
+    new Kysely<DB>({
+      dialect: new PostgresDialect({ pool: createPool(config.url, poolConfig, error => options.onError(error, handle)) }),
+    })
+  const main = open('main', options.main)
+  const locks = open('locks', options.locks)
   return {
     main,
     locks,
@@ -58,6 +80,9 @@ export const createLazyClient = (connectionString: string, Client: ClientConstru
     connect: () => {
       if (connected === undefined) {
         const created = new Client({ connectionString })
+        // A client whose connection breaks while idle emits `error`, which would throw without a listener. The
+        // failure reaches the request through its next statement, which rejects on the broken client.
+        created.on('error', () => {})
         client = created
         connected = created.connect().then(() => created)
       }
