@@ -25,7 +25,8 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  await database.close()
+  // Undefined when beforeAll timed out: its error is the one to report.
+  await database?.close()
 })
 
 const pgSubject = async (): Promise<Subject> => {

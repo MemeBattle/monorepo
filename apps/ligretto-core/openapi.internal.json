@@ -271,6 +271,7 @@
   "paths": {
     "/health": {
       "get": {
+        "operationId": "getHealth",
         "summary": "Whether the service and its database answer",
         "responses": {
           "200": {
@@ -298,6 +299,7 @@
     },
     "/internal/games": {
       "post": {
+        "operationId": "createGame",
         "tags": [
           "games"
         ],
@@ -333,6 +335,7 @@
     },
     "/internal/games/{id}/rounds": {
       "post": {
+        "operationId": "saveRound",
         "tags": [
           "games"
         ],

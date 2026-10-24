@@ -17,6 +17,17 @@ export const AUTH_PATHS = {
   logout: '/api/auth/logout',
 } as const satisfies Record<keyof AuthHandlers, string>
 
+/**
+ * The `operationId` of each auth route, which is the generated client's function name: renaming one breaks every
+ * consumer (docs/adrs/api-contract-openapi-and-client-package.md). `callback` alone would be too generic an export.
+ */
+export const AUTH_OPERATION_IDS = {
+  me: 'getMe',
+  signIn: 'signIn',
+  callback: 'authCallback',
+  logout: 'logout',
+} as const satisfies Record<keyof AuthHandlers, string>
+
 type AuthRoute = keyof typeof AUTH_PATHS
 
 const ROUTES = Object.keys(AUTH_PATHS) as AuthRoute[]
@@ -82,7 +93,7 @@ export const registerAuth = (app: BaseApp, deps: PublicAppDeps) => {
     const path = AUTH_PATHS[route]
     app.get(path, c => mount(c, deps.auth[route]))
     // The compile check the fragment type asks for: a fragment and its path are a `RouteConfig`, with no cast.
-    const config: RouteConfig = { path, tags: ['auth'], ...documented(cookie[route], bearer[route]) }
+    const config: RouteConfig = { path, operationId: AUTH_OPERATION_IDS[route], tags: ['auth'], ...documented(cookie[route], bearer[route]) }
     app.openAPIRegistry.registerPath(config)
   }
 }

@@ -43,7 +43,9 @@ apps/ligretto-core/
                    both runtimes share), env.ts (the development .env loader)
   migrations/      <timestamp>_<name>.ts, SQL inside (MIGRATIONS.md)
   test/            node/ (the Node entry smoke suite), worker/ (the Worker smoke suite), store/ (the Docker Postgres
-                   suite), http/ (HTTP suites on the real adapters over PGlite), support/ (harnesses)
+                   suite), http/ (HTTP suites on the real adapters over PGlite), support/ (harnesses;
+                   contract-harness.ts composes both apps for the client package's contract tests, exported as
+                   `./contract-harness`)
   .env.development DATABASE_URL for development
   openapi.json, openapi.internal.json      committed, regenerated and diffed in CI
   docs/            this file, ADR.md, adrs/
@@ -97,7 +99,8 @@ Invariants the first migration establishes (and `adrs/additive-migrations-and-co
 
 Status codes and bodies are declared per route in `src/contract`; this is the readable summary. Every error body is
 `{ error, description? }` plus the fields named here (`adrs/error-responses.md`). Validation failures are
-`400 validation_failed` with `issues`.
+`400 validation_failed` with `issues`. Every route declares an `operationId`, which is the generated client's function
+name: `getHealth`, `getMe`, `signIn`, `authCallback`, `logout`, `listUsers`, `createGame`, `saveRound`.
 
 ### Public: `/api`, served on the public hostname
 
@@ -198,8 +201,8 @@ being built in CI as the packaging of the Node entry.
 - `openapi.json`, `openapi.internal.json` and `schema.generated.ts` regenerated and diffed against the commit (the
   `openapi` job runs `pnpm openapi:generate`, `schema-codegen` runs `pnpm db:codegen`);
 - the compatibility matrix and the migration checks (`adrs/additive-migrations-and-compatibility-matrix.md`);
-- `packages/ligretto-core-client` regenerated from the committed documents and type-checked, with its contract
-  tests against `app.request()`.
+- `packages/ligretto-core-client` (`ligretto-core-client-pr.yml`): the documents and the client regenerated from the
+  routes and diffed against the commit, type-checked and built, and its contract tests run against both apps.
 
 ## Consumers and the activation order
 

@@ -65,3 +65,7 @@ of src/http forbids importing src/adapters and grants tests no exception; HTTP s
 
 upd (2026-10-25): the Node entry's smoke checks moved from curl steps in the workflow to the vitest project test/node;
 workflows run scripts and never assert over HTTP.
+
+upd (2026-10-25): the contract tests of packages/ligretto-core-client compose both apps through this package's
+`./contract-harness` export (test/support/contract-harness.ts), which keeps one PGlite database and rebuilds every
+other part per case ([#839](https://github.com/MemeBattle/monorepo/issues/839)).

@@ -73,7 +73,27 @@ handlers.me(c.req.raw))`), which pass the `Response` through unchanged, cookies 
   by status, so code-specific fields such as `playerIds` reach the caller; a transport failure (no response at
   all) as its own result kind; redirects never followed, because the only redirecting routes are browser
   navigations that are not fetched. Hono's own `hc` client is not the contract: consumers depend on the document,
-  not on the server's source.
+  not on the server's source. In detail:
+  - (a) Every route of both documents declares a camelCase `operationId`, which is the client's function name:
+    `getHealth`, `getMe`, `signIn`, `authCallback`, `logout`, `listUsers`, `createGame`, `saveRound`. Renaming one
+    is a breaking change for every consumer. `callback` alone was too generic a name to export.
+  - (b) An operation resolves to one of five kinds and never throws on a status. `success` is one member per
+    declared 2xx. `error` is one member per declared 4xx/5xx and holds the whole JSON body, typed as the document
+    declares it for that status: the `{ error }` envelope with its code-specific fields, or the `HealthReport` of
+    `GET /health`'s `503`. The transport does not check the envelope at run time, because the `HealthReport` is a
+    declared body without one; the server's typed handlers and the contract tests hold the shape. `redirect` is
+    never followed. `unexpected` covers an undeclared status, such as the `500 internal_error`, a body that is not
+    a JSON object under a declared non-2xx status, and one that is not JSON under a declared 2xx: the types promise
+    only what the documents declare, so whatever falls outside them needs a kind of its own. `transport` means no
+    usable response.
+  - (c) "Declared" is decided at run time from `declared-statuses.ts`, generated from the documents next to the
+    kubb output by the same `generate:api`, so the types never claim an answer the document does not declare.
+  - (d) The transport has no ambient base URL, because the frontend and the gameplay backend reach this service at
+    different addresses. Clients are made with `createClient({ baseUrl, fetch, headers, credentials })`, and the
+    default client the generated code imports is a guard that throws.
+  - (e) Contract tests in the client package compose both apps through this package's `./contract-harness` export,
+    its only export, over PGlite and a custom `fetch`. They validate every body against the committed document and
+    fail when a declared `(status, error code)` pair goes unexercised, so a new code cannot ship untested.
 - **Errors.** Every non-2xx answer is `{ error: <stable code>, description?: string }` plus code-specific fields,
   declared per route with its status; see `error-responses.md`.
 - `packages/ligretto-shared/apiTypes.ts` is deleted once both consumers are on the generated client; nothing
@@ -92,3 +112,7 @@ handlers.me(c.req.raw))`), which pass the `Response` through unchanged, cookies 
 upd (2026-10-24): the auth routes are mounted and documented for both transports, the mount answers
 `SessionBusyError` as `503 session_busy`, and `GET /api/users` is guarded by a CAS access token
 ([#837](https://github.com/MemeBattle/monorepo/issues/837)).
+
+upd (2026-10-25): every route has an `operationId`; the client's transport, its five result kinds, the generated map
+of declared statuses and the contract tests through `./contract-harness` are specified in points (a)–(e) of
+"Clients" ([#839](https://github.com/MemeBattle/monorepo/issues/839)).
