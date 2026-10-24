@@ -28,7 +28,6 @@ export interface Games {
 }
 
 export interface Rounds {
-  created_at: Generated<Timestamp>;
   game_id: string;
   id: string;
 }
