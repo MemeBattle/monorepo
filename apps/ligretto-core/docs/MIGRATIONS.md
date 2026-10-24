@@ -23,7 +23,8 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 
 - `up` only. Migrations are forward-only; a mistake is corrected by the next migration.
 - DDL in the `sql` tag, one statement per `execute`, so a reviewer reads SQL. The rest of the code never uses the
-  `sql` tag.
+  `sql` tag. `scripts/check-migrations.sh` fails an added migration that uses Kysely's schema builder (`db.schema`),
+  whose calls its contract scan could not read.
 - Every migration runs in one transaction. Nothing a transaction cannot hold goes in: no `CREATE INDEX
 CONCURRENTLY`, no `ALTER TYPE … ADD VALUE`. The tables are small enough for a plain `CREATE INDEX`.
 - Additive, one release ahead of the code that uses it (`adrs/additive-migrations-and-compatibility-matrix.md`).
@@ -101,12 +102,13 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 }
 ```
 
-`scripts/check-migrations.sh` treats `DROP`, `RENAME`, `ALTER COLUMN … TYPE` (and `SET DATA TYPE`) and
-`SET NOT NULL` as contract statements wherever they appear in the file, in any case, across line breaks and
-around quoted identifiers. It over-approximates: `DROP NOT NULL`, `DROP DEFAULT`, `DROP INDEX` and
-`DROP CONSTRAINT` need the marker too, which costs one line. Only the SQL comment `-- contract:` is the marker; a
-`// contract:` comment is not. Other `//` and `--` comments are ignored, so a comment that mentions a drop is not a
-statement, and neither are the marker's own words. The marker must come before the first contract statement of the
+`scripts/check-migrations.sh` treats `DROP`, `RENAME`, `ALTER [COLUMN] … TYPE` (and `SET DATA TYPE`) and
+`SET NOT NULL` as contract statements wherever they appear in the file, in any case, across line breaks, around
+quoted identifiers and around block comments. It over-approximates: `DROP NOT NULL`, `DROP DEFAULT`, `DROP INDEX`
+and `DROP CONSTRAINT` need the marker too, which costs one line. Only the SQL comment `-- contract:` is the marker;
+a `// contract:` comment is not, nor a `-- contract:` inside a `//` comment. Other comments are ignored: `--`
+comments, `//` comments on their own line or after code, and `/* … */` block comments, so a comment that mentions
+a drop is not a statement, and neither are the marker's own words. The marker must come before the first contract statement of the
 file in reading order: one after the statement, including one at the end of the statement's own line, does not
 count. One marker per migration. The script does not judge the marker's text or the release named for
 `SET NOT NULL`; review does.
@@ -123,7 +125,8 @@ count. One marker per migration. The script does not judge the marker's text or 
   - adds a migration whose timestamp is not newer than the newest on master, which Kysely would refuse at run time:
     recreate it with `date -u +%Y%m%d%H%M%S`;
   - adds a contract statement without a leading marker (§ Contract statements): add the marker, after checking the
-    release order above.
+    release order above;
+  - adds a migration that uses Kysely's schema builder (`db.schema`): write the DDL in the `sql` tag (§ Adding one).
 
   The script compares commits (`<base>...HEAD`): a migration is checked once it is committed, not while it is
   staged. Run it locally with `apps/ligretto-core/scripts/check-migrations.sh origin/master`.

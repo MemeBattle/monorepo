@@ -170,6 +170,10 @@ describe('check-migrations.sh', { timeout: 30_000 }, () => {
       ['alter table users alter column score set data type bigint', 'alter column score set data type'],
       ['alter table users alter column display_name set not null', 'set not null'],
       ['alter table users alter column locale drop not null', 'drop'],
+      ['alter table round_users alter score type bigint', 'alter score type'],
+      ['alter table users alter column display_name set /* backfilled */ not null', 'set not null'],
+      ['alter table round_users alter column score /* widened */ type bigint', 'alter column score type'],
+      ["alter table users alter column homepage set default 'https://example.com', drop column locale", 'drop'],
     ])('fails `%s` without a marker', async (statement, fragment) => {
       const result = await addMigration(NEW, oneLine(statement))
       expect(result.code).toBe(1)
@@ -195,6 +199,9 @@ describe('check-migrations.sh', { timeout: 30_000 }, () => {
       ['ALTER TABLE users ALTER COLUMN display_name', 'SET NOT', 'NULL'],
       ['ALTER TABLE round_users ALTER COLUMN score', 'TYPE bigint'],
       ['alter table round_users alter column "score"', 'set data type bigint'],
+      ['alter table round_users alter score type bigint'],
+      ['alter table users alter column display_name set /* backfilled */ not null'],
+      ['alter table round_users alter column score /* widened */ type bigint'],
     ])('passes %j with the marker as the first line of the tag', async (...lines) => {
       const result = await addMigration(NEW, tag(MARKER, ...lines))
       expect(result.code, result.output).toBe(0)
@@ -229,13 +236,46 @@ describe('check-migrations.sh', { timeout: 30_000 }, () => {
       expect(result.output).toContain(`contains the contract statement 'drop' with no leading marker`)
     })
 
+    it('does not take a -- contract: inside a trailing // comment for the marker', async () => {
+      const result = await addMigration(
+        NEW,
+        migration(
+          '  await sql`select 1`.execute(db) // -- contract: removes users.locale\n  await sql`alter table users drop column locale`.execute(db)',
+        ),
+      )
+      expect(result.code).toBe(1)
+      expect(result.output).toContain(`contains the contract statement 'drop' with no leading marker`)
+    })
+
     it.each([
       ['a // comment', migration('  // never drop a column here\n  await sql`alter table users add column locale text`.execute(db)')],
       ['a -- comment', tag('-- we will drop this later', 'alter table users add column locale text')],
       ['an identifier that contains a contract word', oneLine('alter table users add column dropdown_state text')],
+      ['a // comment after code', migration('  await sql`alter table users add column locale text`.execute(db) // drop it in a later release')],
+      ['a block comment', tag('/* we drop nothing here */', 'alter table users add column locale text')],
+      ['a block comment over lines', tag('/*', ' * we will drop this later', ' */', 'alter table users add column locale text')],
+      [
+        'a // comment that mentions db.schema',
+        migration('  // not db.schema.alterTable, see § Adding one\n  await sql`alter table users add column locale text`.execute(db)'),
+      ],
     ])('ignores %s', async (_case, content) => {
       const result = await addMigration(NEW, content)
       expect(result.code, result.output).toBe(0)
+    })
+  })
+
+  describe('schema builder', () => {
+    it.each([
+      ['on one line', migration("  await db.schema.alterTable('users').dropColumn('locale').execute()")],
+      [
+        'chained over lines',
+        migration("  await db\n    .schema\n    .alterTable('users')\n    .alterColumn('display_name', c => c.setNotNull())\n    .execute()"),
+      ],
+      ['for an additive change', migration("  await db.schema.alterTable('users').addColumn('locale', 'text').execute()")],
+    ])('fails a migration that uses it %s', async (_case, content) => {
+      const result = await addMigration(NEW, content)
+      expect(result.code).toBe(1)
+      expect(result.output).toContain(`${migrationsDir}/${NEW} builds DDL with Kysely's schema builder (db.schema)`)
     })
   })
 })

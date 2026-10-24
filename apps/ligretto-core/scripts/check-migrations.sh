@@ -5,7 +5,9 @@
 #   - adds a migration whose timestamp is not newer than the newest on the base branch (order: Kysely refuses an
 #     unordered migration at run time, this says so at review time);
 #   - adds a migration with a contract statement (DROP, RENAME, ALTER COLUMN ... TYPE, SET NOT NULL) that no
-#     `-- contract:` SQL comment precedes (docs/adrs/additive-migrations-and-compatibility-matrix.md).
+#     `-- contract:` SQL comment precedes (docs/adrs/additive-migrations-and-compatibility-matrix.md);
+#   - adds a migration that writes DDL with Kysely's schema builder (`db.schema`) instead of the `sql` tag, which the
+#     contract scan could not read.
 # It compares commits (<base>...HEAD), so a staged or uncommitted migration is not checked. Adapted from
 # apps/cas/scripts/check-migration-order.sh.
 #
@@ -41,17 +43,26 @@ while IFS= read -r file; do
   fi
 done < <(git ls-tree -r --name-only "$base_ref" -- "$migrations_dir")
 
-# The tokens of a migration that decide the marker rule, in reading order. The marker comment becomes one token
-# first, keeping the SQL before it on its line, so its own words never count as a statement and a trailing marker
-# never leads; then line comments go, and whitespace collapses so a statement split over lines is one run of words.
-contract_tokens() {
+# A migration's source reduced to what the rules below read, on one line. Line rules first, in this order: a `//`
+# comment at the start of a line or after whitespace goes (a `//` after `:`, as in a 'https://' literal, stays), so
+# neither its words nor a `-- contract:` inside it count; then the marker comment becomes one token, keeping the SQL
+# before it on its line, so its own words never count as a statement and a trailing marker never leads; then the
+# other `--` comments go. Whitespace then collapses so a statement split over lines is one run of words, and block
+# comments, which may span lines, go last.
+stripped_source() {
   git show "HEAD:$1" |
     sed -E \
+      -e 's#(^|[[:space:]])//.*$##' \
       -e 's/--[[:space:]]*contract:.*$/ __CONTRACT_MARKER__ /' \
-      -e 's#^[[:space:]]*//.*$##' \
       -e 's/--.*$//' |
     tr -s '[:space:]' ' ' |
-    grep -o -i -w -E '__CONTRACT_MARKER__|drop|rename|alter column [^ ]+ (set data )?type|set not null' || true
+    sed -E 's#/\*([^*]|\*+[^*/])*\*+/# #g' |
+    tr -s ' '
+}
+
+# The tokens of a stripped migration that decide the marker rule, in reading order.
+contract_tokens() {
+  grep -o -i -w -E '__CONTRACT_MARKER__|drop|rename|alter (column )?[^ ]+ (set data )?type|set not null' || true
 }
 
 added=()
@@ -76,7 +87,14 @@ for file in ${added[@]+"${added[@]}"}; do
     fail "$file has timestamp $version <= $max_base (the newest migration on $base_ref). Recreate it with a fresh timestamp: date -u +%Y%m%d%H%M%S."
   fi
 
-  tokens="$(contract_tokens "$file")"
+  stripped="$(stripped_source "$file")"
+  # The contract scan reads SQL; Kysely's schema builder (db.schema.dropTable(...), .setNotNull(), ...) would pass it
+  # unread, so DDL stays in the sql tag (docs/MIGRATIONS.md § Adding one).
+  if grep -q -E '\. ?schema ?\.' <<<"$stripped"; then
+    fail "$file builds DDL with Kysely's schema builder (db.schema). Write the DDL in the sql tag, one statement per execute (docs/MIGRATIONS.md § Adding one)."
+  fi
+
+  tokens="$(contract_tokens <<<"$stripped")"
   first="${tokens%%$'\n'*}"
   if [[ -n "$first" && "$first" != __CONTRACT_MARKER__ ]]; then
     fail "$file contains the contract statement '$first' with no leading marker. Put '-- contract: <what it removes and which release stopped using it>' inside the sql tag before the first contract statement (docs/MIGRATIONS.md)."
@@ -87,6 +105,7 @@ if ((status == 0)); then
   echo "No migration on $base_ref is edited, renamed or deleted."
   echo "Every added migration is named <yyyymmddHHMMSS>_<name>.ts."
   echo "Every added migration is newer than $base_ref (newest $max_base)."
+  echo "No added migration uses Kysely's schema builder."
   echo "Every contract statement in an added migration has a leading -- contract: marker."
 fi
 exit "$status"
