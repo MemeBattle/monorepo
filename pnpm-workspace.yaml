@@ -101,6 +101,7 @@ catalog:
   '@vinejs/vine': 4.4.0
   '@vitejs/plugin-react': 6.1.1
   '@vitest/coverage-v8': 5.0.0
+  ajv: 8.20.0
   amplitude-js: ^8.21.6
   better-sqlite3: ^13.0.1
   cf: 1.0.0-beta.14

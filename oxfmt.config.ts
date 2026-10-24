@@ -11,6 +11,7 @@ export default defineConfig({
     '!apps/cas/README.md',
     'apps/cas-frontend/src/shared/api/generated/**',
     'packages/ligretto-auth/src/generated/**',
+    'packages/ligretto-core-client/src/generated/**',
     // Generated and diffed in CI: the formatter would collapse short arrays and the diff would fail.
     'apps/ligretto-core/src/adapters/pg/schema.generated.ts',
     'apps/ligretto-core/openapi.json',

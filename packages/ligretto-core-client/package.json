@@ -1,0 +1,52 @@
+{
+  "name": "@memebattle/ligretto-core-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The generated clients of the ligretto-core public and internal APIs, over a transport that never throws on a status",
+  "license": "MIT",
+  "author": "MemeBattle",
+  "files": [
+    "build"
+  ],
+  "sideEffects": false,
+  "imports": {
+    "#client": {
+      "types": "./src/client.ts",
+      "development": "./src/client.ts",
+      "node": "./build/client.js",
+      "default": "./src/client.ts"
+    }
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "node": "./build/index.js",
+      "default": "./src/index.ts"
+    },
+    "./internal": {
+      "types": "./src/internal.ts",
+      "development": "./src/internal.ts",
+      "node": "./build/internal.js",
+      "default": "./src/internal.ts"
+    }
+  },
+  "scripts": {
+    "ts-check": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.tests.json",
+    "test": "vitest",
+    "test:ci": "vitest run",
+    "build": "tsc --project tsconfig.build.json",
+    "generate:api": "KUBB_DISABLE_TELEMETRY=1 kubb generate && node scripts/generate-declared-statuses.mjs"
+  },
+  "devDependencies": {
+    "@kubb/adapter-oas": "catalog:",
+    "@kubb/plugin-client": "catalog:",
+    "@kubb/plugin-ts": "catalog:",
+    "@memebattle/ligretto-core": "workspace:^",
+    "@types/node": "catalog:",
+    "ajv": "catalog:",
+    "kubb": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

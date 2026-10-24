@@ -9,6 +9,7 @@ export default defineConfig({
     '**/.adonisjs/**',
     'apps/cas-frontend/src/shared/api/generated/**',
     'packages/ligretto-auth/src/generated/**',
+    'packages/ligretto-core-client/src/generated/**',
     'apps/ligretto-core/src/adapters/pg/schema.generated.ts',
   ],
   settings: {

@@ -1,0 +1,76 @@
+name: 'Ligretto core client pull request'
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'packages/ligretto-core-client/**'
+      # The client is generated from ligretto-core's documents, and the contract tests drive its apps through the
+      # harness it exports: this package's CI is a consumer-driven contract test, so any backend change runs it.
+      - 'apps/ligretto-core/**'
+      # ligretto-core's public document and auth routes are built from this package's schemas and handlers.
+      - 'packages/ligretto-auth/**'
+      - .github/workflows/ligretto-core-client-pr.yml
+      - 'pnpm-lock.yaml'
+      - package.json
+      - pnpm-workspace.yaml
+
+# A new push makes the run for the previous one obsolete.
+concurrency:
+  group: ligretto-core-client-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      # From the routes as they are in this commit: a response schema changed in ligretto-core without regenerating
+      # changes the documents, and with them the client.
+      - name: Regenerate the documents and the client
+        run: pnpm run --filter @memebattle/ligretto-core openapi:generate && pnpm run --filter @memebattle/ligretto-core-client generate:api
+
+      # `git status` rather than `git diff`, so a generated file that is new, and so untracked, fails the check too.
+      - name: The committed documents and client are current
+        run: |
+          paths='apps/ligretto-core/openapi.json apps/ligretto-core/openapi.internal.json packages/ligretto-core-client/src/generated'
+          if [ -n "$(git status --porcelain -- $paths)" ]; then
+            git status --short -- $paths
+            git diff -- $paths
+            echo "::error::the documents or the client are out of date: run 'pnpm --filter @memebattle/ligretto-core openapi:generate' and 'pnpm --filter @memebattle/ligretto-core-client generate:api', and commit the result"
+            exit 1
+          fi
+
+      - name: TS check
+        run: pnpm run --filter @memebattle/ligretto-core-client ts-check
+
+      # The `node` condition of the entries points at this output, so it must build.
+      - name: Build
+        run: pnpm run --filter @memebattle/ligretto-core-client build
+
+  tests:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      # The contract suites check every answer against the documents, so they run against documents and a client
+      # generated from this commit's routes rather than against what was committed.
+      - name: Regenerate the documents and the client
+        run: pnpm run --filter @memebattle/ligretto-core openapi:generate && pnpm run --filter @memebattle/ligretto-core-client generate:api
+
+      - name: Run tests
+        run: pnpm run --filter @memebattle/ligretto-core-client test:ci
