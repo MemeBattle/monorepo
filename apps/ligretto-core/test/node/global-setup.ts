@@ -20,6 +20,9 @@ declare module 'vitest' {
 
 const READY_DEADLINE_MS = 60_000
 const POLL_INTERVAL_MS = 250
+// Above the health check's own database timeout (2 s by default, `createCheckHealth`), so a database that hangs
+// yields the 503 report the health spec asserts on instead of a client abort that the loop retries until the deadline.
+const PROBE_TIMEOUT_MS = 5_000
 const STOP_GRACE_MS = 5_000
 const LOG_TAIL_LINES = 40
 
@@ -61,7 +64,8 @@ const describeExit = (exit: ExitInfo) =>
 export default async function setup(project: TestProject) {
   const port = await freePort()
   const baseUrl = `http://127.0.0.1:${port}`
-  const logPath = process.env.LIGRETTO_CORE_NODE_LOG ?? path.join(os.tmpdir(), 'ligretto-core-node.log')
+  // The port in the default name keeps concurrent runs on one host (worktrees, reviewers) from sharing a log.
+  const logPath = process.env.LIGRETTO_CORE_NODE_LOG ?? path.join(os.tmpdir(), `ligretto-core-node-${port}.log`)
   const logFd = fs.openSync(logPath, 'w')
 
   let child: ChildProcess | undefined
@@ -123,7 +127,7 @@ export default async function setup(project: TestProject) {
       }
       // Any HTTP answer means it listens: a 503 without a database is the health spec's to report, not the setup's.
       const probe = await Promise.race([
-        fetch(`${baseUrl}/health`, { signal: AbortSignal.timeout(2_000) }).then(
+        fetch(`${baseUrl}/health`, { signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) }).then(
           () => ({ kind: 'ready' }) as const,
           () => ({ kind: 'not-yet' }) as const,
         ),
