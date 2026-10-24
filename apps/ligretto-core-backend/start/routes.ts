@@ -30,13 +30,16 @@ router
   .group(() => {
     router.get('/', async () => ({ hello: 'world' }))
 
-    router.resource('users', UsersController).apiOnly()
+    router.get('/users', [UsersController, 'index'])
 
     router.post('/games', [GamesController, 'create'])
     router.get('/games', [GamesController, 'index'])
     router.post('/games/:id/rounds', [GamesController, 'saveRound']).where('id', router.matchers.uuid())
 
-    router.post('/auth/me', [AuthController, 'me'])
+    router.get('/auth/me', [AuthController, 'me'])
+    router.get('/auth/sign-in', [AuthController, 'signIn'])
+    router.get('/auth/callback', [AuthController, 'callback'])
+    router.get('/auth/logout', [AuthController, 'logout'])
   })
   .prefix('/api')
 

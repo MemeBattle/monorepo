@@ -16,7 +16,6 @@ export const IOC_TYPES = {
   UserRepository: Symbol.for('UserRepository'),
   UserService: Symbol.for('UserService'),
   BotController: Symbol.for('BotController'),
-  AuthService: Symbol.for('AuthService'),
   LigrettoCoreService: Symbol.for('LigrettoCoreService'),
   GameConnectionService: Symbol.for('GameConnectionService'),
 }

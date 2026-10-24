@@ -5,9 +5,10 @@
  * A call has two ways to fail. An error CAS answered with — a 4xx or a 5xx whose body carries a code, either the
  * OAuth2 `{ "error", "error_description" }` or the envelope `{ "error": { "code", "message" } }` — is part of the
  * contract: it comes back as a value, a `Result` whose `error.code` is typed as the codes the operation declares.
- * Only what is outside the contract is thrown: `fetch` rejecting (the network), an error response whose body carries
- * no code (a proxy's page, not CAS: `ApiError` with the code `unknown`), a 2xx whose body is not JSON, and any
- * redirect.
+ * Everything outside the contract is thrown, and always as an `ApiError`: `fetch` rejecting, so no response came back
+ * at all (`unreachable`), an error response whose body carries no code (a proxy's page, not CAS: `unknown`), a 2xx
+ * whose body is not JSON, and any redirect. One class for all of them because they are one thing to a caller: the
+ * provider cannot be used right now.
  *
  * Unlike a browser client there is no ambient origin here: a `Client` is made with `createClient({ baseUrl })` and
  * every request resolves against that base, or against the absolute URL `atUrl` puts in its place — which is how a
@@ -19,6 +20,22 @@ const UNKNOWN_ERROR_CODE = 'unknown'
 
 /** The code of any 3xx: the client follows no redirect, so the caller decides what a navigation endpoint answered. */
 const REDIRECT_REFUSED_CODE = 'redirect_refused'
+
+/**
+ * The code of a request that produced no usable response: no response at all — DNS, TLS, a refused connection — or
+ * a response whose body never arrived within the request timeout.
+ */
+const UNREACHABLE_CODE = 'unreachable'
+
+/** The status of an `ApiError` that has no usable response behind it: nothing answered in full, so nothing has a status. */
+const NO_RESPONSE_STATUS = 0
+
+/**
+ * The longest request timeout accepted: timers are 32-bit signed milliseconds on every runtime, and Node turns a
+ * larger value into 1 ms with a warning. `0` is excluded on purpose (it aborts before the request is sent), and a
+ * fraction is excluded because `AbortSignal.timeout` throws on one.
+ */
+const MAX_TIMEOUT_MS = 2_147_483_647
 
 /** An error CAS answered with: the status and the error code the operation lists for it. */
 export interface ApiFailure<Code extends string = string> {
@@ -43,13 +60,19 @@ export interface ApiErrorOptions extends ErrorOptions {
 }
 
 /**
- * A response outside the contract the callers handle: a redirect, an error response whose body carries no code
- * (`unknown`), or a 2xx whose body is not JSON (`unknown`).
+ * A call that gave the caller nothing it can use: a response outside the contract — a redirect, an error response
+ * whose body carries no code (`unknown`), a 2xx whose body is not JSON (`unknown`) — or no response at all, because
+ * `fetch` itself rejected (`unreachable`).
+ *
+ * The network belongs here rather than escaping as whatever `fetch` threw: a caller mapping known failures to
+ * statuses of its own has no type to recognise a bare `TypeError` by, and would answer a routine outage with an
+ * unhandled 500.
  */
 export class ApiError extends Error {
+  /** The response's status, or `0` when the request produced no usable response. */
   readonly status: number
   readonly code: string
-  /** The response's headers: a refused redirect names its `Location`. */
+  /** The response's headers: a refused redirect names its `Location`. Empty when nothing answered. */
   readonly headers: Headers
 
   constructor(status: number, code: string, message: string, options: ApiErrorOptions = {}) {
@@ -129,21 +152,23 @@ type DeclaredHeaders<TOptions> = TOptions extends { headers?: infer Declared }
  *
  * `ThrowOnError` is kubb's: plugin-client prints the generic and the `throwOnError` option into every operation and
  * offers no option to leave them out, only their default. This transport has one policy, so the option admits no
- * value — a caller cannot ask for a throw that would never happen.
+ * value — a caller cannot ask for a throw that would never happen. The leading underscore keeps a consumer
+ * type-checking this source under `noUnusedParameters` from failing on the unused generic; the generated callers
+ * pass it positionally and are unaffected.
  */
 // oxlint-disable-next-line no-unused-vars -- the generated functions pass ThrowOnError
-export type Options<TOptions, ThrowOnError extends boolean = false> = Omit<TOptions, 'headers'> & {
+export type Options<TOptions, _ThrowOnError extends boolean = false> = Omit<TOptions, 'headers'> & {
   headers?: Record<string, string> & DeclaredHeaders<TOptions>
   client?: Client
   throwOnError?: never
 }
 
 /**
- * What a generated function resolves to: the success body or an error CAS answered with. `ThrowOnError` is kubb's and
- * is ignored (see `Options`).
+ * What a generated function resolves to: the success body or an error CAS answered with. `ThrowOnError` is kubb's,
+ * ignored and underscored for the reasons `Options` gives.
  */
 // oxlint-disable-next-line no-unused-vars -- the generated functions pass ThrowOnError
-export type RequestResult<Responses, ThrowOnError extends boolean = false> = Result<SuccessOf<Responses>, ErrorCodeOf<Responses>>
+export type RequestResult<Responses, _ThrowOnError extends boolean = false> = Result<SuccessOf<Responses>, ErrorCodeOf<Responses>>
 
 /** The OAuth2 error body of a failed OIDC call (RFC 6749 §5.2), which every JSON failure of these endpoints uses. */
 interface OAuthErrorBody {
@@ -166,10 +191,28 @@ const isEnvelopeErrorBody = (body: unknown): body is EnvelopeErrorBody => {
   return typeof error === 'object' && error !== null && typeof (error as EnvelopeErrorBody['error']).code === 'string'
 }
 
-const readBody = async (response: Response): Promise<unknown> => {
+/** Bounds one step of a request by its deadline: the work, or the timeout's `ApiError` once the deadline fires. */
+type Bounded = <T>(work: Promise<T>) => Promise<T>
+
+/** A request without a deadline: every step is the work itself. */
+const unbounded: Bounded = async work => await work
+
+/**
+ * The body as JSON, or `undefined` when it is not JSON. A deadline that fires while the body is read throws the
+ * timeout's `ApiError` instead, whether the `bounded` race rejected or a real `fetch` errored the body stream with the
+ * signal's reason: a stalled body is an outage, not a body that is not JSON.
+ */
+const readBody = async (response: Response, bounded: Bounded, timedOut: (cause: unknown) => ApiError | undefined): Promise<unknown> => {
   try {
-    return await response.json()
-  } catch {
+    return await bounded(response.json())
+  } catch (cause) {
+    const timeout = cause instanceof ApiError ? cause : timedOut(cause)
+    if (timeout !== undefined) {
+      // Best effort: a body nobody will read any more must not keep a real connection open. A real `fetch` has
+      // already errored the stream with the signal's reason; a stream still locked by the pending read refuses.
+      response.body?.cancel(timeout.cause).catch(() => undefined)
+      throw timeout
+    }
     return undefined
   }
 }
@@ -177,8 +220,12 @@ const readBody = async (response: Response): Promise<unknown> => {
 const asMessage = (value: unknown, fallback: string): string => (typeof value === 'string' ? value : fallback)
 
 /** An error response as the failure CAS answered with, or the `ApiError` to throw when its body carries no code. */
-const toFailure = async (response: Response): Promise<{ ok: false; error: ApiFailure } | ApiError> => {
-  const body = await readBody(response)
+const toFailure = async (
+  response: Response,
+  bounded: Bounded,
+  timedOut: (cause: unknown) => ApiError | undefined,
+): Promise<{ ok: false; error: ApiFailure } | ApiError> => {
+  const body = await readBody(response, bounded, timedOut)
   const fallback = response.statusText || 'Request failed'
   const declared = isOAuthErrorBody(body)
     ? { code: body.error, message: asMessage(body.error_description, fallback) }
@@ -192,15 +239,30 @@ const toFailure = async (response: Response): Promise<{ ok: false; error: ApiFai
   return { ok: false, error: { status: response.status, ...declared, headers: response.headers } }
 }
 
+/** The content type of the two form-bodied operations CAS describes, `/oidc/token` and the end-session form. */
+const FORM_CONTENT_TYPE = 'application/x-www-form-urlencoded'
+
+/**
+ * A form body as it goes on the wire, the object's entries in their order. An `undefined` value is left out, so an
+ * optional parameter the caller omitted is absent from the form rather than the string `undefined`. Every value is a
+ * string — the description's grant schemas carry nothing else (cas ADR 0023 (e)).
+ */
+const formBody = (body: object): string =>
+  new URLSearchParams(Object.entries(body).filter((entry): entry is [string, string] => entry[1] !== undefined)).toString()
+
 /** The body as it goes on the wire, and the content type it needs when the caller named none. */
 const encodeBody = (body: unknown, declared: string | undefined): { body: string; contentType: string } | undefined => {
   if (body === undefined) {
     return undefined
   }
-  // `/oidc/token` and the end-session form take an already-encoded form body: send the string verbatim, never quoted
-  // into JSON.
+  // The end-session form is described as an already-encoded body: send the string verbatim, never quoted into JSON.
   if (typeof body === 'string') {
-    return { body, contentType: declared ?? 'application/x-www-form-urlencoded' }
+    return { body, contentType: declared ?? FORM_CONTENT_TYPE }
+  }
+  // `/oidc/token` describes one schema per grant (cas ADR 0023), so a grant arrives here as an object and goes on the
+  // wire as the form the operation declares.
+  if (declared === FORM_CONTENT_TYPE && typeof body === 'object' && body !== null) {
+    return { body: formBody(body), contentType: declared }
   }
   return { body: JSON.stringify(body), contentType: declared ?? 'application/json' }
 }
@@ -234,20 +296,89 @@ export interface ClientOptions {
   baseUrl: string
   /** The `fetch` to send with, for a runtime that does not have a global one and for tests. */
   fetch?: typeof globalThis.fetch
+  /**
+   * Bounds one request from the call to `fetch` to the end of its body. An integer from 1 to 2147483647
+   * milliseconds, the range `AbortSignal.timeout` supports on every runtime; no bound when left out. A request that
+   * outlives it fails as an `ApiError` `unreachable`, its `cause` the `TimeoutError`.
+   */
+  requestTimeoutMs?: number
+}
+
+/** The timeout as given, refused at construction when no runtime can honour it as it stands. */
+const requestTimeoutOf = (value: unknown): number | undefined => {
+  if (value === undefined) {
+    return undefined
+  }
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > MAX_TIMEOUT_MS) {
+    throw new TypeError(`The request timeout must be an integer from 1 to ${MAX_TIMEOUT_MS} milliseconds; got ${String(value)}.`)
+  }
+  return value
 }
 
 /** A client that sends every request to `baseUrl`, following no redirect. */
-export const createClient =
-  ({ baseUrl, fetch: fetchImpl }: ClientOptions): Client =>
-  async ({ method, url, body, contentType, headers }) => {
-    const send = fetchImpl ?? ((input: RequestInfo | URL, init?: RequestInit) => globalThis.fetch(input, init))
+export const createClient = ({ baseUrl, fetch: fetchImpl, requestTimeoutMs: requested }: ClientOptions): Client => {
+  // Validated once, here, so that no accepted configuration can throw on the request path or silently become 1 ms.
+  const requestTimeoutMs = requestTimeoutOf(requested)
+
+  return async ({ method, url, body, contentType, headers }) => {
+    // Typed from `globalThis.fetch` itself rather than from `RequestInfo`, which only `lib.dom` declares: a Node
+    // consumer type-checks this source and must not have to load the browser globals to do it.
+    const send = fetchImpl ?? ((...args: Parameters<typeof globalThis.fetch>) => globalThis.fetch(...args))
     const encoded = encodeBody(body, contentType?.request)
-    const response = await send(urlOf(url, baseUrl), {
-      method,
-      redirect: 'manual',
-      headers: headersOf(encoded?.contentType, headers),
-      body: encoded?.body,
-    })
+
+    // One deadline for the whole request: the headers and the body alike, so a caller holding a lock across this call
+    // waits no longer than the bound whichever phase the provider stalls in.
+    const deadline = requestTimeoutMs === undefined ? undefined : AbortSignal.timeout(requestTimeoutMs)
+    const timeoutError = (cause: unknown): ApiError =>
+      new ApiError(NO_RESPONSE_STATUS, UNREACHABLE_CODE, `${method} ${url} did not answer within ${requestTimeoutMs} ms`, { cause })
+    /** The timeout's `ApiError` when the deadline is what failed the step, `undefined` for any other failure. */
+    const timedOut = (cause: unknown): ApiError | undefined => (deadline?.aborted === true ? timeoutError(cause) : undefined)
+    const bounded: Bounded =
+      deadline === undefined
+        ? unbounded
+        : async work => {
+            let onAbort = (): void => undefined
+            const expired = new Promise<never>((_, reject) => {
+              onAbort = () => reject(timeoutError(deadline.reason))
+              if (deadline.aborted) {
+                onAbort()
+              } else {
+                deadline.addEventListener('abort', onAbort, { once: true })
+              }
+            })
+            try {
+              return await Promise.race([work, expired])
+            } finally {
+              // A deadline that fires after the work settled must reject nothing: `expired` is never awaited again.
+              deadline.removeEventListener('abort', onAbort)
+            }
+          }
+
+    let response: Response
+    try {
+      response = await bounded(
+        send(urlOf(url, baseUrl), {
+          method,
+          redirect: 'manual',
+          headers: headersOf(encoded?.contentType, headers),
+          body: encoded?.body,
+          ...(deadline === undefined ? {} : { signal: deadline }),
+        }),
+      )
+    } catch (cause) {
+      if (cause instanceof ApiError) {
+        throw cause
+      }
+      // Typed here, at the one place this package touches the network, so every call through it fails the same way:
+      // a caller cannot be expected to recognise `fetch`'s own rejection, which is a bare `TypeError`. A `fetch` given
+      // the deadline rejects with its reason once it fires; the `aborted` flag is the test, not the error's name.
+      throw (
+        timedOut(cause) ??
+        new ApiError(NO_RESPONSE_STATUS, UNREACHABLE_CODE, `${method} ${url} could not be sent: the provider could not be reached`, {
+          cause,
+        })
+      )
+    }
 
     // The caller decides what a navigation endpoint's redirect means; `redirect: 'manual'` reports it as an opaque
     // response in a browser-like runtime and as the 3xx itself elsewhere.
@@ -258,7 +389,7 @@ export const createClient =
     }
 
     if (!response.ok) {
-      const failure = await toFailure(response)
+      const failure = await toFailure(response, bounded, timedOut)
       if (failure instanceof ApiError) {
         throw failure
       }
@@ -271,7 +402,7 @@ export const createClient =
 
     // A success is only a success once its body can be read: an interstitial that answers 200 with a page is not the
     // contract, and a caller that branches on `ApiError` must see it as one rather than as a raw `SyntaxError`.
-    const data = await readBody(response)
+    const data = await readBody(response, bounded, timedOut)
     if (data === undefined) {
       throw new ApiError(response.status, UNKNOWN_ERROR_CODE, `${method} ${url} answered ${response.status} with a body that is not JSON`, {
         headers: response.headers,
@@ -280,6 +411,7 @@ export const createClient =
 
     return { ok: true, status: response.status, headers: response.headers, data }
   }
+}
 
 /**
  * `client` with the request's URL replaced by an absolute one. It is how a generated operation reaches the endpoint

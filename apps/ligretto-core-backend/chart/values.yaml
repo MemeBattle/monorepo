@@ -71,6 +71,11 @@ volumeMounts: []
 #   mountPath: "/etc/foo"
 #   readOnly: true
 
+# Removal of expired authorization requests and of sessions past the cookie grace window. Hourly is ample:
+# sessions are kept a week past their grant by design, so a run never has much to do.
+sweep:
+  schedule: "17 * * * *"
+
 # App Key configuration
 # If not provided, a random 32-character string will be generated
 appKey: ""
@@ -81,19 +86,38 @@ env:
   PORT: "3333"
   HOST: "0.0.0.0"
   NODE_ENV: "production"
-  # CAS configuration
-  CAS_PARTNER_ID: "685706c5ef9a1d005c9ef9b4"
-  CAS_URL: "https://cas.mems.fun"
-  LIGRETTO_CORE_CAS_PUBLIC_KEY_PATH: "/ligretto-core-backend/key.pem"
+  # CAS configuration, as @memebattle/ligretto-auth asks for it. The `ligretto` client is not registered in the
+  # production CAS until #812, and the cutover is #818, so the secret below is a placeholder. Until #812 every
+  # call that authenticates this client against CAS fails: no sign-in can complete and no guest can be minted,
+  # both answering 503 with the stable code `cas_rejected`. The other paths behave normally — /auth/sign-in still
+  # redirects to CAS with its state cookie, a callback that matches no state is a 400, and a sessionless
+  # /auth/logout redirects back to the app. /games, /health and the hourly sweep are unaffected.
+  #
+  # The secret #812 generates must never take the placeholder's place here. Everything under `env` is rendered as
+  # a literal `value:` on the container — by deployment.yaml, migration-job.yaml and sweep-cronjob.yaml alike —
+  # and ligretto-deploy.yml hands this file to helm straight from the checkout, so a real secret written here is
+  # committed to git and readable in the rendered Deployment. #812 delivers it the way the database credentials
+  # already arrive: an ExternalSecret in templates/secrets.yaml feeding a `secretKeyRef` in the three pod
+  # templates, with LIGRETTO_CAS_CLIENT_SECRET leaving `env` at that point.
+  #
+  # The frontend is the other half of this contract, and it moves in #817. ligretto-frontend bootstraps with
+  # `POST /api/auth/me`, which this release answers with a 404 — only GET is mounted — and it renders no route
+  # until that call succeeds, so between this deploy and #817 every visitor to ligretto.app sits on the loader
+  # screen, guests included. ligretto-deploy.yml rebuilds and redeploys both apps from every push to master, so
+  # this backend must not reach production separated from the new frontend.
+  CAS_ISSUER: "https://cas.mems.fun"
+  LIGRETTO_CAS_CLIENT_ID: "ligretto"
+  # A placeholder, not a secret: see the ExternalSecret note above before putting a real value here.
+  LIGRETTO_CAS_CLIENT_SECRET: "not-registered-until-812"
+  LIGRETTO_CORE_AUTH_REDIRECT_URI: "https://core.ligretto.app/api/auth/callback"
+  LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI: "https://ligretto.app/"
+  LIGRETTO_CORE_AUTH_APP_URL: "https://ligretto.app/"
+  LIGRETTO_CORE_AUTH_SESSION_TRANSPORT: "cookie"
   # Application configuration
   LIGRETTO_CORE_APP_NAME: "ligretto-core-backend"
 
 # External Secrets configuration
 externalSecrets:
-  # CAS Key secret configuration
-  casKey:
-    key: "ligretto-cas-key"
-    property: "private"
   # Production environment secret configuration
   productionEnv:
     key: "ligretto-production-env"

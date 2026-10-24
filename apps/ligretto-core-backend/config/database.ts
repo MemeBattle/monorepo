@@ -56,6 +56,36 @@ const databaseConfig = defineConfig({
       debug: false,
     },
 
+    /*
+    |--------------------------------------------------------------------------
+    | Lock transactions
+    |--------------------------------------------------------------------------
+    |
+    | The same database as `pg`, on its own pool, used only by the session store's `withSessionLock`.
+    | Lock holders and waiters occupy a connection for as long as they hold the lock — a refresh waiting on
+    | CAS among them — so they share a pool with nothing else. Every statement a locked callback runs goes to
+    | `pg`, where nothing ever waits on a lock, which is what keeps a holder from blocking on a pool its own
+    | waiters have exhausted.
+    |
+    */
+    pgLocks: {
+      client: 'pg',
+      connection: {
+        host: env.get('LIGRETTO_CORE_PG_HOST'),
+        port: env.get('LIGRETTO_CORE_PG_PORT'),
+        user: env.get('LIGRETTO_CORE_PG_USER'),
+        password: env.get('LIGRETTO_CORE_PG_PASSWORD', ''),
+        database: env.get('LIGRETTO_CORE_PG_DB_NAME'),
+      },
+      pool: {
+        min: 0,
+        max: 10,
+        acquireTimeoutMillis: 60000,
+        idleTimeoutMillis: 600000,
+      },
+      debug: false,
+    },
+
     sqlite: {
       client: 'better-sqlite3',
       connection: {

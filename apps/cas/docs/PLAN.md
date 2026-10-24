@@ -17,7 +17,10 @@ email/password + VK login, 7-service architecture).
   agent's request reaches the user for approval through one of the user's
   linked channels; a linked Telegram account is the first such channel, not
   the only one.
-- **Stack:** Rust (axum), PostgreSQL, S3 for files (filesystem backend in dev).
+- **Stack:** Rust (axum) on Cloudflare Workers (`wasm32-unknown-unknown`,
+  workers-rs), PostgreSQL on Neon behind Hyperdrive; natively (dev, tests) the
+  same code on tokio with a pool. Object storage for files is still to be
+  chosen (filesystem backend in dev).
 - **Process: "lit factory"** — the agent writes the code, the human understands
   every change. Small, reviewable increments.
 
@@ -104,7 +107,12 @@ email/password + VK login, 7-service architecture).
 **SSO**
 
 - CAS is an OIDC provider with a minimal profile (see below). Apps are ordinary
-  OIDC clients using standard libraries; no custom SDK like the legacy
+  OIDC clients; an application outside the monorepo uses a standard OIDC
+  library and the integration guide (`docs/INTEGRATION.md`). The monorepo's
+  own applications share `packages/ligretto-auth`: a server-only package with
+  the client generated from the OpenAPI description, access-token
+  verification, the confidential client and the HTTP handlers. It is a thin
+  layer over the standard flows, not a protocol of its own like the legacy
   `cas-services`.
 - Access tokens are JWTs (RFC 9068, ES256), not opaque tokens with introspection:
   resource servers verify locally against JWKS, CAS is not on the request path
@@ -145,6 +153,32 @@ email/password + VK login, 7-service architecture).
 - One external identity belongs to exactly one account; there is no account
   merging.
 
+**Runtime and deployment**
+
+- CAS is stateless by construction (ADR 0002: any replica serves any request,
+  nothing is kept in memory). That is what made Cloudflare Workers possible
+  without touching the ceremonies or the schema.
+- One Worker on `cas.mems.fun`: the Rust entrypoint (ADR 0022) on CAS's own
+  paths, the cas-frontend SPA as the Worker's static assets on every other
+  path. One origin, so `rp_id`, issuer and CORS are all `cas.mems.fun`.
+- The database is one `PgConnection` per request from the Hyperdrive binding,
+  closed when the request ends (ADR 0021, 0022); the services see a `Db`
+  handle and do not know which runtime they are on. Hyperdrive's query cache
+  is disabled; the origin is the Neon project `cas` over its direct endpoint,
+  Hyperdrive does the pooling.
+- No OpenSSL anywhere: ES256 on `p256` (ADR 0019), webauthn-rs 0.6 through a
+  MemeBattle fork (ADR 0020), sqlx through a MemeBattle fork plus the vendored
+  `sqlx-cloudflare-hd` (`vendor/`). `cargo sqlx prepare` runs on the host
+  target only; the Worker builds offline against `.sqlx`.
+- Migrations never run through the Worker: `cas-migrate` over a direct
+  connection, in the release job before the upload.
+- Releases are continuous: every push to `master` touching CAS or its frontend
+  runs `.github/workflows/cas-deploy.yml`, approved through the
+  `CAS-production` environment. The signing key is a Worker secret, not part
+  of the release; the rotation procedure is in `README.md`.
+- Clients are registered by hand with `cas-client` against the origin
+  (ADR 0008); a chosen secret exists in development builds alone (ADR 0023).
+
 **Scope cuts**
 
 - No migration of legacy users (the old base is nearly empty). Clean start.
@@ -158,7 +192,8 @@ email/password + VK login, 7-service architecture).
 
 - Tickets: GitHub Issues in MemeBattle/monorepo, label `cas`, human-readable
   milestones. Issues are in English, terse.
-- CI already covers cas (`.github/workflows/cas-pr.yml`).
+- CI: `cas-pr.yml` and `cas-frontend-pr.yml` on pull requests, `cas-deploy.yml`
+  releases from `master`.
 
 ## Milestones
 
@@ -172,32 +207,60 @@ Done:
   passkeys per account, passkey management, account email, new frontend
   (sign-in, create account, dashboard), e2e on a virtual authenticator.
 
+- **SSO for applications** ([milestone 18](https://github.com/MemeBattle/monorepo/milestone/18)):
+  OIDC endpoints under `/oidc`, clients registry, guest grant + guest→full
+  upgrade, a reference-client integration test, OpenAPI (utoipa) with the
+  frontend client generated from it, the integration guide.
+- **Production** (no milestone; #794–#806): CAS and cas-frontend as one
+  Cloudflare Worker on `cas.mems.fun`, Neon behind Hyperdrive, the crypto and
+  driver forks that made the wasm32 target buildable, continuous release from
+  `master`. See "Runtime and deployment" above. Left open from this milestone,
+  tracked under "Operations" below: the scheduled cleanup, monitoring, a
+  rehearsed key rotation.
+
+In progress:
+
+- **Ligretto on CAS** ([milestone 20](https://github.com/MemeBattle/monorepo/milestone/20)):
+  done — `packages/ligretto-auth` (token verification, the confidential
+  client and sessions, the HTTP handlers and the session transport, the
+  reference run against a real CAS in CI), the dev seed with ligretto's real
+  callback, gameplay-backend verifying the socket handshake with
+  `ligretto-auth`. Left — core-backend's Postgres session store and the
+  mounted auth handlers with users served from the profile snapshot,
+  ligretto-frontend on the new flow and the removal of `auth-front` and the
+  `/auth` routes, the production client registration, and the one-shot
+  cutover that deletes `cas-services` and decides the production origin
+  layout (one origin with the cookie transport, or separate hosts with the
+  bearer transport).
+- **External providers** ([milestone 19](https://github.com/MemeBattle/monorepo/milestone/19)),
+  started in parallel: external identities + provider abstraction (in review),
+  then Telegram sign-in and linking, Telegram bot infrastructure, GitHub, mock
+  provider for dev/e2e.
+
 Next, in order:
 
-- **SSO for applications** ([milestone 18](https://github.com/MemeBattle/monorepo/milestone/18)):
-  OIDC endpoints, clients registry, guest grant + guest→full upgrade, a
-  reference-client integration test, OpenAPI, the integration guide. No
-  production, no ligretto changes.
-- **Production:** deploy CAS + cas-frontend, domain and stable `rp_id`, secrets,
-  the periodic cleanup of expired ceremonies, sessions, authorization codes,
-  grants and refresh tokens (ADR 0002, 0004, 0010, 0011),
-  monitoring. Tickets cut when SSO nears completion.
-- **Ligretto on CAS:** ligretto-frontend on an OIDC client (redirect to
-  `/oidc/authorize`, code handed to core-backend), core-backend as the confidential
-  client (code exchange, refresh, guest grant, display-name snapshot for other
-  users), gameplay-backend verifying JWTs via JWKS on the socket handshake,
-  one-shot cutover, removal of `auth-front`, `cas-services`, `init-partner`.
-- **External providers** ([milestone 19](https://github.com/MemeBattle/monorepo/milestone/19)):
-  external identities + provider abstraction, Telegram sign-in and linking,
-  Telegram bot infrastructure, GitHub, mock provider for dev/e2e.
-- **Profile & files:** user profile, avatars, S3 storage abstraction with
-  filesystem backend for dev.
+- **Profile & files:** user profile, avatars, an object-storage abstraction
+  with a filesystem backend for dev (the production store is to be chosen, see
+  the open question). Also releases `picture` under the `profile` scope, which
+  ligretto-frontend already expects.
 - **Email:** verification + magic-link recovery.
 - **Agent delegation:** agent identities, scoped/expiring/revocable delegation
   grants, consent screen, approval through a linked channel (Telegram first),
   audit UI, token exchange
   (RFC 8693), dynamic client registration (RFC 7591) for MCP-style clients.
-- **Admin panel:** users, OIDC clients, delegations, audit.
+- **Admin panel:** users, OIDC clients (hand-managed until then), delegations,
+  audit.
+
+Operations, not a milestone — tickets cut as each becomes pressing:
+
+- The scheduled cleanup of expired ceremonies, sessions, authorization codes,
+  grants and refresh tokens (ADR 0002, 0004, 0010, 0011). Promised by the ADRs
+  and not yet written: nothing deletes expired rows today. On Workers it is a
+  Cron Trigger or a job outside the Worker; never the request path.
+- Guest GC, once the cleanup exists and a policy is decided (open question).
+- Monitoring and alerting beyond the Worker's observability toggle.
+- A rehearsed signing-key rotation against production (procedure in
+  `README.md`, ADR 0009).
 
 ## OIDC profile (what "minimal" means)
 
@@ -224,42 +287,15 @@ Deliberately postponed or excluded:
 
 ## Tickets
 
-Foundation: config [#660](https://github.com/MemeBattle/monorepo/issues/660) →
-Postgres [#661](https://github.com/MemeBattle/monorepo/issues/661) →
-migrations [#662](https://github.com/MemeBattle/monorepo/issues/662);
-error model [#663](https://github.com/MemeBattle/monorepo/issues/663) in parallel.
+The GitHub milestones hold the tickets and their state; this document does
+not repeat them. Milestones with tickets: Foundation (16), Passkey auth (17),
+SSO for applications (18), External providers (19), Ligretto on CAS (20).
+The Production work ran without a milestone (#794–#806). Profile & files,
+Email, Agent delegation and Admin panel have no tickets yet; they are cut
+from this plan when their turn comes.
 
-Passkey auth: accounts [#664](https://github.com/MemeBattle/monorepo/issues/664) →
-registration [#665](https://github.com/MemeBattle/monorepo/issues/665) →
-login [#666](https://github.com/MemeBattle/monorepo/issues/666) →
-sessions [#667](https://github.com/MemeBattle/monorepo/issues/667) →
-passkey management [#668](https://github.com/MemeBattle/monorepo/issues/668).
-Frontend: scaffold [#669](https://github.com/MemeBattle/monorepo/issues/669) →
-sign-in [#670](https://github.com/MemeBattle/monorepo/issues/670) →
-dashboard [#671](https://github.com/MemeBattle/monorepo/issues/671).
-
-SSO for applications: clients [#740](https://github.com/MemeBattle/monorepo/issues/740)
-and keys + discovery [#741](https://github.com/MemeBattle/monorepo/issues/741) →
-authorize [#742](https://github.com/MemeBattle/monorepo/issues/742) →
-token [#743](https://github.com/MemeBattle/monorepo/issues/743) →
-refresh rotation [#744](https://github.com/MemeBattle/monorepo/issues/744),
-userinfo + logout [#745](https://github.com/MemeBattle/monorepo/issues/745),
-guest grant [#746](https://github.com/MemeBattle/monorepo/issues/746) →
-guest upgrade [#747](https://github.com/MemeBattle/monorepo/issues/747).
-Frontend: authorize continuation [#748](https://github.com/MemeBattle/monorepo/issues/748) →
-guest screens [#749](https://github.com/MemeBattle/monorepo/issues/749).
-Proof and docs: reference client test [#750](https://github.com/MemeBattle/monorepo/issues/750),
-integration guide [#751](https://github.com/MemeBattle/monorepo/issues/751),
-OpenAPI [#752](https://github.com/MemeBattle/monorepo/issues/752).
-
-External providers: abstraction [#753](https://github.com/MemeBattle/monorepo/issues/753) →
-Telegram sign-in [#754](https://github.com/MemeBattle/monorepo/issues/754),
-link/unlink [#755](https://github.com/MemeBattle/monorepo/issues/755) →
-bot infrastructure [#756](https://github.com/MemeBattle/monorepo/issues/756);
-frontend sign-in [#757](https://github.com/MemeBattle/monorepo/issues/757),
-connected accounts [#758](https://github.com/MemeBattle/monorepo/issues/758);
-GitHub [#759](https://github.com/MemeBattle/monorepo/issues/759),
-mock provider [#760](https://github.com/MemeBattle/monorepo/issues/760).
+Order inside a milestone, when it matters, is in the tickets' "depends on"
+lines, not here.
 
 ## Open questions
 
@@ -269,17 +305,28 @@ mock provider [#760](https://github.com/MemeBattle/monorepo/issues/760).
 - [x] Guest grant lifetime: 30 days, absolute, the same as every refresh
       grant; a guest identity is refreshed for at most that long unless it is
       upgraded (ADR 0014 (c)).
+- [x] Deployment/infra: Cloudflare Workers with Neon behind Hyperdrive,
+      `cas.mems.fun` as the stable `rp_id`, the signing key as a Worker secret,
+      release secrets in the `CAS-production` environment, the rotation
+      procedure in `README.md` (ADR 0009, 0022). Not yet rehearsed against
+      production.
+- [ ] The scheduled cleanup: Cron Trigger on the Worker (a request-shaped
+      invocation with the same per-request connection) or a job outside it
+      (`cas-migrate`-style binary on a schedule). Undecided; it also decides
+      where guest GC runs.
 - [ ] Guest GC policy (deferred): inactivity threshold, whether a guest with a
       live refresh token is ever collected. Undecided; ADR 0014 (g) lists the
       signals a policy has and what the ticket that writes it must weigh.
+- [ ] Ligretto's production origin layout: one origin for the SPA and `/api/*`
+      with the cookie transport, or separate hosts with the bearer transport.
+      Decided and recorded here by the cutover ticket (#818).
+- [ ] Object storage for Profile & files: R2 is the obvious choice next to the
+      Worker, S3 was the original one; the abstraction hides it either way.
 - [ ] When to request `telegram:bot_access`: on every Telegram sign-in, or as a
       separate "enable notifications" step. Leaning to always.
 - [ ] Agent delegation details: agent as OAuth client, scopes model per
       service, which approvals may be a Telegram button and which must go
       through a passkey-backed page.
-- [ ] Deployment/infra (Production milestone): where it runs, TLS/domain
-      (WebAuthn requires a stable rp_id), secrets, signing-key rotation
-      procedure (rotation: ADR 0009).
 - [ ] Local development against real Telegram/GitHub: tunnel + registered
       redirect URL, or the mock provider only (#760).
 

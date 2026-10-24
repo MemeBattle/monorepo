@@ -7,7 +7,6 @@
   ],
   "main": "index.js",
   "scripts": {
-    "init:partner": "init-partner",
     "test": "NODE_ENV=test vitest run",
     "test:ci": "NODE_ENV=test vitest run --reporter=json --outputFile=report.json",
     "test:update-snapshot": "NODE_ENV=test vitest run -u",
@@ -19,7 +18,7 @@
   },
   "dependencies": {
     "@codexsoft/dotenv-flow": "catalog:",
-    "@memebattle/cas-services": "workspace:^",
+    "@memebattle/ligretto-auth": "workspace:^",
     "@memebattle/ligretto-shared": "workspace:^",
     "inversify": "catalog:",
     "lodash": "catalog:",

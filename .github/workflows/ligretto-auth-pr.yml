@@ -5,12 +5,23 @@ on:
     branches: [master]
     paths:
       - 'packages/ligretto-auth/**'
-      # The types and the tests run against a client generated from the description, so a change to it is checked.
-      - 'apps/cas/openapi.json'
       - .github/workflows/ligretto-auth-pr.yml
       - 'pnpm-lock.yaml'
       - package.json
       - pnpm-workspace.yaml
+      # The types and the tests run against a client generated from the description, and the integration job drives
+      # the real CAS: this package's CI is a consumer-driven contract test, so any backend change runs it.
+      - 'apps/cas/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+
+# A new push makes the run for the previous one obsolete.
+concurrency:
+  group: ligretto-auth-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   typecheck:
@@ -48,3 +59,87 @@ jobs:
 
       - name: Run tests
         run: pnpm run --filter @memebattle/ligretto-auth test:ci
+
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    # The suite drives the real CAS, as cas-frontend's e2e job does: the Postgres
+    # service of cas-pr.yml, the binary built here, and the suite's own OIDC
+    # client registered by its seed script.
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: cas
+          POSTGRES_PASSWORD: cas
+          POSTGRES_DB: cas
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://cas:cas@localhost:5434/cas
+      SQLX_OFFLINE: 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # In the background, so the install overlaps with the Rust build below.
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+        id: node
+        background: true
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Build CAS
+        run: cargo build -p cas --bins
+
+      # pnpm and node reach PATH only once the background step is joined.
+      - name: Wait for Node.js
+        wait: node
+
+      # The suite's `verifyAccessToken` and its discovery-parity test run against a client generated from the
+      # description as it is in this commit.
+      - name: Regenerate the client and the error codes
+        run: pnpm run --filter @memebattle/ligretto-auth generate:api
+
+      - name: Apply migrations
+        run: ./target/debug/cas-migrate
+
+      # The confidential client the suite drives CAS as; the script writes its secret to
+      # tests/integration/.client-secret. The binaries are already built, so its `cargo run` only runs one.
+      - name: Register the integration client
+        run: ./packages/ligretto-auth/tests/integration/seed.sh
+
+      # The defaults are the ones the suite needs: :3000, issuer http://localhost:3000, RP id `localhost`,
+      # WebAuthn origin http://localhost:5173. The log goes to a file, uploaded below when the job fails.
+      #
+      # Detached with `&` rather than a `background` step: the job waits for every background step before it ends,
+      # so a server there would need a `cancel` step, while a detached process is killed in the job's cleanup.
+      - name: Start CAS
+        run: ./target/debug/cas > /tmp/cas.log 2>&1 &
+
+      - name: Wait for CAS
+        run: pnpm exec wait-on --timeout 60000 http-get://127.0.0.1:3000/health
+
+      - name: Run the integration suite
+        run: LIGRETTO_AUTH_CLIENT_SECRET="$(cat packages/ligretto-auth/tests/integration/.client-secret)" pnpm run --filter @memebattle/ligretto-auth test:integration
+
+      - name: Upload the CAS log
+        uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: ligretto-auth-integration-cas-log
+          path: /tmp/cas.log
+          retention-days: 2

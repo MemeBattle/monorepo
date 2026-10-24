@@ -8,16 +8,9 @@ import type { TokenOptions, TokenResponses } from '../models/Token'
 import { client } from '#client'
 
 /**
- * @description The body is `application/x-www-form-urlencoded` (RFC 6749 §3.2), read
- * by hand under the RFC's rules, a repeated parameter refused:
- * `grant_type=authorization_code` with `code`, `redirect_uri` and
- * `code_verifier` (ADR 0011); `grant_type=refresh_token` with
- * `refresh_token` and an optional `scope` (ADR 0012);
- * `grant_type=urn:memebattle:oauth:grant-type:guest` with an optional
- * `scope` (ADR 0014). A confidential client authenticates with
- * `Authorization: Basic` or with `client_id` and `client_secret` in the
- * body, a public client sends `client_id` alone. Every answer is
- * `Cache-Control: no-store` and `Pragma: no-cache`.
+ * @description The body is `application/x-www-form-urlencoded` (RFC 6749 §3.2); the
+ * schema of the grant being asked for says which parameters it carries.
+ * Every answer is `Cache-Control: no-store` and `Pragma: no-cache`.
  * @summary The token endpoint: the authorization code exchange, the refresh, and
  * the guest grant.
  * {@link /oidc/token}

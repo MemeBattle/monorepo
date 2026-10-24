@@ -48,6 +48,19 @@ it('runs composite ceremonies and records only domain input', async () => {
   expect(login).toHaveBeenCalledExactlyOnceWith({})
 })
 
+it.each(['partial payload', 'responder'] as const)('upgrades a different guest UUID using a %s', async mode => {
+  const guest = { accountId: '00112233-4455-4677-8899-aabbccddeeff' }
+  vi.mocked(startRegistration)
+    .mockClear()
+    .mockResolvedValue({ id: 'credential' } as Awaited<ReturnType<typeof startRegistration>>)
+  const register =
+    mode === 'partial payload' ? mockRegisterWithPasskey(guest) : mockRegisterWithPasskey.respond(async () => ({ ...guest, credentialId: 'cred' }))
+
+  await expect(registerWithPasskey('Ada', guest)).resolves.toEqual(ok({ ...guest, credentialId: 'cred' }))
+  expect(startRegistration).toHaveBeenCalledOnce()
+  expect(register).toHaveBeenCalledExactlyOnceWith({ displayName: 'Ada' })
+})
+
 it('selects registration error stage from the code', async () => {
   vi.mocked(startRegistration).mockClear()
   mockRegisterWithPasskey.error('invalid_display_name')

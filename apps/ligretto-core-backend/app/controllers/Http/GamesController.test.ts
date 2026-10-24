@@ -35,7 +35,7 @@ test.group('Games endpoints', group => {
   })
 
   test('POST /api/games/:id/rounds — saves round and returns results', async ({ client, assert }) => {
-    const user = await UserModel.firstOrCreate({ casId: 'player-1' }, { isTemporary: false })
+    const user = await UserModel.firstOrCreate({ casId: 'player-1' }, { accountType: 'full' })
 
     const gameRes = await client.post('/api/games')
     const gameId = gameRes.body().id
@@ -54,7 +54,7 @@ test.group('Games endpoints', group => {
   })
 
   test('POST /api/games/:id/rounds — accumulates scores across rounds', async ({ client, assert }) => {
-    const user = await UserModel.firstOrCreate({ casId: 'player-2' }, { isTemporary: false })
+    const user = await UserModel.firstOrCreate({ casId: 'player-2' }, { accountType: 'full' })
 
     const gameRes = await client.post('/api/games')
     const gameId = gameRes.body().id

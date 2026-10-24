@@ -5,6 +5,11 @@
 Accepted (2026-10-03), with [#752](https://github.com/MemeBattle/monorepo/issues/752).
 Amends ADR 0005 (e) (the CSRF line's 403 is described on every operation it
 guards) and the layout's transport rules (`docs/LAYOUT.md`, rules 1 and 4).
+Amended (2026-10-20) by ADR 0023, with [#819](https://github.com/MemeBattle/monorepo/issues/819):
+the request body of `/oidc/token` is described by one schema per grant, so
+"are described in prose with the ADRs, not as typed schemas" in (h) no
+longer holds for it; (h) continues to hold for `/oidc/authorize` and
+`/oidc/end_session`, and for how all three read their parameters.
 
 ## Context
 

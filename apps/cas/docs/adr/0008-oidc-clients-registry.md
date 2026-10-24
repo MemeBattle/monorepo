@@ -3,6 +3,12 @@
 ## Status
 
 Accepted (2026-09-20), with [#740](https://github.com/MemeBattle/monorepo/issues/740).
+Amended (2026-10-21) by ADR 0023, with [#811](https://github.com/MemeBattle/monorepo/issues/811):
+the dev-only `--secret` flag foreseen by the consequences exists, so (b)'s
+"the binary has no `--secret` flag" holds for release builds, where a chosen
+secret has no constructor at all; `scripts/seed-dev.sh` passes the stable
+development secret from the monorepo's `.env.development`, and the placeholder
+redirect URIs of (e) are ligretto's real development ones.
 
 ## Context
 

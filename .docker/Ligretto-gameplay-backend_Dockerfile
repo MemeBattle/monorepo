@@ -7,7 +7,7 @@ WORKDIR /memebattle
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /memebattle/
 COPY packages/ligretto-shared/package.json /memebattle/packages/ligretto-shared/
-COPY packages/cas-services/package.json /memebattle/packages/cas-services/
+COPY packages/ligretto-auth/package.json /memebattle/packages/ligretto-auth/
 COPY apps/ligretto-gameplay-backend/package.json /memebattle/apps/ligretto-gameplay-backend/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
@@ -16,9 +16,10 @@ FROM dependencies AS build
 
 ENV NODE_ENV=production
 
-COPY packages/cas-services/ /memebattle/packages/cas-services/
+COPY packages/ligretto-auth/ /memebattle/packages/ligretto-auth/
 COPY packages/ligretto-shared/ /memebattle/packages/ligretto-shared/
 RUN pnpm run ligretto-shared:build
+RUN pnpm run --filter @memebattle/ligretto-auth build
 
 COPY apps/ligretto-gameplay-backend/ /memebattle/apps/ligretto-gameplay-backend/
 RUN pnpm run ligretto:gameplay-backend:build

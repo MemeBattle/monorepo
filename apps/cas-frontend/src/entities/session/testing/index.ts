@@ -51,7 +51,16 @@ const respondRegisterWithPasskey = (resolver: Resolver<{ displayName: string }, 
     }
     const registrationId = `ceremony-${++sequence}`
     registrations.set(registrationId, answer)
-    return successResponse(registrationOptions(registrationId))
+    const options = registrationOptions(registrationId)
+    if (!isFailure<RegistrationError>(answer)) {
+      const hex = answer.accountId.replaceAll('-', '')
+      // Guest upgrades compare the UUID bytes; keep the default handle for opaque fixture IDs.
+      if (/^[\da-f]{32}$/i.test(hex)) {
+        const bytes = hex.replace(/../g, byte => String.fromCharCode(parseInt(byte, 16)))
+        options.ccr.publicKey.user.id = btoa(bytes).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '')
+      }
+    }
+    return successResponse(options)
   }) as Spy<{ displayName: string }>
   mockRequest('POST', '/api/webauthn/verify-registration').respond(args => {
     const registrationId = String(args.registrationId)

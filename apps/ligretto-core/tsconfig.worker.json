@@ -1,0 +1,10 @@
+{
+  // The Worker program: the shared layers again, compiled against the Workers runtime types instead of Node's, which
+  // is the proof that src/core, src/contract, src/http and src/adapters use web-standard types only.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["@cloudflare/workers-types", "@cloudflare/vitest-plugin/types"]
+  },
+  "include": ["src", "test/worker"],
+  "exclude": ["src/entry/node.ts"]
+}

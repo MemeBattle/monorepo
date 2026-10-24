@@ -1,0 +1,3 @@
+# The secret `tests/integration/seed.sh` captures when it registers the suite's client. CAS keeps only a hash of it,
+# so it is printed once and never recoverable.
+tests/integration/.client-secret
