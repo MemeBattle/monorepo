@@ -1,8 +1,12 @@
 ---
 title: Additive migrations and the compatibility matrix
-description: Every migration keeps both the previous and the next release of the code working; CI type-checks the PR's code against master's schema and master's code against the PR's schema. The order of "migrate" and "deploy" in a release is therefore not fixed.
+description: >-
+  Every migration keeps both the previous and the next release of the code working; CI type-checks the PR's code
+  against master's schema and master's code against the PR's schema. The order of "migrate" and "deploy" in a
+  release is therefore not fixed. The matrix sees builder statements, not raw SQL or data semantics.
 read_when:
-  - writing a migration that changes an existing table
+  - creating a table or writing a migration that changes an existing one
+  - writing code that reads or writes a column added by a recent migration
   - removing or renaming a column, or making one NOT NULL
   - changing the CI jobs around the database
   - planning a release that ships a schema change
@@ -16,18 +20,20 @@ Releases are not atomic: during a rollout two versions of the code serve at once
 before or after the new code starts depending on the deployment target. A schema change therefore has to be
 compatible with the code on either side of it. CAS states the same rule (`apps/cas/docs/MIGRATIONS.md`,
 expand/contract) and checks its queries against the live schema; here the generated row types make the check
-mechanical in both directions.
+mechanical in both directions, within what types can see.
 
 ## Decision
 
 **Policy.** Expand, then contract, across releases:
 
-1. A migration adds: tables, nullable columns, columns with a `DEFAULT`, indexes (`CONCURRENTLY` where the table
-   is live).
+1. A migration adds: tables, nullable columns, columns with a `DEFAULT`, indexes (plain `CREATE INDEX`; the
+   migrator runs each migration in a transaction, so `CONCURRENTLY` is not available, and the tables are small
+   enough not to need it).
 2. Code starts using the new shape only in the release _after_ the migration that created it.
 3. Code stops using the old shape; the release _after_ that may ship the migration that removes it.
-4. A rename is add + backfill + switch + drop, never `ALTER … RENAME`. `SET NOT NULL` ships only after a backfill
-   and with a `DEFAULT`, or not at all.
+4. A rename is add + backfill + switch + drop, never `ALTER … RENAME`. `SET NOT NULL` ships only after a backfill,
+   with a `DEFAULT`, and once no deployed writer can still write `NULL` — which the matrix cannot prove; the PR
+   says how it knows (the writer was removed in a named release).
 
 A migration that drops, renames or tightens a column carries a leading comment `-- contract: <what it removes and
 which release stopped using it>`. A CI script fails a PR whose migration contains `DROP`, `RENAME`,
@@ -45,6 +51,14 @@ Each job: apply the chosen migrations with `pnpm migrate`, run `kysely-codegen` 
 that tree. The row types are the only input the matrix needs, which is why they are generated rather than written
 (`database-access-with-kysely.md`).
 
+**What the matrix proves, and what it does not.** It proves that every _builder_ statement of either release
+names columns the other release's schema has, with compatible types, and that every `INSERT` supplies what the
+schema requires (`Insertable<>` makes a `NOT NULL` column without a default mandatory). It does not see
+identifiers inside raw SQL (which is why raw SQL is confined to the lock statements), `CHECK` and `UNIQUE`
+constraints, the semantics of data (an old writer putting a value the new reader interprets differently) or the
+behaviour of defaults. Those stay with review and the store tests; the `code-previous` job also runs master's
+store suite against the PR's schema, so the raw lock statements are at least executed on both.
+
 **Immutability and order.** A second script fails a PR that modifies or deletes a migration file present on
 master, or adds one whose timestamp is older than the newest on master (Kysely would refuse it at run time; the
 script says so at review time). Both scripts are adapted from `apps/cas/scripts/check-migration-order.sh`.
@@ -56,7 +70,5 @@ migration entry wherever is convenient for it.
 
 - A column cannot be added and used in the same PR. The PR that uses it is the next one; the matrix enforces this
   rather than a reviewer remembering it.
-- What the matrix cannot see: `CHECK` and `UNIQUE` constraints, data semantics (old code writing a value new code
-  interprets differently), behaviour of defaults. Those stay with review and the store tests.
 - Every schema change costs two or three small PRs instead of one. At this service's rate of schema change (nine
   migrations in five years) that is the right trade.

@@ -51,11 +51,12 @@ Link to other ADRs by file name. Link to issues by URL.
 ADRs are not immutable. When a decision is refined, add a line at the very end of the file:
 
 ```
-upd (2026-11-03): the per-request connection on Workers is now opened lazily, on the first query, not at the
-start of the request — a `/health` without a database query opens none.
+upd (2026-11-03): the internal app now answers on its own hostname as well as through a service binding — the
+gameplay backend is not a Worker.
 ```
 
-Then change the body so that it states the current rule; the `upd` line is the pointer, the body is the truth.
+Then change the body so that it states the current rule, and the front matter with it when the rule or the
+situations it applies to changed; the `upd` line is the pointer, the body is the truth.
 When a decision is abandoned altogether, delete the file and update whatever referenced it. Git keeps the history;
 the live set of ADRs describes the live system and nothing else.
 

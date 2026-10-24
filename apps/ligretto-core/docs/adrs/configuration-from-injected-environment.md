@@ -18,7 +18,9 @@ them and silently misreads the other. The previous service used `@adonisjs/env`,
 
 ## Decision
 
-- `src/core/config.ts` exports `configSchema` (zod) and `loadConfig(source: Record<string, unknown>): Config`.
+- `src/core/config.ts` exports the zod schema in sections (`database`, `auth`, `internalApi`, `http`, `logging`)
+  and `loadConfig(source: Record<string, unknown>): Config` plus one loader per section, so `entry/migrate.ts`
+  and `entry/sweep.ts` parse the database section alone and do not demand the auth settings they never use.
   Parsing fails loudly, listing every missing or malformed variable at once; a service with a bad configuration
   does not start.
 - Entries are the only readers of the environment. `entry/node.ts` loads `.env` files with `dotenv-flow` in

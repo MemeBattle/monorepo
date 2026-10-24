@@ -1,11 +1,16 @@
 ---
 title: API contract, OpenAPI and the client package
-description: Every route is declared once with zod schemas through `@hono/zod-openapi`; that declaration validates the request, types the handler's response at compile time and produces the OpenAPI document. Two documents (`openapi.json`, `openapi.internal.json`) are committed and checked in CI; consumers use the kubb-generated `@memebattle/ligretto-core-client`, never hand-written types.
+description: >-
+  Every route of this service is declared once with zod schemas through @hono/zod-openapi; that declaration
+  validates the request, types the handler's response at compile time and produces the OpenAPI document. The four
+  auth routes of ligretto-auth are mounted as plain handlers and documented from the schemas that package exports.
+  Two documents (openapi.json, openapi.internal.json) are committed and checked in CI; consumers use the
+  kubb-generated @memebattle/ligretto-core-client, never hand-written types.
 read_when:
   - adding or changing a route, a request or a response shape
   - changing an error code a client may branch on
   - consuming this API from another package or app
-  - touching the OpenAPI generation or the client package's build
+  - touching the OpenAPI generation or the client package's build or transport
 ---
 
 # API contract, OpenAPI and the client package
@@ -21,29 +26,37 @@ already does this for CAS: a committed `openapi.json`, kubb generating clients i
 
 ## Decision
 
-- **One declaration per route.** `createRoute({ method, path, request, responses })` with schemas from
-  `src/contract`; `app.openapi(route, handler)`. The schemas validate the request at run time (`c.req.valid`),
-  constrain the handler's `c.json(body, status)` at compile time, and are the OpenAPI document. There is no
-  separate specification file to keep in sync.
-- **Responses are not re-parsed at run time.** The compile-time check plus the HTTP tests hold the shape. (A
-  response the compiler cannot see — the auth handlers return a ready `Response` — is covered by the schemas
-  `@memebattle/ligretto-auth` exports and validates itself with.)
+- **One declaration per route of this service.** `createRoute({ method, path, request, responses })` with schemas
+  from `src/contract`; `app.openapi(route, handler)`. The schemas validate the request at run time
+  (`c.req.valid`), constrain the handler's `c.json(body, status)` at compile time — for a route with declared
+  JSON content the handler cannot return a plain `Response`, an undeclared status or another shape — and are the
+  OpenAPI document. There is no separate specification file to keep in sync.
+- **Responses are not re-parsed at run time** by this service. The compile-time check plus the HTTP tests hold the
+  shape.
 - **zod v4** for all schemas; `.meta()` carries descriptions and examples, inside the schema, never beside it.
   `valibot` was considered and rejected because `@hono/zod-openapi` is the implementation with compile-time
   response checking, which is the only guard left once responses are not parsed.
+- **Auth routes.** The four `/api/auth/*` handlers come from `@memebattle/ligretto-auth` as
+  `(Request) => Promise<Response>`. They are registered as plain Hono routes (`app.get(path, c =>
+handlers.me(c.req.raw))`), which pass the `Response` through unchanged, cookies and `Location` included, and
+  are added to the document with `app.openAPIRegistry.registerPath(...)` using the request and response schemas
+  the package exports from its `./schema` entry. The package derives its `./contract` types from those schemas and
+  validates with them itself — that is the package's own rule, decided by its owner, and it is what makes the
+  registered description true; this service adds no check of its own on those responses.
 - **Two documents.** `createPublicApp` yields `openapi.json`, `createInternalApp` yields `openapi.internal.json`
   (`internal-api-and-service-authentication.md`). A script writes both; a CI job regenerates and fails on a diff.
-  The public document is served at `/openapi.json`; the internal one is not served.
-- **Auth routes.** The four `/api/auth/*` handlers come from `@memebattle/ligretto-auth` as
-  `(Request) => Promise<Response>` and are mounted as they are. Their schemas come from the package's `./schema`
-  entry; the package derives its `./contract` types from the same schemas and validates with them, so there is one
-  source and it is the package that answers.
+  The public document is served at `/openapi.json`; the internal one is not served. Query arrays are described as
+  `style: form, explode: true` (`?ids=a&ids=b`), and the schema accepts a single value by normalising it to an
+  array before validation, since Hono hands one value over as a string.
 - **Clients.** `packages/ligretto-core-client` runs kubb over both documents and exposes two entries: the root for
   the public API (ligretto-frontend) and `./internal` for the internal API (ligretto-gameplay-backend). Operations
-  return a result rather than throwing on an error status (`throwOnErrorDefault: false`, the style of
-  `ligretto-auth`'s client). The package's PR job regenerates from the committed documents and type-checks, so a
-  stale client never merges. Hono's own `hc` client is not the contract: consumers depend on the document, not on
-  the server's source.
+  return a result rather than throwing on an error status (`throwOnErrorDefault: false`). The transport is this
+  package's own, not a copy of `ligretto-auth`'s client, and it specifies: a base URL prefix; query serialisation
+  matching the document (repeated keys for arrays); the complete error body preserved on a non-2xx answer, typed
+  by status, so code-specific fields such as `playerIds` reach the caller; a transport failure (no response at
+  all) as its own result kind; redirects never followed, because the only redirecting routes are browser
+  navigations that are not fetched. Hono's own `hc` client is not the contract: consumers depend on the document,
+  not on the server's source.
 - **Errors.** Every non-2xx answer is `{ error: <stable code>, description?: string }` plus code-specific fields,
   declared per route with its status; see `error-responses.md`.
 - `packages/ligretto-shared/apiTypes.ts` is deleted once both consumers are on the generated client; nothing
@@ -53,7 +66,8 @@ already does this for CAS: a committed `openapi.json`, kubb generating clients i
 
 - Adding a field to a response is: schema, handler, regenerate documents and client, consumer type-checks pass.
   Removing one: the same, and the consumer's type-check fails until it stops reading the field, which is the point.
-- The handler cannot return an undeclared status or shape; a new error code is a schema change and shows up in the
-  document and the client.
+- A typed handler cannot return an undeclared status or shape; a new error code is a schema change and shows up in
+  the document and the client. The auth routes' guarantee lives in `ligretto-auth`; the client package's contract
+  tests exercise them against `app.request()` like every other route.
 - `DESIGN.md` lists the routes and their shapes in prose for orientation; the schemas are the truth when they
   disagree, and the disagreement is a bug in `DESIGN.md`.

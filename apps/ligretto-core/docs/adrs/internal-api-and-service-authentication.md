@@ -1,10 +1,14 @@
 ---
 title: Internal API and service authentication
-description: Routes meant for other services live in a second Hono app under `/internal`, described by their own OpenAPI document and reachable only with a shared secret in `Authorization: Bearer` (two accepted values, for rotation). User tokens are never used between services. CAS client credentials replace the secret when CAS gains the grant.
+description: >-
+  Routes meant for other services live in a second Hono app under /internal, described by their own OpenAPI
+  document, served on a hostname that is not the public one, and accepted only with a shared secret in
+  "Authorization: Bearer" (two accepted values, for rotation). User tokens are never used between services. CAS
+  client credentials replace the secret when CAS gains the grant.
 read_when:
   - adding a route another service calls
   - changing how ligretto-gameplay-backend calls this service
-  - exposing the service on a new runtime (what is public, what is not)
+  - exposing the service on a new runtime or hostname (what is public, what is not)
   - rotating or replacing the internal secret
 ---
 
@@ -21,11 +25,14 @@ guest's. The previous service exposed these routes publicly without authenticati
 ## Decision
 
 - **Two applications from one factory.** `createPublicApp(deps)` serves `/api/*` and `/health`;
-  `createInternalApp(deps)` serves `/internal/*`. The entry decides exposure: on Node both are mounted on one
-  server and the network (ingress, service mesh) keeps `/internal` off the public hostname; on Workers the public
-  app is the `fetch` handler on the public hostname and the internal app answers on a dedicated hostname (or a
-  service binding when the caller is itself a Worker — the gameplay backend is not). Network exposure is a
-  runtime property; the application-level authentication below applies on every path.
+  `createInternalApp(deps)` serves `/internal/*`. The entry decides exposure. On Node both are mounted on one
+  server and the network (ingress, service mesh) keeps the internal paths off the public hostname. On Workers the
+  `fetch` handler dispatches on the `Host` header: the public hostname reaches the public app, the internal
+  hostname reaches the internal app, and anything else — `/internal` on the public hostname included — is a 404.
+  A named `WorkerEntrypoint` additionally exposes the internal app to service bindings for callers that are
+  Workers; the gameplay backend is not one, hence the hostname. The internal API is therefore reachable from the
+  Internet on its own hostname and is an authenticated API, not a hidden one: network placement limits exposure,
+  the authentication below is what protects it.
 - **Shared secret, for now.** `LIGRETTO_INTERNAL_API_TOKEN` is a comma-separated list of one or two values on both
   sides; a request must carry one of them in `Authorization: Bearer`. Comparison is constant-time. A missing or
   unknown token answers `401 { error: "invalid_internal_token" }`. Two values exist so a rotation is: add the new
@@ -44,6 +51,6 @@ guest's. The previous service exposed these routes publicly without authenticati
 ## Consequences
 
 - No public route creates or mutates games. The public API is `users` and `auth`.
-- The gameplay backend needs the secret in its environment and the `./internal` client; its hand-rolled `post<T>`
-  goes away.
+- The gameplay backend needs the secret and the internal hostname in its environment and the `./internal` client;
+  its hand-rolled `post<T>` goes away.
 - A third service wanting in gets the same secret today, which is the known weakness that the CAS grant removes.
