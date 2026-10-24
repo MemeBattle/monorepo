@@ -17,6 +17,7 @@
     "ts-check": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.worker.json",
     "test:unit": "vitest run",
     "test:worker": "vitest run --config vitest.worker.config.ts",
+    "test:node": "vitest run --config vitest.node.config.ts",
     "test:store:setup": "docker compose -f ../../docker-compose.yml up -d --wait ligretto-core-pg-test",
     "test:store:run": "vitest run --config vitest.store.config.ts",
     "test:store": "pnpm run test:store:setup && pnpm run test:store:run",

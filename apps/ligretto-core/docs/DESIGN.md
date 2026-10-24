@@ -42,8 +42,8 @@ apps/ligretto-core/
   src/entry/       node.ts, worker.ts, migrate.ts, codegen.ts, sweep.ts, openapi.ts; auth.ts (the auth composition
                    both runtimes share), env.ts (the development .env loader)
   migrations/      <timestamp>_<name>.ts, SQL inside (MIGRATIONS.md)
-  test/            worker/ (the Worker smoke suite), store/ (the Docker Postgres suite), http/ (HTTP suites on the
-                   real adapters over PGlite), support/ (harnesses)
+  test/            node/ (the Node entry smoke suite), worker/ (the Worker smoke suite), store/ (the Docker Postgres
+                   suite), http/ (HTTP suites on the real adapters over PGlite), support/ (harnesses)
   .env.development DATABASE_URL for development
   openapi.json, openapi.internal.json      committed, regenerated and diffed in CI
   docs/            this file, ADR.md, adrs/
@@ -192,7 +192,9 @@ being built in CI as the packaging of the Node entry.
 ## CI (per pull request)
 
 - lint, format, `tsc`, vitest (PGlite suites); the store suite against the job's Postgres;
-- both entries smoke-tested (`/health`): Node booted, the Worker under `workerd` through `@cloudflare/vitest-plugin`;
+- both entries smoke-tested by vitest projects: `test/node` boots `entry/node.ts` as a child process, `test/worker`
+  runs the Worker under `workerd` through `@cloudflare/vitest-plugin`; the workflow runs the scripts and asserts
+  nothing over HTTP itself;
 - `openapi.json`, `openapi.internal.json` and `schema.generated.ts` regenerated and diffed against the commit (the
   `openapi` job runs `pnpm openapi:generate`, `schema-codegen` runs `pnpm db:codegen`);
 - the compatibility matrix and the migration checks (`adrs/additive-migrations-and-compatibility-matrix.md`);
