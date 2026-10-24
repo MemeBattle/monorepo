@@ -56,3 +56,6 @@ two independent connections for a single request (`session-store-locking.md`), a
 
 upd (2026-10-24): the Workers vitest integration is now @cloudflare/vitest-plugin (the pool package is deprecated and
 does not load under vitest 5); the Worker smoke suite reads cloudflare.config.ts through the plugin.
+
+upd (2026-10-24): HTTP suites that compose the real adapters over PGlite live in test/http, because the lint boundary
+of src/http forbids importing src/adapters and grants tests no exception; HTTP suites on fakes stay beside the code.

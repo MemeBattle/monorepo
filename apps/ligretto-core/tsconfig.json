@@ -17,6 +17,7 @@
     "migrations",
     "test/support",
     "test/store",
+    "test/http",
     "vitest.config.ts",
     "vitest.worker.config.ts",
     "vitest.store.config.ts",
