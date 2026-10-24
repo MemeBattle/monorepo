@@ -75,7 +75,7 @@ describe('the error handler', () => {
     expect(errorEntries()).toHaveLength(1)
     expect(errorEntries()[0]).toMatchObject({
       message: 'request_failed',
-      fields: { requestId, status: 500, error: 'internal_error', message: 'boom' },
+      fields: { requestId, status: 500, error: 'internal_error', errorMessage: 'boom' },
     })
     expect(errorEntries()[0]?.fields.stack).toEqual(expect.stringContaining('boom'))
   })

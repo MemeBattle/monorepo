@@ -9,6 +9,8 @@ on:
       - 'pnpm-lock.yaml'
       - package.json
       - pnpm-workspace.yaml
+      # The Node smoke test boots the entry on the repository root .env* files.
+      - '.env*'
 
 # A new push makes the run for the previous one obsolete.
 concurrency:

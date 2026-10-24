@@ -64,7 +64,7 @@ export const createErrorHandler =
         requestId,
         status: code === 'internal_error' ? 500 : status,
         error: code,
-        message: err.message,
+        errorMessage: err.message,
         stack: err.stack,
       })
     }

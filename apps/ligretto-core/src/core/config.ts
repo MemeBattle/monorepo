@@ -20,8 +20,11 @@ const commaList = <T extends z.ZodType<unknown, string>>(item: T) =>
     )
     .pipe(z.array(item))
 
-/** An origin as the browser sends it: scheme, host and port, nothing else, so the CORS match is exact. */
-const origin = z.url({ protocol: /^https?$/ }).refine(value => new URL(value).origin === value, {
+/**
+ * An origin as the browser sends it: scheme, host and port, nothing else, so the CORS match is exact. The refinement
+ * runs even when the URL check failed, so it parses defensively: a throw would escape the issue list of ConfigError.
+ */
+const origin = z.url({ protocol: /^https?$/ }).refine(value => URL.canParse(value) && new URL(value).origin === value, {
   message: 'Expected an origin (scheme, host and port only), such as http://localhost:5173',
 })
 

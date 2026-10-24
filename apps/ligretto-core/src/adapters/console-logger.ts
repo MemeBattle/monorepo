@@ -19,7 +19,8 @@ export const createConsoleLogger = ({ level, fields = {} }: ConsoleLoggerOptions
     if (lineLevel === 'debug' && level !== 'debug') {
       return
     }
-    const line = JSON.stringify({ level: lineLevel, time: new Date().toISOString(), message, ...redact({ ...fields, ...extra }) })
+    // The line's own keys come last: a field named `level`, `time` or `message` never replaces them.
+    const line = JSON.stringify({ ...redact({ ...fields, ...extra }), level: lineLevel, time: new Date().toISOString(), message })
     if (lineLevel === 'warn' || lineLevel === 'error') {
       console.error(line)
     } else {

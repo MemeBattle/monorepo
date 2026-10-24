@@ -66,6 +66,12 @@ describe('loadConfig', () => {
     expect(issues.map(issue => issue.variable).sort()).toEqual(['DATABASE_URL', 'LIGRETTO_CAS_CLIENT_ID'])
   })
 
+  it('lists an unparsable CORS origin together with the other problems', () => {
+    const rest = without(complete, 'DATABASE_URL')
+    const issues = issuesOf(() => loadConfig({ ...rest, LIGRETTO_CORE_CORS_ORIGINS: 'not-a-url' }))
+    expect([...new Set(issues.map(issue => issue.variable))].sort()).toEqual(['DATABASE_URL', 'LIGRETTO_CORE_CORS_ORIGINS'])
+  })
+
   it('names the variables in the error message, one per line', () => {
     const rest = without(complete, 'DATABASE_URL', 'LIGRETTO_CAS_CLIENT_ID')
     expect(() => loadConfig(rest)).toThrow(/DATABASE_URL: .*\n.*LIGRETTO_CAS_CLIENT_ID: /)
@@ -123,6 +129,10 @@ describe('http', () => {
     expect(issuesOf(() => loadHttpConfig({ LIGRETTO_CORE_CORS_ORIGINS: 'http://localhost:5173/path' }))[0]?.variable).toBe(
       'LIGRETTO_CORE_CORS_ORIGINS',
     )
+  })
+
+  it.each(['not-a-url', 'https://'])('rejects an unparsable CORS entry %s as a ConfigError, not a TypeError', value => {
+    expect(issuesOf(() => loadHttpConfig({ LIGRETTO_CORE_CORS_ORIGINS: value }))[0]?.variable).toBe('LIGRETTO_CORE_CORS_ORIGINS')
   })
 
   it('rejects a CORS entry without a scheme', () => {

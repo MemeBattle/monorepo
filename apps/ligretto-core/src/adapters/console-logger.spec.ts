@@ -26,6 +26,13 @@ describe('createConsoleLogger', () => {
     expect(new Date(String(line?.time)).toISOString()).toBe(line?.time)
   })
 
+  it('keeps its own level, time and message when the fields carry the same names', () => {
+    createConsoleLogger({ level: 'info' }).child({ level: 'bound' }).error('request_failed', { message: 'boom', time: 'then', requestId: 'r-1' })
+    const [line] = lines(error)
+    expect(line).toMatchObject({ level: 'error', message: 'request_failed', requestId: 'r-1' })
+    expect(new Date(String(line?.time)).toISOString()).toBe(line?.time)
+  })
+
   it('drops debug at info and writes it at debug', () => {
     createConsoleLogger({ level: 'info' }).debug('hidden')
     expect(log).not.toHaveBeenCalled()
