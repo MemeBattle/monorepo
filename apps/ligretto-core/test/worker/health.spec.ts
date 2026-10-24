@@ -31,6 +31,12 @@ describe('the Worker', () => {
     expect(corsHeaders(res)).toEqual([])
   })
 
+  it('answers an unknown route on the public hostname with 404', async () => {
+    const res = await worker.fetch('http://localhost/nope')
+    expect(res.status).toBe(404)
+    expect(await res.json()).toEqual({ error: 'not_found' })
+  })
+
   it('refuses a foreign hostname', async () => {
     const res = await worker.fetch('http://other.example/health')
     expect(res.status).toBe(404)

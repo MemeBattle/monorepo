@@ -1,8 +1,12 @@
 // The public API under workerd: proof that the Worker composes the auth handlers, the users route and the document
-// from the bindings of cloudflare.config.ts. None of these requests needs CAS or a database row: the users route
-// refuses before any query, and a logout without a session goes straight back to the application.
+// from the bindings of cloudflare.config.ts, and that the document it serves is the committed one. None of these
+// requests needs CAS or a database row: the users route refuses before any query, and a logout without a session goes
+// straight back to the application.
 import { exports } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
+
+// Inlined by Vite: workerd has no file access.
+import committedDocument from '../../openapi.json'
 
 /** The Worker's own default export, as a fetcher. */
 const worker = (exports as unknown as { default: Fetcher }).default
@@ -20,11 +24,10 @@ describe('the public API on the Worker', () => {
     expect(res.headers.get('location')).toBe('http://localhost:5174/')
   })
 
-  it('serves the public document', async () => {
+  it('serves the committed public document', async () => {
     const res = await worker.fetch('http://localhost/openapi.json')
     expect(res.status).toBe(200)
-    const document: { paths: Record<string, unknown> } = await res.json()
-    expect(Object.keys(document.paths)).toContain('/api/users')
+    expect(await res.json()).toEqual(committedDocument)
   })
 
   it('does not serve /api/users on the internal hostname', async () => {

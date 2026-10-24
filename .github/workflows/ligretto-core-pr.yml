@@ -11,7 +11,7 @@ on:
       - 'pnpm-lock.yaml'
       - package.json
       - pnpm-workspace.yaml
-      # The Node smoke test boots the entry on the repository root .env* files.
+      # The Node smoke suite boots the entry on the repository root .env* files.
       - '.env*'
 
 # A new push makes the run for the previous one obsolete.
@@ -288,51 +288,21 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
-      # No NODE_ENV, so the entry loads the package and root .env.development as on a developer's machine. Detached
-      # with `&`: the process is killed in the job's cleanup, and its log is uploaded below when the job fails.
-      # `--conditions=development` resolves @memebattle/ligretto-auth from source, as `pnpm start:dev` does.
-      - name: Start the Node entry
-        run: pnpm --filter @memebattle/ligretto-core exec tsx --conditions=development src/entry/node.ts > /tmp/ligretto-core.log 2>&1 &
-
-      - name: Wait for the Node entry
-        run: pnpm exec wait-on --timeout 60000 http-get://127.0.0.1:3333/health
-
-      - name: GET /health answers ok
-        run: curl -fsS http://127.0.0.1:3333/health | jq -e '.status == "ok"'
-
-      - name: An unknown route is a 404
-        run: test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3333/nope)" = 404
-
-      # The guard answers before any query, so the unmigrated database is enough.
-      - name: An internal route without the token is a 401
-        run: test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3333/internal/games)" = 401
-
-      # The token of the root .env.development, public by construction. The request validator runs after the guard
-      # and before any query, so a 400 for an empty body proves the token was accepted without a migrated database.
-      - name: An internal route with the configured token passes the guard
-        run: |
-          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST \
-            -H 'authorization: Bearer dev-only-internal-api-token-public-by-construction' \
-            -H 'content-type: application/json' -d '{}' \
-            http://127.0.0.1:3333/internal/games/00000000-0000-4000-8000-000000000000/rounds)" = 400
-
-      # The access-token guard answers before any query and before CAS is asked for anything.
-      - name: GET /api/users without an access token is a 401
-        run: test "$(curl -s -o /dev/null -w '%{http_code}' 'http://127.0.0.1:3333/api/users?ids=someone')" = 401
-
-      # A logout with no session ends nothing, so it needs neither the database nor CAS: the auth handlers are mounted.
-      - name: GET /api/auth/logout without a session redirects to the application
-        run: test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3333/api/auth/logout)" = 302
-
-      - name: GET /openapi.json serves the public document
-        run: curl -fsS http://127.0.0.1:3333/openapi.json | jq -e '.paths["/api/users"].get'
+      # test/node boots src/entry/node.ts as a child process on a free port with the package and root
+      # .env.development, as `pnpm start:dev` does, and asserts over fetch: /health with its database check, an unknown
+      # route, the internal token refused and accepted, /api/users without an access token, a logout without a session,
+      # and /openapi.json equal to the committed document. The entry's output goes to the log uploaded below.
+      - name: Run the Node smoke suite
+        env:
+          LIGRETTO_CORE_NODE_LOG: ${{ runner.temp }}/ligretto-core-node.log
+        run: pnpm run --filter @memebattle/ligretto-core test:node
 
       - name: Upload the Node entry log
         uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: ligretto-core-node-log
-          path: /tmp/ligretto-core.log
+          path: ${{ runner.temp }}/ligretto-core-node.log
           retention-days: 2
 
   worker-smoke:
@@ -367,7 +337,8 @@ jobs:
         run: pnpm run --filter @memebattle/ligretto-core build:worker
 
       # The same entry under workerd, through @cloudflare/vitest-plugin: /health on both hostnames and through the
-      # InternalApi service binding, each with its database check over the emulated Hyperdrive bindings, and the
-      # internal token from .dev.vars: refused when missing or wrong, accepted when it is the configured one.
+      # InternalApi service binding, each with its database check over the emulated Hyperdrive bindings, an unknown
+      # route, the internal token from .dev.vars: refused when missing or wrong, accepted when it is the configured
+      # one, the public API's guards, and /openapi.json equal to the committed document.
       - name: Run the Worker smoke suite
         run: pnpm run --filter @memebattle/ligretto-core test:worker
