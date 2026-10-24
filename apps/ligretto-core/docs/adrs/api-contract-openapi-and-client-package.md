@@ -41,7 +41,7 @@ already does this for CAS: a committed `openapi.json`, kubb generating clients i
 handlers.me(c.req.raw))`), which pass the `Response` through unchanged, cookies and `Location` included, and
   are added to the document with `app.openAPIRegistry.registerPath(...)` using the request and response schemas
   the package exports from its `./schema` entry. The package derives its `./contract` types from those schemas,
-  validates the *incoming* data (the callback's query) with them, and builds its answers as values of the derived
+  validates the _incoming_ data (the callback's query) with them, and builds its answers as values of the derived
   types; neither it nor this service parses an outgoing body — the same rule as for every route here: schemas and
   types in both directions, run-time validation of input only.
 - **Input is validated once, where it enters.** For this service's routes that is the route declaration; for the
