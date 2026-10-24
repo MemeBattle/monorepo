@@ -64,6 +64,7 @@ export interface Users {
   cas_id: string;
   created_at: Generated<Timestamp>;
   display_name: string | null;
+  locale: string | null;
   updated_at: Generated<Timestamp>;
 }
 
