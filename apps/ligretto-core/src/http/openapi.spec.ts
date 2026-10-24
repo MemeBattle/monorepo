@@ -11,6 +11,12 @@ import { createPublicApp } from './public-app'
 
 const deps = () => ({ logger: createRecordingLogger().logger, clock: createFixedClock(), database: okProbe() })
 
+/** Every operation of a document by its `<METHOD> <path>`, with its `operationId`. */
+const operationIds = (document: { paths?: object }) =>
+  Object.entries(document.paths ?? {}).flatMap(([path, item]: [string, object]) =>
+    Object.entries(item).map(([method, operation]: [string, { operationId?: string }]) => [`${method.toUpperCase()} ${path}`, operation.operationId]),
+  )
+
 describe('the internal document', () => {
   const document = internalApiDocument(createInternalApp({ ...deps(), games: createFakeGamesRepository(), internalTokens: ['t'] }))
   const createGame = document.paths?.['/internal/games']?.post
@@ -42,6 +48,16 @@ describe('the internal document', () => {
     expect(saveRound?.parameters).toEqual([
       expect.objectContaining({ name: 'id', in: 'path', required: true, schema: expect.objectContaining({ format: 'uuid' }) }),
     ])
+  })
+
+  it('names every operation, which is the generated client function name', () => {
+    const ids = operationIds(document)
+    expect(Object.fromEntries(ids)).toEqual({
+      'GET /health': 'getHealth',
+      'POST /internal/games': 'createGame',
+      'POST /internal/games/{id}/rounds': 'saveRound',
+    })
+    expect(new Set(ids.map(([, id]) => id)).size).toBe(ids.length)
   })
 })
 
@@ -104,6 +120,19 @@ describe('the public document', () => {
     for (const path of ['/health', ...AUTH_ROUTES]) {
       expect(get(path)?.security).toBeUndefined()
     }
+  })
+
+  it('names every operation, which is the generated client function name', () => {
+    const ids = operationIds(document)
+    expect(Object.fromEntries(ids)).toEqual({
+      'GET /health': 'getHealth',
+      'GET /api/auth/me': 'getMe',
+      'GET /api/auth/sign-in': 'signIn',
+      'GET /api/auth/callback': 'authCallback',
+      'GET /api/auth/logout': 'logout',
+      'GET /api/users': 'listUsers',
+    })
+    expect(new Set(ids.map(([, id]) => id)).size).toBe(ids.length)
   })
 
   it('names the AuthUser component', () => {

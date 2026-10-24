@@ -8,6 +8,7 @@ import type { AppDeps } from './types'
 export const healthRoute = createRoute({
   method: 'get',
   path: '/health',
+  operationId: 'getHealth',
   summary: 'Whether the service and its database answer',
   responses: {
     200: { description: 'Every check passed', content: { 'application/json': { schema: healthReportSchema } } },

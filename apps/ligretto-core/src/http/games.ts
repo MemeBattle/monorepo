@@ -32,6 +32,7 @@ const invalidToken = { description: 'No configured Authorization: Bearer token',
 export const createGameRoute = createRoute({
   method: 'post',
   path: '/internal/games',
+  operationId: 'createGame',
   tags: ['games'],
   summary: 'Create a game',
   security,
@@ -44,6 +45,7 @@ export const createGameRoute = createRoute({
 export const saveRoundRoute = createRoute({
   method: 'post',
   path: '/internal/games/{id}/rounds',
+  operationId: 'saveRound',
   tags: ['games'],
   summary: "Save a finished round's results and answer the game's totals",
   description:

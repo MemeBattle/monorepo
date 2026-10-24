@@ -6,6 +6,9 @@
   "license": "MIT",
   "author": "MemeBattle",
   "type": "module",
+  "exports": {
+    "./contract-harness": "./test/support/contract-harness.ts"
+  },
   "scripts": {
     "start:dev": "tsx watch --conditions=development src/entry/node.ts",
     "dev:worker": "cf dev",

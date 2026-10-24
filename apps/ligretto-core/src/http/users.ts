@@ -15,6 +15,7 @@ const json = <T>(schema: T) => ({ 'application/json': { schema } })
 export const listUsersRoute = createRoute({
   method: 'get',
   path: '/api/users',
+  operationId: 'listUsers',
   tags: ['users'],
   summary: 'The profile snapshots of some users',
   description: 'The latest snapshot of each requested id that has one: unknown ids are absent and the order is not promised.',

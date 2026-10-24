@@ -202,6 +202,7 @@
   "paths": {
     "/health": {
       "get": {
+        "operationId": "getHealth",
         "summary": "Whether the service and its database answer",
         "responses": {
           "200": {
@@ -229,6 +230,7 @@
     },
     "/api/auth/me": {
       "get": {
+        "operationId": "getMe",
         "tags": [
           "auth"
         ],
@@ -381,6 +383,7 @@
     },
     "/api/auth/sign-in": {
       "get": {
+        "operationId": "signIn",
         "tags": [
           "auth"
         ],
@@ -483,6 +486,7 @@
     },
     "/api/auth/callback": {
       "get": {
+        "operationId": "authCallback",
         "tags": [
           "auth"
         ],
@@ -638,6 +642,7 @@
     },
     "/api/auth/logout": {
       "get": {
+        "operationId": "logout",
         "tags": [
           "auth"
         ],
@@ -709,6 +714,7 @@
     },
     "/api/users": {
       "get": {
+        "operationId": "listUsers",
         "tags": [
           "users"
         ],
