@@ -12,7 +12,7 @@
     "blog:test:ci": "pnpm run --filter @memebattle/blog test:ci",
     "ligretto:test:ci": "pnpm run --parallel --no-bail --filter '@memebattle/ligretto-*' test:ci",
     "ligretto:ts-check:ci": "pnpm run --parallel --no-bail --filter '@memebattle/ligretto-*' ts-check",
-    "ligretto:start": "pnpm run --parallel --no-bail --filter '@memebattle/ligretto-*' start:dev",
+    "ligretto:start": "pnpm run --parallel --no-bail --filter '@memebattle/ligretto-*' --filter '!@memebattle/ligretto-core' start:dev",
     "ligretto:front:build": "pnpm run --filter @memebattle/ligretto-frontend build",
     "ligretto:front:start:dev": "pnpm run --filter @memebattle/ligretto-frontend start:dev",
     "cas:front:build": "pnpm run --filter @memebattle/cas-frontend build",
