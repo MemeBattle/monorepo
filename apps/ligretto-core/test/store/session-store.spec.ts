@@ -436,9 +436,12 @@ describe('the Postgres SessionStore', () => {
       await single.close()
     })
 
-    it.each([{ lockTimeoutMs: 0 }, { deadlineMs: -1 }, { maxAttempts: 1.5 }])('refuses %o at construction', lock => {
-      expect(() => storeOf(lock)).toThrow(Error)
-    })
+    it.each([{ lockTimeoutMs: 0 }, { deadlineMs: -1 }, { maxAttempts: 1.5 }, { deadlineMs: 2 ** 31 }, { lockTimeoutMs: 2 ** 31 }])(
+      'refuses %o at construction',
+      lock => {
+        expect(() => storeOf(lock)).toThrow(Error)
+      },
+    )
   })
 
   describe('sessions and the users snapshot', () => {

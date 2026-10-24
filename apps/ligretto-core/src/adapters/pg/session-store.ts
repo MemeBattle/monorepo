@@ -42,15 +42,22 @@ const DEFAULT_DEADLINE_MS = 15_000
 
 type LockSettings = Required<SessionLockOptions>
 
+/**
+ * The largest bound the mechanism can honour: `setTimeout` clamps a longer delay to 1 ms, which would expire every
+ * take at once, and Postgres refuses a `lock_timeout` above it.
+ */
+const MAX_BOUND = 2_147_483_647
+
 const positiveInteger = (name: string, value: number): number => {
-  // The timeout is rendered into the SQL as a literal; anything but a positive integer is a programming mistake.
-  if (!Number.isSafeInteger(value) || value <= 0) {
-    throw new Error(`${name} must be a positive integer, got ${value}`)
+  // The timeout is rendered into the SQL as a literal and arms a timer; anything the mechanism cannot honour is a
+  // programming mistake, refused here rather than on the first take.
+  if (!Number.isSafeInteger(value) || value <= 0 || value > MAX_BOUND) {
+    throw new Error(`${name} must be a positive integer no greater than ${MAX_BOUND}, got ${value}`)
   }
   return value
 }
 
-/** The options with their defaults, refused when a bound is not a positive integer. */
+/** The options with their defaults, refused when a bound is not a positive integer up to `MAX_BOUND`. */
 export const lockSettingsOf = (options: SessionLockOptions = {}): LockSettings => ({
   clock: options.clock ?? systemClock,
   lockTimeoutMs: positiveInteger('lockTimeoutMs', options.lockTimeoutMs ?? DEFAULT_LOCK_TIMEOUT_MS),
