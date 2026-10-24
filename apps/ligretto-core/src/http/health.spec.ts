@@ -1,0 +1,33 @@
+import { describe, expect, it } from 'vitest'
+
+import { healthReportSchema } from '../contract/health'
+import { createFixedClock } from '../core/ports/clock.fake'
+import type { DatabaseProbe } from '../core/ports/database-probe'
+import { failingProbe, okProbe } from '../core/ports/database-probe.fake'
+import { createRecordingLogger } from '../core/ports/logger.fake'
+import { createInternalApp } from './internal-app'
+import { createPublicApp } from './public-app'
+import type { AppDeps } from './types'
+
+const deps = (database: DatabaseProbe): AppDeps => ({ logger: createRecordingLogger().logger, clock: createFixedClock(), database })
+
+describe.each([
+  ['public', createPublicApp],
+  ['internal', createInternalApp],
+])('GET /health on the %s app', (_name, createApp) => {
+  // The body parsing with the contract schema is the run-time proof that the core result and the wire shape agree.
+  it('answers 200 with the report when the database answers', async () => {
+    const res = await createApp(deps(okProbe())).request('/health')
+    expect(res.status).toBe(200)
+    const report = healthReportSchema.parse(await res.json())
+    expect(report).toEqual({ status: 'ok', checks: { database: { status: 'ok', durationMs: 0 } } })
+  })
+
+  it('answers 503 with the report when the database does not', async () => {
+    const res = await createApp(deps(failingProbe(new Error('connection refused')))).request('/health')
+    expect(res.status).toBe(503)
+    const report = healthReportSchema.parse(await res.json())
+    expect(report.status).toBe('unavailable')
+    expect(report.checks.database.error).toBe('connection refused')
+  })
+})
