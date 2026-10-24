@@ -16,8 +16,7 @@ import { loadDevelopmentEnv } from './env'
 // sets the environment.
 loadDevelopmentEnv()
 
-// Every section in one parse. A ConfigError escapes on purpose: a bad environment stops the process with every
-// offending variable named.
+// A ConfigError escapes on purpose: a bad environment stops the process with every offending variable named.
 const { http, logging, database, internalApi, auth } = loadConfig(process.env)
 
 const logger = createConsoleLogger({ level: logging.level })

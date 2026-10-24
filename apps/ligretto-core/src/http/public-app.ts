@@ -12,9 +12,9 @@ import { registerUsers } from './users'
  * Credentialed CORS for the configured origins and nothing else: an exact match, so
  * `http://localhost.attacker.example` is not `http://localhost`. `hono/cors` alone would send
  * `Access-Control-Allow-Credentials: true` to every origin, so it runs only for a configured one; any other request
- * gets no CORS header at all, and a preflight from a refused origin falls through to routing. Every response, whatever
- * the origin, says `Vary: Origin`, as `hono/cors` does for an allowed one: a cache must not hand the copy a request
- * without an allowed origin got to the allowed frontend, which would lack its CORS headers.
+ * gets no CORS header at all, and a preflight from a refused origin falls through to routing. Every response says
+ * `Vary: Origin`, as `hono/cors` does for an allowed origin. Otherwise a cache could serve the allowed frontend a copy
+ * stored for another origin, which lacks the CORS headers.
  */
 const allowedOrigins = (origins: readonly string[]) => {
   const credentialed = cors({

@@ -46,8 +46,7 @@ handlers.me(c.req.raw))`), which pass the `Response` through unchanged, cookies 
   types; neither it nor this service parses an outgoing body — the same rule as for every route here: schemas and
   types in both directions, run-time validation of input only. The mount answers one failure itself: the session
   store's `SessionBusyError` is `503 session_busy`, declared on every auth route as a union with the package's `503`
-  codes; everything else the handlers throw reaches the error handler unchanged. The handlers' answers are
-  otherwise passed through as they are.
+  codes; everything else the handlers throw reaches the error handler unchanged.
 - **Access token on public data routes.** `GET /api/users` is guarded by `verifyAccessToken` of `ligretto-auth` with
   the fixed audience `ligretto` (the CAS registration, not configuration), guest and full accounts alike. A refused
   token is `401 unauthorized`; CAS metadata that cannot be read is `503 cas_unavailable`, since the token was never
