@@ -52,6 +52,7 @@ catalog:
   '@cloudflare/workers-types': 5.20261016.1
   '@codexsoft/dotenv-flow': ^3.3.5
   '@dnd-kit/core': 6.3.1
+  '@electric-sql/pglite': 0.5.10
   '@emotion/cache': ^11.14.0
   '@emotion/react': ^11.14.0
   '@emotion/server': ^11.11.0
@@ -96,6 +97,7 @@ catalog:
   '@types/mdx': ^2.0.14
   '@types/negotiator': ^0
   '@types/node': 24.13.3
+  '@types/pg': 8.23.1
   '@types/react': ^19.2.17
   '@types/react-dom': ^19.2.3
   '@vinejs/vine': 4.4.0
@@ -123,6 +125,8 @@ catalog:
   jsdom: ^29.1.1
   jsonwebtoken: ^9.0.0
   kubb: 5.4.5
+  kysely: 0.29.7
+  kysely-codegen: 0.20.0
   lodash: 4.18.1
   luxon: 3.7.2
   mock-socket: ^9.3.1

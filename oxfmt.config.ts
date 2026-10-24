@@ -11,6 +11,7 @@ export default defineConfig({
     '!apps/cas/README.md',
     'apps/cas-frontend/src/shared/api/generated/**',
     'packages/ligretto-auth/src/generated/**',
+    'apps/ligretto-core/src/adapters/pg/schema.generated.ts',
     // Third-party sources kept byte for byte; see each crate's VENDOR.md.
     'vendor/',
   ],
