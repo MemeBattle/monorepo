@@ -3,7 +3,7 @@ import type { AccountType, UserProfile, UsersRepository } from '../../core/ports
 import type { Database } from './database'
 
 /** The CHECK constraint on `account_type` makes another value impossible, so one is a bug, not an expected failure. */
-const toAccountType = (value: string): AccountType => {
+export const toAccountType = (value: string): AccountType => {
   const accountType = ACCOUNT_TYPES.find(known => known === value)
   if (accountType === undefined) {
     throw new Error(`unexpected account_type ${value}`)

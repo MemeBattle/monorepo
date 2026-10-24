@@ -6,7 +6,7 @@
     "types": ["@cloudflare/workers-types", "@cloudflare/vitest-plugin/types"]
   },
   "include": ["src", "test/worker"],
-  // The specs run under Node and import test/support, which is Node-only. node.ts, migrate.ts, codegen.ts and env.ts
-  // belong to the Node program.
-  "exclude": ["src/entry/node.ts", "src/entry/migrate.ts", "src/entry/codegen.ts", "src/entry/env.ts", "src/**/*.spec.ts"]
+  // The specs run under Node and import test/support, which is Node-only. node.ts, migrate.ts, codegen.ts, env.ts and
+  // sweep.ts belong to the Node program.
+  "exclude": ["src/entry/node.ts", "src/entry/migrate.ts", "src/entry/codegen.ts", "src/entry/env.ts", "src/entry/sweep.ts", "src/**/*.spec.ts"]
 }
