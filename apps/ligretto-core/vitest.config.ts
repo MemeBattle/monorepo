@@ -8,6 +8,8 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     environment: 'node',
+    // PGlite boot plus migrations in beforeAll, run in parallel with other packages' suites in CI.
+    hookTimeout: 60_000,
     include: ['src/**/*.spec.ts', 'test/support/**/*.spec.ts', 'test/http/**/*.spec.ts', 'scripts/**/*.spec.ts'],
   },
 })

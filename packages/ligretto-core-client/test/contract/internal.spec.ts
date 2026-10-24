@@ -30,6 +30,10 @@ beforeEach(async () => {
 })
 
 afterAll(async () => {
+  // Undefined when beforeAll timed out: its error is the one to report, not a close or a coverage failure.
+  if (harness === undefined) {
+    return
+  }
   await harness.close()
   expectEveryPairExercised(recorder)
 })
