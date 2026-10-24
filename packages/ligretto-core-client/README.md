@@ -79,12 +79,11 @@ pnpm --filter @memebattle/ligretto-core openapi:generate
 pnpm --filter @memebattle/ligretto-core-client generate:api
 ```
 
-`generate:api` runs kubb into `src/generated/public` and `src/generated/internal`, then
-`scripts/require-client-option.mjs`, which removes the `= {}` default kubb prints for an operation's `options` so that
-`client` stays required, then `scripts/generate-declared-statuses.mjs`, which writes
-`src/generated/declared-statuses.ts`. The transport reads that
-map to tell a declared answer from an unexpected one. `ligretto-core-client-pr.yml` regenerates both and fails when
-the commit differs.
+`generate:api` runs kubb into `src/generated/public` and `src/generated/internal`. Then
+`scripts/require-client-option.mjs` removes the `= {}` default kubb prints for an operation's `options`, so `client`
+stays required. Last, `scripts/generate-declared-statuses.mjs` writes `src/generated/declared-statuses.ts`, the map the
+transport reads to tell a declared answer from an unexpected one. `ligretto-core-client-pr.yml` regenerates the
+documents and the client and fails when the commit differs.
 
 ## Contract tests
 

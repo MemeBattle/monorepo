@@ -37,7 +37,7 @@ export type { UserProfile } from '../../src/core/ports/users-repository'
 /** The one value of `LIGRETTO_INTERNAL_API_TOKEN` the internal app accepts. */
 export const INTERNAL_TOKEN = 'contract-internal-token'
 
-/** The configuration of the access-token verifier; its handlers are discarded for the stubs'. */
+/** The configuration `createAuth` builds the access-token verifier from; the stubs replace the handlers it builds. */
 const config: AuthConfig = {
   casIssuer: ISSUER,
   clientId: 'ligretto',
@@ -119,7 +119,7 @@ const switchableProbe = (inner: DatabaseProbe): { probe: DatabaseProbe; down(): 
   }
 }
 
-/** What every method of a refusing CAS client throws, as the CAS client of the package throws it. */
+/** The error every method of a refusing CAS client throws, of the class ligretto-auth's CAS client throws for it. */
 const refusalError = (refusal: CasRefusal): Error => {
   switch (refusal) {
     case 'unavailable':

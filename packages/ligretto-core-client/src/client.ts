@@ -1,7 +1,7 @@
 /**
  * The transport of the ligretto-core clients: every generated function in `./generated/public/operations` and
- * `./generated/internal/operations` calls a `Client`, and nothing else in this package calls `fetch`. It is this package's own, specified by
- * `apps/ligretto-core/docs/adrs/api-contract-openapi-and-client-package.md`.
+ * `./generated/internal/operations` calls a `Client`, and nothing else in this package calls `fetch`. It is specified
+ * by `apps/ligretto-core/docs/adrs/api-contract-openapi-and-client-package.md`.
  *
  * An operation never throws on a status. It resolves to one of five kinds:
  *
@@ -265,8 +265,8 @@ export const createClient = ({ baseUrl, fetch: fetchImpl, headers: defaults, cre
 }
 
 /**
- * The client the generated operations import when the caller passes none. The package has no ambient base URL — the
- * frontend and the gameplay backend reach ligretto-core at different addresses — so this is a guard, not a default.
+ * The client the generated operations import when the caller passes none. It is a guard, not a default: the frontend
+ * and the gameplay backend reach ligretto-core at different addresses, so there is no ambient base URL.
  */
 export const client: Client = () => {
   throw new Error(

@@ -34,8 +34,7 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
-      # From the routes as they are in this commit: a response schema changed in ligretto-core without regenerating
-      # changes the documents, and with them the client.
+      # From this commit's routes, so a route changed in ligretto-core without regenerating shows up in the diff below.
       - name: Regenerate the documents and the client
         run: pnpm run --filter @memebattle/ligretto-core openapi:generate && pnpm run --filter @memebattle/ligretto-core-client generate:api
 

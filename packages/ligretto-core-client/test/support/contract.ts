@@ -30,7 +30,7 @@ export interface OpenApiDocument {
   components?: { schemas?: Record<string, Schema> }
 }
 
-/** A committed document of apps/ligretto-core, read from disk as CI regenerated it. */
+/** A document of apps/ligretto-core as it is on disk, which CI regenerates before the tests. */
 export const readDocument = (name: 'openapi.json' | 'openapi.internal.json'): OpenApiDocument =>
   JSON.parse(readFileSync(new URL(`../../../../apps/ligretto-core/${name}`, import.meta.url), 'utf8')) as OpenApiDocument
 
