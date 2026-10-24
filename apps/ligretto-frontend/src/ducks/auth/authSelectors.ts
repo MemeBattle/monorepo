@@ -11,5 +11,3 @@ export const currentUserSelector = (state: All) => {
 
   return userId ? userByIdSelector(state, userId) : null
 }
-
-export const accessTokenSelector = (state: All) => state.auth.accessToken

@@ -26,14 +26,11 @@ const config: StorybookConfig = {
       resolve: {
         // Workspace packages are aliased to sources: their injected dist copies
         // live under node_modules, so vite would serve them without CJS interop
-        // and their deps would never be prebundled. The subpath alias must come
-        // before the bare package alias.
+        // and their deps would never be prebundled. A subpath alias must come
+        // before its bare package alias.
         alias: {
           '@memebattle/ui': path.resolve(root, 'packages/ui/src/index.ts'),
           '@memebattle/ligretto-shared': path.resolve(root, 'packages/ligretto-shared/src/index.ts'),
-          '@memebattle/cas-services/createFrontServices': path.resolve(root, 'packages/cas-services/src/createFrontServices.ts'),
-          '@memebattle/cas-services': path.resolve(root, 'packages/cas-services/src/index.ts'),
-          '@memebattle/auth-front': path.resolve(root, 'apps/auth-front/src/module.tsx'),
         },
       },
     })
