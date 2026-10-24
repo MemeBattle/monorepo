@@ -39,8 +39,8 @@ two independent connections for a single request (`session-store-locking.md`), a
   (`ligretto-core-pg-test`, host port 5435, the same container and rules as before: one run at a time per host).
   They are a separate vitest project (`pnpm test:store`) so `pnpm test` without Docker still passes everything else.
 - **Entries**: CI boots `entry/node.ts` and `GET /health`; builds the Worker and runs the same request under
-  `workerd` (`@cloudflare/vitest-pool-workers`), with Hyperdrive connection strings pointing at the job's
-  Postgres. These are smoke tests of the wiring, not of behaviour.
+  `workerd` (`@cloudflare/vitest-plugin`, reading `cloudflare.config.ts`), with Hyperdrive connection strings
+  pointing at the job's Postgres. These are smoke tests of the wiring, not of behaviour.
 - **Fixtures**: a seed helper inserts users through the same repository the service uses, never raw rows, so a
   schema change breaks the helper in one place.
 
@@ -53,3 +53,6 @@ two independent connections for a single request (`session-store-locking.md`), a
 - A new port comes with its fake, or its first consumer's test cannot be written.
 - The PGlite and Kysely versions are pinned in the catalog like everything else; the dialect ships with Kysely, so
   there is no third package to keep in step.
+
+upd (2026-10-24): the Workers vitest integration is now @cloudflare/vitest-plugin (the pool package is deprecated and
+does not load under vitest 5); the Worker smoke suite reads cloudflare.config.ts through the plugin.
