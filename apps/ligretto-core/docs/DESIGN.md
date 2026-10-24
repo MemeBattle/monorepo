@@ -39,8 +39,10 @@ apps/ligretto-core/
   src/contract/    zod schemas of requests, responses, errors
   src/http/        createPublicApp(deps), createInternalApp(deps), middleware, OpenAPI
   src/adapters/    pg/ (Kysely repositories, session store, schema.generated.ts), logger, clock
-  src/entry/       node.ts, worker.ts, migrate.ts, sweep.ts
-  migrations/      <timestamp>_<name>.ts, SQL inside
+  src/entry/       node.ts, worker.ts, migrate.ts, codegen.ts, sweep.ts; env.ts (the development .env loader)
+  migrations/      <timestamp>_<name>.ts, SQL inside (MIGRATIONS.md)
+  test/            worker/ (the Worker smoke suite), store/ (the Docker Postgres suite), support/ (harnesses)
+  .env.development DATABASE_URL for development
   openapi.json, openapi.internal.json      committed, regenerated and diffed in CI
   docs/            this file, ADR.md, adrs/
 ```
@@ -62,21 +64,28 @@ kept or migrated — there is no production data.
 | `round_users`                                | a player's score in a round: `round_id`, `user_id` (= `users.cas_id`), `score`                                       | (`round_id`, `user_id`)                                 |
 | `sessions`, `auth_requests`, `session_locks` | the `SessionStore` of `ligretto-auth`; see `adrs/session-store-locking.md`                                           | `id` / `state` / `id`, text — ids `ligretto-auth` mints |
 
+A `sessions` row is the port's `Session` column for column: the grant and **its own** profile snapshot
+(`account_type`, `display_name`, `avatar_url`). `getSession` returns a session's own snapshot, and `ligretto-auth`
+keeps a session's last validated one when a rotation's ID token cannot be used, so two sessions of one subject may
+differ until each refreshes. `users` holds the latest snapshot per `cas_id`; the session store writes both in one
+transaction.
+
 Invariants the first migration establishes (and `adrs/additive-migrations-and-compatibility-matrix.md` protects):
 
-- snake_case names; `created_at` / `updated_at` as `timestamptz` with `DEFAULT now()` on every table that has them.
+- snake_case names; `created_at` / `updated_at` as `timestamptz` with `DEFAULT now()` on every table that has them:
+  `users` has both, `games`, `rounds` and `round_users` have `created_at`, the auth tables have neither.
 - `games.id` is `uuid DEFAULT gen_random_uuid()` (so `Generated<string>` in the row types). `rounds.id` is `uuid`
   without a default: the gameplay backend supplies it (§ Routes). `sessions.id`, `session_locks.id`,
   `auth_requests.state` and every `sub` / `cas_id` are `text`: `ligretto-auth` mints base64url ids and CAS owns
   the subject format; none of them has a generated default.
-- `users.account_type` is `text` with a `CHECK` on the values of `ligretto-auth`'s `AccountType`; the adapter
-  narrows it to the union. A new account type is one additive migration either way; `text` keeps it a plain
-  `ALTER TABLE` rather than enum mechanics.
+- `users.account_type` and `sessions.account_type` are `text` with a `CHECK` on the values of `ligretto-auth`'s
+  `AccountType`; the adapter narrows it to the union. A new account type is one additive migration either way;
+  `text` keeps it a plain `ALTER TABLE` rather than enum mechanics.
 - Session timestamps (`access_token_expires_at`, `grant_ends_at`, `grant_started_at`, `auth_requests.expires_at`)
   are `bigint` epoch milliseconds, the unit of the `SessionStore` port; `pg` delivers them as strings and the
   adapter converts with `Number`.
-- Nullable: `users.display_name`, `users.avatar_url`, `auth_requests.session_id`, `auth_requests.sub`. Everything
-  else is `NOT NULL`.
+- Nullable: `display_name` and `avatar_url` on `users` and on `sessions`, `auth_requests.session_id`,
+  `auth_requests.sub`. Everything else is `NOT NULL`.
 - Foreign keys only inside the game aggregate: `rounds.game_id → games.id`, `round_users.round_id → rounds.id`,
   `round_users.user_id → users.cas_id`. None from `sessions` or `auth_requests`, deliberately: a pending sign-in or a
   session survives whatever happens to the row it points at (the initiating session may be deleted mid sign-in).
@@ -126,6 +135,11 @@ include rounds committed since the first attempt; the caller keeps both the `rou
 attempts and never mints a new id for the same round. A player exists in `users` from their first grant, so
 `unknown_players` is a bug in the caller, not a race.
 
+Every statement of that transaction, the `users` check included, goes through the locked game (`LockedGame` of
+`GamesRepository.withGame`) on the transaction's connection, never through another repository or handle. The round
+insert is `ON CONFLICT (id) DO NOTHING`, so a `roundId` raced between two games ends as a typed `409
+round_conflict`, never as a unique violation.
+
 The previous `GET /api/games` (every game with every column, no caller) and the public game-creation routes have no
 successor.
 
@@ -141,8 +155,10 @@ successor.
 Locally: Postgres from the root `docker-compose.yml`, the entries from the host (`pnpm start:dev` runs
 `entry/node.ts` under `tsx watch`; `pnpm dev:worker` runs `cf dev`, which drives `wrangler dev` from
 `cloudflare.config.ts`, with the Hyperdrive bindings' `dev.connectionString` pointing at the same database). Nothing
-of this service runs inside Docker in development. The root `pnpm ligretto:start` leaves this package out until the
-cutover from `ligretto-core-backend`: both serve port 3333.
+of this service runs inside Docker in development. `DATABASE_URL` comes from this package's `.env.development`
+(overridable in `.env.development.local`), not from the root files, which CAS reads for its own database;
+`migrate`, `db:codegen` and the Node entry resolve it through one loader (`src/entry/env.ts`, `MIGRATIONS.md`). The
+root `pnpm ligretto:start` leaves this package out until the cutover from `ligretto-core-backend`: both serve port 3333.
 
 ## Deployment
 

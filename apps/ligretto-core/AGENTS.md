@@ -4,6 +4,7 @@ The HTTP service of Ligretto on Hono: CAS sign-in through `@memebattle/ligretto-
 rounds for the gameplay backend. Runs on Node.js and on Cloudflare Workers from the same source.
 
 - `docs/DESIGN.md` — requirements, the directory layout, every route and its contract, the data model, deployment.
+- `docs/MIGRATIONS.md` — adding a migration, applying it, regenerating the row types, the immutability rule.
 - `docs/adrs/` — the decisions that shape the service, one file each. Every file starts with front matter that says
   what was decided and when it matters, enough to tell whether the whole file needs reading. `docs/ADR.md` says how
   to write one; a change that shapes the service gets one.
