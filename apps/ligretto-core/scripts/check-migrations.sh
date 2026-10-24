@@ -43,21 +43,19 @@ while IFS= read -r file; do
   fi
 done < <(git ls-tree -r --name-only "$base_ref" -- "$migrations_dir")
 
-# A migration's source reduced to what the rules below read, on one line. Line rules first, in this order: a `//`
-# comment at the start of a line or after whitespace goes (a `//` after `:`, as in a 'https://' literal, stays), so
-# neither its words nor a `-- contract:` inside it count; then the marker comment becomes one token, keeping the SQL
-# before it on its line, so its own words never count as a statement and a trailing marker never leads; then the
-# other `--` comments go. Whitespace then collapses so a statement split over lines is one run of words, and block
-# comments, which may span lines, go last.
+# A migration's source reduced to what the rules below read, on one line. One left-to-right pass over the whole file
+# removes the comments, and the comment that starts first wins, so a `--` or a `//` inside a block comment, a `/*` or a
+# `--` inside a `//` comment, and a `/*` or a `//` inside a `--` comment are all part of that one comment. The three
+# kinds: a `/* ... */` block comment, which may span lines; a `//` comment at the start of a line or after whitespace
+# (a `//` right after another character, as in a 'https://' literal, stays); a `--` comment to the end of its line. Each becomes a space,
+# except a `--` comment that starts with `contract:`, which becomes one marker token: the SQL before it on its line
+# stays, its own words never count as a statement, a trailing marker never leads, and a `-- contract:` inside another
+# comment is that comment and not the marker. Whitespace then collapses, so a statement split over lines is one run
+# of words.
 stripped_source() {
   git show "HEAD:$1" |
-    sed -E \
-      -e 's#(^|[[:space:]])//.*$##' \
-      -e 's/--[[:space:]]*contract:.*$/ __CONTRACT_MARKER__ /' \
-      -e 's/--.*$//' |
-    tr -s '[:space:]' ' ' |
-    sed -E 's#/\*([^*]|\*+[^*/])*\*+/# #g' |
-    tr -s ' '
+    perl -0777 -pe 's{/\*.*?\*/|(?<!\S)//[^\n]*|--[^\n]*}{$& =~ /^--\s*contract:/ ? " __CONTRACT_MARKER__ " : " "}gse' |
+    tr -s '[:space:]' ' '
 }
 
 # The tokens of a stripped migration that decide the marker rule, in reading order.

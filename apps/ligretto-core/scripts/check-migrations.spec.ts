@@ -248,6 +248,26 @@ describe('check-migrations.sh', { timeout: 30_000 }, () => {
     })
 
     it.each([
+      [
+        'a -- inside a block comment',
+        migration(
+          '  /* expand step -- the contract step follows in 0.5 */\n  await sql`alter table users drop column avatar_url`.execute(db)\n  /* end */',
+        ),
+      ],
+      [
+        'a // inside a block comment',
+        migration(
+          '  /** Adds locale. // TODO drop the old column in 0.5 */\n  await sql`alter table users drop column avatar_url`.execute(db)\n  /** done */',
+        ),
+      ],
+      ['a -- contract: inside a block comment', tag('/* -- contract: removes users.avatar_url */', 'alter table users drop column avatar_url')],
+    ])('does not let %s hide an unmarked statement', async (_case, content) => {
+      const result = await addMigration(NEW, content)
+      expect(result.code).toBe(1)
+      expect(result.output).toContain(`contains the contract statement 'drop' with no leading marker`)
+    })
+
+    it.each([
       ['a // comment', migration('  // never drop a column here\n  await sql`alter table users add column locale text`.execute(db)')],
       ['a -- comment', tag('-- we will drop this later', 'alter table users add column locale text')],
       ['an identifier that contains a contract word', oneLine('alter table users add column dropdown_state text')],

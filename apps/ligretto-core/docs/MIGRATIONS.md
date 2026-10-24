@@ -106,11 +106,12 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 `SET NOT NULL` as contract statements wherever they appear in the file, in any case, across line breaks, around
 quoted identifiers and around block comments. It over-approximates: `DROP NOT NULL`, `DROP DEFAULT`, `DROP INDEX`
 and `DROP CONSTRAINT` need the marker too, which costs one line. Only the SQL comment `-- contract:` is the marker;
-a `// contract:` comment is not, nor a `-- contract:` inside a `//` comment. Other comments are ignored: `--`
-comments, `//` comments on their own line or after code, and `/* … */` block comments, so a comment that mentions
-a drop is not a statement, and neither are the marker's own words. The marker must come before the first contract statement of the
-file in reading order: one after the statement, including one at the end of the statement's own line, does not
-count. One marker per migration. The script does not judge the marker's text or the release named for
+a `// contract:` comment is not, nor a `-- contract:` inside a `//` comment or a `/* … */` block comment. Other
+comments are ignored: `--` comments, `//` comments on their own line or after code, and `/* … */` block comments, so
+a comment that mentions a drop is not a statement, and neither are the marker's own words. A comment runs from where
+it starts to its own end, whatever it contains: a `--` or a `//` inside a block comment does not end it early. The
+marker must come before the first contract statement of the file in reading order: one after the statement,
+including one at the end of the statement's own line, does not count. One marker per migration. The script does not judge the marker's text or the release named for
 `SET NOT NULL`; review does.
 
 ## What CI checks
