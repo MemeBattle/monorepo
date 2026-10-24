@@ -38,9 +38,10 @@ export const createPool = (connectionString: string, poolConfig: pg.PoolConfig, 
 }
 
 /**
- * Node: two `pg.Pool`s on the configured database for the life of the process. pg's default sizes until the session
- * store's saturation test (#836) sets them through `options`; a pool connects on its first statement, so an unused
- * handle costs nothing. `onError` receives what a pool reports about its idle clients (see `PoolErrorHandler`).
+ * Node: two `pg.Pool`s on the configured database for the life of the process. The Node entry sets their sizes
+ * through `options`; the store suite's saturation tests run on smaller pools. A pool connects on its first statement,
+ * so an unused handle costs nothing. `onError` receives what a pool reports about its idle clients (see
+ * `PoolErrorHandler`).
  */
 export const createNodeDatabases = (
   config: DatabaseConfig,
@@ -63,11 +64,14 @@ export const createNodeDatabases = (
 
 /** One `pg` client opened on demand: the per-request connection of a Worker. */
 export interface LazyClient {
-  /** Opens the client on the first call and answers the same one afterwards; a failed connect stays failed. */
+  /**
+   * Opens the client on the first call and answers the same one afterwards; a failed connect stays failed; after
+   * `close()` it rejects without opening anything.
+   */
   connect(): Promise<pg.ClientBase>
-  /** Ends the client if it was ever created; resolves at once otherwise. */
+  /** Marks the client closed, then ends it if it was ever created; resolves at once otherwise. */
   close(): Promise<void>
-  /** Whether `connect` was ever called. */
+  /** Whether `connect` ever created the client. */
   readonly opened: boolean
 }
 
@@ -76,8 +80,13 @@ type ClientConstructor = new (config: { connectionString: string }) => pg.Client
 export const createLazyClient = (connectionString: string, Client: ClientConstructor = pg.Client): LazyClient => {
   let client: pg.Client | undefined
   let connected: Promise<pg.ClientBase> | undefined
+  let closed = false
   return {
     connect: () => {
+      if (closed) {
+        // A statement that outlived its request: opening a client now would leak it, since the scope's close has run.
+        return Promise.reject(new Error('database client closed'))
+      }
       if (connected === undefined) {
         const created = new Client({ connectionString })
         // A client whose connection breaks while idle emits `error`, which would throw without a listener. The
@@ -89,6 +98,8 @@ export const createLazyClient = (connectionString: string, Client: ClientConstru
       return connected
     },
     close: async () => {
+      // Set before the first `await`, so a `connect()` issued while the close is in flight is refused too.
+      closed = true
       if (client === undefined) {
         return
       }
@@ -106,15 +117,40 @@ export const createLazyClient = (connectionString: string, Client: ClientConstru
  * wants a pool, so this is a pool-shaped object whose `connect` hands out the current client and whose `release`
  * keeps it open: closing it is the request scope's job.
  *
- * Kysely acquires a connection per statement and holds it for a whole transaction, so the statements of one handle
- * in one request run one after another on one client. A transaction and a concurrent statement on the *same* handle
- * in the *same* request would share that client and interleave; the design never does that (a lock transaction runs
- * on `locks` while its writes go to `main`, and the game transaction issues everything through `LockedGame`).
+ * Kysely acquires a connection per statement and holds it for a whole transaction. The adapter leases each client to
+ * one acquirer at a time, keyed to the client `acquire` answers and not to the handle: the handles are built once per
+ * isolate and `acquire` resolves the current request's client, so a statement issued on a handle while the same
+ * request's transaction is open on that handle waits for the commit instead of interleaving with it, while another
+ * request's client on the same handle is never delayed. The design never issues such a statement (a lock transaction
+ * runs on `locks` while its writes go to `main`; the game transaction issues everything through `LockedGame`), and a
+ * lock take the deadline abandoned finishes rolling back before the request's next statement on the handle runs
+ * (docs/adrs/session-store-locking.md). A closed `LazyClient` refuses to connect, so a statement that outlives its
+ * request fails instead of leaking a connection.
  */
 export const createScopedDatabase = (acquire: () => Promise<pg.ClientBase>): Database => {
+  /** Each client's current holder, as the promise its `release` resolves; a client with no entry is free. */
+  const leases = new WeakMap<pg.ClientBase, Promise<void>>()
+  const lease = (client: pg.ClientBase): Promise<() => void> => {
+    const previous = leases.get(client) ?? Promise.resolve()
+    let release!: () => void
+    // Read and set with no `await` between, so concurrent acquirers of one client chain up in the order they came.
+    // Resolving is idempotent, so a second call of one grant's `release` cannot release the next holder.
+    leases.set(
+      client,
+      new Promise<void>(resolve => {
+        release = resolve
+      }),
+    )
+    return previous.then(() => release)
+  }
   const pool: PostgresPool = {
-    // A no-op `release` on the client itself: the same object every time, so Kysely keeps one connection per client.
-    connect: async () => Object.assign(await acquire(), { release: () => {} }),
+    // The client first, then its lease: the client is the key. A rejected `acquire` takes no lease. The `release` is
+    // set per grant on the same object, so Kysely keeps one connection per client and frees the lease through it.
+    connect: async () => {
+      const client = await acquire()
+      const release = await lease(client)
+      return Object.assign(client, { release })
+    },
     end: async () => {},
     options: {},
   }

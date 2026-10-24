@@ -3,8 +3,10 @@ import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { createLazyClient, createScopedDatabase } from '../../src/adapters/pg/database'
+import type { LazyClient } from '../../src/adapters/pg/database'
 import { disposableDatabaseUrl } from '../support/disposable-database'
 import { resetAndMigrate } from '../support/postgres'
+import { gate, settlementOf, sleep } from '../support/session-store'
 
 const url = disposableDatabaseUrl()
 // Marks this suite's connections, so the count ignores the observer and anything else on the server.
@@ -16,6 +18,14 @@ describe('createScopedDatabase over createLazyClient', () => {
 
   const connections = async () => {
     const { rows } = await observer.query<{ count: string }>('select count(*) from pg_stat_activity where application_name = $1', [APPLICATION])
+    return Number(rows[0]?.count)
+  }
+
+  const idleInTransaction = async () => {
+    const { rows } = await observer.query<{ count: string }>(
+      "select count(*) from pg_stat_activity where application_name = $1 and state = 'idle in transaction'",
+      [APPLICATION],
+    )
     return Number(rows[0]?.count)
   }
 
@@ -57,6 +67,66 @@ describe('createScopedDatabase over createLazyClient', () => {
     await b.selectFrom('games').select('id').execute()
     expect(await connections()).toBe(2)
     await Promise.all([first.close(), second.close()])
+    await expect.poll(connections).toBe(0)
+  })
+
+  it('holds a statement on the handle until the open transaction on its client commits', async () => {
+    const client = createLazyClient(scopedUrl)
+    const db = createScopedDatabase(() => client.connect())
+    const inside = gate()
+    const release = gate()
+    try {
+      const transaction = db.transaction().execute(async trx => {
+        await trx.selectFrom('session_locks').select('id').execute()
+        inside.open()
+        await release.opened
+      })
+      await inside.opened
+      const statement = db
+        .selectFrom('session_locks')
+        .select(eb => eb.fn.countAll().as('count'))
+        .execute()
+      const settled = settlementOf(statement)
+      await sleep(100)
+      // Waiting for the lease, not interleaved with the open transaction on the one client.
+      expect(settled.settled()).toBe(false)
+
+      release.open()
+      await transaction
+      expect(await statement).toEqual([{ count: '0' }])
+      expect(await idleInTransaction()).toBe(0)
+    } finally {
+      release.open()
+      await client.close()
+    }
+    await expect.poll(connections).toBe(0)
+  })
+
+  it('never makes the client of one request wait for the client of another behind the same handle', async () => {
+    const clients: Record<'a' | 'b', LazyClient> = { a: createLazyClient(scopedUrl), b: createLazyClient(scopedUrl) }
+    // Built once, as the isolate builds its handles; which request's client it resolves is switched by the test.
+    let current: 'a' | 'b' = 'a'
+    const db = createScopedDatabase(() => clients[current].connect())
+    const inside = gate()
+    const release = gate()
+    try {
+      const transaction = db.transaction().execute(async trx => {
+        await trx.selectFrom('session_locks').select('id').execute()
+        inside.open()
+        await release.opened
+      })
+      await inside.opened
+
+      current = 'b'
+      expect(await db.selectFrom('session_locks').select('id').execute()).toEqual([])
+      expect(await connections()).toBe(2)
+
+      release.open()
+      await transaction
+    } finally {
+      release.open()
+      await Promise.all([clients.a.close(), clients.b.close()])
+    }
     await expect.poll(connections).toBe(0)
   })
 })

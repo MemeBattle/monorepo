@@ -381,8 +381,10 @@ export const createClient = ({ baseUrl, fetch: fetchImpl, requestTimeoutMs: requ
     }
 
     // The caller decides what a navigation endpoint's redirect means; `redirect: 'manual'` reports it as an opaque
-    // response in a browser-like runtime and as the 3xx itself elsewhere.
-    if (response.type === 'opaqueredirect' || (response.status >= 300 && response.status < 400)) {
+    // response in a browser-like runtime and as the 3xx itself elsewhere. Read as a plain string: the Workers runtime
+    // types, which a service on Workers compiles this source against, have no `opaqueredirect`.
+    const responseType: string = response.type
+    if (responseType === 'opaqueredirect' || (response.status >= 300 && response.status < 400)) {
       throw new ApiError(response.status, REDIRECT_REFUSED_CODE, `${method} ${url} answered a redirect, which this client does not follow`, {
         headers: response.headers,
       })

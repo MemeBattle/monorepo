@@ -22,12 +22,15 @@ const database = loadDatabaseConfig(process.env)
 const internalApi = loadInternalApiConfig(process.env)
 
 const logger = createConsoleLogger({ level: logging.level })
-// Both pools for the process; `databases.locks` is the session store's (#836) and opens nothing until then. A pool
-// error is logged and survived: the broken client is already gone and `/health` reports the database until it is back.
+// Both pools for the process, sized as the previous service ran them (docs/adrs/session-store-locking.md);
+// `databases.locks` is the session store's and opens nothing until the auth routes are wired in (#837). A pool error
+// is logged and survived: the broken client is already gone and `/health` reports the database until it is back.
 const databases = createNodeDatabases(database, {
   onError: (error, handle) => {
     logger.error('database_pool_error', { handle, error: error instanceof Error ? error.message : String(error) })
   },
+  main: { max: 5 },
+  locks: { max: 10 },
 })
 const deps = { logger, clock: systemClock, database: createPgDatabaseProbe(databases.main) }
 const publicApp = createPublicApp({ ...deps, corsOrigins: http.corsOrigins })

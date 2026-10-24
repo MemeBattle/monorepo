@@ -1,6 +1,5 @@
 // What PGlite cannot show: the row lock, the round-id race between games and READ COMMITTED visibility, on a real
 // Postgres with two independent pools.
-import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import type { Database } from '../../src/adapters/pg/database'
@@ -9,28 +8,15 @@ import { upsertUser } from '../../src/adapters/pg/users-repository'
 import { disposableDatabaseUrl } from '../support/disposable-database'
 import { openDatabase, resetAndMigrate } from '../support/postgres'
 import { seedUsers } from '../support/seed'
+import { createLockObserver, gate } from '../support/session-store'
 
 const url = disposableDatabaseUrl()
-
-/** A promise and the function that resolves it. */
-const gate = () => {
-  let open!: () => void
-  const opened = new Promise<void>(resolve => {
-    open = resolve
-  })
-  return { open, opened }
-}
 
 describe('the Kysely GamesRepository on Postgres', () => {
   let dbA: Database
   let dbB: Database
-  const observer = new pg.Client({ connectionString: url })
-
-  /** How many backends wait on a lock: proof that a statement is blocked rather than merely slow. */
-  const lockWaiters = async () => {
-    const { rows } = await observer.query<{ count: string }>("select count(*) from pg_stat_activity where wait_event_type = 'Lock'")
-    return Number(rows[0]?.count)
-  }
+  const observer = createLockObserver(url)
+  const lockWaiters = observer.lockWaiters
 
   beforeAll(async () => {
     await resetAndMigrate(url)

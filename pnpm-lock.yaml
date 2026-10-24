@@ -721,6 +721,9 @@ importers:
       '@hono/zod-openapi':
         specifier: 'catalog:'
         version: 1.6.3(hono@4.13.13)(zod@4.6.5)
+      '@memebattle/ligretto-auth':
+        specifier: workspace:^
+        version: link:../../packages/ligretto-auth
       hono:
         specifier: 'catalog:'
         version: 4.13.13
