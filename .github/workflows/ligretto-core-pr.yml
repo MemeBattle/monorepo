@@ -142,6 +142,28 @@ jobs:
             exit 1
           }
 
+  openapi:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      # Both documents from the app factories; no database, no request served.
+      - name: Regenerate the OpenAPI documents
+        run: pnpm run --filter @memebattle/ligretto-core openapi:generate
+
+      # Written and diffed rather than `openapi:generate --verify`, so the log shows the difference.
+      - name: The committed documents match the routes
+        run: |
+          git diff --exit-code -- apps/ligretto-core/openapi.json apps/ligretto-core/openapi.internal.json || {
+            echo "::error::the OpenAPI documents are out of date: run 'pnpm openapi:generate' in apps/ligretto-core and commit the result"
+            exit 1
+          }
+
   node-smoke:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -183,6 +205,19 @@ jobs:
       - name: An unknown route is a 404
         run: test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3333/nope)" = 404
 
+      # The guard answers before any query, so the unmigrated database is enough.
+      - name: An internal route without the token is a 401
+        run: test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3333/internal/games)" = 401
+
+      # The token of the root .env.development, public by construction. The request validator runs after the guard
+      # and before any query, so a 400 for an empty body proves the token was accepted without a migrated database.
+      - name: An internal route with the configured token passes the guard
+        run: |
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+            -H 'authorization: Bearer dev-only-internal-api-token-public-by-construction' \
+            -H 'content-type: application/json' -d '{}' \
+            http://127.0.0.1:3333/internal/games/00000000-0000-4000-8000-000000000000/rounds)" = 400
+
       - name: Upload the Node entry log
         uses: actions/upload-artifact@v7
         if: failure()
@@ -223,6 +258,7 @@ jobs:
         run: pnpm run --filter @memebattle/ligretto-core build:worker
 
       # The same entry under workerd, through @cloudflare/vitest-plugin: /health on both hostnames and through the
-      # InternalApi service binding, each with its database check over the emulated Hyperdrive bindings.
+      # InternalApi service binding, each with its database check over the emulated Hyperdrive bindings, and the
+      # internal token from .dev.vars: refused when missing or wrong, accepted when it is the configured one.
       - name: Run the Worker smoke suite
         run: pnpm run --filter @memebattle/ligretto-core test:worker

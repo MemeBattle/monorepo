@@ -77,7 +77,6 @@ catalog:
   '@radix-ui/react-dropdown-menu': ^2.1.24
   '@radix-ui/react-popover': ^1.1.23
   '@reduxjs/toolkit': 2.12.0
-  '@rslib/core': ^0.23.2
   '@sentry/browser': ^10.68.0
   '@sentry/vite-plugin': ^5.4.0
   '@simplewebauthn/browser': ^13.3.0
@@ -91,7 +90,6 @@ catalog:
   '@testing-library/user-event': ^14.6.3
   '@types/amplitude-js': 8.16.5
   '@types/hast': ^3.0.5
-  '@types/jsonwebtoken': ^9.0.1
   '@types/lodash': 4.17.24
   '@types/luxon': ^3.7.2
   '@types/mdx': ^2.0.14
@@ -106,16 +104,12 @@ catalog:
   amplitude-js: ^8.21.6
   better-sqlite3: ^13.0.1
   cf: 1.0.0-beta.14
-  chalk: ^6.0.0
-  chalk-animation: ^2.0.3
   chromatic: ^18.1.0
   clsx: ^2.1.1
   cpx: ^1.5.0
   csstype: ^3.2.3
   date-fns: ^4.4.0
-  dotenv-extended: ^3.1.0
   feed: ^6.0.0
-  final-form: ^5.0.1
   history: ^5.3.0
   hono: 4.13.13
   i18next: ^26.3.6
@@ -123,7 +117,6 @@ catalog:
   inversify: ^8.2.3
   jose: 6.2.12
   jsdom: ^29.1.1
-  jsonwebtoken: ^9.0.0
   kubb: 5.4.5
   kysely: 0.29.7
   kysely-codegen: 0.20.0
@@ -145,8 +138,6 @@ catalog:
   proxy-addr: ^2.0.6
   react: ^19.2.8
   react-dom: ^19.2.8
-  react-dropzone: 19.1.1
-  react-final-form: ^7.0.1
   react-hotkeys-hook: ^5.3.3
   react-i18next: ^17.0.11
   react-redux: 9.3.0

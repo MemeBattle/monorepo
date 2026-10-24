@@ -112,8 +112,8 @@ email/password + VK login, 7-service architecture).
   own applications share `packages/ligretto-auth`: a server-only package with
   the client generated from the OpenAPI description, access-token
   verification, the confidential client and the HTTP handlers. It is a thin
-  layer over the standard flows, not a protocol of its own like the legacy
-  `cas-services`.
+  layer over the standard flows, not a protocol of its own like the removed
+  legacy `cas-services`.
 - Access tokens are JWTs (RFC 9068, ES256), not opaque tokens with introspection:
   resource servers verify locally against JWKS, CAS is not on the request path
   of the applications. Revocation is short access TTL plus refresh rotation.
@@ -182,9 +182,8 @@ email/password + VK login, 7-service architecture).
 **Scope cuts**
 
 - No migration of legacy users (the old base is nearly empty). Clean start.
-- Frontend: new `apps/cas-frontend`; replaces `apps/auth-front` when the ligretto
-  integration lands, after which auth-front and `packages/cas-services` are
-  removed.
+- Frontend: new `apps/cas-frontend`; it replaced `apps/auth-front`, which was
+  removed with `packages/cas-services` once ligretto moved onto the new flow.
 - Admin panel (users, clients, delegations): later milestone, not in the first
   versions.
 
@@ -225,13 +224,12 @@ In progress:
   client and sessions, the HTTP handlers and the session transport, the
   reference run against a real CAS in CI), the dev seed with ligretto's real
   callback, gameplay-backend verifying the socket handshake with
-  `ligretto-auth`. Left — core-backend's Postgres session store and the
-  mounted auth handlers with users served from the profile snapshot,
-  ligretto-frontend on the new flow and the removal of `auth-front` and the
-  `/auth` routes, the production client registration, and the one-shot
-  cutover that deletes `cas-services` and decides the production origin
-  layout (one origin with the cookie transport, or separate hosts with the
-  bearer transport).
+  `ligretto-auth`, core-backend's Postgres session store and the mounted auth
+  handlers with users served from the profile snapshot, ligretto-frontend on
+  the new flow, and the removal of `auth-front`, `cas-services` and the
+  `/auth` routes. Left — the production origin layout (one origin with the
+  cookie transport, or separate hosts with the bearer transport) and the
+  production client registration that depends on it (#812).
 - **External providers** ([milestone 19](https://github.com/MemeBattle/monorepo/milestone/19)),
   started in parallel: external identities + provider abstraction (in review),
   then Telegram sign-in and linking, Telegram bot infrastructure, GitHub, mock
@@ -319,7 +317,7 @@ lines, not here.
       signals a policy has and what the ticket that writes it must weigh.
 - [ ] Ligretto's production origin layout: one origin for the SPA and `/api/*`
       with the cookie transport, or separate hosts with the bearer transport.
-      Decided and recorded here by the cutover ticket (#818).
+      Undecided; the production client registration (#812) waits on it.
 - [ ] Object storage for Profile & files: R2 is the obvious choice next to the
       Worker, S3 was the original one; the abstraction hides it either way.
 - [ ] When to request `telegram:bot_access`: on every Telegram sign-in, or as a

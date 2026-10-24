@@ -7,8 +7,6 @@ on:
       - 'apps/ligretto-**'
       - 'packages/ligretto-auth/**'
       - 'packages/ligretto-shared/**'
-      - 'packages/auth-front/**'
-      - 'packages/cas-services/**'
       - 'packages/ui/**'
       - '.docker/Ligretto-**'
       - .github/workflows/ligretto-pr.yml
@@ -114,8 +112,7 @@ jobs:
       LIGRETTO_CORE_PG_USER: ligretto-core-user
       LIGRETTO_CORE_PG_PASSWORD: ligretto_pg_password
       LIGRETTO_CORE_PG_DB_NAME: ligretto-core
-      # Read by ligretto-frontend's build until #817; the backend reads neither.
-      CAS_PARTNER_ID: 685706c5ef9a1d005c9ef9b4
+      # Read by ligretto-frontend's build for the profile link; the backend does not read it.
       CAS_URL: https://cas.mems.fun
       LOG_LEVEL: debug
 

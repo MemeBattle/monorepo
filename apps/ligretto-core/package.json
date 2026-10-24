@@ -13,6 +13,7 @@
     "migrate": "tsx src/entry/migrate.ts",
     "sweep": "tsx --conditions=development src/entry/sweep.ts",
     "db:codegen": "tsx src/entry/codegen.ts",
+    "openapi:generate": "tsx src/entry/openapi.ts",
     "ts-check": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.worker.json",
     "test:unit": "vitest run",
     "test:worker": "vitest run --config vitest.worker.config.ts",

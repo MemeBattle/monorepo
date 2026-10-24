@@ -10,7 +10,6 @@ on:
       # A runtime dependency of the gameplay image: a change confined to it must rebuild and redeploy its consumer.
       - 'packages/ligretto-auth/**'
       - 'packages/ligretto-shared/**'
-      - 'packages/auth-front/**'
       - 'packages/ui/**'
       - 'packages/helm-lib/**'
       - .github/workflows/ligretto-deploy.yml
@@ -36,8 +35,6 @@ jobs:
         env:
           LIGRETTO_GAMEPLAY_URL: https://api.ligretto.app
           LIGRETTO_CORE_URL: https://core.ligretto.app/api
-          CAS_PARTNER_ID: 685706c5ef9a1d005c9ef9b4
-          CAS_STATIC_URL: https://cas.mems.fun/static
           CAS_URL: https://cas.mems.fun
           AMPLITUDE_TOKEN: f55f6d07422dfb26ca4dfbe59a54d609
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
