@@ -40,9 +40,10 @@ already does this for CAS: a committed `openapi.json`, kubb generating clients i
   `(Request) => Promise<Response>`. They are registered as plain Hono routes (`app.get(path, c =>
 handlers.me(c.req.raw))`), which pass the `Response` through unchanged, cookies and `Location` included, and
   are added to the document with `app.openAPIRegistry.registerPath(...)` using the request and response schemas
-  the package exports from its `./schema` entry. The package derives its `./contract` types from those schemas and
-  validates with them itself — that is the package's own rule, decided by its owner, and it is what makes the
-  registered description true; this service adds no check of its own on those responses.
+  the package exports from its `./schema` entry. The package derives its `./contract` types from those schemas,
+  validates the *incoming* data (the callback's query) with them, and builds its answers as values of the derived
+  types; neither it nor this service parses an outgoing body — the same rule as for every route here: schemas and
+  types in both directions, run-time validation of input only.
 - **Two documents.** `createPublicApp` yields `openapi.json`, `createInternalApp` yields `openapi.internal.json`
   (`internal-api-and-service-authentication.md`). A script writes both; a CI job regenerates and fails on a diff.
   The public document is served at `/openapi.json`; the internal one is not served. Query arrays are described as
