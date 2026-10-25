@@ -5,10 +5,10 @@ import { usersReducer } from './usersSlice'
 
 describe('usersSlice', () => {
   it('lets addUser replace a user added earlier', () => {
-    const state = usersReducer(undefined, addUsers([{ casId: 'sub-1', accountType: 'full', displayName: 'Old', avatarUrl: null }]))
+    const state = usersReducer(undefined, addUsers([{ sub: 'sub-1', accountType: 'full', name: 'Old', avatarUrl: null }]))
 
-    const next = usersReducer(state, addUser({ casId: 'sub-1', accountType: 'full', displayName: 'New', avatarUrl: null }))
+    const next = usersReducer(state, addUser({ sub: 'sub-1', accountType: 'full', name: 'New', avatarUrl: null }))
 
-    expect(next.entities['sub-1']).toEqual({ casId: 'sub-1', accountType: 'full', displayName: 'New', avatarUrl: null })
+    expect(next.entities['sub-1']).toEqual({ sub: 'sub-1', accountType: 'full', name: 'New', avatarUrl: null })
   })
 })

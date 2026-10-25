@@ -4,7 +4,7 @@ import { saveRoundValidator } from '#validators/SaveRoundValidator'
 import GamesService from '#services/GamesService'
 
 import type { UUID } from '@memebattle/ligretto-shared'
-import type { SaveRoundResponse } from '@memebattle/ligretto-shared'
+import type { GameResults } from '@memebattle/ligretto-shared'
 
 export default class GamesController {
   gamesService = new GamesService()
@@ -20,7 +20,7 @@ export default class GamesController {
     return game
   }
 
-  public async saveRound(ctx: HttpContext): Promise<SaveRoundResponse> {
+  public async saveRound(ctx: HttpContext): Promise<{ gameResults: GameResults }> {
     const gameId: UUID = ctx.params.id
 
     const { results } = await saveRoundValidator.validate(ctx.request.all())

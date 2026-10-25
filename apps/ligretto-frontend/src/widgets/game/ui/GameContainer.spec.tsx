@@ -23,7 +23,7 @@ const renderGame = () => {
   const store = createMockStore({
     preloadedState: {
       auth: { ...authInitialState, userId: player.id, isBootstrapped: true },
-      users: { ids: [player.id], entities: { [player.id]: { casId: player.id, accountType: 'guest', displayName: null, avatarUrl: null } } },
+      users: { ids: [player.id], entities: { [player.id]: { sub: player.id, accountType: 'guest', name: null, avatarUrl: null } } },
       game: {
         ...initialState,
         game: {

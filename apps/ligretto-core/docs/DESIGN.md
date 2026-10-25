@@ -211,11 +211,14 @@ being built in CI as the packaging of the Node entry.
   base from its own `LIGRETTO_CORE_URL` (its package `.env.development` locally) and sends the first value of
   `LIGRETTO_INTERNAL_API_TOKEN`. Its retries are in place and bounded. A round the core does not record is logged
   with its `roundId` and results, and the gameplay backend still closes it: it broadcasts `updateGame` without
-  `endRound`. The frontend keeps the last results it received, so that intermission shows the previous round's
-  scores, or zeros in a room's first round.
-- `apps/ligretto-frontend` → `@memebattle/ligretto-core-client` for `/api/users` (with the access token
-  `/api/auth/me` returns) and the `/api/auth/*` navigations. Its switch (#841) also clears its round results when a
-  round starts, so an unrecorded round stops showing stale scores; that reset is part of the same activation.
+  `endRound`. The frontend's round-start reset (below) keeps that intermission from showing the previous round's
+  scores.
+- `apps/ligretto-frontend` → `@memebattle/ligretto-core-client` for `GET /api/auth/me` and `GET /api/users`. It reads
+  the public API's base from the root `LIGRETTO_CORE_URL`, an origin without `/api`, and sends the session cookie
+  (`credentials: 'include'`). It sends `listUsers` the access token `/api/auth/me` returns. Under the cookie
+  transport, `sign-in` and `logout` answer `302`, so it navigates the browser to them and does not fetch them. At a
+  round start (`updateGame` with `Starting`) it zeroes every round score and keeps the game totals, so an unrecorded
+  round stops showing stale scores. The switch (#841), that reset included, is part of the same activation.
 - `packages/ligretto-shared/apiTypes.ts` is deleted when both are on the generated client.
 
 The consumers' new calls (`/internal/*`, `sub`/`name` in users) do not exist on the old package, so switching a
