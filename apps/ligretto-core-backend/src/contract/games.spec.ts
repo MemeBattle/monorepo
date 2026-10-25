@@ -12,8 +12,8 @@ import {
   saveRoundRequestSchema,
   saveRoundResponseSchema,
   unknownPlayersSchema,
-} from './games'
-import { invalidInternalTokenSchema } from './internal-auth'
+} from './games.ts'
+import { invalidInternalTokenSchema } from './internal-auth.ts'
 
 const ROUND_ID = '6f1c2d4e-8a9b-4c3d-9e2f-1a2b3c4d5e6f'
 

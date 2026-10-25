@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { createTestDatabase } from '../../../test/support/pglite'
-import { seedUsers } from '../../../test/support/seed'
-import type { UserProfile } from '../../core/ports/users-repository'
-import { createPgUsersRepository, upsertUser } from './users-repository'
+import { createTestDatabase } from '../../../test/support/pglite.ts'
+import { seedUsers } from '../../../test/support/seed.ts'
+import type { UserProfile } from '../../core/ports/users-repository.ts'
+import { createPgUsersRepository, upsertUser } from './users-repository.ts'
 
 const alice: UserProfile = { sub: 'alice', accountType: 'full', displayName: 'Alice', avatarUrl: 'https://cdn.test/alice.png' }
 const bob: UserProfile = { sub: 'bob', accountType: 'guest', displayName: null, avatarUrl: null }

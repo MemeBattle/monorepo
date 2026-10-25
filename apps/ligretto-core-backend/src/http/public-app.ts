@@ -1,12 +1,12 @@
 import { createMiddleware } from 'hono/factory'
 import { cors } from 'hono/cors'
 
-import { createBaseApp } from './app'
-import { registerAuth } from './auth'
-import { registerHealth } from './health'
-import { publicApiDocument } from './openapi'
-import type { AppEnv, PublicAppDeps } from './types'
-import { registerUsers } from './users'
+import { createBaseApp } from './app.ts'
+import { registerAuth } from './auth.ts'
+import { registerHealth } from './health.ts'
+import { publicApiDocument } from './openapi.ts'
+import type { AppEnv, PublicAppDeps } from './types.ts'
+import { registerUsers } from './users.ts'
 
 /**
  * Credentialed CORS for the configured origins and nothing else: an exact match, so

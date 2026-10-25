@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { disposableDatabaseUrl } from './disposable-database'
+import { disposableDatabaseUrl } from './disposable-database.ts'
 
 const at = (database: string) => `postgres://ligretto-core-user:ligretto_pg_password@localhost:5433/${database}`
 

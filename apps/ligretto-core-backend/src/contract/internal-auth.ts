@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { errorResponseSchema } from './error'
+import { errorResponseSchema } from './error.ts'
 
 /** The refusal of every internal route without a configured `Authorization: Bearer` token. */
 export const invalidInternalTokenSchema = errorResponseSchema

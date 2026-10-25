@@ -1,10 +1,10 @@
 import { InvalidTokenError, type AccessTokenClaims, type AuthHandlers } from '@memebattle/ligretto-auth'
 
-import { createFixedClock } from '../core/ports/clock.fake'
-import { okProbe } from '../core/ports/database-probe.fake'
-import { createRecordingLogger, type LogEntry } from '../core/ports/logger.fake'
-import { createFakeUsersRepository } from '../core/ports/users-repository.fake'
-import type { PublicAppDeps } from './types'
+import { createFixedClock } from '../core/ports/clock.fake.ts'
+import { okProbe } from '../core/ports/database-probe.fake.ts'
+import { createRecordingLogger, type LogEntry } from '../core/ports/logger.fake.ts'
+import { createFakeUsersRepository } from '../core/ports/users-repository.fake.ts'
+import type { PublicAppDeps } from './types.ts'
 
 /** The one token the fake verifier accepts. */
 export const VALID_ACCESS_TOKEN = 'valid-token'

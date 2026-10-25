@@ -9,7 +9,7 @@
 import { createAuthHandlers, createInMemorySessionStore } from '@memebattle/ligretto-auth'
 import type { AuthHandlers, CasClient, SessionStore, SessionTransportKind } from '@memebattle/ligretto-auth'
 
-import { refreshTokenFor, tokensOf } from './session-store'
+import { refreshTokenFor, tokensOf } from './session-store.ts'
 
 /** Where the handlers send a browser once a sign-in or a logout is over. */
 export const APP_URL = 'http://127.0.0.1:5174/'

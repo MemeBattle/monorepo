@@ -1,6 +1,6 @@
-import { ACCOUNT_TYPES } from '../../core/ports/users-repository'
-import type { AccountType, UserProfile, UsersRepository } from '../../core/ports/users-repository'
-import type { Database } from './database'
+import { ACCOUNT_TYPES } from '../../core/ports/users-repository.ts'
+import type { AccountType, UserProfile, UsersRepository } from '../../core/ports/users-repository.ts'
+import type { Database } from './database.ts'
 
 /** The CHECK constraint on `account_type` makes another value impossible, so one is a bug, not an expected failure. */
 export const toAccountType = (value: string): AccountType => {

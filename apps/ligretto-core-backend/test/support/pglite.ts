@@ -1,9 +1,9 @@
 import { PGlite } from '@electric-sql/pglite'
 import { Kysely, PGliteDialect } from 'kysely'
 
-import type { Database } from '../../src/adapters/pg/database'
-import type { DB } from '../../src/adapters/pg/schema.generated'
-import { migrate } from './migrations'
+import type { Database } from '../../src/adapters/pg/database.ts'
+import type { DB } from '../../src/adapters/pg/schema.generated.ts'
+import { migrate } from './migrations.ts'
 
 /**
  * An in-memory PGlite database with the real migrations applied (docs/adrs/testing-strategy.md). One per spec file,

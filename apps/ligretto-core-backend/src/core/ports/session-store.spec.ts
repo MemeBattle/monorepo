@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { SessionBusyError } from './session-store'
-import type { SessionBusyReason } from './session-store'
+import { SessionBusyError } from './session-store.ts'
+import type { SessionBusyReason } from './session-store.ts'
 
 const REASONS: SessionBusyReason[] = ['lock_timeout', 'deadline', 'attempts']
 

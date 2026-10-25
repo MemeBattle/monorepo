@@ -1,4 +1,4 @@
-import type { LogFields, Logger } from './logger'
+import type { LogFields, Logger } from './logger.ts'
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 

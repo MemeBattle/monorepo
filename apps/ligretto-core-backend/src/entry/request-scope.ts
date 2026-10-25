@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 
-import { createLazyClient, createScopedDatabase } from '../adapters/pg/database'
-import type { DatabaseHandles, LazyClient } from '../adapters/pg/database'
+import { createLazyClient, createScopedDatabase } from '../adapters/pg/database.ts'
+import type { DatabaseHandles, LazyClient } from '../adapters/pg/database.ts'
 
 type Scope = { main: LazyClient; locks: LazyClient }
 

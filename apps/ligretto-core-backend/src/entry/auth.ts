@@ -1,10 +1,10 @@
 import { createAuthHandlers, createCasClient, createDiscoveryCache, verifyAccessToken } from '@memebattle/ligretto-auth'
 import type { AccessTokenClaims, AuthHandlers } from '@memebattle/ligretto-auth'
 
-import type { DatabaseHandles } from '../adapters/pg/database'
-import { createPgSessionStore } from '../adapters/pg/session-store'
-import type { AuthConfig } from '../core/config'
-import type { Clock } from '../core/ports/clock'
+import type { DatabaseHandles } from '../adapters/pg/database.ts'
+import { createPgSessionStore } from '../adapters/pg/session-store.ts'
+import type { AuthConfig } from '../core/config.ts'
+import type { Clock } from '../core/ports/clock.ts'
 
 /**
  * The audience CAS mints this service's access tokens for: ligretto is registered with `--audience ligretto`

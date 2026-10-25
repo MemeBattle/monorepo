@@ -5,7 +5,7 @@
 import type { AccountType, CasClient, Session, Tokens } from '@memebattle/ligretto-auth'
 import pg from 'pg'
 
-import type { Database } from '../../src/adapters/pg/database'
+import type { Database } from '../../src/adapters/pg/database.ts'
 
 /**
  * A refresh token that names the account it belongs to and which rotation it is.

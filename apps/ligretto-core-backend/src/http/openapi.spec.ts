@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { createFixedClock } from '../core/ports/clock.fake'
-import { okProbe } from '../core/ports/database-probe.fake'
-import { createFakeGamesRepository } from '../core/ports/games-repository.fake'
-import { createRecordingLogger } from '../core/ports/logger.fake'
-import { createFakePublicDeps } from './deps.fake'
-import { createInternalApp } from './internal-app'
-import { internalApiDocument, publicApiDocument } from './openapi'
-import { createPublicApp } from './public-app'
+import { createFixedClock } from '../core/ports/clock.fake.ts'
+import { okProbe } from '../core/ports/database-probe.fake.ts'
+import { createFakeGamesRepository } from '../core/ports/games-repository.fake.ts'
+import { createRecordingLogger } from '../core/ports/logger.fake.ts'
+import { createFakePublicDeps } from './deps.fake.ts'
+import { createInternalApp } from './internal-app.ts'
+import { internalApiDocument, publicApiDocument } from './openapi.ts'
+import { createPublicApp } from './public-app.ts'
 
 const deps = () => ({ logger: createRecordingLogger().logger, clock: createFixedClock(), database: okProbe() })
 

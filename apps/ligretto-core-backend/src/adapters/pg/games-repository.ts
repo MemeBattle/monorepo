@@ -1,8 +1,8 @@
 import type { Transaction } from 'kysely'
 
-import type { GamesRepository, LockedGame } from '../../core/ports/games-repository'
-import type { Database } from './database'
-import type { DB } from './schema.generated'
+import type { GamesRepository, LockedGame } from '../../core/ports/games-repository.ts'
+import type { Database } from './database.ts'
+import type { DB } from './schema.generated.ts'
 
 /** Every query runs on `trx`, the transaction holding the game's row lock, and on nothing else. */
 const lockedGame = (trx: Transaction<DB>, gameId: string): LockedGame => ({

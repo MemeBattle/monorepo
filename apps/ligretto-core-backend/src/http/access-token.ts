@@ -1,9 +1,9 @@
 import { DiscoveryError, InvalidTokenError } from '@memebattle/ligretto-auth'
 import { createMiddleware } from 'hono/factory'
 
-import type { CasUnavailable, Unauthorized } from '../contract/users'
-import { bearerTokenOf } from './bearer'
-import type { AppEnv, PublicAppDeps } from './types'
+import type { CasUnavailable, Unauthorized } from '../contract/users.ts'
+import { bearerTokenOf } from './bearer.ts'
+import type { AppEnv, PublicAppDeps } from './types.ts'
 
 /**
  * The CAS access token of a public route (docs/adrs/api-contract-openapi-and-client-package.md): an

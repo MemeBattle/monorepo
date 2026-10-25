@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { errorResponseSchema } from './error'
+import { errorResponseSchema } from './error.ts'
 
 /** The range of the Postgres `integer` column `round_users.score`. */
 export const INT32_MIN = -2147483648

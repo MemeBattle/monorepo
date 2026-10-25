@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { createFakeAuthSweepStore } from './ports/auth-sweep-store.fake'
-import { createFixedClock } from './ports/clock.fake'
-import { createRecordingLogger } from './ports/logger.fake'
-import { createSweepExpiredAuth } from './sweep'
+import { createFakeAuthSweepStore } from './ports/auth-sweep-store.fake.ts'
+import { createFixedClock } from './ports/clock.fake.ts'
+import { createRecordingLogger } from './ports/logger.fake.ts'
+import { createSweepExpiredAuth } from './sweep.ts'
 
 const RETENTION_MS = 7 * 24 * 60 * 60 * 1000
 /** Far enough along that a whole retention window still leaves positive epochs. */

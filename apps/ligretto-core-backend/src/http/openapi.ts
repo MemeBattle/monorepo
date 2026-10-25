@@ -1,6 +1,6 @@
 import type { OpenAPIHono } from '@hono/zod-openapi'
 
-import type { AppEnv } from './types'
+import type { AppEnv } from './types.ts'
 
 /** The version of the documents; the contract changes additively, so it stays until a breaking change. */
 const VERSION = '0.1.0'

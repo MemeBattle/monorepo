@@ -2,8 +2,8 @@ import { Kysely, PostgresDialect } from 'kysely'
 import type { PostgresPool } from 'kysely'
 import pg from 'pg'
 
-import type { DatabaseConfig } from '../../core/config'
-import type { DB } from './schema.generated'
+import type { DatabaseConfig } from '../../core/config.ts'
+import type { DB } from './schema.generated.ts'
 
 /**
  * The database handles of docs/adrs/database-access-with-kysely.md. The adapters receive these `Kysely<DB>` instances

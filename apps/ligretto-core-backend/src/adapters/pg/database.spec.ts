@@ -2,9 +2,9 @@ import { sql } from 'kysely'
 import pg from 'pg'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createLazyClient, createNodeDatabases, createScopedDatabase } from './database'
-import type { DatabaseHandleName } from './database'
-import { createPgDatabaseProbe } from './probe'
+import { createLazyClient, createNodeDatabases, createScopedDatabase } from './database.ts'
+import type { DatabaseHandleName } from './database.ts'
+import { createPgDatabaseProbe } from './probe.ts'
 
 /**
  * A `pg.Client` that never opens a socket: `connect` and `end` succeed at once and every query answers one fixed row.

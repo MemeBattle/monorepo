@@ -1,7 +1,7 @@
-import type { AuthSweepStore } from '../../core/ports/auth-sweep-store'
-import type { DatabaseHandles } from './database'
-import { acquireSessionLock, lockSettingsOf } from './session-store'
-import type { SessionLockOptions } from './session-store'
+import type { AuthSweepStore } from '../../core/ports/auth-sweep-store.ts'
+import type { DatabaseHandles } from './database.ts'
+import { acquireSessionLock, lockSettingsOf } from './session-store.ts'
+import type { SessionLockOptions } from './session-store.ts'
 
 /**
  * The sweep's statements on Postgres. Everything runs on `main` except the lock transaction, which runs on `locks`

@@ -1,6 +1,6 @@
-import type { GamesRepository, LockedGame, RoundResult } from './games-repository'
-import { createFakeUsersRepository } from './users-repository.fake'
-import type { FakeUsersRepository } from './users-repository.fake'
+import type { GamesRepository, LockedGame, RoundResult } from './games-repository.ts'
+import { createFakeUsersRepository } from './users-repository.fake.ts'
+import type { FakeUsersRepository } from './users-repository.fake.ts'
 
 type StoredRound = { gameId: string; results: RoundResult[] }
 

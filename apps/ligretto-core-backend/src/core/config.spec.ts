@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { ConfigError, loadAuthConfig, loadConfig, loadDatabaseConfig, loadHttpConfig, loadInternalApiConfig, loadLoggingConfig } from './config'
+import { ConfigError, loadAuthConfig, loadConfig, loadDatabaseConfig, loadHttpConfig, loadInternalApiConfig, loadLoggingConfig } from './config.ts'
 
 const database = { DATABASE_URL: 'postgres://user:password@localhost:5433/ligretto-core' }
 

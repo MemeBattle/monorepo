@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
-import { createConsoleLogger } from './console-logger'
+import { createConsoleLogger } from './console-logger.ts'
 
 describe('createConsoleLogger', () => {
   let log: MockInstance<typeof console.log>

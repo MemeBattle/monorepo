@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { createTestDatabase } from '../../../test/support/pglite'
-import { seedUsers } from '../../../test/support/seed'
-import type { GamesRepository, RoundResult } from '../../core/ports/games-repository'
-import { createFakeGamesRepository } from '../../core/ports/games-repository.fake'
-import { createFakeUsersRepository } from '../../core/ports/users-repository.fake'
-import { createPgGamesRepository } from './games-repository'
+import { createTestDatabase } from '../../../test/support/pglite.ts'
+import { seedUsers } from '../../../test/support/seed.ts'
+import type { GamesRepository, RoundResult } from '../../core/ports/games-repository.ts'
+import { createFakeGamesRepository } from '../../core/ports/games-repository.fake.ts'
+import { createFakeUsersRepository } from '../../core/ports/users-repository.fake.ts'
+import { createPgGamesRepository } from './games-repository.ts'
 
 /** One implementation under the contract, with what the assertions need to look behind it. */
 type Subject = {

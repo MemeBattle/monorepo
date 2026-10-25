@@ -1,11 +1,11 @@
 import { DiscoveryError, InvalidTokenError } from '@memebattle/ligretto-auth'
 import { describe, expect, it } from 'vitest'
 
-import { casUnavailableSchema, unauthorizedSchema } from '../contract/users'
-import { createFakeUsersRepository } from '../core/ports/users-repository.fake'
-import { claimsOf, createFakePublicDeps, VALID_ACCESS_TOKEN } from './deps.fake'
-import { createPublicApp } from './public-app'
-import type { PublicAppDeps } from './types'
+import { casUnavailableSchema, unauthorizedSchema } from '../contract/users.ts'
+import { createFakeUsersRepository } from '../core/ports/users-repository.fake.ts'
+import { claimsOf, createFakePublicDeps, VALID_ACCESS_TOKEN } from './deps.fake.ts'
+import { createPublicApp } from './public-app.ts'
+import type { PublicAppDeps } from './types.ts'
 
 const setup = (verifyAccessToken?: PublicAppDeps['verifyAccessToken']) => {
   const received: string[] = []

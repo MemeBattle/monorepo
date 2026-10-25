@@ -1,7 +1,7 @@
 import { createRoute } from '@hono/zod-openapi'
 
-import { createCreateGame, createSaveRound } from '../core/games'
-import { validationFailedSchema } from '../contract/error'
+import { createCreateGame, createSaveRound } from '../core/games.ts'
+import { validationFailedSchema } from '../contract/error.ts'
 import {
   createGameResponseSchema,
   gameIdParamsSchema,
@@ -15,10 +15,10 @@ import {
   type RoundConflict,
   type SaveRoundResponse,
   type UnknownPlayers,
-} from '../contract/games'
-import { invalidInternalTokenSchema } from '../contract/internal-auth'
-import type { BaseApp } from './app'
-import type { InternalAppDeps } from './types'
+} from '../contract/games.ts'
+import { invalidInternalTokenSchema } from '../contract/internal-auth.ts'
+import type { BaseApp } from './app.ts'
+import type { InternalAppDeps } from './types.ts'
 
 /** The security scheme of every `/internal` route, registered once in the internal document. */
 const SECURITY_SCHEME = 'internalToken'

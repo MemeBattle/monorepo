@@ -8,6 +8,9 @@
     "moduleResolution": "bundler",
     "strict": true,
     "noEmit": true,
+    // Relative imports name the file with its `.ts` extension, which Wrangler, vitest and tsx resolve as written and
+    // the Node build (tsconfig.build.json) rewrites to `.js` (docs/adrs/node-build-and-import-specifiers.md).
+    "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "skipLibCheck": true,
     "resolveJsonModule": true

@@ -5,14 +5,14 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 
-import { createConsoleLogger } from '../adapters/console-logger'
-import { systemClock } from '../adapters/system-clock'
-import type { DatabaseProbe } from '../core/ports/database-probe'
-import type { GamesRepository } from '../core/ports/games-repository'
-import type { UsersRepository } from '../core/ports/users-repository'
-import { createInternalApp } from '../http/internal-app'
-import { internalApiDocument, publicApiDocument } from '../http/openapi'
-import { createPublicApp } from '../http/public-app'
+import { createConsoleLogger } from '../adapters/console-logger.ts'
+import { systemClock } from '../adapters/system-clock.ts'
+import type { DatabaseProbe } from '../core/ports/database-probe.ts'
+import type { GamesRepository } from '../core/ports/games-repository.ts'
+import type { UsersRepository } from '../core/ports/users-repository.ts'
+import { createInternalApp } from '../http/internal-app.ts'
+import { internalApiDocument, publicApiDocument } from '../http/openapi.ts'
+import { createPublicApp } from '../http/public-app.ts'
 
 const inert = (name: string) => () => {
   throw new Error(`${name} is not available while generating the OpenAPI documents`)

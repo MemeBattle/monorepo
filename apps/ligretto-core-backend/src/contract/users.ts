@@ -1,7 +1,7 @@
 import { AuthUserSchema } from '@memebattle/ligretto-auth/schema'
 import { z } from 'zod'
 
-import { errorResponseSchema } from './error'
+import { errorResponseSchema } from './error.ts'
 
 /** The most ids one `GET /api/users` looks up. */
 export const MAX_USER_IDS = 100

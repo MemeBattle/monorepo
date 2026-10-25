@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import pg from 'pg'
 import { beforeAll, describe, expect, it } from 'vitest'
 
-import { disposableDatabaseUrl, resetDatabase } from '../support/disposable-database'
+import { disposableDatabaseUrl, resetDatabase } from '../support/disposable-database.ts'
 
 const packageDir = fileURLToPath(new URL('../../', import.meta.url))
 const tsx = fileURLToPath(new URL('../../node_modules/.bin/tsx', import.meta.url))

@@ -1,10 +1,10 @@
 import { Kysely, PostgresDialect } from 'kysely'
 import pg from 'pg'
 
-import type { Database, DatabaseHandles } from '../../src/adapters/pg/database'
-import type { DB } from '../../src/adapters/pg/schema.generated'
-import { resetDatabase } from './disposable-database'
-import { migrate } from './migrations'
+import type { Database, DatabaseHandles } from '../../src/adapters/pg/database.ts'
+import type { DB } from '../../src/adapters/pg/schema.generated.ts'
+import { resetDatabase } from './disposable-database.ts'
+import { migrate } from './migrations.ts'
 
 export const resetAndMigrate = async (url: string): Promise<void> => {
   await resetDatabase(url)

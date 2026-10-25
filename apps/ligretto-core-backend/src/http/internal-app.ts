@@ -1,8 +1,8 @@
-import { createBaseApp } from './app'
-import { registerGames } from './games'
-import { registerHealth } from './health'
-import { internalAuth } from './internal-auth'
-import type { InternalAppDeps } from './types'
+import { createBaseApp } from './app.ts'
+import { registerGames } from './games.ts'
+import { registerHealth } from './health.ts'
+import { internalAuth } from './internal-auth.ts'
+import type { InternalAppDeps } from './types.ts'
 
 /**
  * The internal API for other services. No CORS: browsers are not its clients. `/health` stays open as the liveness

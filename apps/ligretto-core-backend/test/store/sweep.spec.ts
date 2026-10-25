@@ -3,16 +3,16 @@ import { refreshSession, SESSION_COOKIE_GRACE_MS } from '@memebattle/ligretto-au
 import type { SessionContext } from '@memebattle/ligretto-auth'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { createPgAuthSweepStore } from '../../src/adapters/pg/auth-sweep-store'
-import { createPgSessionStore } from '../../src/adapters/pg/session-store'
-import type { SessionLockOptions } from '../../src/adapters/pg/session-store'
-import { createFixedClock } from '../../src/core/ports/clock.fake'
-import { createRecordingLogger } from '../../src/core/ports/logger.fake'
-import { createSweepExpiredAuth } from '../../src/core/sweep'
-import { disposableDatabaseUrl } from '../support/disposable-database'
-import { openHandles, resetAndMigrate } from '../support/postgres'
-import type { OpenHandles } from '../support/postgres'
-import { createGatedCas, gate, refreshTokenFor, sessionOf, settlementOf, sleep, truncateAuthTables, until } from '../support/session-store'
+import { createPgAuthSweepStore } from '../../src/adapters/pg/auth-sweep-store.ts'
+import { createPgSessionStore } from '../../src/adapters/pg/session-store.ts'
+import type { SessionLockOptions } from '../../src/adapters/pg/session-store.ts'
+import { createFixedClock } from '../../src/core/ports/clock.fake.ts'
+import { createRecordingLogger } from '../../src/core/ports/logger.fake.ts'
+import { createSweepExpiredAuth } from '../../src/core/sweep.ts'
+import { disposableDatabaseUrl } from '../support/disposable-database.ts'
+import { openHandles, resetAndMigrate } from '../support/postgres.ts'
+import type { OpenHandles } from '../support/postgres.ts'
+import { createGatedCas, gate, refreshTokenFor, sessionOf, settlementOf, sleep, truncateAuthTables, until } from '../support/session-store.ts'
 
 const url = disposableDatabaseUrl()
 /** Far enough along that a whole grace window still leaves positive epochs to write. */

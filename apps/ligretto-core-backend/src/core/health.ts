@@ -1,5 +1,5 @@
-import type { Clock } from './ports/clock'
-import type { DatabaseProbe } from './ports/database-probe'
+import type { Clock } from './ports/clock.ts'
+import type { DatabaseProbe } from './ports/database-probe.ts'
 
 /**
  * The outcome of the health check. A domain type owned by `src/core`: the wire schema of the same shape is declared

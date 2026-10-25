@@ -12,13 +12,13 @@ import type { PendingAuthorizationRequest, Session, SessionStore } from '@memeba
 import { sql } from 'kysely'
 import type { Selectable, Transaction } from 'kysely'
 
-import type { Clock } from '../../core/ports/clock'
-import { SessionBusyError } from '../../core/ports/session-store'
-import type { UserProfile } from '../../core/ports/users-repository'
-import { systemClock } from '../system-clock'
-import type { Database, DatabaseHandles } from './database'
-import type { AuthRequests, DB, Sessions } from './schema.generated'
-import { toAccountType, upsertUser } from './users-repository'
+import type { Clock } from '../../core/ports/clock.ts'
+import { SessionBusyError } from '../../core/ports/session-store.ts'
+import type { UserProfile } from '../../core/ports/users-repository.ts'
+import { systemClock } from '../system-clock.ts'
+import type { Database, DatabaseHandles } from './database.ts'
+import type { AuthRequests, DB, Sessions } from './schema.generated.ts'
+import { toAccountType, upsertUser } from './users-repository.ts'
 
 /** How long a take of a session's lock may wait, and how often it retries a vanished row. */
 export interface SessionLockOptions {

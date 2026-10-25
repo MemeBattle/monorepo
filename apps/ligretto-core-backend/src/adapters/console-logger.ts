@@ -1,4 +1,4 @@
-import type { LogFields, Logger } from '../core/ports/logger'
+import type { LogFields, Logger } from '../core/ports/logger.ts'
 
 type ConsoleLoggerOptions = {
   level: 'debug' | 'info'

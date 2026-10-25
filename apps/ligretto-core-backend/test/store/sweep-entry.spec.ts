@@ -5,12 +5,12 @@ import { fileURLToPath } from 'node:url'
 import { SESSION_COOKIE_GRACE_MS } from '@memebattle/ligretto-auth'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { createPgSessionStore } from '../../src/adapters/pg/session-store'
-import { systemClock } from '../../src/adapters/system-clock'
-import { disposableDatabaseUrl } from '../support/disposable-database'
-import { openHandles, resetAndMigrate } from '../support/postgres'
-import type { OpenHandles } from '../support/postgres'
-import { sessionOf } from '../support/session-store'
+import { createPgSessionStore } from '../../src/adapters/pg/session-store.ts'
+import { systemClock } from '../../src/adapters/system-clock.ts'
+import { disposableDatabaseUrl } from '../support/disposable-database.ts'
+import { openHandles, resetAndMigrate } from '../support/postgres.ts'
+import type { OpenHandles } from '../support/postgres.ts'
+import { sessionOf } from '../support/session-store.ts'
 
 const packageDir = fileURLToPath(new URL('../../', import.meta.url))
 const tsx = fileURLToPath(new URL('../../node_modules/.bin/tsx', import.meta.url))

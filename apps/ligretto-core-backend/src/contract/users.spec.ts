@@ -2,8 +2,8 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
-import { sessionBusySchema } from './auth'
-import { authUserSchema, casUnavailableSchema, listUsersQuerySchema, MAX_USER_IDS, unauthorizedSchema } from './users'
+import { sessionBusySchema } from './auth.ts'
+import { authUserSchema, casUnavailableSchema, listUsersQuerySchema, MAX_USER_IDS, unauthorizedSchema } from './users.ts'
 
 const ids = (count: number) => Array.from({ length: count }, (_, index) => `sub-${index}`)
 

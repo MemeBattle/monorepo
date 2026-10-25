@@ -1,4 +1,4 @@
-import type { UserProfile, UsersRepository } from './users-repository'
+import type { UserProfile, UsersRepository } from './users-repository.ts'
 
 export type FakeUsersRepository = UsersRepository & {
   /** Adds or replaces a profile, as a grant would. */

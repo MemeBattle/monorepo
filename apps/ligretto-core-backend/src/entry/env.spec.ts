@@ -4,7 +4,7 @@ import path from 'node:path'
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { loadDevelopmentEnv } from './env'
+import { loadDevelopmentEnv } from './env.ts'
 
 // A variable no shell sets, so a developer's environment cannot influence the cases; DATABASE_URL resolves the same way.
 const KEY = 'LIGRETTO_CORE_ENV_SPEC_VALUE'

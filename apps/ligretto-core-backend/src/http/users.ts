@@ -1,11 +1,11 @@
 import { createRoute } from '@hono/zod-openapi'
 
-import { createListUsers } from '../core/users'
-import { validationFailedSchema } from '../contract/error'
-import { casUnavailableSchema, listUsersQuerySchema, listUsersResponseSchema, unauthorizedSchema, type ListUsersResponse } from '../contract/users'
-import { accessToken } from './access-token'
-import type { BaseApp } from './app'
-import type { PublicAppDeps } from './types'
+import { createListUsers } from '../core/users.ts'
+import { validationFailedSchema } from '../contract/error.ts'
+import { casUnavailableSchema, listUsersQuerySchema, listUsersResponseSchema, unauthorizedSchema, type ListUsersResponse } from '../contract/users.ts'
+import { accessToken } from './access-token.ts'
+import type { BaseApp } from './app.ts'
+import type { PublicAppDeps } from './types.ts'
 
 /** The security scheme of the public routes that take a CAS access token, registered once in the public document. */
 const SECURITY_SCHEME = 'accessToken'

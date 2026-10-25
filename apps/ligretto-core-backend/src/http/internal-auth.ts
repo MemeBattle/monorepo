@@ -1,9 +1,9 @@
 import { createMiddleware } from 'hono/factory'
 import { timingSafeEqual } from 'hono/utils/buffer'
 
-import type { InvalidInternalToken } from '../contract/internal-auth'
-import { bearerTokenOf } from './bearer'
-import type { AppEnv } from './types'
+import type { InvalidInternalToken } from '../contract/internal-auth.ts'
+import { bearerTokenOf } from './bearer.ts'
+import type { AppEnv } from './types.ts'
 
 /**
  * The shared secret of the internal API (docs/adrs/internal-api-and-service-authentication.md): the bearer token

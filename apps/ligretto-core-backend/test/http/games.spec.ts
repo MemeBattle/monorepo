@@ -3,9 +3,9 @@
 // GamesController.test.ts; the GET /api/games cases have no successor.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { createPgGamesRepository } from '../../src/adapters/pg/games-repository'
-import { createPgDatabaseProbe } from '../../src/adapters/pg/probe'
-import { validationFailedSchema } from '../../src/contract/error'
+import { createPgGamesRepository } from '../../src/adapters/pg/games-repository.ts'
+import { createPgDatabaseProbe } from '../../src/adapters/pg/probe.ts'
+import { validationFailedSchema } from '../../src/contract/error.ts'
 import {
   INT32_MAX,
   INT32_MIN,
@@ -14,12 +14,12 @@ import {
   roundConflictSchema,
   saveRoundResponseSchema,
   unknownPlayersSchema,
-} from '../../src/contract/games'
-import { createFixedClock } from '../../src/core/ports/clock.fake'
-import { createRecordingLogger } from '../../src/core/ports/logger.fake'
-import { createInternalApp } from '../../src/http/internal-app'
-import { createTestDatabase } from '../support/pglite'
-import { seedUsers } from '../support/seed'
+} from '../../src/contract/games.ts'
+import { createFixedClock } from '../../src/core/ports/clock.fake.ts'
+import { createRecordingLogger } from '../../src/core/ports/logger.fake.ts'
+import { createInternalApp } from '../../src/http/internal-app.ts'
+import { createTestDatabase } from '../support/pglite.ts'
+import { seedUsers } from '../support/seed.ts'
 
 const TOKEN = 'test-internal-token'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/

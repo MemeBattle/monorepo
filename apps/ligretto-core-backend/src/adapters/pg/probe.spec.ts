@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { createTestDatabase } from '../../../test/support/pglite'
-import { createCheckHealth } from '../../core/health'
-import { createFixedClock } from '../../core/ports/clock.fake'
-import { createPgDatabaseProbe } from './probe'
+import { createTestDatabase } from '../../../test/support/pglite.ts'
+import { createCheckHealth } from '../../core/health.ts'
+import { createFixedClock } from '../../core/ports/clock.fake.ts'
+import { createPgDatabaseProbe } from './probe.ts'
 
 describe('createPgDatabaseProbe', () => {
   let database: Awaited<ReturnType<typeof createTestDatabase>>

@@ -22,10 +22,10 @@
  * (docs/adrs/logging.md).
  */
 
-import type { AuthSweepStore } from './ports/auth-sweep-store'
-import type { Clock } from './ports/clock'
-import type { Logger } from './ports/logger'
-import { SessionBusyError } from './ports/session-store'
+import type { AuthSweepStore } from './ports/auth-sweep-store.ts'
+import type { Clock } from './ports/clock.ts'
+import type { Logger } from './ports/logger.ts'
+import { SessionBusyError } from './ports/session-store.ts'
 
 export interface SweepCounts {
   authRequests: number

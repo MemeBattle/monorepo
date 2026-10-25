@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import type { UserProfile, UsersRepository } from './ports/users-repository'
-import { createFakeUsersRepository } from './ports/users-repository.fake'
-import { createListUsers } from './users'
+import type { UserProfile, UsersRepository } from './ports/users-repository.ts'
+import { createFakeUsersRepository } from './ports/users-repository.fake.ts'
+import { createListUsers } from './users.ts'
 
 const ALICE: UserProfile = { sub: 'alice', accountType: 'full', displayName: 'Alice', avatarUrl: 'https://avatars.example/alice' }
 const GUEST: UserProfile = { sub: 'guest', accountType: 'guest', displayName: null, avatarUrl: null }

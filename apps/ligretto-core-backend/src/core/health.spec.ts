@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createCheckHealth } from './health'
-import { createFixedClock } from './ports/clock.fake'
-import type { DatabaseProbe } from './ports/database-probe'
-import { failingProbe, hangingProbe, okProbe } from './ports/database-probe.fake'
+import { createCheckHealth } from './health.ts'
+import { createFixedClock } from './ports/clock.fake.ts'
+import type { DatabaseProbe } from './ports/database-probe.ts'
+import { failingProbe, hangingProbe, okProbe } from './ports/database-probe.fake.ts'
 
 /** A probe that moves the clock while the database "answers", so the duration is measurable. */
 const slow = (probe: DatabaseProbe, clock: ReturnType<typeof createFixedClock>, ms: number): DatabaseProbe => ({

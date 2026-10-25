@@ -2,13 +2,13 @@
 // Postgres with two independent pools.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import type { Database } from '../../src/adapters/pg/database'
-import { createPgGamesRepository } from '../../src/adapters/pg/games-repository'
-import { upsertUser } from '../../src/adapters/pg/users-repository'
-import { disposableDatabaseUrl } from '../support/disposable-database'
-import { openDatabase, resetAndMigrate } from '../support/postgres'
-import { seedUsers } from '../support/seed'
-import { createLockObserver, gate } from '../support/session-store'
+import type { Database } from '../../src/adapters/pg/database.ts'
+import { createPgGamesRepository } from '../../src/adapters/pg/games-repository.ts'
+import { upsertUser } from '../../src/adapters/pg/users-repository.ts'
+import { disposableDatabaseUrl } from '../support/disposable-database.ts'
+import { openDatabase, resetAndMigrate } from '../support/postgres.ts'
+import { seedUsers } from '../support/seed.ts'
+import { createLockObserver, gate } from '../support/session-store.ts'
 
 const url = disposableDatabaseUrl()
 

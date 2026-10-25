@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { invalidInternalTokenSchema } from '../contract/internal-auth'
-import { createFixedClock } from '../core/ports/clock.fake'
-import { okProbe } from '../core/ports/database-probe.fake'
-import { createFakeGamesRepository } from '../core/ports/games-repository.fake'
-import { createRecordingLogger } from '../core/ports/logger.fake'
-import { createInternalApp } from './internal-app'
+import { invalidInternalTokenSchema } from '../contract/internal-auth.ts'
+import { createFixedClock } from '../core/ports/clock.fake.ts'
+import { okProbe } from '../core/ports/database-probe.fake.ts'
+import { createFakeGamesRepository } from '../core/ports/games-repository.fake.ts'
+import { createRecordingLogger } from '../core/ports/logger.fake.ts'
+import { createInternalApp } from './internal-app.ts'
 
 const setup = () => {
   const games = createFakeGamesRepository()

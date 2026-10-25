@@ -6,9 +6,9 @@ import { fileURLToPath } from 'node:url'
 
 import { Cli } from 'kysely-codegen'
 
-import { createConsoleLogger } from '../adapters/console-logger'
-import { loadDatabaseConfig, loadLoggingConfig } from '../core/config'
-import { loadDevelopmentEnv } from './env'
+import { createConsoleLogger } from '../adapters/console-logger.ts'
+import { loadDatabaseConfig, loadLoggingConfig } from '../core/config.ts'
+import { loadDevelopmentEnv } from './env.ts'
 
 loadDevelopmentEnv()
 

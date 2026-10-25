@@ -3,8 +3,8 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
-import { internalErrorSchema, validationFailedSchema } from './error'
-import { healthReportSchema } from './health'
+import { internalErrorSchema, validationFailedSchema } from './error.ts'
+import { healthReportSchema } from './health.ts'
 
 describe('healthReportSchema', () => {
   it('accepts an ok report', () => {

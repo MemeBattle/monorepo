@@ -1,4 +1,4 @@
-import type { UserProfile, UsersRepository } from './ports/users-repository'
+import type { UserProfile, UsersRepository } from './ports/users-repository.ts'
 
 /**
  * The profile lookup of `GET /api/users` (docs/DESIGN.md § Routes): the latest snapshot of each subject that has one.

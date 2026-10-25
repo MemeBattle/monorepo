@@ -1,7 +1,7 @@
 import { createMiddleware } from 'hono/factory'
 
-import type { Clock } from '../core/ports/clock'
-import type { AppEnv } from './types'
+import type { Clock } from '../core/ports/clock.ts'
+import type { AppEnv } from './types.ts'
 
 /** One line per request on completion (docs/adrs/logging.md): no query string, no headers, no body. */
 export const requestLog = (clock: Clock) =>

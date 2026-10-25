@@ -1,4 +1,4 @@
-import type { DatabaseProbe } from './database-probe'
+import type { DatabaseProbe } from './database-probe.ts'
 
 export const okProbe = (): DatabaseProbe => ({ ping: () => Promise.resolve() })
 

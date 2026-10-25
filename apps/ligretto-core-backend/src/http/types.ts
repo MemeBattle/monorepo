@@ -1,10 +1,10 @@
 import type { AccessTokenClaims, AuthHandlers } from '@memebattle/ligretto-auth'
 
-import type { Clock } from '../core/ports/clock'
-import type { DatabaseProbe } from '../core/ports/database-probe'
-import type { GamesRepository } from '../core/ports/games-repository'
-import type { Logger } from '../core/ports/logger'
-import type { UsersRepository } from '../core/ports/users-repository'
+import type { Clock } from '../core/ports/clock.ts'
+import type { DatabaseProbe } from '../core/ports/database-probe.ts'
+import type { GamesRepository } from '../core/ports/games-repository.ts'
+import type { Logger } from '../core/ports/logger.ts'
+import type { UsersRepository } from '../core/ports/users-repository.ts'
 
 /** What the middleware puts on the context for everything after it. */
 export type AppEnv = {

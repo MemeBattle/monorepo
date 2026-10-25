@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { errorResponseSchema } from './error'
+import { errorResponseSchema } from './error.ts'
 
 /**
  * The answer of an auth route whose session lock was not granted in time: this service's addition to the codes of

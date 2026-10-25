@@ -1,5 +1,5 @@
-import type { AuthSweepStore } from './auth-sweep-store'
-import { SessionBusyError } from './session-store'
+import type { AuthSweepStore } from './auth-sweep-store.ts'
+import { SessionBusyError } from './session-store.ts'
 
 export type FakeAuthSweepStore = AuthSweepStore & {
   /** Pending sign-ins: `state → expiresAt`. */

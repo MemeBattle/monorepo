@@ -1,9 +1,9 @@
 import { createRoute } from '@hono/zod-openapi'
 
-import { createCheckHealth } from '../core/health'
-import { healthReportSchema, type HealthReport } from '../contract/health'
-import type { BaseApp } from './app'
-import type { AppDeps } from './types'
+import { createCheckHealth } from '../core/health.ts'
+import { healthReportSchema, type HealthReport } from '../contract/health.ts'
+import type { BaseApp } from './app.ts'
+import type { AppDeps } from './types.ts'
 
 export const healthRoute = createRoute({
   method: 'get',

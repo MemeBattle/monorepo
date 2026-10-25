@@ -1,4 +1,4 @@
-import type { GamesRepository, RoundResult } from './ports/games-repository'
+import type { GamesRepository, RoundResult } from './ports/games-repository.ts'
 
 /**
  * Creating games and saving rounds for the gameplay backend (docs/DESIGN.md § Routes).

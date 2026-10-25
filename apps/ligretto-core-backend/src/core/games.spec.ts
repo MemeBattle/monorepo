@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { createCreateGame, createSaveRound } from './games'
-import { createFakeGamesRepository, type FakeGamesRepository } from './ports/games-repository.fake'
-import { createFakeUsersRepository } from './ports/users-repository.fake'
+import { createCreateGame, createSaveRound } from './games.ts'
+import { createFakeGamesRepository, type FakeGamesRepository } from './ports/games-repository.fake.ts'
+import { createFakeUsersRepository } from './ports/users-repository.fake.ts'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 

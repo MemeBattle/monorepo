@@ -4,10 +4,10 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
-import { createFixedClock } from '../core/ports/clock.fake'
-import { okProbe } from '../core/ports/database-probe.fake'
-import { createRecordingLogger } from '../core/ports/logger.fake'
-import { createBaseApp } from './app'
+import { createFixedClock } from '../core/ports/clock.fake.ts'
+import { okProbe } from '../core/ports/database-probe.fake.ts'
+import { createRecordingLogger } from '../core/ports/logger.fake.ts'
+import { createBaseApp } from './app.ts'
 
 const setup = () => {
   const { logger, entries } = createRecordingLogger()

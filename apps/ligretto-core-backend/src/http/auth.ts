@@ -4,10 +4,10 @@ import { authRouteFragments, type AuthResponseFragment, type AuthRouteFragment }
 import type { Context } from 'hono'
 import { z } from 'zod'
 
-import { SessionBusyError } from '../core/ports/session-store'
-import { sessionBusySchema, type SessionBusy } from '../contract/auth'
-import type { BaseApp } from './app'
-import type { AppEnv, PublicAppDeps } from './types'
+import { SessionBusyError } from '../core/ports/session-store.ts'
+import { sessionBusySchema, type SessionBusy } from '../contract/auth.ts'
+import type { BaseApp } from './app.ts'
+import type { AppEnv, PublicAppDeps } from './types.ts'
 
 /** Where each handler of `@memebattle/ligretto-auth` is mounted. */
 export const AUTH_PATHS = {

@@ -3,18 +3,18 @@
 // the previous service's UsersController.test.ts; its 422s are 400 validation_failed (docs/adrs/error-responses.md).
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import { createPgDatabaseProbe } from '../../src/adapters/pg/probe'
-import { createPgUsersRepository } from '../../src/adapters/pg/users-repository'
-import { validationFailedSchema } from '../../src/contract/error'
-import { casUnavailableSchema, listUsersResponseSchema, unauthorizedSchema } from '../../src/contract/users'
-import type { AuthConfig } from '../../src/core/config'
-import { createFixedClock } from '../../src/core/ports/clock.fake'
-import { createRecordingLogger } from '../../src/core/ports/logger.fake'
-import { createAuth } from '../../src/entry/auth'
-import { createPublicApp } from '../../src/http/public-app'
-import { casFetch, ISSUER, mintAccessToken, type CasFetch } from '../support/cas-tokens'
-import { createTestDatabase } from '../support/pglite'
-import { seedUsers } from '../support/seed'
+import { createPgDatabaseProbe } from '../../src/adapters/pg/probe.ts'
+import { createPgUsersRepository } from '../../src/adapters/pg/users-repository.ts'
+import { validationFailedSchema } from '../../src/contract/error.ts'
+import { casUnavailableSchema, listUsersResponseSchema, unauthorizedSchema } from '../../src/contract/users.ts'
+import type { AuthConfig } from '../../src/core/config.ts'
+import { createFixedClock } from '../../src/core/ports/clock.fake.ts'
+import { createRecordingLogger } from '../../src/core/ports/logger.fake.ts'
+import { createAuth } from '../../src/entry/auth.ts'
+import { createPublicApp } from '../../src/http/public-app.ts'
+import { casFetch, ISSUER, mintAccessToken, type CasFetch } from '../support/cas-tokens.ts'
+import { createTestDatabase } from '../support/pglite.ts'
+import { seedUsers } from '../support/seed.ts'
 
 const ACCOUNT = { sub: 'account-id', accountType: 'full', name: 'Some Name', avatarUrl: 'https://avatars.example/a.png' } as const
 const GUEST = { sub: 'guest-id', accountType: 'guest', name: null, avatarUrl: null } as const

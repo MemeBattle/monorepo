@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { createFakeGamesRepository } from '../core/ports/games-repository.fake'
-import { AUTH_HANDLER_HEADER, createFakePublicDeps } from './deps.fake'
-import { createInternalApp } from './internal-app'
-import { publicApiDocument } from './openapi'
-import { createPublicApp } from './public-app'
+import { createFakeGamesRepository } from '../core/ports/games-repository.fake.ts'
+import { AUTH_HANDLER_HEADER, createFakePublicDeps } from './deps.fake.ts'
+import { createInternalApp } from './internal-app.ts'
+import { publicApiDocument } from './openapi.ts'
+import { createPublicApp } from './public-app.ts'
 
 const deps = createFakePublicDeps()
 

@@ -1,16 +1,16 @@
 import { WorkerEntrypoint } from 'cloudflare:workers'
 import { z } from 'zod'
 
-import { createConsoleLogger } from '../adapters/console-logger'
-import { createPgGamesRepository } from '../adapters/pg/games-repository'
-import { createPgDatabaseProbe } from '../adapters/pg/probe'
-import { createPgUsersRepository } from '../adapters/pg/users-repository'
-import { systemClock } from '../adapters/system-clock'
-import { loadAuthConfig, loadHttpConfig, loadInternalApiConfig, loadLoggingConfig } from '../core/config'
-import { createInternalApp } from '../http/internal-app'
-import { createPublicApp } from '../http/public-app'
-import { createAuth } from './auth'
-import { createRequestScopeRunner } from './request-scope'
+import { createConsoleLogger } from '../adapters/console-logger.ts'
+import { createPgGamesRepository } from '../adapters/pg/games-repository.ts'
+import { createPgDatabaseProbe } from '../adapters/pg/probe.ts'
+import { createPgUsersRepository } from '../adapters/pg/users-repository.ts'
+import { systemClock } from '../adapters/system-clock.ts'
+import { loadAuthConfig, loadHttpConfig, loadInternalApiConfig, loadLoggingConfig } from '../core/config.ts'
+import { createInternalApp } from '../http/internal-app.ts'
+import { createPublicApp } from '../http/public-app.ts'
+import { createAuth } from './auth.ts'
+import { createRequestScopeRunner } from './request-scope.ts'
 
 /** The bindings declared in cloudflare.config.ts. */
 export interface WorkerEnv {

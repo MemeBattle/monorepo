@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { healthReportSchema } from '../contract/health'
-import { createFixedClock } from '../core/ports/clock.fake'
-import type { DatabaseProbe } from '../core/ports/database-probe'
-import { failingProbe, okProbe } from '../core/ports/database-probe.fake'
-import { createFakeGamesRepository } from '../core/ports/games-repository.fake'
-import { createRecordingLogger } from '../core/ports/logger.fake'
-import { createFakePublicDeps } from './deps.fake'
-import { createInternalApp } from './internal-app'
-import { createPublicApp } from './public-app'
-import type { InternalAppDeps, PublicAppDeps } from './types'
+import { healthReportSchema } from '../contract/health.ts'
+import { createFixedClock } from '../core/ports/clock.fake.ts'
+import type { DatabaseProbe } from '../core/ports/database-probe.ts'
+import { failingProbe, okProbe } from '../core/ports/database-probe.fake.ts'
+import { createFakeGamesRepository } from '../core/ports/games-repository.fake.ts'
+import { createRecordingLogger } from '../core/ports/logger.fake.ts'
+import { createFakePublicDeps } from './deps.fake.ts'
+import { createInternalApp } from './internal-app.ts'
+import { createPublicApp } from './public-app.ts'
+import type { InternalAppDeps, PublicAppDeps } from './types.ts'
 
 const deps = (database: DatabaseProbe): InternalAppDeps & PublicAppDeps => ({
   ...createFakePublicDeps(),

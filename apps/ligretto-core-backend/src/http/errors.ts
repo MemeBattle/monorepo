@@ -3,9 +3,9 @@ import type { ErrorHandler, NotFoundHandler } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
 
-import type { Logger } from '../core/ports/logger'
-import type { ErrorResponse, InternalError, ValidationFailed } from '../contract/error'
-import type { AppEnv } from './types'
+import type { Logger } from '../core/ports/logger.ts'
+import type { ErrorResponse, InternalError, ValidationFailed } from '../contract/error.ts'
+import type { AppEnv } from './types.ts'
 
 /**
  * The envelope on the failures no route handler sees (docs/adrs/error-responses.md): schema rejections, the

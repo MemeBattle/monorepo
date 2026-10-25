@@ -3,8 +3,8 @@ import { EventEmitter } from 'node:events'
 import type pg from 'pg'
 import { describe, expect, it } from 'vitest'
 
-import { createLazyClient } from '../adapters/pg/database'
-import { createRequestScopeRunner } from './request-scope'
+import { createLazyClient } from '../adapters/pg/database.ts'
+import { createRequestScopeRunner } from './request-scope.ts'
 
 /**
  * A `pg.Client` stand-in that records its lifecycle and answers every query with one fixed row. Once ended it refuses

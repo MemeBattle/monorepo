@@ -4,16 +4,16 @@ import type { PendingAuthorizationRequest, SessionContext } from '@memebattle/li
 import type { Transaction } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import type { Database } from '../../src/adapters/pg/database'
-import type { DB } from '../../src/adapters/pg/schema.generated'
-import { acquireSessionLock, createPgSessionStore } from '../../src/adapters/pg/session-store'
-import type { SessionLockOptions } from '../../src/adapters/pg/session-store'
-import { createFixedClock } from '../../src/core/ports/clock.fake'
-import { SessionBusyError } from '../../src/core/ports/session-store'
-import { disposableDatabaseUrl } from '../support/disposable-database'
-import { openHandles, resetAndMigrate } from '../support/postgres'
-import type { OpenHandles } from '../support/postgres'
-import { createGatedCas, createLockObserver, gate, refreshTokenFor, sessionOf, sleep, truncateAuthTables, until } from '../support/session-store'
+import type { Database } from '../../src/adapters/pg/database.ts'
+import type { DB } from '../../src/adapters/pg/schema.generated.ts'
+import { acquireSessionLock, createPgSessionStore } from '../../src/adapters/pg/session-store.ts'
+import type { SessionLockOptions } from '../../src/adapters/pg/session-store.ts'
+import { createFixedClock } from '../../src/core/ports/clock.fake.ts'
+import { SessionBusyError } from '../../src/core/ports/session-store.ts'
+import { disposableDatabaseUrl } from '../support/disposable-database.ts'
+import { openHandles, resetAndMigrate } from '../support/postgres.ts'
+import type { OpenHandles } from '../support/postgres.ts'
+import { createGatedCas, createLockObserver, gate, refreshTokenFor, sessionOf, sleep, truncateAuthTables, until } from '../support/session-store.ts'
 
 const url = disposableDatabaseUrl()
 /** Far enough along that a whole grace window still leaves positive epochs to write. */

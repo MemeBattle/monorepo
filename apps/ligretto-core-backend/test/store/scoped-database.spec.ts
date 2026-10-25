@@ -2,11 +2,11 @@
 import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { createLazyClient, createScopedDatabase } from '../../src/adapters/pg/database'
-import type { LazyClient } from '../../src/adapters/pg/database'
-import { disposableDatabaseUrl } from '../support/disposable-database'
-import { resetAndMigrate } from '../support/postgres'
-import { gate, settlementOf, sleep } from '../support/session-store'
+import { createLazyClient, createScopedDatabase } from '../../src/adapters/pg/database.ts'
+import type { LazyClient } from '../../src/adapters/pg/database.ts'
+import { disposableDatabaseUrl } from '../support/disposable-database.ts'
+import { resetAndMigrate } from '../support/postgres.ts'
+import { gate, settlementOf, sleep } from '../support/session-store.ts'
 
 const url = disposableDatabaseUrl()
 // Marks this suite's connections, so the count ignores the observer and anything else on the server.
