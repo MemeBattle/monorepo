@@ -5,6 +5,9 @@
   "description": "The HTTP service of Ligretto on Hono, for Node.js and Cloudflare Workers",
   "license": "MIT",
   "author": "MemeBattle",
+  "files": [
+    "build"
+  ],
   "type": "module",
   "exports": {
     "./contract-harness": "./test/support/contract-harness.ts"
@@ -12,12 +15,13 @@
   "scripts": {
     "start:dev": "tsx watch --conditions=development src/entry/node.ts",
     "dev:worker": "cf dev",
+    "build": "tsc -p tsconfig.build.json",
     "build:worker": "cf build",
     "migrate": "tsx src/entry/migrate.ts",
     "sweep": "tsx --conditions=development src/entry/sweep.ts",
     "db:codegen": "tsx src/entry/codegen.ts",
     "openapi:generate": "tsx --conditions=development src/entry/openapi.ts",
-    "ts-check": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.worker.json",
+    "ts-check": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.worker.json && tsc --noEmit -p tsconfig.build.json",
     "test:unit": "vitest run",
     "test:worker": "vitest run --config vitest.worker.config.ts",
     "test:node": "vitest run --config vitest.node.config.ts",

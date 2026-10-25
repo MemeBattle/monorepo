@@ -47,6 +47,8 @@ apps/ligretto-core-backend/
                    `./contract-harness`)
   .env.development DATABASE_URL for development
   openapi.json, openapi.internal.json      committed, regenerated and diffed in CI
+  tsconfig.build.json                      the Node build (`pnpm build`): build/src/entry/*.js and build/migrations,
+                                           run on plain node (adrs/node-build-and-import-specifiers.md)
   docs/            this file, ADR.md, adrs/
 ```
 
@@ -189,7 +191,9 @@ transport, or separate hosts under the bearer transport. The internal app answer
 dedicated hostname, since the gameplay backend is not a Worker and cannot use a service binding; the shared secret
 is what protects it on either path. The sweep runs from a Workers cron trigger (`scheduled` in `entry/worker.ts`);
 `entry/sweep.ts` remains for any other runtime. The Node image (`.docker/Ligretto-core-backend_Dockerfile`) keeps
-being built in CI as the packaging of the Node entry.
+being built in CI as the packaging of the Node entry: it compiles the package with `tsc -p tsconfig.build.json` and
+runs `node build/src/entry/node.js`; migrate and sweep run from the same image with their entry as the argument
+(`build/src/entry/migrate.js`, `build/src/entry/sweep.js`, `adrs/node-build-and-import-specifiers.md`).
 
 ## CI (per pull request)
 

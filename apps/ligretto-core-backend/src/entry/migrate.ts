@@ -1,5 +1,8 @@
-// Applies the migrations in ../../migrations to DATABASE_URL (docs/MIGRATIONS.md). Run through `tsx` (`pnpm migrate`),
-// which is what lets the provider's `import()` load the TypeScript migrations. The serving process never migrates.
+// Applies the migrations in ../../migrations to DATABASE_URL (docs/MIGRATIONS.md). In development it runs through `tsx`
+// (`pnpm migrate`), which lets the provider's `import()` load the TypeScript migrations; in the image it is compiled JS
+// in build/src/entry, with the migrations compiled to build/migrations and found by the same relative path. Kysely
+// records a migration under its name without the extension, so both trees name it alike. The serving process never
+// migrates.
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -7,10 +10,10 @@ import { fileURLToPath } from 'node:url'
 import { Kysely, PostgresDialect } from 'kysely'
 import { FileMigrationProvider, Migrator } from 'kysely/migration'
 
-import { createConsoleLogger } from '../adapters/console-logger'
-import { createPool } from '../adapters/pg/database'
-import { loadDatabaseConfig, loadLoggingConfig } from '../core/config'
-import { loadDevelopmentEnv } from './env'
+import { createConsoleLogger } from '../adapters/console-logger.ts'
+import { createPool } from '../adapters/pg/database.ts'
+import { loadDatabaseConfig, loadLoggingConfig } from '../core/config.ts'
+import { loadDevelopmentEnv } from './env.ts'
 
 loadDevelopmentEnv()
 

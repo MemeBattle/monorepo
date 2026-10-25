@@ -6,7 +6,6 @@ RUN corepack enable
 WORKDIR /memebattle
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /memebattle/
-COPY packages/ligretto-shared/package.json /memebattle/packages/ligretto-shared/
 COPY packages/ligretto-auth/package.json /memebattle/packages/ligretto-auth/
 COPY apps/ligretto-core-backend/package.json /memebattle/apps/ligretto-core-backend/
 
@@ -16,11 +15,14 @@ FROM dependencies AS build
 
 ENV NODE_ENV=production
 
-COPY . /memebattle
+COPY packages/ligretto-auth/ /memebattle/packages/ligretto-auth/
 # ligretto-auth resolves to its build/ on plain Node, so it is built before the app that imports it.
-RUN pnpm run ligretto-shared:build \
-  && pnpm run --filter @memebattle/ligretto-auth build \
-  && pnpm run ligretto:core-backend:build
+RUN pnpm run --filter @memebattle/ligretto-auth build
+
+COPY apps/ligretto-core-backend/ /memebattle/apps/ligretto-core-backend/
+# tsc -p tsconfig.build.json: the Node entries in build/src/entry, the migrations in build/migrations
+# (apps/ligretto-core-backend/docs/adrs/node-build-and-import-specifiers.md).
+RUN pnpm run ligretto:core-backend:build
 
 RUN pnpm deploy --prod --filter=@memebattle/ligretto-core-backend /prod
 
@@ -32,4 +34,8 @@ USER node
 COPY --chown=node:node --from=build /prod /ligretto-core-backend
 WORKDIR /ligretto-core-backend
 
-ENTRYPOINT [ "node", "build/bin/server.js" ]
+# The entry is the argument: the server by default, the migrations and the sweep from the same image with
+#   docker run <image> build/src/entry/migrate.js
+#   docker run <image> build/src/entry/sweep.js
+ENTRYPOINT [ "node" ]
+CMD [ "build/src/entry/node.js" ]

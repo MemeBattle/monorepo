@@ -1,11 +1,10 @@
 *
 !apps/ligretto-core-backend
-!packages/ligretto-shared
 !packages/ligretto-auth
 
 !pnpm-lock.yaml
 !pnpm-workspace.yaml
 !package.json
-!tsconfig.json
-!typings
-!.env*
+
+**/node_modules
+**/build

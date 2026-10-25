@@ -1,15 +1,16 @@
 // Runs the scheduled sweep once against DATABASE_URL (docs/adrs/session-store-locking.md) and exits: expired
-// authorization requests, sessions past the cookie grace (each under its lock) and orphaned lock rows. Run through
-// `tsx --conditions=development` (`pnpm sweep`), which resolves `@memebattle/ligretto-auth` from source.
+// authorization requests, sessions past the cookie grace (each under its lock) and orphaned lock rows. In development
+// it runs through `tsx --conditions=development` (`pnpm sweep`), which resolves `@memebattle/ligretto-auth` from
+// source; in the image it is compiled JS (`node build/src/entry/sweep.js`) over that package's build.
 import { SESSION_COOKIE_GRACE_MS } from '@memebattle/ligretto-auth'
 
-import { createConsoleLogger } from '../adapters/console-logger'
-import { createPgAuthSweepStore } from '../adapters/pg/auth-sweep-store'
-import { createNodeDatabases } from '../adapters/pg/database'
-import { systemClock } from '../adapters/system-clock'
-import { loadDatabaseConfig, loadLoggingConfig } from '../core/config'
-import { createSweepExpiredAuth } from '../core/sweep'
-import { loadDevelopmentEnv } from './env'
+import { createConsoleLogger } from '../adapters/console-logger.ts'
+import { createPgAuthSweepStore } from '../adapters/pg/auth-sweep-store.ts'
+import { createNodeDatabases } from '../adapters/pg/database.ts'
+import { systemClock } from '../adapters/system-clock.ts'
+import { loadDatabaseConfig, loadLoggingConfig } from '../core/config.ts'
+import { createSweepExpiredAuth } from '../core/sweep.ts'
+import { loadDevelopmentEnv } from './env.ts'
 
 loadDevelopmentEnv()
 
