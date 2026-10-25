@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { inject, injectable } from 'inversify'
 import { groupBy, mapValues, merge, mergeWith, omit } from 'lodash'
 import type { GameRepository } from './game.repo'
@@ -26,27 +27,44 @@ export class GameService {
   @inject(IOC_TYPES.GameRepository) private gameRepository: GameRepository
   @inject(IOC_TYPES.LigrettoCoreService) private ligrettoCoreService: LigrettoCoreService
 
-  async createGame(name: string, config: Partial<Game['config']> = {}): Promise<Game | null> {
+  async createGame(
+    name: string,
+    config: Partial<Game['config']> = {},
+  ): Promise<{ ok: true; game: Game } | { ok: false; error: 'already_exists' | 'core_unavailable' }> {
     if (this.gameRepository.getGameByName(name)) {
-      return null
+      return { ok: false, error: 'already_exists' }
     }
 
-    const game = await this.ligrettoCoreService.createGameService()
+    const created = await this.ligrettoCoreService.createGame()
+    if (!created.ok) {
+      return { ok: false, error: 'core_unavailable' }
+    }
 
     // Re-check after the HTTP call: a concurrent createGame with the same name
     // may have finished while we were waiting for the core backend.
     if (this.gameRepository.getGameByName(name)) {
-      return null
+      return { ok: false, error: 'already_exists' }
     }
 
-    return this.gameRepository.addGame(game.id, merge({}, emptyGame, { ...game, name, config: { ...emptyGame.config, ...config } }))
+    const game = this.gameRepository.addGame(
+      created.gameId,
+      merge({}, emptyGame, { id: created.gameId, name, config: { ...emptyGame.config, ...config } }),
+    )
+    return { ok: true, game }
   }
 
+  /**
+   * The server-side start gate: sets `Starting`, or returns `undefined` and changes nothing when the game is neither
+   * `New` nor `RoundFinished` or a round save is still in flight. A finish claims `RoundFinished` before its save is
+   * awaited, so the status alone cannot tell an intermission from a save in flight.
+   */
   initiateStartGame(gameId: UUID) {
-    return this.gameRepository.updateGame(gameId, game => ({
-      ...game,
-      status: GameStatus.Starting,
-    }))
+    return this.gameRepository.updateGame(gameId, game => {
+      if ((game.status !== GameStatus.New && game.status !== GameStatus.RoundFinished) || this.gameRepository.isRoundSaveInFlight(gameId)) {
+        return undefined
+      }
+      return { ...game, status: GameStatus.Starting }
+    })
   }
 
   startGame(gameId: UUID) {
@@ -222,62 +240,58 @@ export class GameService {
     return [game, gameResults]
   }
 
+  /**
+   * Ends the round: claims the finish, freezes the round under a fresh `roundId` and saves it to ligretto-core. Every
+   * outcome closes the round into the intermission with the roster the room has by then; the save only decides
+   * whether there are results to show. A finished round never goes back into play.
+   */
   async finishRound(gameId: UUID): Promise<{ game?: Game; gameResults?: GameResults }> {
-    // Atomically claim the round finish: the status transition and the results
-    // snapshot happen synchronously, so concurrent callers bail out here and
-    // the round cannot be saved twice.
-    let previousStatus: GameStatus | undefined
-    const claimed = this.gameRepository.updateGame(gameId, game => {
-      if (game.status === GameStatus.RoundFinished) {
-        return undefined
-      }
-      previousStatus = game.status
-      return { ...game, status: GameStatus.RoundFinished }
-    })
+    // Claim the finish and freeze the round in one synchronous section, so a
+    // concurrent finish bails out here and the round is saved once. A save in
+    // flight is RoundFinished from the claim on, so it is refused too.
+    const claimed = this.gameRepository.updateGame(gameId, game =>
+      game.status === GameStatus.RoundFinished ? undefined : { ...game, status: GameStatus.RoundFinished },
+    )
     if (!claimed) {
       return {}
     }
 
-    const results = this.getRoundResult(gameId)
+    // Minted once per round and resent unchanged by every in-place retry, so
+    // the core records the round at most once.
+    const round = {
+      roundId: randomUUID(),
+      results: Object.entries(this.getRoundResult(gameId)).map(([playerId, { roundScore }]) => ({ playerId, score: roundScore })),
+    }
+    this.gameRepository.markRoundSaveInFlight(gameId, round.roundId)
 
     try {
-      const { gameResults } = await this.ligrettoCoreService.saveGameRoundService(gameId, {
-        results,
-      })
+      const outcome = await this.ligrettoCoreService.saveRound(gameId, round)
 
-      const game = this.gameRepository.updateGame(gameId, game => ({
-        ...game,
-        players: Object.values(game.players).reduce(
-          (players, player) =>
-            player
-              ? {
-                  ...players,
-                  [player.id]: {
-                    ...player,
-                    // The lifecycle owns the Disconnected flag: erasing it here
-                    // would resurrect an offline player as a permanent ghost.
-                    status: player.status === PlayerStatus.Disconnected ? PlayerStatus.Disconnected : PlayerStatus.DontReadyToPlay,
-                  },
-                }
-              : players,
-          {},
-        ),
-        // The round is over, so its cards must not linger on the table
-        // through the intermission and the next round's starting countdown.
-        playground: {
-          decks: new Array(game.config.maxCardsOnTable).fill(null),
-          droppedDecks: [],
-        },
-      }))
-
-      if (gameResults) {
-        this.gameRepository.setRoundResults(gameId, gameResults)
+      // The start gate refuses a new round while the marker is set, and both
+      // room deletions drop it, so a save that lost it lost its room.
+      if (!this.gameRepository.ownsRoundSave(gameId, round.roundId)) {
+        console.warn('Round save finished after its room was deleted', { gameId, roundId: round.roundId, outcome })
+        return {}
       }
-      return { game, gameResults }
+
+      this.gameRepository.clearRoundSaveInFlight(gameId)
+      const game = this.closeRound(gameId)
+
+      if (!outcome.ok) {
+        // The round is over for the players and recorded nowhere: the error
+        // line LigrettoCoreService logged with the frozen round is the record.
+        return { game }
+      }
+
+      this.gameRepository.setRoundResults(gameId, outcome.gameResults)
+      return { game, gameResults: outcome.gameResults }
     } catch (e) {
-      console.error(e)
-      // Release the claim so the round can be finished again after a failed save.
-      this.gameRepository.updateGame(gameId, game => ({ ...game, status: previousStatus ?? game.status }))
+      // Only a bug lands here: saveRound reports every HTTP outcome. Close the
+      // round anyway, so the room is not left claimed forever.
+      if (this.gameRepository.ownsRoundSave(gameId, round.roundId)) {
+        this.gameRepository.clearRoundSaveInFlight(gameId)
+        this.closeRound(gameId)
+      }
       throw e
     }
   }
@@ -336,9 +350,14 @@ export class GameService {
   }
 
   private abandonRound(gameId: UUID) {
+    this.gameRepository.updateGame(gameId, game => ({ ...game, status: GameStatus.RoundFinished }))
+    return this.closeRound(gameId)
+  }
+
+  /** The post-round transition: statuses reset, with Disconnected preserved, and the table cleared. */
+  private closeRound(gameId: UUID) {
     return this.gameRepository.updateGame(gameId, game => ({
       ...game,
-      status: GameStatus.RoundFinished,
       players: Object.values(game.players).reduce(
         (players, player) =>
           player
@@ -346,12 +365,16 @@ export class GameService {
                 ...players,
                 [player.id]: {
                   ...player,
+                  // The lifecycle owns the Disconnected flag: erasing it here
+                  // would resurrect an offline player as a permanent ghost.
                   status: player.status === PlayerStatus.Disconnected ? PlayerStatus.Disconnected : PlayerStatus.DontReadyToPlay,
                 },
               }
             : players,
         {},
       ),
+      // The round is over, so its cards must not linger on the table
+      // through the intermission and the next round's starting countdown.
       playground: {
         decks: new Array(game.config.maxCardsOnTable).fill(null),
         droppedDecks: [],

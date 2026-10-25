@@ -10,4 +10,10 @@ export interface Storage {
    * client starts from a clean slate.
    */
   roundResults: Record<string, GameResults | undefined>
+  /**
+   * Game id to the `roundId` whose save to ligretto-core is being awaited. Set by the finish's claim, deleted when
+   * the save's outcome is applied or when the room is deleted. A finish claims `RoundFinished` before the save, so
+   * this entry is what tells a save in flight from an intermission.
+   */
+  roundSavesInFlight: Record<string, string | undefined>
 }

@@ -1,5 +1,6 @@
 import 'reflect-metadata'
 import { Container } from 'inversify'
+import { createClient, type Client } from '@memebattle/ligretto-core-client/internal'
 import { IOC_TYPES } from './IOC_TYPES'
 import { GameService } from './entities/game/game.service'
 import { GameplayController } from './controllers/gameplay-controller'
@@ -15,6 +16,7 @@ import { UserService, UserRepository } from './entities/user'
 import { BotController } from './controllers/bot-controller'
 import { LigrettoCoreService } from './services/ligretto-core'
 import { GameConnectionService } from './services/game-connection/game-connection.service'
+import { LIGRETTO_CORE_URL, LIGRETTO_INTERNAL_API_TOKEN } from './config'
 
 export const createIOC = () => {
   const IOC = new Container()
@@ -34,6 +36,10 @@ export const createIOC = () => {
   IOC.bind<BotController>(IOC_TYPES.BotController).to(BotController)
   IOC.bind<Database>(IOC_TYPES.Database).to(Database).inSingletonScope()
   IOC.bind<LigrettoCoreService>(IOC_TYPES.LigrettoCoreService).to(LigrettoCoreService).inSingletonScope()
+  // Built on first use, so a container whose LigrettoCoreService is a stub never makes it.
+  IOC.bind<Client>(IOC_TYPES.LigrettoCoreClient)
+    .toDynamicValue(() => createClient({ baseUrl: LIGRETTO_CORE_URL ?? '', headers: { authorization: `Bearer ${LIGRETTO_INTERNAL_API_TOKEN}` } }))
+    .inSingletonScope()
   IOC.bind<GameConnectionService>(IOC_TYPES.GameConnectionService).to(GameConnectionService).inSingletonScope()
 
   return IOC
