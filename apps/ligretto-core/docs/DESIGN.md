@@ -207,9 +207,15 @@ being built in CI as the packaging of the Node entry.
 ## Consumers and the activation order
 
 - `apps/ligretto-gameplay-backend` → `@memebattle/ligretto-core-client/internal` with the shared secret; it mints
-  `roundId` when a round finishes and keeps it, with the frozen results, across retries.
+  `roundId` when a round finishes and keeps it, with the frozen results, across retries. It reads the internal API's
+  base from its own `LIGRETTO_CORE_URL` (its package `.env.development` locally) and sends the first value of
+  `LIGRETTO_INTERNAL_API_TOKEN`. Its retries are in place and bounded. A round the core does not record is logged
+  with its `roundId` and results, and the gameplay backend still closes it: it broadcasts `updateGame` without
+  `endRound`. The frontend keeps the last results it received, so that intermission shows the previous round's
+  scores, or zeros in a room's first round.
 - `apps/ligretto-frontend` → `@memebattle/ligretto-core-client` for `/api/users` (with the access token
-  `/api/auth/me` returns) and the `/api/auth/*` navigations.
+  `/api/auth/me` returns) and the `/api/auth/*` navigations. Its switch (#841) also clears its round results when a
+  round starts, so an unrecorded round stops showing stale scores; that reset is part of the same activation.
 - `packages/ligretto-shared/apiTypes.ts` is deleted when both are on the generated client.
 
 The consumers' new calls (`/internal/*`, `sub`/`name` in users) do not exist on the old package, so switching a

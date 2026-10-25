@@ -21,6 +21,7 @@ exports[`Games Controller > createGame > Should create relevant state on create 
     },
   },
   "roundResults": {},
+  "roundSavesInFlight": {},
   "users": {},
 }
 `;
@@ -65,6 +66,7 @@ exports[`Games Controller > joinGame > Should create relevant state on join room
     },
   },
   "roundResults": {},
+  "roundSavesInFlight": {},
   "users": {
     "userId": {
       "currentGameId": "1",
@@ -117,6 +119,7 @@ exports[`Games Controller > joinGame > Should create relevant state on join room
     },
   },
   "roundResults": {},
+  "roundSavesInFlight": {},
   "users": {
     "userId": {
       "currentGameId": "1",
@@ -188,6 +191,7 @@ exports[`Games Controller > joinGame > Should create relevant state on join room
     },
   },
   "roundResults": {},
+  "roundSavesInFlight": {},
   "users": {
     "secondUserId": {
       "currentGameId": "1",
@@ -247,6 +251,7 @@ exports[`Games Controller > leaveFromRoomHandler > Should create a relevant game
     },
   },
   "roundResults": {},
+  "roundSavesInFlight": {},
   "users": {
     "userOneId": {
       "currentGameId": undefined,
@@ -270,6 +275,7 @@ exports[`Games Controller > leaveFromRoomHandler > Should create a relevant stat
 {
   "games": {},
   "roundResults": {},
+  "roundSavesInFlight": {},
   "users": {
     "userOneId": {
       "currentGameId": undefined,
@@ -322,6 +328,7 @@ exports[`Games Controller > leaveFromRoomHandler > Should remove current socketI
     },
   },
   "roundResults": {},
+  "roundSavesInFlight": {},
   "users": {
     "userOneId": {
       "currentGameId": "1",

@@ -988,6 +988,9 @@ importers:
       '@memebattle/ligretto-auth':
         specifier: workspace:^
         version: link:../../packages/ligretto-auth
+      '@memebattle/ligretto-core-client':
+        specifier: workspace:^
+        version: link:../../packages/ligretto-core-client
       '@memebattle/ligretto-shared':
         specifier: workspace:^
         version: link:../../packages/ligretto-shared

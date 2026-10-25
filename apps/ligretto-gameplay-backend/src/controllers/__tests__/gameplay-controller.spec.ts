@@ -16,11 +16,12 @@ import type { GameplayController } from '../gameplay-controller'
 import { createIOC } from '../../inversify.config'
 import { IOC_TYPES } from '../../IOC_TYPES'
 import type { Database } from '../../database'
-import { createSocketMockImpl } from '../../../test/utils'
+import { createSocketMockImpl, deferred } from '../../../test/utils'
 import type { AnyAction } from '../../types/any-action'
 import type { UserService } from '../../entities/user'
 import { DISCONNECT_GRACE_PERIOD_MS } from '../../config'
 import type { GameConnectionService } from '../../services/game-connection/game-connection.service'
+import type { SaveRoundOutcome } from '../../services/ligretto-core'
 
 const pausedGame: Game = {
   id: 'paused-game',
@@ -252,8 +253,8 @@ describe('Gameplay Controller', () => {
 
   it('finishes the round with cleared table cards and broadcast results when the last ligretto card is played', async () => {
     const gameResults = { player: { roundScore: 2, gameScore: 2 } }
-    const saveGameRoundService = vi.fn().mockReturnValue({ gameResults })
-    container.rebind(IOC_TYPES.LigrettoCoreService).toConstantValue({ createGameService: vi.fn(), saveGameRoundService })
+    const saveRound = vi.fn().mockResolvedValue({ ok: true, gameResults })
+    container.rebind(IOC_TYPES.LigrettoCoreService).toConstantValue({ createGame: vi.fn(), saveRound })
     gameplayController = container.get(IOC_TYPES.GameplayController)
     await database.set(storage => {
       const game = storage.games[pausedGame.id]
@@ -277,13 +278,75 @@ describe('Gameplay Controller', () => {
     expect(game.status).toBe(GameStatus.RoundFinished)
     expect(game.playground).toEqual({ decks: new Array(pausedGame.config.maxCardsOnTable).fill(null), droppedDecks: [] })
     expect(game.players.player?.status).toBe(PlayerStatus.DontReadyToPlay)
-    expect(saveGameRoundService).toHaveBeenCalledTimes(1)
+    expect(saveRound).toHaveBeenCalledTimes(1)
     expect(socket.emit).toHaveBeenCalledWith('event', endRoundAction(gameResults))
   })
 
+  const seedLastLigrettoCard = () =>
+    database.set(storage => {
+      const game = storage.games[pausedGame.id]
+      storage.games[pausedGame.id] = {
+        ...game,
+        status: GameStatus.InGame,
+        config: { ...game.config, startingDelayInSec: 0 },
+        players: {
+          ...game.players,
+          player: {
+            ...game.players.player!,
+            cards: [null],
+            ligrettoDeck: { isHidden: true, cards: [{ color: CardColors.blue, value: 7, playerId: 'player' }] },
+          },
+        },
+      }
+    })
+
+  it.each([['core_unavailable'], ['unknown_players']] as const)('closes the round without results when the save answers %s', async error => {
+    const saveRound = vi.fn().mockResolvedValue({ ok: false, error })
+    container.rebind(IOC_TYPES.LigrettoCoreService).toConstantValue({ createGame: vi.fn(), saveRound })
+    gameplayController = container.get(IOC_TYPES.GameplayController)
+    await seedLastLigrettoCard()
+
+    await gameplayController.handleMessage(socket, takeFromLigrettoDeckAction({ gameId: pausedGame.id }) as AnyAction)
+
+    const game = await database.get(storage => storage.games[pausedGame.id])
+    expect(game.status).toBe(GameStatus.RoundFinished)
+    expect(game.playground).toEqual({ decks: new Array(pausedGame.config.maxCardsOnTable).fill(null), droppedDecks: [] })
+    expect(socket.emit).toHaveBeenCalledWith('event', updateGameAction(game))
+    expect(socket.emit).not.toHaveBeenCalledWith('event', expect.objectContaining({ type: endRoundAction.type }))
+    expect(await database.get(storage => storage.roundResults[pausedGame.id])).toBeUndefined()
+  })
+
+  it('refuses to start the next round while the last round is being saved', async () => {
+    const save = deferred<SaveRoundOutcome>()
+    const saveRound = vi.fn().mockReturnValue(save.promise)
+    container.rebind(IOC_TYPES.LigrettoCoreService).toConstantValue({ createGame: vi.fn(), saveRound })
+    gameplayController = container.get(IOC_TYPES.GameplayController)
+    await seedLastLigrettoCard()
+
+    const finishing = gameplayController.handleMessage(socket, takeFromLigrettoDeckAction({ gameId: pausedGame.id }) as AnyAction)
+    const during = await database.get(storage => structuredClone(storage.games[pausedGame.id]))
+    vi.mocked(socket.emit).mockClear()
+
+    await gameplayController.handleMessage(socket, startGameEmitAction({ gameId: pausedGame.id }) as AnyAction)
+
+    expect(await database.get(storage => storage.games[pausedGame.id])).toEqual(during)
+    expect(during.status).toBe(GameStatus.RoundFinished)
+    expect(socket.emit).not.toHaveBeenCalled()
+
+    const gameResults = { player: { roundScore: 1, gameScore: 1 }, peer: { roundScore: 0, gameScore: 0 } }
+    save.resolve({ ok: true, gameResults })
+    await finishing
+
+    expect(socket.emit).toHaveBeenCalledWith('event', endRoundAction(gameResults))
+    expect(await database.get(storage => storage.roundResults[pausedGame.id])).toEqual(gameResults)
+
+    await gameplayController.handleMessage(socket, startGameEmitAction({ gameId: pausedGame.id }) as AnyAction)
+    expect((await database.get(storage => storage.games[pausedGame.id])).status).toBe(GameStatus.InGame)
+  })
+
   it('preserves the Disconnected status across the round finish', async () => {
-    const saveGameRoundService = vi.fn().mockReturnValue({ gameResults: {} })
-    container.rebind(IOC_TYPES.LigrettoCoreService).toConstantValue({ createGameService: vi.fn(), saveGameRoundService })
+    const saveRound = vi.fn().mockResolvedValue({ ok: true, gameResults: {} })
+    container.rebind(IOC_TYPES.LigrettoCoreService).toConstantValue({ createGame: vi.fn(), saveRound })
     gameplayController = container.get(IOC_TYPES.GameplayController)
     await database.set(storage => {
       const game = storage.games[pausedGame.id]

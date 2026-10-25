@@ -30,3 +30,12 @@ class _SocketMock {
 }
 
 export const createSocketMockImpl = (fields?: SocketMockFields) => new _SocketMock(fields) as unknown as Socket
+
+/** A promise with its `resolve`, so a test can act while a call that awaits it is pending. */
+export const deferred = <T>() => {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(settle => {
+    resolve = settle
+  })
+  return { promise, resolve }
+}

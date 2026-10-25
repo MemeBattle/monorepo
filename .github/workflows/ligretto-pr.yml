@@ -6,6 +6,7 @@ on:
     paths:
       - 'apps/ligretto-**'
       - 'packages/ligretto-auth/**'
+      - 'packages/ligretto-core-client/**'
       - 'packages/ligretto-shared/**'
       - 'packages/ui/**'
       - '.docker/Ligretto-**'

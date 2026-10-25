@@ -7,8 +7,9 @@ on:
       - master
     paths:
       - 'apps/ligretto-**'
-      # A runtime dependency of the gameplay image: a change confined to it must rebuild and redeploy its consumer.
+      # Runtime dependencies of the gameplay image: a change confined to one must rebuild and redeploy its consumer.
       - 'packages/ligretto-auth/**'
+      - 'packages/ligretto-core-client/**'
       - 'packages/ligretto-shared/**'
       - 'packages/ui/**'
       - 'packages/helm-lib/**'

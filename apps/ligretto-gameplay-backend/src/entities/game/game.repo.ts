@@ -101,6 +101,7 @@ export class GameRepository {
   removeGame(gameId: UUID) {
     return this.database.set(storage => {
       delete storage.roundResults[gameId]
+      delete storage.roundSavesInFlight[gameId]
       return delete storage.games[gameId]
     })
   }
@@ -115,6 +116,23 @@ export class GameRepository {
 
   clearRoundResults(gameId: UUID) {
     return this.database.set(storage => delete storage.roundResults[gameId])
+  }
+
+  markRoundSaveInFlight(gameId: UUID, roundId: string) {
+    return this.database.set(storage => (storage.roundSavesInFlight[gameId] = roundId))
+  }
+
+  clearRoundSaveInFlight(gameId: UUID) {
+    return this.database.set(storage => delete storage.roundSavesInFlight[gameId])
+  }
+
+  isRoundSaveInFlight(gameId: UUID) {
+    return this.database.get(storage => storage.roundSavesInFlight[gameId] !== undefined)
+  }
+
+  /** Whether the game still exists and its save in flight is this round's: false once the room was deleted. */
+  ownsRoundSave(gameId: UUID, roundId: string) {
+    return this.database.get(storage => !!storage.games[gameId] && storage.roundSavesInFlight[gameId] === roundId)
   }
 
   deleteIfAllParticipantsOffline(gameId: UUID) {
@@ -133,6 +151,7 @@ export class GameRepository {
 
       delete storage.games[gameId]
       delete storage.roundResults[gameId]
+      delete storage.roundSavesInFlight[gameId]
       for (const userId of participantIds) {
         const user = storage.users[userId]
         if (user?.currentGameId === gameId && user.socketIds.length === 0) {
