@@ -44,7 +44,7 @@ afterEach(() => {
 })
 
 describe('auth listeners', () => {
-  it('stores the user as it arrives and the identity of a 200', async () => {
+  it('stores the user and the identity of a 200', async () => {
     const user = { sub: 'sub-1', accountType: 'full', name: 'Ann', avatarUrl: 'https://cas.example/a.png' } as const
     const expiresAt = Date.now() + 600_000
     fetchMock.mockResolvedValue(json({ user, accessToken: 'token-1', expiresAt, signedOut: false }))

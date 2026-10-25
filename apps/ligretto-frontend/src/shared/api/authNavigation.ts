@@ -1,7 +1,7 @@
 import { CAS_URL, LIGRETTO_CORE_URL } from '#shared/constants/config'
 
-// Under the cookie transport these routes answer 302, so they are browser navigations, never fetched: the generated
-// signIn and logout are for the bearer transport's 200, and the client follows no redirect.
+// Under the cookie transport these routes answer 302, so the browser navigates to them and nothing fetches them.
+// The generated signIn and logout expect the bearer transport's 200, and the client follows no redirect.
 export const AUTH_SIGN_IN_URL = `${LIGRETTO_CORE_URL}/api/auth/sign-in`
 export const AUTH_LOGOUT_URL = `${LIGRETTO_CORE_URL}/api/auth/logout`
 

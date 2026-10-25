@@ -14,7 +14,7 @@ describe('gameSlice results', () => {
     expect(state.results).toEqual({ p1: { roundScore: 0, gameScore: 12 } })
   })
 
-  it('leaves a room without results without results when a round starts', () => {
+  it('leaves missing results missing when a round starts', () => {
     expect(gameReducer(withResults(), updateGameAction(update(GameStatus.Starting))).results).toBeUndefined()
   })
 
