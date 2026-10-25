@@ -1,10 +1,11 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { loadDevelopmentEnv } from './env.ts'
+import { loadDevelopmentEnv, packageDirOf } from './env.ts'
 
 // A variable no shell sets, so a developer's environment cannot influence the cases; DATABASE_URL resolves the same way.
 const KEY = 'LIGRETTO_CORE_ENV_SPEC_VALUE'
@@ -66,5 +67,22 @@ describe('loadDevelopmentEnv', () => {
     await write(rootDir, '.env.development', 'root')
     load({ NODE_ENV: 'production' })
     expect(process.env[KEY]).toBeUndefined()
+  })
+})
+
+describe('packageDirOf', () => {
+  const packageDir = path.resolve(tmpdir(), 'apps', 'ligretto-core-backend')
+  const moduleUrl = (...segments: string[]) => pathToFileURL(path.join(packageDir, ...segments)).href
+
+  it('finds the package from a source entry', () => {
+    expect(packageDirOf(moduleUrl('src', 'entry', 'env.ts'))).toBe(packageDir)
+  })
+
+  it('finds the same package from the compiled entry, one level deeper under build/', () => {
+    expect(packageDirOf(moduleUrl('build', 'src', 'entry', 'env.js'))).toBe(packageDir)
+  })
+
+  it('resolves this module to the package that holds it', () => {
+    expect(packageDirOf(import.meta.url)).toBe(path.resolve(import.meta.dirname, '../..'))
   })
 })

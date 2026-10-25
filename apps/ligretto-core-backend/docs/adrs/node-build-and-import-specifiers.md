@@ -45,6 +45,9 @@ is bundled by Wrangler and is not concerned (`layering-and-runtime-neutrality.md
   puts the migrations in `build/migrations`, so `migrate.ts` finds them by the same relative path
   (`../../migrations`) in the source and in the build. Kysely records a migration under its name without the
   extension, so a database migrated by `tsx` in development and one migrated from the image agree on what is applied.
+- **A path resolved from `import.meta.url` holds at both depths.** A module runs from `src/` and from `build/src/`,
+  one level deeper. A path inside the tree, such as `../../migrations`, lands on its built twin; a path out of it,
+  such as the `.env*` directories of `src/entry/env.ts`, goes through `packageDirOf`, which steps out of `build/`.
 - Rejected:
   - Bundling the Node entries (esbuild or tsdown): a new build dependency and a second bundle beside the Worker's.
   - `tsx` at run time: a devDependency in production and a compile at every start.

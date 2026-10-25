@@ -1,6 +1,19 @@
+import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import dotenv from '@codexsoft/dotenv-flow'
+
+/**
+ * The package directory, from the URL of a module in `src/entry`. That module runs from `src/entry` in the source
+ * and from `build/src/entry` in the Node build (`outDir: build`, `rootDir: .` in tsconfig.build.json), so two levels
+ * up is the package in the one and its `build/` in the other; the build's level is stepped out of.
+ */
+export const packageDirOf = (moduleUrl: string | URL): string => {
+  const twoUp = path.resolve(fileURLToPath(new URL('../../', moduleUrl)))
+  return path.basename(twoUp) === 'build' ? path.dirname(twoUp) : twoUp
+}
+
+const modulePackageDir = packageDirOf(import.meta.url)
 
 type LoadDevelopmentEnvOptions = {
   /** The environment the decision is made on; `process.env` by default. The files are always written to `process.env`. */
@@ -13,15 +26,16 @@ type LoadDevelopmentEnvOptions = {
 
 /**
  * The one development environment loader of the Node-side entries (`node.ts`, `migrate.ts`, `codegen.ts`,
- * `sweep.ts`), so they cannot disagree on `DATABASE_URL`. Precedence: the shell, then this package's
- * `.env.development.local` and `.env.development`, then the root files. dotenv-flow never overrides a variable that
- * is already set, so loading the package directory first is what makes it win over the root. Production sets the
- * environment itself and reads no file.
+ * `sweep.ts`), so they cannot disagree on `DATABASE_URL`. Precedence: the shell, then this package's files in
+ * dotenv-flow's order (`.env.development.local`, `.env.local`, `.env.development`, `.env`), then the root's in the same
+ * order. dotenv-flow never overrides a variable that is already set, so loading the package directory first is what
+ * makes it win over the root. Both directories resolve the same from the source and from the build (`packageDirOf`).
+ * Production sets the environment itself and reads no file.
  */
 export const loadDevelopmentEnv = ({
   env = process.env,
-  packageDir = fileURLToPath(new URL('../../', import.meta.url)),
-  rootDir = fileURLToPath(new URL('../../../../', import.meta.url)),
+  packageDir = modulePackageDir,
+  rootDir = path.resolve(modulePackageDir, '../..'),
 }: LoadDevelopmentEnvOptions = {}): void => {
   if (env.NODE_ENV === 'production') {
     return
