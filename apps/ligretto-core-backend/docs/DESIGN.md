@@ -206,7 +206,9 @@ runs `node build/src/entry/node.js`; migrate and sweep run from the same image w
   `openapi` job runs `pnpm openapi:generate`, `schema-codegen` runs `pnpm db:codegen`);
 - the compatibility matrix and the migration checks (`adrs/additive-migrations-and-compatibility-matrix.md`);
 - `packages/ligretto-core-client` (`ligretto-core-client-pr.yml`): the documents and the client regenerated from the
-  routes and diffed against the commit, type-checked and built, and its contract tests run against both apps.
+  routes and diffed against the commit, type-checked and built, and its contract tests run against both apps;
+- the e2e job of `ligretto-pr.yml`: the full local SSO stack, CAS built from source, this package from `start:dev`,
+  the gameplay backend and the frontend, driven by Playwright through the guest sign-in and a game.
 
 ## Consumers and the activation order
 

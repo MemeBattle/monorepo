@@ -97,22 +97,16 @@ jobs:
             type=gha,scope=${{ github.base_ref }}-ligretto-gameplay-backend
           cache-to: type=gha,mode=max,scope=ligretto-gameplay-backend-pr
 
+  # The full local SSO stack: CAS built from source, the core backend, the gameplay backend and the frontend on
+  # :5174, the origin CAS has registered for the `ligretto` client. It is the only job that runs the guest sign-in
+  # end to end: the gameplay backend verifies CAS tokens, so no stub can stand in for CAS.
   e2e:
-    # Paused until #817 moves ligretto-frontend onto `@memebattle/ligretto-auth`; this `if` goes with it.
-    #
-    # The suites drive ligretto-frontend, whose bootstrap `POST`s `/auth/me` and keeps a loader over every route
-    # until it succeeds. The backend no longer serves that route, and stubbing it in e2e is ruled out, so no suite
-    # is independent of the frontend's move.
-    if: false
     env:
-      LIGRETTO_CORE_APP_KEY: nwpdmmnko5ylXZt_5CMnofXYUVl9Ppte
-      LIGRETTO_CORE_APP_NAME: ligretto-core
-      LIGRETTO_CORE_DB_CONNECTION: pg
-      LIGRETTO_CORE_PG_HOST: localhost
-      LIGRETTO_CORE_PG_PORT: 5433
-      LIGRETTO_CORE_PG_USER: ligretto-core-user
-      LIGRETTO_CORE_PG_PASSWORD: ligretto_pg_password
-      LIGRETTO_CORE_PG_DB_NAME: ligretto-core
+      # A CI-only value, read by the core backend and by the gameplay backend over the public-by-construction one of
+      # the .env files, which proves the shell wins over the files for both.
+      LIGRETTO_INTERNAL_API_TOKEN: e2e-internal-api-token
+      # Where Playwright opens the app; .env sets the production site for the other suites.
+      LIGRETTO_APP_URL: http://localhost:5174
       # Read by ligretto-frontend's build for the profile link; the backend does not read it.
       CAS_URL: https://cas.mems.fun
       LOG_LEVEL: debug
@@ -132,10 +126,26 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      cas-postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: cas
+          POSTGRES_PASSWORD: cas
+          POSTGRES_DB: cas
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    # CAS compiles from source.
+    timeout-minutes: 30
 
+    # DATABASE_URL is set per step, never for the job: CAS and the core backend both read that name, each for its
+    # own database.
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -143,13 +153,48 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build CAS
+        env:
+          SQLX_OFFLINE: 'true'
+        run: cargo build -p cas --bins
+
+      - name: Migrate CAS
+        env:
+          SQLX_OFFLINE: 'true'
+          DATABASE_URL: postgres://cas:cas@localhost:5434/cas
+        run: cargo run -p cas --bin cas-migrate
+
+      # Reads the client secret and the callback port from the root .env files, as the core backend does.
+      - name: Register the ligretto client
+        working-directory: apps/cas
+        env:
+          SQLX_OFFLINE: 'true'
+          DATABASE_URL: postgres://cas:cas@localhost:5434/cas
+        run: scripts/seed-dev.sh
+
+      - name: Start CAS
+        env:
+          SQLX_OFFLINE: 'true'
+          DATABASE_URL: postgres://cas:cas@localhost:5434/cas
+        run: cargo run -p cas --bin cas > /tmp/cas.log 2>&1 &
+
+      - name: Check CAS
+        run: pnpm dlx wait-on --timeout 60000 http-get://127.0.0.1:3000/health
+
       - name: Install Playwright Browsers
         run: pnpm --filter=@memebattle/ligretto-frontend exec playwright install --with-deps chromium
 
       - name: Migrate database
+        env:
+          DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5433/ligretto-core
         run: pnpm ligretto:core-backend:migrate
 
       - name: Start core backend
+        env:
+          DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5433/ligretto-core
         run: pnpm ligretto:core-backend:start:dev > /tmp/core-backend.log 2>&1 &
 
       - name: Check core backend app
@@ -158,11 +203,12 @@ jobs:
       - name: Start gameplay backend
         run: pnpm ligretto:gameplay-backend:start:dev > /tmp/gameplay-backend.log 2>&1 &
 
+      # No `--` before the flags: with one, Vite drops them and binds 5173 (apps/cas/scripts/seed-dev.sh).
       - name: Start frontend
-        run: pnpm ligretto:front:start:dev > /tmp/frontend.log 2>&1 &
+        run: pnpm --filter @memebattle/ligretto-frontend start:dev --port 5174 --strictPort > /tmp/frontend.log 2>&1 &
 
       - name: Check frontend app
-        run: pnpm dlx wait-on -c ./apps/ligretto-frontend/waitOnConfig.json --timeout 60000 http-get://127.0.0.1:5173
+        run: pnpm dlx wait-on -c ./apps/ligretto-frontend/waitOnConfig.json --timeout 60000 http-get://127.0.0.1:5174
 
       - name: Run playwright tests
         run: pnpm --filter=@memebattle/ligretto-frontend e2e:start
@@ -174,6 +220,7 @@ jobs:
           path: |
             apps/ligretto-frontend/playwright-report/
             apps/ligretto-frontend/test-results/
+            /tmp/cas.log
             /tmp/core-backend.log
             /tmp/gameplay-backend.log
             /tmp/frontend.log
