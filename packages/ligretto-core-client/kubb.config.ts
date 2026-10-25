@@ -4,12 +4,12 @@ import { pluginClient } from '@kubb/plugin-client'
 import { pluginTs } from '@kubb/plugin-ts'
 
 /**
- * One client per document of apps/ligretto-core: the public API (the root entry, for ligretto-frontend) and the
+ * One client per document of apps/ligretto-core-backend: the public API (the root entry, for ligretto-frontend) and the
  * internal API (`./internal`, for ligretto-gameplay-backend). The two differ only in input and output path.
  */
 const clientOf = (document: string, directory: string) => ({
   root: '.',
-  input: `../../apps/ligretto-core/${document}`,
+  input: `../../apps/ligretto-core-backend/${document}`,
   // `clean` empties the directory first, so an operation removed from the document disappears from the client. The
   // named barrel is the module each entry re-exports: every operation and model by name.
   output: { path: `./src/generated/${directory}`, clean: true, barrel: { type: 'named' as const } },

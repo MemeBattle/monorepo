@@ -245,10 +245,11 @@ describe('DashboardPage', () => {
 
       await rename('Ада​')
 
-      const field = await screen.findByLabelText<HTMLInputElement>('Название')
+      // The message comes with the action's result; the field alone may still be the one from before the submit.
+      expect(await screen.findByText('Название содержит недопустимые символы.')).toBeDefined()
+      const field = screen.getByLabelText<HTMLInputElement>('Название')
       expect(field.value).toBe('Ада​')
       expect(field).toHaveProperty('ariaInvalid', 'true')
-      expect(screen.getByText('Название содержит недопустимые символы.')).toBeDefined()
       // The optimistic name is gone with the failed action; the loader was not asked again.
       expect(screen.queryByText('Ада​')).toBeNull()
       expect(listPasskeys).toHaveBeenCalledOnce()
@@ -257,14 +258,14 @@ describe('DashboardPage', () => {
     it('does not send an empty name', async () => {
       await rename('   ')
 
-      expect(screen.getByText('Введите название.')).toBeDefined()
+      expect(await screen.findByText('Введите название.')).toBeDefined()
       expect(renamePasskey).not.toHaveBeenCalled()
     })
 
     it('does not send a name over the cap', async () => {
       await rename('a'.repeat(65))
 
-      expect(screen.getByText('Слишком длинное название, максимум 64 символа.')).toBeDefined()
+      expect(await screen.findByText('Слишком длинное название, максимум 64 символа.')).toBeDefined()
       expect(renamePasskey).not.toHaveBeenCalled()
     })
 
@@ -829,7 +830,7 @@ describe('DashboardPage', () => {
 
       await save('   ')
 
-      expect(screen.getByText('Введите адрес.')).toBeDefined()
+      expect(await screen.findByText('Введите адрес.')).toBeDefined()
       expect(screen.getByLabelText('Почта')).toHaveProperty('ariaInvalid', 'true')
       expect(updateEmail).not.toHaveBeenCalled()
     })
@@ -844,7 +845,7 @@ describe('DashboardPage', () => {
 
       await save(value)
 
-      expect(screen.getByText('Похоже, это не адрес почты.')).toBeDefined()
+      expect(await screen.findByText('Похоже, это не адрес почты.')).toBeDefined()
       expect(screen.getByLabelText<HTMLInputElement>('Почта').value).toBe(value)
       expect(updateEmail).not.toHaveBeenCalled()
     })
@@ -884,10 +885,11 @@ describe('DashboardPage', () => {
 
       await save(tooLong)
 
-      const field = await screen.findByLabelText<HTMLInputElement>('Почта')
+      // The message comes with the action's result; the field alone may still be the one from before the submit.
+      expect(await screen.findByText('Проверьте адрес: в нём ошибка или недопустимые символы.')).toBeDefined()
+      const field = screen.getByLabelText<HTMLInputElement>('Почта')
       expect(field.value).toBe(tooLong)
       expect(field).toHaveProperty('ariaInvalid', 'true')
-      expect(screen.getByText('Проверьте адрес: в нём ошибка или недопустимые символы.')).toBeDefined()
       expect(screen.queryByText(/must contain/)).toBeNull()
       // The optimistic address is gone with the failed action; the loader was not asked again.
       expect(screen.queryByText(unverified)).toBeNull()

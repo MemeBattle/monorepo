@@ -111,26 +111,6 @@ jobs:
           cache-from: type=gha,scope=${{ github.ref_name }}-ligretto-core-backend
           cache-to: type=gha,mode=max,scope=${{ github.ref_name }}-ligretto-core-backend
 
-  deploy-ligretto-core-backend:
-    name: Deploy Ligretto Core Backend
-    runs-on: ubuntu-24.04
-    needs: ligretto-core-backend-image
-    environment:
-      name: Ligretto-production
-      url: https://core.ligretto.app
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.ref_name }}
-      - name: Deploy
-        uses: ./.github/actions/deploy-helm
-        with:
-          chart-path: ./apps/ligretto-core-backend/chart
-          namespace: ligretto-core-backend
-          release-name: ligretto-core-backend
-          values-files: ./apps/ligretto-core-backend/chart/values.yaml
-          app-version: ${{ env.LIGRETTO_APP_VERSION }}
-          kube-config: ${{ secrets.KUBE_CONFIG_CORE }}
   deploy-ligretto-gameplay-backend:
     name: Deploy Ligretto Gameplay Backend
     runs-on: ubuntu-24.04

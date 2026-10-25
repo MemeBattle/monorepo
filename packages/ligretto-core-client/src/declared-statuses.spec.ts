@@ -11,7 +11,7 @@ const METHODS = ['get', 'put', 'post', 'delete', 'patch', 'head', 'options', 'tr
 type Document = { paths: Record<string, Record<string, { responses: Record<string, unknown> }>> }
 
 const statusesOf = (name: string): [string, number[]][] => {
-  const document = JSON.parse(readFileSync(new URL(`../../../apps/ligretto-core/${name}`, import.meta.url), 'utf8')) as Document
+  const document = JSON.parse(readFileSync(new URL(`../../../apps/ligretto-core-backend/${name}`, import.meta.url), 'utf8')) as Document
   return Object.entries(document.paths).flatMap(([path, item]) =>
     METHODS.filter(method => item[method] !== undefined).map((method): [string, number[]] => [
       `${method.toUpperCase()} ${path}`,

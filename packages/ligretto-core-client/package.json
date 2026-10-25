@@ -42,7 +42,7 @@
     "@kubb/adapter-oas": "catalog:",
     "@kubb/plugin-client": "catalog:",
     "@kubb/plugin-ts": "catalog:",
-    "@memebattle/ligretto-core": "workspace:^",
+    "@memebattle/ligretto-core-backend": "workspace:^",
     "@types/node": "catalog:",
     "ajv": "catalog:",
     "kubb": "catalog:",

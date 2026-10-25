@@ -4,7 +4,6 @@ export default defineConfig({
   ignorePatterns: [
     'dist/',
     '**/chart/**/*.yaml',
-    '**/.adonisjs/**',
     '.next',
     'next-env.d.ts',
     'apps/cas/*',
@@ -13,9 +12,9 @@ export default defineConfig({
     'packages/ligretto-auth/src/generated/**',
     'packages/ligretto-core-client/src/generated/**',
     // Generated and diffed in CI: the formatter would collapse short arrays and the diff would fail.
-    'apps/ligretto-core/src/adapters/pg/schema.generated.ts',
-    'apps/ligretto-core/openapi.json',
-    'apps/ligretto-core/openapi.internal.json',
+    'apps/ligretto-core-backend/src/adapters/pg/schema.generated.ts',
+    'apps/ligretto-core-backend/openapi.json',
+    'apps/ligretto-core-backend/openapi.internal.json',
     // Third-party sources kept byte for byte; see each crate's VENDOR.md.
     'vendor/',
   ],

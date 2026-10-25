@@ -1,5 +1,5 @@
 /**
- * The client of the ligretto-core internal API (`apps/ligretto-core/openapi.internal.json`): one function per
+ * The client of the ligretto-core internal API (`apps/ligretto-core-backend/openapi.internal.json`): one function per
  * operation, named by its `operationId`, and the models of the document. Make a `Client` with `createClient`, with
  * the shared secret as its default `Authorization` header, and pass it to each call.
  */

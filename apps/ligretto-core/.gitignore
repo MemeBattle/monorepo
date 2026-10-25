@@ -1,2 +1,0 @@
-# Local state of `cf dev` (Wrangler's Miniflare storage and bundles); .cloudflare/ is ignored at the root.
-.wrangler

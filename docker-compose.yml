@@ -11,7 +11,7 @@ services:
     volumes:
       - pg-ligretto:/var/lib/postgresql/data
 
-  # The store suite's own server, brought up by ligretto-core-backend's `test` script. Separate from
+  # The store suite's own server, brought up by ligretto-core-backend's `test:store:setup` script. Separate from
   # ligretto-core-pg so a test run can never truncate the database used for development, and on tmpfs so
   # every run starts from an empty cluster.
   ligretto-core-pg-test:

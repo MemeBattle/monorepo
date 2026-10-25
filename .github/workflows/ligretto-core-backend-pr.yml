@@ -1,0 +1,345 @@
+name: 'Ligretto core backend pull request'
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'apps/ligretto-core-backend/**'
+      # The public document and the auth routes are built from this package's schemas and route fragments.
+      - 'packages/ligretto-auth/**'
+      - .github/workflows/ligretto-core-backend-pr.yml
+      - 'pnpm-lock.yaml'
+      - package.json
+      - pnpm-workspace.yaml
+      # The Node smoke suite boots the entry on the repository root .env* files.
+      - '.env*'
+
+# A new push makes the run for the previous one obsolete.
+concurrency:
+  group: ligretto-core-backend-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      # The directory boundaries of docs/adrs/layering-and-runtime-neutrality.md live in
+      # apps/ligretto-core-backend/oxlint.config.ts.
+      - name: Lint
+        run: pnpm run --filter @memebattle/ligretto-core-backend lint
+
+  tests:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Run the unit and HTTP suites
+        run: pnpm run --filter @memebattle/ligretto-core-backend test:unit
+
+  store-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        # The engine of the compose test service: the oldest in play.
+        image: postgres:13.4
+        env:
+          POSTGRES_USER: ligretto-core-user
+          POSTGRES_PASSWORD: ligretto_pg_password
+          POSTGRES_DB: ligretto-core-test
+        ports:
+          - 5435:5432
+        options: >-
+          --health-cmd "pg_isready -U ligretto-core-user -d ligretto-core-test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      # What needs a real Postgres: row locks, two connections, the migrate and codegen entries. The suite wipes the
+      # database it is given and refuses one whose name does not end in -test.
+      - name: Run the store suite
+        env:
+          LIGRETTO_CORE_TEST_DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5435/ligretto-core-test
+        run: pnpm run --filter @memebattle/ligretto-core-backend test:store:run
+
+  # The rules of apps/ligretto-core-backend/docs/MIGRATIONS.md: a migration on the base branch is never edited,
+  # renamed or deleted; an added one is well named, newer than the newest on the base branch, and marks a contract
+  # statement.
+  migration-checks:
+    runs-on: ubuntu-24.04
+
+    steps:
+      # Full history: the script compares the pull request with the base branch.
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check the migrations against the base branch
+        run: apps/ligretto-core-backend/scripts/check-migrations.sh "origin/${{ github.base_ref }}"
+
+  # The compatibility matrix of apps/ligretto-core-backend/docs/adrs/additive-migrations-and-compatibility-matrix.md.
+  # Each job applies one tree's migrations to its own Postgres, regenerates the other tree's row types from that
+  # schema and type-checks it, through apps/ligretto-core-backend/scripts/check-schema-compat.sh:
+  #   schema-current   PR migrations, PR code: the ordinary check, and the committed row types match the schema.
+  #   schema-previous  master's migrations, PR code: new code started before the migration ran.
+  #   code-previous    PR migrations, master's code and store suite: old code still running after the migration,
+  #                    or a rollback of the code.
+  # The base branch's tree is its tip, the schema and code that are live when this pull request merges.
+  schema-current:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        # The engine of the compose test service: the oldest in play.
+        image: postgres:13.4
+        env:
+          POSTGRES_USER: ligretto-core-user
+          POSTGRES_PASSWORD: ligretto_pg_password
+          POSTGRES_DB: ligretto-core
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U ligretto-core-user -d ligretto-core"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+
+    # Exported for every step: the shared loader lets the shell win over the package's .env.development.
+    env:
+      DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5433/ligretto-core
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      # Migrate an empty database, regenerate the row types, type-check both programs (Node, and the Worker with the
+      # same layers against the Workers types).
+      - name: PR migrations, PR code
+        run: apps/ligretto-core-backend/scripts/check-schema-compat.sh --migrations . --code .
+
+      - name: Migrate again, which applies nothing
+        run: pnpm run --filter @memebattle/ligretto-core-backend migrate
+
+      # Written and diffed rather than `db:codegen --verify`, so the log shows the difference.
+      - name: The committed row types match the migrated schema
+        run: |
+          git diff --exit-code -- apps/ligretto-core-backend/src/adapters/pg/schema.generated.ts || {
+            echo "::error::schema.generated.ts is out of date: run 'pnpm db:codegen' in apps/ligretto-core-backend after migrating and commit the result"
+            exit 1
+          }
+
+  schema-previous:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        # The engine of the compose test service: the oldest in play.
+        image: postgres:13.4
+        env:
+          POSTGRES_USER: ligretto-core-user
+          POSTGRES_PASSWORD: ligretto_pg_password
+          POSTGRES_DB: ligretto-core
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U ligretto-core-user -d ligretto-core"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+
+    env:
+      DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5433/ligretto-core
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # The tip of the base branch: the schema that is live when this code starts.
+      - name: Checkout the base branch
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.base_ref }}
+          path: previous
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      # A failure means the code uses a shape this pull request's migration introduces: ship the migration alone first.
+      - name: Master's migrations, PR code
+        run: apps/ligretto-core-backend/scripts/check-schema-compat.sh --migrations previous --code .
+
+  code-previous:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        # The engine of the compose test service: the oldest in play.
+        image: postgres:13.4
+        env:
+          POSTGRES_USER: ligretto-core-user
+          POSTGRES_PASSWORD: ligretto_pg_password
+          POSTGRES_DB: ligretto-core-test
+        ports:
+          - 5435:5432
+        options: >-
+          --health-cmd "pg_isready -U ligretto-core-user -d ligretto-core-test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+
+    # One database for both: the type check reads the migrated schema, then the store suite wipes and re-migrates it.
+    env:
+      DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5435/ligretto-core-test
+      LIGRETTO_CORE_TEST_DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5435/ligretto-core-test
+
+    steps:
+      # The scripts and the migrations come from the pull request.
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # The tip of the base branch: the code that still runs when this pull request's migration is applied.
+      - name: Checkout the base branch
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.base_ref }}
+          path: previous
+
+      # Only master's tree runs here, so only it is installed.
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+        with:
+          working-directory: previous
+
+      # A failure means the migration removes or tightens a shape master still uses, or master's store suite (the raw
+      # lock statements, the migrate entry) breaks on the new schema: ship the code that stops using it first.
+      - name: PR migrations, master's code and store suite
+        run: apps/ligretto-core-backend/scripts/check-schema-compat.sh --migrations . --code previous --store
+
+  openapi:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      # Both documents from the app factories; no database, no request served.
+      - name: Regenerate the OpenAPI documents
+        run: pnpm run --filter @memebattle/ligretto-core-backend openapi:generate
+
+      # Written and diffed rather than `openapi:generate --verify`, so the log shows the difference.
+      - name: The committed documents match the routes
+        run: |
+          git diff --exit-code -- apps/ligretto-core-backend/openapi.json apps/ligretto-core-backend/openapi.internal.json || {
+            echo "::error::the OpenAPI documents are out of date: run 'pnpm openapi:generate' in apps/ligretto-core-backend and commit the result"
+            exit 1
+          }
+
+  node-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # The package's .env.development points DATABASE_URL here; /health runs a constant select, so no migration.
+    services:
+      postgres:
+        # The engine of the compose test service: the oldest in play.
+        image: postgres:13.4
+        env:
+          POSTGRES_USER: ligretto-core-user
+          POSTGRES_PASSWORD: ligretto_pg_password
+          POSTGRES_DB: ligretto-core
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U ligretto-core-user -d ligretto-core"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      # test/node boots src/entry/node.ts as a child process on a free port with the package and root
+      # .env.development, as `pnpm start:dev` does, and asserts over fetch. The entry's output goes to the log uploaded
+      # below.
+      - name: Run the Node smoke suite
+        env:
+          LIGRETTO_CORE_NODE_LOG: ${{ runner.temp }}/ligretto-core-node.log
+        run: pnpm run --filter @memebattle/ligretto-core-backend test:node
+
+      - name: Upload the Node entry log
+        uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: ligretto-core-backend-node-log
+          path: ${{ runner.temp }}/ligretto-core-node.log
+          retention-days: 2
+
+  worker-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # The Hyperdrive bindings' dev.connectionString in cloudflare.config.ts points here.
+    services:
+      postgres:
+        # The engine of the compose test service: the oldest in play.
+        image: postgres:13.4
+        env:
+          POSTGRES_USER: ligretto-core-user
+          POSTGRES_PASSWORD: ligretto_pg_password
+          POSTGRES_DB: ligretto-core
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U ligretto-core-user -d ligretto-core"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      # The production bundle builds from cloudflare.config.ts.
+      - name: Build the Worker
+        run: pnpm run --filter @memebattle/ligretto-core-backend build:worker
+
+      # The same entry under workerd, through @cloudflare/vitest-plugin: /health on both hostnames and through the
+      # InternalApi service binding, each with its database check over the emulated Hyperdrive bindings, an unknown
+      # route, the internal token from .dev.vars: refused when missing or wrong, accepted when it is the configured
+      # one, the public API's guards, and /openapi.json equal to the committed document.
+      - name: Run the Worker smoke suite
+        run: pnpm run --filter @memebattle/ligretto-core-backend test:worker

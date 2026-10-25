@@ -1,7 +1,10 @@
 {
-  // The specs, under the Node view. The contract suites import ligretto-core's harness, so its source is checked
-  // here too, under its own settings (ES2022, the Node types, bundler resolution).
+  // The specs, under the Node view. The contract suites import ligretto-core-backend's harness, so its source is
+  // checked here too, under its own settings (ES2022, the Node types, bundler resolution, `.ts` import specifiers).
   "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true
+  },
   "include": ["src/**/*.spec.ts", "test", "vitest.config.ts"],
   "exclude": []
 }

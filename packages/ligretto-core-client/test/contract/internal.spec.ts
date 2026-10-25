@@ -1,7 +1,7 @@
 // The generated operations of the `./internal` entry against the real internal app (createInternalApp over PGlite,
 // the real games repository) through a custom `fetch`: every operation, every declared status and code once, every
 // body checked against the committed openapi.internal.json.
-import { createContractHarness, INTERNAL_TOKEN, type ContractHarness } from '@memebattle/ligretto-core/contract-harness'
+import { createContractHarness, INTERNAL_TOKEN, type ContractHarness } from '@memebattle/ligretto-core-backend/contract-harness'
 import { afterAll, beforeAll, beforeEach, describe, expect, expectTypeOf, it } from 'vitest'
 
 import { createClient, createGame, getHealth, saveRound, type Client, type HealthReport } from '@memebattle/ligretto-core-client/internal'
