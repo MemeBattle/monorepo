@@ -70,21 +70,28 @@ fi
 # dotenv-flow under NODE_ENV=development
 # (apps/ligretto-core-backend/src/entry/env.ts), where a real environment
 # variable always wins, then the package's own .env.development.local,
-# .env.local, .env.development, .env, then the monorepo root's files in the
-# same order. The loop below follows exactly that order. It is not CAS's own
-# (src/config/native.rs::load_env_files puts .env.development above
-# .env.local).
+# .env.development, .env.local, .env, .env.defaults, then the monorepo root's
+# files in the same order. dotenv-flow merges a directory's files so that the
+# later one in its list overwrites the earlier, which puts .env.development
+# above .env.local: a .env.local value of a key the committed .env.development
+# sets never reaches the backend, and only .env.development.local overrides
+# it. The loop below follows exactly that order. Within one directory it is
+# CAS's own order too (src/config/native.rs::load_env_files); the difference
+# is that CAS reads the monorepo root alone, while the backend reads its
+# package directory first.
 #
 # The secret is why: the backend presents it through that loader, so an
-# export, or an override written in the package's or the root's local files,
-# reaches the seeded row and the backend alike — the two halves have to
-# agree. The port is read from the same files only to keep the number out of
-# this script; it is not a knob, and the monorepo's .env.development says why.
+# export, or an override written in a .env.development.local of the package
+# or the root, reaches the seeded row and the backend alike — the two halves
+# have to agree. The port is read from the same files only to keep the number
+# out of this script; it is not a knob, and the monorepo's .env.development
+# says why.
 #
 # The files are never `source`d — that would overwrite an exported value, and
 # the seeded row would then disagree with a backend started from the same
-# environment. They hold plain unquoted KEY=value lines, so the first matching
-# line of the first file that has one is the value.
+# environment. They hold plain unquoted KEY=value lines, and the parser lets a
+# later line of a file overwrite an earlier one, so the last matching line of
+# the first file that has one is the value.
 env_value() {
   local name=$1
   local value
@@ -94,11 +101,13 @@ env_value() {
   fi
   local file line
   for file in \
-    ../ligretto-core-backend/.env.development.local ../ligretto-core-backend/.env.local \
-    ../ligretto-core-backend/.env.development ../ligretto-core-backend/.env \
-    ../../.env.development.local ../../.env.local ../../.env.development ../../.env; do
+    ../ligretto-core-backend/.env.development.local ../ligretto-core-backend/.env.development \
+    ../ligretto-core-backend/.env.local ../ligretto-core-backend/.env \
+    ../ligretto-core-backend/.env.defaults \
+    ../../.env.development.local ../../.env.development ../../.env.local ../../.env \
+    ../../.env.defaults; do
     [ -f "$file" ] || continue
-    if line=$(grep -m 1 "^${name}=" "$file"); then
+    if line=$(grep "^${name}=" "$file" | tail -n 1); then
       printf '%s' "${line#*=}"
       return
     fi

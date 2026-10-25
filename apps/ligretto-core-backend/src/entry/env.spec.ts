@@ -47,6 +47,20 @@ describe('loadDevelopmentEnv', () => {
     expect(process.env[KEY]).toBe('package-local')
   })
 
+  // apps/cas/scripts/seed-dev.sh mirrors this order to seed the secret the backend presents.
+  it('ranks .env.development above .env.local, and .env.local above .env', async () => {
+    await write(packageDir, '.env.development', 'package')
+    await write(packageDir, '.env.local', 'package-local-any-env')
+    await write(packageDir, '.env', 'package-base')
+    load({ NODE_ENV: 'development' })
+    expect(process.env[KEY]).toBe('package')
+
+    delete process.env[KEY]
+    await rm(path.join(packageDir, '.env.development'))
+    load({ NODE_ENV: 'development' })
+    expect(process.env[KEY]).toBe('package-local-any-env')
+  })
+
   it("prefers the package's .env.development over the root files", async () => {
     await write(packageDir, '.env.development', 'package')
     await write(rootDir, '.env.development.local', 'root-local')

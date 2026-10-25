@@ -27,9 +27,10 @@ type LoadDevelopmentEnvOptions = {
 /**
  * The one development environment loader of the Node-side entries (`node.ts`, `migrate.ts`, `codegen.ts`,
  * `sweep.ts`), so they cannot disagree on `DATABASE_URL`. Precedence: the shell, then this package's files in
- * dotenv-flow's order (`.env.development.local`, `.env.local`, `.env.development`, `.env`), then the root's in the same
- * order. dotenv-flow never overrides a variable that is already set, so loading the package directory first is what
- * makes it win over the root. Both directories resolve the same from the source and from the build (`packageDirOf`).
+ * dotenv-flow's order, highest first (`.env.development.local`, `.env.development`, `.env.local`, `.env`,
+ * `.env.defaults`), then the root's in the same order. `.env.development` sits above `.env.local`, so only
+ * `.env.development.local` overrides a key the committed `.env.development` sets. dotenv-flow never overrides a
+ * variable that is already set, so loading the package directory first is what makes it win over the root. Both directories resolve the same from the source and from the build (`packageDirOf`).
  * Production sets the environment itself and reads no file.
  */
 export const loadDevelopmentEnv = ({
