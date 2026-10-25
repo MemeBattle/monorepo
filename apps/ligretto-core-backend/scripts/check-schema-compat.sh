@@ -4,9 +4,9 @@
 # type-checks it; with --store, also runs that tree's store suite on the same migration set.
 #
 # A tree is a repository root: `.` for the checkout of the pull request, `previous` for the base branch's. The
-# migration tree only needs apps/ligretto-core-backend/migrations; the code tree needs its dependencies installed. When the
-# two differ, the chosen migrations folder is swapped into the code tree, so that tree's own migrate entry, codegen
-# entry and store suite run on it, and the code tree's folder is restored on exit, success or failure. The
+# migration tree only needs apps/ligretto-core-backend/migrations; the code tree needs its dependencies installed.
+# When the two differ, the chosen migrations folder is swapped into the code tree, so that tree's own migrate entry,
+# codegen entry and store suite run on it, and the code tree's folder is restored on exit, success or failure. The
 # regenerated schema.generated.ts is left in place: schema-current diffs it, a local run restores it with git.
 #
 # DATABASE_URL must name an empty database, or one migrated by the same set: Kysely refuses a database that

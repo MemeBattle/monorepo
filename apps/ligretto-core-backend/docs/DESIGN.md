@@ -229,9 +229,8 @@ runs `node build/src/entry/node.js`; migrate and sweep run from the same image w
 
 The consumers' new calls (`/internal/*`, `sub`/`name` in users) did not exist on the previous service, so switching a
 consumer and keeping CI's e2e on the previous service could not both hold. The activation is done: the consumers
-switched in #840 and #841, and #842 re-pointed CI, the e2e job and the image at this package and re-enabled the e2e
-job of `ligretto-pr.yml`, which runs against this package. Preparation (the client package, the frontend's auth
-flow) landed before it.
+switched in #840 and #841, and #842 re-pointed CI and the image at this package and re-enabled the e2e job of
+`ligretto-pr.yml` against it. Preparation (the client package, the frontend's auth flow) landed before it.
 
 ## Later, outside the milestone
 

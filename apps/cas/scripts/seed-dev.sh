@@ -75,7 +75,7 @@ fi
 # later one in its list overwrites the earlier, which puts .env.development
 # above .env.local: a .env.local value of a key the committed .env.development
 # sets never reaches the backend, and only .env.development.local overrides
-# it. The loop below follows exactly that order. Within one directory it is
+# it. The loop below follows that order. Within one directory it is
 # CAS's own order too (src/config/native.rs::load_env_files); the difference
 # is that CAS reads the monorepo root alone, while the backend reads its
 # package directory first.

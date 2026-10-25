@@ -1,5 +1,5 @@
-// The ligretto-core-backend Worker (src/entry/worker.ts), developed with `cf dev` and built with `cf build`; Wrangler bundles
-// the TypeScript entrypoint itself, so there is no wrangler.config.ts.
+// The ligretto-core-backend Worker (src/entry/worker.ts), developed with `cf dev` and built with `cf build`; Wrangler
+// bundles the TypeScript entrypoint itself, so there is no wrangler.config.ts.
 import { bindings, defineConfig, exports } from 'cf/config'
 
 // Placeholders: https://github.com/MemeBattle/monorepo/issues/843 creates the two cache-disabled Hyperdrive

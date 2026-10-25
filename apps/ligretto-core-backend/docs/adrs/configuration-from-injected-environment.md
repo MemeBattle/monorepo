@@ -14,7 +14,8 @@ read_when:
 Cloudflare Workers deliver configuration as a bindings object passed to the handler; `process.env` exists under
 `nodejs_compat` but only mirrors text bindings, and a Hyperdrive binding is an object, not a string. Node delivers
 `process.env` plus `.env` files in development. A module that reads `process.env` at import time works on one of
-them and silently misreads the other. The previous service used the framework's env loader, which read `.env` from disk at boot.
+them and silently misreads the other. The previous service used the framework's env loader, which read `.env` from
+disk at boot.
 
 ## Decision
 

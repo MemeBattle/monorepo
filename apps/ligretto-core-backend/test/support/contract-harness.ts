@@ -1,8 +1,8 @@
 /**
- * Both apps composed for the contract tests of other packages, exported as `@memebattle/ligretto-core-backend/contract-harness`
- * (docs/adrs/api-contract-openapi-and-client-package.md). `packages/ligretto-core-client` drives its generated
- * operations through the `fetch` functions here, so they reach `createPublicApp` and `createInternalApp` over PGlite
- * without a network.
+ * Both apps composed for the contract tests of other packages, exported as
+ * `@memebattle/ligretto-core-backend/contract-harness` (docs/adrs/api-contract-openapi-and-client-package.md).
+ * `packages/ligretto-core-client` drives its generated operations through the `fetch` functions here, so they reach
+ * `createPublicApp` and `createInternalApp` over PGlite without a network.
  *
  * The harness holds one PGlite database for its whole life. Everything else is a composition that `reset()` throws
  * away and rebuilds: the CAS metadata `fetch`, the access-token verifier with its own cold metadata cache, the session

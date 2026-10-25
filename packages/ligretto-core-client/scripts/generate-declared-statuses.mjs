@@ -1,7 +1,7 @@
 /**
- * Writes `src/generated/declared-statuses.ts` from `apps/ligretto-core-backend/openapi.json` and `openapi.internal.json`: the
- * statuses every operation declares, keyed `'<METHOD> <path template>'`, which is exactly the `method` and `url` a
- * generated operation passes to the transport. The transport looks an answer's status up here to tell an answer
+ * Writes `src/generated/declared-statuses.ts` from `apps/ligretto-core-backend/openapi.json` and
+ * `openapi.internal.json`: the statuses every operation declares, keyed `'<METHOD> <path template>'`, which is exactly
+ * the `method` and `url` a generated operation passes to the transport. The transport looks an answer's status up here to tell an answer
  * inside the contract from one outside it, so the result types never claim a status the document does not declare.
  *
  * Both documents are merged into one map: `GET /health` is in both and declares the same statuses in each, and every

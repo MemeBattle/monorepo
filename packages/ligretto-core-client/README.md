@@ -1,8 +1,9 @@
 # @memebattle/ligretto-core-client
 
-The generated clients of `apps/ligretto-core-backend`, the only description of its API a consumer uses. kubb generates one
-function per operation, named by its `operationId`, and the models of each document. The transport in `src/client.ts`
-is this package's own, specified by `apps/ligretto-core-backend/docs/adrs/api-contract-openapi-and-client-package.md`.
+The generated clients of `apps/ligretto-core-backend`, the only description of its API a consumer uses. kubb
+generates one function per operation, named by its `operationId`, and the models of each document. The transport in
+`src/client.ts` is this package's own, specified by
+`apps/ligretto-core-backend/docs/adrs/api-contract-openapi-and-client-package.md`.
 
 ## Entries
 
@@ -88,8 +89,8 @@ documents and the client and fails when the commit differs.
 ## Contract tests
 
 `test/contract/*.spec.ts` call every generated operation against the real apps of ligretto-core. They run over PGlite
-through the `./contract-harness` export of `@memebattle/ligretto-core-backend`, with a custom `fetch` and no network. Every
-body is validated against the committed document. When a file ends, it fails unless every declared
+through the `./contract-harness` export of `@memebattle/ligretto-core-backend`, with a custom `fetch` and no network.
+Every body is validated against the committed document. When a file ends, it fails unless every declared
 `(operation, status, error code)` was produced by some case, so a run filtered with `-t` fails by design.
 
 ```sh

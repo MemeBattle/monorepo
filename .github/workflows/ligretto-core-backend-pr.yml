@@ -33,7 +33,8 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
-      # The directory boundaries of docs/adrs/layering-and-runtime-neutrality.md live in apps/ligretto-core-backend/oxlint.config.ts.
+      # The directory boundaries of docs/adrs/layering-and-runtime-neutrality.md live in
+      # apps/ligretto-core-backend/oxlint.config.ts.
       - name: Lint
         run: pnpm run --filter @memebattle/ligretto-core-backend lint
 
@@ -83,8 +84,9 @@ jobs:
           LIGRETTO_CORE_TEST_DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5435/ligretto-core-test
         run: pnpm run --filter @memebattle/ligretto-core-backend test:store:run
 
-  # The rules of apps/ligretto-core-backend/docs/MIGRATIONS.md: a migration on the base branch is never edited, renamed or
-  # deleted; an added one is well named, newer than the newest on the base branch, and marks a contract statement.
+  # The rules of apps/ligretto-core-backend/docs/MIGRATIONS.md: a migration on the base branch is never edited,
+  # renamed or deleted; an added one is well named, newer than the newest on the base branch, and marks a contract
+  # statement.
   migration-checks:
     runs-on: ubuntu-24.04
 
@@ -98,9 +100,9 @@ jobs:
       - name: Check the migrations against the base branch
         run: apps/ligretto-core-backend/scripts/check-migrations.sh "origin/${{ github.base_ref }}"
 
-  # The compatibility matrix of apps/ligretto-core-backend/docs/adrs/additive-migrations-and-compatibility-matrix.md. Each
-  # job applies one tree's migrations to its own Postgres, regenerates the other tree's row types from that schema
-  # and type-checks it, through apps/ligretto-core-backend/scripts/check-schema-compat.sh:
+  # The compatibility matrix of apps/ligretto-core-backend/docs/adrs/additive-migrations-and-compatibility-matrix.md.
+  # Each job applies one tree's migrations to its own Postgres, regenerates the other tree's row types from that
+  # schema and type-checks it, through apps/ligretto-core-backend/scripts/check-schema-compat.sh:
   #   schema-current   PR migrations, PR code: the ordinary check, and the committed row types match the schema.
   #   schema-previous  master's migrations, PR code: new code started before the migration ran.
   #   code-previous    PR migrations, master's code and store suite: old code still running after the migration,

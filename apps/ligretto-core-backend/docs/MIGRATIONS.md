@@ -162,9 +162,9 @@ executes the raw lock statements on the new schema.
 is a repository root. When the trees differ, it swaps the chosen `migrations/` folder into the code tree and
 restores it on exit, Ctrl-C included, so uncommitted migrations survive. If the process is killed outright, the
 original folder is in the temporary directory the script printed, and
-`git checkout -- apps/ligretto-core-backend/migrations` recovers the committed files. The regenerated `schema.generated.ts` stays in place. Kysely refuses a database that
-recorded a migration the tree lacks, so every variant needs an empty schema. From the repository root, against the
-store test database:
+`git checkout -- apps/ligretto-core-backend/migrations` recovers the committed files. The regenerated
+`schema.generated.ts` stays in place. Kysely refuses a database that recorded a migration the tree lacks, so every
+variant needs an empty schema. From the repository root, against the store test database:
 
 ```sh
 docker compose up -d --wait ligretto-core-pg-test

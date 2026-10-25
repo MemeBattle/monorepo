@@ -19,6 +19,6 @@ Rules that are not negotiable in this package:
 - Schema changes are migrations, additive, one release ahead of the code that uses them; the row types are
   generated from the migrated schema and committed.
 - An expected failure is a result with a stable `error` code, declared on the route. A throw is a bug.
-- Relative imports name the file with its `.ts` extension; the Node build rewrites them and `ts-check` fails without
-  (`docs/adrs/node-build-and-import-specifiers.md`).
+- Relative imports name the file with its `.ts` extension: the Node build rewrites it to `.js`, and `ts-check` fails
+  on an import without it (`docs/adrs/node-build-and-import-specifiers.md`).
 - Comments, documents and commit messages in English.

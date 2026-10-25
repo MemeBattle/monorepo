@@ -167,7 +167,7 @@ jobs:
           DATABASE_URL: postgres://cas:cas@localhost:5434/cas
         run: cargo run -p cas --bin cas-migrate
 
-      # Reads the client secret and the callback port from the root .env files, as the core backend does.
+      # Reads the client secret and the callback port from the .env files the core backend reads, in the same order.
       - name: Register the ligretto client
         working-directory: apps/cas
         env:
