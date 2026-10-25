@@ -2,7 +2,7 @@
  * The HTTP contract of the handlers in `./handlers`, as zod schemas: what each of the four routes takes and answers.
  * It is the package's third entry, `@memebattle/ligretto-auth/schema`, and the single source of truth for that
  * contract — `./contract` derives its types from it, and a host documents the routes it mounts from it
- * (`apps/ligretto-core/docs/adrs/api-contract-openapi-and-client-package.md`).
+ * (`apps/ligretto-core-backend/docs/adrs/api-contract-openapi-and-client-package.md`).
  *
  * Run-time validation is for input only: the callback parses its query with `CallbackQuerySchema`, and every body a
  * handler answers is built as a value of a type derived here. Only the tests parse the answers.
@@ -135,7 +135,7 @@ export interface AuthResponseFragment {
  * The part of a route's OpenAPI description a mount site does not own: everything of zod-to-openapi's `RouteConfig`
  * but `path`, so a host spreads it into `registerPath({ path: '/api/auth/me', ...fragments.me })` or `createRoute`.
  * Plain objects rather than the library's type, because this package depends on no framework; compatibility with
- * `RouteConfig` is compiled where it is registered, in `apps/ligretto-core` (#837).
+ * `RouteConfig` is compiled where it is registered, in `apps/ligretto-core-backend` (#837).
  */
 export interface AuthRouteFragment {
   method: 'get'

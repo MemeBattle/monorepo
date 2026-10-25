@@ -1,7 +1,7 @@
 /**
  * The transport of the ligretto-core clients: every generated function in `./generated/public/operations` and
  * `./generated/internal/operations` calls a `Client`, and nothing else in this package calls `fetch`. It is specified
- * by `apps/ligretto-core/docs/adrs/api-contract-openapi-and-client-package.md`.
+ * by `apps/ligretto-core-backend/docs/adrs/api-contract-openapi-and-client-package.md`.
  *
  * An operation never throws on a status. It resolves to one of five kinds:
  *

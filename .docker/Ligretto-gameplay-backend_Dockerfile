@@ -9,9 +9,9 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /memebattle/
 COPY packages/ligretto-shared/package.json /memebattle/packages/ligretto-shared/
 COPY packages/ligretto-auth/package.json /memebattle/packages/ligretto-auth/
 COPY packages/ligretto-core-client/package.json /memebattle/packages/ligretto-core-client/
-# Only for the workspace: the client's dev dependency on @memebattle/ligretto-core must resolve, or pnpm refuses
-# to run. Nothing of ligretto-core is built or shipped.
-COPY apps/ligretto-core/package.json /memebattle/apps/ligretto-core/
+# Only for the workspace: the client's dev dependency on @memebattle/ligretto-core-backend must resolve, or pnpm refuses
+# to run. Nothing of ligretto-core-backend is built or shipped.
+COPY apps/ligretto-core-backend/package.json /memebattle/apps/ligretto-core-backend/
 COPY apps/ligretto-gameplay-backend/package.json /memebattle/apps/ligretto-gameplay-backend/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile

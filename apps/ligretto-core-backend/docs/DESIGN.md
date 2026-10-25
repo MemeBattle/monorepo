@@ -1,9 +1,8 @@
-# ligretto-core: design
+# ligretto-core-backend: design
 
 The HTTP service of Ligretto: who the user is (through CAS, via `@memebattle/ligretto-auth`), the profile snapshots
-of players, and the record of games and rounds the gameplay backend reports. It replaces
-`apps/ligretto-core-backend` (AdonisJS), which stays in the tree untouched until the last issues of the milestone
-switch CI to this package, delete it and rename this package to `ligretto-core-backend`.
+of players, and the record of games and rounds the gameplay backend reports. It replaced the previous service of the
+same name, which was deleted in #842 when this package took over its directory and its name.
 
 This document holds the requirements, the target shape and the contracts. Decisions that constrain more than one
 module are ADRs in `adrs/`; read `ADR.md` for how they are written. When this document and a schema in
@@ -34,7 +33,7 @@ the shared secret serves until then), changes to the gameplay protocol, an admin
 ## Shape
 
 ```
-apps/ligretto-core/
+apps/ligretto-core-backend/
   src/core/        use cases, domain types, ports, config schema          (web standard + zod only)
   src/contract/    zod schemas of requests, responses, errors
   src/http/        createPublicApp(deps), createInternalApp(deps), middleware, OpenAPI
@@ -57,8 +56,8 @@ server on Node; a `fetch` that dispatches on `Host`, plus a service-binding entr
 
 ## Data
 
-The schema is this package's own: the first migration creates it from scratch, and nothing of the Adonis schema is
-kept or migrated — there is no production data.
+The schema is this package's own: the first migration creates it from scratch, and nothing of the previous service's
+schema is kept or migrated — there is no production data.
 
 | Table                                        | Purpose                                                                                                              | Key                                                     |
 | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
@@ -174,8 +173,8 @@ sweep once against `DATABASE_URL`. `start:dev`, `sweep` and `openapi:generate` r
 `tsx --conditions=development`, which resolves `@memebattle/ligretto-auth` from source: the package's `node` export
 points at a build the tree does not hold. The development `LIGRETTO_INTERNAL_API_TOKEN` and `LIGRETTO_CAS_CLIENT_SECRET`
 come from the root `.env.development` for the Node entry and from this package's `.dev.vars` for `cf dev` and the Worker
-suite; both hold the same public-by-construction values. The root `pnpm ligretto:start` leaves this package out until
-the cutover from `ligretto-core-backend`: both serve port 3333.
+suite; both hold the same public-by-construction values. The root `pnpm ligretto:start` runs this package with the
+rest of ligretto.
 
 ## Deployment
 
@@ -194,7 +193,8 @@ being built in CI as the packaging of the Node entry.
 
 ## CI (per pull request)
 
-- lint, format, `tsc`, vitest (PGlite suites); the store suite against the job's Postgres;
+- `ligretto-core-backend-pr.yml`: lint, format, `tsc`, vitest (PGlite suites); the store suite against the job's
+  Postgres;
 - both entries smoke-tested by vitest projects: `test/node` boots `entry/node.ts` as a child process, `test/worker`
   runs the Worker under `workerd` through `@cloudflare/vitest-plugin`; the workflow runs the scripts and asserts
   nothing over HTTP itself;
@@ -221,11 +221,11 @@ being built in CI as the packaging of the Node entry.
   round stops showing stale scores. The switch (#841), that reset included, is part of the same activation.
 - `packages/ligretto-shared/apiTypes.ts` is deleted when both are on the generated client.
 
-The consumers' new calls (`/internal/*`, `sub`/`name` in users) do not exist on the old package, so switching a
-consumer and keeping CI's e2e on the old package cannot both hold. The e2e job of `ligretto-pr.yml` is disabled
-(`if: false`) until #817; whatever its state, the rule is: the consumer switches (#840, #841) and the re-pointing of
-CI, e2e and the image at this package (#842) land as one activation, with the e2e job enabled only against the
-compatible combination. Preparation (the client package, the frontend's auth flow) lands independently before it.
+The consumers' new calls (`/internal/*`, `sub`/`name` in users) did not exist on the previous service, so switching a
+consumer and keeping CI's e2e on the previous service could not both hold. The activation is done: the consumers
+switched in #840 and #841, and #842 re-pointed CI, the e2e job and the image at this package and re-enabled the e2e
+job of `ligretto-pr.yml`, which runs against this package. Preparation (the client package, the frontend's auth
+flow) landed before it.
 
 ## Later, outside the milestone
 

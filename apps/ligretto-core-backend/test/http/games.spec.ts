@@ -1,5 +1,5 @@
 // The internal games routes over the real Postgres adapters on PGlite: here because src/http may not import
-// src/adapters (docs/adrs/testing-strategy.md). Ports the cases of ligretto-core-backend's GamesService.test.ts and
+// src/adapters (docs/adrs/testing-strategy.md). Ports the cases of the previous service's GamesService.test.ts and
 // GamesController.test.ts; the GET /api/games cases have no successor.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 

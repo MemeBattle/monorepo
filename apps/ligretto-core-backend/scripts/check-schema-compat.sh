@@ -4,7 +4,7 @@
 # type-checks it; with --store, also runs that tree's store suite on the same migration set.
 #
 # A tree is a repository root: `.` for the checkout of the pull request, `previous` for the base branch's. The
-# migration tree only needs apps/ligretto-core/migrations; the code tree needs its dependencies installed. When the
+# migration tree only needs apps/ligretto-core-backend/migrations; the code tree needs its dependencies installed. When the
 # two differ, the chosen migrations folder is swapped into the code tree, so that tree's own migrate entry, codegen
 # entry and store suite run on it, and the code tree's folder is restored on exit, success or failure. The
 # regenerated schema.generated.ts is left in place: schema-current diffs it, a local run restores it with git.
@@ -50,9 +50,20 @@ if ((store == 1)); then
   [[ -n "${LIGRETTO_CORE_TEST_DATABASE_URL:-}" ]] || usage
 fi
 
-package="apps/ligretto-core"
-source_migrations="$(cd "$migrations_tree" && pwd -P)/$package/migrations"
-code_package="$(cd "$code_tree" && pwd -P)/$package"
+# The package directory inside a tree. The fallback to apps/ligretto-core, where the package lived before #842,
+# exists for the base branch of the rename's own pull request; delete it once no base branch predates the rename.
+package_of() {
+  local root
+  root="$(cd "$1" && pwd -P)"
+  if [[ -d "$root/apps/ligretto-core-backend/migrations" ]]; then
+    echo "$root/apps/ligretto-core-backend"
+  else
+    echo "$root/apps/ligretto-core"
+  fi
+}
+
+source_migrations="$(package_of "$migrations_tree")/migrations"
+code_package="$(package_of "$code_tree")"
 code_migrations="$code_package/migrations"
 
 [[ -d "$source_migrations" ]] || {

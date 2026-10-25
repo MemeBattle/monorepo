@@ -1,7 +1,7 @@
 // The four auth routes mounted on the public app, with the database probe and the users repository on PGlite, the
 // package's in-memory session store and a scripted CAS client (test/support/auth-stub.ts). What the handlers decide is
 // proved in packages/ligretto-auth; here the subject is the mount, which carries their answers across intact. Ports
-// the cases of ligretto-core-backend's AuthController.test.ts.
+// the cases of the previous service's AuthController.test.ts.
 import { ApiError, createInMemorySessionStore, SESSION_COOKIE_NAME, STATE_COOKIE_NAME } from '@memebattle/ligretto-auth'
 import type { AuthHandlers, SessionStore } from '@memebattle/ligretto-auth'
 import { AuthErrorResponseSchema, MeResponseSchema } from '@memebattle/ligretto-auth/schema'

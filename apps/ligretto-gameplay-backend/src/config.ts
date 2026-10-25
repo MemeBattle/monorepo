@@ -5,7 +5,7 @@ import dotenv from '@codexsoft/dotenv-flow'
 // This package's `.env*` files first, then the repository root ones: dotenv-flow never overrides a variable that is
 // already set, so the package files win over the root, and the shell wins over both. The package files hold the
 // gameplay backend's own `LIGRETTO_CORE_URL`, because the root value belongs to the frontend. The same rule as
-// `apps/ligretto-core/src/entry/env.ts`. `..` is the package directory from both `src/` and `build/`.
+// `apps/ligretto-core-backend/src/entry/env.ts`. `..` is the package directory from both `src/` and `build/`.
 dotenv.config({ default_node_env: 'development', path: resolve(__dirname, '..'), silent: true })
 dotenv.config({ default_node_env: 'development', path: resolve(__dirname, '../../..'), silent: true })
 
@@ -16,7 +16,7 @@ export const { LIGRETTO_GAMEPLAY_SOCKET_PORT, CAS_ISSUER = '', LIGRETTO_CORE_URL
  * The shared secret sent to ligretto-core's internal API as `Authorization: Bearer`. The variable takes the server's
  * format, a comma-separated list of one or two values, and the client sends the first one: a rotation adds the new
  * value to the server, switches this value, then removes the old one from the server
- * (`apps/ligretto-core/docs/adrs/internal-api-and-service-authentication.md`).
+ * (`apps/ligretto-core-backend/docs/adrs/internal-api-and-service-authentication.md`).
  */
 export const LIGRETTO_INTERNAL_API_TOKEN =
   (process.env.LIGRETTO_INTERNAL_API_TOKEN ?? '')

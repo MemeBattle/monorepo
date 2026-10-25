@@ -1,4 +1,4 @@
-// The transport's rules (docs/adrs/api-contract-openapi-and-client-package.md of apps/ligretto-core) over a scripted
+// The transport's rules (docs/adrs/api-contract-openapi-and-client-package.md of apps/ligretto-core-backend) over a scripted
 // `fetch`: what goes on the wire, and which result kind each answer becomes.
 import { describe, expect, it, vi } from 'vitest'
 

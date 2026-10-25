@@ -50,7 +50,7 @@ export interface CasClientOptions {
   /**
    * Bounds every request this client sends — discovery, JWKS and the token endpoint — from `fetch` to the end of the
    * body, so a caller holding a lock across a CAS call never waits unbounded
-   * (`apps/ligretto-core/docs/adrs/session-store-locking.md`). An integer from 1 to 2147483647 milliseconds, refused
+   * (`apps/ligretto-core-backend/docs/adrs/session-store-locking.md`). An integer from 1 to 2147483647 milliseconds, refused
    * at construction otherwise; no bound when left out. A request that outlives it is an `ApiError` `unreachable`,
    * which the handlers answer `503 cas_unavailable`.
    */

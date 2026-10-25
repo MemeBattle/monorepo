@@ -26,7 +26,7 @@ export default defineConfig({
       experimental: { newConfig: true },
       miniflare: {
         serviceBindings: {
-          INTERNAL: { name: 'ligretto-core', entrypoint: 'InternalApi' },
+          INTERNAL: { name: 'ligretto-core-backend', entrypoint: 'InternalApi' },
         },
       },
     }),

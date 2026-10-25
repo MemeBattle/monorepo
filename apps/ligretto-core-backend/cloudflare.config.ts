@@ -1,4 +1,4 @@
-// The ligretto-core Worker (src/entry/worker.ts), developed with `cf dev` and built with `cf build`; Wrangler bundles
+// The ligretto-core-backend Worker (src/entry/worker.ts), developed with `cf dev` and built with `cf build`; Wrangler bundles
 // the TypeScript entrypoint itself, so there is no wrangler.config.ts.
 import { bindings, defineConfig, exports } from 'cf/config'
 
@@ -10,7 +10,7 @@ const DEV_DATABASE = 'postgres://ligretto-core-user:ligretto_pg_password@localho
 
 export default defineConfig({
   worker: {
-    name: 'ligretto-core',
+    name: 'ligretto-core-backend',
     // Node.js compatibility is on by default from this date; the flag states it anyway.
     compatibilityDate: '2026-08-04',
     compatibilityFlags: ['nodejs_compat'],

@@ -22,7 +22,7 @@ therefore makes the lock part of the `SessionStore` port: every read-then-write 
 inside `withSessionLock` on that session's id and re-reads the session inside it; a brand-new session with a fresh,
 unguessable id may be saved without a lock (`packages/ligretto-auth/src/session-store.ts`, `sessions.ts`). This ADR
 records how that contract is met on Postgres and why it needs two connections; the design is carried over from the
-previous service (`apps/ligretto-core-backend/app/stores/PgSessionStore.ts`) unchanged in substance.
+previous service's `PgSessionStore`, deleted in #842 (git history), unchanged in substance.
 
 ## Decision
 
@@ -88,3 +88,6 @@ upd (2026-10-24): the bounds have their numbers (three attempts, a fifteen-secon
 wait and caps every `lock_timeout`, ten seconds of `lock_timeout`), the per-client lease of the Worker's handles and
 the closed scope are stated, the saturation test exists, and the sweep names a left session by its account
 ([#836](https://github.com/MemeBattle/monorepo/issues/836)).
+
+upd (2026-10-25): the previous service's `PgSessionStore` is named through git history, since #842 deleted that
+service and this package now lives at its path.

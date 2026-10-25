@@ -12,7 +12,7 @@ read_when:
 
 ## Context
 
-The previous service was an AdonisJS application: the framework owned the container, the HTTP server, the ORM, the
+The previous service was built on a full-stack framework that owned the container, the HTTP server, the ORM, the
 configuration and the process. It could not run on Cloudflare Workers (a shared connection pool in a singleton, a
 `node:http` server, a logger on `worker_threads`), and nothing in it could be tested or reused without booting the
 framework. Two requirements replace it: the business rules must not depend on the HTTP framework, and the service
@@ -58,3 +58,6 @@ lint gives the same guarantee without a publish step; a package can be cut out l
 - The entries are the only place where "which runtime am I on" is a legitimate question.
 - `configuration-from-injected-environment.md`, `database-access-with-kysely.md` and `logging.md` all exist because
   of this split: each describes one port and its adapters.
+
+upd (2026-10-25): the previous service was deleted in #842 and this package took its name; the Context no longer
+names its framework.

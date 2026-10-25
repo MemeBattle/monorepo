@@ -67,11 +67,14 @@ if [ "$app_env" != development ]; then
 fi
 
 # A value with the precedence of the loader ligretto-core-backend reads:
-# @adonisjs/env under NODE_ENV=development, where a real environment variable
-# always wins and the monorepo root's files rank .env.development.local,
-# .env.local, .env.development, .env. That order is not CAS's own
-# (src/config/native.rs::load_env_files puts .env.development above
-# .env.local).
+# dotenv-flow under NODE_ENV=development
+# (apps/ligretto-core-backend/src/entry/env.ts), where a real environment
+# variable always wins, then the package's own .env.development.local and
+# .env.development, then the monorepo root's .env.development.local,
+# .env.local, .env.development, .env. The secret and the port live only in the
+# root files, so the root order below is the one that decides them. That order
+# is not CAS's own (src/config/native.rs::load_env_files puts .env.development
+# above .env.local).
 #
 # The secret is why: the backend presents it through that loader, so an
 # export, or an override written in .env.local, reaches the seeded row and the

@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const script = fileURLToPath(new URL('./check-migrations.sh', import.meta.url))
 const baselineSource = fileURLToPath(new URL('../migrations/20261024175957_initial_schema.ts', import.meta.url))
-const migrationsDir = 'apps/ligretto-core/migrations'
+const migrationsDir = 'apps/ligretto-core-backend/migrations'
 const baseline = `${migrationsDir}/20261024175957_initial_schema.ts`
 
 type Run = { code: number; output: string }

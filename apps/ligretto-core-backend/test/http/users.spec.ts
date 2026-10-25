@@ -1,6 +1,6 @@
 // GET /api/users over the real users repository on PGlite and the real access-token verifier, composed as the entries
 // compose it (src/entry/auth.ts) over a CAS that serves its metadata from a local fetch. Ports the cases of
-// ligretto-core-backend's UsersController.test.ts; its 422s are 400 validation_failed (docs/adrs/error-responses.md).
+// the previous service's UsersController.test.ts; its 422s are 400 validation_failed (docs/adrs/error-responses.md).
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { createPgDatabaseProbe } from '../../src/adapters/pg/probe'

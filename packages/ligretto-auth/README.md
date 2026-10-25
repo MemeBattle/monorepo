@@ -85,7 +85,7 @@ const cas = createCasClient({
 and the token endpoint — from the call to `fetch` to the last byte of the
 body, so a caller holding a session lock across a CAS call never waits
 unbounded
-([session-store-locking.md](../../apps/ligretto-core/docs/adrs/session-store-locking.md)).
+([session-store-locking.md](../../apps/ligretto-core-backend/docs/adrs/session-store-locking.md)).
 It is an integer from 1 to 2147483647 milliseconds, the range
 `AbortSignal.timeout` supports everywhere, and anything else is refused at
 construction with a `TypeError`. A request that outlives it, before or after
@@ -209,7 +209,7 @@ moved by a refresh (ADR 0012 (g)); CAS does not transmit it.
 ## The HTTP handlers
 
 `createAuthHandlers` is the HTTP half: four `(Request) => Promise<Response>`
-functions, so Hono, a bare Worker and an Adonis adapter mount the same
+functions, so Hono, a bare Worker and a framework adapter mount the same
 handler. No framework is imported, and none is assumed.
 
 ```ts
@@ -638,8 +638,8 @@ repository keeps:
 - Run-time validation is for input only: the callback's query is parsed
   with its schema, no outgoing body is parsed in production, and the tests
   parse every answer against its route's fragment — the rule
-  `apps/ligretto-core` follows
-  ([api-contract-openapi-and-client-package.md](../../apps/ligretto-core/docs/adrs/api-contract-openapi-and-client-package.md)).
+  `apps/ligretto-core-backend` follows
+  ([api-contract-openapi-and-client-package.md](../../apps/ligretto-core-backend/docs/adrs/api-contract-openapi-and-client-package.md)).
   The fragments are plain objects, not the library's type: the package
   depends on no framework, and compatibility with `RouteConfig` is compiled
   where the routes are registered.

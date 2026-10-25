@@ -1,4 +1,4 @@
-# ligretto-core
+# ligretto-core-backend
 
 The HTTP service of Ligretto on Hono: CAS sign-in through `@memebattle/ligretto-auth`, player profiles, games and
 rounds for the gameplay backend. Runs on Node.js and on Cloudflare Workers from the same source.

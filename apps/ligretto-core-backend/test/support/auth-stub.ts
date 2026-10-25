@@ -1,6 +1,6 @@
 /**
  * The four handlers of `@memebattle/ligretto-auth` over a scripted `CasClient` and the package's in-memory session
- * store, ported from ligretto-core-backend's `tests/helpers/authStub.ts`.
+ * store, ported from the previous service's `tests/helpers/authStub.ts`.
  *
  * The stub sits at the `CasClient` object, not at HTTP: the package's own suites drive the protocol against a fake
  * CAS, so what is left here is that the routes are mounted and that their answers reach the client intact. Every

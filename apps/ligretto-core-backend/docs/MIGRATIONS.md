@@ -118,7 +118,7 @@ release named for `SET NOT NULL`.
 
 ## What CI checks
 
-`.github/workflows/ligretto-core-pr.yml` runs, on every pull request of this package:
+`.github/workflows/ligretto-core-backend-pr.yml` runs, on every pull request of this package:
 
 - `migration-checks`: `scripts/check-migrations.sh` against the base branch, with full history. It fails when
   the pull request
@@ -132,7 +132,7 @@ release named for `SET NOT NULL`.
   - adds a migration that uses Kysely's schema builder (`db.schema`): write the DDL in the `sql` tag (§ Adding one).
 
   The script compares commits (`<base>...HEAD`): a migration is checked once it is committed, not while it is
-  staged. Run it locally with `apps/ligretto-core/scripts/check-migrations.sh origin/master`.
+  staged. Run it locally with `apps/ligretto-core-backend/scripts/check-migrations.sh origin/master`.
 
 - The compatibility matrix, `scripts/check-schema-compat.sh` with three sets of arguments. Each job applies one
   tree's migrations to its own empty Postgres with `pnpm migrate`, regenerates the other tree's
@@ -158,8 +158,8 @@ executes the raw lock statements on the new schema.
 `scripts/check-schema-compat.sh --migrations <tree> --code <tree> [--store]` is the script of the three jobs; a tree
 is a repository root. When the trees differ, it swaps the chosen `migrations/` folder into the code tree and
 restores it on exit, Ctrl-C included, so uncommitted migrations survive. If the process is killed outright, the
-original folder is in the temporary directory the script printed, and `git checkout -- apps/ligretto-core/migrations`
-recovers the committed files. The regenerated `schema.generated.ts` stays in place. Kysely refuses a database that
+original folder is in the temporary directory the script printed, and
+`git checkout -- apps/ligretto-core-backend/migrations` recovers the committed files. The regenerated `schema.generated.ts` stays in place. Kysely refuses a database that
 recorded a migration the tree lacks, so every variant needs an empty schema. From the repository root, against the
 store test database:
 
@@ -169,27 +169,34 @@ export DATABASE_URL=postgres://ligretto-core-user:ligretto_pg_password@localhost
 export LIGRETTO_CORE_TEST_DATABASE_URL=$DATABASE_URL
 reset() { docker compose exec -T ligretto-core-pg-test psql -U ligretto-core-user -d ligretto-core-test \
   -c 'drop schema public cascade' -c 'create schema public'; }
-base=$(mktemp -d); git archive origin/master apps/ligretto-core/migrations | tar -x -C "$base"
+base=$(mktemp -d); git archive origin/master apps/ligretto-core-backend/migrations | tar -x -C "$base"
 prev=$(mktemp -d); git archive origin/master | tar -x -C "$prev"; (cd "$prev" && pnpm install --frozen-lockfile)
-compat=apps/ligretto-core/scripts/check-schema-compat.sh
+compat=apps/ligretto-core-backend/scripts/check-schema-compat.sh
 
 reset; $compat --migrations . --code .                    # schema-current
 reset; $compat --migrations "$base" --code .              # schema-previous
 reset; $compat --migrations . --code "$prev" --store      # code-previous
-git checkout -- apps/ligretto-core/src/adapters/pg/schema.generated.ts; rm -rf "$base" "$prev"
+git checkout -- apps/ligretto-core-backend/src/adapters/pg/schema.generated.ts; rm -rf "$base" "$prev"
 ```
 
 ## A development database
 
 The first migration expects an empty database. The `ligretto-core` database of the root `docker-compose.yml`
-(port 5433) may still carry the schema of `ligretto-core-backend`, whose tables have the same names. Do not delete
-the compose volume, which holds that service's development data. Give this package a database of its own instead:
+(port 5433) may still carry the tables of the previous service, deleted in #842, which have the same names, so
+`pnpm migrate` fails on `users`. Drop its `public` schema:
+
+```sh
+psql postgres://ligretto-core-user:ligretto_pg_password@localhost:5433/ligretto-core \
+  -c 'drop schema public cascade' -c 'create schema public'
+```
+
+or give this package a database of its own and point the override at it:
 
 ```sh
 psql postgres://ligretto-core-user:ligretto_pg_password@localhost:5433/postgres -c 'create database "ligretto-core-hono"'
 echo 'DATABASE_URL=postgres://ligretto-core-user:ligretto_pg_password@localhost:5433/ligretto-core-hono' \
-  > apps/ligretto-core/.env.development.local
-pnpm --filter @memebattle/ligretto-core migrate
+  > apps/ligretto-core-backend/.env.development.local
+pnpm --filter @memebattle/ligretto-core-backend migrate
 ```
 
 `pnpm migrate`, `pnpm db:codegen` and the Node entry all pick up the override. While developing the Worker, put the

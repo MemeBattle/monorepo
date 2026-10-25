@@ -8,7 +8,7 @@ import {
   mintAccessToken,
   STATE,
   type ContractHarness,
-} from '@memebattle/ligretto-core/contract-harness'
+} from '@memebattle/ligretto-core-backend/contract-harness'
 import { afterAll, beforeAll, beforeEach, describe, expect, expectTypeOf, it } from 'vitest'
 
 import {

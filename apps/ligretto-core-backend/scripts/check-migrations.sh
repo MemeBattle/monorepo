@@ -16,7 +16,7 @@ set -euo pipefail
 
 base_ref="${1:-origin/master}"
 cd "$(git rev-parse --show-toplevel)"
-migrations_dir="apps/ligretto-core/migrations"
+migrations_dir="apps/ligretto-core-backend/migrations"
 
 status=0
 fail() {

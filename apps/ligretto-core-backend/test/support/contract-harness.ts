@@ -1,5 +1,5 @@
 /**
- * Both apps composed for the contract tests of other packages, exported as `@memebattle/ligretto-core/contract-harness`
+ * Both apps composed for the contract tests of other packages, exported as `@memebattle/ligretto-core-backend/contract-harness`
  * (docs/adrs/api-contract-openapi-and-client-package.md). `packages/ligretto-core-client` drives its generated
  * operations through the `fetch` functions here, so they reach `createPublicApp` and `createInternalApp` over PGlite
  * without a network.

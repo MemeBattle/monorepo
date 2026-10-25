@@ -1,5 +1,5 @@
 {
-  "name": "@memebattle/ligretto-core",
+  "name": "@memebattle/ligretto-core-backend",
   "version": "0.1.0",
   "private": true,
   "description": "The HTTP service of Ligretto on Hono, for Node.js and Cloudflare Workers",
@@ -26,7 +26,7 @@
     "test:store": "pnpm run test:store:setup && pnpm run test:store:run",
     "test": "pnpm run test:unit",
     "test:ci": "pnpm run test:unit",
-    "lint": "pnpm -w exec oxlint apps/ligretto-core"
+    "lint": "pnpm -w exec oxlint apps/ligretto-core-backend"
   },
   "dependencies": {
     "@codexsoft/dotenv-flow": "catalog:",

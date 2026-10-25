@@ -14,7 +14,7 @@ read_when:
 Cloudflare Workers deliver configuration as a bindings object passed to the handler; `process.env` exists under
 `nodejs_compat` but only mirrors text bindings, and a Hyperdrive binding is an object, not a string. Node delivers
 `process.env` plus `.env` files in development. A module that reads `process.env` at import time works on one of
-them and silently misreads the other. The previous service used `@adonisjs/env`, which read `.env` from disk at boot.
+them and silently misreads the other. The previous service used the framework's env loader, which read `.env` from disk at boot.
 
 ## Decision
 
@@ -40,3 +40,6 @@ them and silently misreads the other. The previous service used `@adonisjs/env`,
 - Adding a variable is one line in the schema and one line in each deployment manifest; forgetting the manifest
   fails at startup, not at first use.
 - `process.env` access anywhere outside `src/entry` is a lint error, see `layering-and-runtime-neutrality.md`.
+
+upd (2026-10-25): the previous service was deleted in #842 and this package took its name; the Context no longer
+names its env loader.
