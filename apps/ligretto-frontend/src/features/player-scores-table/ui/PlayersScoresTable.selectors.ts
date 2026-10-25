@@ -20,7 +20,7 @@ export const playersSelector = createSelector(
           avatar: user ? userAvatarUrl(user) : getRandomAvatar(playerId),
           roundPoints: [playerResults.roundScore],
           totalPoints: playerResults.gameScore,
-          isPlayer: user?.casId === currentPlayerId,
+          isPlayer: user?.sub === currentPlayerId,
         }
       }),
       'totalPoints',

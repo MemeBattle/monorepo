@@ -1,11 +1,11 @@
 import type { UUID } from '@memebattle/ligretto-shared'
 import GameModel from '#models/Game'
-import type { SaveRoundResponse } from '@memebattle/ligretto-shared'
+import type { GameResults } from '@memebattle/ligretto-shared'
 
-type GameResults = Array<{ playerId: UUID; score: number }>
+type RoundResults = Array<{ playerId: UUID; score: number }>
 
 export default class GamesService {
-  public async saveRound(gameId: UUID, roundResults: GameResults) {
+  public async saveRound(gameId: UUID, roundResults: RoundResults) {
     const game = await GameModel.find(gameId)
     if (!game) {
       throw new Error('Game not found')
@@ -30,7 +30,7 @@ export default class GamesService {
       return roundResults
     }, {})
 
-    const gameResults: SaveRoundResponse['gameResults'] = mergeGameResults(gameScoresByUserId, roundScoresByUserId)
+    const gameResults: GameResults = mergeGameResults(gameScoresByUserId, roundScoresByUserId)
 
     return { game, roundResults, round, gameResults }
   }

@@ -31,7 +31,7 @@
     "@floating-ui/react-dom": "^2.1.6",
     "@fsmoothy/core": "^1.3.0",
     "@memebattle/analytics": "workspace:^",
-    "@memebattle/ligretto-auth": "workspace:^",
+    "@memebattle/ligretto-core-client": "workspace:^",
     "@memebattle/ligretto-shared": "workspace:^",
     "@memebattle/ui": "workspace:^",
     "@mui/icons-material": "catalog:",

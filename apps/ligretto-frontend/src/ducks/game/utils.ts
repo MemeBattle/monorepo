@@ -8,7 +8,7 @@ export const mergePlayerAndUser = (player: SharedPlayer, user: User) =>
     status: player.status,
     isHost: player.isHost,
     username: userLabel(user),
-    id: user.casId,
+    id: user.sub,
     avatar: userAvatarUrl(user),
     cards: player.cards,
     stackOpenDeck: player.stackOpenDeck,

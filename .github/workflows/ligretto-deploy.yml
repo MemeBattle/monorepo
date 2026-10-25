@@ -35,7 +35,7 @@ jobs:
         run: pnpm run ligretto:front:build
         env:
           LIGRETTO_GAMEPLAY_URL: https://api.ligretto.app
-          LIGRETTO_CORE_URL: https://core.ligretto.app/api
+          LIGRETTO_CORE_URL: https://core.ligretto.app
           CAS_URL: https://cas.mems.fun
           AMPLITUDE_TOKEN: f55f6d07422dfb26ca4dfbe59a54d609
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}

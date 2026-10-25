@@ -1,6 +1,8 @@
 export const IS_DEV_MODE = import.meta.env?.DEV
 
-export const LIGRETTO_CORE_URL = process.env.LIGRETTO_CORE_URL
+// The origin of ligretto-core's public API, with no /api: the generated paths of @memebattle/ligretto-core-client
+// start with /api. '' when the build defines no value, as in Storybook, so the client still loads.
+export const LIGRETTO_CORE_URL = process.env.LIGRETTO_CORE_URL ?? ''
 
 export const LIGRETTO_GAMEPLAY_URL = process.env.LIGRETTO_GAMEPLAY_URL
 export const CAS_URL = process.env.CAS_URL

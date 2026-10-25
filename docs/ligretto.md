@@ -12,7 +12,7 @@
 2. Set next variables:
 
 ```
-LIGRETTO_CORE_URL=https://core.ligretto.app/api
+LIGRETTO_CORE_URL=https://core.ligretto.app
 LIGRETTO_GAMEPLAY_URL=https://api.ligretto.app
 ```
 

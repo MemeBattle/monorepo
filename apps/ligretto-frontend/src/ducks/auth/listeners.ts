@@ -1,12 +1,11 @@
 import * as Sentry from '@sentry/browser'
 import type { TypedStartListening } from '@reduxjs/toolkit'
-import type { MeResponse } from '@memebattle/ligretto-auth/contract'
 
 import { getMeRequest, getMeSuccess, getMeFailure } from './authActions'
 
 import { analytics } from '#entities/analytics'
 import { addUser } from '#ducks/users'
-import { getMe } from '#shared/api'
+import { describeFailure, getMe, type GetMeStatus200 } from '#shared/api'
 import { restartOnHome } from '#shared/api/authNavigation'
 import type { All } from '#types/store'
 
@@ -26,16 +25,14 @@ export function addListeners(startListener: TypedStartListening<All>) {
         return
       }
 
-      let data: MeResponse
-      try {
-        data = (await getMe()).data
-      } catch (e) {
-        console.error(e)
+      const result = await getMe()
+      if (result.kind !== 'success') {
+        console.error('GET /api/auth/me failed', describeFailure(result))
         listenerApi.dispatch(getMeFailure())
         return
       }
 
-      const { user, accessToken, expiresAt } = data
+      const { user, accessToken, expiresAt }: GetMeStatus200 = result.data
 
       // The live socket is bound to the previous identity; switching users requires a reload.
       if (wasBootstrapped && user.sub !== previousUserId) {
@@ -43,7 +40,7 @@ export function addListeners(startListener: TypedStartListening<All>) {
         return
       }
 
-      listenerApi.dispatch(addUser({ casId: user.sub, accountType: user.accountType, displayName: user.name, avatarUrl: user.avatarUrl }))
+      listenerApi.dispatch(addUser(user))
 
       Sentry.setUser({ id: user.sub, username: user.name ?? undefined })
 

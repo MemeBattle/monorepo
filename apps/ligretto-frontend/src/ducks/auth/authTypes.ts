@@ -1,4 +1,6 @@
-import type { AccountType } from '@memebattle/ligretto-auth/contract'
+import type { AuthUser } from '#shared/api'
+
+type AccountType = AuthUser['accountType']
 
 export interface AuthState {
   userId: string
