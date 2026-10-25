@@ -69,18 +69,17 @@ fi
 # A value with the precedence of the loader ligretto-core-backend reads:
 # dotenv-flow under NODE_ENV=development
 # (apps/ligretto-core-backend/src/entry/env.ts), where a real environment
-# variable always wins, then the package's own .env.development.local and
-# .env.development, then the monorepo root's .env.development.local,
-# .env.local, .env.development, .env. The secret and the port live only in the
-# root files, so the root order below is the one that decides them. That order
-# is not CAS's own (src/config/native.rs::load_env_files puts .env.development
-# above .env.local).
+# variable always wins, then the package's own .env.development.local,
+# .env.local, .env.development, .env, then the monorepo root's files in the
+# same order. The loop below follows exactly that order. It is not CAS's own
+# (src/config/native.rs::load_env_files puts .env.development above
+# .env.local).
 #
 # The secret is why: the backend presents it through that loader, so an
-# export, or an override written in .env.local, reaches the seeded row and the
-# backend alike — the two halves have to agree. The port is read from the same
-# files only to keep the number out of this script; it is not a knob, and the
-# monorepo's .env.development says why.
+# export, or an override written in the package's or the root's local files,
+# reaches the seeded row and the backend alike — the two halves have to
+# agree. The port is read from the same files only to keep the number out of
+# this script; it is not a knob, and the monorepo's .env.development says why.
 #
 # The files are never `source`d — that would overwrite an exported value, and
 # the seeded row would then disagree with a backend started from the same
@@ -94,7 +93,10 @@ env_value() {
     return
   fi
   local file line
-  for file in ../../.env.development.local ../../.env.local ../../.env.development ../../.env; do
+  for file in \
+    ../ligretto-core-backend/.env.development.local ../ligretto-core-backend/.env.local \
+    ../ligretto-core-backend/.env.development ../ligretto-core-backend/.env \
+    ../../.env.development.local ../../.env.local ../../.env.development ../../.env; do
     [ -f "$file" ] || continue
     if line=$(grep -m 1 "^${name}=" "$file"); then
       printf '%s' "${line#*=}"
