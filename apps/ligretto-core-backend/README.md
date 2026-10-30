@@ -160,12 +160,17 @@ the root `.env` or `.env.production`, the lockfile or the workflow starts
    secret is set. A failure leaves the schema alone.
 4. `pnpm migrate` applies the migrations over the direct `DATABASE_URL`. A failure stops the upload.
 5. `cf deploy --prebuilt --mode production` uploads the Worker with the SPA and attaches the domains and the cron.
-6. `sentry-cli` uploads the SPA's source maps from the built artefact, under the release `LIGRETTO_APP_VERSION`.
+6. `sentry-cli` uploads the SPA's source maps from the built artefact, under the release `LIGRETTO_APP_VERSION`, and
+   finalizes that release.
 
 The upload to Sentry needs `SENTRY_AUTH_TOKEN`, so it cannot run in `build-worker`, which has no secrets. It runs last, from
 the artefact the release has already checked, and `continue-on-error` keeps it from deciding a release: a failure shows as
 an annotated step. The maps stay public in the assets, as they were on the bucket. A `pnpm build:worker` in a terminal has
 no `LIGRETTO_APP_VERSION`, so a release by hand reports no Sentry release, which is harmless.
+
+The step finalizes the Sentry release, so "resolve in next release" has a release date to order by. It associates no commits:
+`sentry-cli releases set-commits` needs the git history, and the checkout of the `release` job, which holds the production
+secrets, is shallow.
 
 A rerun after a failure is safe: a second migrate applies nothing.
 

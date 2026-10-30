@@ -54,8 +54,10 @@ export default defineConfig({
   },
   test: {
     include: ['test/worker/**/*.spec.ts'],
-    // The first request of a file loads the Worker's whole module graph into its isolate, in 3 s or 5 s here, which sits
-    // on the default limit of 5 s. A later test is a plain request.
+    // The first request of a file was measured at 3 s or 5 s here, with nothing between, which sits on the default test
+    // limit of 5 s. A cold load of the module graph is the likely cause; the 2 s step between the two is not explained.
+    // That request runs in a test or, in spa.spec.ts, in a hook, so both limits move. A later test is a plain request.
     testTimeout: 30_000,
+    hookTimeout: 30_000,
   },
 })

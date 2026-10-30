@@ -52,7 +52,12 @@ describe('the assets dispatch', () => {
       const res = await worker.fetch(`http://localhost${scriptPath}`)
       expect(res.status).toBe(200)
       expect(res.headers.get('content-type')).toContain('javascript')
-      expect(await res.text()).not.toContain('localhost:3333')
+      const script = await res.text()
+      expect(script).not.toContain('localhost:3333')
+      // The empty base leaves the path alone in its string. A foreign base writes `${base}/api/auth/sign-in`, and the
+      // client's declared statuses hold "GET /api/auth/sign-in": the opening quote rejects both. Any quote is accepted,
+      // because the minifier picks it.
+      expect(script).toMatch(/[`"']\/api\/auth\/sign-in[`"']/)
     })
 
     it.each(['/api', '/api/nope'])('never falls back to the SPA in the API namespace: GET %s', async path => {

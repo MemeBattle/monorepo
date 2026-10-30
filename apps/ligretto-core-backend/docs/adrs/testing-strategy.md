@@ -41,9 +41,11 @@ two independent connections for a single request (`session-store-locking.md`), a
 - **Entries**: each runtime entry has a vitest smoke suite. `pnpm test:node` (`test/node`) boots `entry/node.ts` as
   a child process on a free port with the development `.env` files and asserts over `fetch`; `pnpm test:worker`
   (`test/worker`) runs the Worker under `workerd` (`@cloudflare/vitest-plugin`, reading `cloudflare.config.ts`),
-  with Hyperdrive connection strings pointing at the job's Postgres. `pnpm test:node` needs only the Postgres its
-  `/health` probes. `pnpm test:worker` needs that Postgres migrated, because the cron handler reads the tables. Both
-  stay out of `pnpm test`. CI workflows run these scripts and never assert over HTTP themselves: a new route's smoke
+  with Hyperdrive connection strings pointing at the job's Postgres. The assets binding is the exception: that config
+  does not reach the pool, so `vitest.worker.config.ts` declares it on the SPA of the Build Output. `pnpm test:node`
+  needs only the Postgres its `/health` probes. `pnpm test:worker` needs that Postgres migrated, because the cron
+  handler reads the tables, and a Build Output from `pnpm build:worker`, without which the config stops with an error.
+  Both stay out of `pnpm test`. CI workflows run these scripts and never assert over HTTP themselves: a new route's smoke
   check is a spec, not a workflow step. These are smoke tests of the wiring, not of behaviour.
 - **Fixtures**: a seed helper inserts users through the same repository the service uses, never raw rows, so a
   schema change breaks the helper in one place.
@@ -74,3 +76,7 @@ other part per case ([#839](https://github.com/MemeBattle/monorepo/issues/839)).
 upd (2026-10-30): `pnpm test:worker` needs a migrated database, because the cron handler reads the tables and its spec
 seeds a session through the session store. `pnpm migrate` follows the package's env files and the Worker suite follows
 `dev.connectionString` in cloudflare.config.ts, so the two can name different databases: check both after overriding one.
+
+upd (2026-10-30): `pnpm test:worker` also needs the Build Output of `pnpm build:worker`, because the SPA specs read its
+assets and `vitest.worker.config.ts` declares the assets binding on them
+([#865](https://github.com/MemeBattle/monorepo/issues/865)).
