@@ -9,7 +9,14 @@ import config from '../cloudflare.config.ts'
 
 type Binding = { type: string; id?: string; value?: string }
 type Evaluated = {
-  worker: { compatibilityDate: string; domains: string[]; workersDev: boolean; triggers: { type: string }[]; env: Record<string, Binding> }
+  worker: {
+    compatibilityDate: string
+    domains: string[]
+    workersDev: boolean
+    triggers: { type: string }[]
+    assets: unknown
+    env: Record<string, Binding>
+  }
 }
 
 const evaluate = (mode: string | undefined) =>
@@ -47,15 +54,20 @@ describe('cloudflare.config.ts in production mode', () => {
 
   it('serves two different hostnames, both as domains', () => {
     const { LIGRETTO_CORE_PUBLIC_HOST: publicHost, LIGRETTO_CORE_INTERNAL_HOST: internalHost } = values
-    expect(publicHost).not.toBe(internalHost)
-    expect(production.domains).toEqual(expect.arrayContaining([publicHost, internalHost]))
+    expect(publicHost).toBe('ligretto.app')
+    expect(internalHost).toBe('core-internal.ligretto.app')
+    expect(production.domains).toEqual(['ligretto.app', 'core-internal.ligretto.app'])
   })
 
-  it('points the auth flow at the public hostname and the SPA', () => {
-    const redirect = new URL(values.LIGRETTO_CORE_AUTH_REDIRECT_URI ?? '')
-    expect(redirect.hostname).toBe(values.LIGRETTO_CORE_PUBLIC_HOST)
-    expect(redirect.pathname).toBe('/api/auth/callback')
-    expect(values.LIGRETTO_CORE_CORS_ORIGINS?.split(',')).toContain(new URL(values.LIGRETTO_CORE_AUTH_APP_URL ?? '').origin)
+  it('points the auth flow at the one origin of the SPA and the API, with the cookie transport', () => {
+    expect(values.LIGRETTO_CORE_AUTH_REDIRECT_URI).toBe('https://ligretto.app/api/auth/callback')
+    expect(values.LIGRETTO_CORE_AUTH_APP_URL).toBe('https://ligretto.app/')
+    expect(values.LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI).toBe('https://ligretto.app/')
+    expect(values.LIGRETTO_CORE_AUTH_SESSION_TRANSPORT).toBe('cookie')
+  })
+
+  it('allows no CORS origin, because the SPA and the API share an origin', () => {
+    expect(loadHttpConfig(values).corsOrigins).toEqual([])
   })
 
   it('carries no development value', () => {
@@ -76,6 +88,15 @@ describe('cloudflare.config.ts in production mode', () => {
 })
 
 describe('cloudflare.config.ts in both modes', () => {
+  // The Worker runs first everywhere: a path list matches no host, so it would serve the SPA on the internal host.
+  it.each([
+    ['production', production],
+    ['development', development],
+  ])('sends every request through the Worker and binds the assets in %s', (_mode, worker) => {
+    expect(worker.assets).toEqual({ notFoundHandling: 'single-page-application', runWorkerFirst: true })
+    expect(worker.env.ASSETS?.type).toBe('assets')
+  })
+
   it.each(['DATABASE_URL', 'LIGRETTO_INTERNAL_API_TOKEN', 'LIGRETTO_CAS_CLIENT_SECRET'])('declares %s as a secret', name => {
     expect(production.env[name]?.type).toBe('secret')
     expect(development.env[name]?.type).toBe('secret')
@@ -86,5 +107,9 @@ describe('cloudflare.config.ts outside production mode', () => {
   it('keeps the local hostnames and no domain, so `cf dev` still dispatches', () => {
     expect(development.domains).toEqual([])
     expect(text(development).LIGRETTO_CORE_PUBLIC_HOST).toBe('localhost')
+  })
+
+  it('allows both dev server origins through CORS', () => {
+    expect(loadHttpConfig(text(development)).corsOrigins).toEqual(['http://localhost:5173', 'http://localhost:5174'])
   })
 })

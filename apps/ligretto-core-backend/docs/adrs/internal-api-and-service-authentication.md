@@ -28,7 +28,8 @@ guest's. The previous service exposed these routes publicly without authenticati
   `createInternalApp(deps)` serves `/internal/*`. The entry decides exposure. On Node both are mounted on one
   server and the network (ingress, service mesh) keeps the internal paths off the public hostname. On Workers the
   `fetch` handler dispatches on the `Host` header: the public hostname reaches the public app, the internal
-  hostname reaches the internal app, and anything else — `/internal` on the public hostname included — is a 404.
+  hostname reaches the internal app, and any other hostname is a 404. The internal app is unreachable on the public
+  hostname: a non-read of `/internal` there is a 404, and a read answers the SPA.
   A named `WorkerEntrypoint` additionally exposes the internal app to service bindings for callers that are
   Workers; the gameplay backend is not one, hence the hostname. The internal API is therefore reachable from the
   Internet on its own hostname and is an authenticated API, not a hidden one: network placement limits exposure,
@@ -57,3 +58,6 @@ guest's. The previous service exposed these routes publicly without authenticati
 
 upd (2026-10-30): the internal hostname is `core-internal.ligretto.app`; `README.md` holds the rotation commands
 ([#843](https://github.com/MemeBattle/monorepo/issues/843)).
+
+upd (2026-10-30): the public hostname also serves the SPA, so a read of `/internal` there answers the SPA; the internal
+app stays unreachable on it ([#865](https://github.com/MemeBattle/monorepo/issues/865)).

@@ -32,7 +32,7 @@ describe('the Worker', () => {
   })
 
   it('answers an unknown route on the public hostname with 404', async () => {
-    const res = await worker.fetch('http://localhost/nope')
+    const res = await worker.fetch('http://localhost/api/nope')
     expect(res.status).toBe(404)
     expect(await res.json()).toEqual({ error: 'not_found' })
   })

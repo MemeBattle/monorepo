@@ -126,7 +126,7 @@ client sees two structurally equal types. The answer is a lookup, not a claim th
 
 CORS on the public app: the allowed origins come from configuration (`LIGRETTO_CORE_CORS_ORIGINS`, a list), with
 credentials allowed for them and for nothing else; the cookie transport needs it in development, where the SPA and
-the API are on different origins. The internal app sends no CORS headers.
+the API are on different origins. Production is one origin and allows none. The internal app sends no CORS headers.
 
 ### Internal: `/internal`, served on the internal hostname
 
@@ -160,20 +160,23 @@ successor.
 
 ## Runtimes and entries
 
-| Entry              | Runs                                                                                                                                                                                         | Database                                                                                  |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `entry/node.ts`    | `@hono/node-server`, both apps on one port, `.env` through `dotenv-flow` in development                                                                                                      | two `pg.Pool`s for the process (`adrs/session-store-locking.md`)                          |
-| `entry/worker.ts`  | `fetch` dispatching on the request hostname (public hostname → public app, internal hostname → internal app, else 404); a `WorkerEntrypoint` for service bindings; `scheduled` for the sweep | per-request `pg` clients on two cache-disabled Hyperdrive bindings, closed in `waitUntil` |
-| `entry/migrate.ts` | Kysely `Migrator`, `migrateToLatest()`, result inspected, exits non-zero on failure                                                                                                          | `DATABASE_URL` (the database section of the configuration only)                           |
-| `entry/sweep.ts`   | `pnpm sweep`: expired `auth_requests` and sessions past the cookie grace, each session under its lock                                                                                        | `DATABASE_URL`; for a runtime other than Workers, whose cron runs `scheduled`             |
+| Entry              | Runs                                                                                                                                                                                                                                                                       | Database                                                                                  |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `entry/node.ts`    | `@hono/node-server`, both apps on one port, `.env` through `dotenv-flow` in development                                                                                                                                                                                    | two `pg.Pool`s for the process (`adrs/session-store-locking.md`)                          |
+| `entry/worker.ts`  | `fetch` dispatching on the request hostname (public hostname → public app, or the SPA's assets for a read outside `/api`, `/health` and `/openapi.json`; internal hostname → internal app; else 404); a `WorkerEntrypoint` for service bindings; `scheduled` for the sweep | per-request `pg` clients on two cache-disabled Hyperdrive bindings, closed in `waitUntil` |
+| `entry/migrate.ts` | Kysely `Migrator`, `migrateToLatest()`, result inspected, exits non-zero on failure                                                                                                                                                                                        | `DATABASE_URL` (the database section of the configuration only)                           |
+| `entry/sweep.ts`   | `pnpm sweep`: expired `auth_requests` and sessions past the cookie grace, each session under its lock                                                                                                                                                                      | `DATABASE_URL`; for a runtime other than Workers, whose cron runs `scheduled`             |
 
-`pnpm build:worker` builds the Worker in the `production` mode of `cloudflare.config.ts`, the only build there is.
+`pnpm build:worker` builds the `ligretto-frontend` SPA, then the Worker in the `production` mode of
+`cloudflare.config.ts`, into one Build Output. It is the only build there is.
 
 Locally: Postgres from the root `docker-compose.yml`, the entries from the host (`pnpm start:dev` runs `entry/node.ts`
 under `tsx watch --conditions=development`; `pnpm dev:worker` runs `cf dev`, which drives `wrangler dev` from
-`cloudflare.config.ts`, with the Hyperdrive bindings' `dev.connectionString` pointing at the same database). Nothing of
-this service runs inside Docker in development. `DATABASE_URL` comes from this package's `.env.development` (overridable
-in `.env.development.local`), not from the root files, which CAS reads for its own database; `migrate`, `db:codegen`,
+`cloudflare.config.ts`, with the Hyperdrive bindings' `dev.connectionString` pointing at the same database).
+`pnpm dev:worker` needs a built frontend (`pnpm ligretto:front:build`), and `pnpm test:worker` a full `pnpm build:worker`,
+because that suite reads the SPA of the Build Output. Development otherwise serves the SPA from vite. Nothing of this
+service runs inside Docker in development. `DATABASE_URL` comes from this package's `.env.development` (overridable in
+`.env.development.local`), not from the root files, which CAS reads for its own database; `migrate`, `db:codegen`,
 `sweep` and the Node entry resolve it through one loader (`src/entry/env.ts`, `MIGRATIONS.md`). `pnpm sweep` runs the
 sweep once against `DATABASE_URL`. `start:dev`, `sweep` and `openapi:generate` run through
 `tsx --conditions=development`, which resolves `@memebattle/ligretto-auth` from source: the package's `node` export
@@ -194,11 +197,15 @@ production values live in the `production` mode of `cloudflare.config.ts`. The d
 cache-disabled Hyperdrive configurations** (`HYPERDRIVE_MAIN`, `HYPERDRIVE_LOCKS`,
 `adrs/database-access-with-kysely.md`), budgeted together against the Neon plan's connection limit. Worker secrets:
 `LIGRETTO_CAS_CLIENT_SECRET`, `LIGRETTO_INTERNAL_API_TOKEN` and `DATABASE_URL`, which the Worker does not read: it
-connects only through Hyperdrive. The SPA stays on `ligretto.app` and the public app answers on `core.ligretto.app`,
-one site under the cookie transport. The internal app answers on `core-internal.ligretto.app`, since the gameplay
-backend is not a Worker and cannot use a service binding; the shared secret is what protects it on either path. The
-sweep runs hourly from a Workers cron trigger (`scheduled` in `entry/worker.ts`); `entry/sweep.ts` remains for any
-other runtime. `README.md` holds the operational notes and the created resources. The Node image
+connects only through Hyperdrive. The SPA and the public app share one origin, `ligretto.app`: the Worker runs first
+on every request, `/api/*`, `/health` and `/openapi.json` run the public app, and every other read answers the SPA from
+the Worker's static assets (`ASSETS`), with the fallback to `index.html` for deep links. The session cookie is
+first-party and production allows no CORS origin. The internal app answers on `core-internal.ligretto.app`, since the
+gameplay backend is not a Worker and cannot use a service binding; the shared secret is what protects it on either
+path, and that hostname never serves an asset. The SPA's non-secret build values are in the root `.env.production`;
+its source maps go to Sentry from the `release` job, after the upload. The sweep runs hourly from a Workers cron
+trigger (`scheduled` in `entry/worker.ts`); `entry/sweep.ts` remains for any other runtime. `README.md` holds the
+operational notes and the created resources. The Node image
 (`.docker/Ligretto-core-backend_Dockerfile`) keeps being built in CI as the packaging of the Node entry: it compiles the package with `tsc -p tsconfig.build.json` and
 runs `node build/src/entry/node.js`; migrate and sweep run from the same image with their entry as the argument
 (`build/src/entry/migrate.js`, `build/src/entry/sweep.js`, `adrs/node-build-and-import-specifiers.md`).
@@ -228,8 +235,9 @@ runs `node build/src/entry/node.js`; migrate and sweep run from the same image w
   `endRound`. The frontend's round-start reset (below) keeps that intermission from showing the previous round's
   scores.
 - `apps/ligretto-frontend` → `@memebattle/ligretto-core-client` for `GET /api/auth/me` and `GET /api/users`. It reads
-  the public API's base from the root `LIGRETTO_CORE_URL`, an origin without `/api`, and sends the session cookie
-  (`credentials: 'include'`). It sends `listUsers` the access token `/api/auth/me` returns. Under the cookie
+  the public API's base from the root `LIGRETTO_CORE_URL`, an origin without `/api`. Production leaves it unset, which
+  means the SPA's own origin. It sends the session cookie (`credentials: 'include'`). It sends `listUsers` the access
+  token `/api/auth/me` returns. Under the cookie
   transport, `sign-in` and `logout` answer `302`, so it navigates the browser to them and does not fetch them. At a
   round start (`updateGame` with `Starting`) it zeroes every round score and keeps the game totals, so an unrecorded
   round stops showing stale scores. The switch (#841), that reset included, is part of the same activation.
