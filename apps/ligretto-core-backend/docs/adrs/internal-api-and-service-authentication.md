@@ -54,3 +54,6 @@ guest's. The previous service exposed these routes publicly without authenticati
 - The gameplay backend needs the secret and the internal hostname in its environment and the `./internal` client;
   its hand-rolled `post<T>` goes away.
 - A third service wanting in gets the same secret today, which is the known weakness that the CAS grant removes.
+
+upd (2026-10-30): the internal hostname is `core-internal.ligretto.app`; `README.md` holds the rotation commands
+([#843](https://github.com/MemeBattle/monorepo/issues/843)).

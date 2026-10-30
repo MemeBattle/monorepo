@@ -3,6 +3,8 @@
 The HTTP service of Ligretto on Hono: CAS sign-in through `@memebattle/ligretto-auth`, player profiles, games and
 rounds for the gameplay backend. Runs on Node.js and on Cloudflare Workers from the same source.
 
+- `README.md` — the operational notes for production: the created resources, the first activation, releases, rotating
+  secrets, a migration by hand, logs, rollback.
 - `docs/DESIGN.md` — requirements, the directory layout, every route and its contract, the data model, deployment.
 - `docs/MIGRATIONS.md` — adding a migration, applying it, regenerating the row types, the immutability rule, the
   compatibility window and what CI checks.
@@ -21,4 +23,5 @@ Rules that are not negotiable in this package:
 - An expected failure is a result with a stable `error` code, declared on the route. A throw is a bug.
 - Relative imports name the file with its `.ts` extension: the Node build rewrites it to `.js`, and `ts-check` fails
   on an import without it (`docs/adrs/node-build-and-import-specifiers.md`).
+- Production values live in the `production` mode of `cloudflare.config.ts`; `pnpm build:worker` is the only build.
 - Comments, documents and commit messages in English.
