@@ -35,7 +35,7 @@ on:
 
 env:
   CLOUDFLARE_ACCOUNT_ID: 2155fed9f68a1bc94fab7d9e5bb6eaac
-  # One value for the build, which puts it in the SPA, and the source map upload.
+  # The build puts it in the SPA, and the source map upload names the same release.
   LIGRETTO_APP_VERSION: ${{ github.run_id }}
 
 permissions:

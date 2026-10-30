@@ -3,7 +3,6 @@
 import { env, exports } from 'cloudflare:workers'
 import { beforeAll, describe, expect, it } from 'vitest'
 
-/** The Worker's own default export, as a fetcher. */
 const worker = (exports as unknown as { default: Fetcher }).default
 /** The service binding to the `InternalApi` entrypoint, declared in vitest.worker.config.ts. */
 const internalBinding = (env as unknown as { INTERNAL: Fetcher }).INTERNAL
@@ -16,7 +15,6 @@ const expectJsonNotFound = async (res: Response, error = 'not_found') => {
 
 describe('the assets dispatch', () => {
   let indexHtml: string
-  /** The hashed script `index.html` names. */
   let scriptPath: string
 
   beforeAll(async () => {
@@ -54,9 +52,9 @@ describe('the assets dispatch', () => {
       expect(res.headers.get('content-type')).toContain('javascript')
       const script = await res.text()
       expect(script).not.toContain('localhost:3333')
-      // The empty base leaves the path alone in its string. A foreign base writes `${base}/api/auth/sign-in`, and the
-      // client's declared statuses hold "GET /api/auth/sign-in": the opening quote rejects both. Any quote is accepted,
-      // because the minifier picks it.
+      // With an empty base the path stands alone in its string. The opening quote rejects the two other forms: a foreign
+      // base's `${base}/api/auth/sign-in`, and the client's status key "GET /api/auth/sign-in". The minifier picks the
+      // quote, so the pattern accepts any of them.
       expect(script).toMatch(/[`"']\/api\/auth\/sign-in[`"']/)
     })
 

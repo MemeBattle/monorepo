@@ -172,11 +172,11 @@ successor.
 
 Locally: Postgres from the root `docker-compose.yml`, the entries from the host (`pnpm start:dev` runs `entry/node.ts`
 under `tsx watch --conditions=development`; `pnpm dev:worker` runs `cf dev`, which drives `wrangler dev` from
-`cloudflare.config.ts`, with the Hyperdrive bindings' `dev.connectionString` pointing at the same database). `pnpm
-dev:worker` needs a built frontend (`pnpm ligretto:front:build`), and `pnpm test:worker` a full `pnpm build:worker`, because
-that suite reads the SPA of the Build Output. Development otherwise serves the SPA from vite. Nothing of this service runs
-inside Docker in development. `DATABASE_URL` comes from this package's `.env.development` (overridable
-in `.env.development.local`), not from the root files, which CAS reads for its own database; `migrate`, `db:codegen`,
+`cloudflare.config.ts`, with the Hyperdrive bindings' `dev.connectionString` pointing at the same database).
+`pnpm dev:worker` needs a built frontend (`pnpm ligretto:front:build`), and `pnpm test:worker` a full `pnpm build:worker`,
+because that suite reads the SPA of the Build Output. Development otherwise serves the SPA from vite. Nothing of this
+service runs inside Docker in development. `DATABASE_URL` comes from this package's `.env.development` (overridable in
+`.env.development.local`), not from the root files, which CAS reads for its own database; `migrate`, `db:codegen`,
 `sweep` and the Node entry resolve it through one loader (`src/entry/env.ts`, `MIGRATIONS.md`). `pnpm sweep` runs the
 sweep once against `DATABASE_URL`. `start:dev`, `sweep` and `openapi:generate` run through
 `tsx --conditions=development`, which resolves `@memebattle/ligretto-auth` from source: the package's `node` export
@@ -203,9 +203,9 @@ the Worker's static assets (`ASSETS`), with the fallback to `index.html` for dee
 first-party and production allows no CORS origin. The internal app answers on `core-internal.ligretto.app`, since the
 gameplay backend is not a Worker and cannot use a service binding; the shared secret is what protects it on either
 path, and that hostname never serves an asset. The SPA's non-secret build values are in the root `.env.production`;
-its source maps go to Sentry from the `release` job, after the upload. The
-sweep runs hourly from a Workers cron trigger (`scheduled` in `entry/worker.ts`); `entry/sweep.ts` remains for any
-other runtime. `README.md` holds the operational notes and the created resources. The Node image
+its source maps go to Sentry from the `release` job, after the upload. The sweep runs hourly from a Workers cron
+trigger (`scheduled` in `entry/worker.ts`); `entry/sweep.ts` remains for any other runtime. `README.md` holds the
+operational notes and the created resources. The Node image
 (`.docker/Ligretto-core-backend_Dockerfile`) keeps being built in CI as the packaging of the Node entry: it compiles the package with `tsc -p tsconfig.build.json` and
 runs `node build/src/entry/node.js`; migrate and sweep run from the same image with their entry as the argument
 (`build/src/entry/migrate.js`, `build/src/entry/sweep.js`, `adrs/node-build-and-import-specifiers.md`).
@@ -235,8 +235,9 @@ runs `node build/src/entry/node.js`; migrate and sweep run from the same image w
   `endRound`. The frontend's round-start reset (below) keeps that intermission from showing the previous round's
   scores.
 - `apps/ligretto-frontend` → `@memebattle/ligretto-core-client` for `GET /api/auth/me` and `GET /api/users`. It reads
-  the public API's base from the root `LIGRETTO_CORE_URL`, an origin without `/api` that stays unset in production,
-  which means the SPA's own origin, and sends the session cookie (`credentials: 'include'`). It sends `listUsers` the access token `/api/auth/me` returns. Under the cookie
+  the public API's base from the root `LIGRETTO_CORE_URL`, an origin without `/api`. Production leaves it unset, which
+  means the SPA's own origin. It sends the session cookie (`credentials: 'include'`). It sends `listUsers` the access
+  token `/api/auth/me` returns. Under the cookie
   transport, `sign-in` and `logout` answer `302`, so it navigates the browser to them and does not fetch them. At a
   round start (`updateGame` with `Starting`) it zeroes every round score and keeps the game totals, so an unrecorded
   round stops showing stale scores. The switch (#841), that reset included, is part of the same activation.

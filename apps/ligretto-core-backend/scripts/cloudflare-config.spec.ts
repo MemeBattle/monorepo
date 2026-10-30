@@ -88,7 +88,7 @@ describe('cloudflare.config.ts in production mode', () => {
 })
 
 describe('cloudflare.config.ts in both modes', () => {
-  // The Worker runs first everywhere: a path list would serve the SPA on the internal host, since it matches no host.
+  // The Worker runs first everywhere: a path list matches no host, so it would serve the SPA on the internal host.
   it.each([
     ['production', production],
     ['development', development],

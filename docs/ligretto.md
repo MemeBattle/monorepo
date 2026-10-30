@@ -14,7 +14,7 @@ The frontend needs a local core backend: production allows no CORS origin, so `L
 `.env.development` default.
 
 1. Create `.env.development.local` in the root directory
-2. Set next variable:
+2. Set this variable:
 
 ```
 LIGRETTO_GAMEPLAY_URL=https://api.ligretto.app

@@ -150,8 +150,8 @@ bucket have no user.
 ## Releases
 
 A push to `master` that touches this package, `apps/ligretto-frontend`, the workspace packages either of them depends on,
-the root `.env` or `.env.production`, the lockfile or the workflow starts
-`.github/workflows/ligretto-core-backend-deploy.yml`. It can also be started by hand.
+the root `.env` or `.env.production`, the lockfile or the workflow starts `.github/workflows/ligretto-core-backend-deploy.yml`.
+It can also be started by hand.
 
 1. `build-worker` builds with no secrets: `pnpm build:worker` builds the SPA, then the Worker, into one Build Output. The
    SPA's non-secret values come from the root `.env.production`. A failed build stops everything.

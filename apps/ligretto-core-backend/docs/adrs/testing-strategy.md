@@ -41,7 +41,7 @@ two independent connections for a single request (`session-store-locking.md`), a
 - **Entries**: each runtime entry has a vitest smoke suite. `pnpm test:node` (`test/node`) boots `entry/node.ts` as
   a child process on a free port with the development `.env` files and asserts over `fetch`; `pnpm test:worker`
   (`test/worker`) runs the Worker under `workerd` (`@cloudflare/vitest-plugin`, reading `cloudflare.config.ts`),
-  with Hyperdrive connection strings pointing at the job's Postgres. The assets binding is the exception: that config
+  with Hyperdrive connection strings pointing at the job's Postgres. The assets binding is the exception: it
   does not reach the pool, so `vitest.worker.config.ts` declares it on the SPA of the Build Output. `pnpm test:node`
   needs only the Postgres its `/health` probes. `pnpm test:worker` needs that Postgres migrated, because the cron
   handler reads the tables, and a Build Output from `pnpm build:worker`, without which the config stops with an error.
