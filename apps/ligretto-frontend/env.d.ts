@@ -5,7 +5,7 @@ export {}
 declare global {
   namespace NodeJS {
     interface ProcessEnv {
-      LIGRETTO_CORE_URL: string
+      LIGRETTO_CORE_URL?: string
       LIGRETTO_GAMEPLAY_URL: string
       LIGRETTO_APP_ENV: string
       LIGRETTO_APP_VERSION: string
