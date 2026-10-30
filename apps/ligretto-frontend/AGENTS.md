@@ -2,7 +2,7 @@
 
 React + Vite SPA (package `@memebattle/ligretto-frontend`). Imports inside `src` use subpath imports `#…` (see `imports` in package.json).
 
-The ligretto-core API is called only through `@memebattle/ligretto-core-client`, in `src/shared/api`. Its base, the root `LIGRETTO_CORE_URL`, is an origin without `/api`, because the generated paths start with `/api`.
+The ligretto-core API is called only through `@memebattle/ligretto-core-client`, in `src/shared/api`. Its base, the root `LIGRETTO_CORE_URL`, is an origin without `/api`, because the generated paths start with `/api`. It is set only in development and tests: in production it stays unset, and the SPA calls the API on its own origin.
 
 ## How to test (for agents too)
 

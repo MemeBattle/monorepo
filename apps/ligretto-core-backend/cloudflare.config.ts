@@ -1,6 +1,6 @@
 // The ligretto-core-backend Worker (src/entry/worker.ts), developed with `cf dev` and released with `pnpm build:worker`,
-// which is `cf build --mode production`. Wrangler bundles the TypeScript entrypoint itself, so there is no
-// wrangler.config.ts.
+// which builds the ligretto-frontend SPA and then runs `cf build --mode production`. Wrangler bundles the TypeScript
+// entrypoint itself; wrangler.config.ts only names the assets directory.
 //
 // The production values live only here (docs/adrs/production-deployment-on-workers.md). `mode` is 'production' for that
 // build and undefined under `cf dev` and @cloudflare/vitest-plugin, which take the development branch.
@@ -16,17 +16,18 @@ const HYPERDRIVE_MAIN_ID = '1ce28ac44ae848aea317d36c3dc828c5'
 const HYPERDRIVE_LOCKS_ID = 'fa5cbf397388476086cddacaca0bc77a'
 const DEV_DATABASE = 'postgres://ligretto-core-user:ligretto_pg_password@localhost:5433/ligretto-core'
 
-const PUBLIC_HOST = 'core.ligretto.app'
+const PUBLIC_HOST = 'ligretto.app'
 const INTERNAL_HOST = 'core-internal.ligretto.app'
 
 const PRODUCTION = {
   LIGRETTO_CORE_PUBLIC_HOST: PUBLIC_HOST,
   LIGRETTO_CORE_INTERNAL_HOST: INTERNAL_HOST,
-  LIGRETTO_CORE_CORS_ORIGINS: 'https://ligretto.app',
+  // Empty: the SPA and the API share one origin in production. The mechanism stays for the dev server.
+  LIGRETTO_CORE_CORS_ORIGINS: '',
   CAS_ISSUER: 'https://cas.mems.fun',
   LIGRETTO_CORE_AUTH_REDIRECT_URI: `https://${PUBLIC_HOST}/api/auth/callback`,
-  LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI: 'https://ligretto.app/',
-  LIGRETTO_CORE_AUTH_APP_URL: 'https://ligretto.app/',
+  LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI: `https://${PUBLIC_HOST}/`,
+  LIGRETTO_CORE_AUTH_APP_URL: `https://${PUBLIC_HOST}/`,
 }
 
 // The values of the root .env.development. `Host: internal.localhost` reaches the internal app under `cf dev`.
@@ -51,6 +52,12 @@ export default defineConfig(({ mode }) => {
       compatibilityDate: '2026-08-04',
       compatibilityFlags: ['nodejs_compat'],
       entrypoint: 'src/entry/worker.ts',
+      // Every request reaches the Worker: `run_worker_first` patterns match paths, not hosts, and the internal host must
+      // never serve an asset. The Worker hands the public host's reads to `ASSETS`. The directory is in wrangler.config.ts.
+      assets: {
+        notFoundHandling: 'single-page-application',
+        runWorkerFirst: true,
+      },
       observability: {
         enabled: true,
       },
@@ -62,6 +69,7 @@ export default defineConfig(({ mode }) => {
       // Hourly, so a run has a small batch; off the hour, which is when most cron triggers fire.
       triggers: [triggers.scheduled({ schedule: '7 * * * *' })],
       env: {
+        ASSETS: bindings.assets(),
         HYPERDRIVE_MAIN: bindings.hyperdrive({ id: HYPERDRIVE_MAIN_ID, dev: { connectionString: DEV_DATABASE } }),
         HYPERDRIVE_LOCKS: bindings.hyperdrive({ id: HYPERDRIVE_LOCKS_ID, dev: { connectionString: DEV_DATABASE } }),
         LIGRETTO_CORE_PUBLIC_HOST: bindings.text(values.LIGRETTO_CORE_PUBLIC_HOST),

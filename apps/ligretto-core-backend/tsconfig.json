@@ -27,7 +27,8 @@
     "vitest.worker.config.ts",
     "vitest.store.config.ts",
     "vitest.node.config.ts",
-    "cloudflare.config.ts"
+    "cloudflare.config.ts",
+    "wrangler.config.ts"
   ],
   // The Worker entry is checked by tsconfig.worker.json: @cloudflare/workers-types and @types/node conflict on
   // globals, so each project loads one of them. The Worker's declaration of `node:async_hooks` would duplicate the one

@@ -5,7 +5,6 @@ import { defineConfig, loadEnv } from 'vite'
 import { configDefaults } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import svgr from 'vite-plugin-svgr'
-import { sentryVitePlugin } from '@sentry/vite-plugin'
 
 const ENV_VARIABLES_SHARED_TO_BROWSER = [
   'LIGRETTO_CORE_URL',
@@ -24,19 +23,7 @@ export default defineConfig(({ mode }) => {
     {},
   )
   return {
-    plugins: [
-      react(),
-      svgr(),
-      sentryVitePlugin({
-        org: 'memebattle-1x',
-        project: 'ligretto-frontend',
-        release: {
-          name: process.env.LIGRETTO_APP_VERSION,
-          inject: false,
-        },
-        authToken: process.env.SENTRY_AUTH_TOKEN,
-      }),
-    ],
+    plugins: [react(), svgr()],
     define: envVariables,
     build: {
       sourcemap: true,
