@@ -140,8 +140,12 @@ After the first release, allow ten minutes for certificates, then check:
 
 Then `helm uninstall` the old `ligretto-core-backend` release.
 
-In Actions, `cf deploy` replaces the `CNAME ligretto.app` DNS record, which points at the Yandex CDN, by itself and without
-a prompt. Nothing removes the two records this layout leaves behind: delete the `A core` record and the `_acme-challenge`
+Cloudflare refuses to attach a custom domain to a hostname that still has a DNS record of its own (error `100117`,
+"externally managed DNS records"), and `cf deploy` in Actions does not override such a record: the Deploy step fails
+after the upload, with the version live, the cron attached and no domain. The release of 2026-10-30 hit this on the old
+`A core.ligretto.app` record. So delete the `CNAME ligretto.app` record, which points at the Yandex CDN, by hand right
+before approving the release; the site answers nothing between that deletion and the certificate of the attached domain.
+Nothing removes the two records this layout leaves behind either: delete the `A core` record and the `_acme-challenge`
 CNAME by hand once the checks pass. If the certificate stays pending past the ten minutes, remove the `_acme-challenge`
 CNAME first. The `api` record stays: it is the gameplay backend. To go back, detach the domain and recreate the CNAME to
 `6df4977bd2611eed.topology.gslb.yccdn.ru`, DNS-only. After the cutover the `AWS_*` repository secrets and the Yandex
