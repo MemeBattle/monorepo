@@ -49,6 +49,9 @@ The entry needs `DATABASE_URL` and, optionally, `LOG_LEVEL`. `src/entry/env.ts` 
 The package file exists because the root files are shared with CAS, which reads `DATABASE_URL` for its own
 database. Production sets the environment and no file is read.
 
+In production the release workflow applies them over the direct connection, after checking the built Worker and before
+the upload (`adrs/production-deployment-on-workers.md`). `README.md` says how to run one by hand.
+
 It logs one JSON line per applied migration (`migration`, with `name`, `status`, `direction`), or `no pending
 migrations`. A failure, such as an unreachable database or a failing statement, is logged as `migration_failed`
 and exits with code 1. Kysely reports a failure in its result set instead of throwing it, and the entry checks that

@@ -38,17 +38,19 @@ apps/ligretto-core-backend/
   src/contract/    zod schemas of requests, responses, errors
   src/http/        createPublicApp(deps), createInternalApp(deps), middleware, OpenAPI
   src/adapters/    pg/ (Kysely repositories, session store, schema.generated.ts), logger, clock
-  src/entry/       node.ts, worker.ts, migrate.ts, codegen.ts, sweep.ts, openapi.ts; auth.ts (the auth composition
+  src/entry/       node.ts, worker.ts, migrate.ts, codegen.ts, sweep.ts, openapi.ts; auth.ts and run-sweep.ts (what
                    both runtimes share), env.ts (the development .env loader)
   migrations/      <timestamp>_<name>.ts, SQL inside (MIGRATIONS.md)
   test/            node/ (the Node entry smoke suite), worker/ (the Worker smoke suite), store/ (the Docker Postgres
                    suite), http/ (HTTP suites on the real adapters over PGlite), support/ (harnesses;
                    contract-harness.ts composes both apps for the client package's contract tests, exported as
                    `./contract-harness`)
+  scripts/         the checks of CI and of the release (check-release.sh), each with its spec beside it
   .env.development DATABASE_URL for development
   openapi.json, openapi.internal.json      committed, regenerated and diffed in CI
   tsconfig.build.json                      the Node build (`pnpm build`): build/src/entry/*.js and build/migrations,
                                            run on plain node (adrs/node-build-and-import-specifiers.md)
+  README.md        the operational notes for production
   docs/            this file, ADR.md, adrs/
 ```
 
@@ -163,7 +165,9 @@ successor.
 | `entry/node.ts`    | `@hono/node-server`, both apps on one port, `.env` through `dotenv-flow` in development                                                                                                      | two `pg.Pool`s for the process (`adrs/session-store-locking.md`)                          |
 | `entry/worker.ts`  | `fetch` dispatching on the request hostname (public hostname → public app, internal hostname → internal app, else 404); a `WorkerEntrypoint` for service bindings; `scheduled` for the sweep | per-request `pg` clients on two cache-disabled Hyperdrive bindings, closed in `waitUntil` |
 | `entry/migrate.ts` | Kysely `Migrator`, `migrateToLatest()`, result inspected, exits non-zero on failure                                                                                                          | `DATABASE_URL` (the database section of the configuration only)                           |
-| `entry/sweep.ts`   | `pnpm sweep`: expired `auth_requests` and sessions past the cookie grace, each session under its lock                                                                                        | `DATABASE_URL`; scheduled by whatever runs the Node entry                                 |
+| `entry/sweep.ts`   | `pnpm sweep`: expired `auth_requests` and sessions past the cookie grace, each session under its lock                                                                                        | `DATABASE_URL`; for a runtime other than Workers, whose cron runs `scheduled`             |
+
+`pnpm build:worker` builds the Worker in the `production` mode of `cloudflare.config.ts`, the only build there is.
 
 Locally: Postgres from the root `docker-compose.yml`, the entries from the host (`pnpm start:dev` runs `entry/node.ts`
 under `tsx watch --conditions=development`; `pnpm dev:worker` runs `cf dev`, which drives `wrangler dev` from
@@ -180,18 +184,22 @@ rest of ligretto.
 
 ## Deployment
 
-Cloudflare Workers, the way CAS is deployed (`apps/cas/cloudflare.config.ts`, `cas-deploy.yml`): a release
-workflow builds the Worker, applies the migrations with `entry/migrate.ts` against the production `DATABASE_URL`
-(an Actions secret of the release environment), then uploads with `cf deploy --prebuilt`. The database is Neon
-behind **two cache-disabled Hyperdrive configurations** (`HYPERDRIVE_MAIN`, `HYPERDRIVE_LOCKS`,
+Cloudflare Workers, the way CAS is deployed (`apps/cas/cloudflare.config.ts`, `cas-deploy.yml`):
+`.github/workflows/ligretto-core-backend-deploy.yml` builds the Worker with no secrets, then, behind the approval of
+`Ligretto-production`, checks the built Worker with `scripts/check-release.sh`, applies the migrations with
+`entry/migrate.ts` against the production `DATABASE_URL` (an Actions secret of the release environment) and uploads
+with `cf deploy --prebuilt`. The first release is the activation: until it runs, an inert Worker with no routes holds
+the secrets, and the upload attaches the domains and the cron (`adrs/production-deployment-on-workers.md`). The
+production values live in the `production` mode of `cloudflare.config.ts`. The database is Neon behind **two
+cache-disabled Hyperdrive configurations** (`HYPERDRIVE_MAIN`, `HYPERDRIVE_LOCKS`,
 `adrs/database-access-with-kysely.md`), budgeted together against the Neon plan's connection limit. Worker secrets:
-`LIGRETTO_CAS_CLIENT_SECRET`, `LIGRETTO_INTERNAL_API_TOKEN`. The public hostname follows ligretto's production
-origin layout, an open question in `apps/cas/docs/PLAN.md`: one origin with the SPA and `/api/*` under the cookie
-transport, or separate hosts under the bearer transport. The internal app answers on a
-dedicated hostname, since the gameplay backend is not a Worker and cannot use a service binding; the shared secret
-is what protects it on either path. The sweep runs from a Workers cron trigger (`scheduled` in `entry/worker.ts`);
-`entry/sweep.ts` remains for any other runtime. The Node image (`.docker/Ligretto-core-backend_Dockerfile`) keeps
-being built in CI as the packaging of the Node entry: it compiles the package with `tsc -p tsconfig.build.json` and
+`LIGRETTO_CAS_CLIENT_SECRET`, `LIGRETTO_INTERNAL_API_TOKEN` and `DATABASE_URL`, which the Worker does not read: it
+connects only through Hyperdrive. The SPA stays on `ligretto.app` and the public app answers on `core.ligretto.app`,
+one site under the cookie transport. The internal app answers on `core-internal.ligretto.app`, since the gameplay
+backend is not a Worker and cannot use a service binding; the shared secret is what protects it on either path. The
+sweep runs hourly from a Workers cron trigger (`scheduled` in `entry/worker.ts`); `entry/sweep.ts` remains for any
+other runtime. `README.md` holds the operational notes and the created resources. The Node image
+(`.docker/Ligretto-core-backend_Dockerfile`) keeps being built in CI as the packaging of the Node entry: it compiles the package with `tsc -p tsconfig.build.json` and
 runs `node build/src/entry/node.js`; migrate and sweep run from the same image with their entry as the argument
 (`build/src/entry/migrate.js`, `build/src/entry/sweep.js`, `adrs/node-build-and-import-specifiers.md`).
 

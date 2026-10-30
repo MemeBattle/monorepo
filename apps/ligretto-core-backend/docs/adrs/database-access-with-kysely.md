@@ -88,8 +88,8 @@ answer; one configuration per pool, both uncached, is simpler to reason about).
   the only way they are touched, `pnpm db:codegen` regenerates the types.
 - Applied migrations are immutable by policy (CI fails a PR that edits one already on master); Kysely does not
   checksum them, git does.
-- Provisioning a Hyperdrive configuration with caching enabled is a defect; #843 verifies both configurations are
-  cache-disabled before the first deploy.
+- Provisioning a Hyperdrive configuration with caching enabled is a defect; `scripts/check-release.sh` verifies both
+  configurations are cache-disabled before every release, the first included.
 
 upd (2026-10-24): the Worker's handles are one `Kysely<DB>` each per isolate, resolving the request's lazily opened
 client through an `AsyncLocalStorage` scope owned by the entry; the row types are generated from
@@ -99,3 +99,6 @@ client through an `AsyncLocalStorage` scope owned by the entry; the row types ar
 upd (2026-10-24): raw SQL in the store is only `SET LOCAL lock_timeout`, the lock statements use the builder; the
 Worker's pool-shaped object leases each request's client to one acquirer at a time
 ([#836](https://github.com/MemeBattle/monorepo/issues/836)).
+
+upd (2026-10-30): `scripts/check-release.sh` holds the cache-disabled rule at every release
+([#843](https://github.com/MemeBattle/monorepo/issues/843)).
