@@ -309,7 +309,8 @@ jobs:
   worker-smoke:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    # The Hyperdrive bindings' dev.connectionString in cloudflare.config.ts points here.
+    # The Hyperdrive bindings' dev.connectionString in cloudflare.config.ts points here, migrated below for the cron
+    # handler, which needs the tables.
     services:
       postgres:
         # The engine of the compose test service: the oldest in play.
@@ -333,13 +334,17 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
-      # The production bundle builds from cloudflare.config.ts.
+      # The production bundle builds from cloudflare.config.ts: exactly what a release uploads.
       - name: Build the Worker
         run: pnpm run --filter @memebattle/ligretto-core-backend build:worker
+
+      # The package's .env.development points DATABASE_URL at the job's Postgres.
+      - name: Migrate the database
+        run: pnpm run --filter @memebattle/ligretto-core-backend migrate
 
       # The same entry under workerd, through @cloudflare/vitest-plugin: /health on both hostnames and through the
       # InternalApi service binding, each with its database check over the emulated Hyperdrive bindings, an unknown
       # route, the internal token from .dev.vars: refused when missing or wrong, accepted when it is the configured
-      # one, the public API's guards, and /openapi.json equal to the committed document.
+      # one, the public API's guards, /openapi.json equal to the committed document, and the cron handler.
       - name: Run the Worker smoke suite
         run: pnpm run --filter @memebattle/ligretto-core-backend test:worker
