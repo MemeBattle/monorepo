@@ -1,6 +1,6 @@
 /**
- * The scheduled removal of what the session store has finished with — run by `pnpm sweep` (and later by the Worker's
- * `scheduled` handler), never on a request.
+ * The scheduled removal of what the session store has finished with — run by `pnpm sweep` and by the Worker's
+ * `scheduled` handler, never on a request.
  *
  * Two cutoffs, because the two tables promise different things:
  *

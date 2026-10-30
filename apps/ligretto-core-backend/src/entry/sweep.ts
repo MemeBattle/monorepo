@@ -11,6 +11,7 @@ import { systemClock } from '../adapters/system-clock.ts'
 import { loadDatabaseConfig, loadLoggingConfig } from '../core/config.ts'
 import { createSweepExpiredAuth } from '../core/sweep.ts'
 import { loadDevelopmentEnv } from './env.ts'
+import { runSweep } from './run-sweep.ts'
 
 loadDevelopmentEnv()
 
@@ -36,14 +37,9 @@ const sweep = createSweepExpiredAuth({
 })
 
 try {
-  const counts = await sweep()
-  logger.info('sweep_completed', { ...counts })
-  if (counts.failedSessions > 0) {
-    logger.warn('sweep_sessions_left', { failedSessions: counts.failedSessions })
-  }
-} catch (failure) {
-  logger.error('sweep_failed', { error: failure instanceof Error ? failure.message : String(failure) })
-  // exitCode rather than exit(): the pools still close below.
+  await runSweep({ sweep, logger })
+} catch {
+  // Logged by runSweep. exitCode rather than exit(): the pools still close below.
   process.exitCode = 1
 } finally {
   await databases.close()
