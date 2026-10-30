@@ -55,7 +55,7 @@
   },
   "devDependencies": {
     "@playwright/test": "catalog:",
-    "@sentry/vite-plugin": "catalog:",
+    "@sentry/cli": "catalog:",
     "@storybook/react": "catalog:",
     "@testing-library/react": "catalog:",
     "@types/lodash": "catalog:",
