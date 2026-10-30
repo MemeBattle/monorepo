@@ -1,0 +1,20 @@
+{
+  // The Worker program: the shared layers again, compiled against the Workers runtime types instead of Node's, which
+  // is the proof that src/core, src/contract, src/http and src/adapters use web-standard types only.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["@cloudflare/workers-types", "@cloudflare/vitest-plugin/types"]
+  },
+  "include": ["src", "test/worker"],
+  // The specs run under Node and import test/support, which is Node-only. node.ts, migrate.ts, codegen.ts, openapi.ts,
+  // env.ts and sweep.ts belong to the Node program.
+  "exclude": [
+    "src/entry/node.ts",
+    "src/entry/migrate.ts",
+    "src/entry/codegen.ts",
+    "src/entry/openapi.ts",
+    "src/entry/env.ts",
+    "src/entry/sweep.ts",
+    "src/**/*.spec.ts"
+  ]
+}

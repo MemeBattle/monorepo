@@ -55,7 +55,7 @@ export const OnlyPlayerWaiting: Story = {
             auth: { ...authInitialState, userId: 'userId' },
             users: {
               ids: ['userId'],
-              entities: { userId: { username: 'Username', isTemporary: false, casId: 'userId' } },
+              entities: { userId: { sub: 'userId', accountType: 'full', name: 'Username', avatarUrl: null } },
             },
             game: {
               ...gameInitialState,
@@ -81,8 +81,8 @@ export const TwoPlayersWaiting: Story = {
             users: {
               ids: ['userId'],
               entities: {
-                userId: { username: 'Username', isTemporary: false, casId: 'userId' },
-                secondUserId1: { username: 'Second user with long name', isTemporary: false, casId: 'secondUserId1' },
+                userId: { sub: 'userId', accountType: 'full', name: 'Username', avatarUrl: null },
+                secondUserId1: { sub: 'secondUserId1', accountType: 'full', name: 'Second user with long name', avatarUrl: null },
               },
             },
             game: {
@@ -116,9 +116,9 @@ export const ThreePlayersWaiting: Story = {
             users: {
               ids: ['userId'],
               entities: {
-                userId: { username: 'Username', isTemporary: false, casId: 'userId' },
-                secondUserId1: { username: 'Second user with long name', isTemporary: false, casId: 'secondUserId1' },
-                thirdUserId2: { isTemporary: true, casId: 'thirdUserId2' },
+                userId: { sub: 'userId', accountType: 'full', name: 'Username', avatarUrl: null },
+                secondUserId1: { sub: 'secondUserId1', accountType: 'full', name: 'Second user with long name', avatarUrl: null },
+                thirdUserId2: { sub: 'thirdUserId2', accountType: 'guest', name: null, avatarUrl: null },
               },
             },
             game: {
@@ -153,10 +153,10 @@ export const FourthPlayersWaiting: Story = {
             users: {
               ids: ['userId'],
               entities: {
-                userId: { username: 'Username', isTemporary: false, casId: 'userId' },
-                secondUserId1: { username: 'Second user with long name', isTemporary: false, casId: 'secondUserId1' },
-                thirdUserId2: { isTemporary: true, casId: 'thirdUserId2' },
-                fourthUserId3: { isTemporary: true, casId: 'fourthUserId3' },
+                userId: { sub: 'userId', accountType: 'full', name: 'Username', avatarUrl: null },
+                secondUserId1: { sub: 'secondUserId1', accountType: 'full', name: 'Second user with long name', avatarUrl: null },
+                thirdUserId2: { sub: 'thirdUserId2', accountType: 'guest', name: null, avatarUrl: null },
+                fourthUserId3: { sub: 'fourthUserId3', accountType: 'guest', name: null, avatarUrl: null },
               },
             },
             game: {
@@ -192,8 +192,8 @@ export const TwoPlayersInGame: Story = {
             users: {
               ids: ['userId'],
               entities: {
-                userId: { username: 'Username', isTemporary: false, casId: 'userId' },
-                secondUserId1: { username: 'Second user with long name', isTemporary: false, casId: 'secondUserId1' },
+                userId: { sub: 'userId', accountType: 'full', name: 'Username', avatarUrl: null },
+                secondUserId1: { sub: 'secondUserId1', accountType: 'full', name: 'Second user with long name', avatarUrl: null },
               },
             },
             game: {
@@ -228,9 +228,9 @@ export const ThreePlayersInGame: Story = {
             users: {
               ids: ['userId'],
               entities: {
-                userId: { username: 'Username', isTemporary: false, casId: 'userId' },
-                secondUserId1: { username: 'Second user with long name', isTemporary: false, casId: 'secondUserId1' },
-                thirdUserId2: { isTemporary: true, casId: 'thirdUserId2' },
+                userId: { sub: 'userId', accountType: 'full', name: 'Username', avatarUrl: null },
+                secondUserId1: { sub: 'secondUserId1', accountType: 'full', name: 'Second user with long name', avatarUrl: null },
+                thirdUserId2: { sub: 'thirdUserId2', accountType: 'guest', name: null, avatarUrl: null },
               },
             },
             game: {
@@ -266,10 +266,10 @@ export const FourPlayersInGame: Story = {
             users: {
               ids: ['userId'],
               entities: {
-                userId: { username: 'Username', isTemporary: false, casId: 'userId' },
-                secondUserId1: { username: 'Second user with long name', isTemporary: false, casId: 'secondUserId1' },
-                thirdUserId2: { isTemporary: true, casId: 'thirdUserId2' },
-                fourthUserId3: { isTemporary: true, casId: 'fourthUserId3' },
+                userId: { sub: 'userId', accountType: 'full', name: 'Username', avatarUrl: null },
+                secondUserId1: { sub: 'secondUserId1', accountType: 'full', name: 'Second user with long name', avatarUrl: null },
+                thirdUserId2: { sub: 'thirdUserId2', accountType: 'guest', name: null, avatarUrl: null },
+                fourthUserId3: { sub: 'fourthUserId3', accountType: 'guest', name: null, avatarUrl: null },
               },
             },
             game: {
@@ -306,10 +306,10 @@ export const FourPlayersStarting: Story = {
             users: {
               ids: ['userId'],
               entities: {
-                userId: { username: 'Username', isTemporary: false, casId: 'userId' },
-                secondUserId1: { username: 'Second user with long name', isTemporary: false, casId: 'secondUserId1' },
-                thirdUserId2: { isTemporary: true, casId: 'thirdUserId2' },
-                fourthUserId3: { isTemporary: true, casId: 'fourthUserId3' },
+                userId: { sub: 'userId', accountType: 'full', name: 'Username', avatarUrl: null },
+                secondUserId1: { sub: 'secondUserId1', accountType: 'full', name: 'Second user with long name', avatarUrl: null },
+                thirdUserId2: { sub: 'thirdUserId2', accountType: 'guest', name: null, avatarUrl: null },
+                fourthUserId3: { sub: 'fourthUserId3', accountType: 'guest', name: null, avatarUrl: null },
               },
             },
             game: {

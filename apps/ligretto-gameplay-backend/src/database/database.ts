@@ -15,6 +15,7 @@ export class Database implements Database {
     games: {},
     users: {},
     roundResults: {},
+    roundSavesInFlight: {},
   }
 
   public get<T>(accessor: Accessor<T>): T {

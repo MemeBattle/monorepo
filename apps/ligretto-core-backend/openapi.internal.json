@@ -1,0 +1,438 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ligretto-core internal API",
+    "version": "0.1.0",
+    "description": "Games and rounds for the gameplay backend, behind the shared secret LIGRETTO_INTERNAL_API_TOKEN."
+  },
+  "components": {
+    "securitySchemes": {
+      "internalToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "One of the values of LIGRETTO_INTERNAL_API_TOKEN"
+      }
+    },
+    "schemas": {
+      "HealthReport": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "unavailable"
+            ]
+          },
+          "checks": {
+            "type": "object",
+            "properties": {
+              "database": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ok",
+                      "failed"
+                    ]
+                  },
+                  "durationMs": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "error": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "status",
+                  "durationMs"
+                ]
+              }
+            },
+            "required": [
+              "database"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "checks"
+        ],
+        "description": "The health check report; the body of both the 200 and the 503 of GET /health"
+      },
+      "CreateGameResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "description": "The game just created"
+      },
+      "InvalidInternalToken": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "invalid_internal_token"
+            ]
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "description": "A valid Authorization: Bearer token for the internal API is required"
+      },
+      "SaveRoundResponse": {
+        "type": "object",
+        "properties": {
+          "gameResults": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "roundScore": {
+                  "type": "integer",
+                  "minimum": -2147483648,
+                  "maximum": 2147483647,
+                  "description": "A signed 32-bit integer, the range of the Postgres integer column"
+                },
+                "gameScore": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "roundScore",
+                "gameScore"
+              ]
+            }
+          }
+        },
+        "required": [
+          "gameResults"
+        ],
+        "description": "Every player of every round of the game: the sum of their scores so far and this round's score, or 0"
+      },
+      "ValidationFailed": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "validation_failed"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path",
+                "message",
+                "code"
+              ]
+            }
+          }
+        },
+        "required": [
+          "error",
+          "issues"
+        ],
+        "description": "The request does not match the route schema"
+      },
+      "GameNotFound": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "game_not_found"
+            ]
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "description": "No game has this id"
+      },
+      "RoundConflict": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "round_conflict"
+            ]
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "description": "The round id exists with another game or other results; nothing was saved"
+      },
+      "UnknownPlayers": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "unknown_players"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "playerIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "error",
+          "playerIds"
+        ],
+        "description": "These player ids have no user; nothing was saved"
+      },
+      "SaveRoundRequest": {
+        "type": "object",
+        "properties": {
+          "roundId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Minted by the caller once per round and kept, with the results, across retries"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "playerId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The CAS subject of the player"
+                },
+                "score": {
+                  "type": "integer",
+                  "minimum": -2147483648,
+                  "maximum": 2147483647,
+                  "description": "A signed 32-bit integer, the range of the Postgres integer column"
+                }
+              },
+              "required": [
+                "playerId",
+                "score"
+              ]
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "roundId",
+          "results"
+        ],
+        "description": "A finished round's results"
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Whether the service and its database answer",
+        "responses": {
+          "200": {
+            "description": "Every check passed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthReport"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A check failed; the report says which",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/games": {
+      "post": {
+        "operationId": "createGame",
+        "tags": [
+          "games"
+        ],
+        "summary": "Create a game",
+        "security": [
+          {
+            "internalToken": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The game was created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateGameResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No configured Authorization: Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidInternalToken"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/games/{id}/rounds": {
+      "post": {
+        "operationId": "saveRound",
+        "tags": [
+          "games"
+        ],
+        "summary": "Save a finished round's results and answer the game's totals",
+        "description": "One transaction under the game row lock. A repeat with the same roundId and identical results answers the current totals; a rejection saves nothing.",
+        "security": [
+          {
+            "internalToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The game id; any letter case, read as lowercase"
+            },
+            "required": true,
+            "description": "The game id; any letter case, read as lowercase",
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveRoundRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The round is saved, now or by an earlier identical submission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveRoundResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request does not match the schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationFailed"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No configured Authorization: Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidInternalToken"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No game has this id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameNotFound"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The round id exists with another game or other results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoundConflict"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Some players have no user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnknownPlayers"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}

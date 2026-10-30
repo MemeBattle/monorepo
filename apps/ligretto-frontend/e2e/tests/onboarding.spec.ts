@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test'
 import { OnboardingPage } from '#pages/onboarding/OnboardingPage.page-object.ts'
 import { OnboardingEvent, OnboardingStep } from '#features/onboarding/model/steps.ts'
 import { ONBOARDING_SCRIPT } from '#features/onboarding/model/script.ts'
+import { stubAuthMe } from '../lib/stubAuthMe.ts'
 
 /** Any free deck takes the first one; the e2e opens the blue pile away from the first deck on purpose. */
 const BLUE_PILE_DECK = 5
@@ -70,6 +71,8 @@ const createScriptWalker = (page: Page, onboarding: OnboardingPage) => {
 }
 
 test.describe('Onboarding', () => {
+  test.beforeEach(({ page }) => stubAuthMe(page))
+
   test('walks the canonical script from the first step to the results', async ({ page }) => {
     const onboarding = new OnboardingPage(page)
     const walkTo = createScriptWalker(page, onboarding)

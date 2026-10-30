@@ -7,7 +7,6 @@ import { PlayerStatus } from '@memebattle/ligretto-shared'
 import { Player } from '../Player'
 import { Card, CardPlace } from '#entities/card'
 
-import { buildCasStaticUrl } from '#shared/api/buildCasStaticUrl'
 import { getRandomAvatar } from '#shared/ui/Avatar/getRandomAvatar'
 
 // Mobile-first: avatar and cards share one row; odd opponents (1st, 3rd, ...)
@@ -43,7 +42,7 @@ export interface OpponentCardsProps {
 
 export const Opponent = ({ stackOpenDeckCards, cards, avatar, username, status, id, ref }: OpponentCardsProps) => {
   const stackOpenDeckCard = useMemo(() => (stackOpenDeckCards.length ? stackOpenDeckCards.slice(-1)[0] : {}), [stackOpenDeckCards])
-  const avatarImg = useMemo(() => (avatar ? buildCasStaticUrl(avatar) : getRandomAvatar(id)), [avatar, id])
+  const avatarImg = useMemo(() => avatar ?? getRandomAvatar(id), [avatar, id])
   const isDisconnected = status === PlayerStatus.Disconnected
 
   return (

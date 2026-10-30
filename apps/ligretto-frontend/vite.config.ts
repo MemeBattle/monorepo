@@ -10,10 +10,8 @@ import { sentryVitePlugin } from '@sentry/vite-plugin'
 const ENV_VARIABLES_SHARED_TO_BROWSER = [
   'LIGRETTO_CORE_URL',
   'LIGRETTO_GAMEPLAY_URL',
-  'CAS_STATIC_URL',
   'CAS_URL',
   'AMPLITUDE_TOKEN',
-  'CAS_PARTNER_ID',
   'LIGRETTO_FRONTEND_SENTRY_DSN',
   'LIGRETTO_APP_ENV',
   'LIGRETTO_APP_VERSION',
@@ -43,16 +41,8 @@ export default defineConfig(({ mode }) => {
     build: {
       sourcemap: true,
     },
-    optimizeDeps: {
-      include: [
-        'react-dropzone',
-        'attr-accept',
-        '@memebattle/cas-services',
-        '@memebattle/cas-services/createFrontServices',
-        '@memebattle/auth-front',
-      ],
-    },
     test: {
+      setupFiles: ['./.config/setup.ts'],
       exclude: [...configDefaults.exclude, 'e2e'],
     },
   }

@@ -189,6 +189,28 @@ describe('GameConnectionService', () => {
     expect(events.onDelete).toHaveBeenCalledWith('game')
   })
 
+  it('drops the round save in flight when the all-offline timer deletes the room', async () => {
+    const events = { onUpdate: vi.fn(), onDelete: vi.fn() }
+    await database.set(storage => {
+      storage.games.game = {
+        ...storage.games.game,
+        status: GameStatus.RoundFinished,
+        players: Object.fromEntries(
+          Object.entries(storage.games.game.players).map(([id, player]) => [id, { ...player!, status: PlayerStatus.Disconnected }]),
+        ),
+      }
+      storage.users.peer = { id: 'peer', socketIds: [], currentGameId: 'game' }
+      storage.roundSavesInFlight.game = 'round-id'
+    })
+
+    service.scheduleDeletionIfAbandoned('game', events)
+    await vi.advanceTimersByTimeAsync(ALL_OFFLINE_ROOM_DELETION_TIMEOUT_MS)
+
+    expect(events.onDelete).toHaveBeenCalledWith('game')
+    expect(await database.get(storage => storage.games.game)).toBeUndefined()
+    expect(await database.get(storage => 'game' in storage.roundSavesInFlight)).toBe(false)
+  })
+
   it('cancels all-offline deletion when any retained player reconnects', async () => {
     const events = { onUpdate: vi.fn(), onDelete: vi.fn() }
     await users.disconnectionHandler({ userId: 'peer', socketId: 'peer-socket' })

@@ -1,0 +1,798 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ligretto-core API",
+    "version": "0.1.0",
+    "description": "The public API of ligretto-core."
+  },
+  "components": {
+    "securitySchemes": {
+      "accessToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "A CAS access token (RFC 9068) with aud ligretto, the accessToken that GET /api/auth/me answers"
+      }
+    },
+    "schemas": {
+      "HealthReport": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "unavailable"
+            ]
+          },
+          "checks": {
+            "type": "object",
+            "properties": {
+              "database": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ok",
+                      "failed"
+                    ]
+                  },
+                  "durationMs": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "error": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "status",
+                  "durationMs"
+                ]
+              }
+            },
+            "required": [
+              "database"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "checks"
+        ],
+        "description": "The health check report; the body of both the 200 and the 503 of GET /health"
+      },
+      "SessionBusy": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "session_busy"
+            ]
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "description": "The session's lock was not granted in time; repeat the request"
+      },
+      "AuthUser": {
+        "type": "object",
+        "properties": {
+          "sub": {
+            "type": "string",
+            "description": "The account id, stable across a guest upgrade. Application data is keyed on it (§8)."
+          },
+          "accountType": {
+            "type": "string",
+            "enum": [
+              "guest",
+              "full"
+            ],
+            "description": "Whether an account has credentials of its own."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The display name, `null` for a guest and for a full account that has none."
+          },
+          "avatarUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The avatar URL, `null` when CAS releases none."
+          }
+        },
+        "required": [
+          "sub",
+          "accountType",
+          "name",
+          "avatarUrl"
+        ],
+        "description": "The account as a page may show it: the snapshot the latest validated ID token gave, nothing of the grant."
+      },
+      "ValidationFailed": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "validation_failed"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path",
+                "message",
+                "code"
+              ]
+            }
+          }
+        },
+        "required": [
+          "error",
+          "issues"
+        ],
+        "description": "The request does not match the route schema"
+      },
+      "Unauthorized": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "unauthorized"
+            ]
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "description": "A valid CAS access token for this service is required"
+      },
+      "CasUnavailable": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "cas_unavailable"
+            ]
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "description": "CAS's metadata could not be read to verify the access token; repeat the request"
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Whether the service and its database answer",
+        "responses": {
+          "200": {
+            "description": "Every check passed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthReport"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A check failed; the report says which",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "operationId": "getMe",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Who the user is",
+        "description": "Who the user is and the access token to call this application’s API with, refreshed when it is about to expire. A browser that presents no session, or one whose grant has ended, is given a new guest.",
+        "responses": {
+          "200": {
+            "description": "The user and a usable access token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "sub": {
+                          "type": "string",
+                          "description": "The account id, stable across a guest upgrade. Application data is keyed on it (§8)."
+                        },
+                        "accountType": {
+                          "type": "string",
+                          "enum": [
+                            "guest",
+                            "full"
+                          ],
+                          "description": "Whether an account has credentials of its own."
+                        },
+                        "name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "The display name, `null` for a guest and for a full account that has none."
+                        },
+                        "avatarUrl": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "The avatar URL, `null` when CAS releases none."
+                        }
+                      },
+                      "required": [
+                        "sub",
+                        "accountType",
+                        "name",
+                        "avatarUrl"
+                      ],
+                      "description": "The account as a page may show it: the snapshot the latest validated ID token gave, nothing of the grant."
+                    },
+                    "accessToken": {
+                      "type": "string",
+                      "description": "The access token to call this application's own API with."
+                    },
+                    "expiresAt": {
+                      "type": "integer",
+                      "description": "When the access token expires, epoch milliseconds: what a refresh timer in the browser is scheduled from."
+                    },
+                    "signedOut": {
+                      "type": "boolean",
+                      "description": "`true` when a full account's grant had ended and the guest in this answer replaced it: the user was signed in and is not any more, so the UI offers a sign-in rather than silently showing a guest. `false` for every other answer, a guest whose own grant ended included — there was nothing to sign out of."
+                    },
+                    "sessionId": {
+                      "type": "string",
+                      "description": "The session id, in the `bearer` transport only, and only when this answer *created* the session: a guest minted because the request presented no id, or none the store still holds. An answer for a session the caller already presented carries none — the caller is holding that id already, and an answer delivered late (a refresh timer in another tab, arriving after a sign-in completed in this one) must not be able to put a retired id back in use. The cookie transport never puts the id in a body at all."
+                    }
+                  },
+                  "required": [
+                    "user",
+                    "accessToken",
+                    "expiresAt",
+                    "signedOut"
+                  ],
+                  "description": "The answer of `GET me`: who the user is, and the access token to call this application’s own API with."
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "CAS is rate-limiting this client on the refresh or the guest grant; `Retry-After` carries the delay to wait out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "rate_limit_exceeded"
+                      ],
+                      "description": "Why the handler refused; a caller branches on it. `rate_limit_exceeded`: CAS is rate-limiting this client; `Retry-After` carries the delay to wait out (429)."
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "For the developer and the logs; a caller branches on `error`."
+                    },
+                    "casError": {
+                      "type": "string",
+                      "description": "The code CAS itself named, when the refusal came from CAS."
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "CAS cannot be used right now (`cas_unavailable`), or refused this client (`cas_rejected`) on the refresh or the guest grant. Or the session's lock was not granted in time (`session_busy`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "cas_unavailable",
+                            "cas_rejected"
+                          ],
+                          "description": "Why the handler refused; a caller branches on it. `cas_unavailable`: CAS, or whatever answered in its place, cannot be used right now. Transient; try again (503). `cas_rejected`: CAS refused this client's registration or the shape of its request. Not transient: an operator must act (503)."
+                        },
+                        "description": {
+                          "type": "string",
+                          "description": "For the developer and the logs; a caller branches on `error`."
+                        },
+                        "casError": {
+                          "type": "string",
+                          "description": "The code CAS itself named, when the refusal came from CAS."
+                        }
+                      },
+                      "required": [
+                        "error"
+                      ]
+                    },
+                    {
+                      "$ref": "#/components/schemas/SessionBusy"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/sign-in": {
+      "get": {
+        "operationId": "signIn",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Start a sign-in",
+        "description": "Stores the sign-in in flight, binds its `state` to this browser with a cookie, and sends the browser to CAS. A guest is force-refreshed first, so its fresh ID token can hint the upgrade. `302` is the cookie transport's answer, `200` the bearer transport's.",
+        "responses": {
+          "200": {
+            "description": "To the CAS authorization endpoint; the `state` cookie is set. The bearer transport is fetched, so it answers the URL instead.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "description": "The URL the browser is to navigate to."
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ],
+                  "description": "Where the browser is to navigate, for a route the `bearer` transport cannot answer with a redirect: the session id travels in a header, which a navigation cannot set, so `sign-in` and `logout` are fetched and the navigation is the caller’s. The `cookie` transport answers these routes `302` and never this."
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "To the CAS authorization endpoint; the `state` cookie is set."
+          },
+          "429": {
+            "description": "CAS is rate-limiting this client on the force-refresh of the presented session; `Retry-After` carries the delay to wait out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "rate_limit_exceeded"
+                      ],
+                      "description": "Why the handler refused; a caller branches on it. `rate_limit_exceeded`: CAS is rate-limiting this client; `Retry-After` carries the delay to wait out (429)."
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "For the developer and the logs; a caller branches on `error`."
+                    },
+                    "casError": {
+                      "type": "string",
+                      "description": "The code CAS itself named, when the refusal came from CAS."
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "CAS cannot be used right now (`cas_unavailable`), or refused this client (`cas_rejected`) on the force-refresh of the presented session or the metadata read. Or the session's lock was not granted in time (`session_busy`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "cas_unavailable",
+                            "cas_rejected"
+                          ],
+                          "description": "Why the handler refused; a caller branches on it. `cas_unavailable`: CAS, or whatever answered in its place, cannot be used right now. Transient; try again (503). `cas_rejected`: CAS refused this client's registration or the shape of its request. Not transient: an operator must act (503)."
+                        },
+                        "description": {
+                          "type": "string",
+                          "description": "For the developer and the logs; a caller branches on `error`."
+                        },
+                        "casError": {
+                          "type": "string",
+                          "description": "The code CAS itself named, when the refusal came from CAS."
+                        }
+                      },
+                      "required": [
+                        "error"
+                      ]
+                    },
+                    {
+                      "$ref": "#/components/schemas/SessionBusy"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/callback": {
+      "get": {
+        "operationId": "authCallback",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Complete a sign-in",
+        "description": "Checks the callback against the sign-in this browser started, redeems the code, installs the new session and sends the browser to the application. A redirect in both transports: the browser arrived here by navigation.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "The `state` of the authorization request; it must equal the one this browser was given."
+            },
+            "required": true,
+            "description": "The `state` of the authorization request; it must equal the one this browser was given.",
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The authorization code, when CAS granted the request."
+            },
+            "required": false,
+            "description": "The authorization code, when CAS granted the request.",
+            "name": "code",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The OAuth2 error code, when CAS refused the request (RFC 6749 §4.1.2.1)."
+            },
+            "required": false,
+            "description": "The OAuth2 error code, when CAS refused the request (RFC 6749 §4.1.2.1).",
+            "name": "error",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "CAS’s description of the refusal, for the developer."
+            },
+            "required": false,
+            "description": "CAS’s description of the refusal, for the developer.",
+            "name": "error_description",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "To the application. The bearer transport hands the new session id over in the URL fragment (`#session_id=`); `?previous_sub=` names the account the browser was signed in as when CAS signed it in as another."
+          },
+          "400": {
+            "description": "The callback matches no sign-in this browser started (`unknown_state`), or the sign-in failed (`sign_in_failed`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "unknown_state",
+                        "sign_in_failed"
+                      ],
+                      "description": "Why the handler refused; a caller branches on it. `unknown_state`: The callback carries no `state` this browser started a sign-in with, or one that has expired or been used (400). `sign_in_failed`: The sign-in itself failed: no code came back, the code was spent, or CAS refused the request (400)."
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "For the developer and the logs; a caller branches on `error`."
+                    },
+                    "casError": {
+                      "type": "string",
+                      "description": "The code CAS itself named, when the refusal came from CAS."
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "CAS is rate-limiting this client on the code exchange; `Retry-After` carries the delay to wait out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "rate_limit_exceeded"
+                      ],
+                      "description": "Why the handler refused; a caller branches on it. `rate_limit_exceeded`: CAS is rate-limiting this client; `Retry-After` carries the delay to wait out (429)."
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "For the developer and the logs; a caller branches on `error`."
+                    },
+                    "casError": {
+                      "type": "string",
+                      "description": "The code CAS itself named, when the refusal came from CAS."
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "CAS cannot be used right now (`cas_unavailable`), or refused this client (`cas_rejected`) on the authorization request or the code exchange. Or the session's lock was not granted in time (`session_busy`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "cas_unavailable",
+                            "cas_rejected"
+                          ],
+                          "description": "Why the handler refused; a caller branches on it. `cas_unavailable`: CAS, or whatever answered in its place, cannot be used right now. Transient; try again (503). `cas_rejected`: CAS refused this client's registration or the shape of its request. Not transient: an operator must act (503)."
+                        },
+                        "description": {
+                          "type": "string",
+                          "description": "For the developer and the logs; a caller branches on `error`."
+                        },
+                        "casError": {
+                          "type": "string",
+                          "description": "The code CAS itself named, when the refusal came from CAS."
+                        }
+                      },
+                      "required": [
+                        "error"
+                      ]
+                    },
+                    {
+                      "$ref": "#/components/schemas/SessionBusy"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "get": {
+        "operationId": "logout",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Sign out",
+        "description": "Ends this application’s session, then sends the browser to CAS to end its own; with nothing to end, back to the application. `302` is the cookie transport's answer, `200` the bearer transport's.",
+        "responses": {
+          "200": {
+            "description": "To the CAS end-session endpoint, or to the application when there was nothing to end. The bearer transport is fetched, so it answers the URL instead.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "description": "The URL the browser is to navigate to."
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ],
+                  "description": "Where the browser is to navigate, for a route the `bearer` transport cannot answer with a redirect: the session id travels in a header, which a navigation cannot set, so `sign-in` and `logout` are fetched and the navigation is the caller’s. The `cookie` transport answers these routes `302` and never this."
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "To the CAS end-session endpoint, or to the application when there was nothing to end."
+          },
+          "503": {
+            "description": "CAS’s metadata could not be read for the end-session URL; the session is kept, so the user can retry. Or the session's lock was not granted in time (`session_busy`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "cas_unavailable"
+                          ],
+                          "description": "Why the handler refused; a caller branches on it. `cas_unavailable`: CAS, or whatever answered in its place, cannot be used right now. Transient; try again (503)."
+                        },
+                        "description": {
+                          "type": "string",
+                          "description": "For the developer and the logs; a caller branches on `error`."
+                        },
+                        "casError": {
+                          "type": "string",
+                          "description": "The code CAS itself named, when the refusal came from CAS."
+                        }
+                      },
+                      "required": [
+                        "error"
+                      ]
+                    },
+                    {
+                      "$ref": "#/components/schemas/SessionBusy"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "operationId": "listUsers",
+        "tags": [
+          "users"
+        ],
+        "summary": "The profile snapshots of some users",
+        "description": "The latest snapshot of each requested id that has one: unknown ids are absent and the order is not promised.",
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1,
+              "maxItems": 100,
+              "description": "The CAS subjects to look up, as a repeated parameter (`?ids=a&ids=b`), 1 to 100 values"
+            },
+            "required": true,
+            "description": "The CAS subjects to look up, as a repeated parameter (`?ids=a&ids=b`), 1 to 100 values",
+            "style": "form",
+            "explode": true,
+            "name": "ids",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The snapshot of each known id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuthUser"
+                  },
+                  "description": "The snapshot of each requested id that has one, in no promised order; unknown ids are absent"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The query does not match the schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationFailed"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No CAS access token this service accepts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "CAS's metadata could not be read to verify the access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CasUnavailable"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}

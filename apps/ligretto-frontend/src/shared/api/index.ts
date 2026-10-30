@@ -1,14 +1,13 @@
-import { request } from '#shared/api/request'
+import { getMe as getMeOperation, listUsers } from '@memebattle/ligretto-core-client'
 
-import type { UserModel } from './apiTypes'
+import { coreClient } from './coreClient'
 
-export interface GetMeResponse {
-  user: UserModel
-  token: string
-}
+export type { AuthUser, GetMeStatus200 } from '@memebattle/ligretto-core-client'
+export { describeFailure } from './describeFailure'
 
-export const getMe = (token?: string) => request.post<GetMeResponse>('/auth/me', { token })
+/** Who the user is, by the session cookie. Resolves to a result kind and never throws. */
+export const getMe = () => getMeOperation({ client: coreClient })
 
-export type GetUsersResponse = Array<UserModel>
-
-export const getUsersByIds = (ids: string[]) => request.get<GetUsersResponse>('/users', { params: { ids } })
+/** The profiles of `ids` (1 to 100), with the access token `getMe` returned. Resolves to a result kind and never throws. */
+export const getUsersByIds = (ids: string[], accessToken: string) =>
+  listUsers({ client: coreClient, query: { ids }, headers: { authorization: `Bearer ${accessToken}` } })

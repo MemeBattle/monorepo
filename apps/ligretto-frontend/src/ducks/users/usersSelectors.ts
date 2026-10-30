@@ -5,5 +5,5 @@ import type { User } from './usersTypes'
 
 const usersEntitiesSelectors = usersEntityAdapter.getSelectors()
 
-export const userByIdSelector = (state: All, id: User['casId']) => usersEntitiesSelectors.selectById(state.users, id)
+export const userByIdSelector = (state: All, id: User['sub']) => usersEntitiesSelectors.selectById(state.users, id)
 export const usersMapSelector = (state: All) => usersEntitiesSelectors.selectEntities(state.users)

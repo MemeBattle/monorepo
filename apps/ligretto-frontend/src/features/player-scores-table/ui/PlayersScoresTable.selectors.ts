@@ -1,9 +1,8 @@
 import { createSelector } from '@reduxjs/toolkit'
 import orderBy from 'lodash/orderBy'
 
-import { buildCasStaticUrl } from '#shared/api/buildCasStaticUrl'
 import { gameResultsSelector, playersIdsSelector } from '#ducks/game'
-import { usersMapSelector } from '#ducks/users'
+import { userAvatarUrl, userLabel, usersMapSelector } from '#ducks/users'
 import { currentUserIdSelector } from '#ducks/auth'
 import { getRandomAvatar } from '#shared/ui/Avatar/getRandomAvatar'
 
@@ -17,11 +16,11 @@ export const playersSelector = createSelector(
 
         return {
           id: playerId,
-          username: user?.isTemporary ? 'Guest' : user?.username || '',
-          avatar: !user?.isTemporary && user?.avatar ? buildCasStaticUrl(user.avatar) : getRandomAvatar(user?.casId),
+          username: user ? userLabel(user) : '',
+          avatar: user ? userAvatarUrl(user) : getRandomAvatar(playerId),
           roundPoints: [playerResults.roundScore],
           totalPoints: playerResults.gameScore,
-          isPlayer: user?.casId === currentPlayerId,
+          isPlayer: user?.sub === currentPlayerId,
         }
       }),
       'totalPoints',

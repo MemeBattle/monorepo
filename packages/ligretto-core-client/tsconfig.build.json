@@ -1,0 +1,15 @@
+{
+  // The build a plain-Node consumer loads: CommonJS, because `node build/index.js` cannot type-strip `.ts` inside
+  // `node_modules`. The package has no `type` field, as ligretto-auth.
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "outDir": "./build",
+    "rootDir": "./src",
+    "sourceMap": true
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.spec.ts"]
+}

@@ -64,7 +64,7 @@ test('isolates non-CAS stories and clears strict missing-mock diagnostics on cle
   await page.goto('/?path=/story/cas-email--invalid')
   const canvas = page.frameLocator('#storybook-preview-iframe')
   await expect(canvas.getByText('Проверьте адрес: в нём ошибка или недопустимые символы.')).toBeVisible()
-  const preview = await selectStory(page, 'ligretto-emailsended--default-view')
+  const preview = await selectStory(page, 'ligretto-ligrettologo--default-view')
   // A test-owned response makes bypass observable without depending on the
   // static server's fallback status or any unrelated story's SVG contents.
   await context.route('**/api/storybook-isolation-probe', route => route.fulfill({ status: 200, body: 'outside CAS' }))

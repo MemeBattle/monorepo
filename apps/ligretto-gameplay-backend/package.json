@@ -19,6 +19,7 @@
   "dependencies": {
     "@codexsoft/dotenv-flow": "catalog:",
     "@memebattle/ligretto-auth": "workspace:^",
+    "@memebattle/ligretto-core-client": "workspace:^",
     "@memebattle/ligretto-shared": "workspace:^",
     "inversify": "catalog:",
     "lodash": "catalog:",

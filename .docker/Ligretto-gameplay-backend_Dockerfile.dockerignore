@@ -2,6 +2,8 @@
 !apps/ligretto-gameplay-backend
 !packages/ligretto-shared
 !packages/ligretto-auth
+!packages/ligretto-core-client
+!apps/ligretto-core-backend/package.json
 
 !pnpm-lock.yaml
 !pnpm-workspace.yaml

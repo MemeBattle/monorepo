@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
 import { CardColors } from '@memebattle/ligretto-shared'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { CardInteractionProvider, useCardInteraction } from '#features/cardInteraction'
 import { tapLigrettoDeckCardAction, tapStackDeckCardAction } from '#ducks/game'
@@ -53,8 +53,6 @@ beforeEach(() => {
   mocks.openCards = []
   mocks.ligrettoCards = []
 })
-afterEach(cleanup)
-
 describe('card-owned hotkeys', () => {
   it('routes a rendered row key through the same toggle behavior as pointer activation', () => {
     mocks.rowCards = [card(2)]

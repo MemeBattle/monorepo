@@ -79,8 +79,17 @@ env:
   # Server configuration
   NODE_ENV: "production"
   CAS_ISSUER: "https://cas.mems.fun"
-  LIGRETTO_CORE_URL: "http://ligretto-core-backend-chart.ligretto-core-backend.svc.cluster.local:80/api"
+  # The base of ligretto-core's internal API, without /api: the generated client's paths start with /internal.
+  # The internal hostname of the Worker: apps/ligretto-core-backend/README.md.
+  LIGRETTO_CORE_URL: "https://core-internal.ligretto.app"
   LIGRETTO_GAMEPLAY_SOCKET_PORT: "3005"
+
+# The shared secret of ligretto-core's internal API, read from a Kubernetes Secret created outside this chart
+# (apps/ligretto-core-backend/README.md says how to create and rotate it).
+# Never put it under env above: that renders literal values into the Deployment.
+internalApiToken:
+  secretName: ligretto-gameplay-backend-internal-api
+  secretKey: LIGRETTO_INTERNAL_API_TOKEN
 
 # External Secrets configuration
 externalSecrets:

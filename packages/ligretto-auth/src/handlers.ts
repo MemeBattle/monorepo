@@ -1,6 +1,6 @@
 /**
- * The four routes of a sign-in, as plain `(Request) => Promise<Response>` functions: Hono, a bare Worker and an
- * Adonis adapter all mount the same handler, because none of them is mentioned here. Web standards only, as the rest
+ * The four routes of a sign-in, as plain `(Request) => Promise<Response>` functions: Hono, a bare Worker and a
+ * framework adapter all mount the same handler, because none of them is mentioned here. Web standards only, as the rest
  * of the package.
  *
  * They are the HTTP half of what `./sessions` decides: `me` keeps a usable access token in front of the browser,

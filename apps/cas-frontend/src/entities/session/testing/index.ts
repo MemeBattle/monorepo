@@ -2,7 +2,7 @@ import { domainMock, failureResponse, isFailure, successResponse } from '#shared
 import type { Answer, Failure, Resolver } from '#shared/testing/domainMock'
 import { mockRequest } from '#shared/testing/mockRequest'
 import type { Spy } from '#shared/testing/runtime'
-import type { Me, Registered, SignedIn } from '../index'
+import type { Me, Registered, SignedIn, Upgrading } from '../index'
 import { aMe, aRegistration } from './builders'
 import { loginOptions, registrationOptions } from '#shared/testing/webauthn'
 
@@ -38,7 +38,7 @@ type RegistrationError = keyof typeof registrationErrors
 const registrationFailure = (failure: Failure<RegistrationError>) =>
   failureResponse('error' in failure && failure.error === 'registration_expired' ? { error: 'registration_not_found' } : failure, registrationErrors)
 
-const respondRegisterWithPasskey = (resolver: Resolver<{ displayName: string }, Registered, RegistrationError>) => {
+const respondRegisterWithPasskey = (resolver: Resolver<{ displayName: string }, Registered, RegistrationError>, upgrading?: Upgrading) => {
   let sequence = 0
   const registrations = new Map<string, Answer<Registered, RegistrationError>>()
   const spy = mockRequest('POST', '/api/webauthn/register-options').respond(async args => {
@@ -52,8 +52,9 @@ const respondRegisterWithPasskey = (resolver: Resolver<{ displayName: string }, 
     const registrationId = `ceremony-${++sequence}`
     registrations.set(registrationId, answer)
     const options = registrationOptions(registrationId)
-    if (!isFailure<RegistrationError>(answer)) {
-      const hex = answer.accountId.replaceAll('-', '')
+    const accountId = isFailure<RegistrationError>(answer) ? upgrading?.accountId : answer.accountId
+    if (accountId) {
+      const hex = accountId.replaceAll('-', '')
       // Guest upgrades compare the UUID bytes; keep the default handle for opaque fixture IDs.
       if (/^[\da-f]{32}$/i.test(hex)) {
         const bytes = hex.replace(/../g, byte => String.fromCharCode(parseInt(byte, 16)))
@@ -76,7 +77,7 @@ const respondRegisterWithPasskey = (resolver: Resolver<{ displayName: string }, 
 
 export const mockRegisterWithPasskey = Object.assign((input?: Partial<Registered>) => respondRegisterWithPasskey(() => aRegistration(input)), {
   respond: respondRegisterWithPasskey,
-  error: (code: RegistrationError) => respondRegisterWithPasskey(() => ({ error: code })),
+  error: (code: RegistrationError, upgrading?: Upgrading) => respondRegisterWithPasskey(() => ({ error: code }), upgrading),
   networkError: () => respondRegisterWithPasskey(() => ({ networkError: true })),
 })
 

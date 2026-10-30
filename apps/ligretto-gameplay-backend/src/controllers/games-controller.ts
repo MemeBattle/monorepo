@@ -43,12 +43,18 @@ export class GamesController extends Controller {
   }
 
   private async createGame(socket: Socket, action: ReturnType<typeof createRoomEmitAction>) {
-    const newGame = await this.gameService.createGame(action.payload.name, action.payload.config)
+    const created = await this.gameService.createGame(action.payload.name, action.payload.config)
 
-    if (!newGame) {
-      return socket.emit('event', createRoomErrorAction({ errorCode: CreateRoomErrorCode.AlreadyExist, name: action.payload.name }))
+    if (!created.ok) {
+      if (created.error === 'already_exists') {
+        socket.emit('event', createRoomErrorAction({ errorCode: CreateRoomErrorCode.AlreadyExist, name: action.payload.name }))
+      }
+      // core_unavailable: LigrettoCoreService has logged it, and the protocol
+      // has no error code to tell the creator.
+      return
     }
 
+    const newGame = created.game
     socket.emit('event', createRoomSuccessAction({ game: newGame }))
     socket.to(SOCKET_ROOM_LOBBY).emit('event', updateRoomsAction({ rooms: [gameToRoom(newGame)] }))
   }

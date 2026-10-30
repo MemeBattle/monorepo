@@ -65,6 +65,14 @@ const gameSlice = createSlice({
   reducers: {
     updateGameAction: (state, action: PayloadAction<Game>) => {
       Object.assign(state.game, action.payload)
+      // A round the core did not record ends without endRound, so the next intermission must not show the previous
+      // round's scores. The totals are still the core's record, so they stay. A recorded round's endRound replaces
+      // the results.
+      if (action.payload.status === GameStatus.Starting && state.results) {
+        for (const result of Object.values(state.results)) {
+          result.roundScore = 0
+        }
+      }
     },
     setGameLoadedAction: (state, action: PayloadAction<boolean>) => {
       state.isGameLoaded = action.payload

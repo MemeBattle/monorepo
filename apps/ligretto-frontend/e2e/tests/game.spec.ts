@@ -89,7 +89,7 @@ test.describe('Connection lifecycle', () => {
     await expect(resumeButton).toHaveText('Resume')
     await expect(resumeButton).toBeDisabled()
 
-    // The same context keeps the auth token, so the rejoin uses the same stable identity.
+    // The same context keeps the session cookie, so the rejoin uses the same stable identity.
     const pageUser2Again = await contextUser2.newPage()
     await pageUser2Again.goto(gameUrl)
 
@@ -154,7 +154,7 @@ test.describe('Direct game link', () => {
     const gamePageUser1 = new GamePage(pageUser1)
     await expect(await gamePageUser1.getPlayerReadyButton()).toBeVisible()
 
-    // A brand-new context holds no auth token, and the page lands straight on
+    // A brand-new context holds no session cookie, and the page lands straight on
     // the game URL — the exact cold load the identity race was triggered by.
     const contextUser2 = await browser.newContext()
     const pageUser2 = await contextUser2.newPage()

@@ -55,7 +55,7 @@ export const opponentsSelector = createSelector([playersSelector, currentUserIdS
       return opponents
     }
     const user = users[player.id]
-    return [...opponents, ...(user && user.casId !== playerId ? [mergePlayerAndUser(player, user)] : [])]
+    return [...opponents, ...(user && user.sub !== playerId ? [mergePlayerAndUser(player, user)] : [])]
   }, []),
 )
 

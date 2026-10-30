@@ -8,6 +8,10 @@ WORKDIR /memebattle
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /memebattle/
 COPY packages/ligretto-shared/package.json /memebattle/packages/ligretto-shared/
 COPY packages/ligretto-auth/package.json /memebattle/packages/ligretto-auth/
+COPY packages/ligretto-core-client/package.json /memebattle/packages/ligretto-core-client/
+# Only for the workspace: the client's dev dependency on @memebattle/ligretto-core-backend must resolve, or pnpm refuses
+# to run. Nothing of ligretto-core-backend is built or shipped.
+COPY apps/ligretto-core-backend/package.json /memebattle/apps/ligretto-core-backend/
 COPY apps/ligretto-gameplay-backend/package.json /memebattle/apps/ligretto-gameplay-backend/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
@@ -18,8 +22,10 @@ ENV NODE_ENV=production
 
 COPY packages/ligretto-auth/ /memebattle/packages/ligretto-auth/
 COPY packages/ligretto-shared/ /memebattle/packages/ligretto-shared/
+COPY packages/ligretto-core-client/ /memebattle/packages/ligretto-core-client/
 RUN pnpm run ligretto-shared:build
 RUN pnpm run --filter @memebattle/ligretto-auth build
+RUN pnpm run --filter @memebattle/ligretto-core-client build
 
 COPY apps/ligretto-gameplay-backend/ /memebattle/apps/ligretto-gameplay-backend/
 RUN pnpm run ligretto:gameplay-backend:build

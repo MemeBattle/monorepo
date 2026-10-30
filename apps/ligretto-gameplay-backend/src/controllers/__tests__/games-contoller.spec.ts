@@ -14,19 +14,24 @@ import {
   PlayerStatus,
   GameStatus,
   setPlayerStatusEmitAction,
+  startGameEmitAction,
+  takeFromLigrettoDeckAction,
+  CardColors,
 } from '@memebattle/ligretto-shared'
 
 import type { GamesController } from '../games-controller'
+import type { GameplayController } from '../gameplay-controller'
 
 import { createIOC } from '../../inversify.config'
 import { IOC_TYPES } from '../../IOC_TYPES'
 import type { Database } from '../../database'
-import { createSocketMockImpl } from '../../../test/utils'
+import { createSocketMockImpl, deferred } from '../../../test/utils'
 import type { AnyAction } from '../../types/any-action'
 import { ALL_OFFLINE_ROOM_DELETION_TIMEOUT_MS, DISCONNECT_GRACE_PERIOD_MS, SOCKET_ROOM_LOBBY } from '../../config'
 import type { UserService } from '../../entities/user'
 import type { GameService } from '../../entities/game/game.service'
 import { gameToRoom } from '../../utils/mappers'
+import type { SaveRoundOutcome } from '../../services/ligretto-core'
 
 describe('Games Controller', () => {
   let container = createIOC()
@@ -35,17 +40,17 @@ describe('Games Controller', () => {
 
   const gameId = '1'
 
-  let createGameService = vi.fn().mockReturnValue({ id: gameId })
-  let saveGameRoundService = vi.fn().mockReturnValue({})
+  let createGame = vi.fn().mockResolvedValue({ ok: true, gameId })
+  let saveRound = vi.fn().mockResolvedValue({ ok: true, gameResults: {} })
 
   let gamesController: GamesController = container.get(IOC_TYPES.GamesController)
 
   beforeEach(() => {
     container = createIOC()
     socketMockImpl = createSocketMockImpl()
-    createGameService = vi.fn().mockReturnValue({ id: gameId })
-    saveGameRoundService = vi.fn().mockReturnValue({})
-    container.rebind(IOC_TYPES.LigrettoCoreService).toConstantValue({ createGameService, saveGameRoundService })
+    createGame = vi.fn().mockResolvedValue({ ok: true, gameId })
+    saveRound = vi.fn().mockResolvedValue({ ok: true, gameResults: {} })
+    container.rebind(IOC_TYPES.LigrettoCoreService).toConstantValue({ createGame, saveRound })
     gamesController = container.get(IOC_TYPES.GamesController)
   })
 
@@ -83,6 +88,19 @@ describe('Games Controller', () => {
         'event',
         createRoomErrorAction({ errorCode: CreateRoomErrorCode.AlreadyExist, name: 'createGame' }),
       )
+    })
+
+    it('creates no room and emits nothing when ligretto-core does not create the game', async () => {
+      const database: Database = container.get(IOC_TYPES.Database)
+      createGame.mockResolvedValue({ ok: false })
+
+      await expect(
+        gamesController.handleMessage(socketMockImpl, createRoomEmitAction({ name: 'createGame', config: {} }) as AnyAction),
+      ).resolves.toBeUndefined()
+
+      expect(await database.get(storage => storage.games)).toEqual({})
+      expect(socketMockImpl.emit).not.toHaveBeenCalled()
+      expect(socketMockImpl.to).not.toHaveBeenCalled()
     })
   })
 
@@ -204,7 +222,7 @@ describe('Games Controller', () => {
       const database: Database = container.get(IOC_TYPES.Database)
       const gameService = container.get<GameService>(IOC_TYPES.GameService)
       const gameResults = { [userId]: { roundScore: 3, gameScore: 3 } }
-      saveGameRoundService.mockReturnValue({ gameResults })
+      saveRound.mockResolvedValue({ ok: true, gameResults })
       await gamesController.handleMessage(socketMockImpl, connectToRoomEmitAction({ roomUuid }) as AnyAction)
       await gameService.finishRound(roomUuid)
 
@@ -325,7 +343,7 @@ describe('Games Controller', () => {
 
       await gamesController.disconnectionHandler(socketOne)
 
-      expect(saveGameRoundService).toHaveBeenCalledTimes(0)
+      expect(saveRound).toHaveBeenCalledTimes(0)
     })
 
     it('Should create a relevant state if last user disconnected', async () => {
@@ -429,6 +447,99 @@ describe('Games Controller', () => {
       const retained = await database.get(storage => storage.games[roomUuid])
       expect(retained.players[userOneId]?.status).toBe(PlayerStatus.Disconnected)
       expect(retained.players[userOneId]).toBeDefined()
+    })
+  })
+
+  describe('membership changes during a round save', () => {
+    const roomUuid = gameId
+    const hostId = 'host'
+    const peerId = 'peer'
+    const newcomerId = 'newcomer'
+    let hostSocket = createSocketMockImpl({ id: 'host-socket', data: { userId: hostId } })
+    let peerSocket = createSocketMockImpl({ id: 'peer-socket', data: { userId: peerId } })
+    let newcomerSocket = createSocketMockImpl({ id: 'newcomer-socket', data: { userId: newcomerId } })
+    let database: Database
+    let gameplayController: GameplayController
+    let save = deferred<SaveRoundOutcome>()
+
+    beforeEach(async () => {
+      // An earlier case leaves fake timers on, and the start's countdown is a real wait.
+      vi.useRealTimers()
+      database = container.get(IOC_TYPES.Database)
+      gameplayController = container.get(IOC_TYPES.GameplayController)
+      hostSocket = createSocketMockImpl({ id: 'host-socket', data: { userId: hostId } })
+      peerSocket = createSocketMockImpl({ id: 'peer-socket', data: { userId: peerId } })
+      newcomerSocket = createSocketMockImpl({ id: 'newcomer-socket', data: { userId: newcomerId } })
+      save = deferred<SaveRoundOutcome>()
+      saveRound.mockReturnValue(save.promise)
+
+      await database.set(storage => {
+        storage.users[hostId] = { id: hostId, socketIds: [hostSocket.id] }
+        storage.users[peerId] = { id: peerId, socketIds: [peerSocket.id] }
+        storage.users[newcomerId] = { id: newcomerId, socketIds: [newcomerSocket.id] }
+      })
+      await gamesController.handleMessage(hostSocket, createRoomEmitAction({ name: 'saving', config: { startingDelayInSec: 0 } }) as AnyAction)
+      await gamesController.handleMessage(hostSocket, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+      await gamesController.handleMessage(peerSocket, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+      // The host holds the last ligretto card and a free slot to take it into.
+      await database.set(storage => {
+        const game = storage.games[roomUuid]
+        game.status = GameStatus.InGame
+        for (const player of Object.values(game.players)) {
+          player!.status = PlayerStatus.InGame
+        }
+        game.players[hostId]!.cards = [null]
+        game.players[hostId]!.ligrettoDeck = { isHidden: true, cards: [{ color: CardColors.blue, value: 7, playerId: hostId }] }
+      })
+    })
+
+    const finishRound = () => gameplayController.handleMessage(hostSocket, takeFromLigrettoDeckAction({ gameId: roomUuid }) as AnyAction)
+
+    it('leaves an intermission the room can refill after an explicit leave and an unrecorded round', async () => {
+      const finishing = finishRound()
+      await gamesController.disconnectionHandler(peerSocket)
+      save.resolve({ ok: false, error: 'core_unavailable' })
+      await finishing
+
+      const game = await database.get(storage => storage.games[roomUuid])
+      expect(game.status).toBe(GameStatus.RoundFinished)
+      expect(Object.keys(game.players)).toEqual([hostId])
+      expect(game.players[hostId]?.status).toBe(PlayerStatus.DontReadyToPlay)
+
+      await gamesController.handleMessage(newcomerSocket, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+      expect(await database.get(storage => storage.games[roomUuid].players[newcomerId])).toBeDefined()
+      expect(await database.get(storage => storage.games[roomUuid].spectators[newcomerId])).toBeUndefined()
+
+      await gameplayController.handleMessage(hostSocket, startGameEmitAction({ gameId: roomUuid }) as AnyAction)
+      const started = await database.get(storage => storage.games[roomUuid])
+      expect(started.status).toBe(GameStatus.InGame)
+      expect(started.players[hostId]?.ligrettoDeck.cards).toHaveLength(10)
+      expect(started.players[newcomerId]?.ligrettoDeck.cards).toHaveLength(10)
+    })
+
+    it('admits a newcomer during the save as in an intermission, without changing the saved round', async () => {
+      const finishing = finishRound()
+      await gamesController.handleMessage(newcomerSocket, connectToRoomEmitAction({ roomUuid }) as AnyAction)
+      save.resolve({ ok: false, error: 'core_unavailable' })
+      await finishing
+
+      expect(saveRound).toHaveBeenCalledTimes(1)
+      expect(saveRound.mock.calls[0][1].results.map(({ playerId }: { playerId: string }) => playerId).sort()).toEqual([hostId, peerId])
+
+      const game = await database.get(storage => storage.games[roomUuid])
+      expect(game.status).toBe(GameStatus.RoundFinished)
+      expect(game.players[newcomerId]?.cards).toEqual([])
+      expect(game.players[newcomerId]?.ligrettoDeck.cards).toEqual([])
+
+      const before = structuredClone(game)
+      await gameplayController.handleMessage(newcomerSocket, takeFromLigrettoDeckAction({ gameId: roomUuid }) as AnyAction)
+      expect(await database.get(storage => storage.games[roomUuid])).toEqual(before)
+      expect(saveRound).toHaveBeenCalledTimes(1)
+
+      await gameplayController.handleMessage(hostSocket, startGameEmitAction({ gameId: roomUuid }) as AnyAction)
+      const started = await database.get(storage => storage.games[roomUuid])
+      expect(started.status).toBe(GameStatus.InGame)
+      expect(started.players[newcomerId]?.ligrettoDeck.cards).toHaveLength(10)
     })
   })
 

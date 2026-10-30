@@ -53,7 +53,11 @@ export class GameplayController extends Controller {
       return
     }
 
-    this.gameService.initiateStartGame(gameId)
+    // Also refused, silently like the guard above, while the last round's save
+    // is in flight: its status is already RoundFinished.
+    if (!this.gameService.initiateStartGame(gameId)) {
+      return
+    }
     this.updateGame(socket, gameId)
 
     this.gameplay.startGame(gameId)

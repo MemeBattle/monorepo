@@ -72,6 +72,25 @@ it('selects registration error stage from the code', async () => {
 })
 
 it.each([
+  ['registration_expired', 'registration_not_found', 404],
+  ['unauthenticated', 'unauthenticated', 401],
+] as const)('returns %s for a different guest UUID through both failure helpers', async (code, wireCode, status) => {
+  const guest = { accountId: '00112233-4455-4677-8899-aabbccddeeff' }
+  vi.mocked(startRegistration)
+    .mockClear()
+    .mockResolvedValue({ id: 'credential' } as Awaited<ReturnType<typeof startRegistration>>)
+
+  const failure = mockRegisterWithPasskey.error(code, guest)
+  await expect(registerWithPasskey('Ada', guest)).resolves.toMatchObject({ ok: false, error: { code: wireCode, status } })
+  expect(failure).toHaveBeenCalledExactlyOnceWith({ displayName: 'Ada' })
+
+  const respond = mockRegisterWithPasskey.respond(async () => ({ error: code }), guest)
+  await expect(registerWithPasskey('Ada', guest)).resolves.toMatchObject({ ok: false, error: { code: wireCode, status } })
+  expect(respond).toHaveBeenCalledExactlyOnceWith({ displayName: 'Ada' })
+  expect(startRegistration).toHaveBeenCalledTimes(2)
+})
+
+it.each([
   ['internal_error', 500],
   ['database_busy', 503],
 ] as const)('uses the CAS infrastructure error %s', async (code, status) => {

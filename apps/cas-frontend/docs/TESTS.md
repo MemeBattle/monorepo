@@ -100,6 +100,11 @@ Ceremony helpers are public composites with no options/verification knobs.
 CAS's `registration_not_found`; `mockAddPasskey.error('unauthenticated')` fails
 before the authenticator. `mockSignInWithPasskey` serves both the button and
 autofill. Ceremony spies record the domain input once when options are requested.
+For a failed upgrade of a specific guest, pass its domain context:
+`mockRegisterWithPasskey.error('registration_expired', { accountId: guest.accountId })`.
+The registration `.respond(resolver, guest)` accepts the same optional context
+for failure answers. The options request carries only the display name, so the
+helper cannot infer the guest UUID from it. Successful answers use their account ID.
 Private stage helpers in `testing/stages.ts` exist only for the owning entity's
 ceremony specs (for example, challenge refresh), never page specs or stories;
 they are not re-exported by the testing entry point. Import the public builders

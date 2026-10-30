@@ -1,12 +1,10 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { CardColors, PlayerStatus } from '@memebattle/ligretto-shared'
-import { afterEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { Opponent } from './Opponent'
-
-afterEach(cleanup)
 
 const opponentProps = {
   id: 'opponent-id',

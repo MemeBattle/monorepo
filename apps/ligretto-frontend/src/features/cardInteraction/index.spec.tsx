@@ -3,16 +3,14 @@
 import type { PropsWithChildren } from 'react'
 import { configureStore } from '@reduxjs/toolkit'
 import { GameStatus } from '@memebattle/ligretto-shared'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
 import { Provider } from 'react-redux'
 
 import { CardInteractionProvider, useCardInteraction } from './index'
 import { rootReducer } from '#app/store/rootReducer'
 import { initialState as gameInitialState } from '#ducks/game/slice'
 import { Playground } from '#features/playground/ui/Playground'
-
-afterEach(cleanup)
 
 const testStore = configureStore({
   reducer: rootReducer,

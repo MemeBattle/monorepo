@@ -1,5 +1,5 @@
-import type { UserModel } from '#shared/api/apiTypes'
+import type { AuthUser } from '#shared/api'
 
-export type User = UserModel & {
+export type User = AuthUser & {
   isLoading?: boolean
 }

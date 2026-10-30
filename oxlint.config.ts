@@ -30,10 +30,11 @@ export default defineConfig({
     correctness: 'off',
   },
   ignorePatterns: [
-    '**/.adonisjs/**',
     '.storybook/public/mockServiceWorker.js',
     'apps/cas-frontend/src/shared/api/generated/**',
     'packages/ligretto-auth/src/generated/**',
+    'packages/ligretto-core-client/src/generated/**',
+    'apps/ligretto-core-backend/src/adapters/pg/schema.generated.ts',
   ],
   settings: {
     react: {

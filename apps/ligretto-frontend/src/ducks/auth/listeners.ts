@@ -1,82 +1,75 @@
 import * as Sentry from '@sentry/browser'
 import type { TypedStartListening } from '@reduxjs/toolkit'
 
-import { logout, getMeRequest, getMeSuccess } from './authActions'
-import { LOCAL_STORAGE_TOKEN_KEY } from './constants'
+import { getMeRequest, getMeSuccess, getMeFailure } from './authActions'
 
 import { analytics } from '#entities/analytics'
 import { addUser } from '#ducks/users'
-import { getMe } from '#shared/api'
+import { describeFailure, getMe, type GetMeStatus200 } from '#shared/api'
+import { restartOnHome } from '#shared/api/authNavigation'
 import type { All } from '#types/store'
 
-async function getUserByTokenEffect(token?: string) {
-  try {
-    const { data } = await getMe(token)
+// Keep the lead within the backend's one-minute token refresh window.
+export const REFRESH_LEAD_MS = 30_000
 
-    return {
-      userId: data.user.casId,
-      isTemporary: data.user.isTemporary,
-      token: data.token,
-      username: data.user.isTemporary ? null : data.user.username,
-    }
-  } catch (e) {
-    console.error(e)
-    return null
-  }
-}
+export const RETRY_DELAY_MS = 5_000
 
 export function addListeners(startListener: TypedStartListening<All>) {
   startListener({
     actionCreator: getMeRequest,
-    effect: async ({ payload }, listenerApi) => {
-      // The reducer sets isLoading synchronously, so a value of `true` *before*
-      // this action means another identity request is already in flight — a
-      // duplicate would mint a second temporary user on the backend.
-      if (listenerApi.getOriginalState().auth.isLoading) {
-        return
-      }
-      const user = await getUserByTokenEffect(payload.token)
+    effect: async (_action, listenerApi) => {
+      // getOriginalState() must be read before the first await.
+      const { isLoading, isBootstrapped: wasBootstrapped, userId: previousUserId } = listenerApi.getOriginalState().auth
 
-      if (!user) {
+      if (isLoading) {
         return
       }
 
-      // Add user to store - handle temporary users correctly
-      if (user.isTemporary) {
-        listenerApi.dispatch(
-          addUser({
-            casId: user.userId,
-            isTemporary: true,
-          }),
-        )
-      } else {
-        listenerApi.dispatch(
-          addUser({
-            casId: user.userId,
-            isTemporary: false,
-            username: user.username!,
-          }),
-        )
+      const result = await getMe()
+      if (result.kind !== 'success') {
+        console.error('GET /api/auth/me failed', describeFailure(result))
+        listenerApi.dispatch(getMeFailure())
+        return
       }
 
-      Sentry.setUser({
-        id: user.userId,
-        username: user.username || undefined,
-      })
-      window.localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, user.token)
+      const { user, accessToken, expiresAt }: GetMeStatus200 = result.data
 
-      analytics.setUserProperties({ id: user.userId, isTemporary: user.isTemporary })
-      analytics.logEvent('User authorized')
+      // The live socket is bound to the previous identity; switching users requires a reload.
+      if (wasBootstrapped && user.sub !== previousUserId) {
+        restartOnHome()
+        return
+      }
 
-      listenerApi.dispatch(getMeSuccess({ ...user }))
+      listenerApi.dispatch(addUser(user))
+
+      Sentry.setUser({ id: user.sub, username: user.name ?? undefined })
+
+      // Preserve the existing analytics segment name.
+      analytics.setUserProperties({ id: user.sub, isTemporary: user.accountType === 'guest' })
+      if (!wasBootstrapped) {
+        analytics.logEvent('User authorized')
+      }
+
+      listenerApi.dispatch(getMeSuccess({ userId: user.sub, accessToken, expiresAt, accountType: user.accountType }))
     },
   })
 
   startListener({
-    actionCreator: logout,
+    actionCreator: getMeSuccess,
+    effect: async ({ payload }, listenerApi) => {
+      listenerApi.cancelActiveListeners()
+      // Clock skew can return the same expiry; enforce a minimum delay to avoid a refresh loop.
+      await listenerApi.delay(Math.max(RETRY_DELAY_MS, payload.expiresAt - Date.now() - REFRESH_LEAD_MS))
+      listenerApi.dispatch(getMeRequest())
+    },
+  })
+
+  startListener({
+    actionCreator: getMeFailure,
     effect: async (_action, listenerApi) => {
-      window.localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY)
-      listenerApi.dispatch(getMeRequest({}))
+      listenerApi.cancelActiveListeners()
+      await listenerApi.delay(RETRY_DELAY_MS)
+      listenerApi.dispatch(getMeRequest())
     },
   })
 }

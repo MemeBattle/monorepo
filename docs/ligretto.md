@@ -3,8 +3,10 @@
 ## Start all
 
 1. Start postgresql `docker-compose up`
-2. Migrate ligretto-core-backend database `pnpm ligretto:core-backend:migrate`
-3. Start `pnpm ligretto:start`
+2. Start CAS and register the `ligretto` client, as `apps/cas/README.md` describes: the sign-in of
+   ligretto-core-backend and the token checks of the gameplay backend need it
+3. Migrate ligretto-core-backend database `pnpm ligretto:core-backend:migrate`
+4. Start `pnpm ligretto:start`
 
 ## Start Ligretto frontend only
 
@@ -12,7 +14,7 @@
 2. Set next variables:
 
 ```
-LIGRETTO_CORE_URL=https://core.ligretto.app/api
+LIGRETTO_CORE_URL=https://core.ligretto.app
 LIGRETTO_GAMEPLAY_URL=https://api.ligretto.app
 ```
 

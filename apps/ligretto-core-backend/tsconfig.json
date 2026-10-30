@@ -1,26 +1,36 @@
 {
-  "include": ["**/*"],
-  "exclude": ["node_modules", "build"],
   "compilerOptions": {
-    "noUnusedLocals": true,
-    "paths": {
-      "#controllers/*": ["./app/controllers/*.js"],
-      "#exceptions/*": ["./app/exceptions/*.js"],
-      "#models/*": ["./app/models/*.js"],
-      "#services/*": ["./app/services/*.js"],
-      "#listeners/*": ["./app/listeners/*.js"],
-      "#events/*": ["./app/events/*.js"],
-      "#middleware/*": ["./app/middleware/*.js"],
-      "#validators/*": ["./app/validators/*.js"],
-      "#start/*": ["./start/*.js"],
-      "#config/*": ["./config/*.js"],
-      "#app/*": ["./app/*.js"],
-      "#database/*": ["./database/*.js"],
-      "#contracts/*": ["./contracts/*.js"],
-      "#helpers/*": ["./app/helpers/*.js"]
-    },
-    "types": [],
-    "strictPropertyInitialization": false
+    // No DOM: `Request`, `Response`, `fetch` and `crypto` come from @types/node, and `document` stays a type error.
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    // Relative imports name the file with its `.ts` extension, which Wrangler, vitest and tsx resolve as written and
+    // the Node build (tsconfig.build.json) rewrites to `.js` (docs/adrs/node-build-and-import-specifiers.md).
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
   },
-  "extends": "@adonisjs/tsconfig/tsconfig.app.json"
+  "include": [
+    "src",
+    "migrations",
+    "test/support",
+    "test/store",
+    "test/http",
+    "test/node",
+    "scripts",
+    "vitest.config.ts",
+    "vitest.worker.config.ts",
+    "vitest.store.config.ts",
+    "vitest.node.config.ts",
+    "cloudflare.config.ts"
+  ],
+  // The Worker entry is checked by tsconfig.worker.json: @cloudflare/workers-types and @types/node conflict on
+  // globals, so each project loads one of them. The Worker's declaration of `node:async_hooks` would duplicate the one
+  // of @types/node.
+  "exclude": ["src/entry/worker.ts", "src/entry/worker-node-compat.d.ts"]
 }
