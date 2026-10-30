@@ -3,7 +3,7 @@ import type { SweepCounts } from '../core/sweep.ts'
 
 /**
  * One sweep with its log lines, shared by the Node entry and the Worker's `scheduled` handler. A failure is logged and
- * rethrown: it sets the exit code of the former and marks the cron invocation as an exception in the latter.
+ * rethrown: the Node entry turns it into its exit code, and on the Worker it marks the cron invocation as an exception.
  */
 export const runSweep = async ({ sweep, logger }: { sweep: () => Promise<SweepCounts>; logger: Logger }): Promise<void> => {
   try {

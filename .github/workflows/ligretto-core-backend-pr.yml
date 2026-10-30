@@ -309,8 +309,8 @@ jobs:
   worker-smoke:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    # The Hyperdrive bindings' dev.connectionString in cloudflare.config.ts points here, migrated below for the cron
-    # handler, which needs the tables.
+    # The Hyperdrive bindings' dev.connectionString in cloudflare.config.ts points here. A step below migrates it,
+    # because the cron handler needs the tables.
     services:
       postgres:
         # The engine of the compose test service: the oldest in play.
@@ -334,7 +334,7 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
-      # The production bundle builds from cloudflare.config.ts: exactly what a release uploads.
+      # The production bundle builds from cloudflare.config.ts, the same way a release builds it.
       - name: Build the Worker
         run: pnpm run --filter @memebattle/ligretto-core-backend build:worker
 

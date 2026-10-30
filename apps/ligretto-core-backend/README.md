@@ -1,7 +1,7 @@
 # ligretto-core-backend
 
 The HTTP service of Ligretto: sign-in through CAS, user profiles, games and rounds for the gameplay backend. This file
-is the operational notes for production. `AGENTS.md` lists the design documents, and
+holds the operational notes for production. `AGENTS.md` lists the design documents, and
 `docs/adrs/production-deployment-on-workers.md` records why the deployment has this shape.
 
 ## What runs where
@@ -62,7 +62,7 @@ merging early is safe.
 
 1. Add `CLOUDFLARE_API_TOKEN` to the `Ligretto-production` environment. Beyond the deployment scopes it needs Hyperdrive
    read, Workers read and the `ligretto.app` zone.
-2. Register the CAS client. `DATABASE_URL` is here CAS's own database, the `CAS_DATABASE_URL` secret of `CAS-production`.
+2. Register the CAS client. Here `DATABASE_URL` is CAS's own database, the `CAS_DATABASE_URL` secret of `CAS-production`.
    The command prints the client secret once.
 
    ```sh
@@ -179,10 +179,9 @@ A value must not contain a comma: the list is comma-separated.
 ## Replacing the CAS client
 
 CAS has no rotation, so a lost or leaked client secret means registering a new client id
-(`apps/cas/docs/INTEGRATION.md`). This is a client migration, not maintenance. CAS refuses a refresh token issued to
-another client, so every existing session ends at its next refresh. Registered users sign in again, and a guest gets a
-new subject and loses the previous identity. A sign-in in progress fails. CAS has no deletion either, so the old id stays
-registered and its secret stays valid.
+(`apps/cas/docs/INTEGRATION.md`). CAS refuses a refresh token issued to another client, so every existing session ends
+at its next refresh. Registered users sign in again, and a guest gets a new subject and loses the previous identity. A
+sign-in in progress fails. CAS has no deletion either, so the old id stays registered and its secret stays valid.
 
 The id and the secret must reach the Worker in one version: either one alone makes CAS refuse the Worker's calls. So do
 not use `cf workers secrets update` here. It takes effect at once, and the id arrives only with an upload.

@@ -1,9 +1,12 @@
 // The ligretto-core-backend Worker (src/entry/worker.ts), developed with `cf dev` and released with `pnpm build:worker`,
-// which is `cf build --mode production`; Wrangler bundles the TypeScript entrypoint itself, so there is no
-// wrangler.config.ts. This file is the single source of the production values (docs/adrs/production-deployment-on-workers.md):
-// `mode` is 'production' for that build and undefined under `cf dev` and @cloudflare/vitest-plugin, which take the
-// development branch. The floor of this deployment is `compatibility_date` >= 2026-08-04 and `pg` >= 8.16.3, the version
-// Cloudflare documents for Hyperdrive; scripts/cloudflare-config.spec.ts holds both.
+// which is `cf build --mode production`. Wrangler bundles the TypeScript entrypoint itself, so there is no
+// wrangler.config.ts.
+//
+// The production values live only here (docs/adrs/production-deployment-on-workers.md). `mode` is 'production' for that
+// build and undefined under `cf dev` and @cloudflare/vitest-plugin, which take the development branch.
+//
+// This deployment needs `compatibility_date` >= 2026-08-04 and `pg` >= 8.16.3, the version Cloudflare documents for
+// Hyperdrive. scripts/cloudflare-config.spec.ts checks both.
 import { bindings, defineConfig, exports, triggers } from 'cf/config'
 
 // Two caching-disabled configurations of the same Neon database (docs/adrs/database-access-with-kysely.md). Their
@@ -70,8 +73,8 @@ export default defineConfig(({ mode }) => {
         LIGRETTO_INTERNAL_API_TOKEN: bindings.secret(),
         LIGRETTO_CAS_CLIENT_SECRET: bindings.secret(),
         // Held on the Worker and read by nothing there: the runtime connects only through the Hyperdrive bindings, and
-        // the release's migration uses the Actions secret of the same name. Declaring it keeps the release's check and
-        // the deploy's secret binding covering it like the other two.
+        // the release's migration uses the Actions secret of the same name. It is declared so that the release's check
+        // and the deploy's secret binding cover it like the other two.
         DATABASE_URL: bindings.secret(),
         // The CAS client and the auth handlers.
         CAS_ISSUER: bindings.text(values.CAS_ISSUER),

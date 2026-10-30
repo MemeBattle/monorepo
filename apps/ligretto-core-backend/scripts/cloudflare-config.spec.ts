@@ -39,7 +39,7 @@ describe('cloudflare.config.ts in production mode', () => {
     expect(ids[0]).not.toBe(ids[1])
   })
 
-  it('stays on the floor of Hyperdrive with pg', () => {
+  it('meets the compatibility date and the pg version Hyperdrive needs', () => {
     expect(production.compatibilityDate >= '2026-08-04').toBe(true)
     const pg = createRequire(import.meta.url)('pg/package.json') as { version: string }
     expect(atLeast(pg.version, [8, 16, 3]), pg.version).toBe(true)

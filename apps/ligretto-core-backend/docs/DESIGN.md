@@ -198,8 +198,8 @@ connects only through Hyperdrive. The SPA stays on `ligretto.app` and the public
 one site under the cookie transport. The internal app answers on `core-internal.ligretto.app`, since the gameplay
 backend is not a Worker and cannot use a service binding; the shared secret is what protects it on either path. The
 sweep runs hourly from a Workers cron trigger (`scheduled` in `entry/worker.ts`); `entry/sweep.ts` remains for any
-other runtime. `README.md` holds the operational notes and the created resources. The Node image (`.docker/Ligretto-core-backend_Dockerfile`) keeps
-being built in CI as the packaging of the Node entry: it compiles the package with `tsc -p tsconfig.build.json` and
+other runtime. `README.md` holds the operational notes and the created resources. The Node image
+(`.docker/Ligretto-core-backend_Dockerfile`) keeps being built in CI as the packaging of the Node entry: it compiles the package with `tsc -p tsconfig.build.json` and
 runs `node build/src/entry/node.js`; migrate and sweep run from the same image with their entry as the argument
 (`build/src/entry/migrate.js`, `build/src/entry/sweep.js`, `adrs/node-build-and-import-specifiers.md`).
 

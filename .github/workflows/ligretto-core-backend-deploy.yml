@@ -1,14 +1,14 @@
 name: 'Ligretto core backend release'
 
 # ligretto-core-backend is one Cloudflare Worker on core.ligretto.app and core-internal.ligretto.app, with its database
-# on Neon behind two Hyperdrive configurations (apps/ligretto-core-backend/README.md). The order is the point
+# on Neon behind two Hyperdrive configurations (apps/ligretto-core-backend/README.md). The steps run in this order
 # (apps/ligretto-core-backend/docs/adrs/production-deployment-on-workers.md):
 #   1. build-worker runs with no secrets, so a failed build reaches neither the approval nor the schema;
 #   2. the release job, behind the approval of Ligretto-production, checks the built Worker: a cached Hyperdrive
 #      configuration or a missing Worker secret stops the release with the schema untouched;
 #   3. the migrations run over the direct connection, never through Hyperdrive or from the Worker;
-#   4. the upload runs only after they succeed. It is what attaches the domains and the cron, so the first release is
-#      also the activation.
+#   4. the upload runs only after they succeed. It attaches the domains and the cron, so the first release is also
+#      the activation.
 
 on:
   workflow_dispatch:
@@ -39,7 +39,7 @@ jobs:
       - name: Prepare Node.js
         uses: ./.github/actions/prepare-nodejs
 
-      # The production mode of cloudflare.config.ts, into .cloudflare/output, which the release uploads as it is.
+      # The production mode of cloudflare.config.ts, into .cloudflare/output, which the release uploads unchanged.
       - name: Build the Worker
         run: pnpm run --filter @memebattle/ligretto-core-backend build:worker
 

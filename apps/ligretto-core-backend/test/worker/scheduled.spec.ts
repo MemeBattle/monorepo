@@ -1,7 +1,7 @@
-// The cron handler under workerd. Like the rest of this suite it proves the wiring, not behaviour, which
-// src/core/sweep.spec.ts and the store suite cover: the sweep use case reaches both Hyperdrive bindings inside a request
-// scope. It needs a session past the cookie grace, because only deleting a session opens `HYPERDRIVE_LOCKS`. That a scope
-// closes its clients is src/entry/request-scope.spec.ts's to prove.
+// The cron handler under workerd: the sweep use case reaches both Hyperdrive bindings inside a request scope. Like the
+// rest of this suite it proves the wiring. src/core/sweep.spec.ts and the store suite cover behaviour, and
+// src/entry/request-scope.spec.ts covers closing the clients. The case needs a session past the cookie grace, because
+// only deleting a session opens `HYPERDRIVE_LOCKS`.
 import { SESSION_COOKIE_GRACE_MS } from '@memebattle/ligretto-auth'
 import type { Session, SessionStore } from '@memebattle/ligretto-auth'
 import { env, exports } from 'cloudflare:workers'
@@ -54,7 +54,7 @@ describe('the scheduled handler', () => {
 
     await expect(worker.scheduled({ cron: '7 * * * *' })).resolves.toBeUndefined()
 
-    // A failed lock does not reject: the sweep logs the session and leaves it, so the row is what tells.
+    // A failed lock does not reject: the sweep logs the session and leaves it, so the assertion is on the row.
     expect(await withStore(store => store.getSession(session.id))).toBeUndefined()
   })
 })
