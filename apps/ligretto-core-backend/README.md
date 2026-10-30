@@ -60,8 +60,16 @@ Every prerequisite below ends with a real value, never a placeholder, so a secre
 finished prerequisite. `scripts/check-release.sh` stops a release before the schema until all of them are done, so
 merging early is safe.
 
-1. Add `CLOUDFLARE_API_TOKEN` to the `Ligretto-production` environment. Beyond the deployment scopes it needs Hyperdrive
-   read, Workers read and the `ligretto.app` zone.
+1. Add `CLOUDFLARE_API_TOKEN` to the `Ligretto-production` environment: an account-owned token (Manage Account → Account
+   API Tokens) with exactly these permissions and nothing else. The legacy `Workers Scripts` permissions are replaced by
+   the Workers roles; the workflow sets `CLOUDFLARE_ACCOUNT_ID`, so `cf` skips the account lookup that needed
+   `Memberships Read` and `User Details Read`, and `Editor` already includes what `Workers Tail Read` granted.
+   - **Account → Workers → Editor** at the Workers product scope: uploads versions, deploys, reads secrets and schedules.
+     `Editor` cannot create a Worker, which is why item 4 creates it by hand. Per-Worker scope does not carry Custom
+     Domains yet.
+   - **Account → Hyperdrive → Read**: `scripts/check-release.sh` reads both configurations; Workers roles do not extend
+     to Hyperdrive.
+   - **Zone → Workers Routes → Edit**, scoped to `ligretto.app` only: every deploy computes the Custom Domains changeset.
 2. Register the CAS client. Here `DATABASE_URL` is CAS's own database, the `CAS_DATABASE_URL` secret of `CAS-production`.
    The command prints the client secret once.
 
