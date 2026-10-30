@@ -155,7 +155,7 @@ Two values are accepted during a rotation, so there is no window without a valid
 1. Add the new value to the Worker, beside the current one:
 
    ```sh
-   pnpm exec cf workers secrets update LIGRETTO_INTERNAL_API_TOKEN --worker ligretto-core-backend --text "$active,$next"
+   pnpm exec cf workers secrets update LIGRETTO_INTERNAL_API_TOKEN --worker ligretto-core-backend --type secret_text --text "$active,$next"
    ```
 
 2. Switch the gameplay backend. Generate a new spare for the second key, then restart:
@@ -171,16 +171,36 @@ Two values are accepted during a rotation, so there is no window without a valid
 3. Remove the old value from the Worker:
 
    ```sh
-   pnpm exec cf workers secrets update LIGRETTO_INTERNAL_API_TOKEN --worker ligretto-core-backend --text "$next"
+   pnpm exec cf workers secrets update LIGRETTO_INTERNAL_API_TOKEN --worker ligretto-core-backend --type secret_text --text "$next"
    ```
 
 A value must not contain a comma: the list is comma-separated.
 
-## Rotating the CAS client secret
+## Replacing the CAS client
 
-CAS has no rotate command. Register a new client id with `cas-client register` as in the first activation, set
-`LIGRETTO_CAS_CLIENT_ID` in `cloudflare.config.ts` and the new secret on the Worker in the same change, and release it.
-A sign-in in progress during the switch fails and the user starts it again.
+CAS has no rotation, so a lost or leaked client secret means registering a new client id
+(`apps/cas/docs/INTEGRATION.md`). This is a client migration, not maintenance. CAS refuses a refresh token issued to
+another client, so every existing session ends at its next refresh. Registered users sign in again, and a guest gets a
+new subject and loses the previous identity. A sign-in in progress fails. CAS has no deletion either, so the old id stays
+registered and its secret stays valid.
+
+The id and the secret must reach the Worker in one version: either one alone makes CAS refuse the Worker's calls. So do
+not use `cf workers secrets update` here. It takes effect at once, and the id arrives only with an upload.
+
+1. Register the new id with `cas-client register` as in the first activation, with the same `--audience ligretto`, which
+   is what the service verifies access tokens against. Keep the printed secret in the password manager, and write it as
+   the JSON object `{ "LIGRETTO_CAS_CLIENT_SECRET": "<value>" }` to a `0600` file outside the repository.
+2. Merge the new `LIGRETTO_CAS_CLIENT_ID` in `cloudflare.config.ts` as the only change since the last release. Do not
+   approve the release it starts: that upload alone would pair the new id with the old secret.
+3. From a clean checkout of that commit, upload both together. The Worker's other secrets are inherited.
+
+   ```sh
+   pnpm build:worker
+   pnpm exec cf deploy --prebuilt --mode production --secrets-file "$secrets_file"
+   rm "$secrets_file"
+   ```
+
+4. Approve the waiting release. It uploads the same Worker and inherits the new secret.
 
 ## Running a migration by hand
 
