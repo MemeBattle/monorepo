@@ -6,12 +6,13 @@
  *   - package.json           devEngines.runtime.version <major>.<minor>.<patch>
  *   - package.json           engines.node ">=<major>.<minor>"
  *   - .docker/*_Dockerfile   FROM node:<major>.<minor>-trixie-slim
- *   - pnpm-workspace.yaml    catalog['@types/node'], kept on the same major
+ *   - pnpm-workspace.yaml    catalog['@types/node'], kept on the same major and
+ *                            old enough for minimumReleaseAge
  *
  * Usage:
  *   node .scripts/update-node-version.mjs                # latest LTS of the current major
  *   node .scripts/update-node-version.mjs --latest-lts   # latest LTS of any major
- *   node .scripts/update-node-version.mjs --version 24.18.0
+ *   node .scripts/update-node-version.mjs --version 26.13.0
  *   node .scripts/update-node-version.mjs --no-types     # leave @types/node alone
  *   node .scripts/update-node-version.mjs --check        # report only, exit 1 when outdated
  *
@@ -41,6 +42,7 @@ const DEV_ENGINES_RE = /("runtime"\s*:\s*\{[^}]*?"version"\s*:\s*")(\d+\.\d+\.\d
 const ENGINES_RE = /("node"\s*:\s*">=)(\d+\.\d+(?:\.\d+)?)(")/
 const DOCKER_FROM_RE = /^(FROM node:)(\d+\.\d+(?:\.\d+)?)(-)/gm
 const TYPES_NODE_RE = /^(\s*'@types\/node':\s*)(\d+\.\d+\.\d+)$/m
+const MINIMUM_RELEASE_AGE_RE = /^minimumReleaseAge:\s*(\d+)$/m
 
 const CLI_OPTIONS = {
   check: { type: 'boolean', default: false },
@@ -100,15 +102,25 @@ async function resolveNodeVersion({ major, latestLts }) {
   return target.version.replace(/^v/, '')
 }
 
+/** Reads minimumReleaseAge, in minutes, so a release pnpm would refuse is never picked. */
+async function readMinimumReleaseAge() {
+  const match = (await readFile(PNPM_WORKSPACE, 'utf8')).match(MINIMUM_RELEASE_AGE_RE)
+
+  return match ? Number(match[1]) : 0
+}
+
 /**
- * Resolves the newest @types/node on `major`. The package follows the Node.js major
- * but not its minors, so the two versions are never expected to match exactly.
+ * Resolves the newest @types/node on `major` that minimumReleaseAge lets through. The package
+ * follows the Node.js major but not its minors, so the two versions are never expected to match
+ * exactly. The current pin always qualifies: it may be there through minimumReleaseAgeExclude.
  */
 async function resolveTypesVersion(major, current) {
-  // The abbreviated metadata is orders of magnitude smaller than the full document.
-  const metadata = await fetchJson(TYPES_NODE_REGISTRY, { accept: 'application/vnd.npm.install-v1+json' })
+  const cutoff = Date.now() - (await readMinimumReleaseAge()) * 60_000
+  // Only the full document carries publish times, the abbreviated metadata has none.
+  const metadata = await fetchJson(TYPES_NODE_REGISTRY)
   const candidates = Object.keys(metadata.versions)
     .filter(version => new RegExp(`^${major}\\.\\d+\\.\\d+$`).test(version))
+    .filter(version => version === current || Date.parse(metadata.time[version]) <= cutoff)
     .sort((a, b) => {
       const left = a.split('.').map(Number)
       const right = b.split('.').map(Number)
@@ -117,7 +129,7 @@ async function resolveTypesVersion(major, current) {
     })
 
   if (candidates.length === 0) {
-    console.warn(`No @types/node released for Node.js ${major} yet, keeping ${current}`)
+    console.warn(`No @types/node old enough for Node.js ${major} yet, keeping ${current}`)
 
     return current
   }
