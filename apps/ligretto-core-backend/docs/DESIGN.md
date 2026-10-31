@@ -194,7 +194,7 @@ The session cookie is first-party and production allows no CORS origin. The inte
 secret is what protects it on either path. This Worker has no assets, so no hostname of it serves the SPA.
 
 `.github/workflows/ligretto-release.yml` releases both Workers: it builds them with no secrets, then, behind one
-approval of `Ligretto-production`, refuses a run a newer one supersedes, checks the built Worker with
+approval of `Ligretto-production` and one release at a time, checks the built Worker with
 `scripts/check-release.sh` and that the frontend Worker exists, applies the migrations with `entry/migrate.ts` against
 the production `DATABASE_URL` (an Actions secret of the release environment), uploads this Worker with
 `cf deploy --prebuilt`, then the frontend, then the SPA's source maps to Sentry. The first release is the activation:

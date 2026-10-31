@@ -182,20 +182,18 @@ A push to `master` that touches this package, `apps/ligretto-frontend`, the work
 from, the root `.env*` files, the lockfile, the workspace file or the workflow starts `.github/workflows/ligretto-release.yml`.
 It can also be started by hand.
 
-1. `cancel-stale` cancels every older run of the workflow on the same branch that is still waiting for the approval or
-   queued. A run in progress is never touched, and a run started by hand on another branch never touches a `master` run.
-2. `build-core` and `build-frontend` build in parallel with no secrets: `pnpm build:worker` of each package, into its own
+1. `build-core` and `build-frontend` build in parallel with no secrets: `pnpm build:worker` of each package, into its own
    Build Output. The SPA's non-secret values come from the root `.env.production`. A failed build stops everything.
-3. The `release` job waits for the approval of `Ligretto-production`, one approval for both Workers.
-4. It fails with `superseded by run <id>` when a newer run of the same branch that is not cancelled exists: a run still
-   building when the newer one started escapes the cancellation. A failed run listing fails the step too.
-5. `scripts/check-release.sh` reads the built core Worker: both Hyperdrive configurations are cache-disabled and every
+2. The `release` job waits for the approval of `Ligretto-production`, one approval for both Workers. `concurrency` on
+   the job lets one release run at a time and never cancels a running one; runs waiting for the approval stay until
+   approved, rejected or failed by GitHub after 30 days, so approve the newest run.
+3. `scripts/check-release.sh` reads the built core Worker: both Hyperdrive configurations are cache-disabled and every
    declared secret is set. Then `cf workers get ligretto-frontend` checks that the frontend Worker exists. A failure
    leaves the schema alone.
-6. `pnpm migrate` applies the migrations over the direct `DATABASE_URL`. A failure stops the uploads.
-7. `cf deploy --prebuilt --mode production` uploads the core and attaches its routes, the Custom Domain and the cron.
-8. The same command uploads the frontend last, so a new SPA never meets an old API, and attaches its route.
-9. `sentry-cli` uploads the SPA's source maps from the frontend artefact, under the release `LIGRETTO_APP_VERSION`, and
+4. `pnpm migrate` applies the migrations over the direct `DATABASE_URL`. A failure stops the uploads.
+5. `cf deploy --prebuilt --mode production` uploads the core and attaches its routes, the Custom Domain and the cron.
+6. The same command uploads the frontend last, so a new SPA never meets an old API, and attaches its route.
+7. `sentry-cli` uploads the SPA's source maps from the frontend artefact, under the release `LIGRETTO_APP_VERSION`, and
    finalizes that release.
 
 The upload to Sentry needs `SENTRY_AUTH_TOKEN`, so it cannot run in the builds, which have no secrets. It runs last, from

@@ -60,19 +60,18 @@ group, so two runs of one release can wait for the approval at once.
   hand, as the Custom Domain's record is removed and created by hand. Letting the deploy replace the record lost because
   Cloudflare refuses it (`100117`).
 - **One release for the product.** `.github/workflows/ligretto-release.yml` builds both Workers in parallel with no secrets,
-  then one job behind one approval runs, each step stopping the next: the supersede check, the check of the built core
+  then one job behind one approval runs, each step stopping the next: the check of the built core
   Worker, the check that the frontend Worker exists, the migrations, the core's upload, the frontend's upload, the source
   maps. A failed build reaches neither the approval nor the schema. A failed check leaves the schema alone. A failed
   migration stops the uploads. The check reads the built artefact, not the source, so it cannot check something other than
   what ships. The frontend goes last, so a new SPA never meets an old API. The frontend Worker is checked before the
   migrations, so a missing one cannot fail the release after the core has attached its routes. `LIGRETTO_APP_VERSION` is
   the run id, one version for both Workers.
-- **Stale runs never release.** The first job of the workflow cancels every older run that is `waiting` or `queued`, never
-  one that is in progress. The release job then fails with `superseded by run <id>` when a newer run that is not cancelled
-  exists, before the migrations; that catches a run that was still building when the newer one started. Run numbers order
-  the runs, because they increase per workflow. Both look only at runs of the run's own branch, so a run started by hand
-  on another branch neither cancels nor supersedes a `master` release. Both fail when the run listing fails: a check that
-  read a failed listing as "no newer run" would let an older commit release.
+- **One release at a time, through `concurrency` alone.** The release job's `concurrency` group runs one release at a
+  time and never cancels a running one, which may be halfway through its migrations. Runs waiting for the approval stay
+  until approved, rejected or failed by GitHub after 30 days, so the owner approves the newest run. Cancelling older
+  waiting runs with `gh run cancel` lost because the owner prefers approving the right run to a job that lists and cancels
+  runs.
 - **The source map upload runs in the release job, after the uploads, from the frontend artefact.** It needs
   `SENTRY_AUTH_TOKEN`, so it cannot run in the build, and "build with no secrets" holds. It may fail without failing the
   release. The maps carry no debug ID, so it matches by release and URL prefix. Injecting debug IDs afterwards lost because

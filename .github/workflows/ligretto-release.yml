@@ -25,33 +25,6 @@ permissions:
   contents: read
 
 jobs:
-  # Approval is asked for before a job enters its concurrency group, so `concurrency` alone leaves older runs waiting.
-  cancel-stale:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-
-    permissions:
-      actions: write
-
-    steps:
-      # The listing is captured first so that a failed `gh run list` fails the step instead of cancelling nothing.
-      - name: Cancel older waiting and queued runs
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          RUN_NUMBER: ${{ github.run_number }}
-        run: |
-          for status in waiting queued; do
-            runs=$(gh run list --workflow ligretto-release.yml --branch "$GITHUB_REF_NAME" --status "$status" --limit 100 \
-              --json databaseId,number)
-            jq -r --argjson current "$RUN_NUMBER" '.[] | select(.number < $current) | .databaseId' <<< "$runs" \
-              | while read -r id; do
-                  echo "Cancelling run $id ($status)"
-                  gh run cancel "$id" || echo "::warning::could not cancel run $id"
-                done
-          done
-
   build-core:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -105,7 +78,6 @@ jobs:
 
     permissions:
       contents: read
-      actions: read
 
     environment:
       name: Ligretto-production
@@ -116,23 +88,6 @@ jobs:
       cancel-in-progress: false
 
     steps:
-      # A run still building when a newer one started escapes cancel-stale.
-      - name: Check this run is the newest
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          RUN_NUMBER: ${{ github.run_number }}
-        run: |
-          runs=$(gh run list --workflow ligretto-release.yml --branch "$GITHUB_REF_NAME" --limit 100 \
-            --json databaseId,number,conclusion)
-          newer=$(jq -r --argjson current "$RUN_NUMBER" \
-            '[.[] | select(.number > $current and .conclusion != "cancelled")] | first | .databaseId // empty' <<< "$runs")
-          if [ -n "$newer" ]; then
-            echo "::error::superseded by run $newer"
-            exit 1
-          fi
-
       - name: Checkout
         uses: actions/checkout@v7
 
