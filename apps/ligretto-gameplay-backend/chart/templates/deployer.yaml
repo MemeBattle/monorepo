@@ -1,3 +1,0 @@
-{{- if .Values.deployer.enabled }}
-{{ include "common.deployer" . }}
-{{- end }}

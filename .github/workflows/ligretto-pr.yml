@@ -1,5 +1,8 @@
 name: 'Ligretto pull request'
 
+# The product as a whole. A package's own checks run in its own workflow: ligretto-frontend-pr.yml,
+# ligretto-core-backend-pr.yml, ligretto-gameplay-backend-pr.yml, ligretto-auth-pr.yml and ligretto-core-client-pr.yml.
+
 on:
   pull_request:
     branches: [master]
@@ -9,99 +12,37 @@ on:
       - 'packages/ligretto-core-client/**'
       - 'packages/ligretto-shared/**'
       - 'packages/ui/**'
-      - '.docker/Ligretto-**'
+      - 'packages/analytics/**'
       - .github/workflows/ligretto-pr.yml
       - '.env*'
       - 'pnpm-lock.yaml'
       - package.json
       - pnpm-workspace.yaml
 
-env:
-  NODE_OPTIONS: --max-old-space-size=4096
+# A new push makes the run for the previous one obsolete.
+concurrency:
+  group: ligretto-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
-  tests:
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - uses: ./.github/actions/prepare-nodejs
-        name: Prepare Node.js
-
-      - name: Build shared
-        run: pnpm ligretto-shared:build
-
-      - name: Run tests
-        run: pnpm ligretto:test:ci
-
-  typecheck:
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - uses: ./.github/actions/prepare-nodejs
-        name: Prepare Node.js
-
-      - name: TS check
-        run: pnpm ligretto:ts-check:ci
-
-  # Same Dockerfiles the release workflow pushes, built without pushing: the image build runs
-  # `pnpm install` and the production app build, neither of which the other PR jobs cover.
-  core-backend-image:
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-        with:
-          driver-opts: env.BUILDKIT_STEP_LOG_MAX_SIZE=10485760
-
-      - name: Build
-        uses: docker/build-push-action@v7
-        with:
-          push: false
-          context: '.'
-          file: '.docker/Ligretto-core-backend_Dockerfile'
-          cache-from: |
-            type=gha,scope=ligretto-core-backend-pr
-            type=gha,scope=${{ github.base_ref }}-ligretto-core-backend
-          cache-to: type=gha,mode=max,scope=ligretto-core-backend-pr
-
-  gameplay-backend-image:
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-        with:
-          driver-opts: env.BUILDKIT_STEP_LOG_MAX_SIZE=10485760
-
-      - name: Build
-        uses: docker/build-push-action@v7
-        with:
-          push: false
-          context: '.'
-          file: '.docker/Ligretto-gameplay-backend_Dockerfile'
-          cache-from: |
-            type=gha,scope=ligretto-gameplay-backend-pr
-            type=gha,scope=${{ github.base_ref }}-ligretto-gameplay-backend
-          cache-to: type=gha,mode=max,scope=ligretto-gameplay-backend-pr
-
-  # The full local SSO stack: CAS built from source, the core backend, the gameplay backend and the frontend on
-  # :5174, the origin CAS has registered for the `ligretto` client. It is the only job that runs the guest sign-in
-  # end to end: the gameplay backend verifies CAS tokens, so no stub can stand in for CAS.
+  # The guest sign-in end to end: the core's Postgres, the core backend on :3333, the gameplay backend, the frontend
+  # on :5174 and Playwright, against the production CAS (https://cas.mems.fun). Nothing of CAS is built here. The
+  # browser follows the redirects to CAS and back through the confidential client `ligretto-ci`, registered with the
+  # redirect http://localhost:3333/api/auth/callback, the post-logout http://localhost:5174/ and the audience
+  # `ligretto`, so the core and the gameplay backend accept its tokens; the guest grant needs no passkey. The gameplay
+  # backend verifies CAS tokens, so no stub can stand in for CAS.
+  # Two costs: every run leaves a few guest accounts in the production CAS until CAS has a guest GC (an open question
+  # of apps/cas/docs/PLAN.md), and the check fails while the production CAS is down, as the nightly Ligretto
+  # schedule-E2E already does.
   e2e:
     env:
+      # The core backend reads it for its migrations and its start, from the job's Postgres below.
+      DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5433/ligretto-core
+      # The root .env.development points at the local CAS; the core and the gameplay backend both read this one.
+      CAS_ISSUER: https://cas.mems.fun
       # A CI-only value, read by the core backend and by the gameplay backend over the public-by-construction one of
       # the .env files, which proves the shell wins over the files for both.
       LIGRETTO_INTERNAL_API_TOKEN: e2e-internal-api-token
@@ -126,26 +67,10 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      cas-postgres:
-        image: postgres:18
-        env:
-          POSTGRES_USER: cas
-          POSTGRES_PASSWORD: cas
-          POSTGRES_DB: cas
-        ports:
-          - 5434:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     runs-on: ubuntu-24.04
-    # CAS compiles from source.
-    timeout-minutes: 30
+    timeout-minutes: 15
 
-    # DATABASE_URL is set per step, never for the job: CAS and the core backend both read that name, each for its
-    # own database.
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -153,48 +78,17 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Build CAS
-        env:
-          SQLX_OFFLINE: 'true'
-        run: cargo build -p cas --bins
-
-      - name: Migrate CAS
-        env:
-          SQLX_OFFLINE: 'true'
-          DATABASE_URL: postgres://cas:cas@localhost:5434/cas
-        run: cargo run -p cas --bin cas-migrate
-
-      # Reads the client secret and the callback port from the .env files the core backend reads, in the same order.
-      - name: Register the ligretto client
-        working-directory: apps/cas
-        env:
-          SQLX_OFFLINE: 'true'
-          DATABASE_URL: postgres://cas:cas@localhost:5434/cas
-        run: scripts/seed-dev.sh
-
-      - name: Start CAS
-        env:
-          SQLX_OFFLINE: 'true'
-          DATABASE_URL: postgres://cas:cas@localhost:5434/cas
-        run: cargo run -p cas --bin cas > /tmp/cas.log 2>&1 &
-
-      - name: Check CAS
-        run: pnpm dlx wait-on --timeout 60000 http-get://127.0.0.1:3000/health
-
       - name: Install Playwright Browsers
         run: pnpm --filter=@memebattle/ligretto-frontend exec playwright install --with-deps chromium
 
       - name: Migrate database
-        env:
-          DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5433/ligretto-core
         run: pnpm ligretto:core-backend:migrate
 
+      # The CAS client of this job, on this step alone.
       - name: Start core backend
         env:
-          DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5433/ligretto-core
+          LIGRETTO_CAS_CLIENT_ID: ligretto-ci
+          LIGRETTO_CAS_CLIENT_SECRET: ${{ secrets.LIGRETTO_CI_CAS_CLIENT_SECRET }}
         run: pnpm ligretto:core-backend:start:dev > /tmp/core-backend.log 2>&1 &
 
       - name: Check core backend app
@@ -203,7 +97,7 @@ jobs:
       - name: Start gameplay backend
         run: pnpm ligretto:gameplay-backend:start:dev > /tmp/gameplay-backend.log 2>&1 &
 
-      # No `--` before the flags: with one, Vite drops them and binds 5173 (apps/cas/scripts/seed-dev.sh).
+      # No `--` before the flags: with one, Vite drops them and binds 5173.
       - name: Start frontend
         run: pnpm --filter @memebattle/ligretto-frontend start:dev --port 5174 --strictPort > /tmp/frontend.log 2>&1 &
 
@@ -220,7 +114,6 @@ jobs:
           path: |
             apps/ligretto-frontend/playwright-report/
             apps/ligretto-frontend/test-results/
-            /tmp/cas.log
             /tmp/core-backend.log
             /tmp/gameplay-backend.log
             /tmp/frontend.log

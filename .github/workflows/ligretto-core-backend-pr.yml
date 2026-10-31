@@ -7,12 +7,6 @@ on:
       - 'apps/ligretto-core-backend/**'
       # The public document and the auth routes are built from this package's schemas and route fragments.
       - 'packages/ligretto-auth/**'
-      # worker-smoke builds the SPA into the Worker.
-      - 'apps/ligretto-frontend/**'
-      - 'packages/analytics/**'
-      - 'packages/ligretto-core-client/**'
-      - 'packages/ligretto-shared/**'
-      - 'packages/ui/**'
       - .github/workflows/ligretto-core-backend-pr.yml
       - 'pnpm-lock.yaml'
       - package.json
@@ -43,6 +37,20 @@ jobs:
       # apps/ligretto-core-backend/oxlint.config.ts.
       - name: Lint
         run: pnpm run --filter @memebattle/ligretto-core-backend lint
+
+  # The Node program, the Worker program and the Node build (tsconfig.json, tsconfig.worker.json, tsconfig.build.json).
+  ts-check:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: TS check
+        run: pnpm run --filter @memebattle/ligretto-core-backend ts-check
 
   tests:
     runs-on: ubuntu-24.04
@@ -340,7 +348,7 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
-      # The SPA and the production bundle build into one Build Output, the same way a release builds them.
+      # The production bundle builds from cloudflare.config.ts, the same way a release builds it.
       - name: Build the Worker
         run: pnpm run --filter @memebattle/ligretto-core-backend build:worker
 
@@ -351,7 +359,6 @@ jobs:
       # The same entry under workerd, through @cloudflare/vitest-plugin: /health on both hostnames and through the
       # InternalApi service binding, each with its database check over the emulated Hyperdrive bindings, an unknown
       # route, the internal token from .dev.vars: refused when missing or wrong, accepted when it is the configured
-      # one, the public API's guards, /openapi.json equal to the committed document, the cron handler, and the assets
-      # dispatch over the SPA of the Build Output above: the SPA on the public host, never on the internal one.
+      # one, the public API's guards, /openapi.json equal to the committed document, and the cron handler.
       - name: Run the Worker smoke suite
         run: pnpm run --filter @memebattle/ligretto-core-backend test:worker
