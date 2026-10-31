@@ -17,6 +17,6 @@
   },
   "include": ["src", "migrations"],
   // The specs and the Worker files are not part of a Node process; codegen.ts and openapi.ts are development tools
-  // whose imports (kysely-codegen) are devDependencies, absent from the image.
+  // whose imports (kysely-codegen) are devDependencies, absent from `pnpm deploy --prod`.
   "exclude": ["src/**/*.spec.ts", "src/entry/worker.ts", "src/entry/worker-node-compat.d.ts", "src/entry/codegen.ts", "src/entry/openapi.ts"]
 }

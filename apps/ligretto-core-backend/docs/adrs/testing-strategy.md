@@ -41,12 +41,15 @@ two independent connections for a single request (`session-store-locking.md`), a
 - **Entries**: each runtime entry has a vitest smoke suite. `pnpm test:node` (`test/node`) boots `entry/node.ts` as
   a child process on a free port with the development `.env` files and asserts over `fetch`; `pnpm test:worker`
   (`test/worker`) runs the Worker under `workerd` (`@cloudflare/vitest-plugin`, reading `cloudflare.config.ts`),
-  with Hyperdrive connection strings pointing at the job's Postgres. The assets binding is the exception: it
-  does not reach the pool, so `vitest.worker.config.ts` declares it on the SPA of the Build Output. `pnpm test:node`
-  needs only the Postgres its `/health` probes. `pnpm test:worker` needs that Postgres migrated, because the cron
-  handler reads the tables, and a Build Output from `pnpm build:worker`, without which the config stops with an error.
-  Both stay out of `pnpm test`. CI workflows run these scripts and never assert over HTTP themselves: a new route's smoke
+  with Hyperdrive connection strings pointing at the job's Postgres. `pnpm test:node` needs only the Postgres its
+  `/health` probes. `pnpm test:worker` needs that Postgres migrated, because the cron handler reads the tables. Both
+  stay out of `pnpm test`. CI workflows run these scripts and never assert over HTTP themselves: a new route's smoke
   check is a spec, not a workflow step. These are smoke tests of the wiring, not of behaviour.
+- **Product e2e**: the only job of `ligretto-pr.yml`. It runs this package from `start:dev` on the job's Postgres, the
+  gameplay backend, the frontend on `:5174` and Playwright, against the production CAS through the confidential client
+  `ligretto-ci`; nothing of CAS is built in CI. A package's own checks run in that package's workflow, triggered by the
+  package and the workspace packages it depends on, so a change confined to the frontend does not run this package's
+  suites. The cost is a dependency on the production CAS being up and guest accounts left there until CAS has a guest GC.
 - **Fixtures**: a seed helper inserts users through the same repository the service uses, never raw rows, so a
   schema change breaks the helper in one place.
 
@@ -80,3 +83,7 @@ seeds a session through the session store. `pnpm migrate` follows the package's 
 upd (2026-10-30): `pnpm test:worker` also needs the Build Output of `pnpm build:worker`, because the SPA specs read its
 assets and `vitest.worker.config.ts` declares the assets binding on them
 ([#865](https://github.com/MemeBattle/monorepo/issues/865)).
+
+upd (2026-10-31): the SPA is its own Worker, so `pnpm test:worker` needs no Build Output and the host invariant of the
+internal hostname is checked at activation; `ligretto-pr.yml` keeps only the product e2e, against the production CAS
+([#870](https://github.com/MemeBattle/monorepo/issues/870)).

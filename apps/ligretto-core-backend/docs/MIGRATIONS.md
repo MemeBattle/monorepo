@@ -29,15 +29,14 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 CONCURRENTLY`, no `ALTER TYPE … ADD VALUE`. The tables are small enough for a plain `CREATE INDEX`.
 - Additive, one release ahead of the code that uses it (`adrs/additive-migrations-and-compatibility-matrix.md`).
 - Bare package specifiers and erasable TypeScript only (no `enum`, no parameter properties): the file is loaded
-  by `tsx` in the entry, by Node's own type stripping in the PGlite tests, and compiled by the Node build for the
-  image.
+  by `tsx` in the entry, by Node's own type stripping in the PGlite tests, and compiled by the Node build.
 
 ## Applying them
 
 `pnpm migrate` runs `src/entry/migrate.ts` through `tsx`. Running through `tsx` is what lets Kysely's
 `FileMigrationProvider` import the TypeScript sources. The Node build (`pnpm build`) compiles the migrations to
-`build/migrations` next to the compiled entry, and the image applies them with
-`docker run <image> build/src/entry/migrate.js` (`adrs/node-build-and-import-specifiers.md`). Kysely records a
+`build/migrations` next to the compiled entry, which applies them with `node build/src/entry/migrate.js`
+(`adrs/node-build-and-import-specifiers.md`). Kysely records a
 migration under its name without the extension, so both runs agree on what is applied.
 
 The entry needs `DATABASE_URL` and, optionally, `LOG_LEVEL`. `src/entry/env.ts` resolves them from, in order:

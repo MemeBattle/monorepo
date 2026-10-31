@@ -6,13 +6,18 @@ holds the operational notes for production. `AGENTS.md` lists the design documen
 
 ## What runs where
 
-- **Public app and SPA:** `https://ligretto.app`, one origin served by this Worker. `/api/*`, `/health` and `/openapi.json`
-  run the public app. Every other `GET` or `HEAD` answers the `ligretto-frontend` SPA from the Worker's static assets, with
-  the SPA fallback for deep links. The cookie transport is first-party, and production allows no CORS origin.
-- **Internal app:** `https://core-internal.ligretto.app`, the `/internal` routes the gameplay backend calls with the
-  shared secret. This hostname never serves an asset, whatever the path. Any other hostname, `workers.dev` included, is
-  refused.
-- **Sweep:** the Worker's `scheduled` handler, on a cron trigger.
+Ligretto is separate Workers sharing `ligretto.app` through Workers Routes; the most specific pattern wins.
+
+- **Public app:** this Worker, on the routes `ligretto.app/api*`, `ligretto.app/health` and `ligretto.app/openapi.json`.
+  The cookie transport is first-party, and production allows no CORS origin.
+- **SPA:** the `ligretto-frontend` Worker on `ligretto.app/*`, an assets-only Worker with the SPA fallback for deep links
+  (`apps/ligretto-frontend/cloudflare.config.ts`). Its requests never run Worker code.
+- **Internal app:** `https://core-internal.ligretto.app`, this Worker's Custom Domain: the `/internal` routes the gameplay
+  backend calls with the shared secret. This Worker has no assets, so the hostname never serves the SPA. Any other
+  hostname, `workers.dev` included, is refused.
+- **Gameplay:** `ligretto.app/gameplay/*` is reserved for the gameplay Worker. Until it is one, the gameplay backend stays
+  on Kubernetes at `api.ligretto.app`, and no workflow deploys it.
+- **Sweep:** this Worker's `scheduled` handler, on a cron trigger.
 - **Database:** Neon, reached at runtime only through two cache-disabled Hyperdrive configurations. Migrations run from
   the release job over the direct connection.
 
@@ -21,15 +26,18 @@ holds the operational notes for production. `AGENTS.md` lists the design documen
 | Resource                      | Name or value                                                                                                                                                |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Cloudflare account            | `2155fed9f68a1bc94fab7d9e5bb6eaac`                                                                                                                           |
-| Worker                        | `ligretto-core-backend` (not created yet)                                                                                                                    |
+| Workers                       | `ligretto-core-backend`, `ligretto-frontend` (not created yet)                                                                                               |
 | Zone                          | `ligretto.app` (`3e680b95d1452e8426479e3ec52e3df8`)                                                                                                          |
-| Hostnames                     | `ligretto.app`, `core-internal.ligretto.app`                                                                                                                 |
+| Routes                        | `ligretto.app/api*`, `ligretto.app/health`, `ligretto.app/openapi.json` → `ligretto-core-backend`; `ligretto.app/*` → `ligretto-frontend`                    |
+| Custom Domain                 | `core-internal.ligretto.app` → `ligretto-core-backend`                                                                                                       |
+| DNS                           | `A ligretto.app → 192.0.2.1`, proxied, a placeholder created by hand; `A api.ligretto.app` stays for the gameplay backend                                    |
 | Cron                          | `7 * * * *`                                                                                                                                                  |
 | Hyperdrive `HYPERDRIVE_MAIN`  | `ligretto-core-neon-main`, `1ce28ac44ae848aea317d36c3dc828c5`, `origin_connection_limit` 15                                                                  |
 | Hyperdrive `HYPERDRIVE_LOCKS` | `ligretto-core-neon-locks`, `fa5cbf397388476086cddacaca0bc77a`, `origin_connection_limit` 10                                                                 |
-| Worker secrets                | `DATABASE_URL`, `LIGRETTO_INTERNAL_API_TOKEN`, `LIGRETTO_CAS_CLIENT_SECRET`                                                                                  |
+| CAS clients                   | `ligretto` for production; `ligretto-ci` for the e2e job of `ligretto-pr.yml`, redirect `http://localhost:3333/api/auth/callback`                            |
+| Worker secrets                | `DATABASE_URL`, `LIGRETTO_INTERNAL_API_TOKEN`, `LIGRETTO_CAS_CLIENT_SECRET`, all on `ligretto-core-backend`                                                  |
 | `Ligretto-production` secrets | `DATABASE_URL`, `CLOUDFLARE_API_TOKEN`                                                                                                                       |
-| Repository secret             | `SENTRY_AUTH_TOKEN`, read by the source map upload of the `release` job alone                                                                                |
+| Repository secrets            | `SENTRY_AUTH_TOKEN`, read by the source map upload of the `release` job alone; `LIGRETTO_CI_CAS_CLIENT_SECRET`, read by the e2e job                          |
 | Kubernetes Secret             | `ligretto-gameplay-backend-internal-api` in namespace `ligretto-gameplay-backend`, keys `LIGRETTO_INTERNAL_API_TOKEN` and `LIGRETTO_INTERNAL_API_TOKEN_NEXT` |
 
 The Worker holds `DATABASE_URL` and reads it nowhere: the runtime connects only through Hyperdrive. Secret values live
@@ -58,21 +66,22 @@ pnpm exec cf hyperdrive update <id> --origin-connection-limit <limit>
 
 ## First activation
 
-The first release is the activation. Until it runs, no application version is live and no domain or cron is attached.
-Every prerequisite below ends with a real value, never a placeholder, so a secret present on the Worker stands for a
-finished prerequisite. `scripts/check-release.sh` stops a release before the schema until all of them are done, so
-merging early is safe.
+The first release is the activation. Until it runs, no application version is live and no route, domain or cron is
+attached. Every prerequisite below ends with a real value, never a placeholder, so a secret present on the Worker stands
+for a finished prerequisite. `scripts/check-release.sh` and the frontend Worker check stop a release before the schema
+until all of them are done, so merging early is safe.
 
 1. Add `CLOUDFLARE_API_TOKEN` to the `Ligretto-production` environment: an account-owned token (Manage Account → Account
    API Tokens) with exactly these permissions and nothing else. The legacy `Workers Scripts` permissions are replaced by
    the Workers roles; the workflow sets `CLOUDFLARE_ACCOUNT_ID`, so `cf` skips the account lookup that needed
    `Memberships Read` and `User Details Read`, and `Editor` already includes what `Workers Tail Read` granted.
-   - **Account → Workers → Editor** at the Workers product scope: uploads versions, deploys, reads secrets and schedules.
-     `Editor` cannot create a Worker, which is why item 4 creates it by hand. Per-Worker scope does not carry Custom
-     Domains yet.
+   - **Account → Workers → Editor** at the Workers product scope: uploads versions, deploys, reads Workers, secrets and
+     schedules. `Editor` cannot create a Worker, which is why items 4 and 5 create both by hand. Per-Worker scope does not
+     carry Custom Domains yet.
    - **Account → Hyperdrive → Read**: `scripts/check-release.sh` reads both configurations; Workers roles do not extend
      to Hyperdrive.
-   - **Zone → Workers Routes → Edit**, scoped to `ligretto.app` only: every deploy computes the Custom Domains changeset.
+   - **Zone → Workers Routes → Edit**, scoped to `ligretto.app` only: every deploy computes the changeset of its routes,
+     the four of the two Workers, and of the Custom Domain.
 2. Register the CAS client. Here `DATABASE_URL` is CAS's own database, the `CAS_DATABASE_URL` secret of `CAS-production`.
    The command prints the client secret once.
 
@@ -116,54 +125,73 @@ merging early is safe.
    cd ../.. && rm -rf .cloudflare/bootstrap "$secrets_file"
    ```
 
-5. Check the prerequisites. Exit 0 means the first release can go ahead.
+5. Create the inert `ligretto-frontend` Worker the same way, once, because the deploy token cannot create it. Run the
+   recipe of item 4 with `name: 'ligretto-frontend'` and without `--secrets-file`: this Worker has no secret. The same
+   warning holds: never after the first release.
+6. Check the prerequisites. Exit 0 from the last two commands means the first release can go ahead.
 
    ```sh
    pnpm build:worker
    pnpm exec scripts/check-release.sh
+   pnpm exec cf workers get ligretto-frontend > /dev/null
    ```
 
-6. Approve the `Ligretto core backend release` run first, and the gameplay deploy of `Ligretto release` only after the
-   checks of the next paragraph pass.
+7. Prepare the DNS while `ligretto.app` still points at the Yandex CDN. Delete the `_acme-challenge.ligretto.app` CNAME,
+   which can interfere with the validation, and check that the zone's Universal certificate covers `ligretto.app`.
+8. Approve the one `Ligretto release` run. It attaches the routes of both Workers and the Custom Domain while the
+   `ligretto.app` record is still DNS-only, so no request reaches them yet.
+9. Replace the Yandex `CNAME ligretto.app` with the proxied placeholder `A ligretto.app → 192.0.2.1`; from then on the
+   routes answer. Delete the `A core` record.
 
-After the first release, allow ten minutes for certificates, then check:
+No release touches DNS. A route needs a proxied record on its hostname, and Cloudflare refuses a Custom Domain over a
+hostname that has an externally managed record (error `100117`), so the records are changed by hand as above. The `api`
+record stays: it is the gameplay backend.
 
-- `/health` answers `200` on both hostnames. It proves nothing about the schema: it selects a constant.
+Then allow ten minutes for certificates, and check:
+
+- `/health` answers `200` on `ligretto.app` and on `core-internal.ligretto.app`. It proves nothing about the schema: it
+  selects a constant.
 - `POST https://core-internal.ligretto.app/internal/games` with no token answers `401 invalid_internal_token`.
-- `POST https://ligretto.app/internal/games` answers `404`.
+- `GET https://ligretto.app/internal/games` answers the SPA's `index.html`: the path is not routed to this Worker.
 - `GET https://ligretto.app/` and a deep link such as `GET https://ligretto.app/game/some-id` answer the SPA's `index.html`.
-- `GET https://core-internal.ligretto.app/` answers `404`, not the SPA.
+- `GET https://core-internal.ligretto.app/` answers `404` JSON, not the SPA. This invariant is Cloudflare configuration
+  now, so it is checked here and not by the Worker suite.
 - `GET https://ligretto.app/api/auth/sign-in` answers `302` to `cas.mems.fun`, or `200` with that URL. It writes to
   `auth_requests`, which proves the migrated schema through Hyperdrive.
-- `pnpm exec cf workers get ligretto-core-backend` lists both hostnames under `.references.domains`.
-- The first run in the Worker's Cron Events tab has no `sweep_failed`.
+- `GET https://ligretto.app/openapi.json` answers the public document.
+- `pnpm exec cf workers get ligretto-core-backend` lists `core-internal.ligretto.app` under `.references.domains`, and
+  `pnpm exec cf workers get ligretto-frontend` answers.
+- The first run in the core Worker's Cron Events tab has no `sweep_failed`.
 
-Then `helm uninstall` the old `ligretto-core-backend` release.
+Then `helm uninstall` the old `ligretto-core-backend` release. After the cutover the `AWS_*` repository secrets and the
+Yandex bucket have no user.
 
-In Actions, `cf deploy` replaces the `CNAME ligretto.app` DNS record, which points at the Yandex CDN, by itself and without
-a prompt. Nothing removes the two records this layout leaves behind: delete the `A core` record and the `_acme-challenge`
-CNAME by hand once the checks pass. If the certificate stays pending past the ten minutes, remove the `_acme-challenge`
-CNAME first. The `api` record stays: it is the gameplay backend. To go back, detach the domain and recreate the CNAME to
-`6df4977bd2611eed.topology.gslb.yccdn.ru`, DNS-only. After the cutover the `AWS_*` repository secrets and the Yandex
-bucket have no user.
+To go back before anything else depends on the layout, delete the four routes and recreate the `CNAME ligretto.app` to
+`6df4977bd2611eed.topology.gslb.yccdn.ru`, DNS-only.
 
 ## Releases
 
-A push to `master` that touches this package, `apps/ligretto-frontend`, the workspace packages either of them depends on,
-the root `.env` or `.env.production`, the lockfile or the workflow starts `.github/workflows/ligretto-core-backend-deploy.yml`.
+A push to `master` that touches this package, `apps/ligretto-frontend`, the workspace packages either of them is built
+from, the root `.env*` files, the lockfile, the workspace file or the workflow starts `.github/workflows/ligretto-release.yml`.
 It can also be started by hand.
 
-1. `build-worker` builds with no secrets: `pnpm build:worker` builds the SPA, then the Worker, into one Build Output. The
-   SPA's non-secret values come from the root `.env.production`. A failed build stops everything.
-2. The `release` job waits for the approval of `Ligretto-production`.
-3. `scripts/check-release.sh` reads the built Worker: both Hyperdrive configurations are cache-disabled and every declared
-   secret is set. A failure leaves the schema alone.
-4. `pnpm migrate` applies the migrations over the direct `DATABASE_URL`. A failure stops the upload.
-5. `cf deploy --prebuilt --mode production` uploads the Worker with the SPA and attaches the domains and the cron.
-6. `sentry-cli` uploads the SPA's source maps from the built artefact, under the release `LIGRETTO_APP_VERSION`, and
+1. `cancel-stale` cancels every older run of the workflow that is still waiting for the approval or queued. A run in
+   progress is never touched.
+2. `build-core` and `build-frontend` build in parallel with no secrets: `pnpm build:worker` of each package, into its own
+   Build Output. The SPA's non-secret values come from the root `.env.production`. A failed build stops everything.
+3. The `release` job waits for the approval of `Ligretto-production`, one approval for both Workers.
+4. It fails with `superseded by run <id>` when a newer run that is not cancelled exists: a run still building when the
+   newer one started escapes the cancellation.
+5. `scripts/check-release.sh` reads the built core Worker: both Hyperdrive configurations are cache-disabled and every
+   declared secret is set. Then `cf workers get ligretto-frontend` checks that the frontend Worker exists. A failure
+   leaves the schema alone.
+6. `pnpm migrate` applies the migrations over the direct `DATABASE_URL`. A failure stops the uploads.
+7. `cf deploy --prebuilt --mode production` uploads the core and attaches its routes, the Custom Domain and the cron.
+8. The same command uploads the frontend last, so a new SPA never meets an old API, and attaches its route.
+9. `sentry-cli` uploads the SPA's source maps from the frontend artefact, under the release `LIGRETTO_APP_VERSION`, and
    finalizes that release.
 
-The upload to Sentry needs `SENTRY_AUTH_TOKEN`, so it cannot run in `build-worker`, which has no secrets. It runs last, from
+The upload to Sentry needs `SENTRY_AUTH_TOKEN`, so it cannot run in the builds, which have no secrets. It runs last, from
 the artefact the release has already checked, and `continue-on-error` keeps it from deciding a release: a failure shows as
 an annotated step. The maps stay public in the assets, as they were on the bucket. A `pnpm build:worker` in a terminal has
 no `LIGRETTO_APP_VERSION`, so a release by hand reports no Sentry release, which is harmless.
@@ -172,7 +200,7 @@ The step finalizes the Sentry release, so "resolve in next release" has a releas
 `sentry-cli releases set-commits` needs the git history, and the checkout of the `release` job, which holds the production
 secrets, is shallow.
 
-A rerun after a failure is safe: a second migrate applies nothing.
+A rerun after a failure is safe: a second migrate applies nothing, and an upload of the same version changes nothing.
 
 Whether `cf workers secrets update` makes the next CI deploy abort has not been tested. `cf deploy` is strict and refuses
 in CI when the Worker was last changed through the API. If a release fails with "Aborting the upload operation because of
@@ -265,8 +293,10 @@ DATABASE_URL='<the direct connection string>' NODE_ENV=production pnpm sweep
 
 ## Rollback
 
-Put a previous version back on the traffic. A Worker version carries its assets, so the SPA moves with it. Migrations stay
-applied: the compatibility window of `docs/MIGRATIONS.md` keeps the previous code working on the newer schema.
+Put a previous version of each Worker back on the traffic, the frontend first, so an old API never meets a new SPA.
+Migrations stay applied: the compatibility window of `docs/MIGRATIONS.md` keeps the previous code working on the newer
+schema. A frontend version carries its assets, so the SPA moves with it. Run the same commands with
+`ligretto-frontend` for the frontend:
 
 ```sh
 pnpm exec cf workers versions list --worker-id ligretto-core-backend

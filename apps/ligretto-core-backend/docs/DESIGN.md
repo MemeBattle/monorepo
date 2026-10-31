@@ -160,24 +160,23 @@ successor.
 
 ## Runtimes and entries
 
-| Entry              | Runs                                                                                                                                                                                                                                                                       | Database                                                                                  |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `entry/node.ts`    | `@hono/node-server`, both apps on one port, `.env` through `dotenv-flow` in development                                                                                                                                                                                    | two `pg.Pool`s for the process (`adrs/session-store-locking.md`)                          |
-| `entry/worker.ts`  | `fetch` dispatching on the request hostname (public hostname → public app, or the SPA's assets for a read outside `/api`, `/health` and `/openapi.json`; internal hostname → internal app; else 404); a `WorkerEntrypoint` for service bindings; `scheduled` for the sweep | per-request `pg` clients on two cache-disabled Hyperdrive bindings, closed in `waitUntil` |
-| `entry/migrate.ts` | Kysely `Migrator`, `migrateToLatest()`, result inspected, exits non-zero on failure                                                                                                                                                                                        | `DATABASE_URL` (the database section of the configuration only)                           |
-| `entry/sweep.ts`   | `pnpm sweep`: expired `auth_requests` and sessions past the cookie grace, each session under its lock                                                                                                                                                                      | `DATABASE_URL`; for a runtime other than Workers, whose cron runs `scheduled`             |
+| Entry              | Runs                                                                                                                                                                                         | Database                                                                                  |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `entry/node.ts`    | `@hono/node-server`, both apps on one port, `.env` through `dotenv-flow` in development                                                                                                      | two `pg.Pool`s for the process (`adrs/session-store-locking.md`)                          |
+| `entry/worker.ts`  | `fetch` dispatching on the request hostname (public hostname → public app; internal hostname → internal app; else 404); a `WorkerEntrypoint` for service bindings; `scheduled` for the sweep | per-request `pg` clients on two cache-disabled Hyperdrive bindings, closed in `waitUntil` |
+| `entry/migrate.ts` | Kysely `Migrator`, `migrateToLatest()`, result inspected, exits non-zero on failure                                                                                                          | `DATABASE_URL` (the database section of the configuration only)                           |
+| `entry/sweep.ts`   | `pnpm sweep`: expired `auth_requests` and sessions past the cookie grace, each session under its lock                                                                                        | `DATABASE_URL`; for a runtime other than Workers, whose cron runs `scheduled`             |
 
-`pnpm build:worker` builds the `ligretto-frontend` SPA, then the Worker in the `production` mode of
-`cloudflare.config.ts`, into one Build Output. It is the only build there is.
+`pnpm build:worker` builds the Worker in the `production` mode of `cloudflare.config.ts` into its Build Output. It is
+the only build there is. The SPA is the `ligretto-frontend` Worker's, built by that package's own `build:worker`.
 
 Locally: Postgres from the root `docker-compose.yml`, the entries from the host (`pnpm start:dev` runs `entry/node.ts`
 under `tsx watch --conditions=development`; `pnpm dev:worker` runs `cf dev`, which drives `wrangler dev` from
 `cloudflare.config.ts`, with the Hyperdrive bindings' `dev.connectionString` pointing at the same database).
-`pnpm dev:worker` needs a built frontend (`pnpm ligretto:front:build`), and `pnpm test:worker` a full `pnpm build:worker`,
-because that suite reads the SPA of the Build Output. Development otherwise serves the SPA from vite. Nothing of this
-service runs inside Docker in development. `DATABASE_URL` comes from this package's `.env.development` (overridable in
-`.env.development.local`), not from the root files, which CAS reads for its own database; `migrate`, `db:codegen`,
-`sweep` and the Node entry resolve it through one loader (`src/entry/env.ts`, `MIGRATIONS.md`). `pnpm sweep` runs the
+Development serves the SPA from vite. Nothing of this service runs inside Docker in development. `DATABASE_URL` comes
+from this package's `.env.development` (overridable in `.env.development.local`), not from the root files, which CAS
+reads for its own database; `migrate`, `db:codegen`, `sweep` and the Node entry resolve it through one loader
+(`src/entry/env.ts`, `MIGRATIONS.md`). `pnpm sweep` runs the
 sweep once against `DATABASE_URL`. `start:dev`, `sweep` and `openapi:generate` run through
 `tsx --conditions=development`, which resolves `@memebattle/ligretto-auth` from source: the package's `node` export
 points at a build the tree does not hold. The development `LIGRETTO_INTERNAL_API_TOKEN` and `LIGRETTO_CAS_CLIENT_SECRET`
@@ -187,33 +186,38 @@ rest of ligretto.
 
 ## Deployment
 
-Cloudflare Workers, the way CAS is deployed (`apps/cas/cloudflare.config.ts`, `cas-deploy.yml`):
-`.github/workflows/ligretto-core-backend-deploy.yml` builds the Worker with no secrets, then, behind the approval of
-`Ligretto-production`, checks the built Worker with `scripts/check-release.sh`, applies the migrations with
-`entry/migrate.ts` against the production `DATABASE_URL` (an Actions secret of the release environment) and uploads
-with `cf deploy --prebuilt`. The first release is the activation: until it runs, an inert Worker with no routes holds
-the secrets, and the upload attaches the domains and the cron (`adrs/production-deployment-on-workers.md`). The
-production values live in the `production` mode of `cloudflare.config.ts`. The database is Neon behind **two
-cache-disabled Hyperdrive configurations** (`HYPERDRIVE_MAIN`, `HYPERDRIVE_LOCKS`,
-`adrs/database-access-with-kysely.md`), budgeted together against the Neon plan's connection limit. Worker secrets:
-`LIGRETTO_CAS_CLIENT_SECRET`, `LIGRETTO_INTERNAL_API_TOKEN` and `DATABASE_URL`, which the Worker does not read: it
-connects only through Hyperdrive. The SPA and the public app share one origin, `ligretto.app`: the Worker runs first
-on every request, `/api/*`, `/health` and `/openapi.json` run the public app, and every other read answers the SPA from
-the Worker's static assets (`ASSETS`), with the fallback to `index.html` for deep links. The session cookie is
-first-party and production allows no CORS origin. The internal app answers on `core-internal.ligretto.app`, since the
-gameplay backend is not a Worker and cannot use a service binding; the shared secret is what protects it on either
-path, and that hostname never serves an asset. The SPA's non-secret build values are in the root `.env.production`;
-its source maps go to Sentry from the `release` job, after the upload. The sweep runs hourly from a Workers cron
-trigger (`scheduled` in `entry/worker.ts`); `entry/sweep.ts` remains for any other runtime. `README.md` holds the
-operational notes and the created resources. The Node image
-(`.docker/Ligretto-core-backend_Dockerfile`) keeps being built in CI as the packaging of the Node entry: it compiles the package with `tsc -p tsconfig.build.json` and
-runs `node build/src/entry/node.js`; migrate and sweep run from the same image with their entry as the argument
-(`build/src/entry/migrate.js`, `build/src/entry/sweep.js`, `adrs/node-build-and-import-specifiers.md`).
+Cloudflare Workers, the way CAS is deployed (`apps/cas/cloudflare.config.ts`, `cas-deploy.yml`). Ligretto is separate
+Workers sharing `ligretto.app` through Workers Routes: this one owns `ligretto.app/api*`, `ligretto.app/health` and
+`ligretto.app/openapi.json`, the assets-only `ligretto-frontend` owns `ligretto.app/*`, and `ligretto.app/gameplay/*` is
+reserved for the gameplay Worker. The routes deliver `Host: ligretto.app`, which the dispatch hands to the public app.
+The session cookie is first-party and production allows no CORS origin. The internal app answers on the Custom Domain
+`core-internal.ligretto.app`, since the gameplay backend is not a Worker and cannot use a service binding; the shared
+secret is what protects it on either path. This Worker has no assets, so no hostname of it serves the SPA.
+
+`.github/workflows/ligretto-release.yml` releases both Workers: it builds them with no secrets, then, behind one
+approval of `Ligretto-production`, refuses a run a newer one supersedes, checks the built Worker with
+`scripts/check-release.sh` and that the frontend Worker exists, applies the migrations with `entry/migrate.ts` against
+the production `DATABASE_URL` (an Actions secret of the release environment), uploads this Worker with
+`cf deploy --prebuilt`, then the frontend, then the SPA's source maps to Sentry. The first release is the activation:
+until it runs, inert Workers with no routes exist, this one holding the secrets, and the uploads attach the routes, the
+domain and the cron (`adrs/production-deployment-on-workers.md`). No release touches DNS. The production values live in
+the `production` mode of `cloudflare.config.ts`. The database is Neon behind **two cache-disabled Hyperdrive
+configurations** (`HYPERDRIVE_MAIN`, `HYPERDRIVE_LOCKS`, `adrs/database-access-with-kysely.md`), budgeted together
+against the Neon plan's connection limit. Worker secrets: `LIGRETTO_CAS_CLIENT_SECRET`, `LIGRETTO_INTERNAL_API_TOKEN`
+and `DATABASE_URL`, which the Worker does not read: it connects only through Hyperdrive. The SPA's non-secret build
+values are in the root `.env.production`. The sweep runs hourly from a Workers cron trigger (`scheduled` in
+`entry/worker.ts`); `entry/sweep.ts` remains for any other runtime. `README.md` holds the operational notes and the
+created resources.
+
+No image is built. The Node build stays as the packaging of the Node entry, and `ts-check` checks it: `tsc -p
+tsconfig.build.json` compiles the package, `node build/src/entry/node.js` runs it, and migrate and sweep run with their
+entry as the argument (`build/src/entry/migrate.js`, `build/src/entry/sweep.js`,
+`adrs/node-build-and-import-specifiers.md`).
 
 ## CI (per pull request)
 
-- `ligretto-core-backend-pr.yml`: lint, format, `tsc`, vitest (PGlite suites); the store suite against the job's
-  Postgres;
+- `ligretto-core-backend-pr.yml`: lint, `ts-check` (the Node and Worker programs and the Node build), vitest (PGlite
+  suites); the store suite against the job's Postgres;
 - both entries smoke-tested by vitest projects: `test/node` boots `entry/node.ts` as a child process, `test/worker`
   runs the Worker under `workerd` through `@cloudflare/vitest-plugin`; the workflow runs the scripts and asserts
   nothing over HTTP itself;
@@ -222,8 +226,9 @@ runs `node build/src/entry/node.js`; migrate and sweep run from the same image w
 - the compatibility matrix and the migration checks (`adrs/additive-migrations-and-compatibility-matrix.md`);
 - `packages/ligretto-core-client` (`ligretto-core-client-pr.yml`): the documents and the client regenerated from the
   routes and diffed against the commit, type-checked and built, and its contract tests run against both apps;
-- the e2e job of `ligretto-pr.yml`: the full local SSO stack, CAS built from source, this package from `start:dev`,
-  the gameplay backend and the frontend, driven by Playwright through the guest sign-in and a game.
+- the e2e job of `ligretto-pr.yml`, its only job: this package from `start:dev`, the gameplay backend and the frontend,
+  driven by Playwright through the guest sign-in and a game, against the production CAS through the confidential client
+  `ligretto-ci`. No CAS is built in CI.
 
 ## Consumers and the activation order
 

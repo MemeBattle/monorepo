@@ -227,9 +227,10 @@ In progress:
   `ligretto-auth`, core-backend's Postgres session store and the mounted auth
   handlers with users served from the profile snapshot, ligretto-frontend on
   the new flow, and the removal of `auth-front`, `cas-services` and the
-  `/auth` routes. The production origin layout is decided (#865): one origin,
-  `ligretto.app`, for the SPA and the API, with the first-party cookie
-  transport. Left — the production client registration (#812).
+  `/auth` routes. The production origin layout is decided (#865, #870): the
+  application's frontend and API share one origin, `ligretto.app`, as separate
+  Workers through Workers Routes, with the first-party cookie transport. Left —
+  the production client registration (#812).
 - **External providers** ([milestone 19](https://github.com/MemeBattle/monorepo/milestone/19)),
   started in parallel: external identities + provider abstraction (in review),
   then Telegram sign-in and linking, Telegram bot infrastructure, GitHub, mock
@@ -315,8 +316,11 @@ lines, not here.
 - [ ] Guest GC policy (deferred): inactivity threshold, whether a guest with a
       live refresh token is ever collected. Undecided; ADR 0014 (g) lists the
       signals a policy has and what the ticket that writes it must weigh.
-- [x] Ligretto's production origin layout: one origin, `ligretto.app`, for the
-      SPA and the API, with the first-party cookie transport (#865). The
+      Until it exists, every run of Ligretto's CI e2e (client `ligretto-ci`)
+      leaves a few guest accounts in production.
+- [x] Ligretto's production origin layout: one origin, `ligretto.app`, shared
+      by the application's frontend and API as separate Workers through Workers
+      Routes, with the first-party cookie transport (#865, #870). The
       production client registration (#812) is still to be run.
 - [ ] Object storage for Profile & files: R2 is the obvious choice next to the
       Worker, S3 was the original one; the abstraction hides it either way.

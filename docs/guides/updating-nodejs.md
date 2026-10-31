@@ -85,7 +85,7 @@ docker manifest inspect node:24.18-trixie-slim > /dev/null && echo ok
       `node` directly through `nvm`/`fnm` have to switch by hand, the repo has no `.nvmrc`)
 - [ ] `pnpm ts-check` and `pnpm test:ci` pass
 - [ ] `pnpm-lock.yaml` is committed together with the catalog change
-- [ ] the images build: `docker build -f .docker/Ligretto-core-backend_Dockerfile .`
+- [ ] the remaining images build: `docker build -f .docker/Blog_Dockerfile .`
 
 > [!NOTE]
 > A local `pnpm ts-check` can fail in `apps/blog` on `.next/types/validator.ts` while CI is
