@@ -16,7 +16,7 @@
     "start:dev": "tsx watch --conditions=development src/entry/node.ts",
     "dev:worker": "cf dev",
     "build": "tsc -p tsconfig.build.json",
-    "build:worker": "pnpm run --filter @memebattle/ligretto-frontend build && cf build --mode production",
+    "build:worker": "cf build --mode production",
     "migrate": "tsx src/entry/migrate.ts",
     "sweep": "tsx --conditions=development src/entry/sweep.ts",
     "db:codegen": "tsx src/entry/codegen.ts",

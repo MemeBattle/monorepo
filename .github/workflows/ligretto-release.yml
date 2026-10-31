@@ -1,17 +1,4 @@
-name: 'Ligretto core backend release'
-
-# ligretto-core-backend is one Cloudflare Worker on ligretto.app and core-internal.ligretto.app, carrying the
-# ligretto-frontend SPA as its static assets, with its database on Neon behind two Hyperdrive configurations
-# (apps/ligretto-core-backend/README.md). The steps run in this order
-# (apps/ligretto-core-backend/docs/adrs/production-deployment-on-workers.md):
-#   1. build-worker runs with no secrets, so a failed build reaches neither the approval nor the schema;
-#   2. the release job, behind the approval of Ligretto-production, checks the built Worker: a cached Hyperdrive
-#      configuration or a missing Worker secret stops the release with the schema untouched;
-#   3. the migrations run over the direct connection, never through Hyperdrive or from the Worker;
-#   4. the upload runs only after they succeed. It attaches the domains and the cron, so the first release is also
-#      the activation;
-#   5. the source maps go to Sentry from the built artefact, which is the one step that needs the Sentry token and
-#      the one step allowed to fail.
+name: 'Ligretto release'
 
 on:
   workflow_dispatch:
@@ -19,30 +6,26 @@ on:
     branches: [master]
     paths:
       - 'apps/ligretto-core-backend/**'
-      # The Worker carries the SPA, so the frontend and the workspace packages it depends on release it too.
       - 'apps/ligretto-frontend/**'
-      - 'packages/analytics/**'
       - 'packages/ligretto-auth/**'
       - 'packages/ligretto-core-client/**'
       - 'packages/ligretto-shared/**'
       - 'packages/ui/**'
+      - 'packages/analytics/**'
+      - '.env*'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
-      # The SPA's production values.
-      - '.env'
-      - '.env.production'
-      - '.github/workflows/ligretto-core-backend-deploy.yml'
+      - '.github/workflows/ligretto-release.yml'
 
 env:
   CLOUDFLARE_ACCOUNT_ID: 2155fed9f68a1bc94fab7d9e5bb6eaac
-  # The build puts it in the SPA, and the source map upload names the same release.
   LIGRETTO_APP_VERSION: ${{ github.run_id }}
 
 permissions:
   contents: read
 
 jobs:
-  build-worker:
+  build-core:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
 
@@ -53,8 +36,6 @@ jobs:
       - name: Prepare Node.js
         uses: ./.github/actions/prepare-nodejs
 
-      # The SPA, then the production mode of cloudflare.config.ts, into .cloudflare/output, which the release uploads
-      # unchanged. No secret reaches this job: the SPA's values are in the root .env files.
       - name: Build the Worker
         run: pnpm run --filter @memebattle/ligretto-core-backend build:worker
 
@@ -67,41 +48,80 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # The approval is asked for only once the build has passed, and the environment's secrets reach this job alone.
-  release:
-    needs: [build-worker]
+  build-frontend:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Prepare Node.js
+        uses: ./.github/actions/prepare-nodejs
+
+      - name: Build the Worker
+        run: pnpm run --filter @memebattle/ligretto-frontend build:worker
+
+      - name: Upload the Worker
+        uses: actions/upload-artifact@v7
+        with:
+          name: ligretto-frontend-worker
+          path: apps/ligretto-frontend/.cloudflare/output
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    needs: [build-frontend, build-core]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
 
     environment:
       name: Ligretto-production
       url: https://ligretto.app
 
-    # Never two releases at once, and never cancel one halfway through its migrations. On this job only, so a newer
-    # commit builds while an older release waits or runs.
     concurrency:
-      group: ligretto-core-backend-release
+      group: ligretto-release
       cancel-in-progress: false
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # In the foreground, unlike the CAS release: the migrations run on Node.
       - name: Prepare Node.js
         uses: ./.github/actions/prepare-nodejs
 
-      - name: Download the Worker
+      - name: Download the core Worker
         uses: actions/download-artifact@v8
         with:
           name: ligretto-core-backend-worker
           path: apps/ligretto-core-backend/.cloudflare/output
 
-      - name: Check the release
+      - name: Download the frontend Worker
+        uses: actions/download-artifact@v8
+        with:
+          name: ligretto-frontend-worker
+          path: apps/ligretto-frontend/.cloudflare/output
+
+      - name: Check the core release
         working-directory: apps/ligretto-core-backend
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: pnpm exec scripts/check-release.sh
+
+      # The Editor token cannot create a Worker (the first activation does it by hand); checked before the migrations.
+      - name: Check the frontend Worker exists
+        working-directory: apps/ligretto-frontend
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if ! pnpm exec cf workers get ligretto-frontend > /dev/null; then
+            echo "::error::could not read the ligretto-frontend Worker (see the cf output above). If this is the first release, it may not exist yet: create it (apps/ligretto-core-backend/README.md, First activation, before the first release only)"
+            exit 1
+          fi
 
       - name: Apply migrations
         env:
@@ -109,17 +129,26 @@ jobs:
           NODE_ENV: production
         run: pnpm run --filter @memebattle/ligretto-core-backend migrate
 
-      - name: Deploy
+      - name: Deploy the core
         working-directory: apps/ligretto-core-backend
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          # Through the environment, never interpolated into the script.
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           message="${COMMIT_MESSAGE%%$'\n'*}"
           pnpm exec cf deploy --prebuilt --mode production --tag "${GITHUB_SHA::12}" --message "${message:-manual release}"
 
-      # After the upload, and allowed to fail: source maps never decide a release. The token is on this step alone.
+      # Last, so a new SPA never meets an old API.
+      - name: Deploy the frontend
+        working-directory: apps/ligretto-frontend
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          message="${COMMIT_MESSAGE%%$'\n'*}"
+          pnpm exec cf deploy --prebuilt --mode production --tag "${GITHUB_SHA::12}" --message "${message:-manual release}"
+
+      # Source maps never decide a release.
       - name: Upload the source maps to Sentry
         continue-on-error: true
         working-directory: apps/ligretto-frontend
@@ -129,5 +158,7 @@ jobs:
           SENTRY_PROJECT: ligretto-frontend
         run: |
           pnpm exec sentry-cli releases new "$LIGRETTO_APP_VERSION"
-          pnpm exec sentry-cli sourcemaps upload --release "$LIGRETTO_APP_VERSION" --url-prefix '~/assets' ../ligretto-core-backend/.cloudflare/output/v0/workers/default/assets/assets
+          # `~/assets` is Sentry's URL prefix for any host, not a path.
+          # shellcheck disable=SC2088
+          pnpm exec sentry-cli sourcemaps upload --release "$LIGRETTO_APP_VERSION" --url-prefix '~/assets' .cloudflare/output/v0/workers/default/assets/assets
           pnpm exec sentry-cli releases finalize "$LIGRETTO_APP_VERSION"
