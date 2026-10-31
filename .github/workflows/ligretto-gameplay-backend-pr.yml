@@ -1,0 +1,57 @@
+name: 'Ligretto gameplay backend pull request'
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'apps/ligretto-gameplay-backend/**'
+      - 'packages/ligretto-auth/**'
+      - 'packages/ligretto-core-client/**'
+      - 'packages/ligretto-shared/**'
+      - '.env*'
+      - .github/workflows/ligretto-gameplay-backend-pr.yml
+      - 'pnpm-lock.yaml'
+      - package.json
+      - pnpm-workspace.yaml
+
+concurrency:
+  group: ligretto-gameplay-backend-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Every job builds ligretto-shared first: the backend imports its output, and that build is the package's only type
+# check.
+jobs:
+  typecheck:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Build ligretto-shared
+        run: pnpm ligretto-shared:build
+
+      - name: TS check
+        run: pnpm run --filter @memebattle/ligretto-gameplay-backend ts-check
+
+  tests:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Build ligretto-shared
+        run: pnpm ligretto-shared:build
+
+      - name: Run tests
+        run: pnpm run --filter @memebattle/ligretto-gameplay-backend test:ci

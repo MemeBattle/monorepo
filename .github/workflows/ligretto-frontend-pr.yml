@@ -1,0 +1,86 @@
+name: 'Ligretto frontend pull request'
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'apps/ligretto-frontend/**'
+      - 'packages/analytics/**'
+      - 'packages/ligretto-core-client/**'
+      - 'packages/ligretto-shared/**'
+      - 'packages/ui/**'
+      - '.env*'
+      - .github/workflows/ligretto-frontend-pr.yml
+      - 'pnpm-lock.yaml'
+      - package.json
+      - pnpm-workspace.yaml
+
+concurrency:
+  group: ligretto-frontend-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Every job builds ligretto-shared first: the SPA imports its output, and that build is the package's only type check.
+jobs:
+  typecheck:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Build ligretto-shared
+        run: pnpm ligretto-shared:build
+
+      - name: TS check
+        run: pnpm run --filter @memebattle/ligretto-frontend ts-check
+
+  tests:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Build ligretto-shared
+        run: pnpm ligretto-shared:build
+
+      - name: Run tests
+        run: pnpm run --filter @memebattle/ligretto-frontend test:ci
+
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Build ligretto-shared
+        run: pnpm ligretto-shared:build
+
+      - name: Build the Worker
+        run: pnpm run --filter @memebattle/ligretto-frontend build:worker
+
+      - name: The Build Output holds the SPA
+        working-directory: apps/ligretto-frontend/.cloudflare/output/v0/workers/default/assets
+        run: |
+          if [ ! -f index.html ] || ! compgen -G 'assets/*.js' > /dev/null; then
+            echo "::error::the Build Output has no index.html or no hashed script under assets/"
+            exit 1
+          fi
+
+      - name: Check the Worker as a release would upload it
+        working-directory: apps/ligretto-frontend
+        run: pnpm exec cf deploy --prebuilt --mode production --dry-run

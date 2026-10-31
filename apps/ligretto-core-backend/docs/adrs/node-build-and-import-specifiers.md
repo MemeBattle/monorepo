@@ -3,12 +3,12 @@ title: Node build and import specifiers
 description: >-
   Every relative import names its file with the `.ts` extension. The Node runtime runs JavaScript that
   `tsc -p tsconfig.build.json` emits (`nodenext`, `rewriteRelativeImportExtensions`, `rootDir: .`, `outDir: build`)
-  on plain `node`; `ts-check` includes that program. The image's entrypoint is `node` and the entry is its argument:
-  `build/src/entry/node.js` by default, `migrate.js` and `sweep.js` from the same image.
+  on plain `node`; `ts-check` includes that program. An image of the Node entry runs `node <entry>`:
+  `build/src/entry/node.js` by default, `migrate.js` and `sweep.js` from the same image. The repository builds no image.
 read_when:
   - adding a file or an import to the package
   - adding a Node entry, or changing what the Node build compiles
-  - changing the Node image, or running migrations or the sweep from it
+  - packaging the Node entry as an image, or running migrations or the sweep from it
   - adding a dependency the Node entries load at run time
 ---
 
@@ -17,11 +17,10 @@ read_when:
 ## Context
 
 The Node entries (`src/entry/node.ts`, `migrate.ts`, `sweep.ts`) ran through `tsx`, a devDependency, in
-development and in CI. The image (`.docker/Ligretto-core-backend_Dockerfile`) has to run them in production, where
-`pnpm deploy --prod` leaves devDependencies out and a compile at every start is a cost for nothing
-([#842](https://github.com/MemeBattle/monorepo/issues/842)). The package type-checks under `moduleResolution: bundler`,
-where extensionless relative imports are fine, but plain Node's ESM loader resolves a relative specifier only as
-written. Kysely's `FileMigrationProvider` loads the migrations with `import()` from a folder that `migrate.ts` finds
+development and in CI. An image has to run them where `pnpm deploy --prod` leaves devDependencies out and a compile
+at every start is a cost for nothing ([#842](https://github.com/MemeBattle/monorepo/issues/842)). The package
+type-checks under `moduleResolution: bundler`, where extensionless relative imports are fine, but plain Node's ESM
+loader resolves a relative specifier only as written. Kysely's `FileMigrationProvider` loads the migrations with `import()` from a folder that `migrate.ts` finds
 relative to itself, so the migrations have to ship next to the entry in whatever form `node` can import. The Worker
 is bundled by Wrangler and is not concerned (`layering-and-runtime-neutrality.md`).
 
@@ -40,9 +39,9 @@ is bundled by Wrangler and is not concerned (`layering-and-runtime-neutrality.md
 - **`ts-check` includes the build program.** Under `nodenext` an extensionless relative import is TS2835, so a
   forgotten extension fails CI instead of failing at container start, and an import Node could not resolve fails
   the same way.
-- **The image runs `node <entry>`.** `ENTRYPOINT ["node"]`, `CMD ["build/src/entry/node.js"]`; migrate and sweep run
-  from the same image with `build/src/entry/migrate.js` or `build/src/entry/sweep.js` as the argument. `rootDir: .`
-  puts the migrations in `build/migrations`, so `migrate.ts` finds them by the same relative path
+- **An image of the Node entry runs `node <entry>`.** `ENTRYPOINT ["node"]`, `CMD ["build/src/entry/node.js"]`; migrate
+  and sweep run from the same image with `build/src/entry/migrate.js` or `build/src/entry/sweep.js` as the argument.
+  `rootDir: .` puts the migrations in `build/migrations`, so `migrate.ts` finds them by the same relative path
   (`../../migrations`) in the source and in the build. Kysely records a migration under its name without the
   extension, so a database migrated by `tsx` in development and one migrated from the image agree on what is applied.
 - **A path resolved from `import.meta.url` holds at both depths.** A module runs from `src/` and from `build/src/`,
@@ -59,5 +58,8 @@ is bundled by Wrangler and is not concerned (`layering-and-runtime-neutrality.md
 - The entries are `build/src/entry/*.js`, not `build/entry/*.js`, because the migrations live outside `src`.
 - The build type-checks `@memebattle/ligretto-auth` from source through its `types` condition and imports its
   CommonJS `build/` at run time, so that package is built before this one in the image.
-- CI builds the image but does not run it (`DESIGN.md` § Deployment): a run-time regression of the compiled output
-  surfaces on a manual `docker run` until a runtime uses the image.
+- CI builds no image and runs no compiled entry (`DESIGN.md` § Deployment): `ts-check` is what keeps the build program
+  compiling, and a run-time regression of the compiled output surfaces only when a runtime uses it again.
+
+upd (2026-10-31): the repository builds no image any more; the Node build program and its rules stay for the Node
+runtime ([#870](https://github.com/MemeBattle/monorepo/issues/870)).

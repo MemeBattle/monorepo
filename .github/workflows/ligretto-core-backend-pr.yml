@@ -5,22 +5,13 @@ on:
     branches: [master]
     paths:
       - 'apps/ligretto-core-backend/**'
-      # The public document and the auth routes are built from this package's schemas and route fragments.
       - 'packages/ligretto-auth/**'
-      # worker-smoke builds the SPA into the Worker.
-      - 'apps/ligretto-frontend/**'
-      - 'packages/analytics/**'
-      - 'packages/ligretto-core-client/**'
-      - 'packages/ligretto-shared/**'
-      - 'packages/ui/**'
       - .github/workflows/ligretto-core-backend-pr.yml
       - 'pnpm-lock.yaml'
       - package.json
       - pnpm-workspace.yaml
-      # The Node smoke suite boots the entry on the repository root .env* files.
       - '.env*'
 
-# A new push makes the run for the previous one obsolete.
 concurrency:
   group: ligretto-core-backend-pr-${{ github.ref }}
   cancel-in-progress: true
@@ -39,10 +30,21 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
-      # The directory boundaries of docs/adrs/layering-and-runtime-neutrality.md live in
-      # apps/ligretto-core-backend/oxlint.config.ts.
       - name: Lint
         run: pnpm run --filter @memebattle/ligretto-core-backend lint
+
+  ts-check:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: TS check
+        run: pnpm run --filter @memebattle/ligretto-core-backend ts-check
 
   tests:
     runs-on: ubuntu-24.04
@@ -62,7 +64,7 @@ jobs:
     timeout-minutes: 10
     services:
       postgres:
-        # The engine of the compose test service: the oldest in play.
+        # The compose test service's engine, the oldest in play.
         image: postgres:13.4
         env:
           POSTGRES_USER: ligretto-core-user
@@ -83,21 +85,15 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
-      # What needs a real Postgres: row locks, two connections, the migrate and codegen entries. The suite wipes the
-      # database it is given and refuses one whose name does not end in -test.
       - name: Run the store suite
         env:
           LIGRETTO_CORE_TEST_DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5435/ligretto-core-test
         run: pnpm run --filter @memebattle/ligretto-core-backend test:store:run
 
-  # The rules of apps/ligretto-core-backend/docs/MIGRATIONS.md: a migration on the base branch is never edited,
-  # renamed or deleted; an added one is well named, newer than the newest on the base branch, and marks a contract
-  # statement.
   migration-checks:
     runs-on: ubuntu-24.04
 
     steps:
-      # Full history: the script compares the pull request with the base branch.
       - name: Checkout
         uses: actions/checkout@v7
         with:
@@ -106,20 +102,12 @@ jobs:
       - name: Check the migrations against the base branch
         run: apps/ligretto-core-backend/scripts/check-migrations.sh "origin/${{ github.base_ref }}"
 
-  # The compatibility matrix of apps/ligretto-core-backend/docs/adrs/additive-migrations-and-compatibility-matrix.md.
-  # Each job applies one tree's migrations to its own Postgres, regenerates the other tree's row types from that
-  # schema and type-checks it, through apps/ligretto-core-backend/scripts/check-schema-compat.sh:
-  #   schema-current   PR migrations, PR code: the ordinary check, and the committed row types match the schema.
-  #   schema-previous  master's migrations, PR code: new code started before the migration ran.
-  #   code-previous    PR migrations, master's code and store suite: old code still running after the migration,
-  #                    or a rollback of the code.
-  # The base branch's tree is its tip, the schema and code that are live when this pull request merges.
+  # schema-current, schema-previous and code-previous: docs/adrs/additive-migrations-and-compatibility-matrix.md.
   schema-current:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     services:
       postgres:
-        # The engine of the compose test service: the oldest in play.
         image: postgres:13.4
         env:
           POSTGRES_USER: ligretto-core-user
@@ -133,7 +121,7 @@ jobs:
           --health-timeout 5s
           --health-retries 30
 
-    # Exported for every step: the shared loader lets the shell win over the package's .env.development.
+    # Job-level, because the shell wins over the package's .env.development.
     env:
       DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5433/ligretto-core
 
@@ -144,8 +132,6 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
-      # Migrate an empty database, regenerate the row types, type-check both programs (Node, and the Worker with the
-      # same layers against the Workers types).
       - name: PR migrations, PR code
         run: apps/ligretto-core-backend/scripts/check-schema-compat.sh --migrations . --code .
 
@@ -165,7 +151,6 @@ jobs:
     timeout-minutes: 10
     services:
       postgres:
-        # The engine of the compose test service: the oldest in play.
         image: postgres:13.4
         env:
           POSTGRES_USER: ligretto-core-user
@@ -186,7 +171,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # The tip of the base branch: the schema that is live when this code starts.
       - name: Checkout the base branch
         uses: actions/checkout@v7
         with:
@@ -196,7 +180,7 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
-      # A failure means the code uses a shape this pull request's migration introduces: ship the migration alone first.
+      # On failure, the code uses a shape the new migration introduces: ship the migration alone first.
       - name: Master's migrations, PR code
         run: apps/ligretto-core-backend/scripts/check-schema-compat.sh --migrations previous --code .
 
@@ -205,7 +189,6 @@ jobs:
     timeout-minutes: 15
     services:
       postgres:
-        # The engine of the compose test service: the oldest in play.
         image: postgres:13.4
         env:
           POSTGRES_USER: ligretto-core-user
@@ -219,17 +202,15 @@ jobs:
           --health-timeout 5s
           --health-retries 30
 
-    # One database for both: the type check reads the migrated schema, then the store suite wipes and re-migrates it.
+    # One database for both: the store suite wipes and re-migrates it after the type check.
     env:
       DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5435/ligretto-core-test
       LIGRETTO_CORE_TEST_DATABASE_URL: postgres://ligretto-core-user:ligretto_pg_password@localhost:5435/ligretto-core-test
 
     steps:
-      # The scripts and the migrations come from the pull request.
       - name: Checkout
         uses: actions/checkout@v7
 
-      # The tip of the base branch: the code that still runs when this pull request's migration is applied.
       - name: Checkout the base branch
         uses: actions/checkout@v7
         with:
@@ -242,8 +223,7 @@ jobs:
         with:
           working-directory: previous
 
-      # A failure means the migration removes or tightens a shape master still uses, or master's store suite (the raw
-      # lock statements, the migrate entry) breaks on the new schema: ship the code that stops using it first.
+      # On failure, the migration breaks a shape master still uses: ship the code that stops using it first.
       - name: PR migrations, master's code and store suite
         run: apps/ligretto-core-backend/scripts/check-schema-compat.sh --migrations . --code previous --store
 
@@ -257,7 +237,6 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
-      # Both documents from the app factories; no database, no request served.
       - name: Regenerate the OpenAPI documents
         run: pnpm run --filter @memebattle/ligretto-core-backend openapi:generate
 
@@ -272,10 +251,9 @@ jobs:
   node-smoke:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    # The package's .env.development points DATABASE_URL here; /health runs a constant select, so no migration.
+    # DATABASE_URL comes from the package's .env.development; /health needs no migration.
     services:
       postgres:
-        # The engine of the compose test service: the oldest in play.
         image: postgres:13.4
         env:
           POSTGRES_USER: ligretto-core-user
@@ -296,9 +274,6 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
-      # test/node boots src/entry/node.ts as a child process on a free port with the package and root
-      # .env.development, as `pnpm start:dev` does, and asserts over fetch. The entry's output goes to the log uploaded
-      # below.
       - name: Run the Node smoke suite
         env:
           LIGRETTO_CORE_NODE_LOG: ${{ runner.temp }}/ligretto-core-node.log
@@ -315,11 +290,9 @@ jobs:
   worker-smoke:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    # The Hyperdrive bindings' dev.connectionString in cloudflare.config.ts points here. A step below migrates it,
-    # because the cron handler needs the tables.
+    # The Hyperdrive bindings' dev.connectionString in cloudflare.config.ts points here.
     services:
       postgres:
-        # The engine of the compose test service: the oldest in play.
         image: postgres:13.4
         env:
           POSTGRES_USER: ligretto-core-user
@@ -340,18 +313,12 @@ jobs:
       - uses: ./.github/actions/prepare-nodejs
         name: Prepare Node.js
 
-      # The SPA and the production bundle build into one Build Output, the same way a release builds them.
       - name: Build the Worker
         run: pnpm run --filter @memebattle/ligretto-core-backend build:worker
 
-      # The package's .env.development points DATABASE_URL at the job's Postgres.
+      # The cron handler needs the tables.
       - name: Migrate the database
         run: pnpm run --filter @memebattle/ligretto-core-backend migrate
 
-      # The same entry under workerd, through @cloudflare/vitest-plugin: /health on both hostnames and through the
-      # InternalApi service binding, each with its database check over the emulated Hyperdrive bindings, an unknown
-      # route, the internal token from .dev.vars: refused when missing or wrong, accepted when it is the configured
-      # one, the public API's guards, /openapi.json equal to the committed document, the cron handler, and the assets
-      # dispatch over the SPA of the Build Output above: the SPA on the public host, never on the internal one.
       - name: Run the Worker smoke suite
         run: pnpm run --filter @memebattle/ligretto-core-backend test:worker
