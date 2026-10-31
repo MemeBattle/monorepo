@@ -1,7 +1,7 @@
 version: '3.3'
 services:
   ligretto-core-pg:
-    image: postgres
+    image: postgres:18
     ports:
       - 5433:5432
     environment:
@@ -9,7 +9,42 @@ services:
       POSTGRES_USER: ligretto-core-user
       POSTGRES_DB: ligretto-core
     volumes:
-      - pg-ligretto:/var/lib/postgresql/data
+      - pg-ligretto:/var/lib/postgresql
+      - ./.docker/ligretto-core-pg-cas.sql:/docker-entrypoint-initdb.d/cas.sql:ro
+    healthcheck:
+      # Over TCP on purpose: during init the server listens on the socket alone, so a socket probe would report
+      # healthy before the init script has run.
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U ligretto-core-user -d ligretto-core']
+      interval: 1s
+      timeout: 5s
+      retries: 30
+
+  cas:
+    profiles: [cas]
+    build:
+      context: .
+      dockerfile: .docker/Cas_Dockerfile
+      args:
+        CAS_BUILD_PROFILE: debug
+    depends_on:
+      ligretto-core-pg:
+        condition: service_healthy
+    ports:
+      - 3000:3000
+    # The one source of the values the seed registers. Not .env.development.local: a developer's override for the
+    # production CAS must not become the local seed's secret.
+    env_file: .env.development
+    environment:
+      CAS_ISSUER: http://localhost:3000
+      CAS_ORIGIN: http://localhost:3000
+      CAS_CORS_ORIGINS: http://localhost:3000
+      CAS_RP_ID: localhost
+      DATABASE_URL: postgres://cas:cas@ligretto-core-pg:5432/cas
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1:3000/health']
+      interval: 2s
+      timeout: 5s
+      retries: 30
 
   # The store suite's own server, brought up by ligretto-core-backend's `test:store:setup` script. Separate from
   # ligretto-core-pg so a test run can never truncate the database used for development, and on tmpfs so

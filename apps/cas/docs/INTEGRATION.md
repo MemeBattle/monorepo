@@ -756,17 +756,15 @@ To run your application against a local CAS:
 
 5. Only for the monorepo's own stack: ligretto-frontend is served beside CAS
    on `:5174`, the origin the seeded `ligretto` client returns to after a
-   logout, by
+   logout, which its `vite.config.ts` pins, by
 
    ```sh
-   pnpm --filter @memebattle/ligretto-frontend start:dev --port 5174 --strictPort
+   pnpm --filter @memebattle/ligretto-frontend start:dev
    ```
 
-   with no `--` separator. pnpm forwards the flags into the script, so Vite
-   applies them; a separator makes Vite drop them and bind its default 5173,
-   which is the CAS frontend's port. `--strictPort` makes it fail rather than
-   drift to a port the client does not know. Run on its own, ligretto-frontend
-   keeps its plain `start:dev` on `:5173`.
+   The monorepo's own stack also starts without any of the steps above, from
+   the CAS image, with `pnpm ligretto:start`
+   ([docs/ligretto.md](../../../docs/ligretto.md)).
 
 Every CAS setting has a development default
 ([README, Configuration](../README.md#configuration)). Three are the ones an

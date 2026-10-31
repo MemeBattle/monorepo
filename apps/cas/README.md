@@ -19,6 +19,7 @@ Configuration is read from environment variables at startup. Every variable has 
 | `DATABASE_URL`     | `postgres://cas:cas@localhost:5434/cas`                                | Postgres connection URL. The default matches `docker-compose.yml`.                                                                                                                                                                                         |
 | `CAS_ISSUER`       | `http://localhost:3000`                                                | The public base URL of CAS, published verbatim as the discovery document's `issuer` and used as the base of every advertised endpoint. `http`/`https`, no query, no fragment, no trailing slash — a value that needs repair is rejected, never normalised. |
 | `CAS_SIGNING_KEY`  | the checked-in development key in debug builds, none in release builds | One or more PEM-encoded P-256 private keys, PKCS#8 or SEC1, concatenated; the first signs, all are published in `/oidc/jwks.json`. A release server refuses to start without it.                                                                           |
+| `CAS_SPA_DIR`      | unset                                                                  | The directory of the built cas-frontend SPA. Set, the server answers every path that is not its own with a file from there, or `index.html` when the path is not a file. A directory without `index.html` fails startup. Unset, it serves the API alone.   |
 
 At startup the service also loads the monorepo root `.env` files. `APP_ENV` selects the environment and defaults to `development`; missing files are skipped. Priority, highest first:
 
@@ -150,6 +151,18 @@ The `CAS-production` environment of the repository holds what the release needs:
 - `CLOUDFLARE_API_TOKEN`: deploys the Worker, its assets and its custom domain;
 - `CAS_DATABASE_URL`: that connection string, for `cas-migrate`.
 
+## Docker image
+
+[`.docker/Cas_Dockerfile`](../../.docker/Cas_Dockerfile) builds the three binaries and the SPA into one image that serves both on one port, for running CAS without a Rust toolchain. It is built locally and never published: production CAS is the Worker above. The build argument `CAS_BUILD_PROFILE` selects `debug`, the default and the development variant, or `release`, which needs `CAS_SIGNING_KEY` in its environment and seeds no client. The entrypoint runs `cas-migrate`, then, in the debug image, `scripts/seed-dev.sh --if-missing`, then `cas`. See [docs/adr/0024-development-image.md](./docs/adr/0024-development-image.md).
+
+The root `docker-compose.yml` runs it under the profile `cas`, with its database in `ligretto-core-pg`, and `pnpm ligretto:start` starts it with the rest of Ligretto ([docs/ligretto.md](../../docs/ligretto.md)). The first `docker compose --profile cas up` builds it; after a change, from the monorepo root:
+
+```
+docker compose --profile cas build cas
+```
+
+The build keeps cargo's registry and target directory in BuildKit cache mounts. Should a rebuild ever look stale, drop them with `docker builder prune --filter type=exec.cachemount`.
+
 ## OIDC clients
 
 The applications allowed to start an authorization flow live in the `clients` table. The registry is managed by hand until the admin panel exists, and never by a migration — a migration runs everywhere, so a dev client with a known secret would reach production. Rows are written by the `cas-client` binary, which reads `DATABASE_URL` exactly like the app:
@@ -162,7 +175,7 @@ cargo run -p cas --bin cas-client -- register \
   [--first-party] \
   [--guest-login-allowed [--guest-grants-per-minute <n>]] \
   [--scope <scope>]... [--audience <resource>] \
-  [--secret <value>]
+  [--secret <value>] [--if-missing]
 ```
 
 | Flag                         | Meaning                                                                                                                                                                       |
@@ -178,6 +191,7 @@ cargo run -p cas --bin cas-client -- register \
 | `--scope`                    | Repeatable allow-list of what the client may request. Defaults to `openid`.                                                                                                   |
 | `--audience`                 | The `aud` of its access tokens, naming the resource server. Defaults to the id.                                                                                               |
 | `--secret`                   | Development builds only: the secret of a confidential client, instead of a generated one. A release build refuses it ([ADR 0023](./docs/adr/0023-dev-only-client-secret.md)). |
+| `--if-missing`               | Leaves a client that already has the id as it is and exits 0, whatever its registered values are, instead of failing ([ADR 0024](./docs/adr/0024-development-image.md)).      |
 
 A redirect URI is matched by exact string comparison, so it must be registered exactly as the client will send it: `https://app.example` and `https://app.example/` are two different registrations.
 
@@ -191,19 +205,17 @@ The development database gets a `ligretto` client from:
 apps/cas/scripts/seed-dev.sh
 ```
 
-It registers ligretto's development URIs — the callback `http://localhost:<LIGRETTO_CORE_BACKEND_PORT>/api/auth/callback` on ligretto-core-backend, and `http://localhost:5174/` to return to after a logout — and passes `--secret` the stable development secret from the monorepo's `.env.development`, `LIGRETTO_CAS_CLIENT_SECRET`, so a reset development database needs no printed secret copied anywhere.
+It registers ligretto's development URIs, the two values ligretto-core-backend itself sends, `LIGRETTO_CORE_AUTH_REDIRECT_URI` and `LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI`, and passes `--secret` the stable development secret, `LIGRETTO_CAS_CLIENT_SECRET`, all three from the monorepo's `.env.development`, so a reset development database needs no printed secret copied anywhere.
 
-Both values are resolved with the development precedence of the loader ligretto-core-backend reads, dotenv-flow (`apps/ligretto-core-backend/src/entry/env.ts`): the process environment first, then the package's own `.env.development.local`, `.env.development`, `.env.local`, `.env`, `.env.defaults`, then the monorepo root's files in the same order. Within one directory that is CAS's own order too, but CAS reads only the monorepo root, while the backend reads its package directory first. It is the secret that needs this — ligretto-core-backend presents the secret through that loader, so an export, or an override written in a `.env.development.local` of the package or the root, reaches the seeded row and the backend alike. Only `.env.development.local` reliably overrides a value the committed `.env.development` sets: `.env.local` sits below it. The port is read from the same files only to keep the number out of the script; it is not a knob, as the monorepo's `.env.development` says. Overriding it moves the registered callback alone, away from the one the backend sends, and the two are compared byte for byte.
+The values are resolved with the development precedence of the loader ligretto-core-backend reads, dotenv-flow (`apps/ligretto-core-backend/src/entry/env.ts`): the process environment first, then the package's own `.env.development.local`, `.env.development`, `.env.local`, `.env`, `.env.defaults`, then the monorepo root's files in the same order. Within one directory that is CAS's own order too, but CAS reads only the monorepo root, while the backend reads its package directory first. ligretto-core-backend reads these values through that loader, so an export, or an override written in a `.env.development.local` of the package or the root, reaches the seeded row and the backend alike. Only `.env.development.local` reliably overrides a value the committed `.env.development` sets: `.env.local` sits below it.
 
-`scripts/seed-dev.sh --dry-run` prints what would be registered and runs nothing. With `APP_ENV` set to anything but `development` the script refuses to run, because `cas-client` would take `DATABASE_URL` from that environment while these two values came from the development files. A second run fails with "already exists", which is the signal that the client is already there.
+`scripts/seed-dev.sh --dry-run` prints what would be registered and runs nothing. With `APP_ENV` set to anything but `development` the script refuses to run, because `cas-client` would take `DATABASE_URL` from that environment while these values came from the development files. A second run fails with "already exists", which is the signal that the client is already there; with `--if-missing` it leaves the client as it is. `CAS_CLIENT_BIN` names a `cas-client` binary to run instead of `cargo run`, which is how the debug image seeds without a toolchain.
 
-The post-logout origin is the one ligretto-frontend serves next to a local CAS, where 5173 is the CAS frontend's:
+The post-logout origin is the one ligretto-frontend serves next to a local CAS, the port its `vite.config.ts` pins, where 5173 is the CAS frontend's:
 
 ```
-pnpm --filter @memebattle/ligretto-frontend start:dev --port 5174 --strictPort
+pnpm ligretto:front:start:dev
 ```
-
-with no `--` separator — pnpm forwards the flags into the script, while a separator makes Vite drop them and bind 5173. Run standalone, ligretto-frontend keeps its plain `start:dev`.
 
 See [docs/adr/0008-oidc-clients-registry.md](./docs/adr/0008-oidc-clients-registry.md) and [docs/adr/0023-dev-only-client-secret.md](./docs/adr/0023-dev-only-client-secret.md).
 

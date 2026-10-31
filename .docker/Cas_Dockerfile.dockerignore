@@ -1,0 +1,13 @@
+*
+!Cargo.toml
+!Cargo.lock
+!vendor
+!apps/cas
+!apps/cas-frontend
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!tsconfig.json
+!.docker/Cas_entrypoint.sh
+**/node_modules
+**/dist

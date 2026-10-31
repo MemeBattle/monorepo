@@ -12,6 +12,14 @@ on:
       - '.cargo/**'
       - 'vendor/**'
       - '.github/workflows/cas-**'
+      - '.docker/Cas_**'
+      # The frontend stages of the image build from these, so a change to them
+      # must not skip the job that proves it.
+      - 'apps/cas-frontend/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.json'
 
 jobs:
   fmt:
@@ -197,3 +205,25 @@ jobs:
         env:
           SQLX_OFFLINE: 'true'
         run: cargo clippy --locked -p cas --lib --target wasm32-unknown-unknown -- -D warnings
+
+  image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        profile: [debug, release]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build the image
+        uses: docker/build-push-action@v7
+        with:
+          push: false
+          context: '.'
+          file: '.docker/Cas_Dockerfile'
+          build-args: CAS_BUILD_PROFILE=${{ matrix.profile }}

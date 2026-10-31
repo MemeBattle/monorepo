@@ -1,0 +1,80 @@
+FROM node:26.13-trixie-slim AS frontend-deps
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME/bin:$PATH"
+RUN npm install -g corepack@0.36.0 && corepack enable
+
+WORKDIR /memebattle
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /memebattle/
+COPY apps/cas-frontend/package.json /memebattle/apps/cas-frontend/
+
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --filter @memebattle/cas-frontend...
+
+FROM frontend-deps AS frontend-build
+
+ENV NODE_ENV=production
+
+COPY tsconfig.json /memebattle/
+COPY apps/cas-frontend /memebattle/apps/cas-frontend
+
+RUN pnpm run --filter @memebattle/cas-frontend build
+
+FROM rust:1.98-slim-trixie AS rust-deps
+
+WORKDIR /memebattle
+
+COPY Cargo.toml Cargo.lock /memebattle/
+COPY apps/cas/Cargo.toml /memebattle/apps/cas/
+COPY vendor/sqlx-cloudflare-hd/Cargo.toml /memebattle/vendor/sqlx-cloudflare-hd/
+
+# cargo needs the targets the manifests declare; these stubs are never compiled.
+RUN mkdir -p apps/cas/src/bin vendor/sqlx-cloudflare-hd/src \
+  && touch apps/cas/src/lib.rs apps/cas/src/main.rs apps/cas/src/bin/migrate.rs \
+           apps/cas/src/bin/client.rs vendor/sqlx-cloudflare-hd/src/lib.rs
+
+RUN --mount=type=cache,id=cas-cargo-registry,target=/usr/local/cargo/registry \
+    --mount=type=cache,id=cas-cargo-git,target=/usr/local/cargo/git \
+    cargo fetch --locked
+
+FROM rust-deps AS rust-build
+
+ARG CAS_BUILD_PROFILE=debug
+ENV SQLX_OFFLINE=true
+
+COPY vendor /memebattle/vendor
+COPY apps/cas/src /memebattle/apps/cas/src
+COPY apps/cas/migrations /memebattle/apps/cas/migrations
+COPY apps/cas/.sqlx /memebattle/apps/cas/.sqlx
+COPY apps/cas/dev /memebattle/apps/cas/dev
+
+RUN --mount=type=cache,id=cas-cargo-registry,target=/usr/local/cargo/registry \
+    --mount=type=cache,id=cas-cargo-git,target=/usr/local/cargo/git \
+    --mount=type=cache,id=cas-target,target=/memebattle/target,sharing=locked \
+    case "$CAS_BUILD_PROFILE" in \
+      debug) cargo build --locked -p cas --bins ;; \
+      release) cargo build --locked -p cas --bins --release ;; \
+      *) echo "CAS_BUILD_PROFILE must be debug or release" >&2; exit 1 ;; \
+    esac \
+    && mkdir /out \
+    && cp target/"$CAS_BUILD_PROFILE"/cas target/"$CAS_BUILD_PROFILE"/cas-migrate target/"$CAS_BUILD_PROFILE"/cas-client /out/
+
+FROM debian:trixie-slim AS runtime
+
+ARG CAS_BUILD_PROFILE=debug
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
+COPY --from=rust-build /out/ /usr/local/bin/
+COPY --from=frontend-build /memebattle/apps/cas-frontend/dist /srv/cas-frontend
+COPY apps/cas/scripts/seed-dev.sh /opt/cas/scripts/seed-dev.sh
+COPY .docker/Cas_entrypoint.sh /usr/local/bin/cas-entrypoint
+
+# Only a debug build can take a chosen secret (ADR 0023): the release image has no seed.
+RUN if [ "$CAS_BUILD_PROFILE" = release ]; then rm /opt/cas/scripts/seed-dev.sh; fi
+
+ENV CAS_SPA_DIR=/srv/cas-frontend
+ENV CAS_CLIENT_BIN=/usr/local/bin/cas-client
+
+USER nobody
+EXPOSE 3000
+ENTRYPOINT [ "cas-entrypoint" ]
