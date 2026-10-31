@@ -54,6 +54,7 @@ impl Cas {
             signing_key: Some(SigningKeyPem::new(include_str!(
                 "../../dev/signing-key.pem"
             ))),
+            spa_dir: None,
         };
         let app = ::cas::http::app(config).expect("CAS builds from the test configuration");
 

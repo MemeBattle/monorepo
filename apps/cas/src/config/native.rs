@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use axum::http::HeaderValue;
 use webauthn_rs::prelude::Url;
@@ -43,11 +43,14 @@ pub struct Config {
     /// that share this config never sign, and the server refuses to start
     /// without a key (`http::app`).
     pub signing_key: Option<SigningKeyPem>,
+    /// The built sign-in SPA, served on every path CAS does not own
+    /// (`http::app`). `None` serves the API alone.
+    pub spa_dir: Option<PathBuf>,
 }
 
 impl Config {
     pub fn from_env() -> Result<Self, ConfigError> {
-        Self::from_values(
+        let config = Self::from_values(
             env_value("CAS_PORT")?,
             env_value("CAS_RP_ID")?,
             env_value("CAS_ORIGIN")?,
@@ -55,7 +58,12 @@ impl Config {
             env_value("DATABASE_URL")?,
             env_value("CAS_ISSUER")?,
             env_value("CAS_SIGNING_KEY")?,
-        )
+        )?;
+
+        Ok(Self {
+            spa_dir: env_value("CAS_SPA_DIR")?.map(PathBuf::from),
+            ..config
+        })
     }
 
     fn from_values(
@@ -101,6 +109,7 @@ impl Config {
             database_url,
             issuer,
             signing_key,
+            spa_dir: None,
         })
     }
 }
