@@ -153,13 +153,15 @@ The `CAS-production` environment of the repository holds what the release needs:
 
 ## Docker image
 
-[`.docker/Cas_Dockerfile`](../../.docker/Cas_Dockerfile) builds the three binaries and the SPA into one image that serves both on one port, for running CAS without a Rust toolchain. It is built locally and never published: production CAS is the Worker above. The build argument `CAS_BUILD_PROFILE` selects `debug`, the default and the development variant, or `release`, which needs `CAS_SIGNING_KEY` in its environment and seeds no client. The entrypoint runs `cas-migrate`, then, in the debug image, `scripts/seed-dev.sh --if-missing`, then `cas`. See [docs/adr/0024-development-image.md](./docs/adr/0024-development-image.md).
+[`.docker/Cas_Dockerfile`](../../.docker/Cas_Dockerfile) builds the three binaries and the SPA into one distroless image that runs `cas` and serves both on one port, for running CAS without a Rust toolchain. It is built locally and never published: production CAS is the Worker above. The build argument `CAS_BUILD_PROFILE` selects `debug`, the default and the development variant, or `release`, which needs `CAS_SIGNING_KEY` in its environment and takes no chosen client secret. The image neither migrates nor seeds. See [docs/adr/0024-development-image.md](./docs/adr/0024-development-image.md).
 
-The root `docker-compose.yml` runs it under the profile `cas`, with its database in `ligretto-core-pg`, and `pnpm ligretto:start` starts it with the rest of Ligretto ([docs/ligretto.md](../../docs/ligretto.md)). The first `docker compose --profile cas up` builds it; after a change, from the monorepo root:
+[`docker-compose.yml`](./docker-compose.yml) runs the debug image under the profile `image`, against `cas-pg`: `cas-migrate`, then `cas-seed`, the `ligretto` registration of `scripts/seed-dev.sh` with `--if-missing`, then the server on `http://localhost:3000`. The seed takes its values from the monorepo's `.env.development`, so the env file is part of the command, from the monorepo root:
 
 ```
-docker compose --profile cas build cas
+docker compose --env-file .env.development -f apps/cas/docker-compose.yml --profile image up -d --wait cas
 ```
+
+`pnpm ligretto:start` runs the same command with the rest of Ligretto ([docs/ligretto.md](../../docs/ligretto.md)). The first `up` builds the image; after a change, add `--build`. Without the profile, `docker compose up` starts `cas-pg` alone.
 
 The build keeps cargo's registry and target directory in BuildKit cache mounts, shared by every checkout, and recompiles CAS's own crates whenever an input changes, so third-party crates stay cached and a rebuild never keeps an older binary. To start from nothing, drop the mounts with `docker builder prune --filter type=exec.cachemount`.
 
@@ -209,7 +211,7 @@ It registers ligretto's development URIs, `LIGRETTO_CORE_AUTH_REDIRECT_URI` and 
 
 The values are resolved with the development precedence of the loader ligretto-core-backend reads, dotenv-flow (`apps/ligretto-core-backend/src/entry/env.ts`): the process environment first, then the package's own `.env.development.local`, `.env.development`, `.env.local`, `.env`, `.env.defaults`, then the monorepo root's files in the same order. Within one directory that is CAS's own order too, but CAS reads only the monorepo root, while the backend reads its package directory first. ligretto-core-backend reads these values through that loader, so an export, or an override written in a `.env.development.local` of the package or the root, reaches the seeded row and the backend alike. Only `.env.development.local` reliably overrides a value the committed `.env.development` sets: `.env.local` sits below it.
 
-`scripts/seed-dev.sh --dry-run` prints what would be registered and runs nothing. With `APP_ENV` set to anything but `development` the script refuses to run, because `cas-client` would take `DATABASE_URL` from that environment while these values came from the development files. A second run fails with "already exists", which is the signal that the client is already there; with `--if-missing` it leaves the client as it is. `CAS_CLIENT_BIN` names a `cas-client` binary to run instead of `cargo run`, which is how the debug image seeds without a toolchain.
+`scripts/seed-dev.sh --dry-run` prints what would be registered and runs nothing. With `APP_ENV` set to anything but `development` the script refuses to run, because `cas-client` would take `DATABASE_URL` from that environment while these values came from the development files. A second run fails with "already exists", which is the signal that the client is already there.
 
 ligretto-frontend serves the post-logout origin next to a local CAS, on the port its `vite.config.ts` pins; 5173 is the CAS frontend's:
 

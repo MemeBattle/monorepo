@@ -8,9 +8,10 @@ You need Docker with Compose and Node; no Rust toolchain.
 pnpm ligretto:start
 ```
 
-It starts Postgres and a local CAS with `docker compose --profile cas`, waits until both are healthy, applies the
-ligretto-core-backend migrations, and starts the core backend, the gameplay backend and the frontend. The first run
-builds the CAS image from the working tree, which takes a few minutes.
+It starts Ligretto's Postgres from the root `docker-compose.yml` and a local CAS from `apps/cas/docker-compose.yml`
+(its own Postgres, migrations and the `ligretto` client, then the server), applies the ligretto-core-backend
+migrations, and starts the core backend, the gameplay backend and the frontend. The first run builds the CAS image
+from the working tree, which takes a few minutes.
 
 | Service                   | Address                 |
 | ------------------------- | ----------------------- |
@@ -23,24 +24,11 @@ builds the CAS image from the working tree, which takes a few minutes.
 After a change in CAS or its frontend, rebuild the image:
 
 ```
-docker compose --profile cas build cas
+docker compose --env-file .env.development -f apps/cas/docker-compose.yml --profile image up -d --wait --build cas
 ```
 
-### A database volume from before the local CAS
-
-The `pg-ligretto` volume holds Postgres 18 data and a second database, `cas`. An init script creates that database, and
-it runs on an empty volume only. A volume from before this holds an older major or the old layout, and Postgres 18
-refuses it. The fix drops the local Ligretto data:
-
-```
-docker compose down -v
-```
-
-A volume already on Postgres 18 without the `cas` database needs the SQL once:
-
-```
-docker compose exec -T ligretto-core-pg psql -U ligretto-core-user -d ligretto-core < .docker/ligretto-core-pg-cas.sql
-```
+`ligretto-core-pg` runs Postgres 18, which refuses a `pg-ligretto` volume made by an older image. `docker compose down -v`
+drops it, and the local Ligretto data with it.
 
 ### Against the production CAS
 
