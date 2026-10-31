@@ -161,8 +161,8 @@ Then allow ten minutes for certificates, and check:
 - `POST https://core-internal.ligretto.app/internal/games` with no token answers `401 invalid_internal_token`.
 - `GET https://ligretto.app/internal/games` answers the SPA's `index.html`: the path is not routed to this Worker.
 - `GET https://ligretto.app/` and a deep link such as `GET https://ligretto.app/game/some-id` answer the SPA's `index.html`.
-- `GET https://core-internal.ligretto.app/` answers `404` JSON, not the SPA. This invariant is Cloudflare configuration
-  now, so it is checked here and not by the Worker suite.
+- `GET https://core-internal.ligretto.app/` answers `404` JSON, not the SPA. This invariant is Cloudflare configuration,
+  so it is checked here and not by the Worker suite.
 - `GET https://ligretto.app/api/auth/sign-in` answers `302` to `cas.mems.fun`, or `200` with that URL. It writes to
   `auth_requests`, which proves the migrated schema through Hyperdrive.
 - `GET https://ligretto.app/openapi.json` answers the public document.

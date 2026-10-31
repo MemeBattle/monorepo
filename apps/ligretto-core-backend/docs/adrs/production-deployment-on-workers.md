@@ -44,20 +44,20 @@ group, so two runs of one release can wait for the approval at once.
   `ligretto-frontend` owns `ligretto.app/*`, this Worker owns `ligretto.app/api*`, `ligretto.app/health*` and
   `ligretto.app/openapi.json*`, and `ligretto.app/gameplay/*` is reserved for the gameplay Worker. A route pattern
   matches the query string too, so each of these ends in `*`: an exact `ligretto.app/health` would hand
-  `/health?probe=1` to the SPA, and a path such as `/healthz` reaching this Worker's 404 is the accepted cost. The routes deliver
-  `Host: ligretto.app`, so the hostname dispatch of `src/entry/worker.ts` is unchanged. The internal app keeps the Custom
-  Domain `core-internal.ligretto.app`. One Worker serving the SPA as its assets lost because every static request would run
+  `/health?probe=1` to the SPA. A path such as `/healthz` reaching this Worker's 404 is the accepted cost. The routes
+  deliver `Host: ligretto.app`, so the hostname dispatch of `src/entry/worker.ts` sends them to the public app. The
+  internal app keeps the Custom Domain `core-internal.ligretto.app`. One Worker serving the SPA as its assets lost because every static request would run
   it, and the dispatch would have to decide what is an asset. A subdomain of its own for the public app lost because it
   would only add an origin to configure. `workers.dev` is off on both, since the dispatch would refuse it anyway.
   `scripts/cloudflare-config.spec.ts` checks that every path of the committed `openapi.json` matches a route, with and
   without a query string.
-- **The frontend is an assets-only Worker.** No entrypoint, no bindings, no secrets, `not_found_handling:
-single-page-application`. Every request it receives is answered by the assets layer, never by Worker code. `cf build`
+- **The frontend is an assets-only Worker.** No entrypoint, no bindings, no secrets,
+  `notFoundHandling: 'single-page-application'`. Every request it receives is answered by the assets layer, never by Worker code. `cf build`
   delegates to `vite build` in a package that depends on vite, so its `build:worker` runs `cf-wrangler build`, the delegate
   `cf build` runs for a Wrangler project. The SPA's non-secret values are in the root `.env.production`, the file vite reads.
   Production says "same origin" by leaving `LIGRETTO_CORE_URL` unset. This Worker has no assets at all, so the internal host
-  cannot serve the SPA by construction; the activation checks of `README.md` verify it, since it is now Cloudflare
-  configuration.
+  cannot serve the SPA by construction. That is Cloudflare configuration, so the activation checks of `README.md`
+  verify it.
 - **DNS is never touched by a release.** The routes need a proxied record on `ligretto.app`; it is a placeholder created by
   hand, as the Custom Domain's record is removed and created by hand. Letting the deploy replace the record lost because
   Cloudflare refuses it (`100117`).

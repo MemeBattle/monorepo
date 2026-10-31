@@ -17,10 +17,10 @@ read_when:
 ## Context
 
 The Node entries (`src/entry/node.ts`, `migrate.ts`, `sweep.ts`) ran through `tsx`, a devDependency, in
-development and in CI. An image of them has to run them where `pnpm deploy --prod` leaves devDependencies out and a
-compile at every start is a cost for nothing ([#842](https://github.com/MemeBattle/monorepo/issues/842)). The
-package type-checks under `moduleResolution: bundler`, where extensionless relative imports are fine, but plain Node's ESM loader resolves a relative specifier only as
-written. Kysely's `FileMigrationProvider` loads the migrations with `import()` from a folder that `migrate.ts` finds
+development and in CI. An image has to run them where `pnpm deploy --prod` leaves devDependencies out and a compile
+at every start is a cost for nothing ([#842](https://github.com/MemeBattle/monorepo/issues/842)). The package
+type-checks under `moduleResolution: bundler`, where extensionless relative imports are fine, but plain Node's ESM
+loader resolves a relative specifier only as written. Kysely's `FileMigrationProvider` loads the migrations with `import()` from a folder that `migrate.ts` finds
 relative to itself, so the migrations have to ship next to the entry in whatever form `node` can import. The Worker
 is bundled by Wrangler and is not concerned (`layering-and-runtime-neutrality.md`).
 
@@ -40,8 +40,8 @@ is bundled by Wrangler and is not concerned (`layering-and-runtime-neutrality.md
   forgotten extension fails CI instead of failing at container start, and an import Node could not resolve fails
   the same way.
 - **An image of the Node entry runs `node <entry>`.** `ENTRYPOINT ["node"]`, `CMD ["build/src/entry/node.js"]`; migrate
-  and sweep run from the same image with `build/src/entry/migrate.js` or `build/src/entry/sweep.js` as the argument. `rootDir: .`
-  puts the migrations in `build/migrations`, so `migrate.ts` finds them by the same relative path
+  and sweep run from the same image with `build/src/entry/migrate.js` or `build/src/entry/sweep.js` as the argument.
+  `rootDir: .` puts the migrations in `build/migrations`, so `migrate.ts` finds them by the same relative path
   (`../../migrations`) in the source and in the build. Kysely records a migration under its name without the
   extension, so a database migrated by `tsx` in development and one migrated from the image agree on what is applied.
 - **A path resolved from `import.meta.url` holds at both depths.** A module runs from `src/` and from `build/src/`,

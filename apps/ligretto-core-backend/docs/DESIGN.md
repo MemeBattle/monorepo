@@ -176,8 +176,7 @@ under `tsx watch --conditions=development`; `pnpm dev:worker` runs `cf dev`, whi
 Development serves the SPA from vite. Nothing of this service runs inside Docker in development. `DATABASE_URL` comes
 from this package's `.env.development` (overridable in `.env.development.local`), not from the root files, which CAS
 reads for its own database; `migrate`, `db:codegen`, `sweep` and the Node entry resolve it through one loader
-(`src/entry/env.ts`, `MIGRATIONS.md`). `pnpm sweep` runs the
-sweep once against `DATABASE_URL`. `start:dev`, `sweep` and `openapi:generate` run through
+(`src/entry/env.ts`, `MIGRATIONS.md`). `pnpm sweep` runs the sweep once against `DATABASE_URL`. `start:dev`, `sweep` and `openapi:generate` run through
 `tsx --conditions=development`, which resolves `@memebattle/ligretto-auth` from source: the package's `node` export
 points at a build the tree does not hold. The development `LIGRETTO_INTERNAL_API_TOKEN` and `LIGRETTO_CAS_CLIENT_SECRET`
 come from the root `.env.development` for the Node entry and from this package's `.dev.vars` for `cf dev` and the Worker
