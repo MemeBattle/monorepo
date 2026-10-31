@@ -21,10 +21,10 @@
 //! `docs/adr/0023-dev-only-client-secret.md`.
 //!
 //! A second registration of an id fails, which is the signal that the client
-//! is there. `--if-missing` is the explicit exception, for the development
-//! image's entrypoint, which registers on every start: the client is left as
-//! it is, nothing is printed on stdout and the exit code is 0. See
-//! `docs/adr/0024-development-image.md`.
+//! is there. `--if-missing` is the explicit exception, for the seed of the
+//! development image's compose stack, which registers on every `up`: the
+//! client is left as it is, nothing is printed on stdout and the exit code is
+//! 0. See `docs/adr/0024-development-image.md`.
 
 use sqlx::postgres::PgPoolOptions;
 use thiserror::Error;
@@ -636,6 +636,26 @@ mod tests {
             assert_eq!(
                 parse_error(&["register", flag]),
                 UsageError::MissingValue(flag),
+                "{flag}"
+            );
+        }
+    }
+
+    /// An unset variable interpolates to an empty argument in the compose
+    /// seed, which must fail rather than register a client nobody can reach.
+    #[test]
+    fn an_empty_redirect_uri_is_refused() {
+        for flag in ["--redirect-uri", "--post-logout-redirect-uri"] {
+            let mut args = minimal();
+            args.extend([flag, ""]);
+
+            assert_eq!(
+                parse_error(&args),
+                UsageError::InvalidRedirectUri {
+                    flag,
+                    value: String::new(),
+                    source: RedirectUriError::NotAbsolute,
+                },
                 "{flag}"
             );
         }
