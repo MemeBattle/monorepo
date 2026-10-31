@@ -21,6 +21,7 @@
   "scripts": {
     "start:dev": "vite --host --force",
     "build": "vite build",
+    "build:worker": "vite build && cf-wrangler build --mode production",
     "ts-check": "tsc --noEmit",
     "test": "vitest",
     "test:ci": "vitest run",
@@ -62,13 +63,15 @@
     "@types/react": "catalog:",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "catalog:",
+    "cf": "catalog:",
     "jsdom": "catalog:",
     "playwright": "catalog:",
     "sass": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-svgr": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "wrangler": "catalog:"
   },
   "browserslist": {
     "production": [

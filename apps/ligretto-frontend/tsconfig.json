@@ -20,6 +20,6 @@
     "noImplicitAny": true,
     "types": ["vitest/globals"]
   },
-  "include": ["./src", "./e2e", "env.d.ts"],
+  "include": ["./src", "./e2e", "env.d.ts", "cloudflare.config.ts", "wrangler.config.ts", "cloudflare.config.spec.ts"],
   "exclude": ["public", "node_modules"]
 }

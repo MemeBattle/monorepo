@@ -36,8 +36,6 @@ export interface WorkerEnv {
   LIGRETTO_CORE_AUTH_SESSION_TRANSPORT: string
   /** A secret nothing here reads: the Worker connects only through the Hyperdrive bindings. */
   DATABASE_URL: string
-  /** The built `ligretto-frontend`, with the SPA fallback. Only the public host's branch below reads it. */
-  ASSETS: Fetcher
 }
 
 /** Which hostname reaches which app: the deployment topology of this runtime, not part of the service's `Config`. */
@@ -45,14 +43,6 @@ const hostsSchema = z.object({
   LIGRETTO_CORE_PUBLIC_HOST: z.string().min(1),
   LIGRETTO_CORE_INTERNAL_HOST: z.string().min(1),
 })
-
-/** What the public host answers from the assets: a read of a path the public app does not own. */
-const isSpaRequest = (method: string, pathname: string) =>
-  (method === 'GET' || method === 'HEAD') &&
-  pathname !== '/api' &&
-  !pathname.startsWith('/api/') &&
-  pathname !== '/health' &&
-  pathname !== '/openapi.json'
 
 const build = (env: WorkerEnv) => {
   const hosts = hostsSchema.parse(env)
@@ -107,16 +97,16 @@ const inScope = <T>(apps: ReturnType<typeof build>, env: WorkerEnv, ctx: Executi
 export default {
   /**
    * Dispatch on the hostname of the request URL, which workerd builds from the `Host` header of real traffic (the
-   * test pool's requests carry no `Host` header, only the URL).
+   * test pool's requests carry no `Host` header, only the URL). The routes of cloudflare.config.ts deliver
+   * `Host: ligretto.app` and the Custom Domain `Host: core-internal.ligretto.app`.
    */
   fetch(request, env, ctx) {
     const apps = compose(env)
-    const { hostname, pathname } = new URL(request.url)
+    const { hostname } = new URL(request.url)
     // A foreign host needs no database, but one code path is simpler than two; an unused scope opens nothing.
     return inScope(apps, env, ctx, () => {
       if (hostname === apps.publicHost) {
-        // Non-reads stay with Hono: the assets binding answers them 405, and the public app's 404 is the contract.
-        return isSpaRequest(request.method, pathname) ? env.ASSETS.fetch(request) : apps.public.fetch(request, env, ctx)
+        return apps.public.fetch(request, env, ctx)
       }
       if (hostname === apps.internalHost) {
         return apps.internal.fetch(request, env, ctx)

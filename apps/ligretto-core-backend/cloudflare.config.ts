@@ -1,6 +1,7 @@
 // The ligretto-core-backend Worker (src/entry/worker.ts), developed with `cf dev` and released with `pnpm build:worker`,
-// which builds the ligretto-frontend SPA and then runs `cf build --mode production`. Wrangler bundles the TypeScript
-// entrypoint itself; wrangler.config.ts only names the assets directory.
+// which is `cf build --mode production`. Wrangler bundles the TypeScript entrypoint itself, so there is no
+// wrangler.config.ts. The SPA is not here: it is the ligretto-frontend Worker, which shares ligretto.app with this one
+// through Workers Routes (docs/adrs/production-deployment-on-workers.md).
 //
 // The production values live only here (docs/adrs/production-deployment-on-workers.md). `mode` is 'production' for that
 // build and undefined under `cf dev` and @cloudflare/vitest-plugin, which take the development branch.
@@ -19,10 +20,15 @@ const DEV_DATABASE = 'postgres://ligretto-core-user:ligretto_pg_password@localho
 const PUBLIC_HOST = 'ligretto.app'
 const INTERNAL_HOST = 'core-internal.ligretto.app'
 
+// The paths of ligretto.app this Worker owns. They are more specific than the frontend Worker's `ligretto.app/*`, so
+// they win; `ligretto.app/gameplay/*` is reserved for the gameplay Worker. A route delivers `Host: ligretto.app`, so the
+// hostname dispatch of src/entry/worker.ts sends these requests to the public app.
+const PUBLIC_ROUTES = ['/api*', '/health', '/openapi.json'].map(path => triggers.fetch({ pattern: `${PUBLIC_HOST}${path}`, zone: PUBLIC_HOST }))
+
 const PRODUCTION = {
   LIGRETTO_CORE_PUBLIC_HOST: PUBLIC_HOST,
   LIGRETTO_CORE_INTERNAL_HOST: INTERNAL_HOST,
-  // Empty: the SPA and the API share one origin in production. The mechanism stays for the dev server.
+  // Empty: the routes put the API on the SPA's origin in production. The mechanism stays for the dev server.
   LIGRETTO_CORE_CORS_ORIGINS: '',
   CAS_ISSUER: 'https://cas.mems.fun',
   LIGRETTO_CORE_AUTH_REDIRECT_URI: `https://${PUBLIC_HOST}/api/auth/callback`,
@@ -52,24 +58,19 @@ export default defineConfig(({ mode }) => {
       compatibilityDate: '2026-08-04',
       compatibilityFlags: ['nodejs_compat'],
       entrypoint: 'src/entry/worker.ts',
-      // Every request reaches the Worker: `run_worker_first` patterns match paths, not hosts, and the internal host must
-      // never serve an asset. The Worker hands the public host's reads to `ASSETS`. The directory is in wrangler.config.ts.
-      assets: {
-        notFoundHandling: 'single-page-application',
-        runWorkerFirst: true,
-      },
       observability: {
         enabled: true,
       },
       // Production only: `cf dev` rewrites `request.url` to the first domain, and the hostname dispatch of
-      // src/entry/worker.ts would then answer every local request `unknown_host`.
-      domains: production ? [PUBLIC_HOST, INTERNAL_HOST] : [],
+      // src/entry/worker.ts would then answer every local request `unknown_host`. The public host is reached through
+      // the routes below, since a Custom Domain binds a hostname to one Worker.
+      domains: production ? [INTERNAL_HOST] : [],
       // Off everywhere: the dispatch would refuse a workers.dev hostname anyway.
       workersDev: false,
-      // Hourly, so a run has a small batch; off the hour, which is when most cron triggers fire.
-      triggers: [triggers.scheduled({ schedule: '7 * * * *' })],
+      // The cron is hourly, so a run has a small batch; off the hour, which is when most cron triggers fire. The routes
+      // are production only, like the domains.
+      triggers: [triggers.scheduled({ schedule: '7 * * * *' }), ...(production ? PUBLIC_ROUTES : [])],
       env: {
-        ASSETS: bindings.assets(),
         HYPERDRIVE_MAIN: bindings.hyperdrive({ id: HYPERDRIVE_MAIN_ID, dev: { connectionString: DEV_DATABASE } }),
         HYPERDRIVE_LOCKS: bindings.hyperdrive({ id: HYPERDRIVE_LOCKS_ID, dev: { connectionString: DEV_DATABASE } }),
         LIGRETTO_CORE_PUBLIC_HOST: bindings.text(values.LIGRETTO_CORE_PUBLIC_HOST),

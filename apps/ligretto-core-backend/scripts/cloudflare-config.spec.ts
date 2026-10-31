@@ -1,5 +1,6 @@
 // The production values of cloudflare.config.ts, evaluated the way `cf build --mode production` does, and the
 // development branch `cf dev` and the Worker suite rely on.
+import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 
 import { describe, expect, it } from 'vitest'
@@ -13,8 +14,8 @@ type Evaluated = {
     compatibilityDate: string
     domains: string[]
     workersDev: boolean
-    triggers: { type: string }[]
-    assets: unknown
+    triggers: { type: string; pattern?: string; zone?: string }[]
+    assets?: unknown
     env: Record<string, Binding>
   }
 }
@@ -27,6 +28,14 @@ const development = evaluate(undefined)
 
 const text = (worker: Evaluated['worker']) =>
   Object.fromEntries(Object.entries(worker.env).flatMap(([name, binding]) => (binding.type === 'text' ? [[name, binding.value]] : [])))
+
+const routes = (worker: Evaluated['worker']) => worker.triggers.filter(trigger => trigger.type === 'fetch')
+
+/** A route pattern's path against a request path: a trailing `*` matches any rest, otherwise the match is exact. */
+const routeMatches = (pattern: string, path: string) => {
+  const routePath = pattern.slice(pattern.indexOf('/'))
+  return routePath.endsWith('*') ? path.startsWith(routePath.slice(0, -1)) : path === routePath
+}
 
 const atLeast = (version: string, floor: number[]) => {
   const parts = version.split('.').map(Number)
@@ -52,21 +61,42 @@ describe('cloudflare.config.ts in production mode', () => {
     expect(atLeast(pg.version, [8, 16, 3]), pg.version).toBe(true)
   })
 
-  it('serves two different hostnames, both as domains', () => {
+  it('serves the internal hostname as its domain and the public one through routes', () => {
     const { LIGRETTO_CORE_PUBLIC_HOST: publicHost, LIGRETTO_CORE_INTERNAL_HOST: internalHost } = values
     expect(publicHost).toBe('ligretto.app')
     expect(internalHost).toBe('core-internal.ligretto.app')
-    expect(production.domains).toEqual(['ligretto.app', 'core-internal.ligretto.app'])
+    // A Custom Domain binds a hostname to one Worker; ligretto.app is shared with the ligretto-frontend Worker.
+    expect(production.domains).toEqual(['core-internal.ligretto.app'])
   })
 
-  it('points the auth flow at the one origin of the SPA and the API, with the cookie transport', () => {
+  it('routes only the API, /health and /openapi.json of ligretto.app to this Worker', () => {
+    expect(routes(production)).toEqual([
+      { type: 'fetch', pattern: 'ligretto.app/api*', zone: 'ligretto.app' },
+      { type: 'fetch', pattern: 'ligretto.app/health', zone: 'ligretto.app' },
+      { type: 'fetch', pattern: 'ligretto.app/openapi.json', zone: 'ligretto.app' },
+    ])
+  })
+
+  // A public route outside the patterns would reach the frontend Worker and answer the SPA.
+  it('routes every path of the committed public document', () => {
+    const document = JSON.parse(readFileSync(new URL('../openapi.json', import.meta.url), 'utf8')) as { paths: Record<string, unknown> }
+    const patterns = routes(production).map(route => route.pattern ?? '')
+    for (const path of [...Object.keys(document.paths), '/openapi.json']) {
+      expect(
+        patterns.some(pattern => routeMatches(pattern, path)),
+        path,
+      ).toBe(true)
+    }
+  })
+
+  it('points the auth flow at ligretto.app, the origin of the SPA and the API, with the cookie transport', () => {
     expect(values.LIGRETTO_CORE_AUTH_REDIRECT_URI).toBe('https://ligretto.app/api/auth/callback')
     expect(values.LIGRETTO_CORE_AUTH_APP_URL).toBe('https://ligretto.app/')
     expect(values.LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI).toBe('https://ligretto.app/')
     expect(values.LIGRETTO_CORE_AUTH_SESSION_TRANSPORT).toBe('cookie')
   })
 
-  it('allows no CORS origin, because the SPA and the API share an origin', () => {
+  it('allows no CORS origin, because the routes put the SPA and the API on one origin', () => {
     expect(loadHttpConfig(values).corsOrigins).toEqual([])
   })
 
@@ -88,13 +118,13 @@ describe('cloudflare.config.ts in production mode', () => {
 })
 
 describe('cloudflare.config.ts in both modes', () => {
-  // The Worker runs first everywhere: a path list matches no host, so it would serve the SPA on the internal host.
+  // The SPA is the ligretto-frontend Worker, so no hostname of this one can serve it.
   it.each([
     ['production', production],
     ['development', development],
-  ])('sends every request through the Worker and binds the assets in %s', (_mode, worker) => {
-    expect(worker.assets).toEqual({ notFoundHandling: 'single-page-application', runWorkerFirst: true })
-    expect(worker.env.ASSETS?.type).toBe('assets')
+  ])('declares no assets in %s', (_mode, worker) => {
+    expect(worker.assets).toBeUndefined()
+    expect(Object.values(worker.env).map(binding => binding.type)).not.toContain('assets')
   })
 
   it.each(['DATABASE_URL', 'LIGRETTO_INTERNAL_API_TOKEN', 'LIGRETTO_CAS_CLIENT_SECRET'])('declares %s as a secret', name => {
@@ -104,8 +134,9 @@ describe('cloudflare.config.ts in both modes', () => {
 })
 
 describe('cloudflare.config.ts outside production mode', () => {
-  it('keeps the local hostnames and no domain, so `cf dev` still dispatches', () => {
+  it('keeps the local hostnames and no domain or route, so `cf dev` still dispatches', () => {
     expect(development.domains).toEqual([])
+    expect(routes(development)).toEqual([])
     expect(text(development).LIGRETTO_CORE_PUBLIC_HOST).toBe('localhost')
   })
 
