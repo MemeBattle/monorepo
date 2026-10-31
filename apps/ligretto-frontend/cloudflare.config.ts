@@ -7,7 +7,7 @@
 //
 // An assets-only Worker: no entrypoint, no bindings, no secrets. Every request it receives is answered by the assets
 // layer, never by Worker code, so a static request is not an invocation. It owns the route `ligretto.app/*`; the
-// routes of ligretto-core-backend (`/api*`, `/health`, `/openapi.json`) are more specific and win, and
+// routes of ligretto-core-backend (`/api*`, `/health*`, `/openapi.json*`) are more specific and win, and
 // `ligretto.app/gameplay/*` is reserved for the gameplay Worker
 // (apps/ligretto-core-backend/docs/adrs/production-deployment-on-workers.md).
 //

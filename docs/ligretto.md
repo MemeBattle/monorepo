@@ -29,6 +29,6 @@ pnpm ligretto:front:start:dev
 ## Production
 
 Two Cloudflare Workers share `ligretto.app` through Workers Routes: `ligretto-frontend` serves the SPA on
-`ligretto.app/*`, and `ligretto-core-backend` serves `/api*`, `/health` and `/openapi.json` there and its internal app on
+`ligretto.app/*`, and `ligretto-core-backend` serves `/api*`, `/health*` and `/openapi.json*` there and its internal app on
 `core-internal.ligretto.app`. `.github/workflows/ligretto-release.yml` releases both behind one approval.
 `apps/ligretto-core-backend/README.md` holds the operational notes.

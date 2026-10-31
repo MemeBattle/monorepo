@@ -3,7 +3,7 @@ name: 'Ligretto release'
 # Ligretto is two Cloudflare Workers sharing ligretto.app through Workers Routes
 # (apps/ligretto-core-backend/README.md, docs/adrs/production-deployment-on-workers.md):
 #   - ligretto-frontend, the SPA as static assets, on the route ligretto.app/*;
-#   - ligretto-core-backend, on the routes ligretto.app/api*, ligretto.app/health and ligretto.app/openapi.json and the
+#   - ligretto-core-backend, on the routes ligretto.app/api*, ligretto.app/health* and ligretto.app/openapi.json* and the
 #     Custom Domain core-internal.ligretto.app, with its database on Neon behind two Hyperdrive configurations.
 # One release, one approval. The steps run in this order:
 #   1. cancel-stale cancels the older runs of this workflow that still wait for the approval or are queued;
@@ -49,7 +49,8 @@ permissions:
 
 jobs:
   # An environment's approval is asked for before a job enters its concurrency group, so two runs would wait for the
-  # approval at once. A run that is already in progress is never touched.
+  # approval at once. A run that is already in progress is never touched. Only runs of this run's own branch count, so
+  # a run started by hand on another branch never cancels a master run, and the other way round.
   cancel-stale:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -58,15 +59,19 @@ jobs:
       actions: write
 
     steps:
+      # `shell: bash` runs with `-eo pipefail`, and the listing is captured first, so a failed `gh run list` fails the
+      # job instead of cancelling nothing in silence.
       - name: Cancel older waiting and queued runs
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RUN_NUMBER: ${{ github.run_number }}
         run: |
           for status in waiting queued; do
-            gh run list --workflow ligretto-release.yml --status "$status" --limit 100 --json databaseId,number \
-              | jq -r --argjson current "$RUN_NUMBER" '.[] | select(.number < $current) | .databaseId' \
+            runs=$(gh run list --workflow ligretto-release.yml --branch "$GITHUB_REF_NAME" --status "$status" --limit 100 \
+              --json databaseId,number)
+            jq -r --argjson current "$RUN_NUMBER" '.[] | select(.number < $current) | .databaseId' <<< "$runs" \
               | while read -r id; do
                   echo "Cancelling run $id ($status)"
                   # The run may have moved on meanwhile.
@@ -145,16 +150,20 @@ jobs:
 
     steps:
       # A run that was still building when a newer one started escapes cancel-stale. It stops here, before the
-      # migrations, so an older commit never replaces a newer one.
+      # migrations, so an older commit never replaces a newer one. Only runs of this run's own branch count, as in
+      # cancel-stale. The check fails closed: `shell: bash` runs with `-eo pipefail` and the listing is captured first,
+      # so a failed `gh run list` stops the release instead of reading as "no newer run".
       - name: Check this run is the newest
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RUN_NUMBER: ${{ github.run_number }}
         run: |
-          newer=$(gh run list --workflow ligretto-release.yml --limit 100 --json databaseId,number,conclusion \
-            | jq -r --argjson current "$RUN_NUMBER" \
-              '[.[] | select(.number > $current and .conclusion != "cancelled")] | first | .databaseId // empty')
+          runs=$(gh run list --workflow ligretto-release.yml --branch "$GITHUB_REF_NAME" --limit 100 \
+            --json databaseId,number,conclusion)
+          newer=$(jq -r --argjson current "$RUN_NUMBER" \
+            '[.[] | select(.number > $current and .conclusion != "cancelled")] | first | .databaseId // empty' <<< "$runs")
           if [ -n "$newer" ]; then
             echo "::error::superseded by run $newer"
             exit 1
@@ -187,13 +196,15 @@ jobs:
 
       # The deploy token is a Workers Editor and cannot create a Worker, so the first activation creates it by hand.
       # Checked before the migrations: a missing Worker would otherwise fail after the core had attached its routes.
+      # Any failure of the lookup stops here, a missing Worker or not, so the message names both and points at the
+      # creation recipe only for the first release: run after it, that recipe replaces the live SPA.
       - name: Check the frontend Worker exists
         working-directory: apps/ligretto-frontend
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           if ! pnpm exec cf workers get ligretto-frontend > /dev/null; then
-            echo "::error::the ligretto-frontend Worker does not exist: create it first (apps/ligretto-core-backend/README.md, First activation)"
+            echo "::error::could not read the ligretto-frontend Worker (see the cf output above). If this is the first release, it may not exist yet: create it (apps/ligretto-core-backend/README.md, First activation, before the first release only)"
             exit 1
           fi
 

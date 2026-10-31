@@ -21,9 +21,10 @@ const PUBLIC_HOST = 'ligretto.app'
 const INTERNAL_HOST = 'core-internal.ligretto.app'
 
 // The paths of ligretto.app this Worker owns. They are more specific than the frontend Worker's `ligretto.app/*`, so
-// they win; `ligretto.app/gameplay/*` is reserved for the gameplay Worker. A route delivers `Host: ligretto.app`, so the
-// hostname dispatch of src/entry/worker.ts sends these requests to the public app.
-const PUBLIC_ROUTES = ['/api*', '/health', '/openapi.json'].map(path => triggers.fetch({ pattern: `${PUBLIC_HOST}${path}`, zone: PUBLIC_HOST }))
+// they win; `ligretto.app/gameplay/*` is reserved for the gameplay Worker. A route pattern matches the query string
+// too, so each one ends in `*`: an exact `ligretto.app/health` would send `/health?probe=1` to the SPA. A route
+// delivers `Host: ligretto.app`, so the hostname dispatch of src/entry/worker.ts sends these requests to the public app.
+const PUBLIC_ROUTES = ['/api*', '/health*', '/openapi.json*'].map(path => triggers.fetch({ pattern: `${PUBLIC_HOST}${path}`, zone: PUBLIC_HOST }))
 
 const PRODUCTION = {
   LIGRETTO_CORE_PUBLIC_HOST: PUBLIC_HOST,

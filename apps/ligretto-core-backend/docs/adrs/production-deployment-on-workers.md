@@ -2,7 +2,7 @@
 title: Production deployment on Workers
 description: >-
   Ligretto is separate Workers sharing ligretto.app through Workers Routes: the assets-only ligretto-frontend on
-  ligretto.app/*, this service on ligretto.app/api*, /health and /openapi.json and on the Custom Domain
+  ligretto.app/*, this service on ligretto.app/api*, /health* and /openapi.json* and on the Custom Domain
   core-internal.ligretto.app; ligretto.app/gameplay/* is reserved for the gameplay Worker. Its production values are in
   the `production` mode of cloudflare.config.ts. One release workflow builds both Workers with no secrets, then behind
   one approval checks, migrates over the direct connection, uploads the core, then the frontend, then the source maps.
@@ -41,13 +41,16 @@ group, so two runs of one release can wait for the approval at once.
   because two files drift. The frontend Worker follows the same rule in its own `cloudflare.config.ts`.
 - **Separate Workers on `ligretto.app`, through routes.** The SPA and the public app share one origin, `ligretto.app`, which
   keeps the cookie transport first-party and leaves production with no CORS origin. Each is its own Worker:
-  `ligretto-frontend` owns `ligretto.app/*`, this Worker owns `ligretto.app/api*`, `ligretto.app/health` and
-  `ligretto.app/openapi.json`, and `ligretto.app/gameplay/*` is reserved for the gameplay Worker. The routes deliver
+  `ligretto-frontend` owns `ligretto.app/*`, this Worker owns `ligretto.app/api*`, `ligretto.app/health*` and
+  `ligretto.app/openapi.json*`, and `ligretto.app/gameplay/*` is reserved for the gameplay Worker. A route pattern
+  matches the query string too, so each of these ends in `*`: an exact `ligretto.app/health` would hand
+  `/health?probe=1` to the SPA, and a path such as `/healthz` reaching this Worker's 404 is the accepted cost. The routes deliver
   `Host: ligretto.app`, so the hostname dispatch of `src/entry/worker.ts` is unchanged. The internal app keeps the Custom
   Domain `core-internal.ligretto.app`. One Worker serving the SPA as its assets lost because every static request would run
   it, and the dispatch would have to decide what is an asset. A subdomain of its own for the public app lost because it
   would only add an origin to configure. `workers.dev` is off on both, since the dispatch would refuse it anyway.
-  `scripts/cloudflare-config.spec.ts` checks that every path of the committed `openapi.json` matches a route.
+  `scripts/cloudflare-config.spec.ts` checks that every path of the committed `openapi.json` matches a route, with and
+  without a query string.
 - **The frontend is an assets-only Worker.** No entrypoint, no bindings, no secrets, `not_found_handling:
 single-page-application`. Every request it receives is answered by the assets layer, never by Worker code. `cf build`
   delegates to `vite build` in a package that depends on vite, so its `build:worker` runs `cf-wrangler build`, the delegate
@@ -69,7 +72,9 @@ single-page-application`. Every request it receives is answered by the assets la
 - **Stale runs never release.** The first job of the workflow cancels every older run that is `waiting` or `queued`, never
   one that is in progress. The release job then fails with `superseded by run <id>` when a newer run that is not cancelled
   exists, before the migrations; that catches a run that was still building when the newer one started. Run numbers order
-  the runs, because they increase per workflow.
+  the runs, because they increase per workflow. Both look only at runs of the run's own branch, so a run started by hand
+  on another branch neither cancels nor supersedes a `master` release. Both fail when the run listing fails: a check that
+  read a failed listing as "no newer run" would let an older commit release.
 - **The source map upload runs in the release job, after the uploads, from the frontend artefact.** It needs
   `SENTRY_AUTH_TOKEN`, so it cannot run in the build, and "build with no secrets" holds. It may fail without failing the
   release. The maps carry no debug ID, so it matches by release and URL prefix. Injecting debug IDs afterwards lost because

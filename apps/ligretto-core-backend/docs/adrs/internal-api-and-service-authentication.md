@@ -29,7 +29,7 @@ guest's. The previous service exposed these routes publicly without authenticati
   server and the network (ingress, service mesh) keeps the internal paths off the public hostname. On Workers the
   `fetch` handler dispatches on the `Host` header: the public hostname reaches the public app, the internal
   hostname reaches the internal app, and any other hostname is a 404. The internal app is unreachable on the public
-  hostname: only `/api*`, `/health` and `/openapi.json` of `ligretto.app` are routed to this Worker, so `/internal`
+  hostname: only `/api*`, `/health*` and `/openapi.json*` of `ligretto.app` are routed to this Worker, so `/internal`
   there reaches the frontend Worker and answers the SPA, and the dispatch would send anything else on that host to the
   public app's 404.
   A named `WorkerEntrypoint` additionally exposes the internal app to service bindings for callers that are
@@ -64,5 +64,5 @@ upd (2026-10-30): the internal hostname is `core-internal.ligretto.app`; `README
 upd (2026-10-30): the public hostname also serves the SPA, so a read of `/internal` there answers the SPA; the internal
 app stays unreachable on it ([#865](https://github.com/MemeBattle/monorepo/issues/865)).
 
-upd (2026-10-31): the SPA is its own Worker, and only `/api*`, `/health` and `/openapi.json` of the public hostname are
+upd (2026-10-31): the SPA is its own Worker, and only `/api*`, `/health*` and `/openapi.json*` of the public hostname are
 routed to this one; the internal app stays unreachable on it ([#870](https://github.com/MemeBattle/monorepo/issues/870)).

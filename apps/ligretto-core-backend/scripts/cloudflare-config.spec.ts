@@ -31,10 +31,13 @@ const text = (worker: Evaluated['worker']) =>
 
 const routes = (worker: Evaluated['worker']) => worker.triggers.filter(trigger => trigger.type === 'fetch')
 
-/** A route pattern's path against a request path: a trailing `*` matches any rest, otherwise the match is exact. */
-const routeMatches = (pattern: string, path: string) => {
+/**
+ * A route pattern's path against a request's path and query string, as Cloudflare matches it: the pattern sees the
+ * whole URL, query included, a trailing `*` matches any rest, and otherwise the match is exact.
+ */
+const routeMatches = (pattern: string, pathAndQuery: string) => {
   const routePath = pattern.slice(pattern.indexOf('/'))
-  return routePath.endsWith('*') ? path.startsWith(routePath.slice(0, -1)) : path === routePath
+  return routePath.endsWith('*') ? pathAndQuery.startsWith(routePath.slice(0, -1)) : pathAndQuery === routePath
 }
 
 const atLeast = (version: string, floor: number[]) => {
@@ -72,20 +75,23 @@ describe('cloudflare.config.ts in production mode', () => {
   it('routes only the API, /health and /openapi.json of ligretto.app to this Worker', () => {
     expect(routes(production)).toEqual([
       { type: 'fetch', pattern: 'ligretto.app/api*', zone: 'ligretto.app' },
-      { type: 'fetch', pattern: 'ligretto.app/health', zone: 'ligretto.app' },
-      { type: 'fetch', pattern: 'ligretto.app/openapi.json', zone: 'ligretto.app' },
+      { type: 'fetch', pattern: 'ligretto.app/health*', zone: 'ligretto.app' },
+      { type: 'fetch', pattern: 'ligretto.app/openapi.json*', zone: 'ligretto.app' },
     ])
   })
 
-  // A public route outside the patterns would reach the frontend Worker and answer the SPA.
-  it('routes every path of the committed public document', () => {
+  // A public route outside the patterns would reach the frontend Worker and answer the SPA. A pattern matches the query
+  // string too, so each path is also checked with one: an exact pattern would hand `/health?probe=1` to the SPA.
+  it('routes every path of the committed public document, with and without a query string', () => {
     const document = JSON.parse(readFileSync(new URL('../openapi.json', import.meta.url), 'utf8')) as { paths: Record<string, unknown> }
     const patterns = routes(production).map(route => route.pattern ?? '')
     for (const path of [...Object.keys(document.paths), '/openapi.json']) {
-      expect(
-        patterns.some(pattern => routeMatches(pattern, path)),
-        path,
-      ).toBe(true)
+      for (const request of [path, `${path}?probe=1`]) {
+        expect(
+          patterns.some(pattern => routeMatches(pattern, request)),
+          request,
+        ).toBe(true)
+      }
     }
   })
 

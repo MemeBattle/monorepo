@@ -187,8 +187,8 @@ rest of ligretto.
 ## Deployment
 
 Cloudflare Workers, the way CAS is deployed (`apps/cas/cloudflare.config.ts`, `cas-deploy.yml`). Ligretto is separate
-Workers sharing `ligretto.app` through Workers Routes: this one owns `ligretto.app/api*`, `ligretto.app/health` and
-`ligretto.app/openapi.json`, the assets-only `ligretto-frontend` owns `ligretto.app/*`, and `ligretto.app/gameplay/*` is
+Workers sharing `ligretto.app` through Workers Routes: this one owns `ligretto.app/api*`, `ligretto.app/health*` and
+`ligretto.app/openapi.json*`, the assets-only `ligretto-frontend` owns `ligretto.app/*`, and `ligretto.app/gameplay/*` is
 reserved for the gameplay Worker. The routes deliver `Host: ligretto.app`, which the dispatch hands to the public app.
 The session cookie is first-party and production allows no CORS origin. The internal app answers on the Custom Domain
 `core-internal.ligretto.app`, since the gameplay backend is not a Worker and cannot use a service binding; the shared
