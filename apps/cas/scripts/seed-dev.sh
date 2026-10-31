@@ -4,19 +4,14 @@
 # migration: a migration runs everywhere, and a known secret must not reach
 # production (docs/adr/0008-oidc-clients-registry.md).
 #
-# Usage: scripts/seed-dev.sh              (reads DATABASE_URL exactly like the app)
-#        scripts/seed-dev.sh --dry-run    (prints the resolved arguments, runs nothing)
-#        scripts/seed-dev.sh --if-missing (leaves a client that exists as it is)
+# Usage: scripts/seed-dev.sh             (reads DATABASE_URL exactly like the app)
+#        scripts/seed-dev.sh --dry-run   (prints the resolved arguments, runs nothing)
 #
 # Development only: it refuses to run with `APP_ENV` set to anything else.
 #
 # Not idempotent on purpose: a second run fails with "already exists", which
 # is the signal that the client is there. There is no update path until the
 # admin panel; re-register under another id, or reset the dev database.
-# `--if-missing` is the explicit exception, for the entrypoint of the
-# development image, which runs this script on every start. That image has no
-# Rust toolchain, so `CAS_CLIENT_BIN` names the binary to run instead of
-# `cargo run` (docs/adr/0024-development-image.md).
 #
 # The secret is the stable development one from the monorepo's
 # `.env.development`, passed with `--secret`, a flag that exists in
@@ -39,21 +34,19 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 usage() {
-  echo "usage: scripts/seed-dev.sh [--dry-run] [--if-missing]" >&2
+  echo "usage: scripts/seed-dev.sh [--dry-run]" >&2
   exit 2
 }
 
 # An extra or unknown argument is refused rather than ignored, so --dry-run
 # prints what a real run would register.
 dry_run=false
-if_missing=false
-for arg in "$@"; do
-  case "$arg" in
-  --dry-run) dry_run=true ;;
-  --if-missing) if_missing=true ;;
-  *) usage ;;
-  esac
-done
+[ "$#" -le 1 ] || usage
+case "${1-}" in
+"") ;;
+--dry-run) dry_run=true ;;
+*) usage ;;
+esac
 
 # Seeding is for the development environment alone. The cas-client below
 # selects its own .env files from APP_ENV (src/config/native.rs::load_env_files)
@@ -132,17 +125,10 @@ args=(
   --audience ligretto
   --secret "$client_secret"
 )
-if [ "$if_missing" = true ]; then
-  args+=(--if-missing)
-fi
 
 if [ "$dry_run" = true ]; then
   printf '%s\n' "${args[@]}"
   exit 0
 fi
 
-if [ -n "${CAS_CLIENT_BIN-}" ]; then
-  "$CAS_CLIENT_BIN" "${args[@]}"
-else
-  cargo run -p cas --bin cas-client -- "${args[@]}"
-fi
+cargo run -p cas --bin cas-client -- "${args[@]}"

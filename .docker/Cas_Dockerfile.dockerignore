@@ -8,6 +8,5 @@
 !pnpm-lock.yaml
 !pnpm-workspace.yaml
 !tsconfig.json
-!.docker/Cas_entrypoint.sh
 **/node_modules
 **/dist

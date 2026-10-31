@@ -62,23 +62,12 @@ RUN --mount=type=cache,id=cas-cargo-registry,target=/usr/local/cargo/registry \
     && mkdir /out \
     && cp target/"$CAS_BUILD_PROFILE"/cas target/"$CAS_BUILD_PROFILE"/cas-migrate target/"$CAS_BUILD_PROFILE"/cas-client /out/
 
-FROM debian:trixie-slim AS runtime
-
-ARG CAS_BUILD_PROFILE=debug
-
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+FROM gcr.io/distroless/cc-debian13:nonroot
 
 COPY --from=rust-build /out/ /usr/local/bin/
 COPY --from=frontend-build /memebattle/apps/cas-frontend/dist /srv/cas-frontend
-COPY apps/cas/scripts/seed-dev.sh /opt/cas/scripts/seed-dev.sh
-COPY .docker/Cas_entrypoint.sh /usr/local/bin/cas-entrypoint
-
-# Only a debug build can take a chosen secret (ADR 0023): the release image has no seed.
-RUN if [ "$CAS_BUILD_PROFILE" = release ]; then rm /opt/cas/scripts/seed-dev.sh; fi
 
 ENV CAS_SPA_DIR=/srv/cas-frontend
-ENV CAS_CLIENT_BIN=/usr/local/bin/cas-client
 
-USER nobody
 EXPOSE 3000
-ENTRYPOINT [ "cas-entrypoint" ]
+CMD ["cas"]
