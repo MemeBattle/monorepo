@@ -13,13 +13,16 @@ CI does not pin a version of its own: `.github/actions/prepare-nodejs` uses
 `node-version-file: 'package.json'`, so bumping `engines.node` moves every workflow.
 
 `@types/node` follows the Node.js **major** but has its own minor/patch cadence — the two
-versions are never expected to match exactly (Node.js 24.18.0 ships with `@types/node` 24.13.3).
+versions are never expected to match exactly (Node.js 26.13.0 ships with `@types/node` 26.6.5).
+
+Node.js images no longer ship Corepack, so the Dockerfiles install it from npm at a pinned version
+before `corepack enable`. Corepack then takes pnpm from `packageManager` in `package.json`.
 
 ## Automated update
 
 ```sh
 pnpm node:update                     # latest LTS of the current major
-pnpm node:update --version 24.18.0   # an exact release
+pnpm node:update --version 26.13.0   # an exact release
 pnpm node:update --latest-lts        # allow moving to a newer major, once it is LTS
 pnpm node:update --no-types          # leave @types/node alone
 pnpm node:update:check               # report only, exits 1 when a newer release exists
@@ -27,7 +30,9 @@ pnpm node:update:check               # report only, exits 1 when a newer release
 
 The script reads the release list from https://nodejs.org/dist/index.json and the npm registry,
 then rewrites all four sources of truth at once. It never picks a non-LTS release on its own —
-pass `--version` explicitly if you need a Current-line build.
+pass `--version` explicitly if you need a Current-line build. For `@types/node` it takes the newest
+release of the major that has cleared `minimumReleaseAge` from `pnpm-workspace.yaml`, because
+`pnpm install` refuses anything younger.
 
 Because the catalog changed, refresh the lockfile afterwards:
 
@@ -65,17 +70,18 @@ check that never runs would block the merge forever.
 
 If you would rather do it by hand, change the same four places:
 
-1. `package.json` — `devEngines.runtime.version` `"24.18.0"` (full `x.y.z`)
-2. `package.json` — `"node": ">=24.18"` (`x.y`, no patch)
-3. every `.docker/*_Dockerfile` — `FROM node:24.18-trixie-slim`, in **both** the
+1. `package.json` — `devEngines.runtime.version` `"26.13.0"` (full `x.y.z`)
+2. `package.json` — `"node": ">=26.13"` (`x.y`, no patch)
+3. every `.docker/*_Dockerfile` — `FROM node:26.13-trixie-slim`, in **both** the
    `dependencies` and the `runtime` stage
-4. `pnpm-workspace.yaml` — `'@types/node': 24.13.3`, on the same major, then
+4. `pnpm-workspace.yaml` — `'@types/node': 26.6.5`, on the same major and older than
+   `minimumReleaseAge`, then
    `pnpm install --no-frozen-lockfile`
 
 Check that the Docker tag actually exists before committing:
 
 ```sh
-docker manifest inspect node:24.18-trixie-slim > /dev/null && echo ok
+docker manifest inspect node:26.13-trixie-slim > /dev/null && echo ok
 ```
 
 ## Checklist after the bump
