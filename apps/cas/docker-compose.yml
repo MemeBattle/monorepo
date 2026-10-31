@@ -10,6 +10,83 @@ services:
       POSTGRES_DB: cas
     volumes:
       - pg-cas:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U cas -d cas']
+      interval: 1s
+      timeout: 5s
+      retries: 30
+
+  cas-migrate:
+    profiles: [image]
+    image: memebattle/cas:dev
+    pull_policy: never
+    build:
+      context: ../..
+      dockerfile: .docker/Cas_Dockerfile
+      args:
+        CAS_BUILD_PROFILE: debug
+    command: [cas-migrate]
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgres://cas:cas@cas-pg:5432/cas
+    depends_on:
+      cas-pg:
+        condition: service_healthy
+
+  cas-seed:
+    profiles: [image]
+    image: memebattle/cas:dev
+    pull_policy: never
+    command:
+      - cas-client
+      - register
+      - --id
+      - ligretto
+      - --name
+      - Ligretto
+      - --kind
+      - confidential
+      - --redirect-uri
+      - ${LIGRETTO_CORE_AUTH_REDIRECT_URI:-}
+      - --post-logout-redirect-uri
+      - ${LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI:-}
+      - --first-party
+      - --guest-login-allowed
+      - --scope
+      - openid
+      - --scope
+      - profile
+      - --scope
+      - email
+      - --audience
+      - ligretto
+      - --secret
+      - ${LIGRETTO_CAS_CLIENT_SECRET:-}
+      - --if-missing
+    environment:
+      DATABASE_URL: postgres://cas:cas@cas-pg:5432/cas
+    depends_on:
+      cas-migrate:
+        condition: service_completed_successfully
+
+  cas:
+    profiles: [image]
+    image: memebattle/cas:dev
+    pull_policy: never
+    # cas installs no signal handler, so as PID 1 it would ignore SIGTERM and every stop would end in a SIGKILL.
+    init: true
+    ports:
+      - 3000:3000
+    environment:
+      CAS_ISSUER: http://localhost:3000
+      CAS_ORIGIN: http://localhost:3000
+      CAS_CORS_ORIGINS: http://localhost:3000
+      CAS_RP_ID: localhost
+      CAS_PORT: 3000
+      DATABASE_URL: postgres://cas:cas@cas-pg:5432/cas
+    depends_on:
+      cas-seed:
+        condition: service_completed_successfully
 
 volumes:
   pg-cas: {}

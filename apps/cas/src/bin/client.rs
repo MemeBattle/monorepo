@@ -19,6 +19,12 @@
 //! printed value. A release build refuses the flag by name, where a chosen
 //! secret has no constructor at all. See
 //! `docs/adr/0023-dev-only-client-secret.md`.
+//!
+//! A second registration of an id fails, which is the signal that the client
+//! is there. `--if-missing` is the explicit exception, for the seed of the
+//! development image's compose stack, which registers on every `up`: the
+//! client is left as it is, nothing is printed on stdout and the exit code is
+//! 0. See `docs/adr/0024-development-image.md`.
 
 use sqlx::postgres::PgPoolOptions;
 use thiserror::Error;
@@ -44,7 +50,7 @@ cas-client register --id <client_id> --name <name> --kind <public|confidential>
                     [--first-party]
                     [--guest-login-allowed [--guest-grants-per-minute <n>]]
                     [--scope <scope>]... [--audience <resource>]
-                    [--secret <value>]
+                    [--secret <value>] [--if-missing]
 
 Registers an OIDC client. --scope defaults to 'openid', --audience to the
 client id, --guest-grants-per-minute to 60. A confidential client's secret
@@ -52,7 +58,10 @@ is printed once and cannot be shown again.
 
 --secret sets that secret instead of drawing one, for a known value in a
 development database (scripts/seed-dev.sh). It exists in development builds
-only; a release build refuses it.";
+only; a release build refuses it.
+
+--if-missing leaves a client that already has this id as it is and exits 0,
+whatever its registered values are, instead of failing.";
 
 /// Exit code for a command line that could not be understood, so a script can
 /// tell it apart from a registration that was refused.
@@ -62,7 +71,10 @@ const USAGE_EXIT_CODE: i32 = 2;
 /// owns the rest of the lifecycle.
 #[derive(Debug)]
 enum Command {
-    Register(Box<Registration>),
+    Register {
+        registration: Box<Registration>,
+        if_missing: bool,
+    },
 }
 
 /// Why a command line could not be turned into a [`Command`]. Every variant
@@ -134,7 +146,7 @@ enum UsageError {
     SecretIsDevelopmentOnly,
 }
 
-/// Parses the command line by hand: one subcommand and ten flags is less
+/// Parses the command line by hand: one subcommand and a list of flags is less
 /// code than a dependency, and keeps this binary the size of `migrate.rs`.
 fn parse(args: impl Iterator<Item = String>) -> Result<Command, UsageError> {
     let mut args = args;
@@ -155,6 +167,7 @@ fn parse(args: impl Iterator<Item = String>) -> Result<Command, UsageError> {
     let mut scopes = Vec::new();
     let mut audience = None;
     let mut secret = None;
+    let mut if_missing = false;
 
     while let Some(flag) = args.next() {
         match flag.as_str() {
@@ -201,6 +214,7 @@ fn parse(args: impl Iterator<Item = String>) -> Result<Command, UsageError> {
             "--secret" => {
                 secret = Some(secret_value(&mut args)?);
             }
+            "--if-missing" => if_missing = true,
             other => return Err(UsageError::UnknownFlag(other.to_owned())),
         }
     }
@@ -218,19 +232,22 @@ fn parse(args: impl Iterator<Item = String>) -> Result<Command, UsageError> {
         return Err(UsageError::SecretNeedsConfidentialKind);
     }
 
-    Ok(Command::Register(Box::new(Registration {
-        id: id.ok_or(UsageError::MissingFlag("--id"))?,
-        name: name.ok_or(UsageError::MissingFlag("--name"))?,
-        kind: kind.ok_or(UsageError::MissingFlag("--kind"))?,
-        redirect_uris,
-        post_logout_redirect_uris,
-        first_party,
-        guest_login_allowed,
-        guest_grants_per_minute,
-        scopes,
-        audience,
-        secret,
-    })))
+    Ok(Command::Register {
+        registration: Box::new(Registration {
+            id: id.ok_or(UsageError::MissingFlag("--id"))?,
+            name: name.ok_or(UsageError::MissingFlag("--name"))?,
+            kind: kind.ok_or(UsageError::MissingFlag("--kind"))?,
+            redirect_uris,
+            post_logout_redirect_uris,
+            first_party,
+            guest_login_allowed,
+            guest_grants_per_minute,
+            scopes,
+            audience,
+            secret,
+        }),
+        if_missing,
+    })
 }
 
 /// The value of `--secret`, as a chosen [`ClientSecret`]. Two bodies rather
@@ -312,7 +329,10 @@ async fn main() -> miette::Result<()> {
 }
 
 async fn run(command: Command) -> Result<(), ClientCliError> {
-    let Command::Register(registration) = command;
+    let Command::Register {
+        registration,
+        if_missing,
+    } = command;
 
     load_env_files();
 
@@ -336,7 +356,10 @@ async fn run(command: Command) -> Result<(), ClientCliError> {
         .await
         .map_err(ClientCliError::Connect)?;
 
-    let registered = register(&pool, *registration).await?;
+    let Some(registered) = tolerate_existing(register(&pool, *registration).await, if_missing)?
+    else {
+        return Ok(());
+    };
 
     println!("client_id: {}", registered.client.id);
     println!("kind: {}", registered.client.kind.as_str());
@@ -349,6 +372,22 @@ async fn run(command: Command) -> Result<(), ClientCliError> {
     Ok(())
 }
 
+/// With `--if-missing`, a taken id is `None`, logged at `info` on stderr,
+/// instead of an error. Every other outcome passes through.
+fn tolerate_existing<T>(
+    result: Result<T, RegisterError>,
+    if_missing: bool,
+) -> Result<Option<T>, RegisterError> {
+    match result {
+        Ok(registered) => Ok(Some(registered)),
+        Err(RegisterError::AlreadyExists(id)) if if_missing => {
+            tracing::info!(client_id = %id, "the client already exists, left as it is");
+            Ok(None)
+        }
+        Err(error) => Err(error),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -356,9 +395,15 @@ mod tests {
 
     fn parse_args(args: &[&str]) -> Result<Registration, UsageError> {
         parse(args.iter().map(|arg| (*arg).to_owned())).map(|command| {
-            let Command::Register(registration) = command;
+            let Command::Register { registration, .. } = command;
             *registration
         })
+    }
+
+    fn if_missing(args: &[&str]) -> bool {
+        let command = parse(args.iter().map(|arg| (*arg).to_owned())).unwrap();
+        let Command::Register { if_missing, .. } = command;
+        if_missing
     }
 
     /// `Registration` is not `PartialEq` — it holds no answer worth comparing
@@ -459,6 +504,52 @@ mod tests {
         assert!(registration.scopes.is_empty());
         assert!(registration.audience.is_none());
         assert!(registration.secret.is_none());
+        assert!(!if_missing(&minimal()));
+    }
+
+    #[test]
+    fn parses_if_missing() {
+        let mut args = minimal();
+        args.push("--if-missing");
+
+        assert!(if_missing(&args));
+    }
+
+    fn taken() -> RegisterError {
+        RegisterError::AlreadyExists(ClientId::try_new("ligretto".to_owned()).unwrap())
+    }
+
+    #[test]
+    fn a_taken_id_is_tolerated_with_if_missing() {
+        assert!(matches!(
+            tolerate_existing::<()>(Err(taken()), true),
+            Ok(None)
+        ));
+    }
+
+    #[test]
+    fn a_taken_id_stays_an_error_without_if_missing() {
+        assert!(matches!(
+            tolerate_existing::<()>(Err(taken()), false),
+            Err(RegisterError::AlreadyExists(_))
+        ));
+    }
+
+    #[test]
+    fn a_registration_passes_through_either_way() {
+        for if_missing in [true, false] {
+            assert!(matches!(tolerate_existing(Ok(7), if_missing), Ok(Some(7))));
+        }
+    }
+
+    #[test]
+    fn another_error_stays_an_error_either_way() {
+        for if_missing in [true, false] {
+            assert!(matches!(
+                tolerate_existing::<()>(Err(RegisterError::SecretForPublicClient), if_missing),
+                Err(RegisterError::SecretForPublicClient)
+            ));
+        }
     }
 
     #[test]
@@ -545,6 +636,26 @@ mod tests {
             assert_eq!(
                 parse_error(&["register", flag]),
                 UsageError::MissingValue(flag),
+                "{flag}"
+            );
+        }
+    }
+
+    /// An unset variable interpolates to an empty argument in the compose
+    /// seed, which must fail rather than register a client nobody can reach.
+    #[test]
+    fn an_empty_redirect_uri_is_refused() {
+        for flag in ["--redirect-uri", "--post-logout-redirect-uri"] {
+            let mut args = minimal();
+            args.extend([flag, ""]);
+
+            assert_eq!(
+                parse_error(&args),
+                UsageError::InvalidRedirectUri {
+                    flag,
+                    value: String::new(),
+                    source: RedirectUriError::NotAbsolute,
+                },
                 "{flag}"
             );
         }

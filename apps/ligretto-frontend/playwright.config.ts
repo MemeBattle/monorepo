@@ -38,7 +38,7 @@ const config = defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    baseURL: process.env.LIGRETTO_APP_URL || 'http://localhost:5173',
+    baseURL: process.env.LIGRETTO_APP_URL || 'http://localhost:5174',
     testIdAttribute: 'data-test-id',
   },
 
@@ -50,7 +50,7 @@ const config = defineConfig({
    */
   webServer: {
     command: 'pnpm start:dev',
-    url: process.env.LIGRETTO_APP_URL || 'http://localhost:5173',
+    url: process.env.LIGRETTO_APP_URL || 'http://localhost:5174',
     reuseExistingServer: true,
     timeout: 120 * 1000,
   },
