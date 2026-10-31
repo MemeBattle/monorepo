@@ -161,7 +161,7 @@ The root `docker-compose.yml` runs it under the profile `cas`, with its database
 docker compose --profile cas build cas
 ```
 
-The build keeps cargo's registry and target directory in BuildKit cache mounts. Should a rebuild ever look stale, drop them with `docker builder prune --filter type=exec.cachemount`.
+The build keeps cargo's registry and target directory in BuildKit cache mounts, shared by every checkout, and recompiles CAS's own crates whenever an input changes, so third-party crates stay cached and a rebuild never keeps an older binary. To start from nothing, drop the mounts with `docker builder prune --filter type=exec.cachemount`.
 
 ## OIDC clients
 

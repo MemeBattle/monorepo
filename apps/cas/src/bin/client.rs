@@ -146,7 +146,7 @@ enum UsageError {
     SecretIsDevelopmentOnly,
 }
 
-/// Parses the command line by hand: one subcommand and eleven flags is less
+/// Parses the command line by hand: one subcommand and a list of flags is less
 /// code than a dependency, and keeps this binary the size of `migrate.rs`.
 fn parse(args: impl Iterator<Item = String>) -> Result<Command, UsageError> {
     let mut args = args;

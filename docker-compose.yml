@@ -26,6 +26,8 @@ services:
       dockerfile: .docker/Cas_Dockerfile
       args:
         CAS_BUILD_PROFILE: debug
+    # cas installs no signal handler, so as PID 1 it would ignore SIGTERM and every stop would end in a SIGKILL.
+    init: true
     depends_on:
       ligretto-core-pg:
         condition: service_healthy
