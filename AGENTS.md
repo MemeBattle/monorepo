@@ -1,6 +1,6 @@
 # memebattle
 
-pnpm monorepo: apps in `apps/*`, shared packages in `packages/*`. Per-app instructions live in the app's own `AGENTS.md` (e.g. `apps/ligretto-frontend/AGENTS.md`).
+pnpm monorepo: apps in `apps/*`, shared packages in `packages/*`.
 
 ## Commands
 
@@ -13,4 +13,4 @@ From the repo root:
 
 ## Conventions
 
-- Code comments and agent docs — English only.
+[docs/guidelines.md](./docs/guidelines.md) applies to every package: language, when to write a code comment, what gets a unit test.
