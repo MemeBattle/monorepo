@@ -1,6 +1,6 @@
 # memebattle
 
-pnpm monorepo: apps in `apps/*`, shared packages in `packages/*`. Per-app instructions live in the app's own `AGENTS.md` (e.g. `apps/ligretto-frontend/AGENTS.md`).
+pnpm monorepo: apps in `apps/*`, shared packages in `packages/*`.
 
 ## Commands
 
