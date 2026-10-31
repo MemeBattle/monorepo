@@ -13,4 +13,4 @@ From the repo root:
 
 ## Conventions
 
-- Code comments and agent docs — English only.
+[docs/guidelines.md](./docs/guidelines.md) applies to every package: language, when to write a code comment, what gets a unit test.
