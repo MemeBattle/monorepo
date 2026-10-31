@@ -69,9 +69,7 @@ group, so two runs of one release can wait for the approval at once.
   the run id, one version for both Workers.
 - **One release at a time, through `concurrency` alone.** The release job's `concurrency` group runs one release at a
   time and never cancels a running one, which may be halfway through its migrations. Runs waiting for the approval stay
-  until approved, rejected or failed by GitHub after 30 days, so the owner approves the newest run. Cancelling older
-  waiting runs with `gh run cancel` lost because the owner prefers approving the right run to a job that lists and cancels
-  runs.
+  until approved, rejected or failed by GitHub after 30 days, so the owner approves the newest run.
 - **The source map upload runs in the release job, after the uploads, from the frontend artefact.** It needs
   `SENTRY_AUTH_TOKEN`, so it cannot run in the build, and "build with no secrets" holds. It may fail without failing the
   release. The maps carry no debug ID, so it matches by release and URL prefix. Injecting debug IDs afterwards lost because
