@@ -755,8 +755,8 @@ To run your application against a local CAS:
    ([cas-frontend docs/LAYOUT.md](../../cas-frontend/docs/LAYOUT.md)).
 
 5. Only for the monorepo's own stack: ligretto-frontend is served beside CAS
-   on `:5174`, the origin the seeded `ligretto` client returns to after a
-   logout, which its `vite.config.ts` pins, by
+   on `:5174`, the port its `vite.config.ts` pins and the origin the seeded
+   `ligretto` client returns to after a logout, by
 
    ```sh
    pnpm --filter @memebattle/ligretto-frontend start:dev

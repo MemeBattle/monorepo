@@ -47,9 +47,9 @@ COPY apps/cas/migrations /memebattle/apps/cas/migrations
 COPY apps/cas/.sqlx /memebattle/apps/cas/.sqlx
 COPY apps/cas/dev /memebattle/apps/cas/dev
 
-# cargo judges a path crate by mtimes, COPY keeps the build context's, and the target cache is shared by every checkout,
-# so without the touch a cached build can survive new sources: another worktree's, or a migration, which cargo does not
-# track as a directory.
+# cargo judges a path crate by mtimes, and COPY keeps the build context's. Every checkout shares the target cache, so
+# without the touch a cached build can survive new sources: another worktree's, or a migration, since cargo does not
+# track the migrations directory.
 RUN --mount=type=cache,id=cas-cargo-registry,target=/usr/local/cargo/registry \
     --mount=type=cache,id=cas-cargo-git,target=/usr/local/cargo/git \
     --mount=type=cache,id=cas-target,target=/memebattle/target,sharing=locked \

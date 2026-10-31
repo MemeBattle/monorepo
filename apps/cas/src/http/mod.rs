@@ -913,7 +913,6 @@ mod tests {
         }
     }
 
-    /// Unset means API only, as the server has always been.
     #[tokio::test]
     async fn without_a_spa_directory_the_root_is_not_found() {
         let app = app(unreachable_database_config()).unwrap();

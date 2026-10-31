@@ -372,8 +372,8 @@ async fn run(command: Command) -> Result<(), ClientCliError> {
     Ok(())
 }
 
-/// With `--if-missing`, a taken id is an answer rather than a failure: `None`,
-/// logged at `info` on stderr. Every other outcome passes through.
+/// With `--if-missing`, a taken id is `None`, logged at `info` on stderr,
+/// instead of an error. Every other outcome passes through.
 fn tolerate_existing<T>(
     result: Result<T, RegisterError>,
     if_missing: bool,

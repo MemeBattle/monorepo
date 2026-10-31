@@ -205,13 +205,13 @@ The development database gets a `ligretto` client from:
 apps/cas/scripts/seed-dev.sh
 ```
 
-It registers ligretto's development URIs, the two values ligretto-core-backend itself sends, `LIGRETTO_CORE_AUTH_REDIRECT_URI` and `LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI`, and passes `--secret` the stable development secret, `LIGRETTO_CAS_CLIENT_SECRET`, all three from the monorepo's `.env.development`, so a reset development database needs no printed secret copied anywhere.
+It registers ligretto's development URIs, `LIGRETTO_CORE_AUTH_REDIRECT_URI` and `LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI`, the values ligretto-core-backend itself sends. It passes `--secret` the stable development secret, `LIGRETTO_CAS_CLIENT_SECRET`, so a reset development database needs no printed secret copied anywhere. All three come from the monorepo's `.env.development`.
 
 The values are resolved with the development precedence of the loader ligretto-core-backend reads, dotenv-flow (`apps/ligretto-core-backend/src/entry/env.ts`): the process environment first, then the package's own `.env.development.local`, `.env.development`, `.env.local`, `.env`, `.env.defaults`, then the monorepo root's files in the same order. Within one directory that is CAS's own order too, but CAS reads only the monorepo root, while the backend reads its package directory first. ligretto-core-backend reads these values through that loader, so an export, or an override written in a `.env.development.local` of the package or the root, reaches the seeded row and the backend alike. Only `.env.development.local` reliably overrides a value the committed `.env.development` sets: `.env.local` sits below it.
 
 `scripts/seed-dev.sh --dry-run` prints what would be registered and runs nothing. With `APP_ENV` set to anything but `development` the script refuses to run, because `cas-client` would take `DATABASE_URL` from that environment while these values came from the development files. A second run fails with "already exists", which is the signal that the client is already there; with `--if-missing` it leaves the client as it is. `CAS_CLIENT_BIN` names a `cas-client` binary to run instead of `cargo run`, which is how the debug image seeds without a toolchain.
 
-The post-logout origin is the one ligretto-frontend serves next to a local CAS, the port its `vite.config.ts` pins, where 5173 is the CAS frontend's:
+ligretto-frontend serves the post-logout origin next to a local CAS, on the port its `vite.config.ts` pins; 5173 is the CAS frontend's:
 
 ```
 pnpm ligretto:front:start:dev

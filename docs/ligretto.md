@@ -28,9 +28,9 @@ docker compose --profile cas build cas
 
 ### A database volume from before the local CAS
 
-The `pg-ligretto` volume is created with Postgres 18 and holds a second database, `cas`, which an init script creates
-on an empty volume alone. A volume from before that holds an older major or the old layout, Postgres 18 refuses it, and
-the fix drops the local Ligretto data:
+The `pg-ligretto` volume holds Postgres 18 data and a second database, `cas`. An init script creates that database, and
+it runs on an empty volume only. A volume from before this holds an older major or the old layout, and Postgres 18
+refuses it. The fix drops the local Ligretto data:
 
 ```
 docker compose down -v

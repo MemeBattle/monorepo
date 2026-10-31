@@ -16,7 +16,6 @@ use axum::{
 use tower::{Service, ServiceExt as _, service_fn};
 use tower_http::services::{ServeDir, ServeFile};
 
-/// The name of the document every path that is not a file answers.
 pub(super) const INDEX: &str = "index.html";
 
 /// Paths under `/oidc` and `/.well-known` are protocol paths: an unknown one
@@ -174,7 +173,6 @@ mod tests {
         }
     }
 
-    /// Only the whole segment is CAS's.
     #[tokio::test]
     async fn a_path_that_only_starts_like_a_prefix_is_a_page() {
         let site = Site::new();

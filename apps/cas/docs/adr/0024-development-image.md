@@ -60,7 +60,7 @@ pulls a new migration gets it by rebuilding.
 **(d) The seed is `scripts/seed-dev.sh`, run by the debug image.** The script
 is the one list of arguments, and `.env.development` the one source of the
 values: the two URIs now come from the same `LIGRETTO_CORE_AUTH_*` values the
-backend sends, so the row and the backend cannot differ.
+backend sends, so a newly seeded row matches the backend.
 `cas-client register --if-missing` is the idempotent primitive the entrypoint
 needs, because it runs on every start. It is an explicit exception to
 ADR 0008 (e): without the flag a second registration still fails. The flag
@@ -93,8 +93,8 @@ unnoticed and the build argument is proven.
   production CAS remains an override through `.env.development.local`.
 - The pin moves `ligretto-core-pg` to another major and another volume layout,
   so an existing `pg-ligretto` volume is refused and `docker compose down -v`
-  drops the local data once. Local data is disposable; matching the engine CAS
-  is tested on is not.
+  drops the local data once. Local data is disposable, and matching the engine
+  CAS is tested on matters more.
 - ligretto-core-backend now develops on Postgres 18, while its e2e job and
   `ligretto-core-pg-test` stay on 13.4.
 - A running `bacon run` holds port 3000, so the container cannot publish it.

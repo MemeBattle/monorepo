@@ -14,8 +14,8 @@
 # is the signal that the client is there. There is no update path until the
 # admin panel; re-register under another id, or reset the dev database.
 # `--if-missing` is the explicit exception, for the entrypoint of the
-# development image, which runs this script on every start and has no
-# Rust toolchain: there `CAS_CLIENT_BIN` names the binary to run instead of
+# development image, which runs this script on every start. That image has no
+# Rust toolchain, so `CAS_CLIENT_BIN` names the binary to run instead of
 # `cargo run` (docs/adr/0024-development-image.md).
 #
 # The secret is the stable development one from the monorepo's
@@ -27,10 +27,9 @@
 # that will present it.
 #
 # Both URIs are the values ligretto-core-backend sends itself, read from the
-# same `.env.development`, so the seeded row and the backend cannot differ:
-# ligretto-auth's callback (#814), and ligretto-frontend's origin to return to
-# after a logout. They are matched byte for byte, so changing one means
-# re-registering the client.
+# same `.env.development`: ligretto-auth's callback (#814), and
+# ligretto-frontend's origin to return to after a logout. They are matched
+# byte for byte, so changing one means re-registering the client.
 #
 # The audience is what ligretto's backends expect in the `aud` of an access
 # token. It equals the id, and is spelled out because it is a contract with
