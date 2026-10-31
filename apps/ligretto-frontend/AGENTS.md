@@ -20,5 +20,5 @@ Development keeps the vite dev server.
 All commands run from `apps/ligretto-frontend`:
 
 - `pnpm ts-check` — type checking (tsgo).
-- `pnpm test:ci` — unit tests (vitest, `src/**/*.spec.ts` and `cloudflare.config.spec.ts` beside `src`).
+- `pnpm test:ci` — unit tests (vitest, `src/**/*.spec.ts`).
 - `pnpm e2e:start` — e2e (Playwright). The vite dev server is started by `webServer` in `playwright.config.ts` (one already running on :5173 is reused); the app renders routes only after `GET /api/auth/me` responds. `e2e/tests/onboarding.spec.ts` stubs that call and needs no backend. `e2e/tests/game.spec.ts` needs CAS, the core backend, the gameplay backend, and the frontend on `:5174` with `LIGRETTO_APP_URL=http://localhost:5174`. Locally that is the local SSO stack, CAS seeded with `apps/cas/scripts/seed-dev.sh`. In CI, the e2e job of `ligretto-pr.yml` runs it against the production CAS through the confidential client `ligretto-ci`: the job sets `CAS_ISSUER`, `LIGRETTO_CAS_CLIENT_ID` and `LIGRETTO_CAS_CLIENT_SECRET`, and builds no CAS.

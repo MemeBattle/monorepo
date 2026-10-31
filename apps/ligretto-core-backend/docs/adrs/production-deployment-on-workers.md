@@ -49,8 +49,6 @@ group, so two runs of one release can wait for the approval at once.
   internal app keeps the Custom Domain `core-internal.ligretto.app`. One Worker serving the SPA as its assets lost because every static request would run
   it, and the dispatch would have to decide what is an asset. A subdomain of its own for the public app lost because it
   would only add an origin to configure. `workers.dev` is off on both, since the dispatch would refuse it anyway.
-  `scripts/cloudflare-config.spec.ts` checks that every path of the committed `openapi.json` matches a route, with and
-  without a query string.
 - **The frontend is an assets-only Worker.** No entrypoint, no bindings, no secrets,
   `notFoundHandling: 'single-page-application'`. Every request it receives is answered by the assets layer, never by Worker code. `cf build`
   delegates to `vite build` in a package that depends on vite, so its `build:worker` runs `cf-wrangler build`, the delegate
@@ -96,8 +94,8 @@ group, so two runs of one release can wait for the approval at once.
 
 ## Consequences
 
-- A new production value goes in `cloudflare.config.ts`, and `scripts/cloudflare-config.spec.ts` holds the invariants.
-- A new public path outside the three routes reaches the frontend Worker and answers the SPA; the config spec fails first.
+- A new production value goes in `cloudflare.config.ts`.
+- A new public path outside the three routes reaches the frontend Worker and answers the SPA, so it needs a route of its own.
 - A new Worker secret is declared in the config and set on the Worker before the release that needs it, or the check stops
   that release.
 - Merging before the human prerequisites are done is safe: the release stops at a check and a rerun continues.

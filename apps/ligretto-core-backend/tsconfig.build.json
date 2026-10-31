@@ -1,10 +1,5 @@
 {
-  // The Node build: the Node entries and the migrations compiled to plain ESM JavaScript that `node` runs without tsx
-  // (docs/adrs/node-build-and-import-specifiers.md). `nodenext` makes Node's own resolution the type-checker's, so an
-  // import Node could not load fails here, and an extensionless relative import is TS2835;
-  // `rewriteRelativeImportExtensions` turns the `.ts` specifiers into `.js`. `rootDir` is the package, not `src`,
-  // because the migrations live beside it: the entries land in build/src/entry and the migrations in build/migrations,
-  // so migrate.ts finds them by the same relative path in the source and in the build.
+  // `rootDir` is the package, not `src`, so migrate.ts finds build/migrations by the same relative path as in the source.
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": false,
@@ -16,7 +11,6 @@
     "sourceMap": true
   },
   "include": ["src", "migrations"],
-  // The specs and the Worker files are not part of a Node process; codegen.ts and openapi.ts are development tools
-  // whose imports (kysely-codegen) are devDependencies, absent from `pnpm deploy --prod`.
+  // codegen.ts and openapi.ts import devDependencies, absent from `pnpm deploy --prod`.
   "exclude": ["src/**/*.spec.ts", "src/entry/worker.ts", "src/entry/worker-node-compat.d.ts", "src/entry/codegen.ts", "src/entry/openapi.ts"]
 }

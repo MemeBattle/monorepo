@@ -5,19 +5,16 @@ on:
     branches: [master]
     paths:
       - 'apps/ligretto-frontend/**'
-      # The workspace packages the SPA is built from.
       - 'packages/analytics/**'
       - 'packages/ligretto-core-client/**'
       - 'packages/ligretto-shared/**'
       - 'packages/ui/**'
-      # The SPA's build values.
       - '.env*'
       - .github/workflows/ligretto-frontend-pr.yml
       - 'pnpm-lock.yaml'
       - package.json
       - pnpm-workspace.yaml
 
-# A new push makes the run for the previous one obsolete.
 concurrency:
   group: ligretto-frontend-pr-${{ github.ref }}
   cancel-in-progress: true
@@ -25,8 +22,7 @@ concurrency:
 permissions:
   contents: read
 
-# Every job builds ligretto-shared first: the SPA imports its build output, and its `tsc` build is also the type
-# check of that package, which has no workflow of its own.
+# Every job builds ligretto-shared first: the SPA imports its output, and that build is the package's only type check.
 jobs:
   typecheck:
     runs-on: ubuntu-24.04
@@ -60,7 +56,6 @@ jobs:
       - name: Run tests
         run: pnpm run --filter @memebattle/ligretto-frontend test:ci
 
-  # The production build of the SPA and the Worker's Build Output, the files the release uploads.
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -86,7 +81,6 @@ jobs:
             exit 1
           fi
 
-      # The checks of the release's upload, without uploading or any credential.
       - name: Check the Worker as a release would upload it
         working-directory: apps/ligretto-frontend
         run: pnpm exec cf deploy --prebuilt --mode production --dry-run

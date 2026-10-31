@@ -8,8 +8,7 @@
     "moduleResolution": "bundler",
     "strict": true,
     "noEmit": true,
-    // Relative imports name the file with its `.ts` extension, which Wrangler, vitest and tsx resolve as written and
-    // the Node build (tsconfig.build.json) rewrites to `.js` (docs/adrs/node-build-and-import-specifiers.md).
+    // The Node build (tsconfig.build.json) rewrites the `.ts` specifiers to `.js`.
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "skipLibCheck": true,
@@ -29,8 +28,6 @@
     "vitest.node.config.ts",
     "cloudflare.config.ts"
   ],
-  // The Worker entry is checked by tsconfig.worker.json: @cloudflare/workers-types and @types/node conflict on
-  // globals, so each project loads one of them. The Worker's declaration of `node:async_hooks` would duplicate the one
-  // of @types/node.
+  // Checked by tsconfig.worker.json: @cloudflare/workers-types and @types/node conflict on globals.
   "exclude": ["src/entry/worker.ts", "src/entry/worker-node-compat.d.ts"]
 }
