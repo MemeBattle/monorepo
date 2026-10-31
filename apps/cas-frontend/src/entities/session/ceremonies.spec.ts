@@ -1,7 +1,8 @@
 import { WebAuthnError } from '@simplewebauthn/browser'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ApiError, failed, ok } from '#shared/api/client'
+import { mockLoginOptions, mockLoginVerification, mockRegistrationOptions, mockRegistrationVerification } from './testing/stages'
+import { ApiError, ok } from '#shared/api/client'
 import {
   isAuthenticatorUnsupported,
   isCeremonyCancelled,
@@ -13,14 +14,12 @@ import {
   signInWithPasskeyFromAutofill,
 } from './ceremonies'
 
-const { client, startAuthentication, startRegistration, browserSupportsWebAuthnAutofill, cancelCeremony } = vi.hoisted(() => ({
-  client: vi.fn(),
+const { startAuthentication, startRegistration, browserSupportsWebAuthnAutofill, cancelCeremony } = vi.hoisted(() => ({
   startAuthentication: vi.fn(),
   startRegistration: vi.fn(),
   browserSupportsWebAuthnAutofill: vi.fn(),
   cancelCeremony: vi.fn(),
 }))
-vi.mock('#shared/api/client', async importOriginal => ({ ...(await importOriginal<typeof import('#shared/api/client')>()), client }))
 vi.mock('@simplewebauthn/browser', async importOriginal => ({
   ...(await importOriginal<typeof import('@simplewebauthn/browser')>()),
   startAuthentication,
@@ -114,34 +113,35 @@ describe('registerWithPasskey', () => {
   const registered = { accountId: guestId, credentialId: 'cred' }
 
   afterEach(() => {
-    client.mockReset()
     startRegistration.mockReset()
   })
 
   it('upgrades when the challenge is the guest’s', async () => {
-    client.mockResolvedValueOnce(ok(options(guestHandle))).mockResolvedValueOnce(ok(registered))
+    mockRegistrationOptions(options(guestHandle))
+    const verified = mockRegistrationVerification(registered)
     startRegistration.mockResolvedValue(made)
 
     await expect(registerWithPasskey('Ада', { accountId: guestId })).resolves.toEqual(ok(registered))
 
     expect(startRegistration).toHaveBeenCalledWith({ optionsJSON: options(guestHandle).ccr.publicKey })
-    expect(client).toHaveBeenLastCalledWith(
-      expect.objectContaining({ method: 'POST', url: '/api/webauthn/verify-registration', body: { registrationId: 'r1', response: made } }),
-    )
+    expect(verified).toHaveBeenCalledExactlyOnceWith({ registrationId: 'r1', response: made })
   })
 
   it('never asks the authenticator when the challenge is for someone else', async () => {
     // What CAS answers once the upgrade session is gone: an ordinary challenge with a fresh handle.
-    client.mockResolvedValueOnce(ok(options(anotherHandle)))
+    const requested = mockRegistrationOptions(options(anotherHandle))
+    const verified = mockRegistrationVerification()
 
     await expect(registerWithPasskey('Ада', { accountId: guestId })).rejects.toSatisfy(isNotTheGuest)
 
     expect(startRegistration).not.toHaveBeenCalled()
-    expect(client).toHaveBeenCalledOnce()
+    expect(requested).toHaveBeenCalledOnce()
+    expect(verified).not.toHaveBeenCalled()
   })
 
   it('does not look at the handle of a plain registration', async () => {
-    client.mockResolvedValueOnce(ok(options(anotherHandle))).mockResolvedValueOnce(ok(registered))
+    mockRegistrationOptions(options(anotherHandle))
+    mockRegistrationVerification(registered)
     startRegistration.mockResolvedValue(made)
 
     await expect(registerWithPasskey('Ада')).resolves.toEqual(ok(registered))
@@ -150,18 +150,22 @@ describe('registerWithPasskey', () => {
   })
 
   it('answers a refused name without asking the authenticator', async () => {
-    client.mockResolvedValueOnce(failed(400, 'invalid_display_name', 'Invalid display name'))
+    mockRegistrationOptions.error('invalid_display_name')
 
-    await expect(registerWithPasskey('Ада')).resolves.toEqual(failed(400, 'invalid_display_name', 'Invalid display name'))
+    await expect(registerWithPasskey('Ада')).resolves.toMatchObject({ ok: false, error: { status: 400, code: 'invalid_display_name' } })
 
     expect(startRegistration).not.toHaveBeenCalled()
   })
 
   it('answers the failure of the finish', async () => {
-    client.mockResolvedValueOnce(ok(options(guestHandle))).mockResolvedValueOnce(failed(404, 'registration_not_found', 'No such registration'))
+    mockRegistrationOptions(options(guestHandle))
+    mockRegistrationVerification.error('registration_not_found')
     startRegistration.mockResolvedValue(made)
 
-    await expect(registerWithPasskey('Ада', { accountId: guestId })).resolves.toEqual(failed(404, 'registration_not_found', 'No such registration'))
+    await expect(registerWithPasskey('Ада', { accountId: guestId })).resolves.toMatchObject({
+      ok: false,
+      error: { status: 404, code: 'registration_not_found' },
+    })
   })
 
   it('is the only error isNotTheGuest recognises', () => {
@@ -188,16 +192,17 @@ describe('signInWithPasskeyFromAutofill', () => {
       cancelCeremony.mockImplementationOnce(() => reject(aborted()))
     })
 
-  const loginOptionsCalls = () => client.mock.calls.filter(([config]) => config.url === '/api/webauthn/login-options').length
+  let requested: ReturnType<typeof mockLoginOptions>
+  const loginOptionsCalls = () => requested.mock.calls.length
 
   beforeEach(() => {
     vi.useFakeTimers()
     browserSupportsWebAuthnAutofill.mockResolvedValue(true)
+    requested = mockLoginOptions()
   })
 
   afterEach(() => {
     vi.useRealTimers()
-    client.mockReset()
     startAuthentication.mockReset()
     browserSupportsWebAuthnAutofill.mockReset()
     cancelCeremony.mockReset()
@@ -208,26 +213,24 @@ describe('signInWithPasskeyFromAutofill', () => {
 
     await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toBeNull()
 
-    expect(client).not.toHaveBeenCalled()
+    expect(requested).not.toHaveBeenCalled()
   })
 
   it('verifies the passkey the user picked', async () => {
-    client.mockResolvedValueOnce(ok(options('l1'))).mockResolvedValueOnce(ok(signedIn))
+    requested = mockLoginOptions(options('l1'))
+    const verified = mockLoginVerification(signedIn)
     startAuthentication.mockResolvedValue(picked)
 
     await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toEqual(ok(signedIn))
 
     expect(startAuthentication).toHaveBeenCalledWith({ optionsJSON: options('l1').rcr.publicKey, useBrowserAutofill: true })
-    expect(client).toHaveBeenLastCalledWith(
-      expect.objectContaining({ method: 'POST', url: '/api/webauthn/verify-login', body: { loginId: 'l1', response: picked } }),
-    )
+    expect(verified).toHaveBeenCalledExactlyOnceWith({ loginId: 'l1', response: picked })
   })
 
   it('replaces the challenge before it expires while the offer stands', async () => {
-    client
-      .mockResolvedValueOnce(ok(options('l1')))
-      .mockResolvedValueOnce(ok(options('l2')))
-      .mockResolvedValueOnce(ok(signedIn))
+    let count = 0
+    requested = mockLoginOptions.respond(() => options(`l${++count}`))
+    const verified = mockLoginVerification(signedIn)
     startAuthentication.mockReturnValueOnce(pendingOffer()).mockResolvedValueOnce(picked)
 
     const outcome = signInWithPasskeyFromAutofill(new AbortController().signal)
@@ -237,13 +240,11 @@ describe('signInWithPasskeyFromAutofill', () => {
 
     await expect(outcome).resolves.toEqual(ok(signedIn))
     expect(loginOptionsCalls()).toBe(2)
-    expect(client).toHaveBeenLastCalledWith(
-      expect.objectContaining({ method: 'POST', url: '/api/webauthn/verify-login', body: { loginId: 'l2', response: picked } }),
-    )
+    expect(verified).toHaveBeenCalledExactlyOnceWith({ loginId: 'l2', response: picked })
   })
 
   it('withdraws the offer when the signal is aborted and asks for nothing more', async () => {
-    client.mockResolvedValueOnce(ok(options('l1')))
+    requested = mockLoginOptions(options('l1'))
     startAuthentication.mockReturnValueOnce(pendingOffer())
     const controller = new AbortController()
 
@@ -258,15 +259,7 @@ describe('signInWithPasskeyFromAutofill', () => {
   })
 
   it('offers nothing when the options cannot be fetched', async () => {
-    client.mockRejectedValueOnce(new TypeError('Failed to fetch'))
-
-    await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toBeNull()
-
-    expect(startAuthentication).not.toHaveBeenCalled()
-  })
-
-  it('offers nothing when the server refuses the options', async () => {
-    client.mockResolvedValueOnce(failed(403, 'cross_site_request', 'Cross-site request'))
+    mockLoginOptions.networkError()
 
     await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toBeNull()
 
@@ -274,7 +267,7 @@ describe('signInWithPasskeyFromAutofill', () => {
   })
 
   it('ends the offer quietly when the browser refuses it or the user backs out of the pick', async () => {
-    client.mockResolvedValueOnce(ok(options('l1')))
+    requested = mockLoginOptions(options('l1'))
     startAuthentication.mockRejectedValueOnce(notAllowed())
 
     await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toBeNull()
@@ -284,14 +277,27 @@ describe('signInWithPasskeyFromAutofill', () => {
   })
 
   it('reports a failure after the pick, as the button would', async () => {
-    client.mockResolvedValueOnce(ok(options('l1'))).mockResolvedValueOnce(failed(401, 'invalid_credential', 'not registered'))
+    requested = mockLoginOptions(options('l1'))
+    mockLoginVerification.error('invalid_credential')
     startAuthentication.mockResolvedValue(picked)
 
-    await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toEqual(failed(401, 'invalid_credential', 'not registered'))
+    await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toMatchObject({
+      ok: false,
+      error: { status: 401, code: 'invalid_credential' },
+    })
+  })
+
+  it('offers nothing when the server refuses the options', async () => {
+    mockLoginOptions.error('cross_site_request')
+
+    await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toBeNull()
+
+    expect(startAuthentication).not.toHaveBeenCalled()
   })
 
   it('rejects with a thrown failure after the pick', async () => {
-    client.mockResolvedValueOnce(ok(options('l1'))).mockRejectedValueOnce(new ApiError(503, 'database_unavailable', 'Database unavailable'))
+    mockLoginOptions(options('l1'))
+    mockLoginVerification.error('database_unavailable')
     startAuthentication.mockResolvedValue(picked)
 
     await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).rejects.toSatisfy(
