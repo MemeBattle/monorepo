@@ -35,6 +35,16 @@ describe('Workers engine only', () => {
     expect(client.connected).toBe(false)
   })
 
+  it('answers every request after io.close() with a 503', async () => {
+    const host = await start()
+    await host.control({ type: 'shutdown' })
+
+    const response = await fetch(`${host.url}${host.path}?EIO=4&transport=websocket`)
+
+    expect(response.status).toBe(503)
+    expect(await response.json()).toEqual({ code: 6, message: 'Server closed' })
+  })
+
   it('fills socket.handshake from the fetch request', async () => {
     const host = await start()
     const client = await connectedClient(host, 'valid:user', { query: { room: 'r1' } })

@@ -19,12 +19,21 @@ const started = () => {
   return context
 }
 
-const expectFullyClosed = (context: ReturnType<typeof setup>, reason: string) => {
-  const assertState = () => {
-    expect(context.close).toHaveBeenCalledTimes(1)
-    expect(context.close).toHaveBeenCalledWith(reason, expect.anything())
+const expectClosedAfterSendFailure = async (context: ReturnType<typeof setup>) => {
+  const assertReleased = () => {
+    expect(context.connection.readyState).toBe('closed')
     expect(context.socket.listenerCount).toBe(0)
     expect(vi.getTimerCount()).toBe(0)
+  }
+  assertReleased()
+  expect(context.close).not.toHaveBeenCalled()
+
+  await Promise.resolve()
+
+  const assertState = () => {
+    assertReleased()
+    expect(context.close).toHaveBeenCalledTimes(1)
+    expect(context.close).toHaveBeenCalledWith('transport error', expect.any(Error))
   }
   assertState()
   vi.advanceTimersByTime(options.pingInterval + options.pingTimeout)
@@ -212,31 +221,42 @@ describe('WorkersConnection', () => {
   })
 
   describe('send failures', () => {
-    it('closes when the open send throws in start()', () => {
+    it('closes when the open send throws in start()', async () => {
       const context = setup()
       context.socket.failSend = () => true
 
       context.connection.start()
 
-      expectFullyClosed(context, 'transport error')
+      await expectClosedAfterSendFailure(context)
     })
 
-    it('leaves no ping timeout when the ping send throws', () => {
+    it('leaves no ping timeout when the ping send throws', async () => {
       const context = started()
       context.socket.failSend = message => message === '2'
 
       vi.advanceTimersByTime(options.pingInterval)
 
-      expectFullyClosed(context, 'transport error')
+      await expectClosedAfterSendFailure(context)
     })
 
-    it('closes when a message write throws', () => {
+    it('closes when a message write throws', async () => {
       const context = started()
       context.socket.failSend = () => true
 
       context.connection.write('2["event"]')
 
-      expectFullyClosed(context, 'transport error')
+      await expectClosedAfterSendFailure(context)
+    })
+
+    it('emits close once when the socket closes before the deferred close', async () => {
+      const context = started()
+      context.socket.failSend = () => true
+
+      context.connection.write('2["event"]')
+      context.connection.close()
+      context.socket.dispatch('close')
+
+      await expectClosedAfterSendFailure(context)
     })
   })
 })

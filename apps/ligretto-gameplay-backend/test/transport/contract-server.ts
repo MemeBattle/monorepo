@@ -78,6 +78,10 @@ export const createContractServer = (engine: SocketEngine, options: ContractOpti
     socket.on('whoami', (ack: Ack) =>
       ack({ id: socket.id, data: socket.data, rooms: [...socket.rooms], recovered: socket.recovered, auth: socket.handshake.auth }),
     )
+    socket.on('remember', (value: unknown, ack: Ack) => {
+      socket.data.remembered = value
+      ack()
+    })
     socket.on('handshake', (ack: Ack) => {
       const { headers, query, url, address, secure } = socket.handshake
       ack({ headers, query, url, address, secure, transport: socket.conn.transport.name })

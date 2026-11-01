@@ -261,6 +261,19 @@ describe.each([
       await expectAllGone(host)
     })
 
+    it('refuses new connections after a shutdown', async () => {
+      const host = await start()
+      await connectedClient(host)
+      await host.control({ type: 'shutdown' })
+
+      const client = connect(host, { auth: { token: 'valid:user' } })
+      await nextEvent(client, 'connect_error')
+
+      expect(client.connected).toBe(false)
+      expect((await logOf(host)).filter(({ event }) => event === 'connection')).toHaveLength(1)
+      expect(await statsOf(host)).toEqual({ clientsCount: 0, sockets: 0 })
+    })
+
     it('emits disconnecting before disconnect, with the rooms still present', async () => {
       const host = await start()
       const client = await connectedClient(host)
@@ -357,6 +370,7 @@ describe.each([
       const client = await connectedClient(host, token)
       const seen = nextEvent(client, 'seen')
       await send(client, 'join', 'room')
+      await send(client, 'remember', 'kept')
       await host.control({ type: 'emitToAll', event: 'seen', payload: 0 })
       await seen
       return client
@@ -395,7 +409,7 @@ describe.each([
       expect(client.id).toBe(socketId)
       const identity = await send(client, 'whoami')
       expect(identity.recovered).toBe(true)
-      expect(identity.data).toEqual({ userId: 'user' })
+      expect(identity.data).toEqual({ userId: 'user', remembered: 'kept' })
       expect(identity.rooms).toContain('room')
       await waitFor(async () => expect(missed).toEqual([1, 2]))
       expect(await middlewareRunsOf(host)).toBe(2)
@@ -435,6 +449,7 @@ describe.each([
       await reconnect(client)
 
       expect(client.recovered).toBe(true)
+      expect((await send(client, 'whoami')).data).toEqual({ userId: 'user', remembered: 'kept' })
       expect(await middlewareRunsOf(host)).toBe(1)
     })
 
@@ -497,7 +512,7 @@ describe.each([
       expect(client.recovered).toBe(true)
       expect(client.id).toBe(socketId)
       const identity = await send(client, 'whoami')
-      expect(identity.data).toEqual({ userId: 'revoked' })
+      expect(identity.data).toEqual({ userId: 'revoked', remembered: 'kept' })
       expect(identity.rooms).toContain('room')
       // Compared as a set: a client that buffered the first replay delivers both, an upstream client quirk.
       await waitFor(async () => expect(new Set(missed)).toEqual(new Set([1, 2])))

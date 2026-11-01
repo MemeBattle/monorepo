@@ -35,8 +35,9 @@ const toError = (error: unknown) => (error instanceof Error ? error : new Error(
  * Engine.IO protocol 4 over one WebSocket: the part of `engine.io`'s `Socket` that Socket.IO reads as `conn`.
  *
  * It differs from `engine.io` in one way. `send` of a workerd WebSocket throws synchronously where `engine.io`'s
- * transport reports a failure later, so any send can close the connection on the spot, and nothing after a send may
- * assume it is still open.
+ * transport reports a failure later. So any send can end the connection on the spot, and nothing after a send may assume
+ * it is still open, but `close` then waits for the current stack: Socket.IO writes CONNECT before it adds the socket to
+ * its `Client`, and a `close` from inside that write would find nothing to clean up.
  */
 export class WorkersConnection extends EventEmitter {
   readonly protocol = 4
@@ -158,14 +159,27 @@ export class WorkersConnection extends EventEmitter {
       try {
         this.socket.send(encoded)
       } catch (error) {
-        this.onClose('transport error', toError(error))
+        this.onSendFailure(toError(error))
       }
     })
   }
 
+  private onSendFailure(error: Error) {
+    if (this.release()) {
+      queueMicrotask(() => this.emit('close', 'transport error', error))
+    }
+  }
+
   private onClose(reason: string, description?: Error) {
+    if (this.release()) {
+      this.emit('close', reason, description)
+    }
+  }
+
+  /** Ends the connection, after which no send and no timer can happen. Returns false when it had already ended. */
+  private release() {
     if (this.readyState === 'closed') {
-      return
+      return false
     }
     this.readyState = 'closed'
     clearTimeout(this.pingIntervalTimer)
@@ -174,7 +188,7 @@ export class WorkersConnection extends EventEmitter {
     this.socket.removeEventListener('close', this.onSocketClose)
     this.socket.removeEventListener('error', this.onSocketError)
     this.closeSocket()
-    this.emit('close', reason, description)
+    return true
   }
 
   /** `close` throws after an `error` event or an earlier `close`, and at this point the connection is over either way. */

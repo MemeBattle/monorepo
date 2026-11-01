@@ -28,6 +28,9 @@ const REFUSALS = {
   unsupportedProtocol: { code: 5, message: 'Unsupported protocol version' },
 }
 
+/** Outside `engine.io`'s codes: its closed HTTP server refuses the connection, so it has no such refusal. */
+export const SERVER_CLOSED: HandshakeRefusal = { code: 6, message: 'Server closed', context: {} }
+
 export const toEngineRequest = (request: FetchRequest): EngineRequest => {
   const url = new URL(request.url)
   const headers = Object.fromEntries(request.headers)

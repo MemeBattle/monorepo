@@ -53,6 +53,9 @@ With the same behaviour as the standard engine, which `test/transport` verifies 
 - Connection state recovery, with `skipMiddlewares` either way.
 - Refusals with `engine.io`'s codes and bodies, as a 400, and the `connection_error` event: unknown transport (0),
   `sid` (1), a method other than GET (2), no upgrade (3), Engine.IO other than 4 (5).
+- New connections refused after `io.close()`. Without an HTTP server to close, the engine answers every later request
+  with a 503 and `{ "code": 6, "message": "Server closed" }`, a code of its own, and `connection_error`. On either engine
+  a client gets `connect_error`, with a different message.
 - Option names and defaults: `pingInterval` 25 000, `pingTimeout` 20 000, `maxHttpBufferSize` 1e6.
 
 Malformed input is handled as `engine.io` handles it. An unknown packet type or an empty frame closes with `parse error`,
@@ -80,8 +83,9 @@ a ping from the client with `transport error`, garbage above Engine.IO raises `e
   twice. Middleware cannot be relied on to withhold missed events from a revoked client. The engine adds no authorization
   of its own, and the contract pins this behaviour.
 - **No write buffer or backpressure.** `send` is synchronous, so `volatile` never discards a packet, and the `drain`,
-  `flush` and `packetCreate` events and the callback of `conn.write` do not exist. A failed send closes the connection
-  at once with `transport error`.
+  `flush` and `packetCreate` events and the callback of `conn.write` do not exist. A failed send ends the connection
+  at once, and `close` follows with `transport error` after the current stack, so that a failed CONNECT reaches
+  Socket.IO once it has registered the socket.
 - **`maxHttpBufferSize` is enforced by the engine,** in UTF-8 bytes, because the runtime does not limit frames to it.
 
 ## Decisions
@@ -108,7 +112,8 @@ Cloudflare account, token, deployed resource, Docker, CAS or core backend. CI ru
 job of `ligretto-gameplay-backend-pr.yml`.
 
 `test/transport/global-setup.ts` starts `wrangler dev --local` on free ports and stops its whole process group, also when
-a test fails, on Ctrl-C and on SIGTERM. Its output goes to `ligretto-transport-workerd-<port>.log` in the system
-temporary directory. `transport-contract.spec.ts` runs every test on both engines, with real `socket.io-client`
-instances and a Durable Object instance of its own per test, and `workers-engine.spec.ts` covers what Node deliberately
-does differently. Test middleware stands in for the auth contract.
+a test fails, on Ctrl-C, on SIGTERM and when the terminal closes. Its output goes to
+`ligretto-transport-workerd-<port>.log` in the system temporary directory. `transport-contract.spec.ts` runs every test
+on both engines, with real `socket.io-client` instances and a Durable Object instance of its own per test, and
+`workers-engine.spec.ts` covers what Node deliberately does differently. Test middleware stands in for the auth
+contract.

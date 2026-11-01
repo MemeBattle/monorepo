@@ -21,6 +21,11 @@ const POLL_INTERVAL_MS = 250
 const PROBE_TIMEOUT_MS = 5_000
 const STOP_GRACE_MS = 5_000
 const LOG_TAIL_LINES = 40
+const SIGNAL_EXIT_CODES = new Map<NodeJS.Signals, number>([
+  ['SIGHUP', 129],
+  ['SIGINT', 130],
+  ['SIGTERM', 143],
+])
 
 type ExitInfo = { code: number | null; signal: NodeJS.Signals | null } | { error: Error }
 
@@ -79,11 +84,12 @@ export default async function setup(project: TestProject) {
   const killGroup = () => signalGroup(child, 'SIGKILL')
   const onSignal = (signal: NodeJS.Signals) => {
     killGroup()
-    process.exit(signal === 'SIGINT' ? 130 : 143)
+    process.exit(SIGNAL_EXIT_CODES.get(signal))
   }
   process.once('exit', killGroup)
-  process.once('SIGINT', onSignal)
-  process.once('SIGTERM', onSignal)
+  for (const signal of SIGNAL_EXIT_CODES.keys()) {
+    process.once(signal, onSignal)
+  }
 
   const cleanup = async () => {
     if (cleanedUp) {
@@ -91,8 +97,9 @@ export default async function setup(project: TestProject) {
     }
     cleanedUp = true
     process.removeListener('exit', killGroup)
-    process.removeListener('SIGINT', onSignal)
-    process.removeListener('SIGTERM', onSignal)
+    for (const signal of SIGNAL_EXIT_CODES.keys()) {
+      process.removeListener(signal, onSignal)
+    }
     try {
       if (exited) {
         signalGroup(child, 'SIGTERM')

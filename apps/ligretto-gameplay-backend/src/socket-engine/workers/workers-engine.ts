@@ -1,8 +1,8 @@
 import { EventEmitter } from 'node:events'
 import type { Server } from 'socket.io'
 import type { SocketEngine } from '../socket-engine'
-import { isWebSocketUpgrade, toEngineRequest, verifyHandshake } from './handshake'
-import type { EngineRequest } from './handshake'
+import { isWebSocketUpgrade, SERVER_CLOSED, toEngineRequest, verifyHandshake } from './handshake'
+import type { EngineRequest, HandshakeRefusal } from './handshake'
 import { WorkersConnection } from './workers-connection'
 import type { ConnectionOptions, ConnectionSocket } from './workers-connection'
 import type { Request as WorkersRequest } from '@cloudflare/workers-types'
@@ -17,6 +17,7 @@ export class WorkersEngine extends EventEmitter implements SocketEngine {
   clientsCount = 0
 
   private readonly options: ConnectionOptions
+  private closed = false
 
   constructor({ pingInterval = 25_000, pingTimeout = 20_000, maxHttpBufferSize = 1e6 }: Partial<ConnectionOptions> = {}) {
     super()
@@ -29,11 +30,12 @@ export class WorkersEngine extends EventEmitter implements SocketEngine {
 
   handleRequest(request: WorkersRequest): Response {
     const engineRequest = toEngineRequest(request)
+    if (this.closed) {
+      return this.refuse(engineRequest, SERVER_CLOSED, 503)
+    }
     const refusal = verifyHandshake(engineRequest, isWebSocketUpgrade(engineRequest))
     if (refusal) {
-      const { code, message } = refusal
-      this.emit('connection_error', { req: engineRequest, ...refusal })
-      return new Response(JSON.stringify({ code, message }), { status: 400, headers: { 'Content-Type': 'application/json' } })
+      return this.refuse(engineRequest, refusal, 400)
     }
 
     const { 0: client, 1: server } = new WebSocketPair()
@@ -68,10 +70,18 @@ export class WorkersEngine extends EventEmitter implements SocketEngine {
     return connection
   }
 
+  /** `io.close()` refuses new connections only through an HTTP server, and `bind` leaves it without one. */
   close() {
+    this.closed = true
     for (const connection of Object.values(this.clients)) {
       connection.close(true)
     }
     return this
+  }
+
+  private refuse(req: EngineRequest, refusal: HandshakeRefusal, status: number) {
+    const { code, message } = refusal
+    this.emit('connection_error', { req, ...refusal })
+    return new Response(JSON.stringify({ code, message }), { status, headers: { 'Content-Type': 'application/json' } })
   }
 }
