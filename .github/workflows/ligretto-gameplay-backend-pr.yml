@@ -55,3 +55,20 @@ jobs:
 
       - name: Run tests
         run: pnpm run --filter @memebattle/ligretto-gameplay-backend test:ci
+
+  transport:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - uses: ./.github/actions/prepare-nodejs
+        name: Prepare Node.js
+
+      - name: Build ligretto-shared
+        run: pnpm ligretto-shared:build
+
+      - name: Run transport contract
+        run: pnpm run --filter @memebattle/ligretto-gameplay-backend test:transport

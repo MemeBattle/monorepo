@@ -18,5 +18,5 @@
     "strictPropertyInitialization": false,
     "skipLibCheck": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "test/**/*", "vitest.transport.config.ts"]
 }

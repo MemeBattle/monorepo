@@ -11,6 +11,7 @@
     "test:ci": "NODE_ENV=test vitest run --reporter=json --outputFile=report.json",
     "test:update-snapshot": "NODE_ENV=test vitest run -u",
     "test:watch": "NODE_ENV=test vitest",
+    "test:transport": "NODE_ENV=test vitest run --config vitest.transport.config.ts",
     "start:dev": "tsx watch --conditions=development src/index.ts",
     "start": "tsx src/index.ts",
     "build": "tsc --project tsconfig.build.json",
@@ -21,6 +22,7 @@
     "@memebattle/ligretto-auth": "workspace:^",
     "@memebattle/ligretto-core-client": "workspace:^",
     "@memebattle/ligretto-shared": "workspace:^",
+    "engine.io-parser": "catalog:",
     "inversify": "catalog:",
     "lodash": "catalog:",
     "nanoid": "catalog:",
@@ -29,11 +31,14 @@
     "socket.io": "catalog:"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "catalog:",
     "@types/lodash": "catalog:",
     "@types/node": "24.9.2",
     "mock-socket": "catalog:",
+    "socket.io-client": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "wrangler": "catalog:"
   }
 }

@@ -1,10 +1,11 @@
-import { Server } from 'socket.io'
 import { createServer } from 'node:http'
 import { CONNECTION_STATE_RECOVERY_TIMEOUT_MS, LIGRETTO_GAMEPLAY_SOCKET_PORT } from './config'
-import type { WebSocketHandler } from './websocket-handlers'
+import { createSocketServer } from './create-socket-server'
 import { IOC } from './inversify.config'
 import { IOC_TYPES } from './IOC_TYPES'
 import { promClient } from './metrics'
+import { NodeSocketEngine } from './socket-engine/node-socket-engine'
+import type { SocketEngine } from './socket-engine/socket-engine'
 
 const httpServer = createServer(async (req, res) => {
   switch (req.url) {
@@ -22,7 +23,9 @@ const httpServer = createServer(async (req, res) => {
   }
 })
 
-export const io = new Server(httpServer, {
+IOC.bind<SocketEngine>(IOC_TYPES.SocketEngine).toConstantValue(new NodeSocketEngine(httpServer))
+
+export const io = createSocketServer(IOC, {
   serveClient: false,
   connectionStateRecovery: {
     maxDisconnectionDuration: CONNECTION_STATE_RECOVERY_TIMEOUT_MS,
@@ -33,10 +36,6 @@ export const io = new Server(httpServer, {
     methods: ['GET', 'POST'],
   },
 })
-
-export const webSocketHandler = IOC.get<WebSocketHandler>(IOC_TYPES.WebSocketHandler)
-
-webSocketHandler.connect(io)
 
 httpServer.listen(LIGRETTO_GAMEPLAY_SOCKET_PORT, () => {
   console.log(`Ligretto gameplay started on ${LIGRETTO_GAMEPLAY_SOCKET_PORT}`)

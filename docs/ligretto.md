@@ -59,6 +59,12 @@ LIGRETTO_GAMEPLAY_URL=https://api.ligretto.app
 pnpm ligretto:front:start:dev
 ```
 
+## Gameplay transport
+
+`apps/ligretto-gameplay-backend` gets its Socket.IO connections from an engine chosen at setup: the standard engine on
+Node, a WebSocket-only one for Durable Objects. [socket-engine.md](../apps/ligretto-gameplay-backend/docs/socket-engine.md)
+describes both, the limitations of the second and the transport contract suite.
+
 ## Production
 
 Two Cloudflare Workers share `ligretto.app` through Workers Routes: `ligretto-frontend` serves the SPA on
