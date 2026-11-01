@@ -25,7 +25,6 @@ export const connect = (host: TransportHost, options: ClientOptions = {}) => {
   return client
 }
 
-/** Resolves on `connect`, rejects on `connect_error`. */
 export const connected = (client: Socket) =>
   new Promise<void>((resolve, reject) => {
     client.once('connect', resolve)
@@ -40,7 +39,6 @@ export const connectedClient = async (host: TransportHost, token = 'valid:user',
 
 export const nextEvent = <Payload = unknown>(client: Socket, event: string) => new Promise<Payload>(resolve => client.once(event, resolve))
 
-/** Every value `event` delivers, live. */
 export const collect = <Payload = unknown>(client: Socket, event: string) => {
   const values: Payload[] = []
   client.on(event, (value: Payload) => values.push(value))
@@ -56,8 +54,8 @@ export const recordPackets = (client: Socket) => {
 
 /**
  * Makes the client stop seeing pings while the server keeps getting its pongs, so that the client's own deadline, and
- * not the server's, ends the connection. `engine.io-client`'s `_onPacket` and `_sendPacket` are private: there is no
- * public seam for it.
+ * not the server's, ends the connection. `engine.io-client`'s `_onPacket` and `_sendPacket` are private, and it has no
+ * public API for this.
  */
 export const dropPings = (client: Socket) => {
   const engine = client.io.engine as unknown as {

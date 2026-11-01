@@ -49,9 +49,9 @@ export class WorkersEngine extends EventEmitter implements SocketEngine {
   }
 
   /**
-   * The order is the point: the connection is registered and its removal is subscribed before `start()`, whose `open`
-   * send can close it, and Socket.IO hears only of a connection that is still open, so a failed one leaves no `Client`
-   * and no `connectTimeout` behind.
+   * The order matters. The connection is registered and its removal subscribed before `start()`, because the `open`
+   * send can close it. Socket.IO hears only of a connection that is still open, so a failed one leaves no `Client` and
+   * no `connectTimeout`.
    */
   openConnection(socket: ConnectionSocket, request: EngineRequest) {
     const connection = new WorkersConnection(crypto.randomUUID(), socket, request, this.options)

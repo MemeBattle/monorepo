@@ -11,7 +11,6 @@ import type { TestProject } from 'vitest/node'
 
 declare module 'vitest' {
   interface ProvidedContext {
-    /** `http://127.0.0.1:<port>` of the Worker fixture. */
     workerdOrigin: string
   }
 }

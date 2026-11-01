@@ -35,8 +35,7 @@ Everything specific to Cloudflare lives in `src/socket-engine/workers/`. `test/t
 - Pass `serveClient: false`: its default resolves client files on disk.
 - Create the `Server` inside the Durable Object, not at module scope, because the Workers global scope may not start
   timers.
-- Give the engine options to `WorkersEngine`, not to `Server`: only `attach` passes them to an engine, and `bind` does
-  not.
+- Give the engine options to `WorkersEngine`, not to `Server`: `attach` passes them to an engine, `bind` does not.
 - Have clients set `transports: ['websocket']`. `ligretto-frontend` connects with default transports today, which the
   migration to Workers has to change.
 
@@ -53,15 +52,18 @@ With the same behaviour as the standard engine, which `test/transport` verifies 
 - Connection state recovery, with `skipMiddlewares` either way.
 - Refusals with `engine.io`'s codes and bodies, as a 400, and the `connection_error` event: unknown transport (0),
   `sid` (1), a method other than GET (2), no upgrade (3), Engine.IO other than 4 (5).
-- New connections refused after `io.close()`. Without an HTTP server to close, the engine answers every later request
-  with a 503 and `{ "code": 6, "message": "Server closed" }`, a code of its own, and `connection_error`. On either engine
-  a client gets `connect_error`, with a different message.
+- New connections refused after `io.close()`. There is no HTTP server to close, so the engine answers every later
+  request with a 503 and `{ "code": 6, "message": "Server closed" }`, and emits `connection_error`. Code 6 is this
+  engine's own. On either engine a client gets `connect_error`, with a different message.
 - Option names and defaults: `pingInterval` 25 000, `pingTimeout` 20 000, `maxHttpBufferSize` 1e6.
 
-Malformed input is handled as `engine.io` handles it. An unknown packet type or an empty frame closes with `parse error`,
-a ping from the client with `transport error`, garbage above Engine.IO raises `error` on the socket and closes with
-`forced close`, and `close` and `noop` packets are ignored. A frame above `maxHttpBufferSize` bytes closes with 1009 and
-`transport error`.
+Malformed input is handled as `engine.io` handles it:
+
+- An unknown packet type or an empty frame closes with `parse error`.
+- A ping from the client closes with `transport error`.
+- An invalid Socket.IO packet raises `error` on the socket and closes with `forced close`.
+- `close` and `noop` packets are ignored.
+- A frame above `maxHttpBufferSize` bytes closes with 1009 and `transport error`.
 
 ## Limitations
 

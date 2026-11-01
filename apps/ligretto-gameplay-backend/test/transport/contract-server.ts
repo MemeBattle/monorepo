@@ -6,7 +6,10 @@ import { createSocketServer } from '../../src/create-socket-server'
 import { IOC_TYPES } from '../../src/IOC_TYPES'
 import type { SocketEngine } from '../../src/socket-engine/socket-engine'
 
-/** The options a test passes through either host. `engine` ones reach the Workers engine, on Node they reach `attach`. */
+/**
+ * The options a test passes to either host. On Node, `attach` hands the engine options to the engine. The Worker host
+ * gives them to `WorkersEngine`.
+ */
 export type ContractOptions = Partial<
   Pick<ServerOptions, 'pingInterval' | 'pingTimeout' | 'maxHttpBufferSize' | 'connectTimeout' | 'connectionStateRecovery'>
 >

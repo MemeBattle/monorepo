@@ -6,7 +6,6 @@ import type { EngineRequest } from './handshake'
 
 type MessageListener = (event: { data: string | ArrayBuffer }) => void
 
-/** The calls a connection makes on a server-side WebSocket. */
 export interface ConnectionSocket {
   send(message: string | ArrayBuffer | ArrayBufferView): void
   close(code?: number, reason?: string): void
@@ -34,10 +33,10 @@ const toError = (error: unknown) => (error instanceof Error ? error : new Error(
 /**
  * Engine.IO protocol 4 over one WebSocket: the part of `engine.io`'s `Socket` that Socket.IO reads as `conn`.
  *
- * It differs from `engine.io` in one way. `send` of a workerd WebSocket throws synchronously where `engine.io`'s
- * transport reports a failure later. So any send can end the connection on the spot, and nothing after a send may assume
- * it is still open, but `close` then waits for the current stack: Socket.IO writes CONNECT before it adds the socket to
- * its `Client`, and a `close` from inside that write would find nothing to clean up.
+ * A workerd WebSocket's `send` throws synchronously, where `engine.io`'s transport reports a failure later. So any send
+ * can end the connection, and code after a send must not assume it is open. The `close` event still waits for the
+ * current stack: Socket.IO writes CONNECT before it adds the socket to its `Client`, so a `close` during that write would
+ * find nothing to clean up.
  */
 export class WorkersConnection extends EventEmitter {
   readonly protocol = 4
@@ -65,7 +64,7 @@ export class WorkersConnection extends EventEmitter {
     }
   }
 
-  /** Apart from the constructor, so that the owner subscribes to `close` before a failed send can emit it. */
+  /** Separate from the constructor, so that the owner subscribes to `close` before a failed send can emit it. */
   start() {
     this.readyState = 'open'
     this.socket.addEventListener('message', this.onSocketMessage)
@@ -176,7 +175,6 @@ export class WorkersConnection extends EventEmitter {
     }
   }
 
-  /** Ends the connection, after which no send and no timer can happen. Returns false when it had already ended. */
   private release() {
     if (this.readyState === 'closed') {
       return false
@@ -191,12 +189,11 @@ export class WorkersConnection extends EventEmitter {
     return true
   }
 
-  /** `close` throws after an `error` event or an earlier `close`, and at this point the connection is over either way. */
   private closeSocket(code?: number, reason?: string) {
     try {
       this.socket.close(code, reason)
     } catch {
-      // Nothing left to release.
+      // `close` throws after an `error` event or an earlier `close`. The connection is over either way.
     }
   }
 }
