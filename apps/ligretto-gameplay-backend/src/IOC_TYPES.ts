@@ -19,4 +19,5 @@ export const IOC_TYPES = {
   LigrettoCoreService: Symbol.for('LigrettoCoreService'),
   LigrettoCoreClient: Symbol.for('LigrettoCoreClient'),
   GameConnectionService: Symbol.for('GameConnectionService'),
+  SocketEngine: Symbol.for('SocketEngine'),
 }
