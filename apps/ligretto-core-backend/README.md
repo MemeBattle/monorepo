@@ -16,8 +16,8 @@ Ligretto is separate Workers sharing `ligretto.app` through Workers Routes; the 
 - **Internal app:** `https://core-internal.ligretto.app`, this Worker's Custom Domain: the `/internal` routes the gameplay
   backend calls with the shared secret. This Worker has no assets, so the hostname never serves the SPA. Any other
   hostname, `workers.dev` included, is refused.
-- **Gameplay:** `ligretto.app/gameplay/*` is reserved for the gameplay Worker. Until it is one, the gameplay backend stays
-  on Kubernetes at `api.ligretto.app`, and no workflow deploys it.
+- **Gameplay:** `ligretto.app/gameplay/*` is the gameplay Worker's route (`apps/ligretto-gameplay-backend/README.md`). The
+  previous deployment at `api.ligretto.app` stays until no client of the old frontend is left.
 - **Sweep:** this Worker's `scheduled` handler, on a cron trigger.
 - **Database:** Neon, reached at runtime only through two cache-disabled Hyperdrive configurations. Migrations run from
   the release job over the direct connection.

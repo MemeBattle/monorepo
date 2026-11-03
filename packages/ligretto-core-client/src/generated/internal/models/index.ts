@@ -1,6 +1,8 @@
 export type { CreateGameOptions, CreateGameResponses, CreateGameStatus201, CreateGameStatus401 } from './CreateGame'
 export type { CreateGameResponse } from './CreateGameResponse'
 export type { GameNotFound } from './GameNotFound'
+export type { GameResultsResponse } from './GameResultsResponse'
+export type { GetGameResultsOptions, GetGameResultsPath, GetGameResultsResponse, GetGameResultsResponses, GetGameResultsStatus200, GetGameResultsStatus400, GetGameResultsStatus401, GetGameResultsStatus404 } from './GetGameResults'
 export type { GetHealthOptions, GetHealthResponse, GetHealthResponses, GetHealthStatus200, GetHealthStatus503 } from './GetHealth'
 export type { HealthReport } from './HealthReport'
 export type { InvalidInternalToken } from './InvalidInternalToken'

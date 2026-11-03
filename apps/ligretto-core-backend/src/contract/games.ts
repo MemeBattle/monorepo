@@ -66,6 +66,15 @@ export const saveRoundResponseSchema = z
     description: "Every player of every round of the game: the sum of their scores so far and this round's score, or 0",
   })
 
+export const gameResultsResponseSchema = z
+  .object({
+    gameResults: saveRoundResponseSchema.shape.gameResults,
+  })
+  .meta({
+    id: 'GameResultsResponse',
+    description: "Every player of every round of the game: the sum of their scores so far and the latest round's score, or 0; empty with no rounds",
+  })
+
 export const gameNotFoundSchema = errorResponseSchema
   .extend({ error: z.literal('game_not_found') })
   .meta({ id: 'GameNotFound', description: 'No game has this id' })
@@ -85,6 +94,7 @@ export type GameIdParams = z.output<typeof gameIdParamsSchema>
 export type CreateGameResponse = z.infer<typeof createGameResponseSchema>
 export type SaveRoundRequest = z.output<typeof saveRoundRequestSchema>
 export type SaveRoundResponse = z.infer<typeof saveRoundResponseSchema>
+export type GameResultsResponse = z.infer<typeof gameResultsResponseSchema>
 export type GameNotFound = z.infer<typeof gameNotFoundSchema>
 export type UnknownPlayers = z.infer<typeof unknownPlayersSchema>
 export type RoundConflict = z.infer<typeof roundConflictSchema>

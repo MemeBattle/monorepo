@@ -7,6 +7,7 @@ on:
     paths:
       - 'apps/ligretto-core-backend/**'
       - 'apps/ligretto-frontend/**'
+      - 'apps/ligretto-gameplay-backend/**'
       - 'packages/ligretto-auth/**'
       - 'packages/ligretto-core-client/**'
       - 'packages/ligretto-shared/**'
@@ -123,6 +124,16 @@ jobs:
             exit 1
           fi
 
+      - name: Check the gameplay backend Worker exists
+        working-directory: apps/ligretto-gameplay-backend
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if ! pnpm exec cf workers get ligretto-gameplay-backend > /dev/null; then
+            echo "::error::could not read the ligretto-gameplay-backend Worker (see the cf output above). If this is the first release, it may not exist yet: create it (apps/ligretto-gameplay-backend/README.md, First activation)"
+            exit 1
+          fi
+
       - name: Apply migrations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -137,6 +148,16 @@ jobs:
         run: |
           message="${COMMIT_MESSAGE%%$'\n'*}"
           pnpm exec cf deploy --prebuilt --mode production --tag "${GITHUB_SHA::12}" --message "${message:-manual release}"
+
+      # After the core, whose internal API it calls; before the SPA, whose sockets it serves.
+      - name: Deploy the gameplay backend
+        working-directory: apps/ligretto-gameplay-backend
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          message="${COMMIT_MESSAGE%%$'\n'*}"
+          pnpm exec wrangler deploy --tag "${GITHUB_SHA::12}" --message "${message:-manual release}"
 
       # Last, so a new SPA never meets an old API.
       - name: Deploy the frontend

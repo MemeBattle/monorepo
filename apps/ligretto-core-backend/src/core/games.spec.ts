@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { createCreateGame, createSaveRound } from './games.ts'
+import { createCreateGame, createGetGameResults, createSaveRound } from './games.ts'
 import { createFakeGamesRepository, type FakeGamesRepository } from './ports/games-repository.fake.ts'
 import { createFakeUsersRepository } from './ports/users-repository.fake.ts'
 
@@ -9,12 +9,14 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 let repo: FakeGamesRepository
 let createGame: ReturnType<typeof createCreateGame>
 let saveRound: ReturnType<typeof createSaveRound>
+let getGameResults: ReturnType<typeof createGetGameResults>
 
 beforeEach(() => {
   const users = createFakeUsersRepository(['alice', 'bob', 'carol'].map(sub => ({ sub, accountType: 'full', displayName: sub, avatarUrl: null })))
   repo = createFakeGamesRepository(users)
   createGame = createCreateGame({ games: repo })
   saveRound = createSaveRound({ games: repo })
+  getGameResults = createGetGameResults({ games: repo })
 })
 
 const roundId = () => crypto.randomUUID()
@@ -147,5 +149,54 @@ describe('saveRound', () => {
       value: { gameResults: { alice: { roundScore: 10, gameScore: 15 } } },
     })
     expect(repo.rounds.size).toBe(2)
+  })
+})
+
+describe('getGameResults', () => {
+  it('answers game_not_found for an unknown game', async () => {
+    expect(await getGameResults(crypto.randomUUID())).toEqual({ ok: false, error: 'game_not_found' })
+  })
+
+  it('answers no entries for a game with no rounds', async () => {
+    const { id } = await createGame()
+    expect(await getGameResults(id)).toEqual({ ok: true, value: { gameResults: {} } })
+  })
+
+  it('answers what saving the latest round answered', async () => {
+    const { id } = await createGame()
+    await saveRound(id, roundId(), [
+      { playerId: 'alice', score: 10 },
+      { playerId: 'bob', score: 1 },
+    ])
+    const saved = await saveRound(id, roundId(), [
+      { playerId: 'alice', score: 5 },
+      { playerId: 'bob', score: -2 },
+    ])
+    expect(await getGameResults(id)).toEqual(saved)
+  })
+
+  it('gives a player who missed the latest round a round score of 0', async () => {
+    const { id } = await createGame()
+    await saveRound(id, roundId(), [
+      { playerId: 'alice', score: 10 },
+      { playerId: 'bob', score: 1 },
+    ])
+    await saveRound(id, roundId(), [{ playerId: 'alice', score: 5 }])
+    expect(await getGameResults(id)).toEqual({
+      ok: true,
+      value: {
+        gameResults: {
+          alice: { roundScore: 5, gameScore: 15 },
+          bob: { roundScore: 0, gameScore: 1 },
+        },
+      },
+    })
+  })
+
+  it('does not count another game', async () => {
+    const { id } = await createGame()
+    const other = await createGame()
+    await saveRound(other.id, roundId(), [{ playerId: 'alice', score: 10 }])
+    expect(await getGameResults(id)).toEqual({ ok: true, value: { gameResults: {} } })
   })
 })

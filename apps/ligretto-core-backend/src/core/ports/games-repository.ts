@@ -31,6 +31,8 @@ export interface LockedGame {
   insertRound(roundId: string, results: readonly RoundResult[]): Promise<InsertRoundResult>
   /** Every player of every round of this game with the sum of their scores. */
   totals(): Promise<Array<{ playerId: string; gameScore: number }>>
+  /** The results of this game's most recent round; an empty answer when it has none. */
+  latestRoundResults(): Promise<RoundResult[]>
 }
 
 /** Games and their rounds. Queries only: conflict, repeat and unknown-player decisions belong to the use case. */

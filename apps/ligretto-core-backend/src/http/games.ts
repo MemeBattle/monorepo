@@ -1,17 +1,19 @@
 import { createRoute } from '@hono/zod-openapi'
 
-import { createCreateGame, createSaveRound } from '../core/games.ts'
+import { createCreateGame, createGetGameResults, createSaveRound } from '../core/games.ts'
 import { validationFailedSchema } from '../contract/error.ts'
 import {
   createGameResponseSchema,
   gameIdParamsSchema,
   gameNotFoundSchema,
+  gameResultsResponseSchema,
   roundConflictSchema,
   saveRoundRequestSchema,
   saveRoundResponseSchema,
   unknownPlayersSchema,
   type CreateGameResponse,
   type GameNotFound,
+  type GameResultsResponse,
   type RoundConflict,
   type SaveRoundResponse,
   type UnknownPlayers,
@@ -65,13 +67,32 @@ export const saveRoundRoute = createRoute({
   },
 })
 
+export const getGameResultsRoute = createRoute({
+  method: 'get',
+  path: '/internal/games/{id}/results',
+  operationId: 'getGameResults',
+  tags: ['games'],
+  summary: "Read the game's totals and its latest round's scores",
+  security,
+  request: {
+    params: gameIdParamsSchema,
+  },
+  responses: {
+    200: { description: 'The results, empty when the game has no rounds', content: json(gameResultsResponseSchema) },
+    400: { description: 'The request does not match the schema', content: json(validationFailedSchema) },
+    401: invalidToken,
+    404: { description: 'No game has this id', content: json(gameNotFoundSchema) },
+  },
+})
+
 /**
- * `POST /internal/games` and `POST /internal/games/{id}/rounds`. The handlers map the use cases' results to the
+ * `POST /internal/games`, `POST /internal/games/{id}/rounds` and `GET /internal/games/{id}/results`. The handlers map the use cases' results to the
  * declared statuses; `satisfies` holds each body to its contract type. The ids arrive lowercase from the schemas.
  */
 export const registerGames = (app: BaseApp, deps: InternalAppDeps) => {
   const createGame = createCreateGame({ games: deps.games })
   const saveRound = createSaveRound({ games: deps.games })
+  const getGameResults = createGetGameResults({ games: deps.games })
 
   app.openAPIRegistry.registerComponent('securitySchemes', SECURITY_SCHEME, {
     type: 'http',
@@ -102,5 +123,14 @@ export const registerGames = (app: BaseApp, deps: InternalAppDeps) => {
       case 'round_conflict':
         return c.json({ error: 'round_conflict', description: 'The round id exists with another game or other results' } satisfies RoundConflict, 409)
     }
+  })
+
+  app.openapi(getGameResultsRoute, async c => {
+    const { id } = c.req.valid('param')
+    const result = await getGameResults(id)
+    if (result.ok) {
+      return c.json(result.value satisfies GameResultsResponse, 200)
+    }
+    return c.json({ error: 'game_not_found', description: 'No game has this id' } satisfies GameNotFound, 404)
   })
 }

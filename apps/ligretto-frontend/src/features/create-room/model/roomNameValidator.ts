@@ -1,8 +1,6 @@
-import type { CreateRoomError } from '@memebattle/ligretto-shared'
-
 const ROOM_MAX_LENGTH = 20
 
-export const roomNameValidation = (values: string, roomErrors: CreateRoomError | null) => {
+export const roomNameValidation = (values: string) => {
   const requiredLetters = /[\p{Alpha}\p{M}\p{Nd}\p{Pc}\p{Join_C}]/gu
   const hasRequiredLetters = requiredLetters[Symbol.match](values)
 
@@ -14,10 +12,6 @@ export const roomNameValidation = (values: string, roomErrors: CreateRoomError |
 
   if (hasMaxlength) {
     return { error: 'Max length 20 characters' }
-  }
-
-  if (roomErrors?.name === values) {
-    return { error: 'Room already exists' }
   }
 
   return null
