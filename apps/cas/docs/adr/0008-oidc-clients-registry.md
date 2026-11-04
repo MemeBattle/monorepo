@@ -9,6 +9,10 @@ the dev-only `--secret` flag foreseen by the consequences exists, so (b)'s
 secret has no constructor at all; `scripts/seed-dev.sh` passes the stable
 development secret from the monorepo's `.env.development`, and the placeholder
 redirect URIs of (e) are ligretto's real development ones.
+Amended (2026-10-31) by ADR 0024, with [#875](https://github.com/MemeBattle/monorepo/issues/875):
+(e)'s "not idempotent" stays the default, and `--if-missing` is the explicit
+exception, for the seed that runs as a compose one-shot of the development
+image.
 
 ## Context
 

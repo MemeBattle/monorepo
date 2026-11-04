@@ -1,22 +1,16 @@
 {
+  // The rules, compiled against Node's types: no `WebSocket` pair, no Durable Object and no
+  // `cloudflare:*` module exists here, which is the proof that src/core does not know what runs it.
   "compilerOptions": {
-    "esModuleInterop": true,
-    // `@memebattle/ligretto-auth` exports source, so this project type-checks it: es2022 for `Error`'s `cause`. The
-    // browser globals stay out — this service runs under plain Node, where `document` must be a type error.
-    "target": "es2022",
-    "lib": ["es2022"],
-    "types": ["node", "reflect-metadata"],
-    "module": "NodeNext",
-    "sourceMap": true,
-    "resolveJsonModule": true,
-    "moduleResolution": "NodeNext",
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "outDir": "build",
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "strict": true,
-    // Not compatible with inversify
-    "strictPropertyInitialization": false,
+    "noEmit": true,
+    "isolatedModules": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/core", "vitest.config.ts"]
 }

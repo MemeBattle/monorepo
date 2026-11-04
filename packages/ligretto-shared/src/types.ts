@@ -54,10 +54,6 @@ export enum GameStatus {
   RoundFinished = 'RoundFinished',
 }
 
-export enum CreateRoomErrorCode {
-  AlreadyExist = 'AlreadyExist',
-}
-
 export enum PlayerStatus {
   DontReadyToPlay = 'DontReadyToPlay',
   ReadyToPlay = 'ReadyToPlay',

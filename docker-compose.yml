@@ -1,7 +1,7 @@
 version: '3.3'
 services:
   ligretto-core-pg:
-    image: postgres
+    image: postgres:18
     ports:
       - 5433:5432
     environment:
@@ -9,7 +9,12 @@ services:
       POSTGRES_USER: ligretto-core-user
       POSTGRES_DB: ligretto-core
     volumes:
-      - pg-ligretto:/var/lib/postgresql/data
+      - pg-ligretto:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ligretto-core-user -d ligretto-core']
+      interval: 1s
+      timeout: 5s
+      retries: 30
 
   # The store suite's own server, brought up by ligretto-core-backend's `test:store:setup` script. Separate from
   # ligretto-core-pg so a test run can never truncate the database used for development, and on tmpfs so

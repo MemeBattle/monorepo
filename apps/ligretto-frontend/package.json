@@ -51,8 +51,7 @@
     "react-router": "catalog:",
     "redux": "catalog:",
     "redux-first-history": "catalog:",
-    "reselect": "catalog:",
-    "socket.io-client": "catalog:"
+    "reselect": "catalog:"
   },
   "devDependencies": {
     "@playwright/test": "catalog:",

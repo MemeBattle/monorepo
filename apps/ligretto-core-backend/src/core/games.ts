@@ -1,7 +1,7 @@
 import type { GamesRepository, RoundResult } from './ports/games-repository.ts'
 
 /**
- * Creating games and saving rounds for the gameplay backend (docs/DESIGN.md § Routes).
+ * Creating games, saving rounds and reading results for the gameplay backend (docs/DESIGN.md § Routes).
  *
  * Two invariants hold here. Ids are opaque strings compared for equality: their canonical form (a lowercase uuid) is
  * the contract's job at the HTTP boundary, so a caller that bypasses it must pass canonical ids or a repeat compares
@@ -17,6 +17,8 @@ export type SaveRoundResult =
   | { ok: false; error: 'game_not_found' }
   | { ok: false; error: 'unknown_players'; playerIds: string[] }
   | { ok: false; error: 'round_conflict' }
+
+export type GetGameResultsResult = { ok: true; value: { gameResults: GameResults } } | { ok: false; error: 'game_not_found' }
 
 type GamesDeps = { games: GamesRepository }
 
@@ -69,6 +71,21 @@ export const createSaveRound =
         totals.map(({ playerId, gameScore }) => [playerId, { roundScore: roundScores.get(playerId) ?? 0, gameScore }]),
       )
       return { ok: true, value: { gameResults } }
+    })
+    return outcome.status === 'game_not_found' ? { ok: false, error: 'game_not_found' } : outcome.value
+  }
+
+/** The game's standing after its latest round, in the shape `saveRound` answers. A game with no rounds has no entries. */
+export const createGetGameResults =
+  ({ games }: GamesDeps) =>
+  async (gameId: string): Promise<GetGameResultsResult> => {
+    const outcome = await games.withGame(gameId, async game => {
+      const roundScores = new Map((await game.latestRoundResults()).map(result => [result.playerId, result.score]))
+      const totals = await game.totals()
+      const gameResults: GameResults = Object.fromEntries(
+        totals.map(({ playerId, gameScore }) => [playerId, { roundScore: roundScores.get(playerId) ?? 0, gameScore }]),
+      )
+      return { ok: true as const, value: { gameResults } }
     })
     return outcome.status === 'game_not_found' ? { ok: false, error: 'game_not_found' } : outcome.value
   }

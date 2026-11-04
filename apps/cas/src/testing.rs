@@ -281,6 +281,7 @@ pub fn test_config() -> Config {
         database_url: "postgres://cas:cas@localhost:5434/cas".to_string(),
         issuer: "http://localhost:3000".to_string(),
         signing_key: Some(SigningKeyPem::new(DEV_SIGNING_KEY)),
+        spa_dir: None,
     }
 }
 

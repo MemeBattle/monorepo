@@ -25,6 +25,11 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), svgr()],
     define: envVariables,
+    // The origin the local CAS's `ligretto` client returns to; 5173 is the CAS frontend's.
+    server: {
+      port: 5174,
+      strictPort: true,
+    },
     build: {
       sourcemap: true,
     },

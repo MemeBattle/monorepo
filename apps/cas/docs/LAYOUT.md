@@ -29,6 +29,7 @@ apps/cas/
       response.rs      what handlers return, each type also its own description
       openapi.rs       the OpenAPI document: assembly, /openapi.json, the tests' check (ADR 0016)
       fetch_metadata.rs  the CSRF line on /api (ADR 0005)
+      spa.rs           the sign-in SPA on CAS's origin, native only (ADR 0024)
     <context>/         one directory per bounded context (accounts, clients, oidc, webauthn, ...)
       mod.rs           domain types, invariants, re-exports
       <concept>.rs     more domain: newtypes, states, rules

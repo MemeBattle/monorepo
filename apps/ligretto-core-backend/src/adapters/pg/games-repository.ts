@@ -58,6 +58,15 @@ const lockedGame = (trx: Transaction<DB>, gameId: string): LockedGame => ({
     // `sum` of an integer is a bigint: a string from pg, a number from PGlite.
     return rows.map(row => ({ playerId: row.user_id, gameScore: Number(row.game_score) }))
   },
+
+  latestRoundResults: async () => {
+    const latest = await trx.selectFrom('rounds').select('id').where('game_id', '=', gameId).orderBy('created_at', 'desc').limit(1).executeTakeFirst()
+    if (latest === undefined) {
+      return []
+    }
+    const rows = await trx.selectFrom('round_users').select(['user_id', 'score']).where('round_id', '=', latest.id).execute()
+    return rows.map(row => ({ playerId: row.user_id, score: row.score }))
+  },
 })
 
 export const createPgGamesRepository = (db: Database): GamesRepository => ({

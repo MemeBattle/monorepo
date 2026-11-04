@@ -1,9 +1,0 @@
-{
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    // TS 7 removed baseUrl; rootDir keeps the flat build/ layout: build/index.js, not build/src/index.js
-    "rootDir": "./src"
-  },
-  "exclude": ["__tests__/*"],
-  "include": ["./src/*"]
-}

@@ -1,4 +1,4 @@
-import type { Room, Game, PlayerStatus, Player, GameResults, CreateRoomErrorCode } from './types'
+import type { Room, Game, PlayerStatus, Player, GameResults } from './types'
 
 export interface UpdateRooms {
   rooms: Room[]
@@ -10,7 +10,6 @@ export interface RemoveRoom {
 
 export interface CreateGame {
   name: string
-  config?: Partial<Game['config']>
 }
 
 export interface ConnectToRoom {
@@ -23,11 +22,6 @@ export interface ConnectToRoomSuccess {
 
 export interface CreateRoomSuccess {
   game: Game
-}
-
-export interface CreateRoomError {
-  errorCode: CreateRoomErrorCode
-  name: string
 }
 
 export type GameState = Game
@@ -65,15 +59,6 @@ export interface TakeCardFromStackDeck {
 }
 
 export type GameResultsDTO = GameResults
-
-export interface AddBotDTO {
-  gameId: Game['id']
-}
-
-export interface RemoveBotDTO {
-  gameId: Game['id']
-  botId: Player['id']
-}
 
 export interface UserJoinToRoomDTO {
   userId: Player['id']

@@ -16,3 +16,7 @@ Rust (axum) authentication service.
   guests, logout.
 - [docs/adr/](./docs/adr/) — decisions that shaped the schema and the
   ceremonies.
+  - [0024-development-image.md](./docs/adr/0024-development-image.md) — the
+    Docker image: debug as the development variant, the binaries and the SPA
+    on distroless, migrations and the seed as compose one-shots, built locally
+    and never published.

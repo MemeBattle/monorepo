@@ -32,16 +32,23 @@ const setupTwoPlayerRoom = async (browser: Browser, roomName: string) => {
 }
 
 test.describe('Connection lifecycle', () => {
-  test('retains a player seat across an offline reconnect', async ({ browser }, testInfo) => {
-    test.setTimeout(75_000)
+  test('retains a player seat across an offline reconnect during a round', async ({ browser }, testInfo) => {
+    test.setTimeout(150_000)
     const { contextUser1, contextUser2, gamePageUser1 } = await setupTwoPlayerRoom(browser, `Offline-room-${testInfo.retry}`)
 
+    const startButton = await gamePageUser1.getPlayerReadyButton()
+    await expect(startButton).toHaveText('Start')
+    await expect(startButton).toBeEnabled()
+    await startButton.click()
+    await expect(await gamePageUser1.getGameSettings()).toBeHidden({ timeout: 15_000 })
+
     await contextUser2.setOffline(true)
-    // Engine.IO may need a 25s ping interval plus a 20s ping timeout before the 5s application grace starts.
-    await expect(gamePageUser1.getDisconnectedBadges()).toHaveCount(1, { timeout: 55_000 })
+    // Up to 45s of silence, the 30s sweep that notices it and the 5s application grace.
+    await expect(gamePageUser1.getDisconnectedBadges()).toHaveCount(1, { timeout: 90_000 })
 
     await contextUser2.setOffline(false)
-    await expect(gamePageUser1.getDisconnectedBadges()).toHaveCount(0, { timeout: 10_000 })
+    // The client retries every 2s.
+    await expect(gamePageUser1.getDisconnectedBadges()).toHaveCount(0, { timeout: 20_000 })
     await expect(await gamePageUser1.getPlayersList()).toHaveCount(2)
 
     await Promise.all([contextUser1.close(), contextUser2.close()])
@@ -80,7 +87,7 @@ test.describe('Connection lifecycle', () => {
 
     const gameUrl = pageUser2.url()
     // Closing the page is a real transport loss the server notices immediately,
-    // so the 5s application grace starts without waiting out the ping timeout.
+    // so the 5s application grace starts without waiting out the 45s heartbeat silence.
     await pageUser2.close()
 
     await expect(pageUser1.getByText('Round is paused')).toBeVisible({ timeout: 15_000 })
@@ -107,7 +114,7 @@ test.describe('Connection lifecycle', () => {
     await Promise.all([contextUser1.close(), contextUser2.close()])
   })
 
-  test('hands the host role to the remaining player after the handover timeout', async ({ browser }, testInfo) => {
+  test('hands the host role to the remaining player once the host is offline', async ({ browser }, testInfo) => {
     test.setTimeout(90_000)
     const { contextUser1, contextUser2, pageUser1, gamePageUser2 } = await setupTwoPlayerRoom(browser, `Handover-room-${testInfo.retry}`)
 
@@ -120,9 +127,9 @@ test.describe('Connection lifecycle', () => {
     // that already had players (profiles are fetched in one multi-id request).
     await expect(gamePageUser2.getDisconnectedBadges()).toHaveCount(1, { timeout: 15_000 })
 
-    // The 30s deterministic handover promotes the remaining online player,
-    // whose action button switches from Ready to the host's Start.
-    await expect(await gamePageUser2.getPlayerReadyButton()).toHaveText('Start', { timeout: 40_000 })
+    // The same step promotes the remaining online player, whose action button
+    // switches from Ready to the host's Start.
+    await expect(await gamePageUser2.getPlayerReadyButton()).toHaveText('Start', { timeout: 15_000 })
     await expect(await gamePageUser2.getPlayersList()).toHaveCount(2)
 
     await Promise.all([contextUser1.close(), contextUser2.close()])

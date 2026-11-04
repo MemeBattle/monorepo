@@ -1,0 +1,24 @@
+// Not cloudflare.config.ts as in the other Workers: `cf/config` cannot express `code_update_strategy`.
+// These are the production values: the `start:dev` script and vitest.worker.config.ts override them.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "ligretto-gameplay-backend",
+  "main": "src/cloudflare/worker.ts",
+  "compatibility_date": "2026-08-04",
+  "observability": { "enabled": true },
+  "workers_dev": false,
+  "routes": [{ "pattern": "ligretto.app/gameplay/*", "zone_name": "ligretto.app" }],
+  "durable_objects": {
+    "bindings": [
+      { "name": "LOBBY", "class_name": "LobbyDO" },
+      { "name": "ROOM", "class_name": "RoomDO" },
+    ],
+    // Longer than a round, so a running round can finish before its host adopts new code.
+    "code_update_strategy": { "mode": "deferred", "max_delay": 600 },
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["LobbyDO", "RoomDO"] }],
+  "vars": {
+    "LIGRETTO_CORE_URL": "https://core-internal.ligretto.app",
+    "CAS_ISSUER": "https://cas.mems.fun",
+  },
+}

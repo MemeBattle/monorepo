@@ -1,8 +1,7 @@
 import React, { useMemo, useState, useCallback } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import type { CreateRoomError } from '@memebattle/ligretto-shared'
+import { useDispatch } from 'react-redux'
 
-import { createRoomAction, roomsErrorSelector } from '#ducks/rooms'
+import { createRoomAction } from '#ducks/rooms'
 
 import { roomNameValidation } from '../model/roomNameValidator'
 import { InputWithButton } from '#shared/ui/InputWithButton'
@@ -13,9 +12,7 @@ export const CreateRoomContainer = () => {
 
   const [name, setName] = useState('')
 
-  const roomsErrors: CreateRoomError | null = useSelector(roomsErrorSelector)
-
-  const validationErrors: { error: string } | null = useMemo(() => roomNameValidation(name, roomsErrors), [name, roomsErrors])
+  const validationErrors: { error: string } | null = useMemo(() => roomNameValidation(name), [name])
 
   const handleNameChange = useCallback<React.ChangeEventHandler<HTMLInputElement>>(
     e => {

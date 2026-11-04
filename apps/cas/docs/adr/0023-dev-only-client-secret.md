@@ -158,3 +158,8 @@ instead, it replaces the command and costs one re-seed of a reset database.
   whoever changes the backend's port or the frontend's origin re-registers
   the client. Both values are read from `.env.development`, which is where a
   reader will look for them.
+
+upd (2026-10-31): the same registration also runs as a compose one-shot of the debug image, with `--if-missing`;
+the URIs now come from the two `.env.development` values the backend sends, `LIGRETTO_CORE_AUTH_REDIRECT_URI` and
+`LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI`, not from `LIGRETTO_CORE_BACKEND_PORT`, which is gone; and
+ligretto-frontend's `vite.config.ts` pins the port the launch command used to (ADR 0024).

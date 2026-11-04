@@ -6,7 +6,8 @@
 //! (the CSRF line, `no-store`, the `ApiError` shape); `/oidc`, the OpenID
 //! Connect protocol endpoints, a prefix each of them spells out in its path,
 //! with no layer and no fallback of its own; and the root, for discovery,
-//! `/health` and `/openapi.json`.
+//! `/health` and `/openapi.json`. A native server given `CAS_SPA_DIR` also
+//! answers everything else with the sign-in SPA (`spa`, ADR 0024 (b)).
 
 pub mod error;
 pub(crate) mod extract;
@@ -14,6 +15,8 @@ mod fetch_metadata;
 pub mod health;
 pub(crate) mod openapi;
 pub mod response;
+#[cfg(not(target_arch = "wasm32"))]
+mod spa;
 
 use axum::{
     Router,
@@ -23,6 +26,7 @@ use axum::{
 };
 #[cfg(not(target_arch = "wasm32"))]
 use sqlx::postgres::PgPoolOptions;
+use std::path::PathBuf;
 use thiserror::Error;
 use tower::{Layer, ServiceExt as _};
 #[cfg(not(target_arch = "wasm32"))]
@@ -83,6 +87,10 @@ pub enum AppError {
     #[error("CAS_SIGNING_KEY: {0}")]
     #[diagnostic(code(cas::signing_key_error))]
     SigningKey(#[source] SigningKeyError),
+
+    #[error("CAS_SPA_DIR: {} holds no index.html", .0.display())]
+    #[diagnostic(code(cas::spa_dir_error))]
+    SpaDir(PathBuf),
 }
 
 /// The services the API handlers share.
@@ -126,8 +134,19 @@ pub struct ApiState {
 /// Every router is an `OpenApiRouter`, so the document `GET /openapi.json`
 /// serves is collected from the same mounts that route the requests
 /// (`openapi`). In tests, every answer is also checked against it.
+///
+/// With `CAS_SPA_DIR` set, the SPA is the fallback of the finished router: it
+/// goes on after the middleware, so a static answer is neither traced nor
+/// under CORS, and is outside the description.
 #[cfg(not(target_arch = "wasm32"))]
 pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
+    // Checked here rather than in `Config`, which the tools share.
+    if let Some(dir) = &config.spa_dir
+        && !dir.join(spa::INDEX).is_file()
+    {
+        return Err(AppError::SpaDir(dir.clone()));
+    }
+
     // Lazy pool: connections open on first use, so startup succeeds even when
     // the DB is down and `/health` reports the actual connectivity.
     let pool = PgPoolOptions::new()
@@ -154,7 +173,13 @@ pub fn app(config: Config) -> Result<NormalizePath<Router>, AppError> {
         pem,
     )?;
 
-    Ok(build_app(parts, db, health::router(pool)))
+    let router = build_router(parts, db, health::router(pool));
+    let router = match &config.spa_dir {
+        Some(dir) => router.fallback_service(spa::service(dir)),
+        None => router,
+    };
+
+    Ok(NormalizePathLayer::trim_trailing_slash().layer(router))
 }
 
 /// Everything the router is made of that building can fail at, with no
@@ -229,6 +254,12 @@ impl AppParts {
 /// pool natively, the request's own connection on a Worker — while answering
 /// the same contract (ADR 0022 (f)).
 pub fn build_app(parts: AppParts, db: Db, health: OpenApiRouter) -> NormalizePath<Router> {
+    NormalizePathLayer::trim_trailing_slash().layer(build_router(parts, db, health))
+}
+
+/// [`build_app`] without the normalization, which has to stay the outermost
+/// layer of whatever a deployment adds.
+fn build_router(parts: AppParts, db: Db, health: OpenApiRouter) -> Router {
     let AppParts {
         webauthn,
         signing_keys,
@@ -281,7 +312,7 @@ pub fn build_app(parts: AppParts, db: Db, health: OpenApiRouter) -> NormalizePat
     #[cfg(test)]
     let service = openapi::conformance::check(service, &_document);
 
-    NormalizePathLayer::trim_trailing_slash().layer(service)
+    service
 }
 
 /// What a deployment that never came up answers: `503` with the stable
@@ -556,6 +587,7 @@ mod tests {
         DEV_SIGNING_KEY_KID, capture_tracing, checked, display_name, fresh_signing_key_pem,
         header_str, register_public_client, session_cookie, signed_id_token,
         soft_passkey_registration, test_config, test_cookies, test_signing_key, test_state,
+        unreachable_database_config,
     };
 
     const ALLOWED_ORIGIN: &str = "http://localhost:5173";
@@ -793,6 +825,115 @@ mod tests {
             app(config).unwrap_err(),
             AppError::MissingSigningKey
         ));
+    }
+
+    /// `app` over a built SPA, on a database nothing listens on: none of
+    /// these answers reaches it.
+    fn app_with_spa(site: &spa::Site) -> NormalizePath<Router> {
+        app(Config {
+            spa_dir: Some(site.dir()),
+            ..unreachable_database_config()
+        })
+        .unwrap()
+    }
+
+    fn assert_is_the_spa(body: &[u8], uri: &str) {
+        let body = String::from_utf8_lossy(body);
+        assert!(body.contains("<div id=\"root\">"), "{uri}: {body}");
+    }
+
+    #[tokio::test]
+    async fn the_spa_answers_a_path_that_is_no_route() {
+        let site = spa::Site::new();
+        let app = app_with_spa(&site);
+
+        for uri in ["/", "/sign-in", "/sign-in/"] {
+            let response = send(&app, "GET", uri).await;
+
+            assert_eq!(response.status(), StatusCode::OK, "{uri}");
+            assert_is_the_spa(&body_bytes(response).await, uri);
+        }
+    }
+
+    #[tokio::test]
+    async fn a_file_of_the_spa_is_served_behind_the_normalization() {
+        let site = spa::Site::new();
+        let app = app_with_spa(&site);
+
+        let response = send(&app, "GET", "/assets/app.js").await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert!(
+            header_str(&response, header::CONTENT_TYPE)
+                .is_some_and(|content_type| content_type.contains("javascript"))
+        );
+    }
+
+    /// The loop the default `ServeDir` would make is visible only with the
+    /// normalization in front of it: `/assets/` is trimmed to `/assets`,
+    /// which it would redirect back to `/assets/`.
+    #[tokio::test]
+    async fn a_directory_of_the_spa_answers_the_document_with_no_redirect() {
+        let site = spa::Site::new();
+        let app = app_with_spa(&site);
+
+        for uri in ["/assets", "/assets/"] {
+            let response = send(&app, "GET", uri).await;
+
+            assert_eq!(response.status(), StatusCode::OK, "{uri}");
+            assert!(!response.headers().contains_key(header::LOCATION), "{uri}");
+            assert_is_the_spa(&body_bytes(response).await, uri);
+        }
+    }
+
+    #[tokio::test]
+    async fn the_spa_leaves_the_paths_of_cas_alone() {
+        let site = spa::Site::new();
+        let app = app_with_spa(&site);
+
+        let unknown_api = send(&app, "GET", "/api/nope").await;
+        assert_eq!(unknown_api.status(), StatusCode::NOT_FOUND);
+        let body: serde_json::Value =
+            serde_json::from_slice(&body_bytes(unknown_api).await).unwrap();
+        assert_eq!(body["error"]["code"], "not_found");
+
+        let unknown_oidc = send(&app, "GET", "/oidc/nope").await;
+        assert_eq!(unknown_oidc.status(), StatusCode::NOT_FOUND);
+        assert!(body_bytes(unknown_oidc).await.is_empty());
+
+        for uri in ["/openapi.json", "/.well-known/openid-configuration"] {
+            let response = send(&app, "GET", uri).await;
+
+            assert_eq!(response.status(), StatusCode::OK, "{uri}");
+            assert!(
+                header_str(&response, header::CONTENT_TYPE)
+                    .is_some_and(|content_type| content_type.contains("json")),
+                "{uri}"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn without_a_spa_directory_the_root_is_not_found() {
+        let app = app(unreachable_database_config()).unwrap();
+
+        let response = send(&app, "GET", "/").await;
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn a_spa_directory_without_a_document_fails_startup() {
+        let site = spa::Site::new();
+        let dir = site.dir().join("assets");
+
+        let error = app(Config {
+            spa_dir: Some(dir.clone()),
+            ..test_config()
+        })
+        .unwrap_err();
+
+        assert!(matches!(error, AppError::SpaDir(named) if named == dir));
     }
 
     #[tokio::test]

@@ -33,7 +33,8 @@ guest's. The previous service exposed these routes publicly without authenticati
   there reaches the frontend Worker and answers the SPA, and the dispatch would send anything else on that host to the
   public app's 404.
   A named `WorkerEntrypoint` additionally exposes the internal app to service bindings for callers that are
-  Workers; the gameplay backend is not one, hence the hostname. The internal API is therefore reachable from the
+  Workers. The gameplay backend calls the hostname even though it is a Worker now, because it reaches a Node core
+  backend the same way in development. The internal API is therefore reachable from the
   Internet on its own hostname and is an authenticated API, not a hidden one: network placement limits exposure,
   the authentication below is what protects it.
 - **Shared secret, for now.** `LIGRETTO_INTERNAL_API_TOKEN` is a comma-separated list of one or two values on both

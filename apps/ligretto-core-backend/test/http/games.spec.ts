@@ -11,6 +11,7 @@ import {
   INT32_MIN,
   createGameResponseSchema,
   gameNotFoundSchema,
+  gameResultsResponseSchema,
   roundConflictSchema,
   saveRoundResponseSchema,
   unknownPlayersSchema,
@@ -236,6 +237,52 @@ describe('POST /internal/games/{id}/rounds', () => {
     expect(res.status).toBe(409)
     roundConflictSchema.parse(await res.json())
     expect(await counts()).toEqual({ rounds: 1, roundUsers: 1 })
+  })
+})
+
+describe('GET /internal/games/{id}/results', () => {
+  const getResults = (gameId: string, headers: Record<string, string> = auth) => app.request(`/internal/games/${gameId}/results`, { headers })
+
+  it('answers 401 without the token', async () => {
+    const res = await getResults(crypto.randomUUID(), {})
+    expect(res.status).toBe(401)
+  })
+
+  it('answers 404 game_not_found for an unknown game', async () => {
+    const res = await getResults(crypto.randomUUID())
+    expect(res.status).toBe(404)
+    expect(gameNotFoundSchema.parse(await res.json()).error).toBe('game_not_found')
+  })
+
+  it('answers 400 for an id that is not a uuid', async () => {
+    const res = await getResults('not-a-uuid')
+    expect(res.status).toBe(400)
+    expect(validationFailedSchema.parse(await res.json()).error).toBe('validation_failed')
+  })
+
+  it('answers no entries for a game with no rounds', async () => {
+    const res = await getResults(await createGame())
+    expect(res.status).toBe(200)
+    expect(gameResultsResponseSchema.parse(await res.json())).toEqual({ gameResults: {} })
+  })
+
+  it('answers the totals with the scores of the latest round', async () => {
+    const gameId = await createGame()
+    await saveRound(gameId, [
+      { playerId: 'alice', score: 10 },
+      { playerId: 'bob', score: 1 },
+    ])
+    await saveRound(gameId, [{ playerId: 'alice', score: 5 }])
+
+    const res = await getResults(gameId)
+
+    expect(res.status).toBe(200)
+    expect(gameResultsResponseSchema.parse(await res.json())).toEqual({
+      gameResults: {
+        alice: { roundScore: 5, gameScore: 15 },
+        bob: { roundScore: 0, gameScore: 1 },
+      },
+    })
   })
 })
 
