@@ -70,6 +70,8 @@ export const createFakeGamesRepository = (users: Pick<FakeUsersRepository, 'has'
         }
         return [...sums].map(([playerId, gameScore]) => ({ playerId, gameScore }))
       },
+      // Both maps keep insertion order, and staged rounds were inserted after every committed one.
+      latestRoundResults: async () => [...rounds.values(), ...staged.values()].filter(round => round.gameId === gameId).at(-1)?.results ?? [],
     }
   }
 

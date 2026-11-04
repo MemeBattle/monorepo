@@ -13,7 +13,7 @@ docker-compose -f .monitoring-dev/grafana.docker-compose.yml up
    3. Fill url field in HTTP section: `http://prometheus:9090`
    4. Press 'Save & test' button
 4. On page http://0.0.0.0:3000/dashboards press 'New' -> import
-5. Select some dashboard template (e.g. apps/ligretto-gameplay-backend/.monitoring-dev/dashboard.json)
+5. Select some dashboard template
 6. Select prometheus datasource and press `import`
 
 > ⓘ **Access to host server from container** <br />

@@ -1,0 +1,2 @@
+# Local state of `wrangler dev`; .cloudflare/ is ignored at the root.
+.wrangler

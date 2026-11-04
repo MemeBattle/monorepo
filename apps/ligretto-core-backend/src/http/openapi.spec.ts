@@ -23,7 +23,12 @@ describe('the internal document', () => {
   const saveRound = document.paths?.['/internal/games/{id}/rounds']?.post
 
   it('lists exactly the routes of the internal app', () => {
-    expect(Object.keys(document.paths ?? {}).sort()).toEqual(['/health', '/internal/games', '/internal/games/{id}/rounds'])
+    expect(Object.keys(document.paths ?? {}).sort()).toEqual([
+      '/health',
+      '/internal/games',
+      '/internal/games/{id}/results',
+      '/internal/games/{id}/rounds',
+    ])
   })
 
   it('declares every status of the two routes, the 401 of the middleware included', () => {
@@ -56,6 +61,7 @@ describe('the internal document', () => {
       'GET /health': 'getHealth',
       'POST /internal/games': 'createGame',
       'POST /internal/games/{id}/rounds': 'saveRound',
+      'GET /internal/games/{id}/results': 'getGameResults',
     })
     expect(new Set(ids.map(([, id]) => id)).size).toBe(ids.length)
   })

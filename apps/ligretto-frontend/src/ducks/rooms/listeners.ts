@@ -9,14 +9,13 @@ import {
   removeRoomAction as removeRoomServerAction,
   connectToRoomErrorAction,
   connectToRoomEmitAction,
-  createRoomErrorAction,
   createRoomSuccessAction,
 } from '@memebattle/ligretto-shared'
 
 import { routes } from '#shared/constants'
 import type { RoomsState } from './slice'
 import { getRoomsAction, createRoomAction } from './slice'
-import { connectToRoomAction, updateRoomsAction, setErrorRoomsAction, removeRoomAction } from './slice'
+import { connectToRoomAction, updateRoomsAction, removeRoomAction } from './slice'
 
 export function addListeners(startListener: TypedStartListening<{ rooms: RoomsState }>) {
   startListener({
@@ -66,15 +65,7 @@ export function addListeners(startListener: TypedStartListening<{ rooms: RoomsSt
   startListener({
     actionCreator: createRoomSuccessAction,
     effect: (action, listenerApi) => {
-      listenerApi.dispatch(setErrorRoomsAction({ error: null }))
       listenerApi.dispatch(push(generatePath(routes.GAME, { roomUuid: action.payload.game.id })))
-    },
-  })
-
-  startListener({
-    actionCreator: createRoomErrorAction,
-    effect: (action, listenerApi) => {
-      listenerApi.dispatch(setErrorRoomsAction({ error: action.payload }))
     },
   })
 }

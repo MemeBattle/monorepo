@@ -17,7 +17,6 @@
     "cas:front:build": "pnpm run --filter @memebattle/cas-frontend build",
     "cas:front:start:dev": "pnpm run --filter @memebattle/cas-frontend start:dev",
     "ligretto:gameplay-backend:start:dev": "pnpm run --filter @memebattle/ligretto-gameplay-backend start:dev",
-    "ligretto:gameplay-backend:build": "pnpm run --filter @memebattle/ligretto-gameplay-backend build",
     "ligretto:core-backend:build": "pnpm run --filter @memebattle/ligretto-core-backend build",
     "ligretto:core-backend:migrate": "pnpm run --filter @memebattle/ligretto-core-backend migrate",
     "ligretto:core-backend:start:dev": "pnpm run --filter @memebattle/ligretto-core-backend start:dev",

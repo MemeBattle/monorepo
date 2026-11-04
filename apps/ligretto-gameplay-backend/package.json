@@ -1,39 +1,32 @@
 {
   "name": "@memebattle/ligretto-gameplay-backend",
   "version": "1.0.9",
+  "private": true,
+  "description": "The Ligretto game server: a Cloudflare Worker with one Lobby Durable Object and shared Game Durable Objects",
   "license": "MIT",
-  "files": [
-    "build"
-  ],
-  "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "NODE_ENV=test vitest run",
-    "test:ci": "NODE_ENV=test vitest run --reporter=json --outputFile=report.json",
-    "test:update-snapshot": "NODE_ENV=test vitest run -u",
-    "test:watch": "NODE_ENV=test vitest",
-    "start:dev": "tsx watch --conditions=development src/index.ts",
-    "start": "tsx src/index.ts",
-    "build": "tsc --project tsconfig.build.json",
-    "ts-check": "tsc --noEmit"
+    "start:dev": "CLOUDFLARE_INCLUDE_PROCESS_ENV=true node --env-file-if-exists=../../.env.development --env-file-if-exists=../../.env.development.local --env-file-if-exists=.env.development node_modules/wrangler/bin/wrangler.js dev --port 3005",
+    "build:worker": "wrangler deploy --dry-run --outdir .cloudflare/output",
+    "ts-check": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p src/cloudflare/tsconfig.json && tsc --noEmit -p test/worker/tsconfig.json",
+    "test": "vitest run",
+    "test:ci": "vitest run --reporter=json --outputFile=report.json",
+    "test:watch": "vitest",
+    "test:worker": "vitest run --config vitest.worker.config.ts"
   },
   "dependencies": {
-    "@codexsoft/dotenv-flow": "catalog:",
     "@memebattle/ligretto-auth": "workspace:^",
     "@memebattle/ligretto-core-client": "workspace:^",
-    "@memebattle/ligretto-shared": "workspace:^",
-    "inversify": "catalog:",
-    "lodash": "catalog:",
-    "nanoid": "catalog:",
-    "prom-client": "catalog:",
-    "reflect-metadata": "catalog:",
-    "socket.io": "catalog:"
+    "@memebattle/ligretto-shared": "workspace:^"
   },
   "devDependencies": {
-    "@types/lodash": "catalog:",
-    "@types/node": "24.9.2",
-    "mock-socket": "catalog:",
-    "tsx": "catalog:",
+    "@cloudflare/vitest-plugin": "catalog:",
+    "@cloudflare/workers-types": "catalog:",
+    "@types/node": "catalog:",
+    "cf": "catalog:",
+    "jose": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "wrangler": "catalog:"
   }
 }

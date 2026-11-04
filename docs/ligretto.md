@@ -13,13 +13,13 @@ It starts Ligretto's Postgres from the root `docker-compose.yml` and a local CAS
 migrations, and starts the core backend, the gameplay backend and the frontend. The first run builds the CAS image
 from the working tree, which takes a few minutes.
 
-| Service                   | Address                 |
-| ------------------------- | ----------------------- |
-| CAS, API and sign-in      | `http://localhost:3000` |
-| Postgres                  | `localhost:5433`        |
-| ligretto-core-backend     | `http://localhost:3333` |
-| ligretto-gameplay-backend | `localhost:3005`        |
-| ligretto-frontend         | `http://localhost:5174` |
+| Service                   | Address                        |
+| ------------------------- | ------------------------------ |
+| CAS, API and sign-in      | `http://localhost:3000`        |
+| Postgres                  | `localhost:5433`               |
+| ligretto-core-backend     | `http://localhost:3333`        |
+| ligretto-gameplay-backend | `ws://localhost:3005/gameplay` |
+| ligretto-frontend         | `http://localhost:5174`        |
 
 After a change in CAS or its frontend, rebuild the image:
 
@@ -50,7 +50,7 @@ The frontend needs a local core backend: production allows no CORS origin, so `L
 2. Set this variable:
 
 ```
-LIGRETTO_GAMEPLAY_URL=https://api.ligretto.app
+LIGRETTO_GAMEPLAY_URL=wss://ligretto.app/gameplay
 ```
 
 3. Run frontend locally
@@ -63,5 +63,6 @@ pnpm ligretto:front:start:dev
 
 Two Cloudflare Workers share `ligretto.app` through Workers Routes: `ligretto-frontend` serves the SPA on
 `ligretto.app/*`, and `ligretto-core-backend` serves `/api*`, `/health*` and `/openapi.json*` there and its internal app on
-`core-internal.ligretto.app`. `.github/workflows/ligretto-release.yml` releases both behind one approval.
-`apps/ligretto-core-backend/README.md` holds the operational notes.
+`core-internal.ligretto.app`. A third, `ligretto-gameplay-backend`, serves the game sockets on `ligretto.app/gameplay/*`.
+`.github/workflows/ligretto-release.yml` releases all three behind one approval. `apps/ligretto-core-backend/README.md`
+and `apps/ligretto-gameplay-backend/README.md` hold the operational notes.

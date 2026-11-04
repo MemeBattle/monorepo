@@ -1,0 +1,9 @@
+{
+  // The Worker program: this directory and what it imports, against the Workers runtime types. It lives here, not in the
+  // package root, because an editor only picks up the nearest file named tsconfig.json.
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["@cloudflare/workers-types", "@cloudflare/vitest-plugin/types"]
+  },
+  "include": ["."]
+}

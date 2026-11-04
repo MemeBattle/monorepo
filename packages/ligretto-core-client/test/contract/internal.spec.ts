@@ -4,7 +4,15 @@
 import { createContractHarness, INTERNAL_TOKEN, type ContractHarness } from '@memebattle/ligretto-core-backend/contract-harness'
 import { afterAll, beforeAll, beforeEach, describe, expect, expectTypeOf, it } from 'vitest'
 
-import { createClient, createGame, getHealth, saveRound, type Client, type HealthReport } from '@memebattle/ligretto-core-client/internal'
+import {
+  createClient,
+  createGame,
+  getGameResults,
+  getHealth,
+  saveRound,
+  type Client,
+  type HealthReport,
+} from '@memebattle/ligretto-core-client/internal'
 import { createRecorder, expectEveryPairExercised, readDocument } from '../support/contract'
 
 const BASE_URL = 'http://ligretto-core.test'
@@ -70,6 +78,49 @@ describe('createGame', () => {
 
   it('answers 401 invalid_internal_token for another token', async () => {
     expect(await createGame({ client: wrongToken })).toMatchObject({ kind: 'error', status: 401, error: { error: 'invalid_internal_token' } })
+  })
+})
+
+describe('getGameResults', () => {
+  const newGame = async () => {
+    const result = await createGame({ client: internal })
+    if (result.kind !== 'success') {
+      throw new Error('the game was not created')
+    }
+    return result.data.id
+  }
+
+  it('answers the results', async () => {
+    const id = await newGame()
+    await saveRound({ client: internal, path: { id }, body: { roundId: crypto.randomUUID(), results: [{ playerId: 'alice', score: 10 }] } })
+
+    const result = await getGameResults({ client: internal, path: { id } })
+
+    expect(result).toMatchObject({ kind: 'success', status: 200, data: { gameResults: { alice: { roundScore: 10, gameScore: 10 } } } })
+  })
+
+  it('answers validation_failed for an id that is not a uuid', async () => {
+    expect(await getGameResults({ client: internal, path: { id: 'not-a-uuid' } })).toMatchObject({
+      kind: 'error',
+      status: 400,
+      error: { error: 'validation_failed' },
+    })
+  })
+
+  it('answers invalid_internal_token for a wrong token', async () => {
+    expect(await getGameResults({ client: wrongToken, path: { id: crypto.randomUUID() } })).toMatchObject({
+      kind: 'error',
+      status: 401,
+      error: { error: 'invalid_internal_token' },
+    })
+  })
+
+  it('answers game_not_found for an unknown game', async () => {
+    expect(await getGameResults({ client: internal, path: { id: crypto.randomUUID() } })).toMatchObject({
+      kind: 'error',
+      status: 404,
+      error: { error: 'game_not_found' },
+    })
   })
 })
 
