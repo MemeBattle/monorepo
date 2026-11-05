@@ -2,7 +2,7 @@ import { WebAuthnError } from '@simplewebauthn/browser'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { mockLoginOptions, mockLoginVerification, mockRegistrationOptions, mockRegistrationVerification } from './testing/stages'
-import { ApiError, ok } from '#shared/api/client'
+import { ApiError, failed, ok } from '#shared/api/client'
 import {
   isAuthenticatorUnsupported,
   isCeremonyCancelled,
@@ -152,7 +152,7 @@ describe('registerWithPasskey', () => {
   it('answers a refused name without asking the authenticator', async () => {
     mockRegistrationOptions.error('invalid_display_name')
 
-    await expect(registerWithPasskey('Ада')).resolves.toMatchObject({ ok: false, error: { status: 400, code: 'invalid_display_name' } })
+    await expect(registerWithPasskey('Ада')).resolves.toEqual(failed(400, 'invalid_display_name', 'invalid_display_name'))
 
     expect(startRegistration).not.toHaveBeenCalled()
   })
@@ -162,10 +162,7 @@ describe('registerWithPasskey', () => {
     mockRegistrationVerification.error('registration_not_found')
     startRegistration.mockResolvedValue(made)
 
-    await expect(registerWithPasskey('Ада', { accountId: guestId })).resolves.toMatchObject({
-      ok: false,
-      error: { status: 404, code: 'registration_not_found' },
-    })
+    await expect(registerWithPasskey('Ада', { accountId: guestId })).resolves.toEqual(failed(404, 'registration_not_found', 'registration_not_found'))
   })
 
   it('is the only error isNotTheGuest recognises', () => {

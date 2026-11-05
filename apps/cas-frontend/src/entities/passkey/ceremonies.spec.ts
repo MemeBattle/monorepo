@@ -1,4 +1,4 @@
-import { ApiError, ok } from '#shared/api/client'
+import { ApiError, failed, ok } from '#shared/api/client'
 import { WebAuthnError } from '@simplewebauthn/browser'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -64,7 +64,7 @@ describe('addPasskey', () => {
   it('asks the authenticator for nothing without a session', async () => {
     mockAddOptions.error('unauthenticated')
 
-    await expect(addPasskey()).resolves.toMatchObject({ ok: false, error: { status: 401, code: 'unauthenticated' } })
+    await expect(addPasskey()).resolves.toEqual(failed(401, 'unauthenticated', 'unauthenticated'))
 
     expect(startRegistration).not.toHaveBeenCalled()
   })
@@ -74,7 +74,7 @@ describe('addPasskey', () => {
     mockAddVerification.error('credential_already_registered')
     startRegistration.mockResolvedValue(made)
 
-    await expect(addPasskey()).resolves.toMatchObject({ ok: false, error: { status: 409, code: 'credential_already_registered' } })
+    await expect(addPasskey()).resolves.toEqual(failed(409, 'credential_already_registered', 'credential_already_registered'))
   })
 
   it('lets an outage through as it is', async () => {

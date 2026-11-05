@@ -1,4 +1,4 @@
-import { ok } from '#shared/api/client'
+import { failed, ok } from '#shared/api/client'
 import { expect, it, vi } from 'vitest'
 import { listPasskeys, renamePasskey, deletePasskey, addPasskey } from '../index'
 import { aPasskey, mockListPasskeys, mockRenamePasskey, mockDeletePasskey, mockAddPasskey } from './index'
@@ -25,7 +25,7 @@ it.each([
   ['unauthenticated', 401],
 ] as const)('maps %s to %s', async (code, status) => {
   mockDeletePasskey.error(code)
-  await expect(deletePasskey('pk_2')).resolves.toMatchObject({ ok: false, error: { code, status } })
+  await expect(deletePasskey('pk_2')).resolves.toEqual(failed(status, code, code))
 })
 
 it('returns 201 with the created passkey from composite verification, keeping options at 200', async () => {
@@ -45,7 +45,7 @@ it('returns 201 with the created passkey from composite verification, keeping op
 
 it('fails add options without invoking the authenticator for an expired session', async () => {
   mockAddPasskey.error('unauthenticated')
-  await expect(addPasskey()).resolves.toMatchObject({ ok: false, error: { code: 'unauthenticated', status: 401 } })
+  await expect(addPasskey()).resolves.toEqual(failed(401, 'unauthenticated', 'unauthenticated'))
   expect(startRegistration).not.toHaveBeenCalled()
 })
 
@@ -57,7 +57,7 @@ it.each([
     .mockReset()
     .mockResolvedValue({ id: 'credential' } as Awaited<ReturnType<typeof startRegistration>>)
   const add = mockAddPasskey.error(error)
-  await expect(addPasskey()).resolves.toMatchObject({ ok: false, error: { code, status } })
+  await expect(addPasskey()).resolves.toEqual(failed(status, code, code))
   expect(startRegistration).toHaveBeenCalledOnce()
   expect(add).toHaveBeenCalledExactlyOnceWith({})
 })
