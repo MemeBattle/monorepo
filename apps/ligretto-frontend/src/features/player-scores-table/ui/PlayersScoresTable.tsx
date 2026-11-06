@@ -52,7 +52,7 @@ export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players }) => 
               </PlayersScoresTableCell>
             )}
             <PlayersScoresTableCell size={columnsProps.name}>
-              <Typography variant="h5" whiteSpace="nowrap" overflow="auto">
+              <Typography variant="h5" noWrap title={username}>
                 {username}
               </Typography>
             </PlayersScoresTableCell>

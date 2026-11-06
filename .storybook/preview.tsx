@@ -1,15 +1,13 @@
-import type { Decorator, Preview, StoryContext } from '@storybook/react'
+import type { Decorator, Preview, StoryContext } from '@storybook/react-vite'
 import { MINIMAL_VIEWPORTS } from 'storybook/viewport'
 import { CssBaseline } from '@memebattle/ui'
 import { ThemeProvider } from '@mui/material/styles'
 
 import { theme } from '../apps/ligretto-frontend/src/app/themes/default'
-import { ligrettoAuthTheme } from '../apps/ligretto-frontend/src/app/themes/ligrettoAuth'
 import { gamehubClientTheme } from '../apps/gamehub-client/src/themes/gamehubClient'
 
 const themesByNames: Record<string, object> = {
   ligretto: theme,
-  ligrettoAuth: ligrettoAuthTheme,
   gameHub: gamehubClientTheme,
 }
 
