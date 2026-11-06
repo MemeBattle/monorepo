@@ -1,7 +1,5 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "rules": { "catalog": "off" },
-  "ignoreWorkspaces": ["apps/cas", "apps/cas-frontend", "packages/*"],
   "workspaces": {
     ".": {
       "entry": [".storybook/{main,preview}.{ts,tsx}"],
