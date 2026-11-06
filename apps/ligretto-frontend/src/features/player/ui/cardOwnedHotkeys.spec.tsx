@@ -28,7 +28,6 @@ vi.mock('#ducks/game', async importActual => ({
   ...(await importActual<typeof import('#ducks/game')>()),
   playerCardsSelector: () => mocks.rowCards,
   playerStackDeckCardsSelector: () => mocks.stackCards,
-  playerStackDeckHiddenSelector: () => false,
   playerStackOpenDeckCardsSelector: () => mocks.openCards,
   playerLigrettoDeckCardsSelector: () => mocks.ligrettoCards,
   playerLigrettoDeckHiddenSelector: () => false,

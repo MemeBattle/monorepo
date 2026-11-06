@@ -76,14 +76,14 @@ const toHttp = (env: Parsed<typeof httpShape>) => ({ port: env.PORT, corsOrigins
 
 const toLogging = (env: Parsed<typeof loggingShape>) => ({ level: env.LOG_LEVEL })
 
-export const databaseConfigSchema = z.object(databaseShape).transform(toDatabase)
-export const authConfigSchema = z.object(authShape).transform(toAuth)
-export const internalApiConfigSchema = z.object(internalApiShape).transform(toInternalApi)
-export const httpConfigSchema = z.object(httpShape).transform(toHttp)
-export const loggingConfigSchema = z.object(loggingShape).transform(toLogging)
+const databaseConfigSchema = z.object(databaseShape).transform(toDatabase)
+const authConfigSchema = z.object(authShape).transform(toAuth)
+const internalApiConfigSchema = z.object(internalApiShape).transform(toInternalApi)
+const httpConfigSchema = z.object(httpShape).transform(toHttp)
+const loggingConfigSchema = z.object(loggingShape).transform(toLogging)
 
 /** Every section at once: one parse, so a bad environment reports every variable in one go. */
-export const configSchema = z.object({ ...databaseShape, ...authShape, ...internalApiShape, ...httpShape, ...loggingShape }).transform(env => ({
+const configSchema = z.object({ ...databaseShape, ...authShape, ...internalApiShape, ...httpShape, ...loggingShape }).transform(env => ({
   database: toDatabase(env),
   auth: toAuth(env),
   internalApi: toInternalApi(env),

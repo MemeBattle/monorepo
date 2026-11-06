@@ -1,6 +1,6 @@
 import type { LogFields, Logger } from './logger.ts'
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
+type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
 export type LogEntry = { level: LogLevel; message: string; fields: LogFields }
 

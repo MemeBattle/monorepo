@@ -1,2 +1,1 @@
-export { InstagramPost, InstagramPost as default } from './InstagramPost'
-export { InstagramPostFallback } from './InstagramPostFallback'
+export { InstagramPost as default } from './InstagramPost'

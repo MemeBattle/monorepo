@@ -43,8 +43,6 @@ export const casUnavailableSchema = errorResponseSchema
   .extend({ error: z.literal('cas_unavailable') })
   .meta({ id: 'CasUnavailable', description: "CAS's metadata could not be read to verify the access token; repeat the request" })
 
-export type ListUsersQuery = z.output<typeof listUsersQuerySchema>
 export type ListUsersResponse = z.infer<typeof listUsersResponseSchema>
-export type AuthUser = z.infer<typeof authUserSchema>
 export type Unauthorized = z.infer<typeof unauthorizedSchema>
 export type CasUnavailable = z.infer<typeof casUnavailableSchema>
