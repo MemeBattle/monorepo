@@ -19,6 +19,7 @@
     "test": "vitest",
     "test:ci": "vitest run",
     "test:e2e": "playwright test",
+    "test:storybook": "playwright test --config playwright.storybook.config.ts",
     "generate:api": "KUBB_DISABLE_TELEMETRY=1 kubb generate"
   },
   "dependencies": {
@@ -40,7 +41,9 @@
     "@vitejs/plugin-react": "catalog:",
     "jsdom": "catalog:",
     "kubb": "catalog:",
+    "msw": "catalog:",
     "oxc-transform-react": "catalog:",
+    "storybook": "catalog:",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",

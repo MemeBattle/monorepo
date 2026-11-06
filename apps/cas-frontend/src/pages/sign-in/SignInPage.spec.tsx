@@ -3,21 +3,28 @@ import { userEvent } from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ApiError, failed, ok } from '#shared/api/client'
+import { mockSignInWithPasskey } from '#entities/session/testing'
 import { routes } from '#app/routes'
 import { SignInPage } from './SignInPage'
 
-const { signInWithPasskey, signInWithPasskeyFromAutofill, leaveTo } = vi.hoisted(() => ({
-  signInWithPasskey: vi.fn(),
-  signInWithPasskeyFromAutofill: vi.fn(),
+const { startAuthentication, browserSupportsWebAuthnAutofill, cancelCeremony, leaveTo } = vi.hoisted(() => ({
+  startAuthentication: vi.fn(),
+  browserSupportsWebAuthnAutofill: vi.fn(),
+  cancelCeremony: vi.fn(),
   leaveTo: vi.fn(),
 }))
-// Only the ceremonies are faked; `isCeremonyCancelled` stays real, so the spec covers the mapping too.
-vi.mock('#entities/session', async importOriginal => ({
-  ...(await importOriginal<typeof import('#entities/session')>()),
-  signInWithPasskey,
-  signInWithPasskeyFromAutofill,
+vi.mock('@simplewebauthn/browser', async importOriginal => ({
+  ...(await importOriginal<typeof import('@simplewebauthn/browser')>()),
+  startAuthentication,
+  browserSupportsWebAuthnAutofill,
+  WebAuthnAbortService: { cancelCeremony, createNewAbortSignal: vi.fn() },
 }))
+let signInWithPasskey: ReturnType<typeof mockSignInWithPasskey>
+/** The real ceremony withdraws an unanswered browser offer by cancelling WebAuthn. */
+const standingOffer = () =>
+  new Promise<never>((_, reject) => {
+    cancelCeremony.mockImplementationOnce(() => reject(new DOMException('Cancelled', 'AbortError')))
+  })
 
 // Only the document navigation is faked; `readReturnTo` and `ReturnToLink` stay real.
 vi.mock('#app/returnTo', async importOriginal => ({ ...(await importOriginal<typeof import('#app/returnTo')>()), leaveTo }))
@@ -37,8 +44,16 @@ const pendingLeave = () => new Promise<never>(resolve => unsettled.push(() => re
 /** A button ceremony nobody answers until the test is over, then a cancelled one. */
 const pendingCeremony = () => new Promise<never>((_, reject) => unsettled.push(() => reject(new DOMException('ended', 'NotAllowedError'))))
 
-/** An autofill offer nobody answers; the page ends it by aborting the signal. */
-const standingOffer = () => new Promise<null>(() => {})
+/** Observe real response parsing so a late offer finishes before asserting it did not navigate. */
+const finishLateOffer = async (pick: (value: unknown) => void) => {
+  const parsed = vi.spyOn(Response.prototype, 'json')
+  try {
+    pick({ id: 'cred' })
+    await waitFor(() => expect(parsed).toHaveResolvedWith({ accountId: 'acc', credentialId: 'cred' }))
+  } finally {
+    parsed.mockRestore()
+  }
+}
 
 const renderPage = (entry: string = routes.SIGN_IN) => {
   const router = createMemoryRouter(
@@ -60,7 +75,10 @@ const signIn = async (entry?: string) => {
 
 describe('SignInPage', () => {
   beforeEach(() => {
-    signInWithPasskeyFromAutofill.mockReturnValue(standingOffer())
+    signInWithPasskey = mockSignInWithPasskey()
+    browserSupportsWebAuthnAutofill.mockReset().mockResolvedValue(false)
+    startAuthentication.mockReset().mockResolvedValue({ id: 'cred' })
+    cancelCeremony.mockReset()
     leaveTo.mockImplementation(pendingLeave)
   })
 
@@ -70,34 +88,32 @@ describe('SignInPage', () => {
     for (const settle of unsettled.splice(0)) {
       settle()
     }
-    signInWithPasskey.mockReset()
-    signInWithPasskeyFromAutofill.mockReset()
     leaveTo.mockReset()
   })
 
   it('runs the ceremony and lands on the dashboard', async () => {
-    signInWithPasskey.mockResolvedValue(ok({ accountId: 'acc', credentialId: 'cred' }))
+    signInWithPasskey = mockSignInWithPasskey({ accountId: 'acc', credentialId: 'cred' })
 
     await signIn()
 
-    expect(signInWithPasskey).toHaveBeenCalledOnce()
+    await waitFor(() => expect(signInWithPasskey).toHaveBeenCalledOnce())
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Дашборд' })).toBeDefined())
   })
 
   it('points an unknown passkey to create account and offers another passkey', async () => {
-    signInWithPasskey.mockResolvedValue(failed(401, 'invalid_credential', 'The credential is not registered or the assertion could not be verified'))
+    signInWithPasskey = mockSignInWithPasskey.error('invalid_credential')
 
     await signIn()
 
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toContain('Этот пасскей здесь не зарегистрирован')
-    expect(alert.textContent).not.toContain('not registered')
+    expect(alert.textContent).not.toContain('invalid_credential')
     expect(screen.getByRole('link', { name: 'Создать аккаунт' }).getAttribute('href')).toBe(routes.CREATE_ACCOUNT)
     expect(screen.getByRole('button', { name: 'Выбрать другой пасскей' })).toBeDefined()
   })
 
   it('shows a cancelled ceremony as an alert above a still usable form', async () => {
-    signInWithPasskey.mockRejectedValue(new DOMException('The operation either timed out or was not allowed.', 'NotAllowedError'))
+    startAuthentication.mockRejectedValue(new DOMException('The operation either timed out or was not allowed.', 'NotAllowedError'))
 
     await signIn()
 
@@ -108,17 +124,17 @@ describe('SignInPage', () => {
   })
 
   it('shows a challenge the server no longer has as a cancelled ceremony', async () => {
-    signInWithPasskey.mockResolvedValue(failed(404, 'login_not_found', 'login not found: expired, unknown or already finished'))
+    signInWithPasskey = mockSignInWithPasskey.error('login_not_found')
 
     await signIn()
 
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toContain('Вход отменён')
-    expect(alert.textContent).not.toContain('expired')
+    expect(alert.textContent).not.toContain('login_not_found')
   })
 
   it('tells a page served from the wrong origin which address to open', async () => {
-    signInWithPasskey.mockRejectedValue(new DOMException('The operation is insecure.', 'SecurityError'))
+    startAuthentication.mockRejectedValue(new DOMException('The operation is insecure.', 'SecurityError'))
 
     await signIn()
 
@@ -128,11 +144,11 @@ describe('SignInPage', () => {
   })
 
   it.each([
-    ['a network failure', () => Promise.reject(new TypeError('Failed to fetch')), 'Failed to fetch'],
-    ['an outage', () => Promise.reject(new ApiError(503, 'database_unavailable', 'Database unavailable')), 'Database unavailable'],
-    ['a refused cross-site request', () => Promise.resolve(failed(403, 'cross_site_request', 'Cross-site request refused')), 'Cross-site'],
-  ])('shows %s as the generic alert, never the raw message', async (_, answer, raw) => {
-    signInWithPasskey.mockImplementation(answer)
+    ['a network failure', { networkError: true as const }, 'Failed to fetch'],
+    ['an outage', { error: 'database_unavailable' as const }, 'database_unavailable'],
+    ['a refused cross-site request', { error: 'cross_site_request' as const }, 'cross_site_request'],
+  ])('shows %s as the generic alert, never the raw message', async (_, error, raw) => {
+    signInWithPasskey = mockSignInWithPasskey.respond(() => error)
 
     await signIn()
 
@@ -142,17 +158,18 @@ describe('SignInPage', () => {
   })
 
   it('offers the passkey through autofill as soon as the screen is up and signs in with the pick', async () => {
-    signInWithPasskeyFromAutofill.mockResolvedValue(ok({ accountId: 'acc', credentialId: 'cred' }))
+    browserSupportsWebAuthnAutofill.mockResolvedValue(true)
 
     renderPage()
 
-    expect(signInWithPasskeyFromAutofill).toHaveBeenCalledOnce()
+    await waitFor(() => expect(startAuthentication).toHaveBeenCalledWith(expect.objectContaining({ useBrowserAutofill: true })))
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Дашборд' })).toBeDefined())
-    expect(signInWithPasskey).not.toHaveBeenCalled()
+    await waitFor(() => expect(signInWithPasskey).toHaveBeenCalledOnce())
   })
 
   it('shows what went wrong with a picked passkey the same way as for the button', async () => {
-    signInWithPasskeyFromAutofill.mockResolvedValue(failed(401, 'invalid_credential', 'not registered'))
+    browserSupportsWebAuthnAutofill.mockResolvedValue(true)
+    mockSignInWithPasskey.error('invalid_credential')
 
     renderPage()
 
@@ -162,29 +179,35 @@ describe('SignInPage', () => {
   })
 
   it('withdraws the autofill offer before the button starts its own ceremony', async () => {
-    signInWithPasskey.mockReturnValue(pendingCeremony())
-
-    await signIn()
-
-    const [signal] = signInWithPasskeyFromAutofill.mock.calls[0] as [AbortSignal]
-    expect(signal.aborted).toBe(true)
-    expect(signInWithPasskey).toHaveBeenCalledOnce()
+    browserSupportsWebAuthnAutofill.mockResolvedValue(true)
+    startAuthentication.mockImplementation(({ useBrowserAutofill }) => {
+      if (useBrowserAutofill) {
+        return standingOffer()
+      }
+      expect(cancelCeremony).toHaveBeenCalledOnce()
+      return pendingCeremony()
+    })
+    renderPage()
+    await waitFor(() => expect(startAuthentication).toHaveBeenCalledOnce())
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Войти с пасскеем' }))
+    await waitFor(() => expect(startAuthentication).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(signInWithPasskey).toHaveBeenCalledTimes(2))
     expect(screen.getByRole('button', { name: 'Подтвердите пасскей…' })).toBeDefined()
   })
 
   it('withdraws the autofill offer when the screen is left', async () => {
+    browserSupportsWebAuthnAutofill.mockResolvedValue(true)
+    startAuthentication.mockImplementation(standingOffer)
     renderPage()
-    await screen.findByRole('button', { name: 'Войти с пасскеем' })
-
+    await waitFor(() => expect(startAuthentication).toHaveBeenCalledOnce())
     cleanup()
-
-    const [signal] = signInWithPasskeyFromAutofill.mock.calls[0] as [AbortSignal]
-    expect(signal.aborted).toBe(true)
+    expect(cancelCeremony).toHaveBeenCalledOnce()
+    await waitFor(() => expect(signInWithPasskey).toHaveBeenCalledOnce())
   })
 
   describe('opened with return_to', () => {
     it('leaves for it after the button signs in, not for the dashboard', async () => {
-      signInWithPasskey.mockResolvedValue(ok({ accountId: 'acc', credentialId: 'cred' }))
+      signInWithPasskey = mockSignInWithPasskey({ accountId: 'acc', credentialId: 'cred' })
 
       await signIn(withReturnTo(authorize))
 
@@ -195,7 +218,7 @@ describe('SignInPage', () => {
     })
 
     it('leaves for it after the autofill offer signs in', async () => {
-      signInWithPasskeyFromAutofill.mockResolvedValue(ok({ accountId: 'acc', credentialId: 'cred' }))
+      browserSupportsWebAuthnAutofill.mockResolvedValue(true)
 
       renderPage(withReturnTo(authorize))
 
@@ -204,7 +227,7 @@ describe('SignInPage', () => {
     })
 
     it('drops a return_to of another origin and lands on the dashboard', async () => {
-      signInWithPasskey.mockResolvedValue(ok({ accountId: 'acc', credentialId: 'cred' }))
+      signInWithPasskey = mockSignInWithPasskey({ accountId: 'acc', credentialId: 'cred' })
 
       await signIn(withReturnTo('https://evil.example/'))
 
@@ -213,7 +236,7 @@ describe('SignInPage', () => {
     })
 
     it('keeps it on both links to create account', async () => {
-      signInWithPasskey.mockResolvedValue(failed(401, 'invalid_credential', 'not registered'))
+      signInWithPasskey = mockSignInWithPasskey.error('invalid_credential')
       const carried = `${routes.CREATE_ACCOUNT}?${new URLSearchParams({ return_to: authorize }).toString()}`
 
       renderPage(withReturnTo(authorize))
@@ -226,26 +249,36 @@ describe('SignInPage', () => {
 
     it('does not leave when an offer resolves after the screen was left', async () => {
       let pick: (value: unknown) => void = () => {}
-      signInWithPasskeyFromAutofill.mockReturnValue(new Promise(resolve => (pick = resolve)))
+      browserSupportsWebAuthnAutofill.mockResolvedValue(true)
+      startAuthentication.mockReturnValueOnce(
+        new Promise(resolve => {
+          pick = resolve
+        }),
+      )
       renderPage(withReturnTo(authorize))
-      await screen.findByRole('button', { name: 'Войти с пасскеем' })
+      await waitFor(() => expect(startAuthentication).toHaveBeenCalledOnce())
 
       cleanup()
-      pick({ accountId: 'acc', credentialId: 'cred' })
-      await Promise.resolve()
+      await finishLateOffer(pick)
 
       expect(leaveTo).not.toHaveBeenCalled()
     })
 
     it('does not leave when an offer resolves after the button started its own ceremony', async () => {
       let pick: (value: unknown) => void = () => {}
-      signInWithPasskeyFromAutofill.mockReturnValue(new Promise(resolve => (pick = resolve)))
-      signInWithPasskey.mockReturnValue(pendingCeremony())
+      browserSupportsWebAuthnAutofill.mockResolvedValue(true)
+      startAuthentication.mockReturnValueOnce(
+        new Promise(resolve => {
+          pick = resolve
+        }),
+      )
+      startAuthentication.mockImplementationOnce(pendingCeremony)
 
-      await signIn(withReturnTo(authorize))
-      await screen.findByRole('button', { name: 'Подтвердите пасскей…' })
-      pick({ accountId: 'acc', credentialId: 'cred' })
-      await Promise.resolve()
+      renderPage(withReturnTo(authorize))
+      await waitFor(() => expect(startAuthentication).toHaveBeenCalledOnce())
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Войти с пасскеем' }))
+      await waitFor(() => expect(startAuthentication).toHaveBeenCalledTimes(2))
+      await finishLateOffer(pick)
 
       expect(leaveTo).not.toHaveBeenCalled()
       expect(screen.getByRole('button', { name: 'Подтвердите пасскей…' })).toBeDefined()
