@@ -27,8 +27,11 @@ export const ONBOARDING_SCRIPT: ReadonlyArray<OnboardingScriptEntry> = [
   { event: OnboardingEvent.PutLigretto, step: OnboardingStep.GameStarted },
   { event: OnboardingEvent.PutSecondCard, step: OnboardingStep.OpponentTurn },
   { event: OnboardingEvent.NextStackCard, step: OnboardingStep.OpponentTurnSecondCard },
-  { event: OnboardingEvent.PutThirdCard, step: OnboardingStep.FinalLigrettoCard },
+  { event: OnboardingEvent.PutThirdCard, step: OnboardingStep.AdditionalLigrettoCard },
+  { event: OnboardingEvent.PutLigretto, step: OnboardingStep.AdditionalRowCard },
+  { event: OnboardingEvent.PutSecondCard, step: OnboardingStep.FinalLigrettoCard },
   // Two ligretto cards are left when the optional moves were skipped — the round ends on the last one
   { event: OnboardingEvent.PutLigretto, step: OnboardingStep.FinalLigrettoCard },
-  { event: OnboardingEvent.PutLigretto, step: OnboardingStep.Result },
+  { event: OnboardingEvent.PutLigretto, step: OnboardingStep.RoundEnd },
+  { event: OnboardingEvent.NextStep, step: OnboardingStep.Result },
 ]

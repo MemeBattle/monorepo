@@ -1,11 +1,11 @@
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from '@reduxjs/toolkit'
 import { Box, Button, Grid, Modal, Paper, Slide, Typography, useMediaQuery, useTheme } from '@memebattle/ui'
 import { styled } from '@mui/material/styles'
 
-import { ONBOARDING_PLAYER_NAMES, onboardingGameSelector, onboardingResultsSelector } from '#features/onboarding'
+import { ONBOARDING_PLAYER_NAMES, onboardingGameSelector, onboardingResultsSelector, restartOnboardingAction } from '#features/onboarding'
 import { routes } from '#shared/constants/router-constants'
 import { getRandomAvatar } from '#shared/ui/Avatar/getRandomAvatar'
 import { Avatar } from '#shared/ui/Avatar'
@@ -75,10 +75,15 @@ const ResultRow = ({ username, avatar, roundScore, gameScore, isViewer }: Return
 export function ResultScreen() {
   const players = useSelector(resultPlayersSelector)
   const navigate = useNavigate()
+  const dispatch = useDispatch()
 
   const handleFinish = useCallback(() => {
     navigate(routes.HOME)
   }, [navigate])
+
+  const handleReplay = useCallback(() => {
+    dispatch(restartOnboardingAction())
+  }, [dispatch])
 
   return (
     <Modal open>
@@ -101,7 +106,10 @@ export function ResultScreen() {
                   <ResultRow key={player.id} {...player} />
                 ))}
               </Box>
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+              <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 2 }}>
+                <Button data-test-id="OnboardingPage-ReplayButton" variant="outlined" color="inherit" size="large" onClick={handleReplay}>
+                  Пройти обучение ещё раз
+                </Button>
                 <Button data-test-id="OnboardingPage-FinishButton" variant="contained" size="large" onClick={handleFinish}>
                   Закончить обучение
                 </Button>

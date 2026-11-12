@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { CardColors } from '@memebattle/ligretto-shared'
 
-import { OnboardingEvent, OnboardingStateMachine, OnboardingStep, ONBOARDING_HARDCODED_RESULTS } from './fsm'
+import { OnboardingEvent, OnboardingStateMachine, OnboardingStep, ONBOARDING_HARDCODED_RESULTS, createOnboardingGame, getAllowedEvents } from './fsm'
 import { ONBOARDING_SCRIPT } from './script'
+
+const green = (value: number) => ({ value, color: CardColors.green })
 
 const walkTo = async (fsm: OnboardingStateMachine, step: OnboardingStep) => {
   for (const { event, step: nextStep } of ONBOARDING_SCRIPT) {
@@ -25,6 +27,18 @@ describe('OnboardingStateMachine', () => {
     }
 
     expect(fsm.context.data.results).toEqual(ONBOARDING_HARDCODED_RESULTS)
+  })
+
+  it('deals five ligretto cards with the green five before the yellow five and six', () => {
+    const fsm = new OnboardingStateMachine()
+
+    expect(fsm.context.data.game.players.id0.ligrettoDeck.cards).toEqual([
+      { value: 5, color: CardColors.blue },
+      { value: 1, color: CardColors.red },
+      green(5),
+      { value: 5, color: CardColors.yellow },
+      { value: 6, color: CardColors.yellow },
+    ])
   })
 
   it('moves cards to the playground while the user follows the script', async () => {
@@ -119,88 +133,142 @@ describe('OnboardingStateMachine', () => {
     expect(openDeck()).toHaveLength(0)
   })
 
-  it('plays the green sequence with the opponent and ends the round with a ligretto card into the row', async () => {
+  it('plays the green sequence with the opponent up to the green five and ends the round with a ligretto card into the row', async () => {
     const fsm = new OnboardingStateMachine()
     await walkTo(fsm, OnboardingStep.OpponentTurn)
 
     const { game } = fsm.context.data
+    const player = game.players.id0
     // The opponent has opened the green deck with the green one.
-    expect(game.playground.decks[2]?.cards).toEqual([{ value: 1, color: CardColors.green }])
+    expect(game.playground.decks[2]?.cards).toEqual([green(1)])
 
     // Flipping the stack makes the opponent answer with the green two.
     await fsm.transition(OnboardingEvent.NextStackCard)
     expect(fsm.current).toBe(OnboardingStep.OpponentTurnSecondCard)
-    expect(game.playground.decks[2]?.cards).toEqual([
-      { value: 1, color: CardColors.green },
-      { value: 2, color: CardColors.green },
-    ])
+    expect(game.playground.decks[2]?.cards).toEqual([green(1), green(2)])
 
-    // The player puts the green three from the row, freeing a row slot.
+    // The player puts the green three from the row and the opponent answers with the green four.
     await fsm.transition(OnboardingEvent.PutThirdCard)
-    expect(fsm.current).toBe(OnboardingStep.FinalLigrettoCard)
-    expect(game.playground.decks[2]?.cards).toEqual([
-      { value: 1, color: CardColors.green },
-      { value: 2, color: CardColors.green },
-      { value: 3, color: CardColors.green },
-    ])
-    expect(game.players.id0.cards[2]).toBeNull()
+    expect(fsm.current).toBe(OnboardingStep.AdditionalLigrettoCard)
+    expect(game.playground.decks[2]?.cards).toEqual([green(1), green(2), green(3), green(4)])
+    expect(player.cards).toEqual([{ value: 4, color: CardColors.red }, null, null])
 
-    // The first ligretto card fills the free slot, but the deck is not empty yet — the round goes on.
+    // The green five from the ligretto deck goes into the slot the red one freed.
+    await fsm.transition(OnboardingEvent.PutLigretto)
+    expect(fsm.current).toBe(OnboardingStep.AdditionalRowCard)
+    expect(player.cards[1]).toEqual(green(5))
+    expect(player.ligrettoDeck.cards).toHaveLength(2)
+
+    // ...and from the row onto the green four.
+    await fsm.transition(OnboardingEvent.PutSecondCard)
+    expect(fsm.current).toBe(OnboardingStep.FinalLigrettoCard)
+    expect(game.playground.decks[2]?.cards).toEqual([green(1), green(2), green(3), green(4), green(5)])
+    expect(player.cards).toEqual([{ value: 4, color: CardColors.red }, null, null])
+
+    // The first ligretto card fills a free slot, but the deck is not empty yet — the round goes on.
     await fsm.transition(OnboardingEvent.PutLigretto)
     expect(fsm.current).toBe(OnboardingStep.FinalLigrettoCard)
-    expect(game.players.id0.cards[1]).toEqual({ value: 5, color: CardColors.yellow })
-    expect(game.players.id0.ligrettoDeck.cards).toHaveLength(1)
+    expect(player.cards[1]).toEqual({ value: 5, color: CardColors.yellow })
+    expect(player.ligrettoDeck.cards).toHaveLength(1)
 
     // The last ligretto card empties the deck and ends the round.
     await fsm.transition(OnboardingEvent.PutLigretto)
-    expect(fsm.current).toBe(OnboardingStep.Result)
-    expect(game.players.id0.cards[2]).toEqual({ value: 6, color: CardColors.yellow })
-    expect(game.players.id0.ligrettoDeck.cards).toHaveLength(0)
+    expect(fsm.current).toBe(OnboardingStep.RoundEnd)
+    expect(player.cards[2]).toEqual({ value: 6, color: CardColors.yellow })
+    expect(player.ligrettoDeck.cards).toHaveLength(0)
   })
 
-  it('allows putting a ligretto card into the free row slot on the opponent turn', async () => {
+  it('plays the opponent green four and the green five onto the pile the opponent opened', async () => {
     const fsm = new OnboardingStateMachine()
-    await walkTo(fsm, OnboardingStep.OpponentTurn)
+    for (const { event, step } of ONBOARDING_SCRIPT) {
+      const playgroundDeckIndex = event === OnboardingEvent.PutFirstCard ? 0 : event === OnboardingEvent.PutSecondCard ? 3 : undefined
+      await fsm.transition(event, ...(playgroundDeckIndex === undefined ? [] : [playgroundDeckIndex]))
+      if (step === OnboardingStep.FinalLigrettoCard) {
+        break
+      }
+    }
+
+    // Blue on the first deck and red on the fourth: the second deck is the first free one when the opponent moves.
+    const { decks } = fsm.context.data.game.playground
+    expect(fsm.context.data.opponentPileIndex).toBe(1)
+    expect(decks[1]?.cards).toEqual([green(1), green(2), green(3), green(4), green(5)])
+    expect(decks[3]?.cards).toEqual([{ value: 1, color: CardColors.red }])
+    expect(decks[2]).toBeUndefined()
+  })
+
+  it.each([
+    ['on the opponent turn', OnboardingStep.OpponentTurn],
+    ['after the opponent plays the green two', OnboardingStep.OpponentTurnSecondCard],
+  ])('takes the green five into the row %s and goes straight to playing it', async (_, step) => {
+    const fsm = new OnboardingStateMachine()
+    await walkTo(fsm, step)
 
     const player = () => fsm.context.data.game.players.id0
-    // The second row slot was freed when the player put the second card on the playground.
+    // The second row slot was freed when the player put the red one on the playground.
     expect(player().cards[1]).toBeNull()
+    expect(player().ligrettoDeck.cards).toHaveLength(3)
+
+    await fsm.transition(OnboardingEvent.PutLigretto)
+    expect(fsm.current).toBe(step)
+    expect(player().cards[1]).toEqual(green(5))
     expect(player().ligrettoDeck.cards).toHaveLength(2)
 
-    await fsm.transition(OnboardingEvent.PutLigretto)
-    expect(fsm.current).toBe(OnboardingStep.OpponentTurn)
-    expect(player().cards[1]).toEqual({ value: 5, color: CardColors.yellow })
-    expect(player().ligrettoDeck.cards).toHaveLength(1)
-
-    // The slot is occupied now — the move is not available anymore.
+    // The row is full now — the move is not available anymore.
     expect(await fsm.tryTransition(OnboardingEvent.PutLigretto)).toBe(false)
-    expect(player().ligrettoDeck.cards).toHaveLength(1)
+    expect(player().ligrettoDeck.cards).toHaveLength(2)
 
-    // After the optional move the final ligretto card empties the deck.
-    await fsm.transition(OnboardingEvent.NextStackCard)
+    if (step === OnboardingStep.OpponentTurn) {
+      await fsm.transition(OnboardingEvent.NextStackCard)
+    }
     await fsm.transition(OnboardingEvent.PutThirdCard)
+    expect(fsm.current).toBe(OnboardingStep.AdditionalRowCard)
+
+    await fsm.transition(OnboardingEvent.PutSecondCard)
     await fsm.transition(OnboardingEvent.PutLigretto)
-    expect(fsm.current).toBe(OnboardingStep.Result)
+    await fsm.transition(OnboardingEvent.PutLigretto)
+    expect(fsm.current).toBe(OnboardingStep.RoundEnd)
     expect(player().ligrettoDeck.cards).toHaveLength(0)
   })
 
-  it('allows putting a ligretto card into the free row slot after the opponent plays the green two', async () => {
+  it('lets a yellow card into the free slot before the green five is played and ends the round on the last one', async () => {
     const fsm = new OnboardingStateMachine()
-    await walkTo(fsm, OnboardingStep.OpponentTurnSecondCard)
+    await walkTo(fsm, OnboardingStep.AdditionalRowCard)
 
     const player = () => fsm.context.data.game.players.id0
-    expect(player().cards[1]).toBeNull()
-
     await fsm.transition(OnboardingEvent.PutLigretto)
-    expect(fsm.current).toBe(OnboardingStep.OpponentTurnSecondCard)
-    expect(player().cards[1]).toEqual({ value: 5, color: CardColors.yellow })
-    expect(player().ligrettoDeck.cards).toHaveLength(1)
+    expect(fsm.current).toBe(OnboardingStep.AdditionalRowCard)
+    expect(player().cards).toEqual([{ value: 4, color: CardColors.red }, green(5), { value: 5, color: CardColors.yellow }])
 
-    // The slot is occupied now — the move is not available anymore.
+    // The row is full: the last ligretto card waits until the green five frees its slot.
     expect(await fsm.tryTransition(OnboardingEvent.PutLigretto)).toBe(false)
+
+    await fsm.transition(OnboardingEvent.PutSecondCard)
+    expect(fsm.current).toBe(OnboardingStep.FinalLigrettoCard)
+    await fsm.transition(OnboardingEvent.PutLigretto)
+    expect(fsm.current).toBe(OnboardingStep.RoundEnd)
+    expect(player().cards[1]).toEqual({ value: 6, color: CardColors.yellow })
+    expect(fsm.context.data.results).toEqual(ONBOARDING_HARDCODED_RESULTS)
   })
 
-  it('fills results only when the ligretto deck is emptied', async () => {
+  it.each([
+    ['skipped', false, OnboardingStep.AdditionalLigrettoCard],
+    ['taken', true, OnboardingStep.AdditionalRowCard],
+  ])('plays the green three from the cycled-stack hint with the optional move %s', async (_, isLigrettoTaken, expectedStep) => {
+    const fsm = new OnboardingStateMachine()
+    await walkTo(fsm, OnboardingStep.OpponentTurnSecondCard)
+    if (isLigrettoTaken) {
+      await fsm.transition(OnboardingEvent.PutLigretto)
+    }
+    while (fsm.current !== OnboardingStep.OpponentTurnCycledInfo) {
+      await fsm.transition(OnboardingEvent.NextStackCard)
+    }
+
+    await fsm.transition(OnboardingEvent.PutThirdCard)
+    expect(fsm.current).toBe(expectedStep)
+    expect(fsm.context.data.game.playground.decks[2]?.cards).toEqual([green(1), green(2), green(3), green(4)])
+  })
+
+  it('fills results only when the ligretto deck is emptied and shows them after the round end', async () => {
     const fsm = new OnboardingStateMachine()
     await walkTo(fsm, OnboardingStep.FinalLigrettoCard)
     expect(fsm.context.data.results).toBeUndefined()
@@ -211,7 +279,48 @@ describe('OnboardingStateMachine', () => {
     expect(fsm.context.data.results).toBeUndefined()
 
     await fsm.transition(OnboardingEvent.PutLigretto)
-    expect(fsm.current).toBe(OnboardingStep.Result)
+    expect(fsm.current).toBe(OnboardingStep.RoundEnd)
     expect(fsm.context.data.results).toEqual(ONBOARDING_HARDCODED_RESULTS)
+
+    await fsm.transition(OnboardingEvent.NextStep)
+    expect(fsm.current).toBe(OnboardingStep.Result)
+  })
+
+  it('does not end the round while the last ligretto card has no free row slot to go to', async () => {
+    const fsm = new OnboardingStateMachine()
+    await walkTo(fsm, OnboardingStep.FinalLigrettoCard)
+    await fsm.transition(OnboardingEvent.PutLigretto)
+    const player = fsm.context.data.game.players.id0
+    player.cards[2] = { value: 7, color: CardColors.red }
+
+    expect(await fsm.tryTransition(OnboardingEvent.PutLigretto)).toBe(false)
+    expect(fsm.current).toBe(OnboardingStep.FinalLigrettoCard)
+    expect(player.ligrettoDeck.cards).toHaveLength(1)
+    expect(fsm.context.data.results).toBeUndefined()
+  })
+
+  it('keeps the finished board on the round end step until the player moves on', async () => {
+    const fsm = new OnboardingStateMachine()
+    await walkTo(fsm, OnboardingStep.RoundEnd)
+    const board = structuredClone(fsm.context.data.game)
+
+    expect(await getAllowedEvents(fsm)).toEqual([OnboardingEvent.NextStep])
+    for (const event of Object.values(OnboardingEvent).filter(event => event !== OnboardingEvent.NextStep)) {
+      expect(await fsm.tryTransition(event)).toBe(false)
+    }
+    expect(fsm.current).toBe(OnboardingStep.RoundEnd)
+    expect(fsm.context.data.game).toEqual(board)
+    expect(fsm.context.data.game.players.id0.ligrettoDeck.cards).toEqual([])
+  })
+
+  it('starts a new onboarding from scratch after another one has finished', async () => {
+    const finished = new OnboardingStateMachine()
+    await walkTo(finished, OnboardingStep.Result)
+    expect(finished.context.data.opponentPileIndex).toBeDefined()
+
+    const fresh = new OnboardingStateMachine()
+    expect(fresh.current).toBe(OnboardingStep.Opponents)
+    expect(fresh.context.data).toEqual({ isCycledInfoShown: false, bluePileIndex: 0, game: createOnboardingGame() })
+    expect(await getAllowedEvents(fresh)).toEqual([OnboardingEvent.NextStep])
   })
 })

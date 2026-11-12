@@ -238,6 +238,29 @@ export const STEP_CONFIGS: Record<OnboardingStep, StepConfig> = {
     isOverlayHidden: true,
     description: { kind: 'anchored', target: 'stack', placement: { mode: 'besidePlayground', side: 'left' }, text: CYCLED_INFO_TEXT },
   },
+  [OnboardingStep.AdditionalLigrettoCard]: {
+    ...baseStepConfig,
+    raisedLayers: ['playerCards', 'opponent'],
+    isOverlayHidden: true,
+    isLigrettoHighlighted: true,
+    description: {
+      kind: 'anchored',
+      target: 'ligretto',
+      placement: { mode: 'besidePlayground', side: 'right' },
+      text: 'Соперник выложил зелёную четвёрку. Освободилось место в ряду — выкладывай карту из колоды Лигретто!',
+    },
+  },
+  [OnboardingStep.AdditionalRowCard]: {
+    ...baseStepConfig,
+    raisedLayers: ['playerCards', 'opponent'],
+    isOverlayHidden: true,
+    description: {
+      kind: 'anchored',
+      target: 'card1',
+      placement: { mode: 'besidePlayground', side: 'left' },
+      text: 'Зелёная пятёрка ложится на четвёрку соперника. Выкладывай её на стол!',
+    },
+  },
   [OnboardingStep.FinalLigrettoCard]: {
     ...baseStepConfig,
     raisedLayers: ['playerCards', 'opponent'],
@@ -248,6 +271,19 @@ export const STEP_CONFIGS: Record<OnboardingStep, StepConfig> = {
       target: 'ligretto',
       placement: { mode: 'besidePlayground', side: 'right' },
       text: 'Освободилось место в ряду. Выкладывай карту из колоды Лигретто!',
+    },
+  },
+  [OnboardingStep.RoundEnd]: {
+    ...baseStepConfig,
+    raisedLayers: ['playerCards', 'playgroundCards', 'opponent'],
+    isOverlayHidden: true,
+    isNextButtonVisible: true,
+    outlineTarget: 'ligretto',
+    description: {
+      kind: 'anchored',
+      target: 'ligretto',
+      placement: { mode: 'besidePlayground', side: 'right' },
+      text: 'Раунд закончился: ты выложил все карты из колоды Лигретто!',
     },
   },
   [OnboardingStep.Result]: {
