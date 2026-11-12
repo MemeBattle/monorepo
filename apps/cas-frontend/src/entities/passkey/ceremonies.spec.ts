@@ -20,16 +20,19 @@ describe('addPasskey', () => {
 
   afterEach(() => {
     startRegistration.mockReset()
+    vi.restoreAllMocks()
   })
 
   it('asks for a challenge without a body, hands it to the authenticator and finishes with the answer', async () => {
     const requested = mockAddOptions(options)
     const verified = mockAddVerification(passkey)
     startRegistration.mockResolvedValue(made)
+    const send = vi.spyOn(globalThis, 'fetch')
 
     await expect(addPasskey()).resolves.toEqual(ok(passkey))
 
     expect(requested).toHaveBeenCalledExactlyOnceWith({})
+    expect(send.mock.calls.map(([input, init]) => [input, init?.body])).toContainEqual(['/api/passkeys/register-options', undefined])
     expect(startRegistration).toHaveBeenCalledWith({ optionsJSON: options.ccr.publicKey })
     expect(verified).toHaveBeenCalledExactlyOnceWith({ registrationId: 'r1', response: made })
   })

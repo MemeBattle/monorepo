@@ -171,9 +171,9 @@ describe('CreateAccountPage', () => {
   })
 
   it.each([
-    ['InvalidStateError', new DOMException('already registered', 'InvalidStateError')],
-    ['the server knowing the credential', { error: 'credential_already_registered' as const }],
-  ])('points a passkey that already exists here to sign-in (%s)', async (_, error) => {
+    ['InvalidStateError', new DOMException('already registered', 'InvalidStateError'), 'already registered'],
+    ['the server knowing the credential', { error: 'credential_already_registered' as const }, 'credential_already_registered'],
+  ])('points a passkey that already exists here to sign-in (%s)', async (_, error, raw) => {
     if (error instanceof DOMException) {
       startRegistration.mockRejectedValue(error)
     } else {
@@ -184,7 +184,7 @@ describe('CreateAccountPage', () => {
 
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toContain('Такой пасскей уже есть')
-    expect(alert.textContent).not.toContain('credential_already_registered')
+    expect(alert.textContent).not.toContain(raw)
     expect(within(alert).getByRole('link', { name: 'Войти' }).getAttribute('href')).toBe(routes.SIGN_IN)
   })
 

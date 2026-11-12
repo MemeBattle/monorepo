@@ -278,10 +278,9 @@ describe('signInWithPasskeyFromAutofill', () => {
     mockLoginVerification.error('invalid_credential')
     startAuthentication.mockResolvedValue(picked)
 
-    await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toMatchObject({
-      ok: false,
-      error: { status: 401, code: 'invalid_credential' },
-    })
+    await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toEqual(
+      failed(401, 'invalid_credential', 'invalid_credential'),
+    )
   })
 
   it('offers nothing when the server refuses the options', async () => {

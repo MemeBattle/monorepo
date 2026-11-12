@@ -912,7 +912,7 @@ describe('DashboardPage', () => {
 
       expect(await screen.findByText(failed)).toBeDefined()
       expect(screen.getByLabelText<HTMLInputElement>('Почта').value).toBe(address)
-      expect(screen.queryByText('No such account')).toBeNull()
+      expect(screen.queryByText(/account_not_found/)).toBeNull()
       await waitFor(() => expect(getMe).toHaveBeenCalledOnce())
     })
 
