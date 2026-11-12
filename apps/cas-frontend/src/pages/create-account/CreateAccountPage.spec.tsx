@@ -88,8 +88,9 @@ describe('CreateAccountPage', () => {
 
     await submit('  Ада  ')
 
-    await waitFor(() => expect(registerWithPasskey).toHaveBeenCalledWith({ displayName: 'Ада' }))
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Дашборд' })).toBeDefined())
+    // A plain registration passes no guest: one call with the name alone.
+    expect(registerWithPasskey).toHaveBeenCalledExactlyOnceWith({ displayName: 'Ада' })
   })
 
   it('sends a decomposed name near the cap in NFC instead of rejecting it', async () => {
