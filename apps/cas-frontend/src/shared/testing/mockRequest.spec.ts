@@ -36,6 +36,11 @@ describe('network boundary', () => {
     await expect(client({ method: 'GET', url: '/api/me' })).rejects.toThrow('Failed to fetch')
   })
 
+  it('passes the server message through real client(), not one made from the code', async () => {
+    mockRequest('GET', '/api/me').respond(() => Response.json({ error: { code: 'unauthenticated', message: 'Sign in first' } }, { status: 401 }))
+    await expect(client({ method: 'GET', url: '/api/me' })).resolves.toEqual(failed(401, 'unauthenticated', 'Sign in first'))
+  })
+
   it('detects an unanswered request even when application code catches it', async () => {
     await client({ method: 'GET', url: '/api/unanswered' }).catch(() => {})
     expect(() => assertNoUnhandledRequests()).toThrow('Unhandled CAS request: GET')
