@@ -6,9 +6,9 @@
 import type { RegistrationOptionsRequest } from './RegistrationOptionsRequest'
 import type { RegistrationOptionsResponse } from './RegistrationOptionsResponse'
 
-export type GetRegistrationOptionsStatus200 = RegistrationOptionsResponse;
+type GetRegistrationOptionsStatus200 = RegistrationOptionsResponse;
 
-export type GetRegistrationOptionsStatus400 = {
+type GetRegistrationOptionsStatus400 = {
     error: {
         code: ("invalid_body" | "invalid_display_name");
         /**
@@ -19,7 +19,7 @@ export type GetRegistrationOptionsStatus400 = {
     };
 };
 
-export type GetRegistrationOptionsStatus403 = {
+type GetRegistrationOptionsStatus403 = {
     error: {
         code: "cross_site_request";
         /**
@@ -30,7 +30,7 @@ export type GetRegistrationOptionsStatus403 = {
     };
 };
 
-export type GetRegistrationOptionsStatus413 = {
+type GetRegistrationOptionsStatus413 = {
     error: {
         code: "invalid_body";
         /**
@@ -41,7 +41,7 @@ export type GetRegistrationOptionsStatus413 = {
     };
 };
 
-export type GetRegistrationOptionsStatus415 = {
+type GetRegistrationOptionsStatus415 = {
     error: {
         code: "invalid_body";
         /**
@@ -52,7 +52,7 @@ export type GetRegistrationOptionsStatus415 = {
     };
 };
 
-export type GetRegistrationOptionsStatus422 = {
+type GetRegistrationOptionsStatus422 = {
     error: {
         code: "invalid_body";
         /**
@@ -63,7 +63,7 @@ export type GetRegistrationOptionsStatus422 = {
     };
 };
 
-export type GetRegistrationOptionsStatus500 = {
+type GetRegistrationOptionsStatus500 = {
     error: {
         code: "internal_error";
         /**
@@ -74,7 +74,7 @@ export type GetRegistrationOptionsStatus500 = {
     };
 };
 
-export type GetRegistrationOptionsStatus503 = {
+type GetRegistrationOptionsStatus503 = {
     error: {
         code: ("database_busy" | "database_unavailable");
         /**
@@ -85,7 +85,7 @@ export type GetRegistrationOptionsStatus503 = {
     };
 };
 
-export type GetRegistrationOptionsBody = RegistrationOptionsRequest;
+type GetRegistrationOptionsBody = RegistrationOptionsRequest;
 
 export type GetRegistrationOptionsOptions = {
     body: GetRegistrationOptionsBody;
@@ -104,8 +104,3 @@ export type GetRegistrationOptionsResponses = {
     "500": GetRegistrationOptionsStatus500;
     "503": GetRegistrationOptionsStatus503;
 };
-
-/**
- * @description Union of all possible responses
-*/
-export type GetRegistrationOptionsResponse = (GetRegistrationOptionsStatus200 | GetRegistrationOptionsStatus400 | GetRegistrationOptionsStatus403 | GetRegistrationOptionsStatus413 | GetRegistrationOptionsStatus415 | GetRegistrationOptionsStatus422 | GetRegistrationOptionsStatus500 | GetRegistrationOptionsStatus503);

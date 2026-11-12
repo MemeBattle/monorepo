@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { ApiError, atUrl, client, createClient } from './client'
 import type { Client, ErrorCodeOf, RequestConfig } from './client'
-import type { AuthorizeResponses } from './generated/models/Authorize'
+import type { EndSessionByFormResponses } from './generated/models/EndSessionByForm'
 import type { TokenResponses } from './generated/models/Token'
 import { endSessionByForm } from './generated/operations/endSessionByForm'
 import { token } from './generated/operations/token'
@@ -264,7 +264,7 @@ describe('the generated operations', () => {
       | 'temporarily_unavailable'
     >()
     // A status kubb describes per content type yields the codes of its JSON variant; the HTML pages carry none.
-    expectTypeOf<ErrorCodeOf<AuthorizeResponses>>().toEqualTypeOf<'internal_error'>()
+    expectTypeOf<ErrorCodeOf<EndSessionByFormResponses>>().toEqualTypeOf<'internal_error'>()
   })
 })
 

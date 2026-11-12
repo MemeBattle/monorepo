@@ -5,9 +5,9 @@
 
 import type { PasskeyListResponse } from './PasskeyListResponse'
 
-export type ListPasskeysStatus200 = PasskeyListResponse;
+type ListPasskeysStatus200 = PasskeyListResponse;
 
-export type ListPasskeysStatus401 = {
+type ListPasskeysStatus401 = {
     error: {
         code: "unauthenticated";
         /**
@@ -18,7 +18,7 @@ export type ListPasskeysStatus401 = {
     };
 };
 
-export type ListPasskeysStatus500 = {
+type ListPasskeysStatus500 = {
     error: {
         code: "internal_error";
         /**
@@ -29,7 +29,7 @@ export type ListPasskeysStatus500 = {
     };
 };
 
-export type ListPasskeysStatus503 = {
+type ListPasskeysStatus503 = {
     error: {
         code: ("database_busy" | "database_unavailable");
         /**
@@ -53,8 +53,3 @@ export type ListPasskeysResponses = {
     "500": ListPasskeysStatus500;
     "503": ListPasskeysStatus503;
 };
-
-/**
- * @description Union of all possible responses
-*/
-export type ListPasskeysResponse = (ListPasskeysStatus200 | ListPasskeysStatus401 | ListPasskeysStatus500 | ListPasskeysStatus503);

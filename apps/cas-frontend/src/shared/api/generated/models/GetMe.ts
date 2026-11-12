@@ -9,9 +9,9 @@ import type { MeResponse } from './MeResponse'
  * @description The signed-in account as the dashboard needs it. Nothing about the\nsession itself but when it ends if left alone: the id is server-side\nstate.\n\nUnder an upgrade session it is the guest (ADR 0018): `accountType:\n\"guest\"`, the generated `Guest <n>` name, `email: null`, and the upgrade\nsession\'s expiry. A resolved session of a guest is always an upgrade\nsession, so the type is all the frontend needs to tell the two apart.
  * @type object
 */
-export type GetMeStatus200 = MeResponse;
+type GetMeStatus200 = MeResponse;
 
-export type GetMeStatus401 = {
+type GetMeStatus401 = {
     error: {
         code: "unauthenticated";
         /**
@@ -22,7 +22,7 @@ export type GetMeStatus401 = {
     };
 };
 
-export type GetMeStatus500 = {
+type GetMeStatus500 = {
     error: {
         code: "internal_error";
         /**
@@ -33,7 +33,7 @@ export type GetMeStatus500 = {
     };
 };
 
-export type GetMeStatus503 = {
+type GetMeStatus503 = {
     error: {
         code: ("database_busy" | "database_unavailable");
         /**
@@ -57,8 +57,3 @@ export type GetMeResponses = {
     "500": GetMeStatus500;
     "503": GetMeStatus503;
 };
-
-/**
- * @description Union of all possible responses
-*/
-export type GetMeResponse = (GetMeStatus200 | GetMeStatus401 | GetMeStatus500 | GetMeStatus503);

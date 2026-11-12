@@ -16,7 +16,7 @@ import { atUrl, createClient } from './client'
 import type { DiscoveryCache } from './discovery'
 import { createDiscoveryCache } from './discovery'
 import { TokenEndpointError } from './errors'
-import type { TokenBody } from './generated/models/Token'
+import type { TokenOptions } from './generated/models/Token'
 import type { TokenResponse } from './generated/models/TokenResponse'
 import { token as tokenOperation } from './generated/operations/token'
 import type { IdTokenClaims, ProfileSnapshot } from './id-token'
@@ -178,7 +178,7 @@ export const createCasClient = (options: CasClientOptions): CasClient => {
    * and leaves here as a `TokenEndpointError`; anything outside the contract — the network, a proxy's page — passes
    * through as the transport reported it.
    */
-  const postToken = async (grant: TokenBody): Promise<TokenResponse> => {
+  const postToken = async (grant: TokenOptions['body']): Promise<TokenResponse> => {
     const document = await cache.discovery(issuer, transport)
     const result = await tokenOperation({
       client: atUrl(transport, document.token_endpoint),

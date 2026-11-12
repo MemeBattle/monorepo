@@ -73,12 +73,12 @@ export type ErrorCodeOf<Responses> = {
 }[keyof Responses]
 
 /** The body of a successful call: the 2xx responses, with a 204 as the `undefined` `client()` returns for it. */
-export type SuccessOf<Responses> = {
+type SuccessOf<Responses> = {
   [Status in keyof Responses]: Status extends '204' ? undefined : Status extends `2${string}` ? Responses[Status] : never
 }[keyof Responses]
 
 /** What a generated function passes to `client()`. */
-export interface RequestConfig {
+interface RequestConfig {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   /** A path template: `{name}` is replaced with `path.name`. */
   url: string

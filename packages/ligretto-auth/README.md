@@ -385,8 +385,12 @@ pnpm run --filter @memebattle/ligretto-auth generate:api
 
 That runs kubb over [`apps/cas/openapi.json`](../../apps/cas/openapi.json),
 filtered to the `/oidc/` and `/.well-known/` paths — the protocol surface; the
-`/api/` JSON API is the CAS dashboard's — and then
-`scripts/generate-error-codes.mjs`, which writes `src/generated/error-codes.ts`
+`/api/` JSON API is the CAS dashboard's — less the operations nothing here
+sends (`authorize`, a navigation whose URL `cas-client.ts` builds, the `HEAD`
+variants, the `GET` end session and the `POST` userinfo). Then
+`.scripts/narrow-kubb-models.mjs` leaves each operation's models exporting only
+its `Options` and `Responses`, and `scripts/generate-error-codes.mjs` writes
+`src/generated/error-codes.ts`
 from the `x-error-codes` extension. The extension is the one place the codes
 live, whatever the response body (ADR 0016 (i)): the `302` of `/oidc/authorize`
 carries its ten codes in the redirect's `error` parameter and has no body, and

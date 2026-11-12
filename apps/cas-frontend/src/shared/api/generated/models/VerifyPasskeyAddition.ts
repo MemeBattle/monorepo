@@ -10,9 +10,9 @@ import type { VerifyAdditionData } from './VerifyAdditionData'
  * @description A passkey as the dashboard shows it. The credential itself (public key,\ncounter, flags) is server-side state and never leaves.
  * @type object
 */
-export type VerifyPasskeyAdditionStatus201 = PasskeyResponse;
+type VerifyPasskeyAdditionStatus201 = PasskeyResponse;
 
-export type VerifyPasskeyAdditionStatus400 = {
+type VerifyPasskeyAdditionStatus400 = {
     error: {
         code: ("discoverable_credential_required" | "invalid_body" | "registration_verification_failed");
         /**
@@ -23,7 +23,7 @@ export type VerifyPasskeyAdditionStatus400 = {
     };
 };
 
-export type VerifyPasskeyAdditionStatus401 = {
+type VerifyPasskeyAdditionStatus401 = {
     error: {
         code: "unauthenticated";
         /**
@@ -34,7 +34,7 @@ export type VerifyPasskeyAdditionStatus401 = {
     };
 };
 
-export type VerifyPasskeyAdditionStatus403 = {
+type VerifyPasskeyAdditionStatus403 = {
     error: {
         code: "cross_site_request";
         /**
@@ -45,7 +45,7 @@ export type VerifyPasskeyAdditionStatus403 = {
     };
 };
 
-export type VerifyPasskeyAdditionStatus404 = {
+type VerifyPasskeyAdditionStatus404 = {
     error: {
         code: "registration_not_found";
         /**
@@ -56,7 +56,7 @@ export type VerifyPasskeyAdditionStatus404 = {
     };
 };
 
-export type VerifyPasskeyAdditionStatus409 = {
+type VerifyPasskeyAdditionStatus409 = {
     error: {
         code: "credential_already_registered";
         /**
@@ -67,7 +67,7 @@ export type VerifyPasskeyAdditionStatus409 = {
     };
 };
 
-export type VerifyPasskeyAdditionStatus413 = {
+type VerifyPasskeyAdditionStatus413 = {
     error: {
         code: "invalid_body";
         /**
@@ -78,7 +78,7 @@ export type VerifyPasskeyAdditionStatus413 = {
     };
 };
 
-export type VerifyPasskeyAdditionStatus415 = {
+type VerifyPasskeyAdditionStatus415 = {
     error: {
         code: "invalid_body";
         /**
@@ -89,7 +89,7 @@ export type VerifyPasskeyAdditionStatus415 = {
     };
 };
 
-export type VerifyPasskeyAdditionStatus422 = {
+type VerifyPasskeyAdditionStatus422 = {
     error: {
         code: "invalid_body";
         /**
@@ -100,7 +100,7 @@ export type VerifyPasskeyAdditionStatus422 = {
     };
 };
 
-export type VerifyPasskeyAdditionStatus500 = {
+type VerifyPasskeyAdditionStatus500 = {
     error: {
         code: "internal_error";
         /**
@@ -111,7 +111,7 @@ export type VerifyPasskeyAdditionStatus500 = {
     };
 };
 
-export type VerifyPasskeyAdditionStatus503 = {
+type VerifyPasskeyAdditionStatus503 = {
     error: {
         code: ("database_busy" | "database_unavailable");
         /**
@@ -122,7 +122,7 @@ export type VerifyPasskeyAdditionStatus503 = {
     };
 };
 
-export type VerifyPasskeyAdditionBody = VerifyAdditionData;
+type VerifyPasskeyAdditionBody = VerifyAdditionData;
 
 export type VerifyPasskeyAdditionOptions = {
     body: VerifyPasskeyAdditionBody;
@@ -144,8 +144,3 @@ export type VerifyPasskeyAdditionResponses = {
     "500": VerifyPasskeyAdditionStatus500;
     "503": VerifyPasskeyAdditionStatus503;
 };
-
-/**
- * @description Union of all possible responses
-*/
-export type VerifyPasskeyAdditionResponse = (VerifyPasskeyAdditionStatus201 | VerifyPasskeyAdditionStatus400 | VerifyPasskeyAdditionStatus401 | VerifyPasskeyAdditionStatus403 | VerifyPasskeyAdditionStatus404 | VerifyPasskeyAdditionStatus409 | VerifyPasskeyAdditionStatus413 | VerifyPasskeyAdditionStatus415 | VerifyPasskeyAdditionStatus422 | VerifyPasskeyAdditionStatus500 | VerifyPasskeyAdditionStatus503);

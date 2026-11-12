@@ -1,5 +1,5 @@
 export { getMe, logout, updateEmail } from './api'
-export type { GetMeErrorCode, LogoutErrorCode, Me, UpdateEmailErrorCode } from './api'
+export type { Me, UpdateEmailErrorCode } from './api'
 export {
   isAuthenticatorUnsupported,
   isCeremonyCancelled,
@@ -10,4 +10,4 @@ export {
   signInWithPasskey,
   signInWithPasskeyFromAutofill,
 } from './ceremonies'
-export type { RegisterWithPasskeyErrorCode, Registered, SignInWithPasskeyErrorCode, SignedIn, Upgrading } from './ceremonies'
+export type { RegisterWithPasskeyErrorCode, SignInWithPasskeyErrorCode } from './ceremonies'

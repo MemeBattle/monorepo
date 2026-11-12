@@ -10,19 +10,20 @@ import { pluginTs } from '@kubb/plugin-ts'
 const clientOf = (document: string, directory: string) => ({
   root: '.',
   input: `../../apps/ligretto-core-backend/${document}`,
-  // `clean` empties the directory first, so an operation removed from the document disappears from the client. The
-  // named barrel is the module each entry re-exports: every operation and model by name.
-  output: { path: `./src/generated/${directory}`, clean: true, barrel: { type: 'named' as const } },
+  // `clean` empties the directory first, so an operation removed from the document disappears from the client.
+  output: { path: `./src/generated/${directory}`, clean: true },
   // `integerType` defaults to `bigint`, which is not what JSON.parse produces: a score or `expiresAt` arrives as a
   // JavaScript number, so `number` is the type the transport delivers.
   adapter: adapterOas({ integerType: 'number' }),
   plugins: [
     // Literal unions rather than enum objects: the codes are compared as strings, and there is nothing to import.
-    pluginTs({ output: { path: 'models' }, enum: { type: 'inlineLiteral' } }),
+    // The named barrels of `models` and `operations` are the modules each entry re-exports: every model and operation by
+    // name. There is no root barrel: it would re-export the same files a second time, past the two barrels.
+    pluginTs({ output: { path: 'models', barrel: { type: 'named' } }, enum: { type: 'inlineLiteral' } }),
     // Every operation calls the transport of `src/client.ts` through `#client`. plugin-client prints a `throwOnError`
     // option into every operation and cannot leave it out; `false` makes the printed default say what the transport
     // does: every answer comes back as a result, none is thrown.
-    pluginClient({ output: { path: 'operations' }, importPath: '#client', throwOnErrorDefault: false }),
+    pluginClient({ output: { path: 'operations', barrel: { type: 'named' } }, importPath: '#client', throwOnErrorDefault: false }),
   ],
 })
 

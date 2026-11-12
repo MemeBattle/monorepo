@@ -10,9 +10,9 @@ import type { VerifyRegistrationResponse } from './VerifyRegistrationResponse'
  * @description What the client needs after a successful registration: who it now is, and\nwhich credential was stored. The credential itself is server-side state and\nis never sent back.
  * @type object
 */
-export type VerifyRegistrationStatus200 = VerifyRegistrationResponse;
+type VerifyRegistrationStatus200 = VerifyRegistrationResponse;
 
-export type VerifyRegistrationStatus400 = {
+type VerifyRegistrationStatus400 = {
     error: {
         code: ("discoverable_credential_required" | "invalid_body" | "registration_verification_failed");
         /**
@@ -23,7 +23,7 @@ export type VerifyRegistrationStatus400 = {
     };
 };
 
-export type VerifyRegistrationStatus401 = {
+type VerifyRegistrationStatus401 = {
     error: {
         code: "unauthenticated";
         /**
@@ -34,7 +34,7 @@ export type VerifyRegistrationStatus401 = {
     };
 };
 
-export type VerifyRegistrationStatus403 = {
+type VerifyRegistrationStatus403 = {
     error: {
         code: "cross_site_request";
         /**
@@ -45,7 +45,7 @@ export type VerifyRegistrationStatus403 = {
     };
 };
 
-export type VerifyRegistrationStatus404 = {
+type VerifyRegistrationStatus404 = {
     error: {
         code: "registration_not_found";
         /**
@@ -56,7 +56,7 @@ export type VerifyRegistrationStatus404 = {
     };
 };
 
-export type VerifyRegistrationStatus409 = {
+type VerifyRegistrationStatus409 = {
     error: {
         code: "credential_already_registered";
         /**
@@ -67,7 +67,7 @@ export type VerifyRegistrationStatus409 = {
     };
 };
 
-export type VerifyRegistrationStatus413 = {
+type VerifyRegistrationStatus413 = {
     error: {
         code: "invalid_body";
         /**
@@ -78,7 +78,7 @@ export type VerifyRegistrationStatus413 = {
     };
 };
 
-export type VerifyRegistrationStatus415 = {
+type VerifyRegistrationStatus415 = {
     error: {
         code: "invalid_body";
         /**
@@ -89,7 +89,7 @@ export type VerifyRegistrationStatus415 = {
     };
 };
 
-export type VerifyRegistrationStatus422 = {
+type VerifyRegistrationStatus422 = {
     error: {
         code: "invalid_body";
         /**
@@ -100,7 +100,7 @@ export type VerifyRegistrationStatus422 = {
     };
 };
 
-export type VerifyRegistrationStatus500 = {
+type VerifyRegistrationStatus500 = {
     error: {
         code: "internal_error";
         /**
@@ -111,7 +111,7 @@ export type VerifyRegistrationStatus500 = {
     };
 };
 
-export type VerifyRegistrationStatus503 = {
+type VerifyRegistrationStatus503 = {
     error: {
         code: ("database_busy" | "database_unavailable");
         /**
@@ -122,7 +122,7 @@ export type VerifyRegistrationStatus503 = {
     };
 };
 
-export type VerifyRegistrationBody = VerifyRegistrationData;
+type VerifyRegistrationBody = VerifyRegistrationData;
 
 export type VerifyRegistrationOptions = {
     body: VerifyRegistrationBody;
