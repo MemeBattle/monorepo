@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 
 import { describe, expect, it } from 'vitest'
-import { OnboardingEvent, OnboardingStateMachine, OnboardingStep } from '#features/onboarding/model/fsm'
+import { canPlaceCardOnDeck, type Card } from '@memebattle/ligretto-shared'
+import type { CardDragTarget } from '#features/cardInteraction'
+import type { OnboardingGame } from '#features/onboarding'
+import { OnboardingEvent, OnboardingStateMachine, OnboardingStep, getAllowedEvents } from '#features/onboarding/model/fsm'
 import { ONBOARDING_SCRIPT } from '#features/onboarding/model/script'
 import { canPlaceOnboardingCard, getOnboardingPlacement, getOnboardingPlacementAction } from './onboardingPlacement'
 
@@ -24,7 +27,93 @@ const reach = async (step: OnboardingStep, bluePileIndex = 0) => {
   }
 }
 
+const CYCLED_INFO_STEPS: ReadonlyArray<OnboardingStep> = [OnboardingStep.GameStartedCycledInfo, OnboardingStep.OpponentTurnCycledInfo]
+
+interface ReachedState {
+  step: OnboardingStep
+  game: OnboardingGame
+  allowedEvents: OnboardingEvent[]
+  isCycledInfoShown: boolean
+  /** How many times the history that reached this state entered a cycled-stack hint step. */
+  cycledInfoEntries: number
+}
+
+/** Plays `history` on a fresh state machine, so every hook runs as in live play (hydrate() skips the pending onLeave). */
+const replay = async (history: ReadonlyArray<OnboardingEvent>) => {
+  const fsm = new OnboardingStateMachine()
+  let cycledInfoEntries = 0
+  let enteredBy = 'initial'
+  for (const event of history) {
+    const from = fsm.current
+    await fsm.transition(event)
+    enteredBy = `${from}:${event}`
+    if (CYCLED_INFO_STEPS.includes(fsm.current)) {
+      cycledInfoEntries += 1
+    }
+  }
+  return { fsm, cycledInfoEntries, enteredBy }
+}
+
+/**
+ * Every state the player can reach: the scripted moves, the optional ligretto moves and any number of stack flips,
+ * with the default decks for the placements. Breadth-first over replayed event histories. A state is identified by its
+ * step, its data and the transition that entered it (whose onLeave is still pending), which keeps the search finite.
+ */
+const reachableStates = async () => {
+  const states = new Map<string, ReachedState>()
+  const queue: Array<ReadonlyArray<OnboardingEvent>> = [[]]
+  while (queue.length > 0) {
+    const history = queue.shift()!
+    const { fsm, cycledInfoEntries, enteredBy } = await replay(history)
+    const key = JSON.stringify({ step: fsm.current, data: fsm.context.data, enteredBy })
+    if (states.has(key)) {
+      continue
+    }
+    const allowedEvents = await getAllowedEvents(fsm)
+    const { game, isCycledInfoShown } = fsm.context.data
+    states.set(key, { step: fsm.current, game, allowedEvents, isCycledInfoShown, cycledInfoEntries })
+    queue.push(...allowedEvents.map(event => [...history, event]))
+  }
+  return [...states.values()]
+}
+
+/** The steps that introduce the zones with a Next button; the first move is taught right after them. */
+const INTRO_STEPS: ReadonlyArray<OnboardingStep> = [
+  OnboardingStep.Opponents,
+  OnboardingStep.Playground,
+  OnboardingStep.Cards,
+  OnboardingStep.Stack,
+  OnboardingStep.Row,
+  OnboardingStep.Ligretto,
+]
+
 describe('onboarding placement', () => {
+  it('never shows the player a card that fits a pile unless the step lets them put it there', async () => {
+    const states = await reachableStates()
+    // The traversal follows real play: it gets past the cycled-stack hint, and never shows that hint twice.
+    expect(states.some(({ step, isCycledInfoShown }) => isCycledInfoShown && !CYCLED_INFO_STEPS.includes(step))).toBe(true)
+    expect(Math.max(...states.map(({ cycledInfoEntries }) => cycledInfoEntries))).toBe(1)
+    const misleading = new Set<string>()
+    for (const { step, game, allowedEvents } of states.filter(({ step }) => !INTRO_STEPS.includes(step))) {
+      const placement = getOnboardingPlacement(step, allowedEvents)
+      const { cards, stackOpenDeck } = game.players.id0
+      const visible: Array<[CardDragTarget, Card | null | undefined]> = [
+        [{ type: 'open-stack' }, stackOpenDeck.cards[0]],
+        ...cards.map((card, index): [CardDragTarget, Card | null] => [{ type: 'row', index }, card]),
+      ]
+      for (const [source, card] of visible) {
+        for (const deck of DECKS) {
+          if (card && canPlaceCardOnDeck(card, game.playground.decks[deck] ?? null) && !canPlaceOnboardingCard(placement, game, source, deck)) {
+            misleading.add(`${step}: ${card.color} ${card.value} from ${source.type} fits deck ${deck}`)
+          }
+        }
+      }
+    }
+
+    expect(states.some(({ step }) => step === OnboardingStep.Result)).toBe(true)
+    expect([...misleading]).toEqual([])
+  })
+
   it('lets the first one open any free deck', async () => {
     const { game, placement } = await reach(OnboardingStep.FirstCard)
     const source = { type: 'row', index: 0 } as const

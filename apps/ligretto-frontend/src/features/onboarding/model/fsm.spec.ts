@@ -86,14 +86,14 @@ describe('OnboardingStateMachine', () => {
     const closedDeck = () => fsm.context.data.game.players.id0.stackDeck.cards
 
     // After the scripted steps one card is still face down and one lies open (the blue two went to the table).
-    expect(closedDeck()).toEqual([{ value: 6, color: CardColors.green }])
+    expect(closedDeck()).toEqual([{ value: 7, color: CardColors.red }])
     expect(openDeck()).toEqual([{ value: 9, color: CardColors.blue }])
 
     await fsm.transition(OnboardingEvent.NextStackCard)
     expect(fsm.current).toBe(OnboardingStep.GameStarted)
     expect(closedDeck()).toHaveLength(0)
     expect(openDeck()).toEqual([
-      { value: 6, color: CardColors.green },
+      { value: 7, color: CardColors.red },
       { value: 9, color: CardColors.blue },
     ])
   })
@@ -119,7 +119,7 @@ describe('OnboardingStateMachine', () => {
     expect(fsm.current).toBe(OnboardingStep.GameStarted)
     expect(closedDeck()).toEqual([
       { value: 9, color: CardColors.blue },
-      { value: 6, color: CardColors.green },
+      { value: 7, color: CardColors.red },
     ])
     expect(openDeck()).toHaveLength(0)
 
