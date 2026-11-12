@@ -60,6 +60,29 @@ describe('onboarding placement', () => {
     expect(DECKS.filter(index => canPlaceOnboardingCard(placement, game, { type: 'row', index: 2 }, index))).toEqual([0])
   })
 
+  it('takes the green five from the second row slot only onto the green four of the opponent', async () => {
+    const { game, opponentPileIndex, placement } = await reach(OnboardingStep.AdditionalRowCard, 2)
+
+    expect(placement?.source).toEqual({ type: 'row', index: 1 })
+    expect(opponentPileIndex).toBe(0)
+    expect(DECKS.filter(index => canPlaceOnboardingCard(placement, game, { type: 'row', index: 1 }, index))).toEqual([0])
+    // Neither the blue nor the red pile nor a free deck takes it.
+    expect(getOnboardingPlacementAction(placement, game, { type: 'row', index: 1 }, 2)).toBeUndefined()
+    expect(getOnboardingPlacementAction(placement, game, { type: 'row', index: 1 }, 1)).toBeUndefined()
+    expect(getOnboardingPlacementAction(placement, game, { type: 'row', index: 1 }, 5)).toBeUndefined()
+    expect(getOnboardingPlacementAction(placement, game, { type: 'row', index: 1 }, 0)).toEqual({
+      type: 'features/onboarding/putSecondCard',
+      payload: { playgroundDeckIndex: 0 },
+    })
+  })
+
+  it('moves no card once the round is over', async () => {
+    const { game, placement } = await reach(OnboardingStep.RoundEnd)
+
+    expect(placement).toBeUndefined()
+    expect(DECKS.filter(index => canPlaceOnboardingCard(placement, game, { type: 'row', index: 1 }, index))).toEqual([])
+  })
+
   it('ignores a card the step does not move and a step without a move', async () => {
     const { game, placement } = await reach(OnboardingStep.FirstCard)
     expect(getOnboardingPlacementAction(placement, game, { type: 'row', index: 1 }, 0)).toBeUndefined()
