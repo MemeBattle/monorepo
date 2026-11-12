@@ -38,11 +38,14 @@ export const ONBOARDING_PLAYER_NAMES: Record<'id0' | 'id1' | 'id2' | 'id3', stri
   id3: 'Бывалый',
 }
 
-/** The player's hand deck, face down; cards are flipped onto the open pile in this order. */
+/**
+ * The player's hand deck, face down; cards are flipped onto the open pile in this order. The third card fits no pile
+ * the tutorial ever builds (blue up to 3, red 1, green up to 5), so the hand never offers a move the steps refuse.
+ */
 const STACK_DECK_CARDS: ReadonlyArray<Card> = [
   { value: 9, color: CardColors.blue },
   { value: 2, color: CardColors.blue },
-  { value: 6, color: CardColors.green },
+  { value: 7, color: CardColors.red },
 ]
 
 export const createOnboardingGame = (): OnboardingGame => ({
