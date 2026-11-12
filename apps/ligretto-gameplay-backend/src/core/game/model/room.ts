@@ -30,7 +30,7 @@ export const playersOf = (game: Game) => Object.values(game.players).filter((pla
 
 export const onlinePlayersOf = (game: Game) => playersOf(game).filter(player => player.status !== PlayerStatus.Disconnected)
 
-export const isBetweenRounds = (game: Game) => game.status === GameStatus.New || game.status === GameStatus.RoundFinished
+const isBetweenRounds = (game: Game) => game.status === GameStatus.New || game.status === GameStatus.RoundFinished
 
 export const isRoundInProgress = (game: Game) =>
   game.status === GameStatus.Starting || game.status === GameStatus.InGame || game.status === GameStatus.Pause
@@ -152,7 +152,7 @@ export const markPlayerConnected = (game: Game, userId: UUID): Game => {
   return setPlayerStatus(game, userId, isBetweenRounds(game) ? PlayerStatus.DontReadyToPlay : PlayerStatus.InGame)
 }
 
-export const isHostOffline = (game: Game) => playersOf(game).some(player => player.isHost && player.status === PlayerStatus.Disconnected)
+const isHostOffline = (game: Game) => playersOf(game).some(player => player.isHost && player.status === PlayerStatus.Disconnected)
 
 export const transferDisconnectedHost = (game: Game): Game | undefined => {
   const replacement = [...onlinePlayersOf(game)].sort((left, right) => left.id.localeCompare(right.id))[0]

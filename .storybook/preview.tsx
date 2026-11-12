@@ -1,4 +1,4 @@
-import type { Decorator, Preview, StoryContext } from '@storybook/react'
+import type { Decorator, Preview, StoryContext } from '@storybook/react-vite'
 import { setupStoryMocks } from '../apps/cas-frontend/src/shared/testing/storybook'
 import { MINIMAL_VIEWPORTS } from 'storybook/viewport'
 import { CssBaseline } from '@memebattle/ui'

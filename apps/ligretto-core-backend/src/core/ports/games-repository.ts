@@ -4,10 +4,10 @@ export interface RoundResult {
   score: number
 }
 
-export type WithGameResult<T> = { status: 'game_not_found' } | { status: 'ok'; value: T }
+type WithGameResult<T> = { status: 'game_not_found' } | { status: 'ok'; value: T }
 
 /** Whether `insertRound` wrote the round: `false` when a round with that id already existed, in any game. */
-export type InsertRoundResult = { inserted: true } | { inserted: false }
+type InsertRoundResult = { inserted: true } | { inserted: false }
 
 /**
  * The queries of saving a round (docs/DESIGN.md § Routes), all on the transaction that holds the game's row lock.

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": [".storybook/{main,preview}.{ts,tsx}"],
+      "ignoreFiles": [".storybook/public/mockServiceWorker.js"],
+      "ignoreBinaries": ["cf"]
+    },
+    "apps/blog": {
+      "entry": [
+        "next.config.{js,ts}",
+        "src/app/**/{page,layout,route}.{js,jsx,ts,tsx}",
+        "src/proxy.ts",
+        "src/mdx-components.tsx",
+        "src/**/*.test.{js,jsx,ts,tsx}",
+        "vitest.config.ts"
+      ],
+      "project": ["src/**/*.{js,jsx,ts,tsx}"],
+      "ignoreDependencies": ["sharp"]
+    },
+    "apps/gamehub-client": {
+      "entry": ["next.config.{js,ts}", "src/app/**/{page,layout,route}.{js,jsx,ts,tsx}"],
+      "project": ["src/**/*.{js,jsx,ts,tsx}"],
+      "ignoreDependencies": ["sharp"]
+    },
+    "apps/ligretto-frontend": {
+      "entry": [
+        "src/index.tsx",
+        "src/**/*.spec.{ts,tsx}",
+        "src/**/*.stories.{ts,tsx}",
+        "e2e/**/*.ts",
+        "vite.config.ts",
+        "playwright.config.ts",
+        "cloudflare.config.ts",
+        "wrangler.config.ts"
+      ],
+      "project": ["src/**/*.{ts,tsx}", "e2e/**/*.ts"],
+      "ignoreDependencies": ["@sentry/cli"]
+    },
+    "apps/ligretto-core-backend": {
+      "entry": [
+        "src/entry/**/*.ts",
+        "src/**/*.spec.ts",
+        "test/**/*.ts",
+        "scripts/**/*.ts",
+        "migrations/**/*.ts",
+        "cloudflare.config.ts",
+        "vitest*.config.ts"
+      ],
+      "project": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts", "migrations/**/*.ts"],
+      "ignoreDependencies": ["cloudflare", "wrangler"]
+    },
+    "apps/ligretto-gameplay-backend": {
+      "entry": ["src/cloudflare/worker.ts", "src/**/*.spec.ts", "test/**/*.ts", "vitest*.config.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"],
+      "ignoreDependencies": ["cf", "cloudflare"]
+    }
+  }
+}

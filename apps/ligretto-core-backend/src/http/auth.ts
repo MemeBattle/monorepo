@@ -10,7 +10,7 @@ import type { BaseApp } from './app.ts'
 import type { AppEnv, PublicAppDeps } from './types.ts'
 
 /** Where each handler of `@memebattle/ligretto-auth` is mounted. */
-export const AUTH_PATHS = {
+const AUTH_PATHS = {
   me: '/api/auth/me',
   signIn: '/api/auth/sign-in',
   callback: '/api/auth/callback',
@@ -21,7 +21,7 @@ export const AUTH_PATHS = {
  * The `operationId` of each auth route, which is the generated client's function name: renaming one breaks every
  * consumer (docs/adrs/api-contract-openapi-and-client-package.md). `callback` alone would be too generic an export.
  */
-export const AUTH_OPERATION_IDS = {
+const AUTH_OPERATION_IDS = {
   me: 'getMe',
   signIn: 'signIn',
   callback: 'authCallback',

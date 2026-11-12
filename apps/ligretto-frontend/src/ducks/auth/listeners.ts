@@ -10,9 +10,9 @@ import { restartOnHome } from '#shared/api/authNavigation'
 import type { All } from '#types/store'
 
 // Keep the lead within the backend's one-minute token refresh window.
-export const REFRESH_LEAD_MS = 30_000
+const REFRESH_LEAD_MS = 30_000
 
-export const RETRY_DELAY_MS = 5_000
+const RETRY_DELAY_MS = 5_000
 
 export function addListeners(startListener: TypedStartListening<All>) {
   startListener({

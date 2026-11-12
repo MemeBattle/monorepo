@@ -31,7 +31,7 @@ const json = <T>(schema: T) => ({ 'application/json': { schema } })
 /** Answered by the middleware of `internal-auth.ts`, declared on each route so the generated client types it. */
 const invalidToken = { description: 'No configured Authorization: Bearer token', content: json(invalidInternalTokenSchema) }
 
-export const createGameRoute = createRoute({
+const createGameRoute = createRoute({
   method: 'post',
   path: '/internal/games',
   operationId: 'createGame',
@@ -44,7 +44,7 @@ export const createGameRoute = createRoute({
   },
 })
 
-export const saveRoundRoute = createRoute({
+const saveRoundRoute = createRoute({
   method: 'post',
   path: '/internal/games/{id}/rounds',
   operationId: 'saveRound',
@@ -67,7 +67,7 @@ export const saveRoundRoute = createRoute({
   },
 })
 
-export const getGameResultsRoute = createRoute({
+const getGameResultsRoute = createRoute({
   method: 'get',
   path: '/internal/games/{id}/results',
   operationId: 'getGameResults',

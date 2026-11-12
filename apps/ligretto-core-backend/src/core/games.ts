@@ -10,7 +10,7 @@ import type { GamesRepository, RoundResult } from './ports/games-repository.ts'
  */
 
 /** Per player: this round's score (`0` when they did not play it) and the sum of their scores in the game so far. */
-export type GameResults = Record<string, { roundScore: number; gameScore: number }>
+type GameResults = Record<string, { roundScore: number; gameScore: number }>
 
 export type SaveRoundResult =
   | { ok: true; value: { gameResults: GameResults } }
