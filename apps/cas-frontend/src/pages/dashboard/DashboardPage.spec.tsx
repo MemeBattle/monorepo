@@ -883,7 +883,7 @@ describe('DashboardPage', () => {
       const field = screen.getByLabelText<HTMLInputElement>('Почта')
       expect(field.value).toBe(tooLong)
       expect(field).toHaveProperty('ariaInvalid', 'true')
-      expect(screen.queryByText(/must contain/)).toBeNull()
+      expect(screen.queryByText(/invalid_email/)).toBeNull()
       // The optimistic address is gone with the failed action; the loader was not asked again.
       expect(screen.queryByText(unverified)).toBeNull()
       await waitFor(() => expect(getMe).toHaveBeenCalledOnce())
