@@ -3,6 +3,7 @@
   "workspaces": {
     ".": {
       "entry": [".storybook/{main,preview}.{ts,tsx}"],
+      "ignoreFiles": [".storybook/public/mockServiceWorker.js"],
       "ignoreBinaries": ["cf"]
     },
     "apps/blog": {
