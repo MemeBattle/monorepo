@@ -2,6 +2,7 @@ import { InvalidTokenError, type AccessTokenClaims, type AuthHandlers } from '@m
 
 import { createFixedClock } from '../core/ports/clock.fake.ts'
 import { okProbe } from '../core/ports/database-probe.fake.ts'
+import { createFakeLeadersRepository } from '../core/ports/leaders-repository.fake.ts'
 import { createRecordingLogger, type LogEntry } from '../core/ports/logger.fake.ts'
 import { createFakeUsersRepository } from '../core/ports/users-repository.fake.ts'
 import type { PublicAppDeps } from './types.ts'
@@ -33,8 +34,8 @@ const fakeAuthHandlers = (): AuthHandlers => {
 
 /**
  * The ports of the public app on fakes, for the specs beside the code: a recording logger, a fixed clock, a database
- * that answers, an empty users repository, auth handlers that answer `204`, and a verifier that accepts
- * `VALID_ACCESS_TOKEN` alone. `entries` is the recording logger's list.
+ * that answers, an empty users repository, a leaders repository that ranks no one, auth handlers that answer `204`,
+ * and a verifier that accepts `VALID_ACCESS_TOKEN` alone. `entries` is the recording logger's list.
  */
 export const createFakePublicDeps = (overrides: Partial<PublicAppDeps> = {}): PublicAppDeps & { entries: LogEntry[] } => {
   const { logger, entries } = createRecordingLogger()
@@ -45,6 +46,7 @@ export const createFakePublicDeps = (overrides: Partial<PublicAppDeps> = {}): Pu
     corsOrigins: ['http://localhost:5173', 'http://localhost:5174'],
     auth: fakeAuthHandlers(),
     users: createFakeUsersRepository(),
+    leaders: createFakeLeadersRepository(),
     verifyAccessToken: async token => {
       if (token !== VALID_ACCESS_TOKEN) {
         throw new InvalidTokenError('malformed', 'The fake verifier accepts one token.')

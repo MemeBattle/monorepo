@@ -6,8 +6,11 @@ export interface RoundResult {
 
 type WithGameResult<T> = { status: 'game_not_found' } | { status: 'ok'; value: T }
 
-/** Whether `insertRound` wrote the round: `false` when a round with that id already existed, in any game. */
-type InsertRoundResult = { inserted: true } | { inserted: false }
+/**
+ * Whether `insertRound` wrote the round: `false` when a round with that id already existed, in any game. `createdAt` is
+ * the stored `rounds.created_at`, the database's transaction time.
+ */
+type InsertRoundResult = { inserted: true; createdAt: Date } | { inserted: false }
 
 /**
  * The queries of saving a round (docs/DESIGN.md § Routes), all on the transaction that holds the game's row lock.
@@ -29,6 +32,12 @@ export interface LockedGame {
    * written and the answer is `inserted: false`, also when a concurrent transaction of another game won the id.
    */
   insertRound(roundId: string, results: readonly RoundResult[]): Promise<InsertRoundResult>
+  /**
+   * Adds each score to the player's leaderboard points for `day` (`YYYY-MM-DD`) and to their all-time total. Rows are
+   * written in `playerId` order, the daily ones first, so concurrent calls with shared players lock rows in the same
+   * order. An empty input writes nothing.
+   */
+  addPoints(day: string, results: readonly RoundResult[]): Promise<void>
   /** Every player of every round of this game with the sum of their scores. */
   totals(): Promise<Array<{ playerId: string; gameScore: number }>>
   /** The results of this game's most recent round; an empty answer when it has none. */

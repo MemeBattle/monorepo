@@ -7,6 +7,7 @@ import type { AuthHandlers, SessionStore } from '@memebattle/ligretto-auth'
 import { AuthErrorResponseSchema, MeResponseSchema } from '@memebattle/ligretto-auth/schema'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { createPgLeadersRepository } from '../../src/adapters/pg/leaders-repository.ts'
 import { createPgDatabaseProbe } from '../../src/adapters/pg/probe.ts'
 import { createPgUsersRepository } from '../../src/adapters/pg/users-repository.ts'
 import { sessionBusySchema } from '../../src/contract/auth.ts'
@@ -46,6 +47,7 @@ const compose = (stub: AuthStub, overrides: Partial<AuthHandlers> = {}): { app: 
     corsOrigins: [ORIGIN],
     auth: { ...stub.handlers, ...overrides },
     users: createPgUsersRepository(db),
+    leaders: createPgLeadersRepository(db),
     verifyAccessToken: async () => {
       throw new Error('no route of this suite verifies an access token')
     },

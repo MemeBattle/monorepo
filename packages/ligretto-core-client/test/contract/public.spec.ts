@@ -5,6 +5,7 @@ import {
   APP_URL,
   AUTHORIZATION_URL,
   createContractHarness,
+  INTERNAL_TOKEN,
   mintAccessToken,
   STATE,
   type ContractHarness,
@@ -16,13 +17,16 @@ import {
   createClient,
   getHealth,
   getMe,
+  listLeaders,
   listUsers,
   logout,
   signIn,
   type AuthUser,
   type Client,
   type HealthReport,
+  type Leaderboard,
 } from '@memebattle/ligretto-core-client'
+import { createClient as createInternalClient, createGame, saveRound } from '@memebattle/ligretto-core-client/internal'
 import { cookiesOf, createRecorder, expectEveryPairExercised, readDocument } from '../support/contract'
 
 const BASE_URL = 'http://ligretto-core.test'
@@ -268,6 +272,57 @@ describe('listUsers', () => {
     await harness.seedUsers([ALICE])
     harness.cas.metadataDown()
     expect(await listUsers({ client: cookie, query: { ids: [ALICE.sub] }, headers })).toMatchObject({ kind: 'error', status: 503 })
+  })
+})
+
+describe('listLeaders', () => {
+  const bearerOf = async (sub = ALICE.sub) => ({ authorization: `Bearer ${await mintAccessToken({ sub })}` })
+
+  it('answers 200 with the full accounts ranked and the caller among them', async () => {
+    // Through the internal API, outside the recorder of the public document.
+    const internal = createInternalClient({ baseUrl: BASE_URL, fetch: harness.internalFetch, headers: { authorization: `Bearer ${INTERNAL_TOKEN}` } })
+    const game = await createGame({ client: internal })
+    if (game.kind !== 'success') {
+      throw new Error(`createGame answered ${JSON.stringify(game)}`)
+    }
+    const saved = await saveRound({
+      client: internal,
+      path: { id: game.data.id },
+      body: {
+        roundId: crypto.randomUUID(),
+        results: [
+          { playerId: ALICE.sub, score: 7 },
+          { playerId: BOB.sub, score: 9 },
+        ],
+      },
+    })
+    expect(saved.kind).toBe('success')
+
+    const result = await listLeaders({ client: cookie, query: { period: 'all' }, headers: await bearerOf() })
+    expect(result.kind).toBe('success')
+    if (result.kind === 'success') {
+      expectTypeOf(result.data).toEqualTypeOf<Leaderboard>()
+      const alice = { sub: ALICE.sub, name: ALICE.displayName, avatarUrl: ALICE.avatarUrl, totalPoints: 7, place: 1 }
+      expect(result.data).toEqual({ leaders: [alice], me: alice })
+    }
+  })
+
+  it('answers 400 validation_failed with the issues for an unknown period', async () => {
+    const result = await listLeaders({ client: cookie, query: { period: 'week' as 'day' }, headers: await bearerOf() })
+    expect(result).toMatchObject({ kind: 'error', status: 400, error: { error: 'validation_failed' } })
+    expect(result.kind === 'error' && result.status === 400 && result.error.issues).not.toEqual([])
+  })
+
+  it('answers 401 unauthorized with WWW-Authenticate without a token', async () => {
+    const result = await listLeaders({ client: cookie, query: { period: 'day' } })
+    expect(result).toMatchObject({ kind: 'error', status: 401, error: { error: 'unauthorized' } })
+    expect(result.kind === 'error' && result.headers.get('www-authenticate')).toBe('Bearer')
+  })
+
+  it("answers 503 cas_unavailable when CAS's metadata cannot be read for a valid token", async () => {
+    harness.cas.metadataDown()
+    const result = await listLeaders({ client: cookie, query: { period: 'day' }, headers: await bearerOf() })
+    expect(result).toMatchObject({ kind: 'error', status: 503, error: { error: 'cas_unavailable' } })
   })
 })
 

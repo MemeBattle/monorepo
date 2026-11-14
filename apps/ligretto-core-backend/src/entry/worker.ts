@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { createConsoleLogger } from '../adapters/console-logger.ts'
 import { createPgAuthSweepStore } from '../adapters/pg/auth-sweep-store.ts'
 import { createPgGamesRepository } from '../adapters/pg/games-repository.ts'
+import { createPgLeadersRepository } from '../adapters/pg/leaders-repository.ts'
 import { createPgDatabaseProbe } from '../adapters/pg/probe.ts'
 import { createPgUsersRepository } from '../adapters/pg/users-repository.ts'
 import { systemClock } from '../adapters/system-clock.ts'
@@ -69,6 +70,7 @@ const build = (env: WorkerEnv) => {
       corsOrigins: http.corsOrigins,
       auth: handlers,
       users: createPgUsersRepository(runner.handles.main),
+      leaders: createPgLeadersRepository(runner.handles.main),
       verifyAccessToken,
     }),
     internal: createInternalApp({ ...deps, games: createPgGamesRepository(runner.handles.main), internalTokens: internalApi.tokens }),

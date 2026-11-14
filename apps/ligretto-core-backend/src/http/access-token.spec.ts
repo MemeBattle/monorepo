@@ -2,6 +2,7 @@ import { DiscoveryError, InvalidTokenError } from '@memebattle/ligretto-auth'
 import { describe, expect, it } from 'vitest'
 
 import { casUnavailableSchema, unauthorizedSchema } from '../contract/users.ts'
+import { createFakeLeadersRepository } from '../core/ports/leaders-repository.fake.ts'
 import { createFakeUsersRepository } from '../core/ports/users-repository.fake.ts'
 import { claimsOf, createFakePublicDeps, VALID_ACCESS_TOKEN } from './deps.fake.ts'
 import { createPublicApp } from './public-app.ts'
@@ -108,5 +109,15 @@ describe('the access token of GET /api/users', () => {
     await listUsers('Bearer secret-wrong-token')
     await listUsers(`Bearer ${VALID_ACCESS_TOKEN}`)
     expect(JSON.stringify(entries)).not.toMatch(/secret-wrong-token|valid-token/)
+  })
+})
+
+describe('the access token of GET /api/leaders', () => {
+  it('hands the verified claims to the route', async () => {
+    const leaders = createFakeLeadersRepository()
+    const app = createPublicApp(createFakePublicDeps({ leaders }))
+    const res = await app.request('/api/leaders?period=day', { headers: { authorization: `Bearer ${VALID_ACCESS_TOKEN}` } })
+    expect(res.status).toBe(200)
+    expect(leaders.queries.map(query => query.viewer)).toEqual(['fake-sub'])
   })
 })

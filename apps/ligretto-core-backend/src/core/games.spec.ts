@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { createCreateGame, createGetGameResults, createSaveRound } from './games.ts'
+import { createFixedClock } from './ports/clock.fake.ts'
 import { createFakeGamesRepository, type FakeGamesRepository } from './ports/games-repository.fake.ts'
 import { createFakeUsersRepository } from './ports/users-repository.fake.ts'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
+/** The last second of 2026-01-14 in Berlin (CET). */
+const BEFORE_BERLIN_MIDNIGHT = Date.UTC(2026, 0, 14, 22, 59, 59)
+
+let clock: ReturnType<typeof createFixedClock>
 let repo: FakeGamesRepository
 let createGame: ReturnType<typeof createCreateGame>
 let saveRound: ReturnType<typeof createSaveRound>
@@ -13,7 +18,8 @@ let getGameResults: ReturnType<typeof createGetGameResults>
 
 beforeEach(() => {
   const users = createFakeUsersRepository(['alice', 'bob', 'carol'].map(sub => ({ sub, accountType: 'full', displayName: sub, avatarUrl: null })))
-  repo = createFakeGamesRepository(users)
+  clock = createFixedClock(BEFORE_BERLIN_MIDNIGHT)
+  repo = createFakeGamesRepository(users, clock)
   createGame = createCreateGame({ games: repo })
   saveRound = createSaveRound({ games: repo })
   getGameResults = createGetGameResults({ games: repo })
@@ -149,6 +155,62 @@ describe('saveRound', () => {
       value: { gameResults: { alice: { roundScore: 10, gameScore: 15 } } },
     })
     expect(repo.rounds.size).toBe(2)
+  })
+})
+
+describe('saveRound: leaderboard points', () => {
+  const points = () => ({ daily: Object.fromEntries(repo.dailyPoints), totals: Object.fromEntries(repo.totalPoints) })
+
+  it('adds each score to the Berlin day of the round and to the totals', async () => {
+    const { id } = await createGame()
+    await saveRound(id, roundId(), [
+      { playerId: 'alice', score: 7 },
+      { playerId: 'bob', score: 3 },
+    ])
+    clock.advance(1_000)
+    await saveRound(id, roundId(), [{ playerId: 'alice', score: 5 }])
+    expect(points()).toEqual({
+      daily: { '2026-01-14 alice': 7, '2026-01-14 bob': 3, '2026-01-15 alice': 5 },
+      totals: { alice: 12, bob: 3 },
+    })
+  })
+
+  it('accumulates two rounds of one day, and subtracts a negative score', async () => {
+    const { id } = await createGame()
+    await saveRound(id, roundId(), [{ playerId: 'alice', score: 7 }])
+    await saveRound(id, roundId(), [{ playerId: 'alice', score: -2 }])
+    expect(points()).toEqual({ daily: { '2026-01-14 alice': 5 }, totals: { alice: 5 } })
+  })
+
+  it('adds nothing for a repeat, even after Berlin midnight', async () => {
+    const { id } = await createGame()
+    const round = roundId()
+    const results = [
+      { playerId: 'alice', score: 7 },
+      { playerId: 'bob', score: 3 },
+    ]
+    await saveRound(id, round, results)
+    clock.advance(1_000)
+    expect(await saveRound(id, round, [...results].reverse())).toMatchObject({ ok: true })
+    expect(points()).toEqual({ daily: { '2026-01-14 alice': 7, '2026-01-14 bob': 3 }, totals: { alice: 7, bob: 3 } })
+  })
+
+  it('adds nothing for round_conflict, unknown_players or game_not_found', async () => {
+    const { id } = await createGame()
+    const other = await createGame()
+    const round = roundId()
+    await saveRound(id, round, [{ playerId: 'alice', score: 7 }])
+    const before = points()
+    expect(await saveRound(id, round, [{ playerId: 'alice', score: 8 }])).toMatchObject({ error: 'round_conflict' })
+    expect(await saveRound(other.id, round, [{ playerId: 'alice', score: 7 }])).toMatchObject({ error: 'round_conflict' })
+    expect(
+      await saveRound(id, roundId(), [
+        { playerId: 'alice', score: 1 },
+        { playerId: 'zed', score: 1 },
+      ]),
+    ).toMatchObject({ error: 'unknown_players' })
+    expect(await saveRound(crypto.randomUUID(), roundId(), [{ playerId: 'alice', score: 1 }])).toEqual({ ok: false, error: 'game_not_found' })
+    expect(points()).toEqual(before)
   })
 })
 

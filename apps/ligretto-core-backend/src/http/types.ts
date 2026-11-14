@@ -3,6 +3,7 @@ import type { AccessTokenClaims, AuthHandlers } from '@memebattle/ligretto-auth'
 import type { Clock } from '../core/ports/clock.ts'
 import type { DatabaseProbe } from '../core/ports/database-probe.ts'
 import type { GamesRepository } from '../core/ports/games-repository.ts'
+import type { LeadersRepository } from '../core/ports/leaders-repository.ts'
 import type { Logger } from '../core/ports/logger.ts'
 import type { UsersRepository } from '../core/ports/users-repository.ts'
 
@@ -12,6 +13,8 @@ export type AppEnv = {
     requestId: string
     /** The request's logger, with the request id bound. */
     logger: Logger
+    /** The verified CAS access token of a route behind the `accessToken` middleware; unset everywhere else. */
+    accessTokenClaims?: AccessTokenClaims
   }
 }
 
@@ -36,6 +39,7 @@ export interface PublicAppDeps extends AppDeps {
   /** The four handlers of `@memebattle/ligretto-auth`, composed by the entry over its session store and CAS client. */
   auth: AuthHandlers
   users: UsersRepository
+  leaders: LeadersRepository
   /**
    * Verifies a CAS access token for this service. A function rather than a call inside `src/http`, so the issuer,
    * the audience, the metadata cache and `fetch` stay in the composition. Throws `InvalidTokenError` for a refused

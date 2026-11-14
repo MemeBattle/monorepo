@@ -110,7 +110,7 @@ Invariants the migrations establish (and `adrs/additive-migrations-and-compatibi
 Status codes and bodies are declared per route in `src/contract`; this is the readable summary. Every error body is
 `{ error, description? }` plus the fields named here (`adrs/error-responses.md`). Validation failures are
 `400 validation_failed` with `issues`. Every route declares an `operationId`, which is the generated client's function
-name: `getHealth`, `getMe`, `signIn`, `authCallback`, `logout`, `listUsers`, `createGame`, `saveRound`.
+name: `getHealth`, `getMe`, `signIn`, `authCallback`, `logout`, `listUsers`, `listLeaders`, `createGame`, `saveRound`.
 
 ### Public: `/api`, served on the public hostname
 
@@ -122,6 +122,7 @@ name: `getHealth`, `getMe`, `signIn`, `authCallback`, `logout`, `listUsers`, `cr
 | `GET /api/auth/callback` | the state cookie set by sign-in                                            | `?state&code`, or `?state&error&error_description` from CAS                                             | `302` to the application in **both** transports (bearer carries the session id in the URL fragment); `400 unknown_state`, `400 sign_in_failed`, `429`, `503 cas_unavailable`, `503 cas_rejected`, `503 session_busy`                                               |
 | `GET /api/auth/logout`   | session                                                                    |                                                                                                         | cookie: `302` to CAS end-session or the app; bearer: `200 NavigationResponse`. `503 cas_unavailable`, `503 session_busy`                                                                                                                                           |
 | `GET /api/users`         | `Authorization: Bearer <access token>` (`aud: ligretto`, guest or account) | `?ids=<sub>&ids=<sub>`, 1–100 values; a single `ids=` is accepted and normalised to a one-element array | `200 AuthUser[]`: `{ sub, accountType, name, avatarUrl }` for each id that has a row; unknown ids are absent. `400 validation_failed`, `401 unauthorized` (checked before the query), `503 cas_unavailable` (CAS's metadata could not be read to verify the token) |
+| `GET /api/leaders`       | `Authorization: Bearer <access token>` (`aud: ligretto`, guest or account) | `?period=day\|month\|all`                                                                               | `200 Leaderboard`: `{ leaders: Leader[], me: Leader \| null }` with `Leader = { sub, name, avatarUrl, totalPoints, place }`. `400 validation_failed`, `401 unauthorized` (checked before the query), `503 cas_unavailable`                                         |
 
 The auth routes are `ligretto-auth`'s handlers mounted as they are; their contract is the package's, described
 from the schemas it exports, and the rows above summarise `packages/ligretto-auth/src/handlers.ts`. The public
@@ -130,6 +131,15 @@ addition: the Postgres session store did not get the session's lock in time, and
 `GET /api/users` reuses `AuthUser` from that contract and names it as a component of the document, its item type.
 `MeResponse.user` of `/api/auth/me` has the same shape, but the package's fragment renders it inline, so a generated
 client sees two structurally equal types. The answer is a lookup, not a claim that every id exists.
+
+`GET /api/leaders` ranks the points of the aggregates of `adrs/leaderboard-points-aggregated-on-write.md`. The
+periods are whole `Europe/Berlin` days, computed in core from the clock: `day` is today, `month` is today and the 29
+days before it, `all` is the all-time totals. Only full accounts are ranked; a guest neither appears nor takes a place.
+`place` is `RANK()` by points (1, 2, 2, 4), and tied players are listed by name ascending, the nameless last, then by
+`sub`. `leaders` is the first `LEADERS_LIMIT` (100) of that order, so a tie can straddle the cut. `me` is the caller's
+row with its true place wherever it ranks, also when it is in `leaders`; it is `null` for a guest and for a caller with
+no points in the period. Names and avatars are read from `users` at request time, so a rename or an upgrade to a full
+account shows at once.
 
 CORS on the public app: the allowed origins come from configuration (`LIGRETTO_CORE_CORS_ORIGINS`, a list), with
 credentials allowed for them and for nothing else; the cookie transport needs it in development, where the SPA and
@@ -148,7 +158,9 @@ otherwise.
 
 Saving a round is one transaction: lock the game row (`SELECT … FOR UPDATE`, so saves of one game are serialised
 and totals are consistent), check the players exist in `users`, insert the round and its `round_users` unless a
-round with that `roundId` and identical results already exists, then aggregate. A rejection leaves nothing behind.
+round with that `roundId` and identical results already exists, then aggregate. When the round was inserted, its
+scores are added to `user_daily_points`, on the `Europe/Berlin` day of the `created_at` the insert returns, and to
+`user_totals`, in `user_id` order with the daily table first; a repeat adds nothing. A rejection leaves nothing behind.
 A repeated submission (a retry after a lost response) answers `200` with the game's **current** totals, which may
 include rounds committed since the first attempt; the caller keeps both the `roundId` and the frozen results across
 attempts and never mints a new id for the same round. A player exists in `users` from their first grant, so
