@@ -8,8 +8,8 @@ export type FakeLeadersRepository = LeadersRepository & {
 }
 
 /**
- * A `LeadersRepository` that records each query and answers `answer` to all of them. The ranking itself is SQL and
- * is proven on PGlite; this lets the use case and the route be tested without it.
+ * A `LeadersRepository` that records each query and answers `answer` to all of them. The ranking is SQL, tested on
+ * PGlite; this fake tests the use case and the route without a database.
  */
 export const createFakeLeadersRepository = (
   answer: { top: Leader[]; viewer: Leader | undefined } = { top: [], viewer: undefined },

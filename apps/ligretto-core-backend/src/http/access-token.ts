@@ -9,7 +9,7 @@ import type { AppEnv, PublicAppDeps } from './types.ts'
 /** The security scheme of the public routes that take a CAS access token. */
 export const ACCESS_TOKEN_SCHEME = 'accessToken'
 
-/** Registers `ACCESS_TOKEN_SCHEME` in the public document, once for every route that names it. */
+/** One registration serves every route that names `ACCESS_TOKEN_SCHEME`. */
 export const registerAccessTokenScheme = (app: BaseApp) => {
   app.openAPIRegistry.registerComponent('securitySchemes', ACCESS_TOKEN_SCHEME, {
     type: 'http',

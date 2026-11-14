@@ -1,6 +1,6 @@
 // GET /api/leaders over the real leaders repository on PGlite and the real access-token verifier, composed as the
 // entries compose it (src/entry/auth.ts) over a CAS that serves its metadata from a local fetch. The points are
-// written through the save-round statement itself.
+// written with the statement `saveRound` uses.
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { createPgGamesRepository } from '../../src/adapters/pg/games-repository.ts'
@@ -78,7 +78,6 @@ beforeEach(() => {
   })
 })
 
-/** `token: null` sends no Authorization header. */
 const listLeaders = async (search: string, token: string | null) =>
   app.request(`/api/leaders${search}`, { headers: token === null ? {} : { authorization: `Bearer ${token}` } })
 

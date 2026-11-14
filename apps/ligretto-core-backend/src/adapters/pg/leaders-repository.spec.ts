@@ -36,7 +36,7 @@ const DAY = '2026-11-14'
 
 const player = (sub: string, displayName: string | null, accountType: AccountType = 'full') => ({ sub, accountType, displayName, avatarUrl: null })
 
-/** Writes points through the save-round statement itself. */
+/** Writes points with the statement `saveRound` uses. */
 const addPoints = async (day: string, results: RoundResult[]) => {
   const result = await createPgGamesRepository(database.db).withGame(gameId, game => game.addPoints(day, results))
   expect(result.status).toBe('ok')
@@ -45,7 +45,6 @@ const addPoints = async (day: string, results: RoundResult[]) => {
 const rank = (window: LeaderboardWindow = 'all', { limit = 100, viewer = 'nobody' } = {}) =>
   createPgLeadersRepository(database.db).rank({ window, limit, viewer })
 
-/** `sub`, `points` and `place` of each row, in order. */
 const standings = (leaders: Leader[]) => leaders.map(({ sub, points, place }) => ({ sub, points, place }))
 
 const oneDay = (date: string): LeaderboardWindow => ({ from: date, to: date })

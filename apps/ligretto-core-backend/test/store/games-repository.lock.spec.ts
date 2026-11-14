@@ -149,7 +149,6 @@ describe('the Kysely GamesRepository on Postgres', () => {
       return Object.fromEntries(rows.map(row => [row.user_id, Number(row.points)]))
     }
 
-    /** Each player's daily rows summed over whatever days they fell on. */
     const dailySumsOf = async (ids: string[]) => {
       const rows = await dbA.selectFrom('user_daily_points').select(['user_id', 'points']).where('user_id', 'in', ids).execute()
       const sums: Record<string, number> = {}
