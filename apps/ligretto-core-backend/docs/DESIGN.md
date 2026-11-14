@@ -60,8 +60,8 @@ server on Node; a `fetch` that dispatches on `Host`, plus a service-binding entr
 
 ## Data
 
-The schema is this package's own: the first migration creates it from scratch, and nothing of the previous service's
-schema is kept or migrated — there is no production data.
+The schema is this package's own: the first migration created it from scratch, later migrations only add to it, and
+nothing of the previous service's schema is kept or migrated — there is no production data.
 
 | Table                                        | Purpose                                                                                                                                    | Key                                                     |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
