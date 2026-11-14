@@ -91,8 +91,18 @@ afterEach(() => {
 })
 
 describe('LeaderBoard', () => {
-  it('fetches the day ranking only, and gives tied players the same medal', async () => {
-    reply('day', () => json(board([leader('a', 'Ann', 100, 1), leader('b', 'Bob', 90, 2), leader('c', null, 90, 2), leader('d', 'Dan', 50, 4)])))
+  it('fetches the day ranking only, shows the medal places, and gives tied players the same medal', async () => {
+    reply('day', () =>
+      json(
+        board([
+          leader('a', 'Ann', 100, 1),
+          leader('b', 'Bob', 90, 2),
+          leader('c', null, 90, 2),
+          leader('e', 'Eve', 80, 3),
+          leader('d', 'Dan', 50, 5),
+        ]),
+      ),
+    )
     renderBoard()
 
     expect(screen.getByLabelText('Loading leaders')).toBeTruthy()
@@ -100,8 +110,9 @@ describe('LeaderBoard', () => {
 
     expect(screen.getAllByAltText('Place 1')).toHaveLength(1)
     expect(screen.getAllByAltText('Place 2')).toHaveLength(2)
-    expect(screen.queryByAltText('Place 4')).toBeNull()
-    expect(screen.getByText('4')).toBeTruthy()
+    expect(screen.getAllByAltText('Place 3')).toHaveLength(1)
+    expect(screen.queryByText('Dan')).toBeNull()
+    expect(rows()).toHaveLength(4)
     expect(screen.getByTitle('Player')).toBeTruthy()
     expect(screen.queryByLabelText('Loading leaders')).toBeNull()
 
@@ -121,6 +132,22 @@ describe('LeaderBoard', () => {
     const allRows = rows()
     expect(allRows).toHaveLength(3)
     expect(allRows[2].textContent).toContain('Me')
+  })
+
+  it('shows the own row under the medal places when it is in the list below them', async () => {
+    const me = leader('me', 'Me', 40, 5)
+    reply('day', () =>
+      json(board([leader('a', 'Ann', 100, 1), leader('b', 'Bob', 90, 2), leader('c', 'Cid', 80, 3), leader('d', 'Dan', 50, 4), me], me)),
+    )
+    renderBoard()
+
+    expect(await screen.findByText('Ann')).toBeTruthy()
+
+    expect(screen.queryByText('Dan')).toBeNull()
+    expect(screen.getAllByTitle('Me')).toHaveLength(1)
+    const allRows = rows()
+    expect(allRows).toHaveLength(4)
+    expect(allRows[3].textContent).toContain('5')
   })
 
   it('does not repeat the own row when it is in the list', async () => {

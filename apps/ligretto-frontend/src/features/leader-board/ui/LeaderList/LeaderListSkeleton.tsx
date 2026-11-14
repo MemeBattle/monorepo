@@ -3,7 +3,7 @@ import Skeleton from '@mui/material/Skeleton'
 
 import { LeaderListTableHead } from './LeaderListTableHead'
 
-const ROWS = 5
+const ROWS = 3
 
 export const LeaderListSkeleton = () => {
   const theme = useTheme()

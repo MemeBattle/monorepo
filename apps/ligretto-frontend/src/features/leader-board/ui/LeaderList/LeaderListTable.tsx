@@ -15,6 +15,9 @@ import thirdPlaceImg from './assets/3_place.svg'
 
 const placeImages = [firstPlaceImg, secondPlaceImg, thirdPlaceImg]
 
+/** The board shows the medal places only, so players tied for a medal all appear. */
+const SHOWN_PLACES = placeImages.length
+
 const Medal = styled('img')(({ theme }) => ({
   width: '2rem',
   [theme.breakpoints.up('sm')]: {
@@ -38,7 +41,7 @@ const LeaderRow: FC<LeaderRowProps> = ({ leader, isMe, isMobile }) => {
     <LeaderListTableRow bgcolor={isMe ? theme.palette.primary.light : theme.palette.primary.lighter}>
       <Grid container sx={{ minHeight: '3rem' }}>
         <LeaderListTableCell size={leaderListColumns.place} sx={{ justifyContent: 'center' }}>
-          {leader.place <= 3 ? (
+          {leader.place <= SHOWN_PLACES ? (
             <Medal src={placeImages[leader.place - 1]} alt={`Place ${leader.place}`} />
           ) : (
             <Typography variant={numberVariant}>{leader.place}</Typography>
@@ -66,13 +69,14 @@ interface LeaderListTableProps {
 export const LeaderListTable: FC<LeaderListTableProps> = ({ leaders, me }) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
-  const meOutsideList = me !== null && !leaders.some(leader => leader.sub === me.sub) ? me : null
+  const shownLeaders = leaders.filter(leader => leader.place <= SHOWN_PLACES)
+  const meOutsideList = me !== null && !shownLeaders.some(leader => leader.sub === me.sub) ? me : null
 
   return (
     <>
       {!isMobile && <LeaderListTableHead />}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        {leaders.map(leader => (
+        {shownLeaders.map(leader => (
           <LeaderRow key={leader.sub} leader={leader} isMe={leader.sub === me?.sub} isMobile={isMobile} />
         ))}
         {meOutsideList && (
