@@ -29,8 +29,9 @@ const byPlayerId = (a: RoundResult, b: RoundResult) => (a.playerId < b.playerId 
 /**
  * The in-memory `GamesRepository`. Players exist when `users` has them, so a use-case test seeds one users fake and
  * hands it to both repositories; without one, every player is unknown. `withGame` runs one game's callbacks one after
- * another and keeps a callback's inserts and points private until it resolves, so a throw leaves nothing behind. An
- * inserted round's `createdAt` is `clock`'s time at the insert.
+ * another and keeps a callback's inserts and points private until it resolves, so a throw leaves nothing behind. Every
+ * round a callback inserts gets one `createdAt`, `clock`'s time when the callback starts, as Postgres gives every
+ * statement of a transaction its start time.
  *
  * Round ids are unique across games, as the primary key makes them in Postgres: a round id another game's callback has
  * inserted but not yet committed is reserved, and a second insert of it waits for that callback to settle, then
@@ -50,7 +51,13 @@ export const createFakeGamesRepository = (
   /** Round ids staged by a callback that has not settled yet, each with the promise that resolves when it does. */
   const reservations = new Map<string, Promise<void>>()
 
-  const lockedGame = (gameId: string, staged: Map<string, StoredRound>, stagedPoints: StagedPoints, settled: Promise<void>): LockedGame => {
+  const lockedGame = (
+    gameId: string,
+    staged: Map<string, StoredRound>,
+    stagedPoints: StagedPoints,
+    settled: Promise<void>,
+    startedAt: number,
+  ): LockedGame => {
     const find = (roundId: string) => staged.get(roundId) ?? rounds.get(roundId)
     return {
       missingPlayers: async playerIds => [...new Set(playerIds)].filter(id => !users.has(id)),
@@ -76,7 +83,7 @@ export const createFakeGamesRepository = (
         }
         staged.set(roundId, { gameId, results: results.map(result => ({ ...result })) })
         reservations.set(roundId, settled)
-        return { inserted: true, createdAt: new Date(clock.now()) }
+        return { inserted: true, createdAt: new Date(startedAt) }
       },
       addPoints: async (day, results) => {
         const unknown = results.find(result => !users.has(result.playerId))
@@ -128,7 +135,7 @@ export const createFakeGamesRepository = (
           settle = resolve
         })
         try {
-          const value = await fn(lockedGame(gameId, staged, stagedPoints, settled))
+          const value = await fn(lockedGame(gameId, staged, stagedPoints, settled, clock.now()))
           for (const [roundId, round] of staged) {
             // The reservation already kept every other writer off these ids; never overwrite a committed round.
             if (!rounds.has(roundId)) {
