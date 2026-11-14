@@ -6,6 +6,8 @@ React + Vite SPA (package `@memebattle/ligretto-frontend`). Imports inside `src`
 
 The ligretto-core API is called only through `@memebattle/ligretto-core-client`, in `src/shared/api`. Its base, the root `LIGRETTO_CORE_URL`, is an origin without `/api`, because the generated paths start with `/api`. It is set only in development and tests: in production it stays unset, and the SPA calls the API on its own origin.
 
+Server reads go through TanStack Query: one `QueryClient` from `createQueryClient` (`src/shared/api/queryClient.ts`), provided in `src/index.tsx`. A query function calls a `src/shared/api` function and, on a result other than `success`, logs `describeFailure(result)` and throws an `ApiError` carrying it, never the body. Query keys start with the resource name (`['leaders', period]`); the access token stays out of them. Redux keeps the app state: auth, rooms, game, the socket.
+
 ## Build and release
 
 `pnpm build:worker` runs `vite build`, then `cf-wrangler build --mode production`, into `.cloudflare/output`: the SPA as an

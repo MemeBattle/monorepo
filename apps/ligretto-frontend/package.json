@@ -42,6 +42,7 @@
     "@mui/system": "catalog:",
     "@reduxjs/toolkit": "catalog:",
     "@sentry/browser": "catalog:",
+    "@tanstack/react-query": "catalog:",
     "csstype": "catalog:",
     "history": "catalog:",
     "lodash": "catalog:",
