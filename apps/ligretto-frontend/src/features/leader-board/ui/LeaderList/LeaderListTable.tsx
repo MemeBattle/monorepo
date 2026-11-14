@@ -25,11 +25,11 @@ const Medal = styled('img')(({ theme }) => ({
 interface LeaderRowProps {
   leader: Leader
   isMe: boolean
+  isMobile: boolean
 }
 
-const LeaderRow: FC<LeaderRowProps> = ({ leader, isMe }) => {
+const LeaderRow: FC<LeaderRowProps> = ({ leader, isMe, isMobile }) => {
   const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const numberVariant = isMobile ? 'h5' : 'h4'
   // Only full accounts are ranked.
   const label = userLabel({ accountType: 'full', name: leader.name })
@@ -60,7 +60,6 @@ const LeaderRow: FC<LeaderRowProps> = ({ leader, isMe }) => {
 
 interface LeaderListTableProps {
   leaders: Leader[]
-  /** The caller's own row; shown under the list when it ranks outside it. */
   me: Leader | null
 }
 
@@ -74,14 +73,14 @@ export const LeaderListTable: FC<LeaderListTableProps> = ({ leaders, me }) => {
       {!isMobile && <LeaderListTableHead />}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         {leaders.map(leader => (
-          <LeaderRow key={leader.sub} leader={leader} isMe={leader.sub === me?.sub} />
+          <LeaderRow key={leader.sub} leader={leader} isMe={leader.sub === me?.sub} isMobile={isMobile} />
         ))}
         {meOutsideList && (
           <>
             <Typography aria-hidden textAlign="center" color={theme.palette.text.disabled}>
               ⋯
             </Typography>
-            <LeaderRow leader={meOutsideList} isMe />
+            <LeaderRow leader={meOutsideList} isMe isMobile={isMobile} />
           </>
         )}
       </Box>

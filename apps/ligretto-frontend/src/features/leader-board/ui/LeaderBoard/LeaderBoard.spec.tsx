@@ -38,7 +38,6 @@ type Reply = () => Response | Promise<Response>
 
 let fetchMock: ReturnType<typeof vi.fn<typeof fetch>>
 let queryClient: QueryClient
-/** The replies still to send, per period, in order. */
 let replies: Record<LeadersPeriod, Reply[]>
 
 const reply = (period: LeadersPeriod, ...next: Reply[]) => {
