@@ -1,7 +1,7 @@
-// The public API under workerd: proof that the Worker composes the auth handlers, the users route and the document
-// from the bindings of cloudflare.config.ts, and that the document it serves is the committed one. None of these
-// requests needs CAS or a database row: the users route refuses before any query, and a logout without a session goes
-// straight back to the application.
+// The public API under workerd: proof that the Worker composes the auth handlers, the users and leaders routes and the
+// document from the bindings of cloudflare.config.ts, and that the document it serves is the committed one. None of
+// these requests needs CAS or a database row: the routes behind an access token refuse before any query, and a logout
+// without a session goes straight back to the application.
 import { exports } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
 
@@ -14,6 +14,12 @@ const worker = (exports as unknown as { default: Fetcher }).default
 describe('the public API on the Worker', () => {
   it('refuses /api/users without an access token', async () => {
     const res = await worker.fetch('http://localhost/api/users?ids=someone')
+    expect(res.status).toBe(401)
+    expect(await res.json()).toMatchObject({ error: 'unauthorized' })
+  })
+
+  it('refuses /api/leaders without an access token', async () => {
+    const res = await worker.fetch('http://localhost/api/leaders?period=day')
     expect(res.status).toBe(401)
     expect(await res.json()).toMatchObject({ error: 'unauthorized' })
   })

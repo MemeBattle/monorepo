@@ -3,6 +3,7 @@ import { serve } from '@hono/node-server'
 import { createConsoleLogger } from '../adapters/console-logger.ts'
 import { createNodeDatabases } from '../adapters/pg/database.ts'
 import { createPgGamesRepository } from '../adapters/pg/games-repository.ts'
+import { createPgLeadersRepository } from '../adapters/pg/leaders-repository.ts'
 import { createPgDatabaseProbe } from '../adapters/pg/probe.ts'
 import { createPgUsersRepository } from '../adapters/pg/users-repository.ts'
 import { systemClock } from '../adapters/system-clock.ts'
@@ -37,6 +38,7 @@ const publicApp = createPublicApp({
   corsOrigins: http.corsOrigins,
   auth: handlers,
   users: createPgUsersRepository(databases.main),
+  leaders: createPgLeadersRepository(databases.main),
   verifyAccessToken,
 })
 const internalApp = createInternalApp({ ...deps, games: createPgGamesRepository(databases.main), internalTokens: internalApi.tokens })

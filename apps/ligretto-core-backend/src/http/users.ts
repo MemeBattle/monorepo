@@ -3,12 +3,9 @@ import { createRoute } from '@hono/zod-openapi'
 import { createListUsers } from '../core/users.ts'
 import { validationFailedSchema } from '../contract/error.ts'
 import { casUnavailableSchema, listUsersQuerySchema, listUsersResponseSchema, unauthorizedSchema, type ListUsersResponse } from '../contract/users.ts'
-import { accessToken } from './access-token.ts'
+import { ACCESS_TOKEN_SCHEME, accessToken } from './access-token.ts'
 import type { BaseApp } from './app.ts'
 import type { PublicAppDeps } from './types.ts'
-
-/** The security scheme of the public routes that take a CAS access token, registered once in the public document. */
-const SECURITY_SCHEME = 'accessToken'
 
 const json = <T>(schema: T) => ({ 'application/json': { schema } })
 
@@ -19,7 +16,7 @@ const listUsersRoute = createRoute({
   tags: ['users'],
   summary: 'The profile snapshots of some users',
   description: 'The latest snapshot of each requested id that has one: unknown ids are absent and the order is not promised.',
-  security: [{ [SECURITY_SCHEME]: [] }],
+  security: [{ [ACCESS_TOKEN_SCHEME]: [] }],
   request: { query: listUsersQuerySchema },
   responses: {
     200: { description: 'The snapshot of each known id', content: json(listUsersResponseSchema) },
@@ -35,13 +32,6 @@ const listUsersRoute = createRoute({
  */
 export const registerUsers = (app: BaseApp, deps: PublicAppDeps) => {
   const listUsers = createListUsers({ users: deps.users })
-
-  app.openAPIRegistry.registerComponent('securitySchemes', SECURITY_SCHEME, {
-    type: 'http',
-    scheme: 'bearer',
-    bearerFormat: 'JWT',
-    description: 'A CAS access token (RFC 9068) with aud ligretto, the accessToken that GET /api/auth/me answers',
-  })
 
   app.use(listUsersRoute.path, accessToken(deps.verifyAccessToken))
 

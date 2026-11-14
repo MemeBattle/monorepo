@@ -7,6 +7,9 @@ import { createFakeGamesRepository } from '../../core/ports/games-repository.fak
 import { createFakeUsersRepository } from '../../core/ports/users-repository.fake.ts'
 import { createPgGamesRepository } from './games-repository.ts'
 
+type DailyPoints = Array<{ day: string; playerId: string; points: number }>
+type TotalPoints = Array<{ playerId: string; points: number }>
+
 /** One implementation under the contract, with what the assertions need to look behind it. */
 type Subject = {
   repo: GamesRepository
@@ -14,9 +17,16 @@ type Subject = {
   gameExists(id: string): Promise<boolean>
   roundExists(id: string): Promise<boolean>
   roundUserCount(): Promise<number>
+  /** The committed leaderboard points, ordered by day, then player. */
+  dailyPoints(): Promise<DailyPoints>
+  /** The committed all-time leaderboard points, ordered by player. */
+  totalPoints(): Promise<TotalPoints>
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+const INSERTED = { inserted: true, createdAt: expect.any(Date) }
+
+const compareStrings = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
 
 let database: Awaited<ReturnType<typeof createTestDatabase>>
 
@@ -31,6 +41,8 @@ afterAll(async () => {
 
 const pgSubject = async (): Promise<Subject> => {
   const { db } = database
+  await db.deleteFrom('user_daily_points').execute()
+  await db.deleteFrom('user_totals').execute()
   await db.deleteFrom('round_users').execute()
   await db.deleteFrom('rounds').execute()
   await db.deleteFrom('games').execute()
@@ -45,6 +57,19 @@ const pgSubject = async (): Promise<Subject> => {
     gameExists: async id => (await db.selectFrom('games').select('id').where('id', '=', id).executeTakeFirst()) !== undefined,
     roundExists: async id => (await db.selectFrom('rounds').select('id').where('id', '=', id).executeTakeFirst()) !== undefined,
     roundUserCount: async () => (await db.selectFrom('round_users').select('round_id').execute()).length,
+    dailyPoints: async () => {
+      const rows = await db
+        .selectFrom('user_daily_points')
+        .select(eb => [eb.cast<string>('day', 'text').as('day'), 'user_id', 'points'])
+        .orderBy('day')
+        .orderBy('user_id')
+        .execute()
+      return rows.map(row => ({ day: row.day, playerId: row.user_id, points: Number(row.points) }))
+    },
+    totalPoints: async () => {
+      const rows = await db.selectFrom('user_totals').select(['user_id', 'points']).orderBy('user_id').execute()
+      return rows.map(row => ({ playerId: row.user_id, points: Number(row.points) }))
+    },
   }
 }
 
@@ -61,6 +86,15 @@ const fakeSubject = async (): Promise<Subject> => {
     gameExists: async id => repo.games.has(id),
     roundExists: async id => repo.rounds.has(id),
     roundUserCount: async () => [...repo.rounds.values()].reduce((count, round) => count + round.results.length, 0),
+    dailyPoints: async () =>
+      [...repo.dailyPoints]
+        .map(([key, points]) => {
+          const [day, playerId] = key.split(' ')
+          return { day, playerId, points }
+        })
+        .sort((a, b) => compareStrings(a.day, b.day) || compareStrings(a.playerId, b.playerId)),
+    totalPoints: async () =>
+      [...repo.totalPoints].map(([playerId, points]) => ({ playerId, points })).sort((a, b) => compareStrings(a.playerId, b.playerId)),
   }
 }
 
@@ -114,19 +148,72 @@ describe.each([
     expect(answers).toEqual([[], ['zed', 'yan'], []])
   })
 
-  it('leaves nothing behind when the callback throws after inserting', async () => {
+  it('leaves nothing behind when the callback throws after inserting and adding points', async () => {
     const { id } = await subject.repo.createGame()
+    await onGame(subject.repo, id, async game => {
+      await game.insertRound(crypto.randomUUID(), [{ playerId: 'alice', score: 2 }])
+      await game.addPoints('2026-11-14', [{ playerId: 'alice', score: 2 }])
+    })
+    const before = { roundUsers: await subject.roundUserCount(), daily: await subject.dailyPoints(), totals: await subject.totalPoints() }
     const roundId = crypto.randomUUID()
     const rejection = new Error('unknown_players')
     await expect(
       subject.repo.withGame(id, async game => {
-        expect(await game.insertRound(roundId, [{ playerId: 'alice', score: 3 }])).toEqual({ inserted: true })
+        const results = [
+          { playerId: 'alice', score: 3 },
+          { playerId: 'carol', score: 4 },
+        ]
+        expect(await game.insertRound(roundId, results)).toEqual(INSERTED)
+        await game.addPoints('2026-11-14', results)
         expect(await game.missingPlayers(['alice', 'ghost'])).toEqual(['ghost'])
         throw rejection
       }),
     ).rejects.toBe(rejection)
     expect(await subject.roundExists(roundId)).toBe(false)
-    expect(await subject.roundUserCount()).toBe(0)
+    expect({ roundUsers: await subject.roundUserCount(), daily: await subject.dailyPoints(), totals: await subject.totalPoints() }).toEqual(before)
+    expect(before).toEqual({
+      roundUsers: 1,
+      daily: [{ day: '2026-11-14', playerId: 'alice', points: 2 }],
+      totals: [{ playerId: 'alice', points: 2 }],
+    })
+  })
+
+  it('adds points to the daily rows and the totals', async () => {
+    const { id } = await subject.repo.createGame()
+    await onGame(subject.repo, id, game =>
+      game.addPoints('2026-11-14', [
+        { playerId: 'bob', score: 3 },
+        { playerId: 'alice', score: 5 },
+      ]),
+    )
+    expect(await subject.dailyPoints()).toEqual([
+      { day: '2026-11-14', playerId: 'alice', points: 5 },
+      { day: '2026-11-14', playerId: 'bob', points: 3 },
+    ])
+    expect(await subject.totalPoints()).toEqual([
+      { playerId: 'alice', points: 5 },
+      { playerId: 'bob', points: 3 },
+    ])
+  })
+
+  it('increments the rows of the same day, and keeps another day apart while the total grows', async () => {
+    const { id } = await subject.repo.createGame()
+    await onGame(subject.repo, id, game => game.addPoints('2026-11-14', [{ playerId: 'alice', score: 5 }]))
+    await onGame(subject.repo, id, game => game.addPoints('2026-11-14', [{ playerId: 'alice', score: 4 }]))
+    await onGame(subject.repo, id, game => game.addPoints('2026-11-15', [{ playerId: 'alice', score: 10 }]))
+    await onGame(subject.repo, id, game => game.addPoints('2026-11-15', [{ playerId: 'alice', score: -3 }]))
+    expect(await subject.dailyPoints()).toEqual([
+      { day: '2026-11-14', playerId: 'alice', points: 9 },
+      { day: '2026-11-15', playerId: 'alice', points: 7 },
+    ])
+    expect(await subject.totalPoints()).toEqual([{ playerId: 'alice', points: 16 }])
+  })
+
+  it('writes nothing for no results', async () => {
+    const { id } = await subject.repo.createGame()
+    await onGame(subject.repo, id, game => game.addPoints('2026-11-14', []))
+    expect(await subject.dailyPoints()).toEqual([])
+    expect(await subject.totalPoints()).toEqual([])
   })
 
   it('inserts a round once and answers inserted: false on a repeat', async () => {
@@ -136,7 +223,7 @@ describe.each([
       { playerId: 'alice', score: 3 },
       { playerId: 'bob', score: 1 },
     ]
-    expect(await onGame(subject.repo, id, game => game.insertRound(roundId, results))).toEqual({ inserted: true })
+    expect(await onGame(subject.repo, id, game => game.insertRound(roundId, results))).toEqual(INSERTED)
     expect(await onGame(subject.repo, id, game => game.insertRound(roundId, results))).toEqual({ inserted: false })
     expect(await onGame(subject.repo, id, game => game.insertRound(roundId, [{ playerId: 'carol', score: 9 }]))).toEqual({
       inserted: false,
@@ -228,6 +315,26 @@ describe.each([
   })
 })
 
+describe('GamesRepository: Kysely on PGlite, the time of an inserted round', () => {
+  it('answers the stored created_at of the round and of its results', async () => {
+    const subject = await pgSubject()
+    await subject.seedPlayers(['alice', 'bob'])
+    const { id } = await subject.repo.createGame()
+    const roundId = crypto.randomUUID()
+    const insert = await onGame<{ inserted: true; createdAt: Date }>(subject.repo, id, game =>
+      game.insertRound(roundId, [
+        { playerId: 'alice', score: 1 },
+        { playerId: 'bob', score: 2 },
+      ]),
+    )
+    const { db } = database
+    const round = await db.selectFrom('rounds').select('created_at').where('id', '=', roundId).executeTakeFirstOrThrow()
+    const results = await db.selectFrom('round_users').select('created_at').where('round_id', '=', roundId).execute()
+    expect(insert.createdAt.getTime()).toBe(round.created_at.getTime())
+    expect(results.map(row => row.created_at.getTime())).toEqual([round.created_at.getTime(), round.created_at.getTime()])
+  })
+})
+
 // Two games' callbacks run concurrently only in the fake: PGlite has one connection. The same race against Postgres
 // is the store suite's (test/store/games-repository.lock.spec.ts).
 describe('GamesRepository: in-memory fake, one round id raced by two games', () => {
@@ -260,7 +367,7 @@ describe('GamesRepository: in-memory fake, one round id raced by two games', () 
       }),
     ])
     expect(results).toEqual([
-      { status: 'ok', value: { inserted: true } },
+      { status: 'ok', value: INSERTED },
       { status: 'ok', value: { inserted: false } },
     ])
     expect([...repo.rounds]).toEqual([[roundId, { gameId: first, results: [{ playerId: 'alice', score: 1 }] }]])
@@ -271,7 +378,7 @@ describe('GamesRepository: in-memory fake, one round id raced by two games', () 
     const rollback = new Error('rolled back')
     const [firstResult, secondResult] = await Promise.allSettled([
       repo.withGame(first, async game => {
-        expect(await game.insertRound(roundId, [{ playerId: 'alice', score: 1 }])).toEqual({ inserted: true })
+        expect(await game.insertRound(roundId, [{ playerId: 'alice', score: 1 }])).toEqual(INSERTED)
         await secondEntered
         throw rollback
       }),
@@ -281,7 +388,7 @@ describe('GamesRepository: in-memory fake, one round id raced by two games', () 
       }),
     ])
     expect(firstResult).toEqual({ status: 'rejected', reason: rollback })
-    expect(secondResult).toEqual({ status: 'fulfilled', value: { status: 'ok', value: { inserted: true } } })
+    expect(secondResult).toEqual({ status: 'fulfilled', value: { status: 'ok', value: INSERTED } })
     expect([...repo.rounds]).toEqual([[roundId, { gameId: second, results: [{ playerId: 'bob', score: 2 }] }]])
   })
 
@@ -290,7 +397,7 @@ describe('GamesRepository: in-memory fake, one round id raced by two games', () 
     const rollback = new Error('rolled back')
     const [firstResult, secondResult] = await Promise.allSettled([
       repo.withGame(first, async game => {
-        expect(await game.insertRound(roundId, [{ playerId: 'alice', score: 1 }])).toEqual({ inserted: true })
+        expect(await game.insertRound(roundId, [{ playerId: 'alice', score: 1 }])).toEqual(INSERTED)
         await secondEntered
         throw rollback
       }),
@@ -305,7 +412,7 @@ describe('GamesRepository: in-memory fake, one round id raced by two games', () 
       }),
     ])
     expect(firstResult).toEqual({ status: 'rejected', reason: rollback })
-    expect(secondResult).toEqual({ status: 'fulfilled', value: { status: 'ok', value: [{ inserted: true }, { inserted: false }] } })
+    expect(secondResult).toEqual({ status: 'fulfilled', value: { status: 'ok', value: [INSERTED, { inserted: false }] } })
     expect([...repo.rounds]).toEqual([[roundId, { gameId: second, results: [{ playerId: 'bob', score: 2 }] }]])
   })
 })

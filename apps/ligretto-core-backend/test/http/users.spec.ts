@@ -3,6 +3,7 @@
 // the previous service's UsersController.test.ts; its 422s are 400 validation_failed (docs/adrs/error-responses.md).
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { createPgLeadersRepository } from '../../src/adapters/pg/leaders-repository.ts'
 import { createPgDatabaseProbe } from '../../src/adapters/pg/probe.ts'
 import { createPgUsersRepository } from '../../src/adapters/pg/users-repository.ts'
 import { validationFailedSchema } from '../../src/contract/error.ts'
@@ -59,6 +60,7 @@ beforeEach(async () => {
     database: createPgDatabaseProbe(db),
     auth: handlers,
     users: createPgUsersRepository(db),
+    leaders: createPgLeadersRepository(db),
     verifyAccessToken,
   })
 })
@@ -170,6 +172,7 @@ describe('GET /api/users', () => {
       database: createPgDatabaseProbe(database.db),
       auth: handlers,
       users: createPgUsersRepository(database.db),
+      leaders: createPgLeadersRepository(database.db),
       verifyAccessToken,
     })
     const res = await stallingApp.request(`/api/users?ids=${ACCOUNT.sub}`, { headers: { authorization: `Bearer ${token}` } })

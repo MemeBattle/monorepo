@@ -58,6 +58,12 @@ export interface Sessions {
   sub: string;
 }
 
+export interface UserDailyPoints {
+  day: Timestamp;
+  points: Int8;
+  user_id: string;
+}
+
 export interface Users {
   account_type: string;
   avatar_url: string | null;
@@ -67,6 +73,11 @@ export interface Users {
   updated_at: Generated<Timestamp>;
 }
 
+export interface UserTotals {
+  points: Int8;
+  user_id: string;
+}
+
 export interface DB {
   auth_requests: AuthRequests;
   games: Games;
@@ -74,5 +85,7 @@ export interface DB {
   rounds: Rounds;
   session_locks: SessionLocks;
   sessions: Sessions;
+  user_daily_points: UserDailyPoints;
+  user_totals: UserTotals;
   users: Users;
 }

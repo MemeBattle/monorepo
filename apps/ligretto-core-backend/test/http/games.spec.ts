@@ -16,6 +16,7 @@ import {
   saveRoundResponseSchema,
   unknownPlayersSchema,
 } from '../../src/contract/games.ts'
+import { leaderboardDay } from '../../src/core/leaderboard-day.ts'
 import { createFixedClock } from '../../src/core/ports/clock.fake.ts'
 import { createRecordingLogger } from '../../src/core/ports/logger.fake.ts'
 import { createInternalApp } from '../../src/http/internal-app.ts'
@@ -49,6 +50,8 @@ afterAll(async () => {
 
 beforeEach(async () => {
   const { db } = database
+  await db.deleteFrom('user_daily_points').execute()
+  await db.deleteFrom('user_totals').execute()
   await db.deleteFrom('round_users').execute()
   await db.deleteFrom('rounds').execute()
   await db.deleteFrom('games').execute()
@@ -237,6 +240,34 @@ describe('POST /internal/games/{id}/rounds', () => {
     expect(res.status).toBe(409)
     roundConflictSchema.parse(await res.json())
     expect(await counts()).toEqual({ rounds: 1, roundUsers: 1 })
+  })
+
+  it('adds a saved round to the leaderboard points of its Berlin day once, whatever the repeats', async () => {
+    const gameId = await createGame()
+    const roundId = crypto.randomUUID()
+    const results = [
+      { playerId: 'alice', score: 7 },
+      { playerId: 'bob', score: -3 },
+    ]
+    await saveRound(gameId, results, roundId)
+    await saveRound(gameId, results, roundId)
+    const { db } = database
+    const round = await db.selectFrom('rounds').select('created_at').where('id', '=', roundId).executeTakeFirstOrThrow()
+    const day = leaderboardDay(round.created_at.getTime())
+    const daily = await db
+      .selectFrom('user_daily_points')
+      .select(eb => [eb.cast<string>('day', 'text').as('day'), 'user_id', 'points'])
+      .orderBy('user_id')
+      .execute()
+    const totals = await db.selectFrom('user_totals').select(['user_id', 'points']).orderBy('user_id').execute()
+    expect(daily.map(row => ({ ...row, points: Number(row.points) }))).toEqual([
+      { day, user_id: 'alice', points: 7 },
+      { day, user_id: 'bob', points: -3 },
+    ])
+    expect(totals.map(row => ({ ...row, points: Number(row.points) }))).toEqual([
+      { user_id: 'alice', points: 7 },
+      { user_id: 'bob', points: -3 },
+    ])
   })
 })
 
