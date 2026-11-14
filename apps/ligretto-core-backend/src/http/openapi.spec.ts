@@ -74,7 +74,7 @@ describe('the public document', () => {
 
   it('lists exactly the public routes, and not /openapi.json itself', () => {
     expect(Object.keys(document.paths ?? {}).sort()).toEqual(
-      ['/health', '/api/auth/me', '/api/auth/sign-in', '/api/auth/callback', '/api/auth/logout', '/api/users'].sort(),
+      ['/health', '/api/auth/me', '/api/auth/sign-in', '/api/auth/callback', '/api/auth/logout', '/api/users', '/api/leaders'].sort(),
     )
   })
 
@@ -84,6 +84,7 @@ describe('the public document', () => {
     ['/api/auth/callback', ['302', '400', '429', '503']],
     ['/api/auth/logout', ['200', '302', '503']],
     ['/api/users', ['200', '400', '401', '503']],
+    ['/api/leaders', ['200', '400', '401', '503']],
   ])('declares the statuses of %s for both session transports', (path, statuses) => {
     expect(Object.keys(get(path)?.responses ?? {}).sort()).toEqual(statuses)
   })
@@ -120,8 +121,15 @@ describe('the public document', () => {
     ])
   })
 
-  it('puts /api/users alone under the access-token scheme', () => {
+  it('describes period as a required query parameter of three values', () => {
+    expect(get('/api/leaders')?.parameters).toEqual([
+      expect.objectContaining({ name: 'period', in: 'query', required: true, schema: expect.objectContaining({ enum: ['day', 'month', 'all'] }) }),
+    ])
+  })
+
+  it('puts /api/users and /api/leaders alone under the access-token scheme', () => {
     expect(get('/api/users')?.security).toEqual([{ accessToken: [] }])
+    expect(get('/api/leaders')?.security).toEqual([{ accessToken: [] }])
     expect(document.components?.securitySchemes?.accessToken).toMatchObject({ type: 'http', scheme: 'bearer' })
     for (const path of ['/health', ...AUTH_ROUTES]) {
       expect(get(path)?.security).toBeUndefined()
@@ -137,6 +145,7 @@ describe('the public document', () => {
       'GET /api/auth/callback': 'authCallback',
       'GET /api/auth/logout': 'logout',
       'GET /api/users': 'listUsers',
+      'GET /api/leaders': 'listLeaders',
     })
     expect(new Set(ids.map(([, id]) => id)).size).toBe(ids.length)
   })
