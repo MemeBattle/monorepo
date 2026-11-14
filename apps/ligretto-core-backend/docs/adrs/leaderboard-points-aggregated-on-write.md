@@ -25,7 +25,7 @@ every recorded round counts. The leaderboard has no cache and must always be cur
 - **Points are aggregated on write.** `user_daily_points (user_id, day)` and `user_totals (user_id)` are updated in
   the save-round transaction, and only when the round was actually inserted, so a retried `roundId` adds nothing.
   The read ranks the aggregates; nothing sums `round_users` per request, and nothing caches the result. Summing
-  `round_users` per request lost because it scans every round of the period on every read.
+  `round_users` per request was rejected: it scans every round of the period on every read.
 - **A day is the `Europe/Berlin` calendar date of the round's `rounds.created_at`.** That is the database's
   transaction time, which the round insert returns, so the bucket and the recorded round always agree and no second
   clock is read. The day is computed in core (`layering-and-runtime-neutrality.md`). The periods are windows of whole
