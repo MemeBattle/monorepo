@@ -1,11 +1,11 @@
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from '@reduxjs/toolkit'
 import { Box, Button, Modal, Paper, Slide, Typography } from '@memebattle/ui'
 import { styled } from '@mui/material/styles'
 
-import { ONBOARDING_PLAYER_NAMES, onboardingGameSelector, onboardingResultsSelector } from '#features/onboarding'
+import { ONBOARDING_PLAYER_NAMES, onboardingGameSelector, onboardingResultsSelector, restartOnboardingAction } from '#features/onboarding'
 import { routes } from '#shared/constants/router-constants'
 import { getRandomAvatar } from '#shared/ui/Avatar/getRandomAvatar'
 import { PlayersScoresTable } from '#features/player-scores-table/ui/PlayersScoresTable'
@@ -35,10 +35,15 @@ const resultPlayersSelector = createSelector([onboardingGameSelector, onboarding
 export function ResultScreen() {
   const players = useSelector(resultPlayersSelector)
   const navigate = useNavigate()
+  const dispatch = useDispatch()
 
   const handleFinish = useCallback(() => {
     navigate(routes.HOME)
   }, [navigate])
+
+  const handleReplay = useCallback(() => {
+    dispatch(restartOnboardingAction())
+  }, [dispatch])
 
   return (
     <Modal open>
@@ -56,7 +61,10 @@ export function ResultScreen() {
                 вычитается количество карт, оставшихся в колоде Лигретто, умноженное на 2.
               </Typography>
               <PlayersScoresTable players={players} />
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+              <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 2 }}>
+                <Button data-test-id="OnboardingPage-ReplayButton" variant="outlined" color="inherit" size="large" onClick={handleReplay}>
+                  Пройти обучение ещё раз
+                </Button>
                 <Button data-test-id="OnboardingPage-FinishButton" variant="contained" size="large" onClick={handleFinish}>
                   Закончить обучение
                 </Button>

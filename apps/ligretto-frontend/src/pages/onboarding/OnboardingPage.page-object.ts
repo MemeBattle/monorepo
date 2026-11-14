@@ -64,7 +64,16 @@ export class OnboardingPage {
     return this.page.getByTestId('OnboardingPage-Stack-OpenDeck').getByRole('button')
   }
 
+  /** Number of cards left in the ligretto deck, as the caption under the deck shows it */
+  getLigrettoDeckCount() {
+    return this.page.getByTestId('OnboardingPage-Ligretto').getByText(/^В колоде: \d+$/)
+  }
+
   getFinishButton() {
     return this.page.getByTestId('OnboardingPage-FinishButton')
+  }
+
+  getReplayButton() {
+    return this.page.getByTestId('OnboardingPage-ReplayButton')
   }
 }

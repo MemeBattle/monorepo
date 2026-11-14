@@ -7,9 +7,13 @@ import { OnboardingStep, OnboardingEvent } from './steps'
 
 export { OnboardingStep, OnboardingEvent } from './steps'
 
+/**
+ * The scores of the scripted round: +1 for every card put on the table, -2 for every card left in the ligretto deck.
+ * The trainee puts six cards and empties the deck, the opponent puts its green one, two and four.
+ */
 export const ONBOARDING_HARDCODED_RESULTS: GameResults = {
-  id0: { roundScore: 4, gameScore: 4 },
-  id1: { roundScore: -5, gameScore: -5 },
+  id0: { roundScore: 6, gameScore: 6 },
+  id1: { roundScore: -3, gameScore: -3 },
   id2: { roundScore: -6, gameScore: -6 },
   id3: { roundScore: -6, gameScore: -6 },
 }
@@ -34,11 +38,14 @@ export const ONBOARDING_PLAYER_NAMES: Record<'id0' | 'id1' | 'id2' | 'id3', stri
   id3: 'Бывалый',
 }
 
-/** The player's hand deck, face down; cards are flipped onto the open pile in this order. */
+/**
+ * The player's hand deck, face down; cards are flipped onto the open pile in this order. The third card fits no pile
+ * the tutorial ever builds (blue up to 3, red 1, green up to 5), so the hand never offers a move the steps refuse.
+ */
 const STACK_DECK_CARDS: ReadonlyArray<Card> = [
   { value: 9, color: CardColors.blue },
   { value: 2, color: CardColors.blue },
-  { value: 6, color: CardColors.green },
+  { value: 7, color: CardColors.red },
 ]
 
 export const createOnboardingGame = (): OnboardingGame => ({
@@ -56,6 +63,7 @@ export const createOnboardingGame = (): OnboardingGame => ({
         cards: [
           { value: 5, color: CardColors.blue },
           { value: 1, color: CardColors.red },
+          { value: 5, color: CardColors.green },
           { value: 5, color: CardColors.yellow },
           { value: 6, color: CardColors.yellow },
         ],
@@ -224,11 +232,30 @@ const putSecondCardAndOpponentMove = (ctx: OnboardingContext, playgroundDeckInde
 const opponentPile = (ctx: OnboardingContext) =>
   ctx.data.opponentPileIndex === undefined ? undefined : ctx.data.game.playground.decks[ctx.data.opponentPileIndex]
 
-/** The player puts the green three from the row on top of the opponent's green two. */
-const putGreenThree = (ctx: OnboardingContext) => {
+/** The player puts the green three from the row on top of the opponent's green two, and the opponent answers with the green four. */
+const putGreenThreeAndOpponentMove = (ctx: OnboardingContext) => {
   ctx.data.game.players.id0.cards[2] = null
-  opponentPile(ctx)?.cards.push({ value: 3, color: CardColors.green })
+  opponentPile(ctx)?.cards.push({ value: 3, color: CardColors.green }, { value: 4, color: CardColors.green })
 }
+
+/** The row slot the green five from the ligretto deck lands in: the one the red one freed. */
+const GREEN_FIVE_ROW_SLOT = 1
+
+const isGreenFiveInRow = (ctx: OnboardingContext) => ctx.data.game.players.id0.cards[GREEN_FIVE_ROW_SLOT] !== null
+
+/** The player puts the green five from the row on top of the opponent's green four. */
+const putGreenFive = (ctx: OnboardingContext) => {
+  const { cards } = ctx.data.game.players.id0
+  const card = cards[GREEN_FIVE_ROW_SLOT]
+  if (card) {
+    opponentPile(ctx)?.cards.push(card)
+    cards[GREEN_FIVE_ROW_SLOT] = null
+  }
+}
+
+const ligrettoCards = (ctx: OnboardingContext) => ctx.data.game.players.id0.ligrettoDeck.cards
+
+const canPutLigrettoIntoRow = (ctx: OnboardingContext) => ligrettoCards(ctx).length > 0 && ctx.data.game.players.id0.cards.some(card => card === null)
 
 /** Put the top ligretto card into the first free row slot. */
 const putLigrettoIntoFreeRowSlot = (ctx: OnboardingContext) => {
@@ -239,11 +266,22 @@ const putLigrettoIntoFreeRowSlot = (ctx: OnboardingContext) => {
   }
 }
 
-/** Optional move: while a row slot is free, a ligretto card can be put there. */
+/** Optional move: while a row slot is free, a ligretto card can be put there. The last card ends the round, so it never goes this way. */
 const putLigrettoInRowHooks = {
-  guard: (ctx: OnboardingContext) => ctx.data.game.players.id0.cards.some(card => card === null),
+  guard: (ctx: OnboardingContext) => canPutLigrettoIntoRow(ctx) && ligrettoCards(ctx).length > 1,
   onEnter: putLigrettoIntoFreeRowSlot,
 }
+
+/** The green three goes to the green five step straight away when an optional move already put the green five into the row. */
+const putThirdCardTransitions = (from: OnboardingStep) => [
+  t(from, OnboardingEvent.PutThirdCard, OnboardingStep.AdditionalRowCard, {
+    guard: isGreenFiveInRow,
+    onEnter: putGreenThreeAndOpponentMove,
+  }),
+  t(from, OnboardingEvent.PutThirdCard, OnboardingStep.AdditionalLigrettoCard, {
+    onEnter: putGreenThreeAndOpponentMove,
+  }),
+]
 
 const ONBOARDING_EVENTS: ReadonlyArray<OnboardingEvent> = Object.values(OnboardingEvent)
 
@@ -343,30 +381,43 @@ export class OnboardingStateMachine extends StateMachine<OnboardingStep, Onboard
           onEnter: flipOrReshuffleStack,
         }),
         t(OnboardingStep.OpponentTurnSecondCard, OnboardingEvent.PutLigretto, OnboardingStep.OpponentTurnSecondCard, putLigrettoInRowHooks),
-        t(OnboardingStep.OpponentTurnSecondCard, OnboardingEvent.PutThirdCard, OnboardingStep.FinalLigrettoCard, {
-          onEnter: putGreenThree,
-        }),
+        ...putThirdCardTransitions(OnboardingStep.OpponentTurnSecondCard),
         t(OnboardingStep.OpponentTurnCycledInfo, OnboardingEvent.NextStackCard, OnboardingStep.OpponentTurnSecondCard, {
           onEnter: reshuffleStackDeck,
         }),
-        t(OnboardingStep.OpponentTurnCycledInfo, OnboardingEvent.PutThirdCard, OnboardingStep.FinalLigrettoCard, {
-          onEnter: putGreenThree,
+        ...putThirdCardTransitions(OnboardingStep.OpponentTurnCycledInfo),
+
+        // The green five from the ligretto deck goes into the row and from there onto the opponent's green four
+        t(OnboardingStep.AdditionalLigrettoCard, OnboardingEvent.NextStackCard, OnboardingStep.AdditionalLigrettoCard, {
+          onEnter: flipOrReshuffleStack,
+        }),
+        t(OnboardingStep.AdditionalLigrettoCard, OnboardingEvent.PutLigretto, OnboardingStep.AdditionalRowCard, {
+          guard: canPutLigrettoIntoRow,
+          onEnter: putLigrettoIntoFreeRowSlot,
+        }),
+        t(OnboardingStep.AdditionalRowCard, OnboardingEvent.NextStackCard, OnboardingStep.AdditionalRowCard, {
+          onEnter: flipOrReshuffleStack,
+        }),
+        t(OnboardingStep.AdditionalRowCard, OnboardingEvent.PutLigretto, OnboardingStep.AdditionalRowCard, putLigrettoInRowHooks),
+        t(OnboardingStep.AdditionalRowCard, OnboardingEvent.PutSecondCard, OnboardingStep.FinalLigrettoCard, {
+          guard: isGreenFiveInRow,
+          onEnter: putGreenFive,
         }),
 
         // The round ends only when the ligretto deck is emptied
         t(OnboardingStep.FinalLigrettoCard, OnboardingEvent.NextStackCard, OnboardingStep.FinalLigrettoCard, {
           onEnter: flipOrReshuffleStack,
         }),
-        t(OnboardingStep.FinalLigrettoCard, OnboardingEvent.PutLigretto, OnboardingStep.Result, {
-          guard: (ctx: OnboardingContext) => ctx.data.game.players.id0.ligrettoDeck.cards.length === 1,
+        t(OnboardingStep.FinalLigrettoCard, OnboardingEvent.PutLigretto, OnboardingStep.RoundEnd, {
+          guard: (ctx: OnboardingContext) => canPutLigrettoIntoRow(ctx) && ligrettoCards(ctx).length === 1,
           onEnter(ctx) {
             putLigrettoIntoFreeRowSlot(ctx)
             ctx.data.results = ONBOARDING_HARDCODED_RESULTS
           },
         }),
-        t(OnboardingStep.FinalLigrettoCard, OnboardingEvent.PutLigretto, OnboardingStep.FinalLigrettoCard, {
-          onEnter: putLigrettoIntoFreeRowSlot,
-        }),
+        t(OnboardingStep.FinalLigrettoCard, OnboardingEvent.PutLigretto, OnboardingStep.FinalLigrettoCard, putLigrettoInRowHooks),
+        // The board stays as the round left it until the player moves on to the results
+        t(OnboardingStep.RoundEnd, OnboardingEvent.NextStep, OnboardingStep.Result),
       ],
     })
   }

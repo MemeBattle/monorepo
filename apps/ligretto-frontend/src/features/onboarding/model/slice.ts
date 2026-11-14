@@ -22,6 +22,8 @@ const initialState: OnboardingState = {
 }
 
 export const nextStepOnboardingAction = createAction('features/onboarding/next')
+/** Starts the onboarding over from the first step with a fresh game, without leaving the page. */
+export const restartOnboardingAction = createAction('features/onboarding/restart')
 /** Where the player put a card; the scripted transitions fall back to their own deck without it. */
 export interface OnboardingPlacementPayload {
   playgroundDeckIndex: number
