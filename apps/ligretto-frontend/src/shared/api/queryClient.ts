@@ -9,7 +9,7 @@ const isClientError = (error: unknown) => {
   return status !== undefined && status >= 400 && status < 500
 }
 
-/** A `4xx` fails the same way on every attempt; a transport failure, a `5xx` or any other error is retried. */
+/** A `4xx` is not retried, because it fails the same way on every attempt. Any other error is retried. */
 export const shouldRetry = (failureCount: number, error: unknown) => !isClientError(error) && failureCount < MAX_RETRIES
 
 export const createQueryClient = () =>

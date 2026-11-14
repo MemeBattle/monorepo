@@ -19,9 +19,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   /*
-   * The boundary is not keyed by `resetKey`: remounting it would remount its children and lose what a transition keeps
-   * on screen. So it clears itself when the key changes, but only for an error shown before the change: an error
-   * thrown by the render that brought the new key is the new key's own failure and stays until the user acts.
+   * The boundary is not keyed by `resetKey`, because a remount would also remount the children and drop what a
+   * transition keeps on screen. A key change clears only an error shown before the change. An error thrown by the
+   * render that brought the new key belongs to that key and stays until the user acts.
    */
   componentDidUpdate(prevProps: ErrorBoundaryProps, prevState: ErrorBoundaryState) {
     if (prevState.failed && this.state.failed && !Object.is(prevProps.resetKey, this.props.resetKey)) {

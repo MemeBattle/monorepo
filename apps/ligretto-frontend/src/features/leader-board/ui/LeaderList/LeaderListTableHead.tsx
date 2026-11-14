@@ -2,7 +2,7 @@ import { Box, Grid, Typography, useTheme } from '@memebattle/ui'
 
 import { LeaderListTableCell } from './LeaderListTableCell'
 
-/** Every row sums to 12 at every breakpoint. */
+/** The column sizes sum to 12 at every breakpoint. */
 export const leaderListColumns = {
   place: { xs: 2, md: 1.5 },
   player: { xs: 7, md: 8.5 },

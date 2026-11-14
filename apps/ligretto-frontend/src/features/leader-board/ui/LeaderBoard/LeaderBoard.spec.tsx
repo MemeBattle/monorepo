@@ -25,7 +25,7 @@ const board = (leaders: Leader[], me: Leader | null = null): Leaderboard => ({ l
 
 const unauthorized = () => json({ error: 'unauthorized' }, 401)
 
-/** A response the test sends when it chooses, to hold a request in flight. */
+/** A response the test resolves when it chooses, to hold a request in flight. */
 const deferred = () => {
   let resolve: (response: Response) => void = () => {}
   const promise = new Promise<Response>(resolvePromise => {
@@ -133,7 +133,7 @@ describe('LeaderBoard', () => {
     expect(rows()).toHaveLength(2)
   })
 
-  it('shows a guest no own row', async () => {
+  it('shows no own row for a guest', async () => {
     reply('day', () => json(board([leader('a', 'Ann', 100, 1), leader('b', 'Bob', 90, 2)], null)))
     renderBoard()
 
@@ -142,7 +142,7 @@ describe('LeaderBoard', () => {
     expect(rows()).toHaveLength(2)
   })
 
-  it('says so when nobody has points in the period', async () => {
+  it('shows an empty state when nobody has points in the period', async () => {
     reply('day', () => json(board([], null)))
     renderBoard()
 
@@ -165,7 +165,7 @@ describe('LeaderBoard', () => {
     expect(requestedPeriods()).toEqual(['day', 'day'])
   })
 
-  it('leaves a failed period for one not visited yet', async () => {
+  it('loads a period not visited yet after the current one failed', async () => {
     reply('day', unauthorized)
     reply('month', () => json(board([leader('m', 'Mona', 500, 1)])))
     renderBoard()
@@ -179,7 +179,7 @@ describe('LeaderBoard', () => {
     expect(requestedPeriods()).toEqual(['day', 'month'])
   })
 
-  it('keeps a period that fails on a tab change failed until the user returns to it', async () => {
+  it('shows a period that fails after a tab change as failed, and fetches it again on the next visit', async () => {
     const monthAgain = deferred()
     reply('day', () => json(board([leader('a', 'Ann', 100, 1)])))
     reply('month', unauthorized, () => monthAgain.promise)
