@@ -60,16 +60,18 @@ server on Node; a `fetch` that dispatches on `Host`, plus a service-binding entr
 
 ## Data
 
-The schema is this package's own: the first migration creates it from scratch, and nothing of the previous service's
-schema is kept or migrated — there is no production data.
+The schema is this package's own: the first migration created it from scratch, later migrations only add to it, and
+nothing of the previous service's schema is kept or migrated — there is no production data.
 
-| Table                                        | Purpose                                                                                                              | Key                                                     |
-| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `users`                                      | profile snapshot written on every grant by the session store: `cas_id`, `account_type`, `display_name`, `avatar_url` | `cas_id` text                                           |
-| `games`                                      | a game created by the gameplay backend                                                                               | `id` uuid                                               |
-| `rounds`                                     | a round of a game: `game_id`                                                                                         | `id` uuid, supplied by the caller                       |
-| `round_users`                                | a player's score in a round: `round_id`, `user_id` (= `users.cas_id`), `score`                                       | (`round_id`, `user_id`)                                 |
-| `sessions`, `auth_requests`, `session_locks` | the `SessionStore` of `ligretto-auth`; see `adrs/session-store-locking.md`                                           | `id` / `state` / `id`, text — ids `ligretto-auth` mints |
+| Table                                        | Purpose                                                                                                                                    | Key                                                     |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| `users`                                      | profile snapshot written on every grant by the session store: `cas_id`, `account_type`, `display_name`, `avatar_url`                       | `cas_id` text                                           |
+| `games`                                      | a game created by the gameplay backend                                                                                                     | `id` uuid                                               |
+| `rounds`                                     | a round of a game: `game_id`                                                                                                               | `id` uuid, supplied by the caller                       |
+| `round_users`                                | a player's score in a round: `round_id`, `user_id` (= `users.cas_id`), `score`                                                             | (`round_id`, `user_id`)                                 |
+| `sessions`, `auth_requests`, `session_locks` | the `SessionStore` of `ligretto-auth`; see `adrs/session-store-locking.md`                                                                 | `id` / `state` / `id`, text — ids `ligretto-auth` mints |
+| `user_daily_points`                          | a player's points on one `Europe/Berlin` day, the sum of their round scores that day; see `adrs/leaderboard-points-aggregated-on-write.md` | (`user_id`, `day`)                                      |
+| `user_totals`                                | a player's points over all time; see `adrs/leaderboard-points-aggregated-on-write.md`                                                      | `user_id` text                                          |
 
 A `sessions` row is the port's `Session` column for column: the grant and **its own** profile snapshot
 (`account_type`, `display_name`, `avatar_url`). `getSession` returns a session's own snapshot, and `ligretto-auth`
@@ -77,10 +79,11 @@ keeps a session's last validated one when a rotation's ID token cannot be used, 
 differ until each refreshes. `users` holds the latest snapshot per `cas_id`; the session store writes both in one
 transaction.
 
-Invariants the first migration establishes (and `adrs/additive-migrations-and-compatibility-matrix.md` protects):
+Invariants the migrations establish (and `adrs/additive-migrations-and-compatibility-matrix.md` protects):
 
 - snake_case names; `created_at` / `updated_at` as `timestamptz` with `DEFAULT now()` on every table that has them:
-  `users` has both, `games`, `rounds` and `round_users` have `created_at`, the auth tables have neither.
+  `users` has both, `games`, `rounds` and `round_users` have `created_at`, the auth tables and the leaderboard
+  aggregates (`user_daily_points`, `user_totals`) have neither.
 - `games.id` is `uuid DEFAULT gen_random_uuid()` (so `Generated<string>` in the row types). `rounds.id` is `uuid`
   without a default: the gameplay backend supplies it (§ Routes). `sessions.id`, `session_locks.id`,
   `auth_requests.state` and every `sub` / `cas_id` are `text`: `ligretto-auth` mints base64url ids and CAS owns
@@ -89,14 +92,18 @@ Invariants the first migration establishes (and `adrs/additive-migrations-and-co
   `AccountType`; the adapter narrows it to the union. A new account type is one additive migration either way;
   `text` keeps it a plain `ALTER TABLE` rather than enum mechanics.
 - Session timestamps (`access_token_expires_at`, `grant_ends_at`, `grant_started_at`, `auth_requests.expires_at`)
-  are `bigint` epoch milliseconds, the unit of the `SessionStore` port; `pg` delivers them as strings and the
-  adapter converts with `Number`.
+  are `bigint` epoch milliseconds, the unit of the `SessionStore` port. `user_daily_points.points` and
+  `user_totals.points` are `bigint` running sums of `integer` scores. `pg` delivers every `bigint` as a string and
+  the adapter converts with `Number`.
 - Nullable: `display_name` and `avatar_url` on `users` and on `sessions`, `auth_requests.session_id`,
   `auth_requests.sub`. Everything else is `NOT NULL`.
-- Foreign keys only inside the game aggregate: `rounds.game_id → games.id`, `round_users.round_id → rounds.id`,
-  `round_users.user_id → users.cas_id`. None from `sessions` or `auth_requests`, deliberately: a pending sign-in or a
-  session survives whatever happens to the row it points at (the initiating session may be deleted mid sign-in).
-- Indexes: `sessions(grant_ends_at)` and `auth_requests(expires_at)` for the sweep; `rounds(game_id)`.
+- Foreign keys inside the game aggregate and from the leaderboard aggregates: `rounds.game_id → games.id`,
+  `round_users.round_id → rounds.id`, `round_users.user_id → users.cas_id`,
+  `user_daily_points.user_id → users.cas_id` and `user_totals.user_id → users.cas_id`. None from `sessions` or
+  `auth_requests`, deliberately: a pending sign-in or a session survives whatever happens to the row it points at
+  (the initiating session may be deleted mid sign-in).
+- Indexes: `sessions(grant_ends_at)` and `auth_requests(expires_at)` for the sweep; `rounds(game_id)`;
+  `user_daily_points(day)` for the period scans.
 
 ## Routes
 
