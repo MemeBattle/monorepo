@@ -5,9 +5,9 @@
 
 import type { UpdateMeRequest } from './UpdateMeRequest'
 
-export type UpdateMeStatus204 = unknown;
+type UpdateMeStatus204 = unknown;
 
-export type UpdateMeStatus400 = {
+type UpdateMeStatus400 = {
     error: {
         code: ("invalid_body" | "invalid_email");
         /**
@@ -18,7 +18,7 @@ export type UpdateMeStatus400 = {
     };
 };
 
-export type UpdateMeStatus401 = {
+type UpdateMeStatus401 = {
     error: {
         code: "unauthenticated";
         /**
@@ -29,7 +29,7 @@ export type UpdateMeStatus401 = {
     };
 };
 
-export type UpdateMeStatus403 = {
+type UpdateMeStatus403 = {
     error: {
         code: "cross_site_request";
         /**
@@ -40,7 +40,7 @@ export type UpdateMeStatus403 = {
     };
 };
 
-export type UpdateMeStatus404 = {
+type UpdateMeStatus404 = {
     error: {
         code: "account_not_found";
         /**
@@ -51,7 +51,7 @@ export type UpdateMeStatus404 = {
     };
 };
 
-export type UpdateMeStatus413 = {
+type UpdateMeStatus413 = {
     error: {
         code: "invalid_body";
         /**
@@ -62,7 +62,7 @@ export type UpdateMeStatus413 = {
     };
 };
 
-export type UpdateMeStatus415 = {
+type UpdateMeStatus415 = {
     error: {
         code: "invalid_body";
         /**
@@ -73,7 +73,7 @@ export type UpdateMeStatus415 = {
     };
 };
 
-export type UpdateMeStatus422 = {
+type UpdateMeStatus422 = {
     error: {
         code: "invalid_body";
         /**
@@ -84,7 +84,7 @@ export type UpdateMeStatus422 = {
     };
 };
 
-export type UpdateMeStatus500 = {
+type UpdateMeStatus500 = {
     error: {
         code: "internal_error";
         /**
@@ -95,7 +95,7 @@ export type UpdateMeStatus500 = {
     };
 };
 
-export type UpdateMeStatus503 = {
+type UpdateMeStatus503 = {
     error: {
         code: ("database_busy" | "database_unavailable");
         /**
@@ -106,7 +106,7 @@ export type UpdateMeStatus503 = {
     };
 };
 
-export type UpdateMeBody = UpdateMeRequest;
+type UpdateMeBody = UpdateMeRequest;
 
 export type UpdateMeOptions = {
     body: UpdateMeBody;
@@ -127,8 +127,3 @@ export type UpdateMeResponses = {
     "500": UpdateMeStatus500;
     "503": UpdateMeStatus503;
 };
-
-/**
- * @description Union of all possible responses
-*/
-export type UpdateMeResponse = (UpdateMeStatus204 | UpdateMeStatus400 | UpdateMeStatus401 | UpdateMeStatus403 | UpdateMeStatus404 | UpdateMeStatus413 | UpdateMeStatus415 | UpdateMeStatus422 | UpdateMeStatus500 | UpdateMeStatus503);

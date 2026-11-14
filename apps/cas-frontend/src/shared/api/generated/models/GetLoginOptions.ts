@@ -5,9 +5,9 @@
 
 import type { LoginOptionsResponse } from './LoginOptionsResponse'
 
-export type GetLoginOptionsStatus200 = LoginOptionsResponse;
+type GetLoginOptionsStatus200 = LoginOptionsResponse;
 
-export type GetLoginOptionsStatus403 = {
+type GetLoginOptionsStatus403 = {
     error: {
         code: "cross_site_request";
         /**
@@ -18,7 +18,7 @@ export type GetLoginOptionsStatus403 = {
     };
 };
 
-export type GetLoginOptionsStatus500 = {
+type GetLoginOptionsStatus500 = {
     error: {
         code: "internal_error";
         /**
@@ -29,7 +29,7 @@ export type GetLoginOptionsStatus500 = {
     };
 };
 
-export type GetLoginOptionsStatus503 = {
+type GetLoginOptionsStatus503 = {
     error: {
         code: ("database_busy" | "database_unavailable");
         /**
@@ -53,8 +53,3 @@ export type GetLoginOptionsResponses = {
     "500": GetLoginOptionsStatus500;
     "503": GetLoginOptionsStatus503;
 };
-
-/**
- * @description Union of all possible responses
-*/
-export type GetLoginOptionsResponse = (GetLoginOptionsStatus200 | GetLoginOptionsStatus403 | GetLoginOptionsStatus500 | GetLoginOptionsStatus503);

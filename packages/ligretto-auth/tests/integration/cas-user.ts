@@ -15,7 +15,7 @@ import type { CreationOptions, RequestOptions, SoftPasskey } from './soft-passke
  * Where cas-frontend is served: the WebAuthn origin, the origin the fetch-metadata line under `/api` admits, and the
  * origin of CAS's own sign-in and create-account screens. The native server's default (`apps/cas/src/config/native.rs`).
  */
-export const FRONTEND_ORIGIN = 'http://localhost:5173'
+const FRONTEND_ORIGIN = 'http://localhost:5173'
 
 /** What a navigation answered: the status and, for a redirect, where to — resolved against the URL visited. */
 export interface Visited {

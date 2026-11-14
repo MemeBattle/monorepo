@@ -5,9 +5,9 @@
 
 import type { AdditionOptionsResponse } from './AdditionOptionsResponse'
 
-export type GetPasskeyAdditionOptionsStatus200 = AdditionOptionsResponse;
+type GetPasskeyAdditionOptionsStatus200 = AdditionOptionsResponse;
 
-export type GetPasskeyAdditionOptionsStatus401 = {
+type GetPasskeyAdditionOptionsStatus401 = {
     error: {
         code: "unauthenticated";
         /**
@@ -18,7 +18,7 @@ export type GetPasskeyAdditionOptionsStatus401 = {
     };
 };
 
-export type GetPasskeyAdditionOptionsStatus403 = {
+type GetPasskeyAdditionOptionsStatus403 = {
     error: {
         code: "cross_site_request";
         /**
@@ -29,7 +29,7 @@ export type GetPasskeyAdditionOptionsStatus403 = {
     };
 };
 
-export type GetPasskeyAdditionOptionsStatus500 = {
+type GetPasskeyAdditionOptionsStatus500 = {
     error: {
         code: "internal_error";
         /**
@@ -40,7 +40,7 @@ export type GetPasskeyAdditionOptionsStatus500 = {
     };
 };
 
-export type GetPasskeyAdditionOptionsStatus503 = {
+type GetPasskeyAdditionOptionsStatus503 = {
     error: {
         code: ("database_busy" | "database_unavailable");
         /**
@@ -65,8 +65,3 @@ export type GetPasskeyAdditionOptionsResponses = {
     "500": GetPasskeyAdditionOptionsStatus500;
     "503": GetPasskeyAdditionOptionsStatus503;
 };
-
-/**
- * @description Union of all possible responses
-*/
-export type GetPasskeyAdditionOptionsResponse = (GetPasskeyAdditionOptionsStatus200 | GetPasskeyAdditionOptionsStatus401 | GetPasskeyAdditionOptionsStatus403 | GetPasskeyAdditionOptionsStatus500 | GetPasskeyAdditionOptionsStatus503);

@@ -3,7 +3,7 @@
 * Do not edit manually.
 */
 
-export type DeletePasskeyPath = {
+type DeletePasskeyPath = {
     /**
      * @description
      * Format: `uuid`
@@ -12,9 +12,9 @@ export type DeletePasskeyPath = {
     id: string;
 };
 
-export type DeletePasskeyStatus204 = unknown;
+type DeletePasskeyStatus204 = unknown;
 
-export type DeletePasskeyStatus400 = {
+type DeletePasskeyStatus400 = {
     error: {
         code: "invalid_path";
         /**
@@ -25,7 +25,7 @@ export type DeletePasskeyStatus400 = {
     };
 };
 
-export type DeletePasskeyStatus401 = {
+type DeletePasskeyStatus401 = {
     error: {
         code: "unauthenticated";
         /**
@@ -36,7 +36,7 @@ export type DeletePasskeyStatus401 = {
     };
 };
 
-export type DeletePasskeyStatus403 = {
+type DeletePasskeyStatus403 = {
     error: {
         code: "cross_site_request";
         /**
@@ -47,7 +47,7 @@ export type DeletePasskeyStatus403 = {
     };
 };
 
-export type DeletePasskeyStatus404 = {
+type DeletePasskeyStatus404 = {
     error: {
         code: "passkey_not_found";
         /**
@@ -58,7 +58,7 @@ export type DeletePasskeyStatus404 = {
     };
 };
 
-export type DeletePasskeyStatus409 = {
+type DeletePasskeyStatus409 = {
     error: {
         code: "last_passkey";
         /**
@@ -69,7 +69,7 @@ export type DeletePasskeyStatus409 = {
     };
 };
 
-export type DeletePasskeyStatus500 = {
+type DeletePasskeyStatus500 = {
     error: {
         code: "internal_error";
         /**
@@ -80,7 +80,7 @@ export type DeletePasskeyStatus500 = {
     };
 };
 
-export type DeletePasskeyStatus503 = {
+type DeletePasskeyStatus503 = {
     error: {
         code: ("database_busy" | "database_unavailable");
         /**
@@ -108,8 +108,3 @@ export type DeletePasskeyResponses = {
     "500": DeletePasskeyStatus500;
     "503": DeletePasskeyStatus503;
 };
-
-/**
- * @description Union of all possible responses
-*/
-export type DeletePasskeyResponse = (DeletePasskeyStatus204 | DeletePasskeyStatus400 | DeletePasskeyStatus401 | DeletePasskeyStatus403 | DeletePasskeyStatus404 | DeletePasskeyStatus409 | DeletePasskeyStatus500 | DeletePasskeyStatus503);

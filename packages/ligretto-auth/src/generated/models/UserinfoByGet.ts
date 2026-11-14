@@ -9,24 +9,24 @@ import type { UserInfoClaims } from './UserInfoClaims'
  * @description The `/oidc/userinfo` answer (OpenID Connect Core §5.3.2): `sub` and\n`account_type` always, the rest as the token\'s scopes release it — never\na `name` for a guest. `iss`,\n`aud` and `amr` are the ID token\'s business and are not repeated; Core\nrequires only `sub`.
  * @type object
 */
-export type UserinfoByGetStatus200 = UserInfoClaims;
+type UserinfoByGetStatus200 = UserInfoClaims;
 
-export type UserinfoByGetStatus400 = {
+type UserinfoByGetStatus400 = {
     error: "invalid_request";
     error_description: string;
 };
 
-export type UserinfoByGetStatus401 = {
+type UserinfoByGetStatus401 = {
     error: "invalid_token";
     error_description: string;
 };
 
-export type UserinfoByGetStatus403 = {
+type UserinfoByGetStatus403 = {
     error: "insufficient_scope";
     error_description: string;
 };
 
-export type UserinfoByGetStatus500 = ({
+type UserinfoByGetStatus500 = ({
     error: "server_error";
     error_description: string;
 } | {
@@ -40,7 +40,7 @@ export type UserinfoByGetStatus500 = ({
     };
 });
 
-export type UserinfoByGetStatus503 = {
+type UserinfoByGetStatus503 = {
     error: "temporarily_unavailable";
     error_description: string;
 };
@@ -60,8 +60,3 @@ export type UserinfoByGetResponses = {
     "500": UserinfoByGetStatus500;
     "503": UserinfoByGetStatus503;
 };
-
-/**
- * @description Union of all possible responses
-*/
-export type UserinfoByGetResponse = (UserinfoByGetStatus200 | UserinfoByGetStatus400 | UserinfoByGetStatus401 | UserinfoByGetStatus403 | UserinfoByGetStatus500 | UserinfoByGetStatus503);

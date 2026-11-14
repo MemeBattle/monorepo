@@ -10,9 +10,9 @@ import type { VerifyLoginResponse } from './VerifyLoginResponse'
  * @description Who signed in and with which credential. A session (#667) will accompany\nthis; until then the client learns the account id and nothing else.
  * @type object
 */
-export type VerifyLoginStatus200 = VerifyLoginResponse;
+type VerifyLoginStatus200 = VerifyLoginResponse;
 
-export type VerifyLoginStatus400 = {
+type VerifyLoginStatus400 = {
     error: {
         code: "invalid_body";
         /**
@@ -23,7 +23,7 @@ export type VerifyLoginStatus400 = {
     };
 };
 
-export type VerifyLoginStatus401 = {
+type VerifyLoginStatus401 = {
     error: {
         code: "invalid_credential";
         /**
@@ -34,7 +34,7 @@ export type VerifyLoginStatus401 = {
     };
 };
 
-export type VerifyLoginStatus403 = {
+type VerifyLoginStatus403 = {
     error: {
         code: "cross_site_request";
         /**
@@ -45,7 +45,7 @@ export type VerifyLoginStatus403 = {
     };
 };
 
-export type VerifyLoginStatus404 = {
+type VerifyLoginStatus404 = {
     error: {
         code: "login_not_found";
         /**
@@ -56,7 +56,7 @@ export type VerifyLoginStatus404 = {
     };
 };
 
-export type VerifyLoginStatus413 = {
+type VerifyLoginStatus413 = {
     error: {
         code: "invalid_body";
         /**
@@ -67,7 +67,7 @@ export type VerifyLoginStatus413 = {
     };
 };
 
-export type VerifyLoginStatus415 = {
+type VerifyLoginStatus415 = {
     error: {
         code: "invalid_body";
         /**
@@ -78,7 +78,7 @@ export type VerifyLoginStatus415 = {
     };
 };
 
-export type VerifyLoginStatus422 = {
+type VerifyLoginStatus422 = {
     error: {
         code: "invalid_body";
         /**
@@ -89,7 +89,7 @@ export type VerifyLoginStatus422 = {
     };
 };
 
-export type VerifyLoginStatus500 = {
+type VerifyLoginStatus500 = {
     error: {
         code: "internal_error";
         /**
@@ -100,7 +100,7 @@ export type VerifyLoginStatus500 = {
     };
 };
 
-export type VerifyLoginStatus503 = {
+type VerifyLoginStatus503 = {
     error: {
         code: ("database_busy" | "database_unavailable");
         /**
@@ -111,7 +111,7 @@ export type VerifyLoginStatus503 = {
     };
 };
 
-export type VerifyLoginBody = VerifyLoginData;
+type VerifyLoginBody = VerifyLoginData;
 
 export type VerifyLoginOptions = {
     body: VerifyLoginBody;

@@ -19,7 +19,7 @@
     "test": "vitest",
     "test:ci": "vitest run",
     "test:e2e": "playwright test",
-    "generate:api": "KUBB_DISABLE_TELEMETRY=1 kubb generate"
+    "generate:api": "KUBB_DISABLE_TELEMETRY=1 kubb generate && node ../../.scripts/narrow-kubb-models.mjs src/shared/api/generated/models"
   },
   "dependencies": {
     "@simplewebauthn/browser": "catalog:",

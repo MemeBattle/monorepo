@@ -30,5 +30,8 @@
     "typescript": "catalog:",
     "vitest": "catalog:",
     "wrangler": "catalog:"
+  },
+  "engines": {
+    "cloudflare": "*"
   }
 }

@@ -2,8 +2,7 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
     ".": {
-      "entry": [".storybook/{main,preview}.{ts,tsx}"],
-      "ignoreBinaries": ["cf"]
+      "entry": [".storybook/{main,preview}.{ts,tsx}"]
     },
     "apps/blog": {
       "entry": [
@@ -14,13 +13,23 @@
         "src/**/*.test.{js,jsx,ts,tsx}",
         "vitest.config.ts"
       ],
-      "project": ["src/**/*.{js,jsx,ts,tsx}"],
-      "ignoreDependencies": ["sharp"]
+      "project": ["src/**/*.{js,jsx,ts,tsx,mdx,css}"]
+    },
+    "apps/cas": {
+      "entry": ["cloudflare.config.ts", "wrangler.config.ts"],
+      "project": ["*.ts"]
+    },
+    "apps/cas/spike/hd-worker": {
+      "entry": ["cloudflare.config.ts", "wrangler.config.ts"],
+      "project": ["*.ts"]
+    },
+    "apps/cas-frontend": {
+      "entry": ["src/**/*.spec.{ts,tsx}", "src/**/*.stories.tsx", "e2e/**/*.e2e.ts", "kubb.config.ts"],
+      "project": ["src/**/*.{ts,tsx,css}", "e2e/**/*.ts"]
     },
     "apps/gamehub-client": {
       "entry": ["next.config.{js,ts}", "src/app/**/{page,layout,route}.{js,jsx,ts,tsx}"],
-      "project": ["src/**/*.{js,jsx,ts,tsx}"],
-      "ignoreDependencies": ["sharp"]
+      "project": ["src/**/*.{js,jsx,ts,tsx}"]
     },
     "apps/ligretto-frontend": {
       "entry": [
@@ -33,8 +42,7 @@
         "cloudflare.config.ts",
         "wrangler.config.ts"
       ],
-      "project": ["src/**/*.{ts,tsx}", "e2e/**/*.ts"],
-      "ignoreDependencies": ["@sentry/cli"]
+      "project": ["src/**/*.{ts,tsx,scss,sass}", "e2e/**/*.ts"]
     },
     "apps/ligretto-core-backend": {
       "entry": [
@@ -46,13 +54,38 @@
         "cloudflare.config.ts",
         "vitest*.config.ts"
       ],
-      "project": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts", "migrations/**/*.ts"],
-      "ignoreDependencies": ["cloudflare", "wrangler"]
+      "project": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts", "migrations/**/*.ts"]
     },
     "apps/ligretto-gameplay-backend": {
       "entry": ["src/cloudflare/worker.ts", "src/**/*.spec.ts", "test/**/*.ts", "vitest*.config.ts"],
-      "project": ["src/**/*.ts", "test/**/*.ts"],
-      "ignoreDependencies": ["cf", "cloudflare"]
+      "project": ["src/**/*.ts", "test/**/*.ts"]
+    },
+    "packages/analytics": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/ligretto-auth": {
+      "entry": [
+        "src/{index,contract,schema}.ts",
+        "src/**/*.spec.ts",
+        "tests/integration/**/*.spec.ts",
+        "vitest*.config.ts",
+        "kubb.config.ts",
+        "scripts/*.mjs"
+      ],
+      "project": ["src/**/*.ts", "tests/**/*.ts", "scripts/*.mjs"]
+    },
+    "packages/ligretto-core-client": {
+      "entry": ["src/{index,internal}.ts", "src/**/*.spec.ts", "test/**/*.spec.ts", "kubb.config.ts", "scripts/*.mjs"],
+      "project": ["src/**/*.ts", "test/**/*.ts", "scripts/*.mjs"]
+    },
+    "packages/ligretto-shared": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/ui": {
+      "entry": ["src/index.ts", "src/**/*.stories.tsx"],
+      "project": ["src/**/*.{ts,tsx}"]
     }
   }
 }

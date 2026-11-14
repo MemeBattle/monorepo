@@ -58,10 +58,10 @@ export const untilAborted = async (signal: AbortSignal | null | undefined): Prom
   })
 
 /** A body whose bytes never arrive: the headers are sent and the stream stays open, linked to no signal. */
-export const stalledBody = (): ReadableStream<Uint8Array> => new ReadableStream({ pull: () => new Promise<void>(() => undefined) })
+const stalledBody = (): ReadableStream<Uint8Array> => new ReadableStream({ pull: () => new Promise<void>(() => undefined) })
 
 /** A token request as the stub saw it on the wire. */
-export interface RecordedTokenRequest {
+interface RecordedTokenRequest {
   authorization: string | null
   /** The body verbatim, for asserting the exact form that was sent. */
   body: string
@@ -70,7 +70,7 @@ export interface RecordedTokenRequest {
 }
 
 /** A refusal the token endpoint answers with instead of tokens, in the RFC 6749 §5.2 shape CAS uses. */
-export interface ScriptedFailure {
+interface ScriptedFailure {
   status: number
   error: string
   description?: string

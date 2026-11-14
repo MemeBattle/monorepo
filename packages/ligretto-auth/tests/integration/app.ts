@@ -22,7 +22,7 @@ export const CLIENT_ID = 'ligretto-auth-test'
  * then delivers that one navigation to the local socket the handlers are really on (`Browser.deliver`).
  */
 export const APP_URL = 'https://ligretto-auth.test/'
-export const REDIRECT_URI = 'https://ligretto-auth.test/auth/callback'
+const REDIRECT_URI = 'https://ligretto-auth.test/auth/callback'
 
 /** The process environment, read through a cast: the package types no Node globals, `process` included. */
 const env = (name: string): string | undefined => (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[name]
@@ -43,7 +43,7 @@ const clientSecret = (): string => {
 }
 
 /** The CAS client of this suite, for the calls a test makes out of band — a refresh it wants to spend itself. */
-export const casClient = (): CasClient =>
+const casClient = (): CasClient =>
   createCasClient({
     issuer: issuer(),
     clientId: CLIENT_ID,

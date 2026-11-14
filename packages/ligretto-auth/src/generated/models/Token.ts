@@ -12,24 +12,24 @@ import type { TokenResponse } from './TokenResponse'
  * @description The tokens, RFC 6749 §5.1 and OpenID Connect Core §3.1.3.3.\n\nThe fields are in alphabetical order, the order the members had when the\nbody was built as a JSON map, so the bytes on the wire did not change.
  * @type object
 */
-export type TokenStatus200 = TokenResponse;
+type TokenStatus200 = TokenResponse;
 
-export type TokenStatus400 = {
+type TokenStatus400 = {
     error: ("invalid_grant" | "invalid_request" | "invalid_scope" | "unauthorized_client" | "unsupported_grant_type");
     error_description: string;
 };
 
-export type TokenStatus401 = {
+type TokenStatus401 = {
     error: "invalid_client";
     error_description: string;
 };
 
-export type TokenStatus429 = {
+type TokenStatus429 = {
     error: "rate_limit_exceeded";
     error_description: string;
 };
 
-export type TokenStatus500 = ({
+type TokenStatus500 = ({
     error: "server_error";
     error_description: string;
 } | {
@@ -43,7 +43,7 @@ export type TokenStatus500 = ({
     };
 });
 
-export type TokenStatus503 = {
+type TokenStatus503 = {
     error: "temporarily_unavailable";
     error_description: string;
 };
@@ -51,7 +51,7 @@ export type TokenStatus503 = {
 /**
  * @description The grant\'s parameters: one schema per `grant_type`.
 */
-export type TokenBody = ((AuthorizationCodeGrant & {
+type TokenBody = ((AuthorizationCodeGrant & {
     grant_type: "authorization_code";
 }) | (RefreshTokenGrant & {
     grant_type: "refresh_token";

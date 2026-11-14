@@ -3,7 +3,8 @@
  * named by its `operationId`, and the models of the document. Make a `Client` with `createClient` and pass it to each
  * call.
  */
-export * from './generated/public'
+export * from './generated/public/models'
+export * from './generated/public/operations'
 export { createClient } from './client'
 export type {
   AnyResult,

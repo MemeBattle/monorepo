@@ -4,10 +4,10 @@ import type { APIRequestContext, Page } from '@playwright/test'
 
 // The clients e2e/seed.sh registers. The first is public and first-party, so a signed-in browser gets a code without
 // consent; the second is confidential, may use the guest grant, and its secret is in e2e/.guest-client-secret.
-export const CLIENT_ID = 'cas-frontend-e2e'
+const CLIENT_ID = 'cas-frontend-e2e'
 export const GUEST_CLIENT_ID = 'cas-frontend-e2e-guest'
 // Nothing serves it (a reserved TLD): the tests observe the browser's request to it, not a page.
-export const REDIRECT_URI = 'https://client.e2e.test/callback'
+const REDIRECT_URI = 'https://client.e2e.test/callback'
 // Any S256 challenge is valid here; the code is never exchanged in this suite.
 const CODE_CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM'
 

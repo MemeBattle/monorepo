@@ -6,7 +6,7 @@ import type { Result } from '#shared/api/client'
 import { Button, Icon, Section, Spinner, SubmitButton, TextField } from '#shared/ui'
 
 /** What the field says about an address this section could not save; never the raw message. */
-export const messages = {
+const messages = {
   empty: 'Введите адрес.',
   /** What the browser's own `type="email"` check rejects: no `@`, a comma in the name, a broken domain. */
   notAnAddress: 'Похоже, это не адрес почты.',

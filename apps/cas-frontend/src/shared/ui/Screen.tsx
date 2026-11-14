@@ -28,7 +28,7 @@ export const Screen = ({ children, align = 'center' }: ScreenProps) => (
 )
 
 /** Muted rather than hint: 12px text in the hint colour is 2.4:1 on the ground, under WCAG AA. */
-export const Footer = () => <p className="text-center text-xs font-bold tracking-[0.14em] text-ink-muted uppercase">cas.mems.fun</p>
+const Footer = () => <p className="text-center text-xs font-bold tracking-[0.14em] text-ink-muted uppercase">cas.mems.fun</p>
 
 interface HeroProps {
   title: string

@@ -43,7 +43,7 @@
     "test:ci": "vitest run",
     "build": "tsc --project tsconfig.build.json",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "generate:api": "KUBB_DISABLE_TELEMETRY=1 kubb generate && node scripts/generate-error-codes.mjs"
+    "generate:api": "KUBB_DISABLE_TELEMETRY=1 kubb generate && node ../../.scripts/narrow-kubb-models.mjs src/generated/models && node scripts/generate-error-codes.mjs"
   },
   "dependencies": {
     "jose": "catalog:",

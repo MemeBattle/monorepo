@@ -6,7 +6,7 @@
 import type { PasskeyResponse } from './PasskeyResponse'
 import type { RenamePasskeyRequest } from './RenamePasskeyRequest'
 
-export type RenamePasskeyPath = {
+type RenamePasskeyPath = {
     /**
      * @description
      * Format: `uuid`
@@ -19,9 +19,9 @@ export type RenamePasskeyPath = {
  * @description A passkey as the dashboard shows it. The credential itself (public key,\ncounter, flags) is server-side state and never leaves.
  * @type object
 */
-export type RenamePasskeyStatus200 = PasskeyResponse;
+type RenamePasskeyStatus200 = PasskeyResponse;
 
-export type RenamePasskeyStatus400 = {
+type RenamePasskeyStatus400 = {
     error: {
         code: ("invalid_body" | "invalid_passkey_name" | "invalid_path");
         /**
@@ -32,7 +32,7 @@ export type RenamePasskeyStatus400 = {
     };
 };
 
-export type RenamePasskeyStatus401 = {
+type RenamePasskeyStatus401 = {
     error: {
         code: "unauthenticated";
         /**
@@ -43,7 +43,7 @@ export type RenamePasskeyStatus401 = {
     };
 };
 
-export type RenamePasskeyStatus403 = {
+type RenamePasskeyStatus403 = {
     error: {
         code: "cross_site_request";
         /**
@@ -54,7 +54,7 @@ export type RenamePasskeyStatus403 = {
     };
 };
 
-export type RenamePasskeyStatus404 = {
+type RenamePasskeyStatus404 = {
     error: {
         code: "passkey_not_found";
         /**
@@ -65,7 +65,7 @@ export type RenamePasskeyStatus404 = {
     };
 };
 
-export type RenamePasskeyStatus409 = {
+type RenamePasskeyStatus409 = {
     error: {
         code: "last_passkey";
         /**
@@ -76,7 +76,7 @@ export type RenamePasskeyStatus409 = {
     };
 };
 
-export type RenamePasskeyStatus413 = {
+type RenamePasskeyStatus413 = {
     error: {
         code: "invalid_body";
         /**
@@ -87,7 +87,7 @@ export type RenamePasskeyStatus413 = {
     };
 };
 
-export type RenamePasskeyStatus415 = {
+type RenamePasskeyStatus415 = {
     error: {
         code: "invalid_body";
         /**
@@ -98,7 +98,7 @@ export type RenamePasskeyStatus415 = {
     };
 };
 
-export type RenamePasskeyStatus422 = {
+type RenamePasskeyStatus422 = {
     error: {
         code: "invalid_body";
         /**
@@ -109,7 +109,7 @@ export type RenamePasskeyStatus422 = {
     };
 };
 
-export type RenamePasskeyStatus500 = {
+type RenamePasskeyStatus500 = {
     error: {
         code: "internal_error";
         /**
@@ -120,7 +120,7 @@ export type RenamePasskeyStatus500 = {
     };
 };
 
-export type RenamePasskeyStatus503 = {
+type RenamePasskeyStatus503 = {
     error: {
         code: ("database_busy" | "database_unavailable");
         /**
@@ -131,7 +131,7 @@ export type RenamePasskeyStatus503 = {
     };
 };
 
-export type RenamePasskeyBody = RenamePasskeyRequest;
+type RenamePasskeyBody = RenamePasskeyRequest;
 
 export type RenamePasskeyOptions = {
     body: RenamePasskeyBody;
@@ -153,8 +153,3 @@ export type RenamePasskeyResponses = {
     "500": RenamePasskeyStatus500;
     "503": RenamePasskeyStatus503;
 };
-
-/**
- * @description Union of all possible responses
-*/
-export type RenamePasskeyResponse = (RenamePasskeyStatus200 | RenamePasskeyStatus400 | RenamePasskeyStatus401 | RenamePasskeyStatus403 | RenamePasskeyStatus404 | RenamePasskeyStatus409 | RenamePasskeyStatus413 | RenamePasskeyStatus415 | RenamePasskeyStatus422 | RenamePasskeyStatus500 | RenamePasskeyStatus503);
