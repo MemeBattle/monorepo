@@ -14,9 +14,9 @@ export interface Leader {
 export interface LeadersRepository {
   /**
    * Ranks the full accounts with points in `window`; a guest is neither listed nor takes a place. `place` is the
-   * standard competition rank by points (1, 2, 2, 4). The order is points descending, then display name ascending with
-   * the nameless last, then sub; `top` is the first `limit` players of that order. `viewer` is that subject's row with
-   * its place wherever it ranks, or `undefined` when they are not ranked.
+   * standard competition rank by points (1, 2, 2, 4). The order is points descending, then display name ascending
+   * ignoring case with the nameless last, then sub; `top` is the first `limit` players of that order. `viewer` is that
+   * subject's row with its place wherever it ranks, or `undefined` when they are not ranked.
    */
   rank(query: { window: LeaderboardWindow; limit: number; viewer: string }): Promise<{ top: Leader[]; viewer: Leader | undefined }>
 }

@@ -29,7 +29,7 @@ export const leaderboardSchema = z
       .array(leaderSchema)
       .max(LEADERS_LIMIT)
       .meta({
-        description: `The first ${LEADERS_LIMIT} full accounts by points, then by name ascending with the nameless last, then by sub; guests are not ranked`,
+        description: `The first ${LEADERS_LIMIT} full accounts by points, then by name ascending ignoring case with the nameless last, then by sub; guests are not ranked`,
       }),
     // Not `.nullable()`: of a named schema it renders as `allOf` with the reference, which no `null` satisfies.
     me: z.union([leaderSchema, z.null()]),

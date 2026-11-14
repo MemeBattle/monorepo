@@ -78,6 +78,15 @@ describe('LeadersRepository: Kysely on PGlite', () => {
     expect(new Set(top.map(leader => leader.place))).toEqual(new Set([1]))
   })
 
+  it('lists tied names alphabetically whatever their case', async () => {
+    await seedUsers(database.db, [player('s1', 'Bob'), player('s2', 'alice'), player('s3', 'Carol'), player('s4', 'bea')])
+    await addPoints(
+      DAY,
+      ['s1', 's2', 's3', 's4'].map(playerId => ({ playerId, score: 5 })),
+    )
+    expect((await rank()).top.map(leader => leader.displayName)).toEqual(['alice', 'bea', 'Bob', 'Carol'])
+  })
+
   it('answers the profile snapshot of each player', async () => {
     await seedUsers(database.db, [{ sub: 'a', accountType: 'full', displayName: 'Alice', avatarUrl: 'https://avatars.example/a.png' }])
     await addPoints(DAY, [{ playerId: 'a', score: 4 }])

@@ -11,7 +11,7 @@ import type { Leader } from './Leader'
 */
 export type Leaderboard = {
     /**
-     * @description The first 100 full accounts by points, then by name ascending with the nameless last, then by sub; guests are not ranked
+     * @description The first 100 full accounts by points, then by name ascending ignoring case with the nameless last, then by sub; guests are not ranked
      * @type array
     */
     leaders: Leader[];

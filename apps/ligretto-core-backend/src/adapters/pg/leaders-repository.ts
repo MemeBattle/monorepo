@@ -34,7 +34,9 @@ export const createPgLeadersRepository = (db: Database): LeadersRepository => ({
               .over(ob =>
                 ob
                   .orderBy('points.points', 'desc')
-                  .orderBy('users.display_name', o => o.asc().nullsLast())
+                  // Folded first: the database's collation may be byte order, which puts every capital before `a`.
+                  .orderBy(eb.fn<string | null>('lower', ['users.display_name']), o => o.asc().nullsLast())
+                  .orderBy('users.display_name', 'asc')
                   .orderBy('users.cas_id', 'asc'),
               )
               .as('position'),

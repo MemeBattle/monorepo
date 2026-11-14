@@ -135,11 +135,11 @@ client sees two structurally equal types. The answer is a lookup, not a claim th
 `GET /api/leaders` ranks the points of the aggregates of `adrs/leaderboard-points-aggregated-on-write.md`. The
 periods are whole `Europe/Berlin` days, computed in core from the clock: `day` is today, `month` is today and the 29
 days before it, `all` is the all-time totals. Only full accounts are ranked; a guest neither appears nor takes a place.
-`place` is `RANK()` by points (1, 2, 2, 4), and tied players are listed by name ascending, the nameless last, then by
-`sub`. `leaders` is the first `LEADERS_LIMIT` (100) of that order, so a tie can straddle the cut. `me` is the caller's
-row with its true place wherever it ranks, also when it is in `leaders`; it is `null` for a guest and for a caller with
-no points in the period. Names and avatars are read from `users` at request time, so a rename or an upgrade to a full
-account shows at once.
+`place` is `RANK()` by points (1, 2, 2, 4), and tied players are listed by name ascending ignoring case, the nameless
+last, then by `sub`. `leaders` is the first `LEADERS_LIMIT` (100) of that order, so a tie can straddle the cut. `me` is
+the caller's row with its true place wherever it ranks, also when it is in `leaders`; it is `null` for a guest and for a
+caller with no points in the period. Names and avatars are read from `users` at request time, so a rename or an
+upgrade to a full account shows at once.
 
 CORS on the public app: the allowed origins come from configuration (`LIGRETTO_CORE_CORS_ORIGINS`, a list), with
 credentials allowed for them and for nothing else; the cookie transport needs it in development, where the SPA and
