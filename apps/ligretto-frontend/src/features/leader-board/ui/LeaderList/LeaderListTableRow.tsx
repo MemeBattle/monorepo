@@ -1,10 +1,8 @@
 import type { BoxProps } from '@memebattle/ui'
-import { Box, useTheme } from '@memebattle/ui'
+import { Box } from '@memebattle/ui'
 
-export const LeaderListTableRow = (props: BoxProps) => {
-  const theme = useTheme()
-
-  return <Box borderRadius={1} padding={theme.spacing(1, 1, 1, 1)} {...props} />
-}
+export const LeaderListTableRow = (props: BoxProps) => (
+  <Box borderRadius={1} sx={{ px: { xs: 1, sm: 2 }, py: 1 }} data-test-id="LeaderBoard-Row" {...props} />
+)
 
 LeaderListTableRow.displayName = 'LeaderListTableRow'

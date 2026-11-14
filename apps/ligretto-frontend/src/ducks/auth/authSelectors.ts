@@ -4,6 +4,8 @@ import { userByIdSelector } from '../users'
 
 export const currentUserIdSelector = (state: All) => state.auth.userId
 
+export const accessTokenSelector = (state: All) => state.auth.accessToken
+
 export const isIdentityPendingSelector = (state: All) => !state.auth.isBootstrapped
 
 export const currentUserSelector = (state: All) => {
