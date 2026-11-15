@@ -32,7 +32,7 @@ export function addListeners(startListener: TypedStartListening<All>) {
   startListener({
     actionCreator: connectToRoomSuccessAction,
     effect: async ({ payload }, listenerApi) => {
-      await getUsersByIdsEffect(Object.keys(payload.game.players), listenerApi)
+      await getUsersByIdsEffect([...Object.keys(payload.game.players), ...Object.keys(payload.game.spectators)], listenerApi)
     },
   })
 }
