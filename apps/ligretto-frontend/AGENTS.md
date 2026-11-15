@@ -19,6 +19,15 @@ ligretto-core-backend, so a new SPA never meets an old API. `.github/workflows/l
 `test:ci` and `build:worker` on every pull request that touches this package or the workspace packages it is built from.
 Development keeps the vite dev server.
 
+### Targets
+
+The SPA is built per target, the build-conditions group `target: 'web' | 'telegram'` (`buildConditions.d.ts`, plugin in
+`vite.config.ts`). `LIGRETTO_TARGET` picks it and defaults to `web`, so the commands above are the web build, into
+`dist`. `pnpm build:telegram` is the telegram build, into `dist-telegram`; `pnpm start:dev:telegram` serves it in
+development. Both read the same root `.env` files; a variable set in the environment of the build overrides them.
+Code that differs per target branches with `isBuildConditions` / `switchBuildCondition` from
+`@memebattle/build-conditions`, folded at build time.
+
 ## E2E
 
 `pnpm e2e:start` (Playwright, from `apps/ligretto-frontend`). The vite dev server is started by `webServer` in `playwright.config.ts` (one already running on :5174 is reused); the app renders routes only after `GET /api/auth/me` responds. `e2e/tests/onboarding.spec.ts` stubs that call and needs no backend. `e2e/tests/game.spec.ts` needs CAS, the core backend, the gameplay backend, and the frontend on `:5174`. Locally that is `pnpm ligretto:start` from the repository root, which seeds CAS itself. In CI, the e2e job of `ligretto-pr.yml` runs it against the production CAS through the confidential client `ligretto-ci`: the job sets `CAS_ISSUER`, `LIGRETTO_CAS_CLIENT_ID` and `LIGRETTO_CAS_CLIENT_SECRET`, and builds no CAS.

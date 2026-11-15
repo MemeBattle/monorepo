@@ -20,7 +20,9 @@
   },
   "scripts": {
     "start:dev": "vite --host --force",
+    "start:dev:telegram": "LIGRETTO_TARGET=telegram vite --host --force",
     "build": "vite build",
+    "build:telegram": "LIGRETTO_TARGET=telegram vite build",
     "build:worker": "vite build && cf-wrangler build --mode production",
     "ts-check": "tsc --noEmit",
     "test": "vitest",
@@ -34,6 +36,7 @@
     "@floating-ui/react-dom": "^2.1.6",
     "@fsmoothy/core": "^1.3.0",
     "@memebattle/analytics": "workspace:^",
+    "@memebattle/build-conditions": "catalog:",
     "@memebattle/ligretto-core-client": "workspace:^",
     "@memebattle/ligretto-shared": "workspace:^",
     "@memebattle/ui": "workspace:^",
@@ -55,6 +58,7 @@
     "redux-first-history": "catalog:"
   },
   "devDependencies": {
+    "@memebattle/build-conditions-vite": "catalog:",
     "@playwright/test": "catalog:",
     "@sentry/cli": "catalog:",
     "@storybook/react": "catalog:",

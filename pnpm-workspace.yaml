@@ -52,6 +52,8 @@ catalog:
   '@kubb/adapter-oas': 5.4.5
   '@kubb/plugin-client': 5.5.2
   '@kubb/plugin-ts': 5.0.2
+  '@memebattle/build-conditions': 0.3.0
+  '@memebattle/build-conditions-vite': 0.3.0
   '@mdx-js/loader': ^3.1.0
   '@mdx-js/rollup': ^3.1.0
   '@mui/icons-material': 9.2.0
@@ -150,12 +152,13 @@ cleanupUnusedCatalogs: true
 # Pin an exception in minimumReleaseAgeExclude when a fresh release is actually needed.
 minimumReleaseAge: 10080
 
-# Temporary: issue #776 (the generated API client of cas-frontend) was taken before the kubb
-# releases it needs had cleared the week above. Exact versions only: kubb and its own packages,
-# plus the two @scalar packages @kubb/adapter-oas pins to a range with no older release in it.
-# Delete this whole block once the newest entry is a week old: kubb 5.4.5 was published
-# 2026-10-03T20:40Z, so from 2026-10-11 the install resolves without it.
+# Temporary exceptions; each group says when it can be deleted.
 minimumReleaseAgeExclude:
+  # Temporary: issue #776 (the generated API client of cas-frontend) was taken before the kubb
+  # releases it needs had cleared the week above. Exact versions only: kubb and its own packages,
+  # plus the two @scalar packages @kubb/adapter-oas pins to a range with no older release in it.
+  # Delete the kubb entries once the newest entry is a week old: kubb 5.4.5 was published
+  # 2026-10-03T20:40Z, so from 2026-10-11 the install resolves without it.
   - '@kubb/adapter-oas@5.4.5'
   - '@kubb/ast@5.4.5'
   - '@kubb/cli@5.4.5'
@@ -173,3 +176,7 @@ minimumReleaseAgeExclude:
   - '@scalar/openapi-upgrader@0.4.1'
   - kubb@5.4.5
   - unplugin-kubb@5.4.5
+  # @memebattle/build-conditions 0.3.0 was taken by ligretto-frontend the day it was published
+  # (2026-11-15T21:54Z). Delete these two entries from 2026-11-23, when the release is a week old.
+  - '@memebattle/build-conditions@0.3.0'
+  - '@memebattle/build-conditions-vite@0.3.0'
