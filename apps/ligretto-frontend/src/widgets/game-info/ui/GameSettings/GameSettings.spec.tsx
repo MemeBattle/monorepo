@@ -4,90 +4,103 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { Provider } from 'react-redux'
 import { MemoryRouter } from 'react-router'
+import type { Player } from '@memebattle/ligretto-shared'
 import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 
 import { authInitialState } from '#ducks/auth/authSlice'
 import { createMockStore } from '#testing/lib/createMockStore'
-import { initialState, resumeGameAction } from '#ducks/game'
-import { GameSettings } from './GameSettings'
+import { initialState, resumeGameAction, togglePlayerStatusAction } from '#ducks/game'
 import { GameSettingsContainer } from './GameSettingsContainer'
 
-describe('GameSettings', () => {
-  it('labels the host action as Resume while the round is paused', () => {
-    render(
-      <Provider store={createMockStore()}>
-        <GameSettings
-          gameStatus={GameStatus.Pause}
-          gameName="Paused game"
-          canStartGame
-          onStartClick={() => undefined}
-          onReadyClick={() => undefined}
-          onExitClick={() => undefined}
-          isButtonDisabled={false}
-          isPlayerReadyToPlay={false}
-        />
-      </Provider>,
-    )
+const createPlayer = (id: string, overrides: Partial<Player> = {}): Player => ({
+  id,
+  isHost: false,
+  status: PlayerStatus.DontReadyToPlay,
+  cards: [],
+  ligrettoDeck: { isHidden: true, cards: [] },
+  stackOpenDeck: { isHidden: false, cards: [] },
+  stackDeck: { isHidden: true, cards: [] },
+  ...overrides,
+})
 
-    expect(screen.getByRole('button', { name: 'Resume' })).toBeTruthy()
+const renderGameSettings = ({
+  userId,
+  status,
+  players,
+  spectatorIds = [],
+}: {
+  userId: string
+  status: GameStatus
+  players: Player[]
+  spectatorIds?: string[]
+}) => {
+  const store = createMockStore({
+    preloadedState: {
+      auth: { ...authInitialState, userId, isBootstrapped: true },
+      game: {
+        ...initialState,
+        game: {
+          ...initialState.game,
+          id: 'game',
+          name: 'Friday night',
+          status,
+          players: Object.fromEntries(players.map(player => [player.id, player])),
+          spectators: Object.fromEntries(spectatorIds.map(id => [id, { id }])),
+        },
+      },
+    },
+  })
+  const dispatch = vi.spyOn(store, 'dispatch')
+
+  render(
+    <Provider store={store}>
+      <MemoryRouter>
+        <GameSettingsContainer />
+      </MemoryRouter>
+    </Provider>,
+  )
+
+  return { dispatch }
+}
+
+describe('GameSettings', () => {
+  it('shows the room, its seats and its spectators', () => {
+    renderGameSettings({
+      userId: 'host',
+      status: GameStatus.New,
+      players: [createPlayer('host', { isHost: true }), createPlayer('peer', { status: PlayerStatus.ReadyToPlay })],
+      spectatorIds: ['watcher-1', 'watcher-2'],
+    })
+
+    expect(screen.getByText('Friday night')).toBeTruthy()
+    expect(screen.getByText('2/4 players')).toBeTruthy()
+    expect(screen.getAllByText('Free seat')).toHaveLength(2)
+    expect(screen.getByText('Spectators · 2')).toBeTruthy()
+    expect(screen.getByText('Host')).toBeTruthy()
+    expect(screen.getByText('You')).toBeTruthy()
+    expect(screen.getByText('Ready')).toBeTruthy()
   })
 
-  it.each([GameStatus.New, GameStatus.RoundFinished])('labels the host action as Start for %s games', gameStatus => {
-    render(
-      <Provider store={createMockStore()}>
-        <GameSettings
-          gameStatus={gameStatus}
-          gameName="Game"
-          canStartGame
-          onStartClick={() => undefined}
-          onReadyClick={() => undefined}
-          onExitClick={() => undefined}
-          isButtonDisabled={false}
-          isPlayerReadyToPlay={false}
-        />
-      </Provider>,
-    )
+  it('lets the host mark themselves ready and start the round', () => {
+    const { dispatch } = renderGameSettings({
+      userId: 'host',
+      status: GameStatus.RoundFinished,
+      players: [createPlayer('host', { isHost: true }), createPlayer('peer')],
+    })
 
-    expect(screen.getByRole('button', { name: 'Start' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: "I'm ready" }))
+    expect(dispatch).toHaveBeenCalledWith(togglePlayerStatusAction())
+    expect((screen.getByRole('button', { name: 'Start' }) as HTMLButtonElement).disabled).toBe(false)
   })
 
   it('dispatches the resume flow when the host resumes a paused round', () => {
-    const player = {
-      id: 'host',
-      isHost: true,
-      status: PlayerStatus.InGame,
-      cards: [],
-      ligrettoDeck: { isHidden: true, cards: [] },
-      stackOpenDeck: { isHidden: false, cards: [] },
-      stackDeck: { isHidden: true, cards: [] },
-    }
-    const store = createMockStore({
-      preloadedState: {
-        auth: { ...authInitialState, userId: player.id, isBootstrapped: true },
-        game: {
-          ...initialState,
-          game: {
-            ...initialState.game,
-            id: 'paused-game',
-            status: GameStatus.Pause,
-            players: {
-              [player.id]: player,
-              opponent: { ...player, id: 'opponent', isHost: false },
-            },
-          },
-        },
-      },
+    const { dispatch } = renderGameSettings({
+      userId: 'host',
+      status: GameStatus.Pause,
+      players: [createPlayer('host', { isHost: true, status: PlayerStatus.InGame }), createPlayer('peer', { status: PlayerStatus.InGame })],
     })
-    const dispatch = vi.spyOn(store, 'dispatch')
 
-    render(
-      <Provider store={store}>
-        <MemoryRouter>
-          <GameSettingsContainer />
-        </MemoryRouter>
-      </Provider>,
-    )
-
+    expect(screen.getByText('Round is paused')).toBeTruthy()
     const resumeButton = screen.getByRole('button', { name: 'Resume' }) as HTMLButtonElement
     expect(resumeButton.disabled).toBe(false)
     fireEvent.click(resumeButton)
@@ -96,73 +109,38 @@ describe('GameSettings', () => {
   })
 
   it('disables host resume until two players are online', () => {
-    const host = {
-      id: 'host',
-      isHost: true,
-      status: PlayerStatus.InGame,
-      cards: [],
-      ligrettoDeck: { isHidden: true, cards: [] },
-      stackOpenDeck: { isHidden: false, cards: [] },
-      stackDeck: { isHidden: true, cards: [] },
-    }
-    const store = createMockStore({
-      preloadedState: {
-        auth: { ...authInitialState, userId: host.id, isBootstrapped: true },
-        game: {
-          ...initialState,
-          game: {
-            ...initialState.game,
-            status: GameStatus.Pause,
-            players: { host, peer: { ...host, id: 'peer', isHost: false, status: PlayerStatus.Disconnected } },
-          },
-        },
-      },
+    renderGameSettings({
+      userId: 'host',
+      status: GameStatus.Pause,
+      players: [createPlayer('host', { isHost: true, status: PlayerStatus.InGame }), createPlayer('peer', { status: PlayerStatus.Disconnected })],
     })
-
-    render(
-      <Provider store={store}>
-        <MemoryRouter>
-          <GameSettingsContainer />
-        </MemoryRouter>
-      </Provider>,
-    )
 
     expect((screen.getByRole('button', { name: 'Resume' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
-  it('does not render Resume for a non-host player while paused', () => {
-    const player = {
-      id: 'peer',
-      isHost: false,
-      status: PlayerStatus.InGame,
-      cards: [],
-      ligrettoDeck: { isHidden: true, cards: [] },
-      stackOpenDeck: { isHidden: false, cards: [] },
-      stackDeck: { isHidden: true, cards: [] },
-    }
-    const store = createMockStore({
-      preloadedState: {
-        auth: { ...authInitialState, userId: player.id, isBootstrapped: true },
-        game: {
-          ...initialState,
-          game: {
-            ...initialState.game,
-            status: GameStatus.Pause,
-            players: { host: { ...player, id: 'host', isHost: true }, peer: player },
-          },
-        },
-      },
+  it('gives a non-host player nothing to do while the round is paused', () => {
+    renderGameSettings({
+      userId: 'peer',
+      status: GameStatus.Pause,
+      players: [createPlayer('host', { isHost: true, status: PlayerStatus.InGame }), createPlayer('peer', { status: PlayerStatus.InGame })],
     })
 
-    render(
-      <Provider store={store}>
-        <MemoryRouter>
-          <GameSettingsContainer />
-        </MemoryRouter>
-      </Provider>,
-    )
-
     expect(screen.queryByRole('button', { name: 'Resume' })).toBeNull()
-    expect(screen.getByRole('button', { name: 'Ready' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: "I'm ready" })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Leave room' })).toBeTruthy()
+  })
+
+  it('marks the spectator who is viewing and offers them only to leave', () => {
+    renderGameSettings({
+      userId: 'watcher',
+      status: GameStatus.New,
+      players: [createPlayer('host', { isHost: true }), createPlayer('peer')],
+      spectatorIds: ['watcher'],
+    })
+
+    expect(screen.getByText('You')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Start' })).toBeNull()
+    expect(screen.queryByRole('button', { name: "I'm ready" })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Leave room' })).toBeTruthy()
   })
 })

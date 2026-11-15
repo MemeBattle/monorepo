@@ -1,10 +1,6 @@
 import type { FC, PropsWithChildren } from 'react'
-import { Box, useTheme } from '@memebattle/ui'
+import { Box } from '@memebattle/ui'
 
-export const PlayersScoresTableHead: FC<PropsWithChildren> = ({ children }) => {
-  const theme = useTheme()
-
-  return <Box padding={theme.spacing(1, 1, 1, 2)}>{children}</Box>
-}
+export const PlayersScoresTableHead: FC<PropsWithChildren> = ({ children }) => <Box sx={{ px: 2, pb: 1 }}>{children}</Box>
 
 PlayersScoresTableHead.displayName = 'PlayersScoresTableHead'

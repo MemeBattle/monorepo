@@ -1,71 +1,144 @@
-import type { FC } from 'react'
+import type { FC, ReactNode } from 'react'
 import last from 'lodash/last'
+import times from 'lodash/times'
+import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined'
 import { Box, Grid, Typography, useMediaQuery, useTheme } from '@memebattle/ui'
+import { alpha } from '@mui/material/styles'
+import type { PlayerStatus } from '@memebattle/ligretto-shared'
 import { Avatar } from '#shared/ui/Avatar'
+import { NameBadge } from '#shared/ui/NameBadge'
 
 import { PlayersScoresTableCell } from './PlayersScoresTableCell'
 import { PlayersScoresTableHead } from './PlayersScoresTableHead'
 import { PlayersScoresTableRow } from './PlayersScoresTableRow'
+import { PlayerStatusPill } from './PlayerStatusPill'
+
+export interface PlayersScoresTablePlayer {
+  id: string
+  username: string
+  avatar?: string
+  roundPoints: number[]
+  totalPoints: number
+  isPlayer: boolean
+  isHost?: boolean
+  status?: PlayerStatus
+}
 
 export interface PlayersScoresTableProps {
   /** Players results */
-  players: Array<{ username: string; avatar?: string; roundPoints: number[]; totalPoints: number; isPlayer: boolean; id: string }>
+  players: PlayersScoresTablePlayer[]
+  /** Empty seats listed after the players, inviting more people to join */
+  freeSeatsCount?: number
 }
 
 const columnsProps = {
-  avatar: { sm: 2, md: 1 },
-  name: { xs: 6, sm: 4 },
-  round: { xs: 3, sm: 'grow' },
-  total: { xs: 3, sm: 2, md: 1 },
+  avatar: { sm: 1 },
+  name: 'grow',
+  status: { xs: 'auto', sm: 3 },
+  round: { xs: 2, sm: 2 },
+  total: { xs: 2, sm: 2 },
 } as const
 
-export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players }) => {
+const formatRoundPoints = (points = 0) => (points > 0 ? `+${points}` : String(points))
+
+const HeadLabel: FC<{ children?: ReactNode }> = ({ children }) => (
+  <Typography variant="caption" fontWeight={700} textTransform="uppercase" sx={{ letterSpacing: '0.08em', opacity: 0.75 }}>
+    {children}
+  </Typography>
+)
+
+export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players, freeSeatsCount = 0 }) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  const hasStatuses = players.some(player => player.status)
 
   return (
     <Box flex={1} flexDirection="column" overflow="auto" data-test-id="PlayersScoresTable">
       <PlayersScoresTableHead>
-        <Grid container spacing={4}>
-          {!isMobile && <PlayersScoresTableCell size={columnsProps.avatar}></PlayersScoresTableCell>}
+        <Grid container spacing={2} sx={{ flex: 1 }}>
+          {!isMobile && <PlayersScoresTableCell size={columnsProps.avatar} />}
           <PlayersScoresTableCell size={columnsProps.name}>
-            <Typography variant="body2">Имя</Typography>
+            <HeadLabel>Player</HeadLabel>
           </PlayersScoresTableCell>
+          {hasStatuses && <PlayersScoresTableCell size={columnsProps.status}>{!isMobile && <HeadLabel>Status</HeadLabel>}</PlayersScoresTableCell>}
           <PlayersScoresTableCell size={columnsProps.round} sx={{ justifyContent: 'flex-end' }}>
-            <Typography variant="body2">Раунд</Typography>
+            <HeadLabel>Round</HeadLabel>
           </PlayersScoresTableCell>
           <PlayersScoresTableCell size={columnsProps.total} sx={{ justifyContent: 'flex-end' }}>
-            <Typography variant="body2">Всего</Typography>
+            <HeadLabel>Total</HeadLabel>
           </PlayersScoresTableCell>
         </Grid>
       </PlayersScoresTableHead>
-      {players.map(({ username, roundPoints, totalPoints, avatar, isPlayer, id }) => (
+      {players.map(({ username, roundPoints, totalPoints, avatar, isPlayer, isHost, status, id }) => {
+        const lastRoundPoints = last(roundPoints) ?? 0
+
+        return (
+          <PlayersScoresTableRow
+            key={id}
+            sx={{ bgcolor: isPlayer ? 'primary.main' : 'background.lighter' }}
+            data-test-id="PlayersScoresTable-PlayersScoresTableRow"
+          >
+            <Grid container spacing={2} sx={{ flex: 1 }}>
+              {!isMobile && (
+                <PlayersScoresTableCell size={columnsProps.avatar}>
+                  <Avatar src={avatar} size="small" />
+                </PlayersScoresTableCell>
+              )}
+              <PlayersScoresTableCell size={columnsProps.name} sx={{ gap: 1, minWidth: 0 }}>
+                <Typography variant="h6" fontWeight={600} noWrap title={username}>
+                  {username}
+                </Typography>
+                {isHost && (
+                  <NameBadge isAccent>
+                    <WorkspacePremiumOutlinedIcon sx={{ fontSize: '0.875rem', verticalAlign: 'text-bottom', mr: 0.25 }} />
+                    Host
+                  </NameBadge>
+                )}
+                {isPlayer && <NameBadge>You</NameBadge>}
+              </PlayersScoresTableCell>
+              {hasStatuses && (
+                <PlayersScoresTableCell size={columnsProps.status}>
+                  {status && <PlayerStatusPill status={status} isCompact={isMobile} />}
+                </PlayersScoresTableCell>
+              )}
+              <PlayersScoresTableCell size={columnsProps.round} sx={{ justifyContent: 'flex-end' }}>
+                <Typography fontWeight={500} variant="h6" sx={{ color: lastRoundPoints < 0 ? 'warning.main' : 'text.primary' }}>
+                  {formatRoundPoints(lastRoundPoints)}
+                </Typography>
+              </PlayersScoresTableCell>
+              <PlayersScoresTableCell size={columnsProps.total} sx={{ justifyContent: 'flex-end' }}>
+                <Typography fontWeight={800} variant="h5">
+                  {totalPoints}
+                </Typography>
+              </PlayersScoresTableCell>
+            </Grid>
+          </PlayersScoresTableRow>
+        )
+      })}
+      {times(freeSeatsCount, index => (
         <PlayersScoresTableRow
-          key={id}
-          bgcolor={isPlayer ? theme.palette.primary.light : theme.palette.primary.lighter}
-          data-test-id="PlayersScoresTable-PlayersScoresTableRow"
+          key={`free-seat-${index}`}
+          sx={{ border: `1px dashed ${alpha(theme.palette.common.white, 0.35)}` }}
+          data-test-id="PlayersScoresTable-FreeSeat"
         >
-          <Grid container spacing={4}>
+          <Grid container spacing={2} sx={{ flex: 1 }}>
             {!isMobile && (
               <PlayersScoresTableCell size={columnsProps.avatar}>
-                <Avatar src={avatar} size="small" />
+                <Box width="3rem" height="3rem" borderRadius="50%" border={`1px dashed ${alpha(theme.palette.common.white, 0.5)}`} />
               </PlayersScoresTableCell>
             )}
-            <PlayersScoresTableCell size={columnsProps.name}>
-              <Typography variant="h5" noWrap title={username}>
-                {username}
+            <PlayersScoresTableCell size="grow">
+              <Typography variant="body1" sx={{ opacity: 0.85 }}>
+                Free seat
               </Typography>
             </PlayersScoresTableCell>
-            <PlayersScoresTableCell size={columnsProps.round} sx={{ justifyContent: 'flex-end' }}>
-              <Typography fontWeight={500} variant="h5">
-                {last(roundPoints)}
-              </Typography>
-            </PlayersScoresTableCell>
-            <PlayersScoresTableCell size={columnsProps.total} sx={{ justifyContent: 'flex-end' }}>
-              <Typography fontWeight={500} variant="h5">
-                {totalPoints}
-              </Typography>
-            </PlayersScoresTableCell>
+            {!isMobile && (
+              <PlayersScoresTableCell size="auto">
+                <Typography variant="body2" sx={{ opacity: 0.85 }}>
+                  Invite friends to join you!
+                </Typography>
+              </PlayersScoresTableCell>
+            )}
           </Grid>
         </PlayersScoresTableRow>
       ))}
