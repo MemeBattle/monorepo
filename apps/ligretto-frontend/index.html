@@ -24,6 +24,15 @@
       body {
         background-color: #247044;
       }
+      @keyframes loader-screen-slide-up {
+        to {
+          transform: translateY(-100%);
+        }
+      }
+      ::view-transition-old(.loader-screen-slide-up) {
+        background-color: #247044;
+        animation: 200ms ease-in both loader-screen-slide-up;
+      }
       @media (prefers-reduced-motion: reduce) {
         ::view-transition-group(*),
         ::view-transition-old(*),
