@@ -1,75 +1,93 @@
 import type { FC } from 'react'
 import { Avatar } from '#shared/ui/Avatar'
 import { Box, Grid, Typography, useMediaQuery, useTheme } from '@memebattle/ui'
+import { styled } from '@mui/material/styles'
+import type { Leader } from '#shared/api'
+import { userAvatarUrl, userLabel } from '#ducks/users'
 
 import { LeaderListTableCell } from './LeaderListTableCell'
+import { LeaderListTableHead, leaderListColumns } from './LeaderListTableHead'
 import { LeaderListTableRow } from './LeaderListTableRow'
-import type { LeaderBoardRowProps } from '../LeaderBoard/LeaderBoard'
 
-import firstLevelImg from './assets/1_place.svg'
-import secondLevelImg from './assets/2_place.svg'
-import thirdLevelImg from './assets/3_place.svg'
-import { LeaderListTableHead } from './LeaderListTableHead'
+import firstPlaceImg from './assets/1_place.svg'
+import secondPlaceImg from './assets/2_place.svg'
+import thirdPlaceImg from './assets/3_place.svg'
 
-const leaderListTableSpecs = [
-  { title: '#', size: { xs: 2, md: 1.5 } },
-  { title: 'Player', size: { xs: 7.7, md: 8.7 } },
-  { title: 'Points', size: { xs: 1.8, md: 1.8 } },
-]
+const placeImages = [firstPlaceImg, secondPlaceImg, thirdPlaceImg]
 
-const placeImages = [firstLevelImg, secondLevelImg, thirdLevelImg]
+/** The board shows the medal places only, so players tied for a medal all appear. */
+const SHOWN_PLACES = placeImages.length
 
-interface LeaderListTableProps {
-  leader: LeaderBoardRowProps[]
+const Medal = styled('img')(({ theme }) => ({
+  width: '2rem',
+  [theme.breakpoints.up('sm')]: {
+    width: '3rem',
+  },
+}))
+
+interface LeaderRowProps {
+  leader: Leader
+  isMe: boolean
+  isMobile: boolean
 }
 
-export const LeaderListTable: FC<LeaderListTableProps> = ({ leader }) => {
+const LeaderRow: FC<LeaderRowProps> = ({ leader, isMe, isMobile }) => {
+  const theme = useTheme()
+  const numberVariant = isMobile ? 'h5' : 'h4'
+  // Only full accounts are ranked.
+  const label = userLabel({ accountType: 'full', name: leader.name })
+
+  return (
+    <LeaderListTableRow bgcolor={isMe ? theme.palette.primary.light : theme.palette.primary.lighter}>
+      <Grid container sx={{ minHeight: '3rem' }}>
+        <LeaderListTableCell size={leaderListColumns.place} sx={{ justifyContent: 'center' }}>
+          {leader.place <= SHOWN_PLACES ? (
+            <Medal src={placeImages[leader.place - 1]} alt={`Place ${leader.place}`} />
+          ) : (
+            <Typography variant={numberVariant}>{leader.place}</Typography>
+          )}
+        </LeaderListTableCell>
+        <LeaderListTableCell size={leaderListColumns.player} sx={{ gap: { xs: 1, sm: 2 }, px: { xs: 1, sm: 2 } }}>
+          {!isMobile && <Avatar src={userAvatarUrl(leader)} size="small" />}
+          <Typography variant="h5" noWrap title={label}>
+            {label}
+          </Typography>
+        </LeaderListTableCell>
+        <LeaderListTableCell size={leaderListColumns.points} sx={{ justifyContent: 'center' }}>
+          <Typography variant={numberVariant}>{leader.totalPoints}</Typography>
+        </LeaderListTableCell>
+      </Grid>
+    </LeaderListTableRow>
+  )
+}
+
+interface LeaderListTableProps {
+  leaders: Leader[]
+  me: Leader | null
+}
+
+export const LeaderListTable: FC<LeaderListTableProps> = ({ leaders, me }) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  const shownLeaders = leaders.filter(leader => leader.place <= SHOWN_PLACES)
+  const meOutsideList = me !== null && !shownLeaders.some(leader => leader.sub === me.sub) ? me : null
 
   return (
     <>
-      {!isMobile && (
-        <LeaderListTableHead>
-          <Grid container sx={{ minHeight: '2.5em' }}>
-            {leaderListTableSpecs.map(prop => (
-              <LeaderListTableCell {...prop.size} sx={{ justifyContent: 'center' }}>
-                <Typography variant="body1" color={theme.palette.text.disabled}>
-                  {prop.title}
-                </Typography>
-              </LeaderListTableCell>
-            ))}
-          </Grid>
-        </LeaderListTableHead>
-      )}
-      <Grid container sx={{ flexDirection: 'column', gap: '0.5em' }}>
-        {leader.map(({ username, avatar, totalPoints, userPlace }, i) => (
-          <LeaderListTableRow key={i} background={theme.palette.primary.lighter} width="100%">
-            <Grid container>
-              <LeaderListTableCell {...leaderListTableSpecs[0].size} sx={{ justifyContent: 'center' }}>
-                {i < 3 ? (
-                  <img src={placeImages[i]} alt="prize medal" />
-                ) : (
-                  <Typography display="flex" alignItems="center" minHeight="48px" variant="h4" whiteSpace="nowrap" overflow="auto">
-                    {userPlace}
-                  </Typography>
-                )}
-              </LeaderListTableCell>
-              <LeaderListTableCell {...leaderListTableSpecs[1].size}>
-                <Box display="flex" alignItems="center" minWidth="0">
-                  {!isMobile && <Avatar src={avatar} size="small" />}
-                  <Typography variant="h5" overflow="hidden" whiteSpace="nowrap" textOverflow="ellipsis" padding={theme.spacing(0, 4)}>
-                    {username}
-                  </Typography>
-                </Box>
-              </LeaderListTableCell>
-              <LeaderListTableCell {...leaderListTableSpecs[2].size} sx={{ justifyContent: 'center' }}>
-                <Typography variant="h4">{totalPoints}</Typography>
-              </LeaderListTableCell>
-            </Grid>
-          </LeaderListTableRow>
+      {!isMobile && <LeaderListTableHead />}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {shownLeaders.map(leader => (
+          <LeaderRow key={leader.sub} leader={leader} isMe={leader.sub === me?.sub} isMobile={isMobile} />
         ))}
-      </Grid>
+        {meOutsideList && (
+          <>
+            <Typography aria-hidden textAlign="center" color={theme.palette.text.disabled}>
+              ⋯
+            </Typography>
+            <LeaderRow leader={meOutsideList} isMe isMobile={isMobile} />
+          </>
+        )}
+      </Box>
     </>
   )
 }
