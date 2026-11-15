@@ -1,3 +1,4 @@
+import { useDeferredValue, ViewTransition } from 'react'
 import { useSelector } from 'react-redux'
 
 import { useMinTimeLoading } from '#shared/lib/hooks/useMinTimeLoader'
@@ -10,7 +11,17 @@ export const AppContainer = () => {
 
   const isLoading = useMinTimeLoading(isIdentityPending, 2000)
 
-  return isLoading ? <LoaderScreen /> : <Routes />
+  // React animates <ViewTransition> only in transition-priority renders, and the auth state comes from Redux, whose
+  // updates are synchronous. The deferred value moves the switch from the loader to the routes into such a render.
+  const isLoaderShown = useDeferredValue(isLoading)
+
+  return isLoaderShown ? (
+    <ViewTransition>
+      <LoaderScreen />
+    </ViewTransition>
+  ) : (
+    <Routes />
+  )
 }
 
 AppContainer.displayName = 'AppContainer'

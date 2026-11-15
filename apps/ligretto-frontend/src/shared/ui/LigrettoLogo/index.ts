@@ -1,1 +1,1 @@
-export { LigrettoLogo } from './LigrettoLogo'
+export { LigrettoLogo, LIGRETTO_LOGO_ASPECT_RATIO, LIGRETTO_LOGO_VIEW_TRANSITION_NAME } from './LigrettoLogo'
