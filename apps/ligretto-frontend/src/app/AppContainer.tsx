@@ -11,8 +11,6 @@ export const AppContainer = () => {
 
   const isLoading = useMinTimeLoading(isIdentityPending, 2000)
 
-  // React animates <ViewTransition> only in transition-priority renders, and the auth state comes from Redux, whose
-  // updates are synchronous. The deferred value moves the switch from the loader to the routes into such a render.
   const isLoaderShown = useDeferredValue(isLoading)
 
   return isLoaderShown ? (
