@@ -1,7 +1,7 @@
 ---
 title: Logging
 description: >-
-  One structured JSON line per request (method, path without query, status, duration, request id) and structured
+  One structured JSON line per request (host, method, path without query, status, duration, request id) and structured
   lines for errors, all through a Logger port whose only production adapter writes to the console. No pino, no
   request bodies, no cookies or tokens in any log line.
 read_when:
@@ -25,8 +25,8 @@ produce failures that are only explainable next to the request that triggered th
   flat object of fields, and `child(fields)` to bind fields such as the request id. The production adapter writes
   one JSON object per line to `console.log` / `console.error` and drops `debug` unless `LOG_LEVEL=debug`; a
   development adapter may pretty-print. Tests pass a recording logger.
-- A middleware in `src/http` logs one line per request at `info` on completion: `method`, `path` (no query string),
-  `status`, `durationMs`, `requestId`. The request id is `cf-ray` or `x-request-id` when a proxy supplied one,
+- A middleware in `src/http` logs one line per request at `info` on completion: `host` (the request's hostname, which
+  tells the public hosts apart), `method`, `path` (no query string), `status`, `durationMs`, `requestId`. The request id is `cf-ray` or `x-request-id` when a proxy supplied one,
   otherwise generated, and is returned in `x-request-id` so a client's report can be matched to a line.
 - Errors reaching the error handler are logged at `error` with the request id, the stable error code when there is
   one, and the stack. Expected refusals (a 401, a 404, a 422) are not errors and are not logged beyond the
@@ -44,3 +44,5 @@ produce failures that are only explainable next to the request that triggered th
 
 upd (2026-10-24): a session id is named as a credential that is never logged; a line about a session carries its
 `sub` ([#836](https://github.com/MemeBattle/monorepo/issues/836)).
+
+upd (2026-11-16): the request line carries the request's `host`, since the public app answers on more than one.

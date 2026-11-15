@@ -25,7 +25,7 @@ describe('the request log', () => {
     const res = await app.request('/slow?secret=1')
     const requestId = res.headers.get('x-request-id')
     expect(requestLines()).toEqual([
-      { level: 'info', message: 'request', fields: { requestId, method: 'GET', path: '/slow', status: 201, durationMs: 12 } },
+      { level: 'info', message: 'request', fields: { requestId, host: 'localhost', method: 'GET', path: '/slow', status: 201, durationMs: 12 } },
     ])
   })
 

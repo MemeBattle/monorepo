@@ -8,7 +8,7 @@ import { z } from 'zod'
  */
 
 /** A comma-separated list: split once here, trimmed, empty entries dropped. An absent variable is an empty list. */
-const commaList = <T extends z.ZodType<unknown, string>>(item: T) =>
+export const commaList = <T extends z.ZodType<unknown, string>>(item: T) =>
   z
     .string()
     .default('')

@@ -8,16 +8,23 @@ holds the operational notes for production. `AGENTS.md` lists the design documen
 
 Ligretto is separate Workers sharing `ligretto.app` through Workers Routes; the most specific pattern wins.
 
-- **Public app:** this Worker, on the routes `ligretto.app/api*`, `ligretto.app/health*` and `ligretto.app/openapi.json*`.
-  Each ends in `*` because a route pattern matches the query string too. The cookie transport is first-party, and
-  production allows no CORS origin.
+- **Public app:** this Worker, on the routes `/api*`, `/health*` and `/openapi.json*` of every public host:
+  `ligretto.app`, the web frontend's, and `tg.ligretto.app`, reserved for the Telegram Mini App
+  (`PUBLIC_HOSTS` in `cloudflare.config.ts`, `LIGRETTO_CORE_PUBLIC_HOSTS` on the Worker). Each route ends in `*` because
+  a route pattern matches the query string too. The cookie transport is first-party, and production allows no CORS
+  origin. `tg.ligretto.app` has no DNS record yet, so its routes answer nothing.
+- **Public routes are not gated per host:** every public route answers on every public host alike, and each frontend
+  uses the ones it needs. The CAS sign-in belongs to `ligretto.app`: its redirect URI, post-logout URI and app URL name
+  that host. A sign-in started on another host sets its `state` cookie there, host-only (`__Host-`), so the callback on
+  `ligretto.app` arrives without it and answers `400 unknown_state` without creating a session.
 - **SPA:** the `ligretto-frontend` Worker on `ligretto.app/*`, an assets-only Worker with the SPA fallback for deep links
   (`apps/ligretto-frontend/cloudflare.config.ts`). Its requests never run Worker code.
 - **Internal app:** `https://core-internal.ligretto.app`, this Worker's Custom Domain: the `/internal` routes the gameplay
   backend calls with the shared secret. This Worker has no assets, so the hostname never serves the SPA. Any other
   hostname, `workers.dev` included, is refused.
-- **Gameplay:** `ligretto.app/gameplay/*` is the gameplay Worker's route (`apps/ligretto-gameplay-backend/README.md`). The
-  previous deployment at `api.ligretto.app` stays until no client of the old frontend is left.
+- **Gameplay:** `ligretto.app/gameplay/*` and `tg.ligretto.app/gameplay/*` are the gameplay Worker's routes
+  (`apps/ligretto-gameplay-backend/README.md`). The previous deployment at `api.ligretto.app` stays until no client of
+  the old frontend is left.
 - **Sweep:** this Worker's `scheduled` handler, on a cron trigger.
 - **Database:** Neon, reached at runtime only through two cache-disabled Hyperdrive configurations. Migrations run from
   the release job over the direct connection.
@@ -29,9 +36,9 @@ Ligretto is separate Workers sharing `ligretto.app` through Workers Routes; the 
 | Cloudflare account            | `2155fed9f68a1bc94fab7d9e5bb6eaac`                                                                                                                           |
 | Workers                       | `ligretto-core-backend`, `ligretto-frontend` (not created yet)                                                                                               |
 | Zone                          | `ligretto.app` (`3e680b95d1452e8426479e3ec52e3df8`)                                                                                                          |
-| Routes                        | `ligretto.app/api*`, `ligretto.app/health*`, `ligretto.app/openapi.json*` → `ligretto-core-backend`; `ligretto.app/*` → `ligretto-frontend`                  |
+| Routes                        | `/api*`, `/health*`, `/openapi.json*` on `ligretto.app` and on `tg.ligretto.app` → `ligretto-core-backend`; `ligretto.app/*` → `ligretto-frontend`           |
 | Custom Domain                 | `core-internal.ligretto.app` → `ligretto-core-backend`                                                                                                       |
-| DNS                           | `A ligretto.app → 192.0.2.1`, proxied, a placeholder created by hand; `A api.ligretto.app` stays for the gameplay backend                                    |
+| DNS                           | `A ligretto.app → 192.0.2.1`, proxied, a placeholder created by hand; `A api.ligretto.app` stays for the gameplay backend; none for `tg.ligretto.app` yet    |
 | Cron                          | `7 * * * *`                                                                                                                                                  |
 | Hyperdrive `HYPERDRIVE_MAIN`  | `ligretto-core-neon-main`, `1ce28ac44ae848aea317d36c3dc828c5`, `origin_connection_limit` 15                                                                  |
 | Hyperdrive `HYPERDRIVE_LOCKS` | `ligretto-core-neon-locks`, `fa5cbf397388476086cddacaca0bc77a`, `origin_connection_limit` 10                                                                 |
@@ -49,6 +56,19 @@ All `cf` commands below run from this directory with the account selected:
 ```sh
 export CLOUDFLARE_ACCOUNT_ID=2155fed9f68a1bc94fab7d9e5bb6eaac
 ```
+
+## Adding a public host
+
+1. Add the host to `PUBLIC_HOSTS` in `cloudflare.config.ts`; it must be in the zone `ligretto.app`. The next release
+   attaches its three routes and sets `LIGRETTO_CORE_PUBLIC_HOSTS`. The Worker refuses to start on a list that is empty,
+   has a duplicate, a scheme, a port or a path, or names the internal host.
+2. If its frontend opens game sockets, add `<host>/gameplay/*` to the routes of
+   `apps/ligretto-gameplay-backend/wrangler.jsonc`.
+3. Create a proxied DNS record for the host by hand, like the `ligretto.app` placeholder: no release touches DNS, and
+   until the record exists the routes answer nothing.
+4. Check that `/health` and `/openapi.json` answer on the new host with the core's JSON.
+
+Nothing else is per host: the auth URLs stay on `ligretto.app`, and every public route answers on the new host.
 
 ## Connection budget
 
@@ -290,7 +310,8 @@ DATABASE_URL='<the direct connection string>' NODE_ENV=production pnpm sweep
 ## Logs
 
 - **The service:** Workers observability in the Cloudflare dashboard, Workers & Pages, `ligretto-core-backend`,
-  Observability. One JSON line per request and structured lines for errors (`docs/adrs/logging.md`).
+  Observability. One JSON line per request, whose `host` tells the public hosts apart, and structured lines for errors
+  (`docs/adrs/logging.md`).
 - **The sweep:** the Worker's Cron Events tab shows each invocation, and a failed one is an exception. Search the logs for
   `sweep_completed`, `sweep_sessions_left` and `sweep_failed`.
 - **The migrations:** the `Apply migrations` step of the release run, with its `migration`, `no pending migrations` and

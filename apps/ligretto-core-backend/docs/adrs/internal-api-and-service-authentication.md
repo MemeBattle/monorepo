@@ -27,11 +27,11 @@ guest's. The previous service exposed these routes publicly without authenticati
 - **Two applications from one factory.** `createPublicApp(deps)` serves `/api/*` and `/health`;
   `createInternalApp(deps)` serves `/internal/*`. The entry decides exposure. On Node both are mounted on one
   server and the network (ingress, service mesh) keeps the internal paths off the public hostname. On Workers the
-  `fetch` handler dispatches on the `Host` header: the public hostname reaches the public app, the internal
-  hostname reaches the internal app, and any other hostname is a 404. The internal app is unreachable on the public
-  hostname: only `/api*`, `/health*` and `/openapi.json*` of `ligretto.app` are routed to this Worker, so `/internal`
-  there reaches the frontend Worker and answers the SPA, and the dispatch would send anything else on that host to the
-  public app's 404.
+  `fetch` handler dispatches on the `Host` header: each public hostname (`ligretto.app`, `tg.ligretto.app`) reaches
+  the public app, the internal hostname reaches the internal app, and any other hostname is a 404. The internal app
+  is unreachable on the public hostnames: only `/api*`, `/health*` and `/openapi.json*` of each are routed to this
+  Worker, so `/internal` on `ligretto.app` reaches the frontend Worker and answers the SPA, and the dispatch would send
+  anything else on a public host to the public app's 404. The internal hostname is refused as a public one.
   A named `WorkerEntrypoint` additionally exposes the internal app to service bindings for callers that are
   Workers. The gameplay backend calls the hostname even though it is a Worker now, because it reaches a Node core
   backend the same way in development. The internal API is therefore reachable from the
@@ -67,3 +67,6 @@ app stays unreachable on it ([#865](https://github.com/MemeBattle/monorepo/issue
 
 upd (2026-10-31): the SPA is its own Worker, and only `/api*`, `/health*` and `/openapi.json*` of the public hostname are
 routed to this one; the internal app stays unreachable on it ([#870](https://github.com/MemeBattle/monorepo/issues/870)).
+
+upd (2026-11-16): the public app answers on a list of public hostnames, `ligretto.app` and `tg.ligretto.app`; the
+internal hostname may not be one of them, and the internal app stays unreachable on all of them.
