@@ -600,7 +600,7 @@ describe('DashboardPage', () => {
         'the authenticator refuses the exclude list',
         new DOMException('The user attempted to register an authenticator that is already registered.', 'InvalidStateError'),
       ],
-      ['the server already holds the credential', { error: 'credential_already_registered' as const }],
+      ['the server already holds the credential', { error: 'credential_already_registered' as const, message: 'Credential already registered' }],
     ])('says this device already has a passkey when %s', async (_case, error) => {
       if (error instanceof DOMException) {
         startRegistration.mockRejectedValue(error)

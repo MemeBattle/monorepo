@@ -124,15 +124,11 @@ describe('CreateAccountPage', () => {
 
   it.each([
     ['a network failure', { networkError: true as const }, 'Failed to fetch'],
-    ['an outage', { error: 'database_unavailable' as const }, 'database_unavailable'],
-    ['a refused cross-site request', { error: 'cross_site_request' as const }, 'cross_site_request'],
-    ['a verification the server could not do', { error: 'registration_verification_failed' as const }, 'registration_verification_failed'],
-  ])('shows %s as the generic alert, never the raw message', async (_, error, raw) => {
-    if (error instanceof DOMException) {
-      startRegistration.mockRejectedValue(error)
-    } else {
-      registerWithPasskey = mockRegisterWithPasskey.respond(() => error)
-    }
+    ['an outage', { error: 'database_unavailable' as const, message: 'Database unavailable' }, 'Database unavailable'],
+    ['a refused cross-site request', { error: 'cross_site_request' as const, message: 'Cross-site request refused' }, 'Cross-site'],
+    ['a verification the server could not do', { error: 'registration_verification_failed' as const, message: 'Attestation invalid' }, 'Attestation'],
+  ])('shows %s as the generic alert, never the raw message', async (_, answer, raw) => {
+    registerWithPasskey = mockRegisterWithPasskey.respond(() => answer)
 
     await submit('Ада')
 
@@ -333,7 +329,7 @@ describe('CreateAccountPage', () => {
     it('shows the generic alert when the session cannot be read again', async () => {
       pageLoader.mockResolvedValue(guest)
       registerWithPasskey = mockRegisterWithPasskey.error('registration_not_found')
-      getMe = mockGetMe.error('database_unavailable')
+      getMe = mockGetMe.respond(() => ({ error: 'database_unavailable', message: 'Database unavailable' }))
 
       await submit('Ада', routes.CREATE_ACCOUNT, true)
 
