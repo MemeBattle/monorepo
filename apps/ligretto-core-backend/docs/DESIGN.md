@@ -112,7 +112,7 @@ Status codes and bodies are declared per route in `src/contract`; this is the re
 `400 validation_failed` with `issues`. Every route declares an `operationId`, which is the generated client's function
 name: `getHealth`, `getMe`, `signIn`, `authCallback`, `logout`, `listUsers`, `listLeaders`, `createGame`, `saveRound`.
 
-### Public: `/api`, served on the public hostname
+### Public: `/api`, served on every public hostname
 
 | Route                    | Auth                                                                       | Request                                                                                                 | Responses                                                                                                                                                                                                                                                          |
 | ------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -180,12 +180,12 @@ successor.
 
 ## Runtimes and entries
 
-| Entry              | Runs                                                                                                                                                                                         | Database                                                                                  |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `entry/node.ts`    | `@hono/node-server`, both apps on one port, `.env` through `dotenv-flow` in development                                                                                                      | two `pg.Pool`s for the process (`adrs/session-store-locking.md`)                          |
-| `entry/worker.ts`  | `fetch` dispatching on the request hostname (public hostname → public app; internal hostname → internal app; else 404); a `WorkerEntrypoint` for service bindings; `scheduled` for the sweep | per-request `pg` clients on two cache-disabled Hyperdrive bindings, closed in `waitUntil` |
-| `entry/migrate.ts` | Kysely `Migrator`, `migrateToLatest()`, result inspected, exits non-zero on failure                                                                                                          | `DATABASE_URL` (the database section of the configuration only)                           |
-| `entry/sweep.ts`   | `pnpm sweep`: expired `auth_requests` and sessions past the cookie grace, each session under its lock                                                                                        | `DATABASE_URL`; for a runtime other than Workers, whose cron runs `scheduled`             |
+| Entry              | Runs                                                                                                                                                                                           | Database                                                                                  |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `entry/node.ts`    | `@hono/node-server`, both apps on one port, `.env` through `dotenv-flow` in development                                                                                                        | two `pg.Pool`s for the process (`adrs/session-store-locking.md`)                          |
+| `entry/worker.ts`  | `fetch` dispatching on the request hostname (a public hostname → public app; internal hostname → internal app; else 404); a `WorkerEntrypoint` for service bindings; `scheduled` for the sweep | per-request `pg` clients on two cache-disabled Hyperdrive bindings, closed in `waitUntil` |
+| `entry/migrate.ts` | Kysely `Migrator`, `migrateToLatest()`, result inspected, exits non-zero on failure                                                                                                            | `DATABASE_URL` (the database section of the configuration only)                           |
+| `entry/sweep.ts`   | `pnpm sweep`: expired `auth_requests` and sessions past the cookie grace, each session under its lock                                                                                          | `DATABASE_URL`; for a runtime other than Workers, whose cron runs `scheduled`             |
 
 `pnpm build:worker` builds the Worker in the `production` mode of `cloudflare.config.ts` into its Build Output. It is
 the only build there is. The SPA is the `ligretto-frontend` Worker's, built by that package's own `build:worker`.
@@ -206,9 +206,13 @@ rest of ligretto.
 ## Deployment
 
 Cloudflare Workers, the way CAS is deployed (`apps/cas/cloudflare.config.ts`, `cas-deploy.yml`). Ligretto is separate
-Workers sharing `ligretto.app` through Workers Routes: this one owns `ligretto.app/api*`, `ligretto.app/health*` and
-`ligretto.app/openapi.json*`, the assets-only `ligretto-frontend` owns `ligretto.app/*`, and `ligretto.app/gameplay/*` is
-reserved for the gameplay Worker. The routes deliver `Host: ligretto.app`, which the dispatch hands to the public app.
+Workers sharing `ligretto.app` through Workers Routes: this one owns `/api*`, `/health*` and `/openapi.json*` on each
+public host — `ligretto.app` and `tg.ligretto.app`, the list `LIGRETTO_CORE_PUBLIC_HOSTS` — the assets-only
+`ligretto-frontend` owns `ligretto.app/*`, and `/gameplay/*` on each public host is the gameplay Worker's. The routes
+deliver the request's own `Host`, and the dispatch hands every host of the list to the one public app: public routes
+are not gated per host, and each frontend uses the ones it needs. The CAS sign-in's URLs name `ligretto.app`; a sign-in
+started on another host fails at the callback with `400 unknown_state`, since its host-only `state` cookie does not
+reach `ligretto.app`.
 The session cookie is first-party and production allows no CORS origin. The internal app answers on the Custom Domain
 `core-internal.ligretto.app`, since the gameplay backend is not a Worker and cannot use a service binding; the shared
 secret is what protects it on either path. This Worker has no assets, so no hostname of it serves the SPA.

@@ -16,8 +16,8 @@ const withOrigin = { headers: { origin: ORIGIN } }
 const corsHeaders = (res: Response) => [...res.headers.keys()].filter(name => name.startsWith('access-control-'))
 
 describe('the Worker', () => {
-  it('answers /health on the public hostname', async () => {
-    const res = await worker.fetch('http://localhost/health', withOrigin)
+  it.each(['localhost', 'tg.localhost'])('answers /health on the public hostname %s', async host => {
+    const res = await worker.fetch(`http://${host}/health`, withOrigin)
     expect(res.status).toBe(200)
     expect(await res.json()).toMatchObject({ status: 'ok' })
     expect(res.headers.get('x-request-id')).toBeTruthy()
@@ -31,8 +31,8 @@ describe('the Worker', () => {
     expect(corsHeaders(res)).toEqual([])
   })
 
-  it('answers an unknown route on the public hostname with 404', async () => {
-    const res = await worker.fetch('http://localhost/api/nope')
+  it.each(['localhost', 'tg.localhost'])('answers an unknown route on the public hostname %s with 404', async host => {
+    const res = await worker.fetch(`http://${host}/api/nope`)
     expect(res.status).toBe(404)
     expect(await res.json()).toEqual({ error: 'not_found' })
   })

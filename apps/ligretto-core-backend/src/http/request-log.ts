@@ -9,6 +9,7 @@ export const requestLog = (clock: Clock) =>
     const startedAt = clock.now()
     await next()
     c.get('logger').info('request', {
+      host: new URL(c.req.url).hostname,
       method: c.req.method,
       path: c.req.path,
       status: c.res.status,

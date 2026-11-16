@@ -2,8 +2,9 @@
 title: Production deployment on Workers
 description: >-
   Ligretto is separate Workers sharing ligretto.app through Workers Routes: the assets-only ligretto-frontend on
-  ligretto.app/*, this service on ligretto.app/api*, /health* and /openapi.json* and on the Custom Domain
-  core-internal.ligretto.app; ligretto.app/gameplay/* is reserved for the gameplay Worker. Its production values are in
+  ligretto.app/*, this service on /api*, /health* and /openapi.json* of every public host (ligretto.app and
+  tg.ligretto.app, not gated per host) and on the Custom Domain core-internal.ligretto.app; /gameplay/* of each public
+  host is the gameplay Worker's. Its production values are in
   the `production` mode of cloudflare.config.ts. One release workflow builds both Workers with no secrets, then behind
   one approval checks, migrates over the direct connection, uploads the core, then the frontend, then the source maps.
   DNS is never touched by a release. The first release is the activation; inert unrouted Workers exist until then and no
@@ -12,7 +13,7 @@ read_when:
   - changing the release workflow, the order of its steps or what it checks
   - adding a Worker secret, a binding or a production value
   - changing a hostname, a route, the session transport or where the SPA is served
-  - adding a Worker that shares ligretto.app
+  - adding a Worker that shares ligretto.app, or a public host
   - resizing a Hyperdrive configuration or adding a client of the same database
   - changing the sweep's schedule or how a failed run is reported
 ---
@@ -45,10 +46,19 @@ group, so two runs of one release can wait for the approval at once.
   `ligretto.app/openapi.json*`, and `ligretto.app/gameplay/*` is reserved for the gameplay Worker. A route pattern
   matches the query string too, so each of these ends in `*`: an exact `ligretto.app/health` would hand
   `/health?probe=1` to the SPA. A path such as `/healthz` reaching this Worker's 404 is the accepted cost. The routes
-  deliver `Host: ligretto.app`, so the hostname dispatch of `src/entry/worker.ts` sends them to the public app. The
+  deliver the request's own `Host`, so the hostname dispatch of `src/entry/worker.ts` sends them to the public app. The
   internal app keeps the Custom Domain `core-internal.ligretto.app`. One Worker serving the SPA as its assets lost because every static request would run
   it, and the dispatch would have to decide what is an asset. A subdomain of its own for the public app lost because it
   would only add an origin to configure. `workers.dev` is off on both, since the dispatch would refuse it anyway.
+- **One public app on a list of public hosts, not gated per host.** `PUBLIC_HOSTS` in `cloudflare.config.ts` lists them
+  — `ligretto.app` for the web frontend, `tg.ligretto.app` for the Telegram Mini App, each frontend calling the API on
+  its own origin — and the three routes are attached on each, all in the zone `ligretto.app`. The Worker reads the list
+  as `LIGRETTO_CORE_PUBLIC_HOSTS` and refuses to compose on an empty list, a duplicate, anything but a bare lowercase
+  hostname, or the internal host. Every public route answers on every host; a frontend uses the routes it needs. The
+  CAS sign-in's URLs name `ligretto.app`, derived from an explicitly named web host rather than the list's order; a
+  sign-in started on another host sets its host-only `state` cookie there, so the callback on `ligretto.app` refuses it
+  with `400 unknown_state` and creates no session. Per-host settings or a per-host guard on routes lost because no
+  route is harmful on another host, and the list is all a new host needs.
 - **The frontend is an assets-only Worker.** No entrypoint, no bindings, no secrets,
   `notFoundHandling: 'single-page-application'`. Every request it receives is answered by the assets layer, never by Worker code. `cf build`
   delegates to `vite build` in a package that depends on vite, so its `build:worker` runs `cf-wrangler build`, the delegate
@@ -56,8 +66,8 @@ group, so two runs of one release can wait for the approval at once.
   Production says "same origin" by leaving `LIGRETTO_CORE_URL` unset. This Worker has no assets at all, so the internal host
   cannot serve the SPA by construction. That is Cloudflare configuration, so the activation checks of `README.md`
   verify it.
-- **DNS is never touched by a release.** The routes need a proxied record on `ligretto.app`; it is a placeholder created by
-  hand, as the Custom Domain's record is removed and created by hand. Letting the deploy replace the record lost because
+- **DNS is never touched by a release.** The routes need a proxied record on each public host; `ligretto.app`'s is a
+  placeholder created by hand, as the Custom Domain's record is removed and created by hand. Letting the deploy replace the record lost because
   Cloudflare refuses it (`100117`).
 - **One release for the product.** `.github/workflows/ligretto-release.yml` builds both Workers in parallel with no secrets,
   then one job behind one approval runs, each step stopping the next: the check of the built core
@@ -105,9 +115,14 @@ group, so two runs of one release can wait for the approval at once.
   workflow.
 - The gameplay Worker, when it exists, adds a build job beside `build-core`, a deploy step between the two uploads and the
   route `ligretto.app/gameplay/*`.
+- A public host is added in `cloudflare.config.ts` and, by hand, in DNS (`README.md`, "Adding a public host"); until its
+  record exists its routes answer nothing. A route meant for one frontend is reachable from the other host too.
 
 upd (2026-10-30): the SPA and the public app share ligretto.app, served by this Worker
 ([#865](https://github.com/MemeBattle/monorepo/issues/865)).
 
 upd (2026-10-31): the SPA is its own Worker; both share ligretto.app through Workers Routes, released by one workflow
 ([#870](https://github.com/MemeBattle/monorepo/issues/870)).
+
+upd (2026-11-16): the public app answers on a list of public hosts, `ligretto.app` and `tg.ligretto.app`, with every
+public route on each; the auth URLs stay on `ligretto.app`.

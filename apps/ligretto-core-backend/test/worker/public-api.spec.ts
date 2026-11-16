@@ -11,31 +11,34 @@ import committedDocument from '../../openapi.json'
 /** The Worker's own default export, as a fetcher. */
 const worker = (exports as unknown as { default: Fetcher }).default
 
-describe('the public API on the Worker', () => {
+// Both public hosts of cloudflare.config.ts's development values: every public route answers on each of them alike.
+describe.each(['localhost', 'tg.localhost'])('the public API on the Worker, on %s', host => {
   it('refuses /api/users without an access token', async () => {
-    const res = await worker.fetch('http://localhost/api/users?ids=someone')
+    const res = await worker.fetch(`http://${host}/api/users?ids=someone`)
     expect(res.status).toBe(401)
     expect(await res.json()).toMatchObject({ error: 'unauthorized' })
   })
 
   it('refuses /api/leaders without an access token', async () => {
-    const res = await worker.fetch('http://localhost/api/leaders?period=day')
+    const res = await worker.fetch(`http://${host}/api/leaders?period=day`)
     expect(res.status).toBe(401)
     expect(await res.json()).toMatchObject({ error: 'unauthorized' })
   })
 
   it('sends a logout without a session back to the configured application', async () => {
-    const res = await worker.fetch('http://localhost/api/auth/logout', { redirect: 'manual' })
+    const res = await worker.fetch(`http://${host}/api/auth/logout`, { redirect: 'manual' })
     expect(res.status).toBe(302)
     expect(res.headers.get('location')).toBe('http://localhost:5174/')
   })
 
   it('serves the committed public document', async () => {
-    const res = await worker.fetch('http://localhost/openapi.json')
+    const res = await worker.fetch(`http://${host}/openapi.json`)
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual(committedDocument)
   })
+})
 
+describe('the public API on the Worker, on the internal hostname', () => {
   it('does not serve /api/users on the internal hostname', async () => {
     const res = await worker.fetch('http://internal.localhost/api/users?ids=someone')
     expect(res.status).toBe(404)

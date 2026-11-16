@@ -64,5 +64,8 @@ pnpm ligretto:front:start:dev
 Two Cloudflare Workers share `ligretto.app` through Workers Routes: `ligretto-frontend` serves the SPA on
 `ligretto.app/*`, and `ligretto-core-backend` serves `/api*`, `/health*` and `/openapi.json*` there and its internal app on
 `core-internal.ligretto.app`. A third, `ligretto-gameplay-backend`, serves the game sockets on `ligretto.app/gameplay/*`.
+The API and the game sockets also have routes on `tg.ligretto.app`, reserved for the Telegram Mini App, so that each
+frontend calls them on its own origin; every public route answers on both hosts, not gated per host. That host has no DNS
+record yet, so its routes answer nothing.
 `.github/workflows/ligretto-release.yml` releases all three behind one approval. `apps/ligretto-core-backend/README.md`
 and `apps/ligretto-gameplay-backend/README.md` hold the operational notes.
