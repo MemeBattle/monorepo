@@ -77,9 +77,10 @@ again replaces its answer and returns a new spy; retain the old spy if asserting
 calls made before replacement. Mutating the spy does not change the response.
 
 For delayed or per-request outcomes, `.respond()` takes a typed callback. Return
-a payload, `{ error: 'last_passkey' }`, or `{ networkError: true }`, directly or
-through a promise. Resolve deferred responses; do not throw API errors from a
-responder. This keeps concurrent tests explicit without a fake stateful backend.
+a payload, `{ error: 'last_passkey' }` (with an optional server `message`; the
+code otherwise), or `{ networkError: true }`, directly or through a promise.
+Resolve deferred responses; do not throw API errors from a responder. This keeps
+concurrent tests explicit without a fake stateful backend.
 
 ```ts
 let confirm = () => {}

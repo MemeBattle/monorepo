@@ -62,6 +62,14 @@ it.each([
   expect(add).toHaveBeenCalledExactlyOnceWith({})
 })
 
+it('keeps a custom message when registration_expired answers as registration_not_found', async () => {
+  vi.mocked(startRegistration)
+    .mockReset()
+    .mockResolvedValue({ id: 'credential' } as Awaited<ReturnType<typeof startRegistration>>)
+  mockAddPasskey.respond(() => ({ error: 'registration_expired', message: 'Registration expired' }))
+  await expect(addPasskey()).resolves.toEqual(failed(404, 'registration_not_found', 'Registration expired'))
+})
+
 it('supports deferred add answers and records one domain call', async () => {
   vi.mocked(startRegistration).mockResolvedValue({ id: 'credential' } as Awaited<ReturnType<typeof startRegistration>>)
   const passkey = aPasskey({ name: 'Phone' })

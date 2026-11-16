@@ -3,7 +3,7 @@ import type { Method } from './mockRequest'
 import { mockRequest } from './mockRequest'
 import type { Spy } from './runtime'
 
-export type Failure<Code extends string> = { error: Code } | { networkError: true }
+export type Failure<Code extends string> = { error: Code; message?: string } | { networkError: true }
 export type Answer<Payload, Code extends string> = Payload | Failure<Code>
 export type Resolver<Args, Payload, Code extends string> = (args: Args) => Answer<Payload, Code> | Promise<Answer<Payload, Code>>
 export const isFailure = <Code extends string>(value: unknown): value is Failure<Code> =>
@@ -14,7 +14,7 @@ export const failureResponse = <Code extends string>(failure: Failure<Code>, sta
     return HttpResponse.error()
   }
   const code = failure.error
-  return HttpResponse.json({ error: { code, message: code } }, { status: statuses[failure.error] })
+  return HttpResponse.json({ error: { code, message: failure.message ?? code } }, { status: statuses[failure.error] })
 }
 export const successResponse = (value: unknown, status = 200) =>
   value === undefined ? new HttpResponse(null, { status: 204 }) : HttpResponse.json(value as Record<string, unknown>, { status })

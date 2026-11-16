@@ -1,4 +1,4 @@
-import { ok } from '#shared/api/client'
+import { failed, ok } from '#shared/api/client'
 import { expect, it, vi } from 'vitest'
 import { getMe, logout, updateEmail, registerWithPasskey, signInWithPasskey } from '../index'
 import { aMe, mockGetMe, mockLogout, mockUpdateEmail, mockRegisterWithPasskey, mockSignInWithPasskey } from './index'
@@ -111,6 +111,14 @@ it.each([
     await expect(signInWithPasskey()).resolves.toMatchObject({ ok: false, error: { code, status } })
   }
   expect(startAuthentication).toHaveBeenCalledTimes(verifies ? 1 : 0)
+})
+
+it('keeps a custom message when registration_expired answers as registration_not_found', async () => {
+  vi.mocked(startRegistration)
+    .mockClear()
+    .mockResolvedValue({ id: 'credential' } as Awaited<ReturnType<typeof startRegistration>>)
+  mockRegisterWithPasskey.respond(() => ({ error: 'registration_expired', message: 'Registration expired' }))
+  await expect(registerWithPasskey('Ada')).resolves.toEqual(failed(404, 'registration_not_found', 'Registration expired'))
 })
 
 it('correlates deferred registration answers when authenticators finish out of order', async () => {

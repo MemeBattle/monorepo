@@ -65,19 +65,19 @@ describe('addPasskey', () => {
   })
 
   it('asks the authenticator for nothing without a session', async () => {
-    mockAddOptions.error('unauthenticated')
+    mockAddOptions.respond(() => ({ error: 'unauthenticated', message: 'No live session' }))
 
-    await expect(addPasskey()).resolves.toEqual(failed(401, 'unauthenticated', 'unauthenticated'))
+    await expect(addPasskey()).resolves.toEqual(failed(401, 'unauthenticated', 'No live session'))
 
     expect(startRegistration).not.toHaveBeenCalled()
   })
 
   it('answers the failure of the finish', async () => {
     mockAddOptions(options)
-    mockAddVerification.error('credential_already_registered')
+    mockAddVerification.respond(() => ({ error: 'credential_already_registered', message: 'Credential already registered' }))
     startRegistration.mockResolvedValue(made)
 
-    await expect(addPasskey()).resolves.toEqual(failed(409, 'credential_already_registered', 'credential_already_registered'))
+    await expect(addPasskey()).resolves.toEqual(failed(409, 'credential_already_registered', 'Credential already registered'))
   })
 
   it('lets an outage through as it is', async () => {

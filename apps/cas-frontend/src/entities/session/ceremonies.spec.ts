@@ -150,19 +150,19 @@ describe('registerWithPasskey', () => {
   })
 
   it('answers a refused name without asking the authenticator', async () => {
-    mockRegistrationOptions.error('invalid_display_name')
+    mockRegistrationOptions.respond(() => ({ error: 'invalid_display_name', message: 'Invalid display name' }))
 
-    await expect(registerWithPasskey('Ада')).resolves.toEqual(failed(400, 'invalid_display_name', 'invalid_display_name'))
+    await expect(registerWithPasskey('Ада')).resolves.toEqual(failed(400, 'invalid_display_name', 'Invalid display name'))
 
     expect(startRegistration).not.toHaveBeenCalled()
   })
 
   it('answers the failure of the finish', async () => {
     mockRegistrationOptions(options(guestHandle))
-    mockRegistrationVerification.error('registration_not_found')
+    mockRegistrationVerification.respond(() => ({ error: 'registration_not_found', message: 'No such registration' }))
     startRegistration.mockResolvedValue(made)
 
-    await expect(registerWithPasskey('Ада', { accountId: guestId })).resolves.toEqual(failed(404, 'registration_not_found', 'registration_not_found'))
+    await expect(registerWithPasskey('Ада', { accountId: guestId })).resolves.toEqual(failed(404, 'registration_not_found', 'No such registration'))
   })
 
   it('is the only error isNotTheGuest recognises', () => {
@@ -275,12 +275,10 @@ describe('signInWithPasskeyFromAutofill', () => {
 
   it('reports a failure after the pick, as the button would', async () => {
     requested = mockLoginOptions(options('l1'))
-    mockLoginVerification.error('invalid_credential')
+    mockLoginVerification.respond(() => ({ error: 'invalid_credential', message: 'not registered' }))
     startAuthentication.mockResolvedValue(picked)
 
-    await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toEqual(
-      failed(401, 'invalid_credential', 'invalid_credential'),
-    )
+    await expect(signInWithPasskeyFromAutofill(new AbortController().signal)).resolves.toEqual(failed(401, 'invalid_credential', 'not registered'))
   })
 
   it('offers nothing when the server refuses the options', async () => {

@@ -40,7 +40,10 @@ const registrationErrors = {
 } as const
 type RegistrationError = keyof typeof registrationErrors
 const registrationFailure = (failure: Failure<RegistrationError>) =>
-  failureResponse('error' in failure && failure.error === 'registration_expired' ? { error: 'registration_not_found' } : failure, registrationErrors)
+  failureResponse(
+    'error' in failure && failure.error === 'registration_expired' ? { ...failure, error: 'registration_not_found' } : failure,
+    registrationErrors,
+  )
 
 const respondAddPasskey = (resolver: Resolver<Record<string, never>, Passkey, RegistrationError>) => {
   let sequence = 0
