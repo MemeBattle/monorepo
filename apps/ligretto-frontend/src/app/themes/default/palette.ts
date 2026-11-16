@@ -9,6 +9,18 @@ export const palette: Partial<Palette> = {
     contrastText: '#fff',
     inactiveLight: '#2FB166',
   },
+  secondary: {
+    main: '#FFD31A',
+    light: '#FFE36B',
+    dark: '#E6BC00',
+    contrastText: '#242625',
+  },
+  warning: {
+    main: '#F9AA8D',
+    light: '#FCBC85',
+    dark: '#F7945E',
+    contrastText: '#242625',
+  },
   background: {
     default: '#247044',
     lighter: '#2C7D4E',

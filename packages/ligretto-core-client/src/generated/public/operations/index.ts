@@ -1,6 +1,7 @@
 export { authCallback } from './authCallback'
 export { getHealth } from './getHealth'
 export { getMe } from './getMe'
+export { listLeaders } from './listLeaders'
 export { listUsers } from './listUsers'
 export { logout } from './logout'
 export { signIn } from './signIn'

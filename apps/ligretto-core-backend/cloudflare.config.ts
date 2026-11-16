@@ -7,25 +7,31 @@ const HYPERDRIVE_MAIN_ID = '1ce28ac44ae848aea317d36c3dc828c5'
 const HYPERDRIVE_LOCKS_ID = 'fa5cbf397388476086cddacaca0bc77a'
 const DEV_DATABASE = 'postgres://ligretto-core-user:ligretto_pg_password@localhost:5433/ligretto-core'
 
-const PUBLIC_HOST = 'ligretto.app'
+const ZONE = 'ligretto.app'
+// The web frontend's host: the CAS sign-in returns there, so the auth URLs name it whatever else is in the list.
+const WEB_HOST = 'ligretto.app'
+// Every public route answers on every host here; a new host also needs its proxied DNS record, created by hand.
+const PUBLIC_HOSTS = [WEB_HOST, 'tg.ligretto.app']
 const INTERNAL_HOST = 'core-internal.ligretto.app'
 
 // A route pattern matches the query string too: without the trailing `*`, `/health?probe=1` would reach the SPA.
-const PUBLIC_ROUTES = ['/api*', '/health*', '/openapi.json*'].map(path => triggers.fetch({ pattern: `${PUBLIC_HOST}${path}`, zone: PUBLIC_HOST }))
+const PUBLIC_ROUTES = PUBLIC_HOSTS.flatMap(host =>
+  ['/api*', '/health*', '/openapi.json*'].map(path => triggers.fetch({ pattern: `${host}${path}`, zone: ZONE })),
+)
 
 const PRODUCTION = {
-  LIGRETTO_CORE_PUBLIC_HOST: PUBLIC_HOST,
+  LIGRETTO_CORE_PUBLIC_HOSTS: PUBLIC_HOSTS.join(','),
   LIGRETTO_CORE_INTERNAL_HOST: INTERNAL_HOST,
   // Empty: the routes put the API on the SPA's origin.
   LIGRETTO_CORE_CORS_ORIGINS: '',
   CAS_ISSUER: 'https://cas.mems.fun',
-  LIGRETTO_CORE_AUTH_REDIRECT_URI: `https://${PUBLIC_HOST}/api/auth/callback`,
-  LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI: `https://${PUBLIC_HOST}/`,
-  LIGRETTO_CORE_AUTH_APP_URL: `https://${PUBLIC_HOST}/`,
+  LIGRETTO_CORE_AUTH_REDIRECT_URI: `https://${WEB_HOST}/api/auth/callback`,
+  LIGRETTO_CORE_AUTH_POST_LOGOUT_REDIRECT_URI: `https://${WEB_HOST}/`,
+  LIGRETTO_CORE_AUTH_APP_URL: `https://${WEB_HOST}/`,
 }
 
 const DEVELOPMENT: typeof PRODUCTION = {
-  LIGRETTO_CORE_PUBLIC_HOST: 'localhost',
+  LIGRETTO_CORE_PUBLIC_HOSTS: 'localhost,tg.localhost',
   LIGRETTO_CORE_INTERNAL_HOST: 'internal.localhost',
   LIGRETTO_CORE_CORS_ORIGINS: 'http://localhost:5173,http://localhost:5174',
   CAS_ISSUER: 'http://localhost:3000',
@@ -55,7 +61,7 @@ export default defineConfig(({ mode }) => {
       env: {
         HYPERDRIVE_MAIN: bindings.hyperdrive({ id: HYPERDRIVE_MAIN_ID, dev: { connectionString: DEV_DATABASE } }),
         HYPERDRIVE_LOCKS: bindings.hyperdrive({ id: HYPERDRIVE_LOCKS_ID, dev: { connectionString: DEV_DATABASE } }),
-        LIGRETTO_CORE_PUBLIC_HOST: bindings.text(values.LIGRETTO_CORE_PUBLIC_HOST),
+        LIGRETTO_CORE_PUBLIC_HOSTS: bindings.text(values.LIGRETTO_CORE_PUBLIC_HOSTS),
         LIGRETTO_CORE_INTERNAL_HOST: bindings.text(values.LIGRETTO_CORE_INTERNAL_HOST),
         LIGRETTO_CORE_CORS_ORIGINS: bindings.text(values.LIGRETTO_CORE_CORS_ORIGINS),
         LOG_LEVEL: bindings.text('info'),

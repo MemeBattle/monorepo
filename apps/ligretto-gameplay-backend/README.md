@@ -1,7 +1,10 @@
 # ligretto-gameplay-backend
 
-Serves the game sockets of Ligretto on `ligretto.app/gameplay/*`: `/gameplay/lobby` for the list of rooms,
-`/gameplay/games/:id` inside a room.
+Serves the game sockets of Ligretto on `ligretto.app/gameplay/*` and `tg.ligretto.app/gameplay/*`: `/gameplay/lobby`
+for the list of rooms, `/gameplay/games/:id` inside a room. The Worker dispatches by path alone, so both hosts are served
+alike; `tg.ligretto.app`, reserved for the Telegram Mini App, has no DNS record yet, so its route answers nothing. A new
+public host of the core backend (`apps/ligretto-core-backend/README.md`, "Adding a public host") gets its
+`<host>/gameplay/*` route in `wrangler.jsonc`.
 
 ## Development
 

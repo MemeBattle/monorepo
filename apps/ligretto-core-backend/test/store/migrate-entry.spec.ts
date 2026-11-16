@@ -69,6 +69,8 @@ describe('the migrate entry', () => {
         'rounds',
         'session_locks',
         'sessions',
+        'user_daily_points',
+        'user_totals',
         'users',
       ]),
     )

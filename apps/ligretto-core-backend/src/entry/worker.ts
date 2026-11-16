@@ -1,10 +1,9 @@
 import { SESSION_COOKIE_GRACE_MS } from '@memebattle/ligretto-auth'
 import { WorkerEntrypoint } from 'cloudflare:workers'
-import { z } from 'zod'
-
 import { createConsoleLogger } from '../adapters/console-logger.ts'
 import { createPgAuthSweepStore } from '../adapters/pg/auth-sweep-store.ts'
 import { createPgGamesRepository } from '../adapters/pg/games-repository.ts'
+import { createPgLeadersRepository } from '../adapters/pg/leaders-repository.ts'
 import { createPgDatabaseProbe } from '../adapters/pg/probe.ts'
 import { createPgUsersRepository } from '../adapters/pg/users-repository.ts'
 import { systemClock } from '../adapters/system-clock.ts'
@@ -15,11 +14,13 @@ import { createPublicApp } from '../http/public-app.ts'
 import { createAuth } from './auth.ts'
 import { createRequestScopeRunner } from './request-scope.ts'
 import { runSweep } from './run-sweep.ts'
+import { parseWorkerHosts } from './worker-hosts.ts'
 
 export interface WorkerEnv {
   HYPERDRIVE_MAIN: Hyperdrive
   HYPERDRIVE_LOCKS: Hyperdrive
-  LIGRETTO_CORE_PUBLIC_HOST: string
+  /** Comma-separated. */
+  LIGRETTO_CORE_PUBLIC_HOSTS: string
   LIGRETTO_CORE_INTERNAL_HOST: string
   LIGRETTO_CORE_CORS_ORIGINS?: string
   LOG_LEVEL?: string
@@ -35,14 +36,8 @@ export interface WorkerEnv {
   DATABASE_URL: string
 }
 
-/** Deployment topology of this runtime, so not part of the service's `Config`. */
-const hostsSchema = z.object({
-  LIGRETTO_CORE_PUBLIC_HOST: z.string().min(1),
-  LIGRETTO_CORE_INTERNAL_HOST: z.string().min(1),
-})
-
 const build = (env: WorkerEnv) => {
-  const hosts = hostsSchema.parse(env)
+  const hosts = parseWorkerHosts(env as unknown as Record<string, unknown>)
   const http = loadHttpConfig(env as unknown as Record<string, unknown>)
   const logging = loadLoggingConfig(env as unknown as Record<string, unknown>)
   const internalApi = loadInternalApiConfig(env as unknown as Record<string, unknown>)
@@ -62,13 +57,14 @@ const build = (env: WorkerEnv) => {
       logger,
       sessionRetentionMs: SESSION_COOKIE_GRACE_MS,
     }),
-    publicHost: hosts.LIGRETTO_CORE_PUBLIC_HOST,
-    internalHost: hosts.LIGRETTO_CORE_INTERNAL_HOST,
+    publicHosts: hosts.publicHosts,
+    internalHost: hosts.internalHost,
     public: createPublicApp({
       ...deps,
       corsOrigins: http.corsOrigins,
       auth: handlers,
       users: createPgUsersRepository(runner.handles.main),
+      leaders: createPgLeadersRepository(runner.handles.main),
       verifyAccessToken,
     }),
     internal: createInternalApp({ ...deps, games: createPgGamesRepository(runner.handles.main), internalTokens: internalApi.tokens }),
@@ -93,7 +89,7 @@ export default {
     const { hostname } = new URL(request.url)
     // A foreign host needs no database, but one code path is simpler than two; an unused scope opens nothing.
     return inScope(apps, env, ctx, () => {
-      if (hostname === apps.publicHost) {
+      if (apps.publicHosts.has(hostname)) {
         return apps.public.fetch(request, env, ctx)
       }
       if (hostname === apps.internalHost) {

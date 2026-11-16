@@ -19,7 +19,7 @@ const setupTwoPlayerRoom = async (browser: Browser, roomName: string) => {
   await (await homePageUser1.getCreateGameButton()).click()
 
   const gamePageUser1 = new GamePage(pageUser1)
-  await expect(await gamePageUser1.getPlayerReadyButton()).toBeVisible()
+  await expect(await gamePageUser1.getStartButton()).toBeVisible()
 
   const homePageUser2 = new HomePage(pageUser2)
   await homePageUser2.visitHomeUrl()
@@ -36,7 +36,7 @@ test.describe('Connection lifecycle', () => {
     test.setTimeout(150_000)
     const { contextUser1, contextUser2, gamePageUser1 } = await setupTwoPlayerRoom(browser, `Offline-room-${testInfo.retry}`)
 
-    const startButton = await gamePageUser1.getPlayerReadyButton()
+    const startButton = await gamePageUser1.getStartButton()
     await expect(startButton).toHaveText('Start')
     await expect(startButton).toBeEnabled()
     await startButton.click()
@@ -77,7 +77,7 @@ test.describe('Connection lifecycle', () => {
     test.setTimeout(90_000)
     const { contextUser1, contextUser2, pageUser1, pageUser2, gamePageUser1 } = await setupTwoPlayerRoom(browser, `Pause-room-${testInfo.retry}`)
 
-    const startButton = await gamePageUser1.getPlayerReadyButton()
+    const startButton = await gamePageUser1.getStartButton()
     await expect(startButton).toHaveText('Start')
     await expect(startButton).toBeEnabled()
     await startButton.click()
@@ -92,7 +92,7 @@ test.describe('Connection lifecycle', () => {
 
     await expect(pageUser1.getByText('Round is paused')).toBeVisible({ timeout: 15_000 })
     await expect(gamePageUser1.getDisconnectedBadges()).toHaveCount(1)
-    const resumeButton = await gamePageUser1.getPlayerReadyButton()
+    const resumeButton = await gamePageUser1.getStartButton()
     await expect(resumeButton).toHaveText('Resume')
     await expect(resumeButton).toBeDisabled()
 
@@ -118,7 +118,8 @@ test.describe('Connection lifecycle', () => {
     test.setTimeout(90_000)
     const { contextUser1, contextUser2, pageUser1, gamePageUser2 } = await setupTwoPlayerRoom(browser, `Handover-room-${testInfo.retry}`)
 
-    await expect(await gamePageUser2.getPlayerReadyButton()).toHaveText('Ready')
+    await expect(await gamePageUser2.getPlayerReadyButton()).toHaveText("I'm ready")
+    await expect(await gamePageUser2.getStartButton()).toBeHidden()
 
     await pageUser1.close()
 
@@ -127,9 +128,8 @@ test.describe('Connection lifecycle', () => {
     // that already had players (profiles are fetched in one multi-id request).
     await expect(gamePageUser2.getDisconnectedBadges()).toHaveCount(1, { timeout: 15_000 })
 
-    // The same step promotes the remaining online player, whose action button
-    // switches from Ready to the host's Start.
-    await expect(await gamePageUser2.getPlayerReadyButton()).toHaveText('Start', { timeout: 15_000 })
+    // The same step promotes the remaining online player, who gets the host's Start.
+    await expect(await gamePageUser2.getStartButton()).toBeVisible({ timeout: 15_000 })
     await expect(await gamePageUser2.getPlayersList()).toHaveCount(2)
 
     await Promise.all([contextUser1.close(), contextUser2.close()])
@@ -159,7 +159,7 @@ test.describe('Direct game link', () => {
     await (await homePageUser1.getCreateGameButton()).click()
 
     const gamePageUser1 = new GamePage(pageUser1)
-    await expect(await gamePageUser1.getPlayerReadyButton()).toBeVisible()
+    await expect(await gamePageUser1.getStartButton()).toBeVisible()
 
     // A brand-new context holds no session cookie, and the page lands straight on
     // the game URL — the exact cold load the identity race was triggered by.
@@ -171,10 +171,10 @@ test.describe('Direct game link', () => {
     await expect(await gamePageUser2.getPlayersList()).toHaveCount(2)
 
     const readyButton = await gamePageUser2.getPlayerReadyButton()
-    await expect(readyButton).toHaveText('Ready')
+    await expect(readyButton).toHaveText("I'm ready")
     await readyButton.click()
 
-    const startButton = await gamePageUser1.getPlayerReadyButton()
+    const startButton = await gamePageUser1.getStartButton()
     await expect(startButton).toHaveText('Start')
     await expect(startButton).toBeEnabled()
     await startButton.click()

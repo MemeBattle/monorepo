@@ -11,6 +11,10 @@ export class GamePage {
     return this.page.getByTestId('GameSettings-ReadyButton')
   }
 
+  async getStartButton() {
+    return this.page.getByTestId('GameSettings-StartButton')
+  }
+
   async getExitButton() {
     return this.page.getByTestId('GameSettings-ExitButton')
   }

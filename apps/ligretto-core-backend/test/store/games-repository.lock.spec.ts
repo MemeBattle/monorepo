@@ -5,6 +5,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Database } from '../../src/adapters/pg/database.ts'
 import { createPgGamesRepository } from '../../src/adapters/pg/games-repository.ts'
 import { upsertUser } from '../../src/adapters/pg/users-repository.ts'
+import { createSaveRound } from '../../src/core/games.ts'
+import type { RoundResult } from '../../src/core/ports/games-repository.ts'
 import { disposableDatabaseUrl } from '../support/disposable-database.ts'
 import { openDatabase, resetAndMigrate } from '../support/postgres.ts'
 import { seedUsers } from '../support/seed.ts'
@@ -100,7 +102,7 @@ describe('the Kysely GamesRepository on Postgres', () => {
     await expect.poll(lockWaiters).toBeGreaterThanOrEqual(1)
     releaseA.open()
 
-    expect(await a).toEqual({ status: 'ok', value: { inserted: true } })
+    expect(await a).toEqual({ status: 'ok', value: { inserted: true, createdAt: expect.any(Date) } })
     expect(await b).toEqual({
       status: 'ok',
       value: { insert: { inserted: false }, round: { gameId: gameA.id, results: [{ playerId: 'alice', score: 5 }] } },
@@ -127,5 +129,122 @@ describe('the Kysely GamesRepository on Postgres', () => {
     commit.open()
     await other
     expect(await repoA.withGame(id, game => game.missingPlayers(['alice', 'newcomer']))).toEqual({ status: 'ok', value: [] })
+  })
+
+  describe('the leaderboard points', () => {
+    const DAY = '2026-11-14'
+
+    /** Full players no other case has touched, so the sums asserted on them are absolute on the shared database. */
+    const freshPlayers = async (count: number): Promise<string[]> => {
+      const ids = Array.from({ length: count }, () => `p-${crypto.randomUUID()}`)
+      await seedUsers(
+        dbA,
+        ids.map(sub => ({ sub, accountType: 'full', displayName: sub, avatarUrl: null })),
+      )
+      return ids
+    }
+
+    const totalsOf = async (ids: string[]) => {
+      const rows = await dbA.selectFrom('user_totals').select(['user_id', 'points']).where('user_id', 'in', ids).execute()
+      return Object.fromEntries(rows.map(row => [row.user_id, Number(row.points)]))
+    }
+
+    const dailySumsOf = async (ids: string[]) => {
+      const rows = await dbA.selectFrom('user_daily_points').select(['user_id', 'points']).where('user_id', 'in', ids).execute()
+      const sums: Record<string, number> = {}
+      for (const row of rows) {
+        sums[row.user_id] = (sums[row.user_id] ?? 0) + Number(row.points)
+      }
+      return sums
+    }
+
+    it('makes a second save sharing players wait for the first, and loses no update', async () => {
+      const [x, y] = await freshPlayers(2)
+      const repoA = createPgGamesRepository(dbA)
+      const repoB = createPgGamesRepository(dbB)
+      const gameA = await repoA.createGame()
+      const gameB = await repoA.createGame()
+      const aAdded = gate()
+      const releaseA = gate()
+
+      const first: RoundResult[] = [
+        { playerId: x, score: 1 },
+        { playerId: y, score: 2 },
+      ]
+      const a = repoA.withGame(gameA.id, async game => {
+        await game.insertRound(crypto.randomUUID(), first)
+        await game.addPoints(DAY, first)
+        aAdded.open()
+        await releaseA.opened
+      })
+      await aAdded.opened
+      const b = repoB.withGame(gameB.id, game =>
+        game.addPoints(DAY, [
+          { playerId: y, score: 10 },
+          { playerId: x, score: 20 },
+        ]),
+      )
+      await expect.poll(lockWaiters).toBeGreaterThanOrEqual(1)
+
+      releaseA.open()
+      expect(await Promise.all([a, b])).toEqual([
+        { status: 'ok', value: undefined },
+        { status: 'ok', value: undefined },
+      ])
+      expect(await totalsOf([x, y])).toEqual({ [x]: 21, [y]: 12 })
+      const daily = await dbA
+        .selectFrom('user_daily_points')
+        .select(eb => [eb.cast<string>('day', 'text').as('day'), 'user_id', 'points'])
+        .where('user_id', 'in', [x, y])
+        .execute()
+      expect(daily.map(row => ({ ...row, points: Number(row.points) }))).toEqual(
+        expect.arrayContaining([
+          { day: DAY, user_id: x, points: 21 },
+          { day: DAY, user_id: y, points: 12 },
+        ]),
+      )
+      expect(daily).toHaveLength(2)
+    })
+
+    it('saves a burst of rounds of different games sharing players without a deadlock or a lost update', async () => {
+      const players = await freshPlayers(4)
+      const saves = [createSaveRound({ games: createPgGamesRepository(dbA) }), createSaveRound({ games: createPgGamesRepository(dbB) })]
+      const repo = createPgGamesRepository(dbA)
+      const games = await Promise.all(Array.from({ length: 20 }, () => repo.createGame()))
+      const expected = Object.fromEntries(players.map(id => [id, 0]))
+      const rounds = games.map(({ id }, index) => {
+        // A different rotation of the players per round, so the input orders disagree.
+        const results = players.map((_, offset) => {
+          const playerId = players[(index + offset) % players.length]
+          const score = index * 10 + offset
+          expected[playerId] += score
+          return { playerId, score }
+        })
+        return saves[index % 2](id, crypto.randomUUID(), index % 3 === 0 ? results.reverse() : results)
+      })
+
+      for (const answer of await Promise.all(rounds)) {
+        expect(answer.ok).toBe(true)
+      }
+      expect(await totalsOf(players)).toEqual(expected)
+      expect(await dailySumsOf(players)).toEqual(expected)
+    })
+
+    it('adds a round saved from both pools at once a single time', async () => {
+      const [x, y] = await freshPlayers(2)
+      const { id } = await createPgGamesRepository(dbA).createGame()
+      const roundId = crypto.randomUUID()
+      const results = [
+        { playerId: x, score: 3 },
+        { playerId: y, score: 4 },
+      ]
+      const answers = await Promise.all([
+        createSaveRound({ games: createPgGamesRepository(dbA) })(id, roundId, results),
+        createSaveRound({ games: createPgGamesRepository(dbB) })(id, roundId, [...results].reverse()),
+      ])
+      expect(answers.map(answer => answer.ok)).toEqual([true, true])
+      expect(await totalsOf([x, y])).toEqual({ [x]: 3, [y]: 4 })
+      expect(await dailySumsOf([x, y])).toEqual({ [x]: 3, [y]: 4 })
+    })
   })
 })

@@ -1,9 +1,11 @@
 import { createMiddleware } from 'hono/factory'
 import { cors } from 'hono/cors'
 
+import { registerAccessTokenScheme } from './access-token.ts'
 import { createBaseApp } from './app.ts'
 import { registerAuth } from './auth.ts'
 import { registerHealth } from './health.ts'
+import { registerLeaders } from './leaders.ts'
 import { publicApiDocument } from './openapi.ts'
 import type { AppEnv, PublicAppDeps } from './types.ts'
 import { registerUsers } from './users.ts'
@@ -34,16 +36,19 @@ const allowedOrigins = (origins: readonly string[]) => {
 }
 
 /**
- * The public API: `/health`, the four auth routes of `@memebattle/ligretto-auth`, `GET /api/users` behind a CAS
- * access token, and `GET /openapi.json`, which serves the document of every route registered before it. The document
- * is computed once, on the first request, and does not describe `/openapi.json` itself.
+ * The public API: `/health`, the four auth routes of `@memebattle/ligretto-auth`, `GET /api/users` and
+ * `GET /api/leaders` behind a CAS access token, and `GET /openapi.json`, which serves the document of every route
+ * registered before it. The document is computed once, on the first request, and does not describe `/openapi.json`
+ * itself.
  */
 export const createPublicApp = (deps: PublicAppDeps) => {
   const app = createBaseApp(deps)
   app.use(allowedOrigins(deps.corsOrigins ?? []))
   registerHealth(app, deps)
   registerAuth(app, deps)
+  registerAccessTokenScheme(app)
   registerUsers(app, deps)
+  registerLeaders(app, deps)
 
   let document: ReturnType<typeof publicApiDocument> | undefined
   app.get('/openapi.json', c => c.json((document ??= publicApiDocument(app))))

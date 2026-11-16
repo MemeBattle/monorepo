@@ -1,6 +1,6 @@
-// The public API on the Node entry: proof that it composes the auth handlers, the users route and the document from
-// the development environment. None of these requests needs CAS or a database row: the users route refuses before
-// any query, and a logout without a session goes straight back to the application.
+// The public API on the Node entry: proof that it composes the auth handlers, the users and leaders routes and the
+// document from the development environment. None of these requests needs CAS or a database row: the routes behind
+// an access token refuse before any query, and a logout without a session goes straight back to the application.
 import { readFile } from 'node:fs/promises'
 
 import { describe, expect, inject, it } from 'vitest'
@@ -11,6 +11,12 @@ const committedDocumentPath = new URL('../../openapi.json', import.meta.url)
 describe('the public API on the Node entry', () => {
   it('refuses /api/users without an access token', async () => {
     const res = await fetch(`${baseUrl}/api/users?ids=someone`)
+    expect(res.status).toBe(401)
+    expect(await res.json()).toMatchObject({ error: 'unauthorized' })
+  })
+
+  it('refuses /api/leaders without an access token', async () => {
+    const res = await fetch(`${baseUrl}/api/leaders?period=day`)
     expect(res.status).toBe(401)
     expect(await res.json()).toMatchObject({ error: 'unauthorized' })
   })

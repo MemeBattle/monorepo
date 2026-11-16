@@ -1,8 +1,10 @@
 import type { Transaction } from 'kysely'
 
-import type { GamesRepository, LockedGame } from '../../core/ports/games-repository.ts'
+import type { GamesRepository, LockedGame, RoundResult } from '../../core/ports/games-repository.ts'
 import type { Database } from './database.ts'
 import type { DB } from './schema.generated.ts'
+
+const byPlayerId = (a: RoundResult, b: RoundResult) => (a.playerId < b.playerId ? -1 : a.playerId > b.playerId ? 1 : 0)
 
 /** Every query runs on `trx`, the transaction holding the game's row lock, and on nothing else. */
 const lockedGame = (trx: Transaction<DB>, gameId: string): LockedGame => ({
@@ -32,7 +34,7 @@ const lockedGame = (trx: Transaction<DB>, gameId: string): LockedGame => ({
       .insertInto('rounds')
       .values({ id: roundId, game_id: gameId })
       .onConflict(oc => oc.column('id').doNothing())
-      .returning('id')
+      .returning(['id', 'created_at'])
       .executeTakeFirst()
     if (row === undefined) {
       return { inserted: false }
@@ -43,7 +45,27 @@ const lockedGame = (trx: Transaction<DB>, gameId: string): LockedGame => ({
         .values(results.map(result => ({ round_id: roundId, user_id: result.playerId, score: result.score })))
         .execute()
     }
-    return { inserted: true }
+    return { inserted: true, createdAt: row.created_at }
+  },
+
+  addPoints: async (day, results) => {
+    if (results.length === 0) {
+      return
+    }
+    // Sorted so that two saves sharing players take the row locks of the upserts in the same order and cannot deadlock.
+    const rows = [...results].sort(byPlayerId)
+    await trx
+      .insertInto('user_daily_points')
+      .values(rows.map(row => ({ user_id: row.playerId, day, points: row.score })))
+      .onConflict(oc =>
+        oc.columns(['user_id', 'day']).doUpdateSet(eb => ({ points: eb('user_daily_points.points', '+', eb.ref('excluded.points')) })),
+      )
+      .execute()
+    await trx
+      .insertInto('user_totals')
+      .values(rows.map(row => ({ user_id: row.playerId, points: row.score })))
+      .onConflict(oc => oc.column('user_id').doUpdateSet(eb => ({ points: eb('user_totals.points', '+', eb.ref('excluded.points')) })))
+      .execute()
   },
 
   totals: async () => {

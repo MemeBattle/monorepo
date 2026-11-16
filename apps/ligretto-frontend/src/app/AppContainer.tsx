@@ -1,3 +1,4 @@
+import { useDeferredValue } from 'react'
 import { useSelector } from 'react-redux'
 
 import { useMinTimeLoading } from '#shared/lib/hooks/useMinTimeLoader'
@@ -10,7 +11,9 @@ export const AppContainer = () => {
 
   const isLoading = useMinTimeLoading(isIdentityPending, 2000)
 
-  return isLoading ? <LoaderScreen /> : <Routes />
+  const isLoaderShown = useDeferredValue(isLoading)
+
+  return isLoaderShown ? <LoaderScreen /> : <Routes />
 }
 
 AppContainer.displayName = 'AppContainer'

@@ -4,8 +4,8 @@ description: >-
   Every route of this service is declared once with zod schemas through @hono/zod-openapi; that declaration
   validates the request, types the handler's response at compile time and produces the OpenAPI document. The four
   auth routes of ligretto-auth are mounted as plain handlers and documented, for both session transports, from the
-  schemas that package exports; GET /api/users takes a CAS access token with aud ligretto. Two documents
-  (openapi.json, openapi.internal.json) are committed and checked in CI; consumers use the kubb-generated
+  schemas that package exports; GET /api/users and GET /api/leaders take a CAS access token with aud ligretto. Two
+  documents (openapi.json, openapi.internal.json) are committed and checked in CI; consumers use the kubb-generated
   @memebattle/ligretto-core-client, never hand-written types.
 read_when:
   - adding or changing a route, a request or a response shape
@@ -47,11 +47,12 @@ handlers.me(c.req.raw))`), which pass the `Response` through unchanged, cookies 
   types in both directions, run-time validation of input only. The mount answers one failure itself: the session
   store's `SessionBusyError` is `503 session_busy`, declared on every auth route as a union with the package's `503`
   codes; everything else the handlers throw reaches the error handler unchanged.
-- **Access token on public data routes.** `GET /api/users` is guarded by `verifyAccessToken` of `ligretto-auth` with
-  the fixed audience `ligretto` (the CAS registration, not configuration), guest and full accounts alike. A refused
-  token is `401 unauthorized`; CAS metadata that cannot be read is `503 cas_unavailable`, since the token was never
-  judged. The guard runs before the query is validated. The document declares it as the `accessToken` bearer
-  scheme.
+- **Access token on public data routes.** `GET /api/users` and `GET /api/leaders` are guarded by `verifyAccessToken`
+  of `ligretto-auth` with the fixed audience `ligretto` (the CAS registration, not configuration), guest and full
+  accounts alike. A refused token is `401 unauthorized`; CAS metadata that cannot be read is `503 cas_unavailable`,
+  since the token was never judged. The guard runs before the query is validated and puts the verified claims on the
+  context as `accessTokenClaims`, which is how a route learns who is calling. The document declares it as the
+  `accessToken` bearer scheme, registered once for every route that names it.
 - **Input is validated once, where it enters.** For this service's routes that is the route declaration; for the
   auth routes it is the handler of `ligretto-auth`, and this service runs no validator in front of it — the plain
   `app.get` registration is also what keeps a second validation out. Downstream of that point use cases, adapters
@@ -75,8 +76,9 @@ handlers.me(c.req.raw))`), which pass the `Response` through unchanged, cookies 
   navigations that are not fetched. Hono's own `hc` client is not the contract: consumers depend on the document,
   not on the server's source. In detail:
   - (a) Every route of both documents declares a camelCase `operationId`, which is the client's function name:
-    `getHealth`, `getMe`, `signIn`, `authCallback`, `logout`, `listUsers`, `createGame`, `saveRound`. Renaming one
-    is a breaking change for every consumer. `callback` alone was too generic a name to export.
+    `getHealth`, `getMe`, `signIn`, `authCallback`, `logout`, `listUsers`, `listLeaders`, `createGame`,
+    `saveRound`. Renaming one is a breaking change for every consumer. `callback` alone was too generic a name to
+    export.
   - (b) An operation resolves to one of five kinds and never throws on a status. `success` is one member per
     declared 2xx. `error` is one member per declared 4xx/5xx and holds the whole JSON body, typed as the document
     declares it for that status: the `{ error }` envelope with its code-specific fields, or the `HealthReport` of
@@ -116,3 +118,7 @@ upd (2026-10-24): the auth routes are mounted and documented for both transports
 upd (2026-10-25): every route has an `operationId`; the client's transport, its five result kinds, the generated map
 of declared statuses and the contract tests through `./contract-harness` are specified in points (a)–(e) of
 "Clients" ([#839](https://github.com/MemeBattle/monorepo/issues/839)).
+
+upd (2026-11-14): `GET /api/leaders` (`listLeaders`) is the second route behind the CAS access token, and the guard
+puts the verified claims on the context as `accessTokenClaims`
+([#356](https://github.com/MemeBattle/monorepo/issues/356)).

@@ -60,16 +60,18 @@ server on Node; a `fetch` that dispatches on `Host`, plus a service-binding entr
 
 ## Data
 
-The schema is this package's own: the first migration creates it from scratch, and nothing of the previous service's
-schema is kept or migrated — there is no production data.
+The schema is this package's own: the first migration created it from scratch, later migrations only add to it, and
+nothing of the previous service's schema is kept or migrated — there is no production data.
 
-| Table                                        | Purpose                                                                                                              | Key                                                     |
-| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `users`                                      | profile snapshot written on every grant by the session store: `cas_id`, `account_type`, `display_name`, `avatar_url` | `cas_id` text                                           |
-| `games`                                      | a game created by the gameplay backend                                                                               | `id` uuid                                               |
-| `rounds`                                     | a round of a game: `game_id`                                                                                         | `id` uuid, supplied by the caller                       |
-| `round_users`                                | a player's score in a round: `round_id`, `user_id` (= `users.cas_id`), `score`                                       | (`round_id`, `user_id`)                                 |
-| `sessions`, `auth_requests`, `session_locks` | the `SessionStore` of `ligretto-auth`; see `adrs/session-store-locking.md`                                           | `id` / `state` / `id`, text — ids `ligretto-auth` mints |
+| Table                                        | Purpose                                                                                                                                    | Key                                                     |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| `users`                                      | profile snapshot written on every grant by the session store: `cas_id`, `account_type`, `display_name`, `avatar_url`                       | `cas_id` text                                           |
+| `games`                                      | a game created by the gameplay backend                                                                                                     | `id` uuid                                               |
+| `rounds`                                     | a round of a game: `game_id`                                                                                                               | `id` uuid, supplied by the caller                       |
+| `round_users`                                | a player's score in a round: `round_id`, `user_id` (= `users.cas_id`), `score`                                                             | (`round_id`, `user_id`)                                 |
+| `sessions`, `auth_requests`, `session_locks` | the `SessionStore` of `ligretto-auth`; see `adrs/session-store-locking.md`                                                                 | `id` / `state` / `id`, text — ids `ligretto-auth` mints |
+| `user_daily_points`                          | a player's points on one `Europe/Berlin` day, the sum of their round scores that day; see `adrs/leaderboard-points-aggregated-on-write.md` | (`user_id`, `day`)                                      |
+| `user_totals`                                | a player's points over all time; see `adrs/leaderboard-points-aggregated-on-write.md`                                                      | `user_id` text                                          |
 
 A `sessions` row is the port's `Session` column for column: the grant and **its own** profile snapshot
 (`account_type`, `display_name`, `avatar_url`). `getSession` returns a session's own snapshot, and `ligretto-auth`
@@ -77,10 +79,11 @@ keeps a session's last validated one when a rotation's ID token cannot be used, 
 differ until each refreshes. `users` holds the latest snapshot per `cas_id`; the session store writes both in one
 transaction.
 
-Invariants the first migration establishes (and `adrs/additive-migrations-and-compatibility-matrix.md` protects):
+Invariants the migrations establish (and `adrs/additive-migrations-and-compatibility-matrix.md` protects):
 
 - snake_case names; `created_at` / `updated_at` as `timestamptz` with `DEFAULT now()` on every table that has them:
-  `users` has both, `games`, `rounds` and `round_users` have `created_at`, the auth tables have neither.
+  `users` has both, `games`, `rounds` and `round_users` have `created_at`, the auth tables and the leaderboard
+  aggregates (`user_daily_points`, `user_totals`) have neither.
 - `games.id` is `uuid DEFAULT gen_random_uuid()` (so `Generated<string>` in the row types). `rounds.id` is `uuid`
   without a default: the gameplay backend supplies it (§ Routes). `sessions.id`, `session_locks.id`,
   `auth_requests.state` and every `sub` / `cas_id` are `text`: `ligretto-auth` mints base64url ids and CAS owns
@@ -89,23 +92,27 @@ Invariants the first migration establishes (and `adrs/additive-migrations-and-co
   `AccountType`; the adapter narrows it to the union. A new account type is one additive migration either way;
   `text` keeps it a plain `ALTER TABLE` rather than enum mechanics.
 - Session timestamps (`access_token_expires_at`, `grant_ends_at`, `grant_started_at`, `auth_requests.expires_at`)
-  are `bigint` epoch milliseconds, the unit of the `SessionStore` port; `pg` delivers them as strings and the
-  adapter converts with `Number`.
+  are `bigint` epoch milliseconds, the unit of the `SessionStore` port. `user_daily_points.points` and
+  `user_totals.points` are `bigint` running sums of `integer` scores. `pg` delivers every `bigint` as a string and
+  the adapter converts with `Number`.
 - Nullable: `display_name` and `avatar_url` on `users` and on `sessions`, `auth_requests.session_id`,
   `auth_requests.sub`. Everything else is `NOT NULL`.
-- Foreign keys only inside the game aggregate: `rounds.game_id → games.id`, `round_users.round_id → rounds.id`,
-  `round_users.user_id → users.cas_id`. None from `sessions` or `auth_requests`, deliberately: a pending sign-in or a
-  session survives whatever happens to the row it points at (the initiating session may be deleted mid sign-in).
-- Indexes: `sessions(grant_ends_at)` and `auth_requests(expires_at)` for the sweep; `rounds(game_id)`.
+- Foreign keys inside the game aggregate and from the leaderboard aggregates: `rounds.game_id → games.id`,
+  `round_users.round_id → rounds.id`, `round_users.user_id → users.cas_id`,
+  `user_daily_points.user_id → users.cas_id` and `user_totals.user_id → users.cas_id`. None from `sessions` or
+  `auth_requests`, deliberately: a pending sign-in or a session survives whatever happens to the row it points at
+  (the initiating session may be deleted mid sign-in).
+- Indexes: `sessions(grant_ends_at)` and `auth_requests(expires_at)` for the sweep; `rounds(game_id)`;
+  `user_daily_points(day)` for the period scans.
 
 ## Routes
 
 Status codes and bodies are declared per route in `src/contract`; this is the readable summary. Every error body is
 `{ error, description? }` plus the fields named here (`adrs/error-responses.md`). Validation failures are
 `400 validation_failed` with `issues`. Every route declares an `operationId`, which is the generated client's function
-name: `getHealth`, `getMe`, `signIn`, `authCallback`, `logout`, `listUsers`, `createGame`, `saveRound`.
+name: `getHealth`, `getMe`, `signIn`, `authCallback`, `logout`, `listUsers`, `listLeaders`, `createGame`, `saveRound`.
 
-### Public: `/api`, served on the public hostname
+### Public: `/api`, served on every public hostname
 
 | Route                    | Auth                                                                       | Request                                                                                                 | Responses                                                                                                                                                                                                                                                          |
 | ------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -115,6 +122,7 @@ name: `getHealth`, `getMe`, `signIn`, `authCallback`, `logout`, `listUsers`, `cr
 | `GET /api/auth/callback` | the state cookie set by sign-in                                            | `?state&code`, or `?state&error&error_description` from CAS                                             | `302` to the application in **both** transports (bearer carries the session id in the URL fragment); `400 unknown_state`, `400 sign_in_failed`, `429`, `503 cas_unavailable`, `503 cas_rejected`, `503 session_busy`                                               |
 | `GET /api/auth/logout`   | session                                                                    |                                                                                                         | cookie: `302` to CAS end-session or the app; bearer: `200 NavigationResponse`. `503 cas_unavailable`, `503 session_busy`                                                                                                                                           |
 | `GET /api/users`         | `Authorization: Bearer <access token>` (`aud: ligretto`, guest or account) | `?ids=<sub>&ids=<sub>`, 1–100 values; a single `ids=` is accepted and normalised to a one-element array | `200 AuthUser[]`: `{ sub, accountType, name, avatarUrl }` for each id that has a row; unknown ids are absent. `400 validation_failed`, `401 unauthorized` (checked before the query), `503 cas_unavailable` (CAS's metadata could not be read to verify the token) |
+| `GET /api/leaders`       | `Authorization: Bearer <access token>` (`aud: ligretto`, guest or account) | `?period=day\|month\|all`                                                                               | `200 Leaderboard`: `{ leaders: Leader[], me: Leader \| null }` with `Leader = { sub, name, avatarUrl, totalPoints, place }`. `400 validation_failed`, `401 unauthorized` (checked before the query), `503 cas_unavailable`                                         |
 
 The auth routes are `ligretto-auth`'s handlers mounted as they are; their contract is the package's, described
 from the schemas it exports, and the rows above summarise `packages/ligretto-auth/src/handlers.ts`. The public
@@ -123,6 +131,15 @@ addition: the Postgres session store did not get the session's lock in time, and
 `GET /api/users` reuses `AuthUser` from that contract and names it as a component of the document, its item type.
 `MeResponse.user` of `/api/auth/me` has the same shape, but the package's fragment renders it inline, so a generated
 client sees two structurally equal types. The answer is a lookup, not a claim that every id exists.
+
+`GET /api/leaders` ranks the points of the aggregates of `adrs/leaderboard-points-aggregated-on-write.md`. The
+periods are whole `Europe/Berlin` days, computed in core from the clock: `day` is today, `month` is today and the 29
+days before it, `all` is the all-time totals. Only full accounts are ranked; a guest neither appears nor takes a place.
+`place` is `RANK()` by points (1, 2, 2, 4), and tied players are listed by name ascending ignoring case, the nameless
+last, then by `sub`. `leaders` is the first `LEADERS_LIMIT` (100) of that order, so a tie can straddle the cut. `me` is
+the caller's row with its true place wherever it ranks, also when it is in `leaders`; it is `null` for a guest and for a
+caller with no points in the period. Names and avatars are read from `users` at request time, so a rename or an
+upgrade to a full account shows at once.
 
 CORS on the public app: the allowed origins come from configuration (`LIGRETTO_CORE_CORS_ORIGINS`, a list), with
 credentials allowed for them and for nothing else; the cookie transport needs it in development, where the SPA and
@@ -141,7 +158,9 @@ otherwise.
 
 Saving a round is one transaction: lock the game row (`SELECT … FOR UPDATE`, so saves of one game are serialised
 and totals are consistent), check the players exist in `users`, insert the round and its `round_users` unless a
-round with that `roundId` and identical results already exists, then aggregate. A rejection leaves nothing behind.
+round with that `roundId` and identical results already exists, then aggregate. When the round was inserted, its
+scores are added to `user_daily_points`, on the `Europe/Berlin` day of the `created_at` the insert returns, and to
+`user_totals`, in `user_id` order with the daily table first; a repeat adds nothing. A rejection leaves nothing behind.
 A repeated submission (a retry after a lost response) answers `200` with the game's **current** totals, which may
 include rounds committed since the first attempt; the caller keeps both the `roundId` and the frozen results across
 attempts and never mints a new id for the same round. A player exists in `users` from their first grant, so
@@ -161,12 +180,12 @@ successor.
 
 ## Runtimes and entries
 
-| Entry              | Runs                                                                                                                                                                                         | Database                                                                                  |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `entry/node.ts`    | `@hono/node-server`, both apps on one port, `.env` through `dotenv-flow` in development                                                                                                      | two `pg.Pool`s for the process (`adrs/session-store-locking.md`)                          |
-| `entry/worker.ts`  | `fetch` dispatching on the request hostname (public hostname → public app; internal hostname → internal app; else 404); a `WorkerEntrypoint` for service bindings; `scheduled` for the sweep | per-request `pg` clients on two cache-disabled Hyperdrive bindings, closed in `waitUntil` |
-| `entry/migrate.ts` | Kysely `Migrator`, `migrateToLatest()`, result inspected, exits non-zero on failure                                                                                                          | `DATABASE_URL` (the database section of the configuration only)                           |
-| `entry/sweep.ts`   | `pnpm sweep`: expired `auth_requests` and sessions past the cookie grace, each session under its lock                                                                                        | `DATABASE_URL`; for a runtime other than Workers, whose cron runs `scheduled`             |
+| Entry              | Runs                                                                                                                                                                                           | Database                                                                                  |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `entry/node.ts`    | `@hono/node-server`, both apps on one port, `.env` through `dotenv-flow` in development                                                                                                        | two `pg.Pool`s for the process (`adrs/session-store-locking.md`)                          |
+| `entry/worker.ts`  | `fetch` dispatching on the request hostname (a public hostname → public app; internal hostname → internal app; else 404); a `WorkerEntrypoint` for service bindings; `scheduled` for the sweep | per-request `pg` clients on two cache-disabled Hyperdrive bindings, closed in `waitUntil` |
+| `entry/migrate.ts` | Kysely `Migrator`, `migrateToLatest()`, result inspected, exits non-zero on failure                                                                                                            | `DATABASE_URL` (the database section of the configuration only)                           |
+| `entry/sweep.ts`   | `pnpm sweep`: expired `auth_requests` and sessions past the cookie grace, each session under its lock                                                                                          | `DATABASE_URL`; for a runtime other than Workers, whose cron runs `scheduled`             |
 
 `pnpm build:worker` builds the Worker in the `production` mode of `cloudflare.config.ts` into its Build Output. It is
 the only build there is. The SPA is the `ligretto-frontend` Worker's, built by that package's own `build:worker`.
@@ -187,9 +206,13 @@ rest of ligretto.
 ## Deployment
 
 Cloudflare Workers, the way CAS is deployed (`apps/cas/cloudflare.config.ts`, `cas-deploy.yml`). Ligretto is separate
-Workers sharing `ligretto.app` through Workers Routes: this one owns `ligretto.app/api*`, `ligretto.app/health*` and
-`ligretto.app/openapi.json*`, the assets-only `ligretto-frontend` owns `ligretto.app/*`, and `ligretto.app/gameplay/*` is
-reserved for the gameplay Worker. The routes deliver `Host: ligretto.app`, which the dispatch hands to the public app.
+Workers sharing `ligretto.app` through Workers Routes: this one owns `/api*`, `/health*` and `/openapi.json*` on each
+public host — `ligretto.app` and `tg.ligretto.app`, the list `LIGRETTO_CORE_PUBLIC_HOSTS` — the assets-only
+`ligretto-frontend` owns `ligretto.app/*`, and `/gameplay/*` on each public host is the gameplay Worker's. The routes
+deliver the request's own `Host`, and the dispatch hands every host of the list to the one public app: public routes
+are not gated per host, and each frontend uses the ones it needs. The CAS sign-in's URLs name `ligretto.app`; a sign-in
+started on another host fails at the callback with `400 unknown_state`, since its host-only `state` cookie does not
+reach `ligretto.app`.
 The session cookie is first-party and production allows no CORS origin. The internal app answers on the Custom Domain
 `core-internal.ligretto.app`, since the gameplay backend is not a Worker and cannot use a service binding; the shared
 secret is what protects it on either path. This Worker has no assets, so no hostname of it serves the SPA.

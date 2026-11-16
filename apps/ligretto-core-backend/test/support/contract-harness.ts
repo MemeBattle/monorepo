@@ -14,6 +14,7 @@ import { ApiError, createInMemorySessionStore, TokenEndpointError } from '@memeb
 import type { CasClient, SessionStore, SessionTransportKind } from '@memebattle/ligretto-auth'
 
 import { createPgGamesRepository } from '../../src/adapters/pg/games-repository.ts'
+import { createPgLeadersRepository } from '../../src/adapters/pg/leaders-repository.ts'
 import { createPgDatabaseProbe } from '../../src/adapters/pg/probe.ts'
 import { createPgUsersRepository } from '../../src/adapters/pg/users-repository.ts'
 import type { AuthConfig } from '../../src/core/config.ts'
@@ -156,7 +157,14 @@ export const createContractHarness = async (): Promise<ContractHarness> => {
       bearer: createAuthStub({ transport: 'bearer', store: sessions.store }),
     }
     const shared = { logger: createRecordingLogger().logger, clock: createFixedClock(), database: health.probe }
-    const publicApp = (stub: AuthStub) => createPublicApp({ ...shared, auth: stub.handlers, users: createPgUsersRepository(db), verifyAccessToken })
+    const publicApp = (stub: AuthStub) =>
+      createPublicApp({
+        ...shared,
+        auth: stub.handlers,
+        users: createPgUsersRepository(db),
+        leaders: createPgLeadersRepository(db),
+        verifyAccessToken,
+      })
     return {
       cas,
       stubs,
@@ -183,7 +191,9 @@ export const createContractHarness = async (): Promise<ContractHarness> => {
     sessions: { busy: () => current.busy() },
     database: { down: () => current.down() },
     reset: async () => {
-      // `users` last: rounds and sessions name their accounts.
+      // `users` last: rounds, the leaderboard points and sessions name their accounts.
+      await db.deleteFrom('user_daily_points').execute()
+      await db.deleteFrom('user_totals').execute()
       await db.deleteFrom('round_users').execute()
       await db.deleteFrom('rounds').execute()
       await db.deleteFrom('games').execute()

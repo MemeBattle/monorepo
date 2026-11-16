@@ -12,6 +12,7 @@ export const declaredStatuses: Readonly<Record<string, readonly number[] | undef
   'GET /api/auth/logout': [200, 302, 503],
   'GET /api/auth/me': [200, 429, 503],
   'GET /api/auth/sign-in': [200, 302, 429, 503],
+  'GET /api/leaders': [200, 400, 401, 503],
   'GET /api/users': [200, 400, 401, 503],
   'GET /health': [200, 503],
   'GET /internal/games/{id}/results': [200, 400, 401, 404],

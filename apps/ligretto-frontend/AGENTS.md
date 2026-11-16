@@ -6,6 +6,8 @@ React + Vite SPA (package `@memebattle/ligretto-frontend`). Imports inside `src`
 
 The ligretto-core API is called only through `@memebattle/ligretto-core-client`, in `src/shared/api`. Its base, the root `LIGRETTO_CORE_URL`, is an origin without `/api`, because the generated paths start with `/api`. It is set only in development and tests: in production it stays unset, and the SPA calls the API on its own origin.
 
+Server reads go through TanStack Query: one `QueryClient` from `createQueryClient` (`src/shared/api/queryClient.ts`), provided in `src/index.tsx`. A query function calls a `src/shared/api` function and, on a result other than `success`, logs `describeFailure(result)` and throws an `ApiError` carrying it, never the body. Query keys start with the resource name (`['leaders', period]`); the access token stays out of them. Redux keeps the app state: auth, rooms, game, the socket.
+
 ## Build and release
 
 `pnpm build:worker` runs `vite build`, then `cf-wrangler build --mode production`, into `.cloudflare/output`: the SPA as an
@@ -16,6 +18,15 @@ production values are in `cloudflare.config.ts`. `.github/workflows/ligretto-rel
 ligretto-core-backend, so a new SPA never meets an old API. `.github/workflows/ligretto-frontend-pr.yml` runs `ts-check`,
 `test:ci` and `build:worker` on every pull request that touches this package or the workspace packages it is built from.
 Development keeps the vite dev server.
+
+### Targets
+
+The SPA is built per target, the build-conditions group `target: 'web' | 'telegram'` (`buildConditions.d.ts`, plugin in
+`vite.config.ts`). `LIGRETTO_TARGET` picks it and defaults to `web`, so the commands above are the web build, into
+`dist`. `pnpm build:telegram` is the telegram build, into `dist-telegram`; `pnpm start:dev:telegram` serves it in
+development. Both read the same root `.env` files; a variable set in the environment of the build overrides them.
+Code that differs per target branches with `isBuildConditions` / `switchBuildCondition` from
+`@memebattle/build-conditions`, folded at build time.
 
 ## E2E
 

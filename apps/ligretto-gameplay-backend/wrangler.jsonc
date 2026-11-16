@@ -7,7 +7,10 @@
   "compatibility_date": "2026-08-04",
   "observability": { "enabled": true },
   "workers_dev": false,
-  "routes": [{ "pattern": "ligretto.app/gameplay/*", "zone_name": "ligretto.app" }],
+  "routes": [
+    { "pattern": "ligretto.app/gameplay/*", "zone_name": "ligretto.app" },
+    { "pattern": "tg.ligretto.app/gameplay/*", "zone_name": "ligretto.app" },
+  ],
   "durable_objects": {
     "bindings": [
       { "name": "LOBBY", "class_name": "LobbyDO" },

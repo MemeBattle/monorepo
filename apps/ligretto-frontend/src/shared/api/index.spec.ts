@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { LIGRETTO_CORE_URL } from '#shared/constants/config'
 
-import { getMe, getUsersByIds } from './index'
+import { getLeaders, getMe, getUsersByIds } from './index'
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
 
@@ -52,6 +52,30 @@ describe('getUsersByIds', () => {
     fetchMock.mockResolvedValue(json({ error: 'unauthorized' }, 401))
 
     expect(await getUsersByIds(['a'], 'expired')).toMatchObject({ kind: 'error', status: 401, error: { error: 'unauthorized' } })
+  })
+})
+
+describe('getLeaders', () => {
+  it('sends the period with the bearer token and resolves the leaderboard', async () => {
+    const leaderboard = {
+      leaders: [{ sub: 'a', name: 'Ann', avatarUrl: null, totalPoints: 10, place: 1 }],
+      me: null,
+    }
+    fetchMock.mockResolvedValue(json(leaderboard))
+
+    const result = await getLeaders('month', 'token-1')
+
+    const { url, init, headers } = sent()
+    expect(url).toBe(`${LIGRETTO_CORE_URL}/api/leaders?period=month`)
+    expect(init).toMatchObject({ method: 'GET', credentials: 'include' })
+    expect(headers.get('authorization')).toBe('Bearer token-1')
+    expect(result).toMatchObject({ kind: 'success', status: 200, data: leaderboard })
+  })
+
+  it('resolves a 401 as an error with its code', async () => {
+    fetchMock.mockResolvedValue(json({ error: 'unauthorized' }, 401))
+
+    expect(await getLeaders('day', 'expired')).toMatchObject({ kind: 'error', status: 401, error: { error: 'unauthorized' } })
   })
 })
 

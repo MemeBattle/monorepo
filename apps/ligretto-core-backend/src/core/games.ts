@@ -1,3 +1,4 @@
+import { leaderboardDay } from './leaderboard-day.ts'
 import type { GamesRepository, RoundResult } from './ports/games-repository.ts'
 
 /**
@@ -7,6 +8,7 @@ import type { GamesRepository, RoundResult } from './ports/games-repository.ts'
  * the contract's job at the HTTP boundary, so a caller that bypasses it must pass canonical ids or a repeat compares
  * unequal with what Postgres stored. And no write precedes a rejection: every refusal is decided before the round is
  * inserted, or, for a conflict, after an insert that wrote nothing, so the transaction commits nothing on a refusal.
+ * An inserted round adds its scores to the leaderboard aggregates in the same transaction, and a repeat adds nothing.
  */
 
 /** Per player: this round's score (`0` when they did not play it) and the sum of their scores in the game so far. */
@@ -55,8 +57,10 @@ export const createSaveRound =
         return { ok: false, error: 'unknown_players', playerIds: missing }
       }
 
-      const { inserted } = await game.insertRound(roundId, results)
-      if (!inserted) {
+      const insert = await game.insertRound(roundId, results)
+      if (insert.inserted) {
+        await game.addPoints(leaderboardDay(insert.createdAt.getTime()), results)
+      } else {
         const existing = await game.findRound(roundId)
         // `undefined` cannot follow a DO NOTHING on a committed row; it is a conflict rather than a throw all the same.
         if (existing === undefined || existing.gameId !== gameId || !sameResults(existing.results, results)) {
