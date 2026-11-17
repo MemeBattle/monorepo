@@ -77,7 +77,7 @@ export const GameSettingsContainer = () => {
       spectators={spectators}
       canStartGame={currentPlayer?.isHost ?? false}
       canToggleReady={!!currentPlayer && currentPlayer.status !== PlayerStatus.Disconnected && isBetweenRounds(gameStatus)}
-      canSpectate={!!currentPlayer && !currentPlayer.isHost && isBetweenRounds(gameStatus)}
+      canSpectate={!!currentPlayer && !currentPlayer.isHost && currentPlayer.status !== PlayerStatus.Disconnected && isBetweenRounds(gameStatus)}
       onSpectateClick={handleSpectateClick}
       onReadyClick={handleReadyClick}
       onStartClick={handleStartClick}

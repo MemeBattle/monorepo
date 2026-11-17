@@ -186,10 +186,11 @@ describe('GameSettings', () => {
   })
 
   it.each([
-    ['the host between rounds', 'host', GameStatus.New],
-    ['a player during a round', 'peer', GameStatus.Pause],
-  ])('offers %s no way to spectate', (_label, userId, status) => {
-    renderGameSettings({ userId, status, players: [createPlayer('host', { isHost: true }), createPlayer('peer')] })
+    ['the host between rounds', 'host', GameStatus.New, PlayerStatus.DontReadyToPlay],
+    ['a player during a round', 'peer', GameStatus.Pause, PlayerStatus.InGame],
+    ['a disconnected player between rounds', 'peer', GameStatus.RoundFinished, PlayerStatus.Disconnected],
+  ])('offers %s no way to spectate', (_label, userId, status, peerStatus) => {
+    renderGameSettings({ userId, status, players: [createPlayer('host', { isHost: true }), createPlayer('peer', { status: peerStatus })] })
 
     expect(screen.queryByRole('button', { name: 'Spectate' })).toBeNull()
   })
