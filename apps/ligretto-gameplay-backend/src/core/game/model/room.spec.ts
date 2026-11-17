@@ -7,6 +7,7 @@ import {
   beginStarting,
   canBecomePlayer,
   canBecomeSpectator,
+  canKick,
   canResumeRound,
   canSetReadiness,
   canStartRound,
@@ -207,6 +208,43 @@ describe('canResumeRound', () => {
 
   it('resumes nothing but a paused round', () => {
     expect(canResumeRound(pair(GameStatus.InGame), 'host')).toBe(false)
+  })
+})
+
+describe('canKick', () => {
+  const withWatcher = (status: GameStatus, host: Partial<Player> = {}) => ({ ...pair(status, host), spectators: { watcher: { id: 'watcher' } } })
+
+  it.each([GameStatus.New, GameStatus.RoundFinished])('lets the online host remove a player or a spectator in %s', status => {
+    expect(canKick(withWatcher(status), 'host', 'peer')).toBe(true)
+    expect(canKick(withWatcher(status), 'host', 'watcher')).toBe(true)
+  })
+
+  it('lets the host remove an offline player', () => {
+    expect(canKick(pair(GameStatus.New, {}, { status: PlayerStatus.Disconnected }), 'host', 'peer')).toBe(true)
+  })
+
+  it.each([GameStatus.Starting, GameStatus.InGame, GameStatus.Pause])('removes nobody during a round in %s', status => {
+    expect(canKick(withWatcher(status), 'host', 'peer')).toBe(false)
+    expect(canKick(withWatcher(status), 'host', 'watcher')).toBe(false)
+  })
+
+  it('does not let anyone but the online host remove someone', () => {
+    expect(canKick(withWatcher(GameStatus.New), 'peer', 'watcher')).toBe(false)
+    expect(canKick(withWatcher(GameStatus.New), 'watcher', 'peer')).toBe(false)
+    expect(canKick(withWatcher(GameStatus.New, { status: PlayerStatus.Disconnected }), 'host', 'peer')).toBe(false)
+  })
+
+  it('does not let the host remove themselves', () => {
+    expect(canKick(pair(GameStatus.New), 'host', 'host')).toBe(false)
+  })
+
+  it.each([
+    ['someone not in the room', 'stranger'],
+    ['an Object member', '__proto__'],
+    ['no id', undefined],
+    ['a non-string id', { id: 'peer' }],
+  ])('removes nobody for %s', (_label, targetId) => {
+    expect(canKick(pair(GameStatus.New), 'host', targetId)).toBe(false)
   })
 })
 

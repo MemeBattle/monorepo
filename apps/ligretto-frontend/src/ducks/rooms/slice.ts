@@ -1,4 +1,5 @@
 import type { Room } from '@memebattle/ligretto-shared'
+import { connectToRoomSuccessAction, kickedFromRoomAction } from '@memebattle/ligretto-shared'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice, createAction, createEntityAdapter } from '@reduxjs/toolkit'
 
@@ -9,12 +10,15 @@ export const roomsEntityAdapter = createEntityAdapter({
 export interface RoomsState extends ReturnType<typeof roomsEntityAdapter.getInitialState> {
   isLoading: boolean
   search: string
+  /** The host removed the user from the last room they were in; shown until dismissed or another room is joined. */
+  isKickedFromRoom: boolean
 }
 
 const initialState: RoomsState = {
   ...roomsEntityAdapter.getInitialState(),
   isLoading: false,
   search: '',
+  isKickedFromRoom: false,
 }
 
 export const connectToRoomAction = createAction<{ roomUuid: string }>('@@rooms/connectToRoom')
@@ -37,8 +41,20 @@ const roomsSlice = createSlice({
     removeRoomAction: (state, action: PayloadAction<{ uuid: Room['uuid'] }>) => {
       roomsEntityAdapter.removeOne(state, action.payload.uuid)
     },
+    dismissKickedFromRoomAction: state => {
+      state.isKickedFromRoom = false
+    },
+  },
+  extraReducers: builder => {
+    builder
+      .addCase(kickedFromRoomAction, state => {
+        state.isKickedFromRoom = true
+      })
+      .addCase(connectToRoomSuccessAction, state => {
+        state.isKickedFromRoom = false
+      })
   },
 })
 
-export const { getRoomsAction, setSearchRoomsAction, updateRoomsAction, removeRoomAction } = roomsSlice.actions
+export const { getRoomsAction, setSearchRoomsAction, updateRoomsAction, removeRoomAction, dismissKickedFromRoomAction } = roomsSlice.actions
 export const roomsReducer = roomsSlice.reducer

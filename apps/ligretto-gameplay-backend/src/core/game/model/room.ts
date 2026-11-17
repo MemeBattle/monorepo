@@ -52,6 +52,12 @@ export const canSetReadiness = (game: Game, userId: UUID, status: PlayerStatus) 
   )
 }
 
+const isParticipant = (game: Game, userId: UUID) => Object.hasOwn(game.players, userId) || Object.hasOwn(game.spectators, userId)
+
+/** The target comes from a client's payload, so it is checked to be an id at all. */
+export const canKick = (game: Game, hostId: UUID, targetId: unknown): targetId is UUID =>
+  typeof targetId === 'string' && targetId !== hostId && isBetweenRounds(game) && isOnlineHost(game, hostId) && isParticipant(game, targetId)
+
 const omit = <T>(record: Record<UUID, T>, key: UUID): Record<UUID, T> => Object.fromEntries(Object.entries(record).filter(([id]) => id !== key))
 
 export const joinsAsSpectator = (game: Game) => Object.keys(game.players).length >= game.config.playersMaxCount || isRoundInProgress(game)

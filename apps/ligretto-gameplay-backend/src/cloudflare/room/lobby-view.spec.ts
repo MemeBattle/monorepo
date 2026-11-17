@@ -5,7 +5,7 @@ import { addPlayer, addSpectator, createGame, leaveRoom } from '../../core/game/
 import { lobbyRecordOf } from './lobby-view'
 
 describe('lobbyRecordOf', () => {
-  const recordOf = (state: Game) => lobbyRecordOf(new Room(state, { broadcast: () => {} }))
+  const recordOf = (state: Game) => lobbyRecordOf(new Room(state, { broadcast: () => {}, sendTo: () => {} }))
   const withHost = addPlayer(createGame('game', 'Room'), 'host')
 
   it('ignores a spectator', () => {

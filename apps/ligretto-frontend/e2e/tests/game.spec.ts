@@ -136,6 +136,41 @@ test.describe('Connection lifecycle', () => {
   })
 })
 
+test.describe('Kicking a participant', () => {
+  test('sends every tab of the kicked user home with a notice, frees the seat and lets them come back on purpose', async ({ browser }, testInfo) => {
+    test.setTimeout(60_000)
+    const roomName = `Kick-${testInfo.retry}-${Date.now().toString(36)}`
+    const { contextUser1, contextUser2, pageUser1, pageUser2, gamePageUser1 } = await setupTwoPlayerRoom(browser, roomName)
+    const pageUser2SecondTab = await contextUser2.newPage()
+    await pageUser2SecondTab.goto(pageUser2.url())
+    await expect(await new GamePage(pageUser2SecondTab).getPlayersList()).toHaveCount(2)
+
+    await expect(new GamePage(pageUser2).getKickButtons()).toHaveCount(0)
+    await expect(gamePageUser1.getKickButtons()).toHaveCount(1)
+    await gamePageUser1.getKickButtons().click()
+
+    for (const page of [pageUser2, pageUser2SecondTab]) {
+      await expect(page).toHaveURL('/')
+      await expect(new HomePage(page).getKickedFromRoomNotice()).toHaveText('You were removed from the room by the host')
+    }
+    await expect(await gamePageUser1.getPlayersList()).toHaveCount(1)
+    await expect(pageUser1.getByTestId('PlayersScoresTable-FreeSeat')).toHaveCount(3)
+
+    // Longer than the client's retries: nothing takes the kicked user back in by itself.
+    await pageUser2.waitForTimeout(7_000)
+    await expect(pageUser2).toHaveURL('/')
+    await expect(await gamePageUser1.getPlayersList()).toHaveCount(1)
+
+    await pageUser2SecondTab.close()
+    await new HomePage(pageUser2).getKickedFromRoomNotice().getByRole('button', { name: 'Close' }).click()
+    await expect(new HomePage(pageUser2).getKickedFromRoomNotice()).toBeHidden()
+    await (await new HomePage(pageUser2).getRoom(roomName)).click()
+    await expect(await gamePageUser1.getPlayersList()).toHaveCount(2)
+
+    await Promise.all([contextUser1.close(), contextUser2.close()])
+  })
+})
+
 test.describe('Roles between rounds', () => {
   test('a player watches instead, takes a seat again and plays the next round', async ({ browser }, testInfo) => {
     test.setTimeout(60_000)

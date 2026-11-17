@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { PlayersScoresTable } from './PlayersScoresTable'
+import { PlayerScoreRow } from './PlayerScoreRow/PlayerScoreRow'
 
 const players = [
   { id: '1', username: 'Player', roundPoints: [4, 12], totalPoints: 16, isPlayer: true },
@@ -24,7 +25,11 @@ type Story = StoryObj<typeof PlayersScoresTable>
 export const Default: Story = {
   render: () => (
     <div style={{ width: '44rem', display: 'flex' }}>
-      <PlayersScoresTable players={players} />
+      <PlayersScoresTable>
+        {players.map(player => (
+          <PlayerScoreRow key={player.id} {...player} />
+        ))}
+      </PlayersScoresTable>
     </div>
   ),
 }
@@ -32,7 +37,11 @@ export const Default: Story = {
 export const Narrow: Story = {
   render: () => (
     <div style={{ width: '20rem', display: 'flex' }}>
-      <PlayersScoresTable players={players} />
+      <PlayersScoresTable>
+        {players.map(player => (
+          <PlayerScoreRow key={player.id} {...player} />
+        ))}
+      </PlayersScoresTable>
     </div>
   ),
 }

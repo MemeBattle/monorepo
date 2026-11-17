@@ -1,12 +1,18 @@
-import React from 'react'
 import { useSelector } from 'react-redux'
 
 import { PlayersScoresTable } from './PlayersScoresTable'
-import { freeSeatsCountSelector, playersSelector } from './PlayersScoresTable.selectors'
+import { PlayersTableItem } from './PlayersTableItem/PlayersTableItem'
+import { freeSeatsCountSelector, rankedPlayerIdsSelector } from './PlayersScoresTable.selectors'
 
 export const PlayersScoresTableContainer = () => {
-  const players = useSelector(playersSelector)
+  const playerIds = useSelector(rankedPlayerIdsSelector)
   const freeSeatsCount = useSelector(freeSeatsCountSelector)
 
-  return <PlayersScoresTable players={players} freeSeatsCount={freeSeatsCount} />
+  return (
+    <PlayersScoresTable hasStatuses freeSeatsCount={freeSeatsCount}>
+      {playerIds.map(playerId => (
+        <PlayersTableItem key={playerId} playerId={playerId} />
+      ))}
+    </PlayersScoresTable>
+  )
 }

@@ -11,6 +11,8 @@ import {
   createRoomSuccessAction,
   endRoundAction,
   GameStatus,
+  kickedFromRoomAction,
+  kickFromRoomEmitAction,
   leaveFromRoomEmitAction,
   PlayerStatus,
   removeRoomAction,
@@ -745,14 +747,37 @@ describe('gameplay on Durable Objects', () => {
     }
     const withBrokenLobby = (stub: Host) =>
       runInDurableObject(stub, instance => {
-        const target = instance as unknown as { lobby: { removeRoom(roomId: string): Promise<void> } }
+        type Lobby = { removeRoom(roomId: string): Promise<void>; updateRoom(room: unknown, playerIds: string[]): Promise<void> }
+        const target = instance as unknown as { lobby: Lobby }
+        const real = target.lobby
+        // Spreading a stub copies none of its methods, and a failed roster update would replace this Lobby with a new stub.
         target.lobby = {
-          ...target.lobby,
+          updateRoom: (room, playerIds) => real.updateRoom(room, playerIds),
           removeRoom: async () => {
             throw new Error('the lobby is down')
           },
         }
       })
+    const withRosterUpdatesFailing = (stub: Host) =>
+      runInDurableObject(stub, instance => {
+        const target = instance as unknown as { lobby: { updateRoom(): Promise<void> } }
+        target.lobby = {
+          ...target.lobby,
+          updateRoom: async () => {
+            throw new Error('the lobby is down')
+          },
+        }
+      })
+    const lobbyPlayerIdsOf = async (roomId: string) =>
+      (await lobbyStub().getRoomsOfHost((await lobbyStub().resolveHost(roomId))!)).find(room => room.roomId === roomId)?.playerIds
+    /** The host kicks the peer while the Lobby takes no roster updates. */
+    const kickUnpublished = async (stub: Host, id: string, host: Client, peer: Client) => {
+      await withRosterUpdatesFailing(stub)
+      host.send(kickFromRoomEmitAction({ gameId: id, userId: 'peer' }))
+      await peer.closed()
+      await host.until(() => (latestGame(host).players.peer === undefined ? true : undefined))
+      expect(await lobbyPlayerIdsOf(id)).toContain('peer')
+    }
     const withLobbyBack = (stub: Host) =>
       runInDurableObject(stub, (instance, _state) => {
         const target = instance as unknown as { lobby: unknown; env: Env }
@@ -831,6 +856,82 @@ describe('gameplay on Durable Objects', () => {
         await second.waitFor(connectToRoomErrorAction)
         expect((await second.closed()).reason).toBe('left the room')
         await host.until(() => (latestGame(host).players.peer === undefined ? true : undefined))
+      })
+
+      it('sends every connection of a kicked user out, frees the seat in the Lobby and leaves other rooms alone', async () => {
+        const { lobby, id, clients } = await roomOf('host', 'peer')
+        const [host, peer] = clients
+        const secondTab = track(await joinRoom(id, 'peer'))
+        const other = await createRoom(lobby)
+        const inOtherRoom = track(await joinRoom(other.id, 'peer'))
+        const seenInOtherRoom = inOtherRoom.received.length
+        const seenByLobby = lobby.received.length
+
+        host.send(kickFromRoomEmitAction({ gameId: id, userId: 'peer' }))
+
+        for (const tab of [peer, secondTab]) {
+          expect((await tab.waitFor(kickedFromRoomAction)).payload).toEqual({ roomUuid: id })
+          await tab.waitFor(connectToRoomErrorAction)
+          expect((await tab.closed()).reason).toBe('left the room')
+        }
+        await host.until(() => (latestGame(host).players.peer === undefined ? true : undefined))
+        await lobby.until(() =>
+          lobby.received
+            .slice(seenByLobby)
+            .some(
+              ({ type, payload }) =>
+                type === updateRoomsAction.type && (payload as { rooms: Room[] }).rooms.some(room => room.uuid === id && room.playersCount === 1),
+            )
+            ? true
+            : undefined,
+        )
+        expect(inOtherRoom.received).toHaveLength(seenInOtherRoom)
+        expect(inOtherRoom.closes).toEqual([])
+      })
+
+      it('ignores a kick from someone who is not the host', async () => {
+        const { clients } = await roomOf('host', 'peer')
+        const [host, peer] = clients
+        const id = latestGame(host).id
+
+        peer.send(kickFromRoomEmitAction({ gameId: id, userId: 'host' }))
+        peer.send(setPlayerStatusEmitAction({ gameId: id, status: PlayerStatus.ReadyToPlay }))
+
+        await host.until(() => (latestGame(host).players.peer?.status === PlayerStatus.ReadyToPlay ? true : undefined))
+        expect(latestGame(host).players.host).toBeDefined()
+        expect(host.received.some(({ type }) => type === kickedFromRoomAction.type)).toBe(false)
+        expect(host.closes).toEqual([])
+      })
+
+      it('lets a kicked user come back through the room link', async () => {
+        const { id, clients } = await roomOf('host', 'peer')
+        const [host, peer] = clients
+
+        host.send(kickFromRoomEmitAction({ gameId: id, userId: 'peer' }))
+        await peer.closed()
+
+        track(await joinRoom(id, 'peer'))
+        await host.until(() => (latestGame(host).players.peer ? true : undefined))
+      })
+
+      it('ignores what was still in flight on a socket the object closed, after its user joined again', async () => {
+        const { id, clients, stub } = await roomOf('host', 'peer')
+        const [host, peer] = clients
+        let closedByTheObject: WebSocket | undefined
+        await runInDurableObject(stub, (_instance, state) => {
+          closedByTheObject = state.getWebSockets(id).find(socket => (socket.deserializeAttachment() as { userId: string }).userId === 'peer')
+        })
+        host.send(kickFromRoomEmitAction({ gameId: id, userId: 'peer' }))
+        await peer.closed()
+        const rejoined = track(await joinRoom(id, 'peer'))
+        await host.until(() => (latestGame(host).players.peer ? true : undefined))
+
+        await runInDurableObject(stub, instance => instance.webSocketMessage(closedByTheObject!, JSON.stringify(leaveFromRoomEmitAction())))
+        host.send(setPlayerStatusEmitAction({ gameId: id, status: PlayerStatus.ReadyToPlay }))
+
+        await host.until(() => (latestGame(host).players.host?.status === PlayerStatus.ReadyToPlay ? true : undefined))
+        expect(latestGame(host).players.peer).toBeDefined()
+        expect(rejoined.closes).toEqual([])
       })
 
       it('closes a silent socket at a sweep, and keeps one that answered the heartbeat', async () => {
@@ -925,6 +1026,67 @@ describe('gameplay on Durable Objects', () => {
 
       await newcomer.waitFor(connectToRoomErrorAction)
       expect((await newcomer.closed()).reason).toBe('room not found')
+    })
+
+    describe('when the Lobby takes no roster update', () => {
+      it('sends the roster again at the next sweep, through a new stub once the Lobby was reset', async () => {
+        const { id, clients, stub } = await roomOf('host', 'peer')
+        const [host, peer] = clients
+        // A reset breaks every stub that was talking to the Lobby, for good: only a new one reaches it again.
+        await runInDurableObject(lobbyStub(), (_instance, state) => state.abort('reset by the test')).catch(() => undefined)
+
+        host.send(kickFromRoomEmitAction({ gameId: id, userId: 'peer' }))
+        await peer.closed()
+        await host.until(() => (latestGame(host).players.peer === undefined ? true : undefined))
+        expect(await lobbyPlayerIdsOf(id)).toContain('peer')
+
+        await runDurableObjectAlarm(stub)
+
+        expect(await lobbyPlayerIdsOf(id)).toEqual(['host'])
+      })
+
+      it('does not bring a kicked player back after a restart, and sends the roster the Lobby missed', async () => {
+        const { id, clients, stub } = await roomOf('host', 'peer')
+        await kickUnpublished(stub, id, clients[0], clients[1])
+
+        await evictDurableObject(stub)
+        const newcomer = track(await joinRoom(id, 'newcomer'))
+
+        expect(Object.keys(latestGame(newcomer).players).sort()).toEqual(['host', 'newcomer'])
+        await vi.waitFor(async () => expect((await lobbyPlayerIdsOf(id))?.sort()).toEqual(['host', 'newcomer']))
+      })
+
+      it('lands the latest roster when changes overtake a slow update', async () => {
+        const { id, clients, stub } = await roomOf('host', 'peer', 'third')
+        const [host] = clients
+        const sent: string[][] = []
+        let releaseFirst = () => {}
+        await runInDurableObject(stub, instance => {
+          const target = instance as unknown as { lobby: { updateRoom(room: unknown, playerIds: string[]): Promise<void> } }
+          const real = target.lobby
+          target.lobby = {
+            ...real,
+            updateRoom: async (room, playerIds) => {
+              sent.push(playerIds)
+              if (sent.length === 1) {
+                await new Promise<void>(resolve => (releaseFirst = resolve))
+              }
+              await real.updateRoom(room, playerIds)
+            },
+          }
+        })
+
+        host.send(kickFromRoomEmitAction({ gameId: id, userId: 'peer' }))
+        await host.until(() => (latestGame(host).players.peer === undefined ? true : undefined))
+        host.send(kickFromRoomEmitAction({ gameId: id, userId: 'third' }))
+        await host.until(() => (latestGame(host).players.third === undefined ? true : undefined))
+        expect(sent).toHaveLength(1)
+        // The gate belongs to the object, so only the object may open it.
+        await runInDurableObject(stub, () => releaseFirst())
+
+        await vi.waitFor(async () => expect(await lobbyPlayerIdsOf(id)).toEqual(['host']))
+        expect(sent.at(-1)).toEqual(['host'])
+      })
     })
 
     describe('when the Lobby cannot be reached', () => {

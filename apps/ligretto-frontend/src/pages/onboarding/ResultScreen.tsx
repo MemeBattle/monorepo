@@ -9,6 +9,7 @@ import { ONBOARDING_PLAYER_NAMES, onboardingGameSelector, onboardingResultsSelec
 import { routes } from '#shared/constants/router-constants'
 import { getRandomAvatar } from '#shared/ui/Avatar/getRandomAvatar'
 import { PlayersScoresTable } from '#features/player-scores-table/ui/PlayersScoresTable'
+import { PlayerScoreRow } from '#features/player-scores-table/ui/PlayerScoreRow/PlayerScoreRow'
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   display: 'flex',
@@ -55,7 +56,11 @@ export function ResultScreen() {
                 Поздравляем! Ты победил! За каждую выложенную карту на общий стол игрок получает +1 очко. В конце раунда из суммы заработанных очков
                 вычитается количество карт, оставшихся в колоде Лигретто, умноженное на 2.
               </Typography>
-              <PlayersScoresTable players={players} />
+              <PlayersScoresTable>
+                {players.map(player => (
+                  <PlayerScoreRow key={player.id} {...player} />
+                ))}
+              </PlayersScoresTable>
               <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
                 <Button data-test-id="OnboardingPage-FinishButton" variant="contained" size="large" onClick={handleFinish}>
                   Закончить обучение

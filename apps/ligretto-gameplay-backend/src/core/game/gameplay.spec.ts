@@ -20,6 +20,7 @@ describe('Gameplay', () => {
   const roomOf = (state: GameState) =>
     new Room(structuredClone(state), {
       broadcast: action => watcher.send(action),
+      sendTo: () => {},
     })
   const join = (room: Room, userId: string) => room.join(userId, new FakeConnection(room.id, userId))
 

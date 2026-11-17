@@ -14,8 +14,15 @@ import { rejectMissingRoom } from '../refuse-socket'
 import { restoreRoom } from './restore-room'
 import { heartbeatAutoResponse, isOpen, SocketConnection } from '../socket-connection'
 
-/** Survives hibernation with the socket. Limited to 16 KiB by the runtime. */
-type RoomAttachment = { userId: string; roomId: string; acceptedAt: number }
+/**
+ * Survives hibernation with the socket. Limited to 16 KiB by the runtime. `revoked` is set when the object closes the
+ * socket: its user may have joined again since, and what is still in flight on it must not act for them.
+ */
+type RoomAttachment = { userId: string; roomId: string; acceptedAt: number; revoked?: true }
+
+/** The player ids the Lobby is to hold for a room. Kept in storage until the Lobby has them, so a restart cannot bring back an older roster. */
+type PendingRoster = { playerIds: UUID[] }
+const PENDING_ROSTER_PREFIX = 'pending-roster:'
 
 /** A client pings every 20 s, so this is two missed pings and a slow third. */
 const SILENT_SOCKET_TIMEOUT_MS = 45_000
@@ -27,6 +34,14 @@ const SWEEP_INTERVAL_MS = 30_000
 type RoomCallResult = ReturnType<typeof handleAction>
 
 const attachmentOf = (socket: WebSocket) => socket.deserializeAttachment() as RoomAttachment
+
+const pendingRosterKey = (roomId: UUID) => `${PENDING_ROSTER_PREFIX}${roomId}`
+
+/** The object is done with the socket, whatever its user does next. */
+const revoke = (socket: WebSocket, code: number, reason: string) => {
+  socket.serializeAttachment({ ...attachmentOf(socket), revoked: true } satisfies RoomAttachment)
+  new SocketConnection(socket).close(code, reason)
+}
 
 const participantIdsOf = (room: Room) => [...Object.keys(room.state.players), ...Object.keys(room.state.spectators)]
 
@@ -40,13 +55,19 @@ type HostedRoom = {
   emptySince?: number
   /** Set while the Lobby is asked to delete it: it is gone for every event, and kept only so a failure can be retried. */
   removing?: true
+  /** The Lobby has not acknowledged the latest roster; the sweep tries again. */
+  rosterPending?: true
+  /** One publication at a time, so an older roster never lands after a newer one. */
+  publishing?: true
+  /** The roster changed while a publication was in flight. */
+  republish?: true
 }
 
 /** The rooms sharing one object, and everything around them that only the object can do: sockets, alarm and calls out. */
 export class RoomDO extends DurableObject<Env> {
   private readonly rooms = new Map<UUID, HostedRoom>()
   private sweepArmed = false
-  private readonly lobby = this.env.LOBBY.get(this.env.LOBBY.idFromName('global'))
+  private lobby = this.lobbyStub()
   private readonly core = createCoreClient(this.env)
 
   constructor(ctx: DurableObjectState, env: Env) {
@@ -72,9 +93,20 @@ export class RoomDO extends DurableObject<Env> {
    */
   private async restoreRooms() {
     const rooms = await this.lobby.getRoomsOfHost(this.ctx.id.name as string)
+    const pendingRosters = await this.ctx.storage.list<PendingRoster>({ prefix: PENDING_ROSTER_PREFIX })
     const responses = await Promise.all(rooms.map(({ roomId }) => getGameResults({ client: this.core, path: { id: roomId } })))
 
-    rooms.forEach(({ roomId, name, playerIds }, index) => {
+    const listedRoomIds = new Set(rooms.map(({ roomId }) => roomId))
+    for (const key of pendingRosters.keys()) {
+      if (!listedRoomIds.has(key.slice(PENDING_ROSTER_PREFIX.length))) {
+        void this.ctx.storage.delete(key)
+      }
+    }
+
+    rooms.forEach(({ roomId, name, playerIds: listedPlayerIds }, index) => {
+      // The Lobby may still hold a roster from before a change it never received, such as a seat taken away by a kick.
+      const pendingRoster = pendingRosters.get(pendingRosterKey(roomId))
+      const playerIds = pendingRoster?.playerIds ?? listedPlayerIds
       const response = responses[index]
       if (response.kind !== 'success') {
         console.error('ligretto-core did not give the results of a room', { roomId, result: response })
@@ -93,12 +125,16 @@ export class RoomDO extends DurableObject<Env> {
       if (connectedUserIds.length > 0) {
         room.showToEveryone()
       }
+      if (pendingRoster) {
+        void this.publishRoster(roomId)
+      }
     })
   }
 
   private addRoom(state: GameState, results: GameResults | undefined, emptySince: number | undefined) {
     const room = new Room(state, {
       broadcast: (action, exceptUserId) => this.broadcast(state.id, action, exceptUserId),
+      sendTo: (userId, action) => this.sendTo(state.id, userId, action),
       results,
     })
     this.rooms.set(state.id, { room, emptySince })
@@ -130,14 +166,17 @@ export class RoomDO extends DurableObject<Env> {
     if (!action) {
       return
     }
-    const { roomId, userId } = attachmentOf(socket)
+    const { roomId, userId, revoked } = attachmentOf(socket)
+    if (revoked) {
+      return
+    }
     const connection = new SocketConnection(socket)
 
     const hosted = this.liveRoom(roomId)
 
     if (!hosted) {
       connection.send(connectToRoomErrorAction())
-      connection.close(1000, 'room not found')
+      revoke(socket, 1000, 'room not found')
       return
     }
     this.run(hosted, room => handleAction({ room, userId }, action))
@@ -185,7 +224,7 @@ export class RoomDO extends DurableObject<Env> {
     this.syncDeletion(hosted)
 
     if (lobbyRecordOf(room) !== lobbyRecordBefore) {
-      void this.publishRoom(room)
+      this.rosterChanged(hosted)
     }
   }
 
@@ -225,7 +264,7 @@ export class RoomDO extends DurableObject<Env> {
     hosted.removing = true
     hosted.room.close()
     for (const socket of this.openSockets(roomId)) {
-      new SocketConnection(socket).close(1000, 'room deleted')
+      revoke(socket, 1000, 'room deleted')
     }
 
     // Nobody is waited for: the room is over, or the room has been empty for long enough.
@@ -233,6 +272,7 @@ export class RoomDO extends DurableObject<Env> {
     try {
       await this.lobby.removeRoom(roomId)
       this.rooms.delete(roomId)
+      void this.ctx.storage.delete(pendingRosterKey(roomId))
     } catch (error) {
       console.error('Deleting a room failed, retrying', { roomId, error })
       hosted.removing = undefined
@@ -245,9 +285,8 @@ export class RoomDO extends DurableObject<Env> {
   private closeUsersWhoLeft(room: Room) {
     for (const socket of this.openSockets(room.id)) {
       if (!room.hasParticipant(attachmentOf(socket).userId)) {
-        const connection = new SocketConnection(socket)
-        connection.send(connectToRoomErrorAction())
-        connection.close(1000, 'left the room')
+        new SocketConnection(socket).send(connectToRoomErrorAction())
+        revoke(socket, 1000, 'left the room')
       }
     }
   }
@@ -261,12 +300,44 @@ export class RoomDO extends DurableObject<Env> {
     }
   }
 
-  /** A failure is logged, not thrown: the next change sends the whole room again. */
-  private async publishRoom(room: Room) {
+  /**
+   * Stored before it is sent: storage writes are ordered and gate what the object sends out, so nobody hears of the
+   * change before a restart would keep it.
+   */
+  private rosterChanged(hosted: HostedRoom) {
+    const { room } = hosted
+    void this.ctx.storage.put(pendingRosterKey(room.id), { playerIds: playerIdsOf(room) } satisfies PendingRoster)
+    hosted.rosterPending = true
+    void this.publishRoster(room.id)
+  }
+
+  /** Always sends the room as it is now, so a retry or a change made meanwhile carries the latest roster. */
+  private async publishRoster(roomId: UUID) {
+    const hosted = this.liveRoom(roomId)
+    if (!hosted) {
+      return
+    }
+    if (hosted.publishing) {
+      hosted.republish = true
+      return
+    }
+    hosted.publishing = true
+    hosted.rosterPending = true
     try {
-      await this.lobby.updateRoom(toLobbyRoom(room), playerIdsOf(room))
+      do {
+        hosted.republish = undefined
+        await this.lobby.updateRoom(toLobbyRoom(hosted.room), playerIdsOf(hosted.room))
+      } while (hosted.republish && !hosted.removing)
+      // No await between the last check and the delete: a later change stores its roster after this.
+      hosted.rosterPending = undefined
+      void this.ctx.storage.delete(pendingRosterKey(roomId))
     } catch (error) {
-      console.error('Publishing a room failed', { roomId: room.id, error })
+      console.error('Publishing a room failed, retrying at the next sweep', { roomId, error })
+      this.lobby = this.lobbyStub()
+      this.armSweep()
+    } finally {
+      hosted.publishing = undefined
+      hosted.republish = undefined
     }
   }
 
@@ -280,6 +351,9 @@ export class RoomDO extends DurableObject<Env> {
     const expired = [...this.rooms.values()].filter(({ emptySince }) => (emptySince ?? Infinity) <= emptiedBefore)
     await Promise.all(expired.map(({ room }) => this.removeRoom(room.id)))
 
+    const unpublished = [...this.rooms.values()].filter(({ rosterPending, removing }) => rosterPending && !removing)
+    await Promise.all(unpublished.map(({ room }) => this.publishRoster(room.id)))
+
     if ([...this.rooms.values()].some(({ removing }) => !removing)) {
       this.armSweep()
     }
@@ -291,7 +365,7 @@ export class RoomDO extends DurableObject<Env> {
       const { roomId, userId, acceptedAt } = attachmentOf(socket)
       const lastHeard = Math.max(this.ctx.getWebSocketAutoResponseTimestamp(socket)?.getTime() ?? 0, acceptedAt)
       if (Date.now() - lastHeard > SILENT_SOCKET_TIMEOUT_MS) {
-        new SocketConnection(socket).close(1001, 'no heartbeat')
+        revoke(socket, 1001, 'no heartbeat')
         this.connectionClosed(roomId, userId)
       }
     }
@@ -303,6 +377,11 @@ export class RoomDO extends DurableObject<Env> {
       this.sweepArmed = true
       void this.ctx.storage.setAlarm(Date.now() + SWEEP_INTERVAL_MS)
     }
+  }
+
+  /** A failed call can leave a stub broken for good, so a retry goes through a new one. */
+  private lobbyStub() {
+    return this.env.LOBBY.get(this.env.LOBBY.idFromName('global'))
   }
 
   private liveRoom(roomId: UUID) {
@@ -317,6 +396,14 @@ export class RoomDO extends DurableObject<Env> {
 
   private connectedUserIds(roomId: UUID) {
     return [...new Set(this.openSockets(roomId).map(socket => attachmentOf(socket).userId))]
+  }
+
+  private sendTo(roomId: UUID, userId: UUID, action: AnyAction) {
+    for (const socket of this.openSockets(roomId)) {
+      if (attachmentOf(socket).userId === userId) {
+        new SocketConnection(socket).send(action)
+      }
+    }
   }
 
   private broadcast(roomId: UUID, action: AnyAction, exceptUserId?: UUID) {

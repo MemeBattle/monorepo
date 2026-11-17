@@ -1,6 +1,6 @@
 import type { Dispatch, TypedStartListening } from '@reduxjs/toolkit'
 import { isAction } from '@reduxjs/toolkit'
-import { connectToRoomEmitAction, connectToRoomErrorAction, leaveFromRoomEmitAction } from '@memebattle/ligretto-shared'
+import { connectToRoomEmitAction, connectToRoomErrorAction, kickedFromRoomAction, leaveFromRoomEmitAction } from '@memebattle/ligretto-shared'
 import type { All } from '#types/store'
 import { LIGRETTO_GAMEPLAY_URL } from '#shared/constants/config'
 import { socketConnectedAction } from './actions'
@@ -18,7 +18,8 @@ export function addListeners(startListener: TypedStartListening<All>, dispatch: 
         console.error('Received invalid action from socket', data)
         return
       }
-      if (connectToRoomErrorAction.match(data)) {
+      // A kick is followed by the room error, but a socket lost in between would otherwise retry its way back in.
+      if (connectToRoomErrorAction.match(data) || kickedFromRoomAction.match(data)) {
         socket.stop()
       }
       dispatch(data)

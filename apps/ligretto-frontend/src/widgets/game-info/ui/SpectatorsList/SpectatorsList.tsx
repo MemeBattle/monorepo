@@ -2,12 +2,13 @@ import { useCallback } from 'react'
 import type { FC, ReactNode } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from '@reduxjs/toolkit'
+import PersonRemoveOutlinedIcon from '@mui/icons-material/PersonRemoveOutlined'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
-import { Box, Button, Typography } from '@memebattle/ui'
+import { Box, Button, IconButton, Typography } from '@memebattle/ui'
 import { alpha } from '@mui/material/styles'
-import { becomeSpectatorEmitAction, GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
+import { becomeSpectatorEmitAction, GameStatus, kickFromRoomEmitAction, PlayerStatus } from '@memebattle/ligretto-shared'
 
-import { gameIdSelector, gameStatusSelector, playerSelector, spectatorsSelector } from '#ducks/game'
+import { canKickParticipantsSelector, gameIdSelector, gameStatusSelector, playerSelector, spectatorsSelector } from '#ducks/game'
 import { userAvatarUrl, userLabel, usersMapSelector } from '#ducks/users'
 import { currentUserIdSelector } from '#ducks/auth'
 import { Avatar } from '#shared/ui/Avatar'
@@ -46,10 +47,18 @@ export const SpectatorsList = () => {
   const gameId = useSelector(gameIdSelector)
   const spectators = useSelector(spectatorsListSelector)
   const canSpectate = useSelector(canSpectateSelector)
+  const canKick = useSelector(canKickParticipantsSelector)
 
   const handleSpectateClick = useCallback(() => {
     dispatch(becomeSpectatorEmitAction({ gameId }))
   }, [dispatch, gameId])
+
+  const handleKickClick = useCallback(
+    (userId: string) => {
+      dispatch(kickFromRoomEmitAction({ gameId, userId }))
+    },
+    [dispatch, gameId],
+  )
 
   if (spectators.length === 0 && !canSpectate) {
     return null
@@ -76,6 +85,19 @@ export const SpectatorsList = () => {
               {username}
             </Typography>
             {isViewer && <NameBadge>You</NameBadge>}
+            {canKick && !isViewer && (
+              <IconButton
+                size="small"
+                color="inherit"
+                aria-label={`Remove ${username} from the room`}
+                title="Remove from the room"
+                onClick={() => handleKickClick(id)}
+                sx={{ mr: -1 }}
+                data-test-id="GameSettings-KickSpectatorButton"
+              >
+                <PersonRemoveOutlinedIcon fontSize="small" />
+              </IconButton>
+            )}
           </Box>
         ))}
         {canSpectate && (
