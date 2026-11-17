@@ -36,19 +36,3 @@ export const Narrow: Story = {
     </div>
   ),
 }
-
-export const FreeSeats: Story = {
-  render: () => (
-    <div style={{ width: '44rem', display: 'flex' }}>
-      <PlayersScoresTable players={players.slice(0, 2)} freeSeatsCount={2} onInviteClick={() => {}} />
-    </div>
-  ),
-}
-
-export const FreeSeatsNarrow: Story = {
-  render: () => (
-    <div style={{ width: '20rem', display: 'flex' }}>
-      <PlayersScoresTable players={players.slice(0, 2)} freeSeatsCount={2} inviteFeedback="copied" onInviteClick={() => {}} />
-    </div>
-  ),
-}

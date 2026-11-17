@@ -1,9 +1,8 @@
 import type { FC, ReactNode } from 'react'
 import last from 'lodash/last'
 import times from 'lodash/times'
-import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined'
 import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined'
-import { Box, Button, Grid, Typography, useMediaQuery, useTheme } from '@memebattle/ui'
+import { Box, Grid, Typography, useMediaQuery, useTheme } from '@memebattle/ui'
 import { alpha } from '@mui/material/styles'
 import type { PlayerStatus } from '@memebattle/ligretto-shared'
 import { Avatar } from '#shared/ui/Avatar'
@@ -13,6 +12,7 @@ import { PlayersScoresTableCell } from './PlayersScoresTableCell'
 import { PlayersScoresTableHead } from './PlayersScoresTableHead'
 import { PlayersScoresTableRow } from './PlayersScoresTableRow'
 import { PlayerStatusPill } from './PlayerStatusPill'
+import { RoomInviteLink } from './RoomInviteLink/RoomInviteLink'
 
 export interface PlayersScoresTablePlayer {
   id: string
@@ -25,18 +25,11 @@ export interface PlayersScoresTablePlayer {
   status?: PlayerStatus
 }
 
-export type InviteFeedback = 'copied' | 'failed'
-
 export interface PlayersScoresTableProps {
   /** Players results */
   players: PlayersScoresTablePlayer[]
   /** Empty seats listed after the players, inviting more people to join */
   freeSeatsCount?: number
-  /** An invitation from an empty seat is being shared, so another one cannot start */
-  isInvitePending?: boolean
-  /** The outcome of the last invitation that the user has to know about */
-  inviteFeedback?: InviteFeedback
-  onInviteClick?: () => void
 }
 
 const columnsProps = {
@@ -55,13 +48,7 @@ const HeadLabel: FC<{ children?: ReactNode }> = ({ children }) => (
   </Typography>
 )
 
-export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({
-  players,
-  freeSeatsCount = 0,
-  isInvitePending = false,
-  inviteFeedback,
-  onInviteClick,
-}) => {
+export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players, freeSeatsCount = 0 }) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const hasStatuses = players.some(player => player.status)
@@ -147,29 +134,11 @@ export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({
               </Typography>
             </PlayersScoresTableCell>
             <PlayersScoresTableCell size={{ xs: 12, sm: 'auto' }}>
-              <Button
-                onClick={onInviteClick}
-                aria-disabled={isInvitePending}
-                variant="text"
-                color="inherit"
-                startIcon={<ShareOutlinedIcon />}
-                sx={{ minHeight: '2.75rem', textAlign: 'start', textTransform: 'none', fontWeight: 600 }}
-                data-test-id="PlayersScoresTable-InviteButton"
-              >
-                Invite friends to join you!
-              </Button>
+              <RoomInviteLink />
             </PlayersScoresTableCell>
           </Grid>
         </PlayersScoresTableRow>
       ))}
-      <Typography role="status" variant="body2" sx={{ color: 'primary.light' }}>
-        {inviteFeedback === 'copied' ? 'Room link copied' : ''}
-      </Typography>
-      {inviteFeedback === 'failed' && (
-        <Typography role="alert" variant="body2" sx={{ color: 'error.light' }}>
-          Couldn't share the room link. Copy it from the address bar instead.
-        </Typography>
-      )}
     </Box>
   )
 }
