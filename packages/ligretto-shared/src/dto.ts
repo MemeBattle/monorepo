@@ -39,6 +39,14 @@ export interface PlayerStatusInGame {
   status: PlayerStatus
 }
 
+export interface BecomePlayer {
+  gameId: Game['id']
+}
+
+export interface BecomeSpectator {
+  gameId: Game['id']
+}
+
 export interface PutCard {
   gameId: Game['id']
   cardIndex: number

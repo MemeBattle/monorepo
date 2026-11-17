@@ -30,11 +30,14 @@ interface GameSettingsProps {
   canStartGame: boolean
   /** The viewer is a seated player between rounds */
   canToggleReady: boolean
+  /** The viewer is a seated player other than the host, between rounds */
+  canSpectate: boolean
   isStartDisabled: boolean
   isPlayerReadyToPlay: boolean
   onStartClick: () => void
   onReadyClick: () => void
   onExitClick: () => void
+  onSpectateClick: () => void
 }
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -85,11 +88,13 @@ export const GameSettings = ({
   spectators,
   canStartGame,
   canToggleReady,
+  canSpectate,
   isStartDisabled,
   isPlayerReadyToPlay,
   onReadyClick,
   onStartClick,
   onExitClick,
+  onSpectateClick,
 }: GameSettingsProps) => {
   const roundState = roundStateByStatus[gameStatus]
 
@@ -111,7 +116,7 @@ export const GameSettings = ({
 
       <PlayersScoresTableContainer />
 
-      {spectators.length > 0 && (
+      {(spectators.length > 0 || canSpectate) && (
         <Box data-test-id="GameSettings-Spectators">
           <Box display="flex" alignItems="center" sx={{ gap: 1, mb: 1 }}>
             <VisibilityOutlinedIcon sx={{ fontSize: '1rem', opacity: 0.75 }} />
@@ -134,6 +139,22 @@ export const GameSettings = ({
                 {isViewer && <NameBadge>You</NameBadge>}
               </Box>
             ))}
+            {canSpectate && (
+              <Button
+                onClick={onSpectateClick}
+                color="inherit"
+                startIcon={<VisibilityOutlinedIcon />}
+                sx={{
+                  px: 2,
+                  borderRadius: 999,
+                  fontWeight: 700,
+                  border: theme => `2px dashed ${alpha(theme.palette.common.white, 0.35)}`,
+                }}
+                data-test-id="GameSettings-SpectateButton"
+              >
+                Spectate
+              </Button>
+            )}
           </Box>
         </Box>
       )}

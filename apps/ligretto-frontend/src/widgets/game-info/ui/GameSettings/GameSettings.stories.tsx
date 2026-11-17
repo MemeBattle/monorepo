@@ -95,10 +95,12 @@ const meta: Meta<typeof GameSettings> = {
     spectators: spectatorsSeenBy(''),
     canStartGame: false,
     canToggleReady: false,
+    canSpectate: false,
     isStartDisabled: false,
     isPlayerReadyToPlay: false,
     onReadyClick: () => void 0,
     onExitClick: () => void 0,
+    onSpectateClick: () => void 0,
     onStartClick: () => void 0,
   },
 }
@@ -112,7 +114,7 @@ export const Host: Story = {
 }
 
 export const Player: Story = {
-  args: { canToggleReady: true },
+  args: { canToggleReady: true, canSpectate: true },
   decorators: withStore(createStoryStore('marta', GameStatus.RoundFinished, playersBetweenRounds)),
 }
 

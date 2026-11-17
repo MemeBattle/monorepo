@@ -70,6 +70,25 @@ export const addSpectator = (game: Game, userId: UUID): Game => ({ ...game, spec
 export const removeSpectator = (game: Game, userId: UUID): Game | undefined =>
   game.spectators[userId] ? { ...game, spectators: omit(game.spectators, userId) } : undefined
 
+/** A disconnected player keeps their seat, so they count towards a full room. */
+export const canBecomePlayer = (game: Game, userId: UUID) =>
+  isBetweenRounds(game) && !!game.spectators[userId] && !game.players[userId] && Object.keys(game.players).length < game.config.playersMaxCount
+
+/** The host stays a player: the room needs one to start its rounds. */
+export const canBecomeSpectator = (game: Game, userId: UUID) => isBetweenRounds(game) && !!game.players[userId] && !game.players[userId].isHost
+
+export const becomePlayer = (game: Game, userId: UUID): Game => ({
+  ...game,
+  players: { ...game.players, [userId]: createPlayer(userId) },
+  spectators: omit(game.spectators, userId),
+})
+
+export const becomeSpectator = (game: Game, userId: UUID): Game => ({
+  ...game,
+  players: omit(game.players, userId),
+  spectators: { ...game.spectators, [userId]: { id: userId } },
+})
+
 export const setPlayerStatus = (game: Game, userId: UUID, status: PlayerStatus): Game => {
   const player = game.players[userId]
   return player ? { ...game, players: { ...game.players, [userId]: { ...player, status } } } : game
@@ -97,6 +116,14 @@ export const dealRound = (game: Game): Game => {
     playground: emptyTable(game.config.maxCardsOnTable),
   }
 }
+
+/** The round as it may be shown during its countdown: who is in it and their roles, with no card dealt yet. */
+export const concealDeal = (game: Game): Game => ({
+  ...game,
+  status: GameStatus.Starting,
+  players: Object.fromEntries(playersOf(game).map(player => [player.id, createPlayer(player.id, { isHost: player.isHost, status: player.status })])),
+  playground: emptyTable(game.config.maxCardsOnTable),
+})
 
 export const resumeRound = (game: Game): Game => ({ ...game, status: GameStatus.InGame })
 

@@ -5,6 +5,7 @@ import { createSelector } from '@reduxjs/toolkit'
 
 import { routes } from '#shared/constants'
 import {
+  gameIdSelector,
   gameNameSelector,
   gameStatusSelector,
   isGameReadyToStartSelector,
@@ -19,7 +20,7 @@ import {
 import { userAvatarUrl, userLabel, usersMapSelector } from '#ducks/users'
 import { currentUserIdSelector } from '#ducks/auth'
 import { getRandomAvatar } from '#shared/ui/Avatar/getRandomAvatar'
-import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
+import { becomeSpectatorEmitAction, GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 
 import { GameSettings } from './GameSettings'
 import type { GameSettingsSpectator } from './GameSettings'
@@ -42,6 +43,7 @@ export const GameSettingsContainer = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
+  const gameId = useSelector(gameIdSelector)
   const gameName = useSelector(gameNameSelector)
   const gameStatus = useSelector(gameStatusSelector)
   const currentPlayer = useSelector(playerSelector)
@@ -58,6 +60,10 @@ export const GameSettingsContainer = () => {
     dispatch(gameStatus === GameStatus.Pause ? resumeGameAction() : startGameAction())
   }, [dispatch, gameStatus])
 
+  const handleSpectateClick = useCallback(() => {
+    dispatch(becomeSpectatorEmitAction({ gameId }))
+  }, [dispatch, gameId])
+
   const handleExitClick = useCallback(() => {
     navigate(routes.HOME)
   }, [navigate])
@@ -71,6 +77,8 @@ export const GameSettingsContainer = () => {
       spectators={spectators}
       canStartGame={currentPlayer?.isHost ?? false}
       canToggleReady={!!currentPlayer && currentPlayer.status !== PlayerStatus.Disconnected && isBetweenRounds(gameStatus)}
+      canSpectate={!!currentPlayer && !currentPlayer.isHost && isBetweenRounds(gameStatus)}
+      onSpectateClick={handleSpectateClick}
       onReadyClick={handleReadyClick}
       onStartClick={handleStartClick}
       onExitClick={handleExitClick}

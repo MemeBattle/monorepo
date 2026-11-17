@@ -1,8 +1,9 @@
 import type { FC, ReactNode } from 'react'
 import last from 'lodash/last'
 import times from 'lodash/times'
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined'
-import { Box, Grid, Typography, useMediaQuery, useTheme } from '@memebattle/ui'
+import { Box, Button, Grid, Typography, useMediaQuery, useTheme } from '@memebattle/ui'
 import { alpha } from '@mui/material/styles'
 import type { PlayerStatus } from '@memebattle/ligretto-shared'
 import { Avatar } from '#shared/ui/Avatar'
@@ -29,6 +30,8 @@ export interface PlayersScoresTableProps {
   players: PlayersScoresTablePlayer[]
   /** Empty seats listed after the players, inviting more people to join */
   freeSeatsCount?: number
+  /** Offered on every free seat to a viewer who is spectating */
+  onTakeSeat?: () => void
 }
 
 const columnsProps = {
@@ -47,7 +50,7 @@ const HeadLabel: FC<{ children?: ReactNode }> = ({ children }) => (
   </Typography>
 )
 
-export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players, freeSeatsCount = 0 }) => {
+export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players, freeSeatsCount = 0, onTakeSeat }) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const hasStatuses = players.some(player => player.status)
@@ -132,12 +135,27 @@ export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players, freeS
                 Free seat
               </Typography>
             </PlayersScoresTableCell>
-            {!isMobile && (
+            {onTakeSeat ? (
               <PlayersScoresTableCell size="auto">
-                <Typography variant="body2" sx={{ opacity: 0.85 }}>
-                  Invite friends to join you!
-                </Typography>
+                <Button
+                  onClick={onTakeSeat}
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<ArrowForwardRoundedIcon />}
+                  sx={{ fontWeight: 800 }}
+                  data-test-id="PlayersScoresTable-TakeSeatButton"
+                >
+                  Sit here
+                </Button>
               </PlayersScoresTableCell>
+            ) : (
+              !isMobile && (
+                <PlayersScoresTableCell size="auto">
+                  <Typography variant="body2" sx={{ opacity: 0.85 }}>
+                    Invite friends to join you!
+                  </Typography>
+                </PlayersScoresTableCell>
+              )
             )}
           </Grid>
         </PlayersScoresTableRow>
