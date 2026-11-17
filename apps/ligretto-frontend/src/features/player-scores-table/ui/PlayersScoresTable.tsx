@@ -13,6 +13,7 @@ import { PlayersScoresTableCell } from './PlayersScoresTableCell'
 import { PlayersScoresTableHead } from './PlayersScoresTableHead'
 import { PlayersScoresTableRow } from './PlayersScoresTableRow'
 import { PlayerStatusPill } from './PlayerStatusPill'
+import { RoomInviteLink } from './RoomInviteLink/RoomInviteLink'
 
 export interface PlayersScoresTablePlayer {
   id: string
@@ -135,7 +136,10 @@ export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players, freeS
                 Free seat
               </Typography>
             </PlayersScoresTableCell>
-            {onTakeSeat ? (
+            <PlayersScoresTableCell size={{ xs: 12, sm: 'auto' }}>
+              <RoomInviteLink />
+            </PlayersScoresTableCell>
+            {onTakeSeat && (
               <PlayersScoresTableCell size="auto">
                 <Button
                   onClick={onTakeSeat}
@@ -148,14 +152,6 @@ export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players, freeS
                   Sit here
                 </Button>
               </PlayersScoresTableCell>
-            ) : (
-              !isMobile && (
-                <PlayersScoresTableCell size="auto">
-                  <Typography variant="body2" sx={{ opacity: 0.85 }}>
-                    Invite friends to join you!
-                  </Typography>
-                </PlayersScoresTableCell>
-              )
             )}
           </Grid>
         </PlayersScoresTableRow>
