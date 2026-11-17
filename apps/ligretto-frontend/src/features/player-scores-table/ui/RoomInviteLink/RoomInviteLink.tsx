@@ -31,18 +31,19 @@ export const RoomInviteLink = () => {
   const gameId = useSelector(gameIdSelector)
   const [feedback, setFeedback] = useState<Feedback>()
   const hideFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const latestClickIdRef = useRef(0)
 
   useEffect(() => () => clearTimeout(hideFeedbackTimeoutRef.current), [])
 
   const handleClick = async () => {
+    const clickId = ++latestClickIdRef.current
     clearTimeout(hideFeedbackTimeoutRef.current)
     setFeedback(undefined)
 
     const roomUrl = new URL(generatePath(routes.GAME, { roomUuid: gameId }), window.location.origin).href
     const result = await shareRoomLink(roomUrl)
 
-    if (result === 'copied' || result === 'failed') {
-      clearTimeout(hideFeedbackTimeoutRef.current)
+    if (clickId === latestClickIdRef.current && (result === 'copied' || result === 'failed')) {
       setFeedback(result)
       hideFeedbackTimeoutRef.current = setTimeout(() => setFeedback(undefined), FEEDBACK_DURATION_MS)
     }

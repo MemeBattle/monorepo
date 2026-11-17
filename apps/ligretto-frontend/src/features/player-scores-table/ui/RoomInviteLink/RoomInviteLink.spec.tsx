@@ -87,7 +87,7 @@ describe('RoomInviteLink', () => {
     await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull())
   })
 
-  it('keeps the latest feedback for 2 seconds when overlapping clicks settle apart', async () => {
+  it('ignores an earlier click that settles first and keeps the latest feedback for 2 seconds', async () => {
     const firstCopy = createDeferred()
     const secondCopy = createDeferred()
     mockNavigator({ clipboard: { writeText: vi.fn().mockReturnValueOnce(firstCopy.promise).mockReturnValueOnce(secondCopy.promise) } })
@@ -96,7 +96,8 @@ describe('RoomInviteLink', () => {
     fireEvent.click(link)
     fireEvent.click(link)
     firstCopy.resolve()
-    expect((await screen.findByRole('tooltip')).textContent).toBe(COPIED)
+    await act(() => vi.advanceTimersByTimeAsync(0))
+    expect(screen.getByRole('status').textContent).toBe('')
 
     await act(() => vi.advanceTimersByTimeAsync(1500))
     secondCopy.reject(new DOMException('Denied', 'NotAllowedError'))
@@ -107,6 +108,41 @@ describe('RoomInviteLink', () => {
 
     await act(() => vi.advanceTimersByTimeAsync(100))
     expect(screen.getByRole('status').textContent).toBe('')
+  })
+
+  it('keeps the latest click feedback when an earlier click settles after it', async () => {
+    const firstCopy = createDeferred()
+    const secondCopy = createDeferred()
+    mockNavigator({ clipboard: { writeText: vi.fn().mockReturnValueOnce(firstCopy.promise).mockReturnValueOnce(secondCopy.promise) } })
+    const link = renderInviteLink()
+
+    fireEvent.click(link)
+    fireEvent.click(link)
+    secondCopy.resolve()
+    expect((await screen.findByRole('tooltip')).textContent).toBe(COPIED)
+
+    firstCopy.reject(new DOMException('Denied', 'NotAllowedError'))
+    await act(() => vi.advanceTimersByTimeAsync(0))
+
+    expect(screen.getByRole('tooltip').textContent).toBe(COPIED)
+    expect(screen.getByRole('status').textContent).toBe(COPIED)
+  })
+
+  it('shows no stale feedback when the latest click is cancelled', async () => {
+    const firstShare = createDeferred()
+    mockNavigator({
+      share: vi.fn().mockReturnValueOnce(firstShare.promise).mockRejectedValueOnce(new DOMException('Canceled', 'AbortError')),
+    })
+    const link = renderInviteLink()
+
+    fireEvent.click(link)
+    fireEvent.click(link)
+    await act(() => vi.advanceTimersByTimeAsync(0))
+    firstShare.reject(new TypeError('Invalid data'))
+    await act(() => vi.advanceTimersByTimeAsync(0))
+
+    expect(screen.getByRole('status').textContent).toBe('')
+    expect(screen.queryByRole('tooltip')).toBeNull()
   })
 
   it('shows the failure in a tooltip, not the copy confirmation', async () => {
