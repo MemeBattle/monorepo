@@ -12,6 +12,7 @@ import { PlayersScoresTableCell } from './PlayersScoresTableCell'
 import { PlayersScoresTableHead } from './PlayersScoresTableHead'
 import { PlayersScoresTableRow } from './PlayersScoresTableRow'
 import { PlayerStatusPill } from './PlayerStatusPill'
+import { RoomInviteLink } from './RoomInviteLink/RoomInviteLink'
 
 export interface PlayersScoresTablePlayer {
   id: string
@@ -132,13 +133,9 @@ export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players, freeS
                 Free seat
               </Typography>
             </PlayersScoresTableCell>
-            {!isMobile && (
-              <PlayersScoresTableCell size="auto">
-                <Typography variant="body2" sx={{ opacity: 0.85 }}>
-                  Invite friends to join you!
-                </Typography>
-              </PlayersScoresTableCell>
-            )}
+            <PlayersScoresTableCell size={{ xs: 12, sm: 'auto' }}>
+              <RoomInviteLink />
+            </PlayersScoresTableCell>
           </Grid>
         </PlayersScoresTableRow>
       ))}
