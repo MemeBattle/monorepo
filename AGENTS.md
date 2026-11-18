@@ -13,4 +13,4 @@ From the repo root:
 
 ## Conventions
 
-[docs/guidelines.md](./docs/guidelines.md) applies to every package: language, when to write a code comment, what gets a unit test.
+[docs/guidelines.md](./docs/guidelines.md) applies to every package: language, the scope of a change, reusing what exists, when to write a code comment, how tests are written.

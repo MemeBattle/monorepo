@@ -1,6 +1,6 @@
 # Tests
 
-What gets a unit test in this package and how it is written.
+What gets a unit test in this package, how it is written, and what the e2e suite may rely on.
 
 ## What gets a unit test
 
@@ -24,3 +24,8 @@ What gets a unit test in this package and how it is written.
 - Declarative code: markup without logic, route tables, type and schema declarations, lists of constants.
 - Configuration: `vite.config.ts`, `playwright.config.ts`, `cloudflare.config.ts`, `wrangler.config.ts`, the env
   files.
+
+## E2E
+
+The e2e suite drives the real app only: no fixture pages, fake stores or test-only routes served to Playwright. The
+same suite runs daily against production (`.github/workflows/ligretto-schedule-e2e.yml`), where none of them exist.

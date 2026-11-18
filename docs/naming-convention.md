@@ -61,9 +61,8 @@ ComponentName
 -- ComponentName.stories.tsx
 ```
 
-### 'Smart' components (Containers)
+### Components connected to the store
 
-'Smart' component (Container) - components connected to redux.
-
-**Smart** components should have a '_Container_' postfix. For example
-_'CardContainer'_
+A component that reads the store is named for what it shows, like any other component, with no `Container` postfix:
+it owns its selectors and handlers itself rather than wrapping a presentational twin. Existing `*Container`
+components keep their names until a change reworks them.
