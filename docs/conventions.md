@@ -1,4 +1,5 @@
 # MemeBattle Team Conventions
 
-- [Guidelines](./guidelines.md) — language, scope of a change, reusing what exists, code comments, tests
+- [Code](./CODE.md)
+- [Tests](./TESTS.md)
 - [Naming convention](./naming-convention.md)

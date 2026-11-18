@@ -13,4 +13,6 @@ From the repo root:
 
 ## Conventions
 
-[docs/guidelines.md](./docs/guidelines.md) applies to every package: language, the scope of a change, reusing what exists, when to write a code comment, how tests are written.
+Read [docs/CODE.md](./docs/CODE.md) before adding or changing any code or documentation.
+
+Read [docs/TESTS.md](./docs/TESTS.md) before adding, changing or deleting a test, and when deciding whether a change needs a test.

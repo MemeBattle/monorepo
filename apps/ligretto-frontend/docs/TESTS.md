@@ -21,9 +21,6 @@ What gets a unit test in this package, how it is written, and what the e2e suite
   view: render the screen the user would be on, trigger what the user does, assert what the user sees. When a flow
   spans the API and the socket and no single screen shows it, it is an e2e scenario, not a unit test. Logic that
   deserves a test of its own is extracted into a pure function and tested there.
-- Declarative code: markup without logic, route tables, type and schema declarations, lists of constants.
-- Configuration: `vite.config.ts`, `playwright.config.ts`, `cloudflare.config.ts`, `wrangler.config.ts`, the env
-  files.
 
 ## E2E
 
