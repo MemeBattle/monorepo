@@ -63,6 +63,5 @@ ComponentName
 
 ### Components connected to the store
 
-A component that reads the store is named for what it shows, like any other component, with no `Container` postfix:
-it owns its selectors and handlers itself rather than wrapping a presentational twin. Existing `*Container`
-components keep their names until a change reworks them.
+A component that reads the store is named for what it shows, like any other component, with no `Container` postfix.
+Existing `*Container` components keep their names until a change reworks them.
