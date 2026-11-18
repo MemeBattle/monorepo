@@ -2,9 +2,9 @@
 
 React + Vite SPA (package `@memebattle/ligretto-frontend`). Imports inside `src` use subpath imports `#…` (see `imports` in package.json).
 
-[docs/CODE.md](./docs/CODE.md) says how components are written here: a component owns its selectors and handlers, hooks and providers expose the minimum, UI state follows the task, input changes keep mouse, touch and keyboard working.
+Read [docs/CODE.md](./docs/CODE.md) before adding or changing any code under `src`.
 
-[docs/TESTS.md](./docs/TESTS.md) says what gets a unit test in this package: screens are tested from the user's point of view, store listeners get no unit test, the app serves nothing test-only to e2e.
+Read [docs/TESTS.md](./docs/TESTS.md) before adding, changing or deleting a `*.spec.*` file or anything under `e2e`, and when deciding whether a change needs a test.
 
 The ligretto-core API is called only through `@memebattle/ligretto-core-client`, in `src/shared/api`. Its base, the root `LIGRETTO_CORE_URL`, is an origin without `/api`, because the generated paths start with `/api`. It is set only in development and tests: in production it stays unset, and the SPA calls the API on its own origin.
 
