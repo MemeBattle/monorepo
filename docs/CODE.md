@@ -3,10 +3,6 @@
 How code is written in every package of this repository. A package's own `AGENTS.md` may add rules on top; it never
 relaxes these.
 
-## Language
-
-Code comments, agent docs (`AGENTS.md`, `docs/`) and commit messages are English.
-
 ## Scope of a change
 
 A change does what its task asks and nothing more. Copy, domain rules, existing UI elements and interaction semantics

@@ -13,6 +13,8 @@ From the repo root:
 
 ## Conventions
 
+Code comments, agent docs (`AGENTS.md`, `docs/`) and commit messages are English.
+
 Read [docs/CODE.md](./docs/CODE.md) before adding or changing any code or documentation.
 
 Read [docs/TESTS.md](./docs/TESTS.md) before adding, changing or deleting a test, and when deciding whether a change needs a test.
