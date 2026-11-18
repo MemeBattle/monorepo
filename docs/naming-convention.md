@@ -60,8 +60,3 @@ ComponentName
 -- ComponentName.tsx
 -- ComponentName.stories.tsx
 ```
-
-### Components connected to the store
-
-A component that reads the store is named for what it shows, like any other component, with no `Container` postfix.
-Existing `*Container` components keep their names until a change reworks them.
