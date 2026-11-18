@@ -6,4 +6,4 @@ We appreciate your help!
 
 ## Contributing code
 
-Please read the [Contribution Guidelines](./docs/development-lifecycle.md) before sending patches.
+Please read [AGENTS.md](./AGENTS.md) and the documents it links before sending patches.
