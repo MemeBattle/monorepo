@@ -160,7 +160,7 @@ export class Room {
       // Every player may be offline, the host too, so the first one seated takes over, as on a join.
       this.takeOverHost()
     }
-    this.broadcast(updateGameAction(this.gameplay.visibleState()))
+    this.broadcast(updateGameAction(this.current))
   }
 
   private resultsToShow() {

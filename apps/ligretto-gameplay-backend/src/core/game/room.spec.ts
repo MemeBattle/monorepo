@@ -565,7 +565,7 @@ describe('Room', () => {
       ])
     })
 
-    it.each([GameStatus.InGame, GameStatus.Pause])('changes nothing during a round and answers with the room (%s)', status => {
+    it.each([GameStatus.Starting, GameStatus.InGame, GameStatus.Pause])('changes nothing during a round and answers with the room (%s)', status => {
       const connection = new FakeConnection('game', 'host')
       const room = roomOf(
         gameInRound({
@@ -584,37 +584,6 @@ describe('Room', () => {
       expect(connection.sent).toEqual([updateGameAction(before), updateGameAction(before)])
     })
 
-    /** The reply shows who is in the round, with every hand and the table still empty. */
-    const expectNoDeal = (shown: GameState) => {
-      expect(shown.status).toBe(GameStatus.Starting)
-      for (const player of Object.values(shown.players)) {
-        expect([player!.cards, player!.ligrettoDeck.cards, player!.stackDeck.cards, player!.stackOpenDeck.cards]).toEqual([[], [], [], []])
-      }
-      expect(shown.playground).toEqual(clearedTable)
-    }
-
-    it('answers during the countdown without the deal, and with the round once it shows', () => {
-      const watcher = new FakeConnection('game', 'watcher')
-      const room = roomOf(intermission({ ...intermission().players, peer: playerOf('peer') }), [watcher])
-      room.gameplay.startRound('host')
-      const dealt = structuredClone(room.state)
-      watcher.sent = []
-
-      room.becomePlayer('watcher')
-      room.becomeSpectator('peer')
-
-      expect(room.state).toEqual(dealt)
-      expect(watcher.sent.map(({ type }) => type)).toEqual([updateGameAction.type, updateGameAction.type])
-      watcher.sent.forEach(({ payload }) => expectNoDeal(payload as GameState))
-
-      vi.advanceTimersByTime(room.state.config.startingDelayInSec * 1_000)
-      watcher.sent = []
-      room.becomePlayer('watcher')
-
-      expect(watcher.sent).toEqual([updateGameAction(room.state)])
-      expect(room.state.status).toBe(GameStatus.InGame)
-    })
-
     it('answers during the countdown with the roster and host as they are now, after the host left', () => {
       const watcher = new FakeConnection('game', 'watcher')
       const room = roomOf(intermission({ ...intermission().players, peer: playerOf('peer'), alpha: playerOf('alpha') }), [watcher])
@@ -624,14 +593,11 @@ describe('Room', () => {
 
       room.becomePlayer('watcher')
 
-      const [{ payload }] = watcher.sent
-      const shown = payload as GameState
-      expectNoDeal(shown)
-      expect(Object.keys(shown.players).sort()).toEqual(['alpha', 'peer'])
-      expect(shown.players.peer?.isHost).toBe(true)
-      expect(shown.players.alpha?.isHost).toBe(false)
-      expect(shown.spectators).toEqual({ watcher: { id: 'watcher' } })
-      expect(room.state.players.watcher).toBeUndefined()
+      expect(room.state.status).toBe(GameStatus.Starting)
+      expect(watcher.sent).toEqual([updateGameAction(room.state)])
+      expect(Object.keys(room.state.players).sort()).toEqual(['alpha', 'peer'])
+      expect(room.state.players.peer?.isHost).toBe(true)
+      expect(room.state.spectators).toEqual({ watcher: { id: 'watcher' } })
     })
 
     it('hands the host role to a spectator seated while every player is offline, who can then start a round', () => {

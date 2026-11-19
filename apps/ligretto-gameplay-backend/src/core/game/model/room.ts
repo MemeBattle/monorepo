@@ -119,14 +119,6 @@ export const dealRound = (game: Game): Game => {
   }
 }
 
-/** The round as it may be shown during its countdown: who is in it and their roles, with no card dealt yet. */
-export const concealDeal = (game: Game): Game => ({
-  ...game,
-  status: GameStatus.Starting,
-  players: Object.fromEntries(playersOf(game).map(player => [player.id, createPlayer(player.id, { isHost: player.isHost, status: player.status })])),
-  playground: emptyTable(game.config.maxCardsOnTable),
-})
-
 export const resumeRound = (game: Game): Game => ({ ...game, status: GameStatus.InGame })
 
 /** Only the current players score: the cards of someone who left stay on the table, and ligretto-core would refuse a round naming them with no score. */

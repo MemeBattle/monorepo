@@ -2,17 +2,7 @@ import type { Game as GameState, UUID } from '@memebattle/ligretto-shared'
 import { GameStatus, updateGameAction } from '@memebattle/ligretto-shared'
 import type { AnyAction } from '../actions'
 import { canMutateGameplay, putCard, putCardFromStackOpenDeck, takeFromLigrettoDeck, takeFromStackDeck } from './model/gameplay'
-import {
-  beginStarting,
-  canResumeRound,
-  canStartRound,
-  closeRound,
-  concealDeal,
-  finishStarting,
-  isRoundInProgress,
-  resumeRound,
-  scoreRound,
-} from './model/room'
+import { beginStarting, canResumeRound, canStartRound, closeRound, finishStarting, resumeRound, scoreRound } from './model/room'
 import type { RoundToSave } from '../ports'
 
 interface GameplayOptions {
@@ -43,12 +33,6 @@ export class Gameplay {
     }
     this.show(beginStarting(state))
     this.startCountdown(state.config.startingDelayInSec)
-  }
-
-  /** What may be shown of the game: until the countdown ends, who is in the round without the cards dealt to them. */
-  visibleState() {
-    const state = this.getState()
-    return this.countdown !== undefined && isRoundInProgress(state) ? concealDeal(state) : state
   }
 
   resumeRound(userId: UUID) {
