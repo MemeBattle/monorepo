@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { CardColors, GameStatus, PlayerStatus, type Card, type Game, type Player } from '@memebattle/ligretto-shared'
 import {
   addPlayer,
+  beginStarting,
   canResumeRound,
   canSetReadiness,
   canStartRound,
   closeRound,
   createGame,
   dealRound,
+  finishStarting,
   joinsAsSpectator,
   leaveRoom,
   markPlayerConnected,
@@ -43,12 +45,24 @@ const statusesOf = (state: Game) => Object.fromEntries(Object.values(state.playe
 
 const hostOf = (state: Game) => Object.values(state.players).find(current => current!.isHost)?.id
 
+const clearedTable = { decks: new Array(12).fill(null), droppedDecks: [] }
+
+const emptyHand = {
+  cards: [],
+  ligrettoDeck: { isHidden: true, cards: [] },
+  stackOpenDeck: { isHidden: true, cards: [] },
+  stackDeck: { isHidden: true, cards: [] },
+}
+
+/** Three online players in a countdown. */
+const startingTrio = () => game({ status: GameStatus.Starting, players: roster(player('host', { isHost: true }), player('peer'), player('third')) })
+
 describe('joinsAsSpectator', () => {
-  it.each([GameStatus.New, GameStatus.Starting, GameStatus.RoundFinished])('lets a newcomer play in %s', status => {
+  it.each([GameStatus.New, GameStatus.RoundFinished])('lets a newcomer play in %s', status => {
     expect(joinsAsSpectator(pair(status))).toBe(false)
   })
 
-  it.each([GameStatus.InGame, GameStatus.Pause])('makes a newcomer a spectator in %s', status => {
+  it.each([GameStatus.Starting, GameStatus.InGame, GameStatus.Pause])('makes a newcomer a spectator in %s, with seats free', status => {
     expect(joinsAsSpectator(pair(status))).toBe(true)
   })
 
@@ -133,8 +147,8 @@ describe('canSetReadiness', () => {
     expect(canSetReadiness(pair(GameStatus.New), 'peer', status)).toBe(false)
   })
 
-  it('does not let a player change readiness during a round', () => {
-    expect(canSetReadiness(pair(GameStatus.InGame), 'peer', PlayerStatus.ReadyToPlay)).toBe(false)
+  it.each([GameStatus.Starting, GameStatus.InGame, GameStatus.Pause])('does not let a player change readiness in %s', status => {
+    expect(canSetReadiness(pair(status), 'peer', PlayerStatus.ReadyToPlay)).toBe(false)
   })
 
   it('does not let a disconnected player or a spectator change readiness', () => {
@@ -142,6 +156,69 @@ describe('canSetReadiness', () => {
 
     expect(canSetReadiness(state, 'peer', PlayerStatus.ReadyToPlay)).toBe(false)
     expect(canSetReadiness(state, 'spectator', PlayerStatus.ReadyToPlay)).toBe(false)
+  })
+})
+
+describe('beginStarting', () => {
+  it('empties every hand and the table, and keeps who is in the room, the host and every status', () => {
+    const dealt = dealRound(pair(GameStatus.Starting))
+    const finished = {
+      ...dealt,
+      status: GameStatus.RoundFinished,
+      players: roster(
+        { ...dealt.players.host!, status: PlayerStatus.ReadyToPlay },
+        { ...dealt.players.peer!, status: PlayerStatus.DontReadyToPlay },
+        player('ghost', { status: PlayerStatus.Disconnected, cards: [card('ghost')] }),
+      ),
+      spectators: { watcher: { id: 'watcher' } },
+      playground: { decks: [{ isHidden: false, cards: [card('host')] }, ...new Array(11).fill(null)], droppedDecks: [] },
+    }
+
+    const starting = beginStarting(finished)
+
+    expect(starting).toEqual({
+      ...finished,
+      status: GameStatus.Starting,
+      players: {
+        host: { ...finished.players.host, ...emptyHand },
+        peer: { ...finished.players.peer, ...emptyHand },
+        ghost: { ...finished.players.ghost, ...emptyHand },
+      },
+      playground: clearedTable,
+    })
+  })
+})
+
+describe('finishStarting', () => {
+  it('deals to the players seated now, sized for how many they are, and to no spectator', () => {
+    const state = { ...leaveRoom(startingTrio(), 'third'), spectators: { watcher: { id: 'watcher' } } }
+
+    const dealt = finishStarting(state)
+
+    expect(dealt.status).toBe(GameStatus.InGame)
+    expect(Object.keys(dealt.players)).toEqual(['host', 'peer'])
+    expect(dealt.players.host!.cards).toHaveLength(5)
+    expect(dealt.players.peer!.cards).toHaveLength(5)
+    expect(dealt.spectators).toEqual({ watcher: { id: 'watcher' } })
+  })
+
+  it('deals a disconnected player in while two others are online', () => {
+    const dealt = finishStarting(markPlayerDisconnected(startingTrio(), 'third')!)
+
+    expect(dealt.status).toBe(GameStatus.InGame)
+    expect(statusesOf(dealt)).toEqual({ host: PlayerStatus.InGame, peer: PlayerStatus.InGame, third: PlayerStatus.Disconnected })
+    expect(dealt.players.third!.cards).toHaveLength(4)
+  })
+
+  it('gives up a round with fewer than two online, dealing nothing', () => {
+    const state = pair(GameStatus.Starting, {}, { status: PlayerStatus.Disconnected })
+
+    const abandoned = finishStarting(state)
+
+    expect(abandoned.status).toBe(GameStatus.RoundFinished)
+    expect(statusesOf(abandoned)).toEqual({ host: PlayerStatus.DontReadyToPlay, peer: PlayerStatus.Disconnected })
+    expect(abandoned.players.host!.cards).toEqual([])
+    expect(abandoned.playground).toEqual(clearedTable)
   })
 })
 
@@ -249,7 +326,7 @@ describe('leaveRoom', () => {
     expect(leaveRoom(game({ players: roster(player('host', { isHost: true })) }), 'host').players).toEqual({})
   })
 
-  it.each([GameStatus.InGame, GameStatus.Pause])('abandons a round in %s that falls below two players online', status => {
+  it.each([GameStatus.Starting, GameStatus.InGame, GameStatus.Pause])('abandons a round in %s that falls below two players online', status => {
     const left = leaveRoom({ ...pair(status), playground: { decks: [{ isHidden: false, cards: [card('host')] }], droppedDecks: [] } }, 'peer')
 
     expect(left.status).toBe(GameStatus.RoundFinished)
@@ -261,6 +338,14 @@ describe('leaveRoom', () => {
     const state = game({ status: GameStatus.InGame, players: roster(player('host', { isHost: true }), player('peer'), player('third')) })
 
     expect(leaveRoom(state, 'third').status).toBe(GameStatus.InGame)
+  })
+
+  it('keeps a countdown going while two players are online, with the host passed on', () => {
+    const left = leaveRoom(startingTrio(), 'host')
+
+    expect(left.status).toBe(GameStatus.Starting)
+    expect(hostOf(left)).toBe('peer')
+    expect(statusesOf(left)).toEqual({ peer: PlayerStatus.InGame, third: PlayerStatus.InGame })
   })
 
   it('keeps a room between rounds as it is', () => {
@@ -282,8 +367,23 @@ describe('markPlayerDisconnected', () => {
     expect(markPlayerDisconnected(state, 'third')!.status).toBe(GameStatus.InGame)
   })
 
-  it.each([GameStatus.New, GameStatus.Starting, GameStatus.RoundFinished])('does not pause in %s', status => {
+  it.each([GameStatus.New, GameStatus.RoundFinished])('does not pause in %s', status => {
     expect(markPlayerDisconnected(pair(status), 'peer')!.status).toBe(status)
+  })
+
+  it('gives up a countdown that falls below two players online, keeping the seat', () => {
+    const state = markPlayerDisconnected(pair(GameStatus.Starting, { status: PlayerStatus.ReadyToPlay }), 'peer')!
+
+    expect(state.status).toBe(GameStatus.RoundFinished)
+    expect(statusesOf(state)).toEqual({ host: PlayerStatus.DontReadyToPlay, peer: PlayerStatus.Disconnected })
+    expect(hostOf(state)).toBe('host')
+  })
+
+  it('keeps a countdown going while two players are online', () => {
+    const state = markPlayerDisconnected(startingTrio(), 'third')!
+
+    expect(state.status).toBe(GameStatus.Starting)
+    expect(state.players.third!.status).toBe(PlayerStatus.Disconnected)
   })
 
   it('returns nothing for someone already disconnected or not a player', () => {
@@ -295,13 +395,13 @@ describe('markPlayerDisconnected', () => {
 })
 
 describe('markPlayerConnected', () => {
-  it.each([GameStatus.New, GameStatus.RoundFinished])('asks a player returning in %s for readiness again', status => {
+  it.each([GameStatus.New, GameStatus.Starting, GameStatus.RoundFinished])('asks a player returning in %s for readiness again', status => {
     const state = markPlayerConnected(pair(status, {}, { status: PlayerStatus.Disconnected }), 'peer')
 
     expect(state.players.peer!.status).toBe(PlayerStatus.DontReadyToPlay)
   })
 
-  it.each([GameStatus.Starting, GameStatus.InGame, GameStatus.Pause])('returns a player to their hand in %s', status => {
+  it.each([GameStatus.InGame, GameStatus.Pause])('returns a player to their hand in %s', status => {
     const state = markPlayerConnected(pair(status, {}, { status: PlayerStatus.Disconnected }), 'peer')
 
     expect(state.players.peer!.status).toBe(PlayerStatus.InGame)
