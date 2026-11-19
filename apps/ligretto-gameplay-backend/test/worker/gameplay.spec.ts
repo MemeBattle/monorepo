@@ -3,6 +3,8 @@
 import { env, exports } from 'cloudflare:workers'
 import { abortAllDurableObjects, evictDurableObject, reset, runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test'
 import {
+  becomePlayerEmitAction,
+  becomeSpectatorEmitAction,
   connectToRoomErrorAction,
   connectToRoomSuccessAction,
   createRoomEmitAction,
@@ -756,6 +758,40 @@ describe('gameplay on Durable Objects', () => {
         const target = instance as unknown as { lobby: unknown; env: Env }
         target.lobby = target.env.LOBBY.get(target.env.LOBBY.idFromName('global'))
       })
+
+    it('moves a seat between users, for every tab, the Lobby and a room that comes back', async () => {
+      const { lobby, id, clients, stub } = await roomOf('host', 'a', 'b', 'leaving')
+      clients.forEach(track)
+      const leaving = clients[3]
+      const watcher = track(await joinRoom(id, 'watcher'))
+      const watcherTab = track(await joinRoom(id, 'watcher'))
+      expect(latestGame(watcher).spectators.watcher).toBeDefined()
+      const lobbyShows = (playersCount: number) =>
+        lobby.until(() =>
+          lobby.received.some(
+            ({ type, payload }) =>
+              type === updateRoomsAction.type &&
+              (payload as { rooms: Room[] }).rooms.some(room => room.uuid === id && room.playersCount === playersCount),
+          )
+            ? true
+            : undefined,
+        )
+
+      leaving.send(becomeSpectatorEmitAction({ gameId: id }))
+      await watcherTab.until(() => (latestGame(watcherTab).spectators.leaving ? true : undefined))
+      await lobbyShows(3)
+
+      watcher.send(becomePlayerEmitAction({ gameId: id }))
+      await watcherTab.until(() => (latestGame(watcherTab).players.watcher ? true : undefined))
+      expect(latestGame(leaving).players.watcher).toMatchObject({ isHost: false, status: PlayerStatus.DontReadyToPlay })
+      await lobbyShows(4)
+
+      await evictDurableObject(stub)
+      const newcomer = track(await joinRoom(id, 'newcomer'))
+
+      expect(Object.keys(latestGame(newcomer).players).sort()).toEqual(['a', 'b', 'host', 'watcher'])
+      expect(Object.keys(latestGame(newcomer).spectators).sort()).toEqual(['leaving', 'newcomer'])
+    })
 
     describe('the connections of a user', () => {
       // Waits out the real grace period, twice. The rules around it are in src/core/game/room.spec.ts.

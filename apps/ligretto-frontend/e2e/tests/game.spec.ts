@@ -136,6 +136,36 @@ test.describe('Connection lifecycle', () => {
   })
 })
 
+test.describe('Roles between rounds', () => {
+  test('a player watches instead, takes a seat again and plays the next round', async ({ browser }, testInfo) => {
+    test.setTimeout(60_000)
+    const { contextUser1, contextUser2, gamePageUser1, gamePageUser2 } = await setupTwoPlayerRoom(browser, `Roles-room-${testInfo.retry}`)
+
+    await expect(gamePageUser1.getSpectateButton()).toBeHidden()
+    await gamePageUser2.getSpectateButton().click()
+
+    await expect(await gamePageUser1.getPlayersList()).toHaveCount(1)
+    await expect(await gamePageUser2.getPlayersList()).toHaveCount(1)
+    await expect(await gamePageUser2.getPlayerReadyButton()).toBeHidden()
+    await expect(gamePageUser1.getTakeSeatButtons()).toHaveCount(0)
+
+    await gamePageUser2.getTakeSeatButtons().first().click()
+
+    await expect(await gamePageUser1.getPlayersList()).toHaveCount(2)
+    await expect(await gamePageUser2.getPlayerReadyButton()).toBeVisible()
+    await expect(gamePageUser2.getTakeSeatButtons()).toHaveCount(0)
+
+    const startButton = await gamePageUser1.getStartButton()
+    await expect(startButton).toBeEnabled()
+    await startButton.click()
+
+    await expect(gamePageUser2.getOwnLigrettoDeck()).toBeVisible({ timeout: 15_000 })
+    await expect(gamePageUser2.getOpponents()).toHaveCount(1)
+
+    await Promise.all([contextUser1.close(), contextUser2.close()])
+  })
+})
+
 test.describe('Direct game link', () => {
   /**
    * Regression for the identity race on a cold /game/:id load: the auth

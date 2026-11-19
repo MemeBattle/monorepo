@@ -27,6 +27,10 @@ export const createRoomSuccessAction = createAction<dto.CreateRoomSuccess>('@@ro
 
 export const setPlayerStatusEmitAction = createAction<dto.PlayerStatusInGame>('@@game/WEBSOCKET/SET_PLAYER_STATUS')
 
+export const becomePlayerEmitAction = createAction<dto.BecomePlayer>('@@game/WEBSOCKET/BECOME_PLAYER')
+
+export const becomeSpectatorEmitAction = createAction<dto.BecomeSpectator>('@@game/WEBSOCKET/BECOME_SPECTATOR')
+
 export const startGameEmitAction = createAction<dto.StartGame>('@@gameplay/WEBSOCKET/START_GAME')
 
 export const resumeGameEmitAction = createAction<dto.ResumeGame>('@@gameplay/WEBSOCKET/RESUME_GAME')

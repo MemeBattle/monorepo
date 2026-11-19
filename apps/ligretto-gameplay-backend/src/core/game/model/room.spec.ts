@@ -2,12 +2,17 @@ import { describe, expect, it } from 'vitest'
 import { CardColors, GameStatus, PlayerStatus, type Card, type Game, type Player } from '@memebattle/ligretto-shared'
 import {
   addPlayer,
+  becomePlayer,
+  becomeSpectator,
   beginStarting,
+  canBecomePlayer,
+  canBecomeSpectator,
   canResumeRound,
   canSetReadiness,
   canStartRound,
   closeRound,
   createGame,
+  createPlayer,
   dealRound,
   finishStarting,
   joinsAsSpectator,
@@ -87,6 +92,73 @@ describe('removeSpectator', () => {
 
   it('returns nothing for someone who is not a spectator', () => {
     expect(removeSpectator(pair(GameStatus.New), 'host')).toBeUndefined()
+  })
+})
+
+describe('canBecomePlayer', () => {
+  const watched = (status: GameStatus, players: Player[] = [player('host', { isHost: true })]) =>
+    game({ status, players: roster(...players), spectators: { watcher: { id: 'watcher' } } })
+
+  it.each([GameStatus.New, GameStatus.RoundFinished])('lets a spectator take a free seat in %s', status => {
+    expect(canBecomePlayer(watched(status), 'watcher')).toBe(true)
+  })
+
+  it.each([GameStatus.Starting, GameStatus.InGame, GameStatus.Pause])('keeps a spectator watching in %s', status => {
+    expect(canBecomePlayer(watched(status), 'watcher')).toBe(false)
+  })
+
+  it('counts a disconnected player as a taken seat', () => {
+    const full = [player('host', { isHost: true }), player('a'), player('b'), player('c', { status: PlayerStatus.Disconnected })]
+
+    expect(canBecomePlayer(watched(GameStatus.RoundFinished, full), 'watcher')).toBe(false)
+  })
+
+  it('does not seat someone who is not a spectator', () => {
+    expect(canBecomePlayer(watched(GameStatus.New), 'host')).toBe(false)
+    expect(canBecomePlayer(watched(GameStatus.New), 'stranger')).toBe(false)
+  })
+})
+
+describe('canBecomeSpectator', () => {
+  it.each([GameStatus.New, GameStatus.RoundFinished])('lets a player who is not the host watch in %s', status => {
+    expect(canBecomeSpectator(pair(status), 'peer')).toBe(true)
+  })
+
+  it.each([GameStatus.Starting, GameStatus.InGame, GameStatus.Pause])('keeps a player seated in %s', status => {
+    expect(canBecomeSpectator(pair(status), 'peer')).toBe(false)
+  })
+
+  it('keeps the host seated', () => {
+    expect(canBecomeSpectator(pair(GameStatus.New), 'host')).toBe(false)
+  })
+
+  it('does not apply to someone who is not a player', () => {
+    expect(canBecomeSpectator(game({ spectators: { watcher: { id: 'watcher' } } }), 'watcher')).toBe(false)
+  })
+})
+
+describe('changing a role', () => {
+  it('seats a spectator as an unready player who is not the host, with no cards', () => {
+    const before = game({
+      status: GameStatus.RoundFinished,
+      players: roster(player('host', { isHost: true })),
+      spectators: { watcher: { id: 'watcher' } },
+    })
+
+    const after = becomePlayer(before, 'watcher')
+
+    expect(after.spectators).toEqual({})
+    expect(after.players.watcher).toEqual(createPlayer('watcher'))
+    expect(after.players.host).toEqual(before.players.host)
+  })
+
+  it('makes a player a spectator and leaves the others as they were', () => {
+    const before = pair(GameStatus.RoundFinished, { status: PlayerStatus.ReadyToPlay })
+
+    const after = becomeSpectator(before, 'peer')
+
+    expect(after.players).toEqual({ host: before.players.host })
+    expect(after.spectators).toEqual({ peer: { id: 'peer' } })
   })
 })
 

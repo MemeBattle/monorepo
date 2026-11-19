@@ -4,28 +4,19 @@ import PauseCircleOutlinedIcon from '@mui/icons-material/PauseCircleOutlined'
 import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined'
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded'
 import StyleOutlinedIcon from '@mui/icons-material/StyleOutlined'
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import { Box, Button, Paper, Stack, Typography } from '@memebattle/ui'
 import { alpha, styled } from '@mui/material/styles'
 
 import { PlayersScoresTableContainer } from '#features/player-scores-table'
-import { Avatar } from '#shared/ui/Avatar'
-import { NameBadge } from '#shared/ui/NameBadge'
 import { GameStatus } from '@memebattle/ligretto-shared'
 
-export interface GameSettingsSpectator {
-  id: string
-  username: string
-  avatar?: string
-  isViewer: boolean
-}
+import { SpectatorsList } from '../SpectatorsList/SpectatorsList'
 
 interface GameSettingsProps {
   gameStatus: GameStatus
   gameName: string
   playersCount: number
   playersMaxCount: number
-  spectators: GameSettingsSpectator[]
   /** The viewer is the host, who starts and resumes rounds */
   canStartGame: boolean
   /** The viewer is a seated player between rounds */
@@ -71,18 +62,11 @@ const InfoChip: FC<{ icon: ReactNode; children: ReactNode }> = ({ icon, children
   </Box>
 )
 
-const SectionLabel: FC<{ children: ReactNode }> = ({ children }) => (
-  <Typography variant="caption" fontWeight={700} textTransform="uppercase" sx={{ letterSpacing: '0.08em', opacity: 0.75 }}>
-    {children}
-  </Typography>
-)
-
 export const GameSettings = ({
   gameStatus,
   gameName,
   playersCount,
   playersMaxCount,
-  spectators,
   canStartGame,
   canToggleReady,
   isStartDisabled,
@@ -111,32 +95,7 @@ export const GameSettings = ({
 
       <PlayersScoresTableContainer />
 
-      {spectators.length > 0 && (
-        <Box data-test-id="GameSettings-Spectators">
-          <Box display="flex" alignItems="center" sx={{ gap: 1, mb: 1 }}>
-            <VisibilityOutlinedIcon sx={{ fontSize: '1rem', opacity: 0.75 }} />
-            <SectionLabel>Spectators · {spectators.length}</SectionLabel>
-          </Box>
-          <Box display="flex" flexWrap="wrap" sx={{ gap: 1 }}>
-            {spectators.map(({ id, username, avatar, isViewer }) => (
-              <Box
-                key={id}
-                display="inline-flex"
-                alignItems="center"
-                sx={{ gap: 1, py: 0.5, pl: 0.5, pr: 1.5, borderRadius: 999, bgcolor: 'background.lighter' }}
-              >
-                <Box width="1.75rem" height="1.75rem" overflow="hidden" sx={{ borderRadius: '50%', flexShrink: 0 }}>
-                  <Avatar src={avatar} size="auto" alt="" />
-                </Box>
-                <Typography variant="body2" fontWeight={600} noWrap>
-                  {username}
-                </Typography>
-                {isViewer && <NameBadge>You</NameBadge>}
-              </Box>
-            ))}
-          </Box>
-        </Box>
-      )}
+      <SpectatorsList />
 
       <Stack
         direction={{ xs: 'column-reverse', sm: 'row' }}

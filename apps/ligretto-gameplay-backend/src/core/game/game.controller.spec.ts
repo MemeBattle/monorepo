@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  becomePlayerEmitAction,
+  becomeSpectatorEmitAction,
   CardColors,
   GameStatus,
   leaveFromRoomEmitAction,
@@ -71,6 +73,13 @@ describe('the game controller', () => {
     it.each([
       ['a resume', () => gameInRound({ status: GameStatus.Pause }), 'host', resumeGameEmitAction({ gameId: 'game' })],
       ['readiness', between, 'host', setPlayerStatusEmitAction({ gameId: 'game', status: PlayerStatus.ReadyToPlay })],
+      [
+        'a spectator taking a seat',
+        () => ({ ...between(), spectators: { watcher: { id: 'watcher' } } }),
+        'watcher',
+        becomePlayerEmitAction({ gameId: 'game' }),
+      ],
+      ['a player who starts watching', between, 'peer', becomeSpectatorEmitAction({ gameId: 'game' })],
       ['a stack take', gameInRound, 'host', takeFromStackDeckAction({ gameId: 'game' })],
       [
         'a ligretto take',
@@ -158,6 +167,22 @@ describe('the game controller', () => {
 
       expect(room.state).toEqual(before)
       expect(connection.sent).toEqual([])
+    })
+
+    it('changes the role of the connection only, whoever the payload names', () => {
+      seed(
+        gameInRound({
+          status: GameStatus.New,
+          players: { host: playerOf('host', { isHost: true }), peer: playerOf('peer') },
+          spectators: { watcher: { id: 'watcher' } },
+        }),
+      )
+
+      send(open('host'), becomeSpectatorEmitAction({ gameId: 'game', userId: 'peer' } as never))
+
+      expect(room.state.players.peer).toBeDefined()
+      expect(room.state.players.host?.isHost).toBe(true)
+      expect(room.state.spectators).toEqual({ watcher: { id: 'watcher' } })
     })
 
     it('ignores a malformed message without losing the game', () => {

@@ -23,6 +23,14 @@ export class GamePage {
     return this.page.getByTestId('GameSettings')
   }
 
+  getSpectateButton() {
+    return this.page.getByTestId('GameSettings-SpectateButton')
+  }
+
+  getTakeSeatButtons() {
+    return this.page.getByTestId('PlayersScoresTable-TakeSeatButton')
+  }
+
   async getPlayersList() {
     return this.page.getByTestId('PlayersScoresTable-PlayersScoresTableRow')
   }

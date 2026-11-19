@@ -66,9 +66,6 @@ const playersOnPause = [
   createPlayer('marta', PlayerStatus.Disconnected),
 ]
 
-const spectatorsSeenBy = (viewerId: string) =>
-  spectatorIds.map(id => ({ id, username: users.find(user => user.sub === id)?.name ?? '', isViewer: id === viewerId }))
-
 const withStore = (store: ReturnType<typeof createMockStore>): Story['decorators'] => [
   Story => (
     <Provider store={store}>
@@ -92,7 +89,6 @@ const meta: Meta<typeof GameSettings> = {
     gameStatus: GameStatus.RoundFinished,
     playersCount: 3,
     playersMaxCount: 4,
-    spectators: spectatorsSeenBy(''),
     canStartGame: false,
     canToggleReady: false,
     isStartDisabled: false,
@@ -117,7 +113,6 @@ export const Player: Story = {
 }
 
 export const Spectator: Story = {
-  args: { spectators: spectatorsSeenBy('anya') },
   decorators: withStore(createStoryStore('anya', GameStatus.RoundFinished, playersBetweenRounds)),
 }
 

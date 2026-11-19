@@ -12,6 +12,10 @@ import { Gameplay } from './gameplay'
 import {
   addPlayer,
   addSpectator,
+  becomePlayer,
+  becomeSpectator,
+  canBecomePlayer,
+  canBecomeSpectator,
   canSetReadiness,
   isRoundInProgress,
   joinsAsSpectator,
@@ -124,6 +128,14 @@ export class Room {
     this.broadcast(updateGameAction(this.current))
   }
 
+  becomePlayer(userId: UUID) {
+    this.changeRole(canBecomePlayer(this.current, userId) ? becomePlayer(this.current, userId) : undefined)
+  }
+
+  becomeSpectator(userId: UUID) {
+    this.changeRole(canBecomeSpectator(this.current, userId) ? becomeSpectator(this.current, userId) : undefined)
+  }
+
   /** The table of the last round. Nothing after a failed save, so no table is left from an earlier round. */
   showRoundResults(results?: GameResults) {
     this.results = results
@@ -139,6 +151,16 @@ export class Room {
     this.disconnectTimers.clear()
     // Spectators can outlast the last player, and the room is gone for them too.
     this.broadcast(connectToRoomErrorAction())
+  }
+
+  /** A refused change is answered with the room too: the seat the client saw free may just have been taken. */
+  private changeRole(next: GameState | undefined) {
+    if (next) {
+      this.save(next)
+      // Every player may be offline, the host too, so the first one seated takes over, as on a join.
+      this.takeOverHost()
+    }
+    this.broadcast(updateGameAction(this.current))
   }
 
   private resultsToShow() {

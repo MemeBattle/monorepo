@@ -1,15 +1,15 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { Provider } from 'react-redux'
 import { MemoryRouter } from 'react-router'
 import type { Player } from '@memebattle/ligretto-shared'
-import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
+import { becomePlayerEmitAction, becomeSpectatorEmitAction, GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 
 import { authInitialState } from '#ducks/auth/authSlice'
 import { createMockStore } from '#testing/lib/createMockStore'
-import { initialState, resumeGameAction, togglePlayerStatusAction } from '#ducks/game'
+import { initialState, resumeGameAction, togglePlayerStatusAction, updateGameAction } from '#ducks/game'
 import { GameSettingsContainer } from './GameSettingsContainer'
 
 const createPlayer = (id: string, overrides: Partial<Player> = {}): Player => ({
@@ -60,7 +60,7 @@ const renderGameSettings = ({
     </Provider>,
   )
 
-  return { dispatch }
+  return { dispatch, store }
 }
 
 describe('GameSettings', () => {
@@ -130,8 +130,8 @@ describe('GameSettings', () => {
     expect(screen.getByRole('button', { name: 'Leave room' })).toBeTruthy()
   })
 
-  it('marks the spectator who is viewing and offers them only to leave', () => {
-    renderGameSettings({
+  it('marks the spectator who is viewing and offers them a free seat, not the controls of a player', () => {
+    const { dispatch } = renderGameSettings({
       userId: 'watcher',
       status: GameStatus.New,
       players: [createPlayer('host', { isHost: true }), createPlayer('peer')],
@@ -141,6 +141,57 @@ describe('GameSettings', () => {
     expect(screen.getByText('You')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Start' })).toBeNull()
     expect(screen.queryByRole('button', { name: "I'm ready" })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Spectate' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Leave room' })).toBeTruthy()
+
+    const seats = screen.getAllByRole('button', { name: 'Sit here' })
+    expect(seats).toHaveLength(2)
+    fireEvent.click(seats[0])
+    expect(dispatch).toHaveBeenCalledWith(becomePlayerEmitAction({ gameId: 'game' }))
+  })
+
+  it('offers a spectator no seat in a full room or during a round', () => {
+    const players = ['host', 'a', 'b', 'c'].map(id => createPlayer(id, { isHost: id === 'host' }))
+    renderGameSettings({ userId: 'watcher', status: GameStatus.RoundFinished, players, spectatorIds: ['watcher'] })
+
+    expect(screen.queryByRole('button', { name: 'Sit here' })).toBeNull()
+  })
+
+  it('moves the viewer to the table, with the controls of a player, once the server seats them', () => {
+    const host = createPlayer('host', { isHost: true })
+    const { store } = renderGameSettings({ userId: 'watcher', status: GameStatus.RoundFinished, players: [host], spectatorIds: ['watcher'] })
+    expect(screen.getByText('Spectators · 1')).toBeTruthy()
+
+    act(() => {
+      store.dispatch(updateGameAction({ ...store.getState().game.game, players: { host, watcher: createPlayer('watcher') }, spectators: {} }))
+    })
+
+    expect(screen.getByText('Spectators · 0')).toBeTruthy()
+    expect(screen.getByText('2/4 players')).toBeTruthy()
+    expect(screen.getByRole('button', { name: "I'm ready" })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Spectate' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Sit here' })).toBeNull()
+  })
+
+  it('lets a player who is not the host spectate between rounds', () => {
+    const { dispatch } = renderGameSettings({
+      userId: 'peer',
+      status: GameStatus.RoundFinished,
+      players: [createPlayer('host', { isHost: true }), createPlayer('peer')],
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Spectate' }))
+
+    expect(dispatch).toHaveBeenCalledWith(becomeSpectatorEmitAction({ gameId: 'game' }))
+  })
+
+  it.each([
+    ['the host between rounds', 'host', GameStatus.New, PlayerStatus.DontReadyToPlay],
+    ['a player during a round', 'peer', GameStatus.Pause, PlayerStatus.InGame],
+    ['a disconnected player between rounds', 'peer', GameStatus.RoundFinished, PlayerStatus.Disconnected],
+  ])('offers %s no way to spectate', (_label, userId, status, peerStatus) => {
+    renderGameSettings({ userId, status, players: [createPlayer('host', { isHost: true }), createPlayer('peer', { status: peerStatus })] })
+
+    expect(screen.queryByRole('button', { name: 'Spectate' })).toBeNull()
   })
 })

@@ -1,5 +1,7 @@
 import type { UUID } from '@memebattle/ligretto-shared'
 import {
+  becomePlayerEmitAction,
+  becomeSpectatorEmitAction,
   leaveFromRoomEmitAction,
   putCardAction,
   putCardFromStackOpenDeck,
@@ -27,6 +29,14 @@ const handlers: Handlers<GameControllerContext, RoundToSave | void> = {
 
   [leaveFromRoomEmitAction.type]: on(leaveFromRoomEmitAction, ctx => {
     ctx.room.leave(ctx.userId)
+  }),
+
+  [becomePlayerEmitAction.type]: on(becomePlayerEmitAction, ctx => {
+    ctx.room.becomePlayer(ctx.userId)
+  }),
+
+  [becomeSpectatorEmitAction.type]: on(becomeSpectatorEmitAction, ctx => {
+    ctx.room.becomeSpectator(ctx.userId)
   }),
 
   [startGameEmitAction.type]: on(startGameEmitAction, ctx => {
