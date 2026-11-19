@@ -10,6 +10,7 @@ const root = path.resolve(__dirname, '..')
 
 const config: StorybookConfig = {
   stories: ['../apps/**/*.stories.tsx', '../packages/**/*.stories.tsx'],
+  staticDirs: ['./public'],
   addons: ['@storybook/addon-a11y'],
   framework: {
     name: '@storybook/react-vite',
