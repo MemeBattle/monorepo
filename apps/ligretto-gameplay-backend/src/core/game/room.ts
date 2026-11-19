@@ -1,6 +1,5 @@
 import type { Game as GameState, GameResults, PlayerStatus, UUID } from '@memebattle/ligretto-shared'
 import {
-  GameStatus,
   connectToRoomErrorAction,
   connectToRoomSuccessAction,
   endRoundAction,
@@ -175,12 +174,7 @@ export class Room {
     }
   }
 
-  /** A leave or a disconnect can give up a round during its countdown, and that countdown must not deal it. */
   private save(next: GameState) {
-    const leavesStarting = this.current.status === GameStatus.Starting && next.status !== GameStatus.Starting
     this.current = next
-    if (leavesStarting) {
-      this.gameplay.stop()
-    }
   }
 }

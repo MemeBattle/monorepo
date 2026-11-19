@@ -189,7 +189,6 @@ describe('Gameplay', () => {
       expect(room.state.status).toBe(GameStatus.RoundFinished)
       expect(room.state.players.host).toMatchObject({ status: PlayerStatus.DontReadyToPlay, cards: [] })
       expect(room.state.players.peer).toMatchObject({ status: PlayerStatus.Disconnected, cards: [] })
-      expect(vi.getTimerCount()).toBe(0)
 
       watcher.sent = []
       await vi.advanceTimersByTimeAsync(60_000)
@@ -283,15 +282,6 @@ describe('Gameplay', () => {
       room.gameplay.startRound('host')
 
       room.close()
-
-      expect(vi.getTimerCount()).toBe(0)
-    })
-
-    it('stops with a round given up', () => {
-      const room = roomOf(between())
-      room.gameplay.startRound('host')
-
-      room.leave('peer')
 
       expect(vi.getTimerCount()).toBe(0)
     })

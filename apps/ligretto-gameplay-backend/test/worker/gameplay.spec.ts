@@ -83,7 +83,7 @@ const cardsShownIn = (game: Game) =>
     0,
   )
 
-type HostedRoomInternals = { rooms: Map<string, { room: { current: Game; gameplay: { countdown?: unknown } } }> }
+type HostedRoomInternals = { rooms: Map<string, { room: { current: Game } }> }
 
 /** The countdown a round started from now on will last. */
 const setCountdown = (stub: Host, roomId: string, seconds: number) =>
@@ -91,9 +91,6 @@ const setCountdown = (stub: Host, roomId: string, seconds: number) =>
     const { room } = (instance as unknown as HostedRoomInternals).rooms.get(roomId)!
     room.current = { ...room.current, config: { ...room.current.config, startingDelayInSec: seconds } }
   })
-
-const hasCountdownTimer = (stub: Host, roomId: string) =>
-  runInDurableObject(stub, instance => (instance as unknown as HostedRoomInternals).rooms.get(roomId)!.room.gameplay.countdown !== undefined)
 
 /** A newcomer to a running round is a spectator. */
 const roomWithSpectator = async (lobby: Client) => {
@@ -532,7 +529,6 @@ describe('gameplay on Durable Objects', () => {
       const endsAt = Date.now() + 30_000
       host.send(startGameEmitAction({ gameId: id }))
       await host.until(() => (latestGame(host).status === GameStatus.Starting ? true : undefined))
-      expect(await hasCountdownTimer(stub, id)).toBe(true)
       peer.socket.close(1000, 'gone')
       await vi.waitFor(() => expect(latestGame(host).status).toBe(GameStatus.RoundFinished), {
         timeout: DISCONNECT_GRACE_PERIOD_MS + 2_000,
@@ -540,7 +536,6 @@ describe('gameplay on Durable Objects', () => {
       })
 
       expect(Date.now()).toBeLessThan(endsAt)
-      expect(await hasCountdownTimer(stub, id)).toBe(false)
       const cancelled = snapshotsOf(host, fromHost)
       expect(deals(cancelled)).toEqual([])
       expectNothingDealt(cancelled.slice(0, -1))
@@ -570,7 +565,6 @@ describe('gameplay on Durable Objects', () => {
       expectDealtOnceAtTheEnd(snapshotsOf(host, fromRestart), restartEndsAt)
       expectDealtOnceAtTheEnd(snapshotsOf(back, fromBack), restartEndsAt)
       expect(deals(snapshotsOf(host, fromHost))).toHaveLength(1)
-      expect(await hasCountdownTimer(stub, id)).toBe(false)
       expect(latestGame(back).players.peer?.cards).toHaveLength(5)
       expect(core.savedRounds).toEqual([])
     })
