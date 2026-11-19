@@ -68,6 +68,32 @@ const joinRoom = async (roomId: string, userId: string) => {
 
 const latestGame = (client: Client) => client.received.filter(({ type }) => type === updateGameAction.type).at(-1)?.payload as Game
 
+/** Every snapshot of the room the client was sent from `from` on, on connecting as well as in updates, with when it arrived. */
+const snapshotsOf = (client: Client, from = 0) =>
+  client.received.flatMap(({ type, payload }, index) => {
+    const game =
+      type === updateGameAction.type ? (payload as Game) : type === connectToRoomSuccessAction.type ? (payload as { game: Game }).game : undefined
+    return game && index >= from ? [{ game, at: client.receivedAt[index] }] : []
+  })
+type Snapshot = ReturnType<typeof snapshotsOf>[number]
+
+const cardsShownIn = (game: Game) =>
+  [...game.playground.decks, ...game.playground.droppedDecks].reduce((count, deck) => count + (deck?.cards.length ?? 0), 0) +
+  Object.values(game.players).reduce(
+    (count, player) =>
+      count + player!.cards.length + player!.ligrettoDeck.cards.length + player!.stackDeck.cards.length + player!.stackOpenDeck.cards.length,
+    0,
+  )
+
+type HostedRoomInternals = { rooms: Map<string, { room: { current: Game } }> }
+
+/** The countdown a round started from now on will last. */
+const setCountdown = (stub: Host, roomId: string, seconds: number) =>
+  runInDurableObject(stub, instance => {
+    const { room } = (instance as unknown as HostedRoomInternals).rooms.get(roomId)!
+    room.current = { ...room.current, config: { ...room.current.config, startingDelayInSec: seconds } }
+  })
+
 /** A newcomer to a running round is a spectator. */
 const roomWithSpectator = async (lobby: Client) => {
   const { id } = await createRoom(lobby)
@@ -373,6 +399,176 @@ describe('gameplay on Durable Objects', () => {
 
       expect(await runInDurableObject(stub, instance => roomsOf(instance).size)).toBe(0)
       expect(await runInDurableObject(stub, (_instance, state) => state.storage.getAlarm())).toBeNull()
+    })
+  })
+
+  describe('a countdown', () => {
+    const roomWith = async (...userIds: string[]) => {
+      const lobby = track(await openClient(worker, '/gameplay/lobby', 'creator'))
+      const { id } = await createRoom(lobby)
+      const clients: Client[] = []
+      for (const userId of userIds) {
+        clients.push(track(await joinRoom(id, userId)))
+      }
+      await clients[0].until(() => (Object.keys(latestGame(clients[0]).players).length === userIds.length ? true : undefined))
+      return { id, clients, stub: await hostOf(id) }
+    }
+    const isDealt = (client: Client) => (latestGame(client)?.status === GameStatus.InGame ? true : undefined)
+    const deals = (snapshots: Snapshot[]) => snapshots.filter(({ game }) => game.status === GameStatus.InGame)
+    const expectNothingDealt = (snapshots: Snapshot[]) => {
+      expect(snapshots.length).toBeGreaterThan(0)
+      for (const { game } of snapshots) {
+        expect(game.status).toBe(GameStatus.Starting)
+        expect(cardsShownIn(game)).toBe(0)
+      }
+    }
+    /**
+     * `endsAt` is the earliest the countdown can end, taken from when the start was sent and not from the deal: one deal,
+     * no earlier than that, and nothing dealt in any snapshot before it.
+     */
+    const expectDealtOnceAtTheEnd = (snapshots: Snapshot[], endsAt: number) => {
+      const [deal, ...more] = deals(snapshots)
+      expect(more).toEqual([])
+      expect(deal.at).toBeGreaterThanOrEqual(endsAt)
+      expect(cardsShownIn(deal.game)).toBeGreaterThan(0)
+      expectNothingDealt(snapshots.slice(0, snapshots.indexOf(deal)))
+    }
+
+    it('shows everyone, newcomers and other tabs too, nothing dealt until it ends, and the deal once', async () => {
+      const { id, clients } = await roomWith('host', 'peer')
+      const [host, peer] = clients
+      const fromHost = host.received.length
+      const fromPeer = peer.received.length
+
+      const endsAt = Date.now() + 4_000
+      host.send(startGameEmitAction({ gameId: id }))
+      await peer.until(() => (latestGame(peer).status === GameStatus.Starting ? true : undefined))
+      peer.send(takeFromStackDeckAction({ gameId: id }))
+      peer.send(setPlayerStatusEmitAction({ gameId: id, status: PlayerStatus.ReadyToPlay }))
+      const newcomer = track(await joinRoom(id, 'newcomer'))
+      const secondTab = track(await joinRoom(id, 'peer'))
+      expect(Date.now()).toBeLessThan(endsAt)
+      expectNothingDealt(snapshotsOf(newcomer))
+      expectNothingDealt(snapshotsOf(secondTab))
+
+      for (const client of [host, peer, newcomer, secondTab]) {
+        await client.until(() => isDealt(client))
+      }
+      await new Promise(resolve => setTimeout(resolve, 200))
+
+      expectDealtOnceAtTheEnd(snapshotsOf(host, fromHost), endsAt)
+      expectDealtOnceAtTheEnd(snapshotsOf(peer, fromPeer), endsAt)
+      expectDealtOnceAtTheEnd(snapshotsOf(newcomer), endsAt)
+      expectDealtOnceAtTheEnd(snapshotsOf(secondTab), endsAt)
+      const [{ game: onConnect }] = snapshotsOf(newcomer)
+      expect(onConnect.spectators).toEqual({ newcomer: { id: 'newcomer' } })
+      expect(onConnect.players.peer).toMatchObject({ isHost: false, status: PlayerStatus.DontReadyToPlay })
+      const deal = latestGame(host)
+      expect(Object.keys(deal.players).sort()).toEqual(['host', 'peer'])
+      expect(deal.players.peer?.cards).toHaveLength(5)
+      expect(deal.players.peer?.stackOpenDeck.cards).toEqual([])
+    })
+
+    it('goes on when the host leaves and two players are left, and deals to them', async () => {
+      const { id, clients } = await roomWith('host', 'peer', 'third')
+      const [host, peer, third] = clients
+      const fromPeer = peer.received.length
+      const fromThird = third.received.length
+
+      const endsAt = Date.now() + 4_000
+      host.send(startGameEmitAction({ gameId: id }))
+      await peer.until(() => (latestGame(peer).status === GameStatus.Starting ? true : undefined))
+      host.send(leaveFromRoomEmitAction())
+      await peer.until(() => (latestGame(peer).players.peer?.isHost ? true : undefined))
+      expect(Date.now()).toBeLessThan(endsAt)
+      expectNothingDealt(snapshotsOf(peer, fromPeer))
+
+      await peer.until(() => isDealt(peer))
+      await third.until(() => isDealt(third))
+      expectDealtOnceAtTheEnd(snapshotsOf(peer, fromPeer), endsAt)
+      expectDealtOnceAtTheEnd(snapshotsOf(third, fromThird), endsAt)
+      expect(Object.keys(latestGame(peer).players).sort()).toEqual(['peer', 'third'])
+      expect(latestGame(peer).players.third?.cards).toHaveLength(5)
+    })
+
+    // Waits out the real grace period, inside a countdown made longer than it.
+    it('hands the host role on when the host goes offline, and still deals them in', async () => {
+      const { id, clients, stub } = await roomWith('host', 'peer', 'third')
+      const [host, peer, third] = clients
+      await setCountdown(stub, id, 8)
+      const fromPeer = peer.received.length
+      const fromThird = third.received.length
+
+      const endsAt = Date.now() + 8_000
+      host.send(startGameEmitAction({ gameId: id }))
+      await peer.until(() => (latestGame(peer).status === GameStatus.Starting ? true : undefined))
+      host.socket.close(1000, 'gone')
+      await vi.waitFor(() => expect(latestGame(peer).players.host?.status).toBe(PlayerStatus.Disconnected), {
+        timeout: DISCONNECT_GRACE_PERIOD_MS + 2_000,
+        interval: 50,
+      })
+
+      expect(Date.now()).toBeLessThan(endsAt)
+      expectNothingDealt(snapshotsOf(peer, fromPeer))
+      expect(latestGame(peer).players.peer?.isHost).toBe(true)
+      expect(latestGame(peer).players.third?.isHost).toBe(false)
+
+      await vi.waitFor(() => expect(latestGame(peer).status).toBe(GameStatus.InGame), { timeout: 8_000, interval: 50 })
+      await third.until(() => isDealt(third))
+      expectDealtOnceAtTheEnd(snapshotsOf(peer, fromPeer), endsAt)
+      expectDealtOnceAtTheEnd(snapshotsOf(third, fromThird), endsAt)
+      expect(latestGame(peer).players.host).toMatchObject({ status: PlayerStatus.Disconnected, isHost: false })
+      expect(latestGame(peer).players.host?.cards).toHaveLength(4)
+    })
+
+    // Waits out the real grace period, inside a countdown made longer than it.
+    it('is given up when fewer than two players are online, deals nothing, and a new round can start', async () => {
+      const { id, clients, stub } = await roomWith('host', 'peer')
+      const [host, peer] = clients
+      await setCountdown(stub, id, 30)
+      const fromHost = host.received.length
+
+      const endsAt = Date.now() + 30_000
+      host.send(startGameEmitAction({ gameId: id }))
+      await host.until(() => (latestGame(host).status === GameStatus.Starting ? true : undefined))
+      peer.socket.close(1000, 'gone')
+      await vi.waitFor(() => expect(latestGame(host).status).toBe(GameStatus.RoundFinished), {
+        timeout: DISCONNECT_GRACE_PERIOD_MS + 2_000,
+        interval: 50,
+      })
+
+      expect(Date.now()).toBeLessThan(endsAt)
+      const cancelled = snapshotsOf(host, fromHost)
+      expect(deals(cancelled)).toEqual([])
+      expectNothingDealt(cancelled.slice(0, -1))
+      const { game: given } = cancelled.at(-1)!
+      expect(given.status).toBe(GameStatus.RoundFinished)
+      expect(cardsShownIn(given)).toBe(0)
+      expect(given.players).toMatchObject({
+        host: { isHost: true, status: PlayerStatus.DontReadyToPlay },
+        peer: { isHost: false, status: PlayerStatus.Disconnected },
+      })
+
+      const back = track(await joinRoom(id, 'peer'))
+      expect(latestGame(back).status).toBe(GameStatus.RoundFinished)
+      await host.until(() => (latestGame(host).players.peer?.status === PlayerStatus.DontReadyToPlay ? true : undefined))
+      expect(deals(snapshotsOf(host, fromHost))).toEqual([])
+      expect(deals(snapshotsOf(back))).toEqual([])
+
+      await setCountdown(stub, id, 1)
+      const fromRestart = host.received.length
+      const fromBack = back.received.length
+      const restartEndsAt = Date.now() + 1_000
+      host.send(startGameEmitAction({ gameId: id }))
+
+      await back.until(() => isDealt(back))
+      await host.until(() => isDealt(host))
+      await new Promise(resolve => setTimeout(resolve, 200))
+      expectDealtOnceAtTheEnd(snapshotsOf(host, fromRestart), restartEndsAt)
+      expectDealtOnceAtTheEnd(snapshotsOf(back, fromBack), restartEndsAt)
+      expect(deals(snapshotsOf(host, fromHost))).toHaveLength(1)
+      expect(latestGame(back).players.peer?.cards).toHaveLength(5)
+      expect(core.savedRounds).toEqual([])
     })
   })
 

@@ -67,7 +67,7 @@ describe('the game controller', () => {
 
       expect(peer.sent).toHaveLength(1)
       expect((peer.sent[0].payload as GameState).status).toBe(GameStatus.Starting)
-      expect(room.state.status).toBe(GameStatus.InGame)
+      expect(room.state.status).toBe(GameStatus.Starting)
     })
 
     it.each([

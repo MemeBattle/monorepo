@@ -1,7 +1,7 @@
 import type { Game, Player, UUID } from '@memebattle/ligretto-shared'
 import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 import type { RoundToSave } from '../../ports'
-import { dealHand, emptyTable, scoreOf } from './gameplay'
+import { dealHand, emptyHand, emptyTable, scoreOf } from './gameplay'
 
 const DEFAULT_CONFIG: Game['config'] = { playersMaxCount: 4, startingDelayInSec: 4, maxCardsOnTable: 12 }
 
@@ -19,10 +19,7 @@ export const createPlayer = (id: UUID, overrides: Partial<Player> = {}): Player 
   id,
   isHost: false,
   status: PlayerStatus.DontReadyToPlay,
-  stackDeck: { isHidden: true, cards: [] },
-  cards: [],
-  ligrettoDeck: { isHidden: true, cards: [] },
-  stackOpenDeck: { isHidden: true, cards: [] },
+  ...emptyHand(),
   ...overrides,
 })
 
@@ -57,8 +54,7 @@ export const canSetReadiness = (game: Game, userId: UUID, status: PlayerStatus) 
 
 const omit = <T>(record: Record<UUID, T>, key: UUID): Record<UUID, T> => Object.fromEntries(Object.entries(record).filter(([id]) => id !== key))
 
-export const joinsAsSpectator = (game: Game) =>
-  Object.keys(game.players).length >= game.config.playersMaxCount || game.status === GameStatus.InGame || game.status === GameStatus.Pause
+export const joinsAsSpectator = (game: Game) => Object.keys(game.players).length >= game.config.playersMaxCount || isRoundInProgress(game)
 
 export const addPlayer = (game: Game, userId: UUID): Game => ({
   ...game,
@@ -94,7 +90,13 @@ export const setPlayerStatus = (game: Game, userId: UUID, status: PlayerStatus):
   return player ? { ...game, players: { ...game.players, [userId]: { ...player, status } } } : game
 }
 
-export const beginStarting = (game: Game): Game => ({ ...game, status: GameStatus.Starting })
+/** Nothing is dealt until the countdown ends, and the hands of the previous round are not shown through it. */
+export const beginStarting = (game: Game): Game => ({
+  ...game,
+  status: GameStatus.Starting,
+  players: Object.fromEntries(playersOf(game).map(player => [player.id, { ...player, ...emptyHand() }])),
+  playground: emptyTable(game.config.maxCardsOnTable),
+})
 
 export const dealRound = (game: Game): Game => {
   const players = playersOf(game)
@@ -143,6 +145,16 @@ export const closeRound = (game: Game): Game => ({
   playground: emptyTable(game.config.maxCardsOnTable),
 })
 
+/**
+ * Gives up a round that cannot go on: no score, statuses reset and an empty table. RoundFinished rather than Pause,
+ * because newcomers join a running round as spectators, so the online count could never reach two again; RoundFinished
+ * lets the room refill and the host start a fresh round.
+ */
+const abandonRound = (game: Game): Game => closeRound({ ...game, status: GameStatus.RoundFinished })
+
+/** The end of the countdown: deals to whoever holds a seat now, or gives up a round that has fewer than two online. */
+export const finishStarting = (game: Game): Game => (onlinePlayersOf(game).length >= 2 ? dealRound(game) : abandonRound(game))
+
 export const withHost = (game: Game, hostId: UUID | undefined): Game => ({
   ...game,
   players: Object.fromEntries(playersOf(game).map(player => [player.id, { ...player, isHost: player.id === hostId }])),
@@ -155,10 +167,8 @@ export const leaveRoom = (game: Game, userId: UUID): Game => {
   // Prefer an online successor: a Disconnected host cannot start or resume anything.
   const withSuccessor = isHostLeaving ? withHost(remaining, (onlinePlayersOf(remaining)[0] ?? playersOf(remaining)[0])?.id) : remaining
 
-  // Abandons the round rather than pausing it: newcomers join a paused game as spectators, so the online count could
-  // never reach two again. RoundFinished lets the room refill and the host start a fresh round.
-  const dropsBelowTwoOnline = (game.status === GameStatus.InGame || game.status === GameStatus.Pause) && onlinePlayersOf(withSuccessor).length < 2
-  return dropsBelowTwoOnline ? closeRound({ ...withSuccessor, status: GameStatus.RoundFinished }) : withSuccessor
+  const dropsBelowTwoOnline = isRoundInProgress(game) && onlinePlayersOf(withSuccessor).length < 2
+  return dropsBelowTwoOnline ? abandonRound(withSuccessor) : withSuccessor
 }
 
 export const markPlayerDisconnected = (game: Game, userId: UUID): Game | undefined => {
@@ -167,16 +177,23 @@ export const markPlayerDisconnected = (game: Game, userId: UUID): Game | undefin
     return undefined
   }
   const disconnected = setPlayerStatus(game, userId, PlayerStatus.Disconnected)
-  const pauses = game.status === GameStatus.InGame && onlinePlayersOf(disconnected).length < 2
-  return pauses ? { ...disconnected, status: GameStatus.Pause } : disconnected
+  if (onlinePlayersOf(disconnected).length >= 2) {
+    return disconnected
+  }
+  // A dealt round waits for the player to come back; a countdown has nothing to wait with.
+  if (game.status === GameStatus.InGame) {
+    return { ...disconnected, status: GameStatus.Pause }
+  }
+  return game.status === GameStatus.Starting ? abandonRound(disconnected) : disconnected
 }
 
-/** During a round a returning player holds a hand; between rounds they say again whether they are ready. */
+/** A returning player holds a hand only once one is dealt; until then they say again whether they are ready. */
 export const markPlayerConnected = (game: Game, userId: UUID): Game => {
   if (game.players[userId]?.status !== PlayerStatus.Disconnected) {
     return game
   }
-  return setPlayerStatus(game, userId, isBetweenRounds(game) ? PlayerStatus.DontReadyToPlay : PlayerStatus.InGame)
+  const isDealt = game.status === GameStatus.InGame || game.status === GameStatus.Pause
+  return setPlayerStatus(game, userId, isDealt ? PlayerStatus.InGame : PlayerStatus.DontReadyToPlay)
 }
 
 const isHostOffline = (game: Game) => playersOf(game).some(player => player.isHost && player.status === PlayerStatus.Disconnected)

@@ -24,6 +24,13 @@ const LIGRETTO_DECK_SIZE = 10
 
 export type Hand = Pick<Player, 'cards' | 'ligrettoDeck' | 'stackOpenDeck' | 'stackDeck'>
 
+export const emptyHand = (): Hand => ({
+  cards: [],
+  ligrettoDeck: { isHidden: true, cards: [] },
+  stackOpenDeck: { isHidden: true, cards: [] },
+  stackDeck: { isHidden: true, cards: [] },
+})
+
 export const dealHand = (playerId: UUID, playersCount: number): Hand => {
   const cards = createInitialPlayerCards(playerId)
   const cardsInRow = cardsInRowFor(playersCount)
