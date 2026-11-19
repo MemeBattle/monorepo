@@ -7,7 +7,6 @@ const roomsEntitiesSelectors = roomsEntityAdapter.getSelectors<All>(state => sta
 const roomsListSelector = roomsEntitiesSelectors.selectAll
 export const isLoadingSelector = (state: All) => state.rooms.isLoading
 export const searchSelector = (state: All) => state.rooms.search
-export const isKickedFromRoomSelector = (state: All) => state.rooms.isKickedFromRoom
 export const foundRoomsSelector = createSelector(roomsListSelector, searchSelector, (roomsList, search) => {
   const lowCaseSearch = search.toLowerCase()
   return search ? roomsList.filter(room => room.name.toLowerCase().includes(lowCaseSearch)) : roomsList

@@ -7,7 +7,7 @@ import StyleOutlinedIcon from '@mui/icons-material/StyleOutlined'
 import { Box, Button, Paper, Stack, Typography } from '@memebattle/ui'
 import { alpha, styled } from '@mui/material/styles'
 
-import { PlayersScoresTableContainer } from '#features/player-scores-table'
+import { PlayersScoresTable } from '#features/player-scores-table'
 import { GameStatus } from '@memebattle/ligretto-shared'
 
 import { SpectatorsList } from '../SpectatorsList/SpectatorsList'
@@ -93,7 +93,7 @@ export const GameSettings = ({
         </Box>
       </Box>
 
-      <PlayersScoresTableContainer />
+      <PlayersScoresTable />
 
       <SpectatorsList />
 

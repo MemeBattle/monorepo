@@ -1,49 +1,23 @@
-import type { FC, ReactNode } from 'react'
+import type { FC } from 'react'
+import { useSelector } from 'react-redux'
 import times from 'lodash/times'
-import { Box, Grid, Typography, useMediaQuery, useTheme } from '@memebattle/ui'
+import { Box } from '@memebattle/ui'
 
-import { columnsProps } from './columnsProps'
 import { FreeSeat } from './FreeSeat/FreeSeat'
-import { PlayersScoresTableCell } from './PlayersScoresTableCell'
-import { PlayersScoresTableHead } from './PlayersScoresTableHead'
+import { PlayerScoreRow } from './PlayerScoreRow/PlayerScoreRow'
+import { freeSeatsCountSelector, rankedPlayerIdsSelector } from './PlayersScoresTable.selectors'
+import { PlayersScoresTableHeader } from './PlayersScoresTableHeader'
 
-export interface PlayersScoresTableProps {
-  /** One row per player */
-  children: ReactNode
-  /** The rows show each player's status */
-  hasStatuses?: boolean
-  /** Empty seats listed after the players, inviting more people to join */
-  freeSeatsCount?: number
-}
-
-const HeadLabel: FC<{ children?: ReactNode }> = ({ children }) => (
-  <Typography variant="caption" fontWeight={700} textTransform="uppercase" sx={{ letterSpacing: '0.08em', opacity: 0.75 }}>
-    {children}
-  </Typography>
-)
-
-export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ children, hasStatuses, freeSeatsCount = 0 }) => {
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+export const PlayersScoresTable: FC = () => {
+  const playerIds = useSelector(rankedPlayerIdsSelector)
+  const freeSeatsCount = useSelector(freeSeatsCountSelector)
 
   return (
     <Box flex={1} flexDirection="column" overflow="auto" data-test-id="PlayersScoresTable">
-      <PlayersScoresTableHead>
-        <Grid container spacing={2} sx={{ flex: 1 }}>
-          {!isMobile && <PlayersScoresTableCell size={columnsProps.avatar} />}
-          <PlayersScoresTableCell size={columnsProps.name}>
-            <HeadLabel>Player</HeadLabel>
-          </PlayersScoresTableCell>
-          {hasStatuses && <PlayersScoresTableCell size={columnsProps.status}>{!isMobile && <HeadLabel>Status</HeadLabel>}</PlayersScoresTableCell>}
-          <PlayersScoresTableCell size={columnsProps.round} sx={{ justifyContent: 'flex-end' }}>
-            <HeadLabel>Round</HeadLabel>
-          </PlayersScoresTableCell>
-          <PlayersScoresTableCell size={columnsProps.total} sx={{ justifyContent: 'flex-end' }}>
-            <HeadLabel>Total</HeadLabel>
-          </PlayersScoresTableCell>
-        </Grid>
-      </PlayersScoresTableHead>
-      {children}
+      <PlayersScoresTableHeader hasStatuses />
+      {playerIds.map(playerId => (
+        <PlayerScoreRow key={playerId} playerId={playerId} />
+      ))}
       {times(freeSeatsCount, index => (
         <FreeSeat key={`free-seat-${index}`} offersSeat={index === 0} />
       ))}

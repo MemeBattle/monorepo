@@ -1,1 +1,1 @@
-export { PlayersScoresTableContainer } from './ui/PlayersScoresTableContainer'
+export { PlayersScoresTable } from './ui/PlayersScoresTable'

@@ -19,10 +19,6 @@ export class HomePage {
     return this.page.getByTestId('CreateGameInput')
   }
 
-  getKickedFromRoomNotice() {
-    return this.page.getByTestId('KickedFromRoomNotice')
-  }
-
   async getRoom(roomName: string) {
     return this.page.getByTestId(`RoomsList-RoomItem-${roomName}`)
   }

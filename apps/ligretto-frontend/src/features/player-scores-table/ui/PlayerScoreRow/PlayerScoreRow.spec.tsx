@@ -9,8 +9,8 @@ import { GameStatus, kickFromRoomEmitAction, PlayerStatus } from '@memebattle/li
 import { authInitialState } from '#ducks/auth/authSlice'
 import { initialState, updateGameAction } from '#ducks/game'
 import { createMockStore } from '#testing/lib/createMockStore'
-import { PlayersScoresTableContainer } from '../PlayersScoresTableContainer'
-import { PlayersTableItem } from './PlayersTableItem'
+import { PlayersScoresTable } from '../PlayersScoresTable'
+import { PlayerScoreRow } from './PlayerScoreRow'
 
 const createPlayer = (id: string, overrides: Partial<Player> = {}): Player => ({
   id,
@@ -48,7 +48,7 @@ const renderItem = (playerId: string, options: Parameters<typeof createStore>[0]
   const dispatch = vi.spyOn(store, 'dispatch')
   render(
     <Provider store={store}>
-      <PlayersTableItem playerId={playerId} />
+      <PlayerScoreRow playerId={playerId} />
     </Provider>,
   )
   return { store, dispatch }
@@ -56,7 +56,7 @@ const renderItem = (playerId: string, options: Parameters<typeof createStore>[0]
 
 const removeButton = () => screen.queryByRole('button', { name: /^Remove .*from the room$/ })
 
-describe('PlayersTableItem', () => {
+describe('PlayerScoreRow', () => {
   it('shows the player it is given, from the room and the last results', () => {
     renderItem('host', { viewerId: 'host', results: { host: { roundScore: -3, gameScore: 7 } } })
 
@@ -100,12 +100,12 @@ describe('PlayersTableItem', () => {
   })
 })
 
-describe('PlayersScoresTableContainer', () => {
+describe('PlayersScoresTable', () => {
   it('lists the players with the leader first', () => {
     const store = createStore({ viewerId: 'host', results: { host: { roundScore: 1, gameScore: 1 }, peer: { roundScore: 4, gameScore: 9 } } })
     render(
       <Provider store={store}>
-        <PlayersScoresTableContainer />
+        <PlayersScoresTable />
       </Provider>,
     )
 

@@ -4,29 +4,37 @@ import { canKickParticipantsSelector, gamePlayersSelector, gameResultsSelector }
 import { userAvatarUrl, userLabel, usersMapSelector } from '#ducks/users'
 import { currentUserIdSelector } from '#ducks/auth'
 import { getRandomAvatar } from '#shared/ui/Avatar/getRandomAvatar'
+import type { PlayerStatus } from '@memebattle/ligretto-shared'
 import type { All } from '#types/store'
 
-import type { PlayersScoresTablePlayer } from '../PlayerScoreRow/PlayerScoreRow'
+interface PlayerScore {
+  username: string
+  avatar: string
+  roundScore: number
+  gameScore: number
+  isViewer: boolean
+  isHost: boolean
+  status: PlayerStatus
+}
 
 const playerIdArg = (_state: All, playerId: string) => playerId
 
 export const playerRowSelector = createSelector(
   [gamePlayersSelector, gameResultsSelector, usersMapSelector, currentUserIdSelector, playerIdArg],
-  (players, gameResults, users, currentUserId, playerId): PlayersScoresTablePlayer | undefined => {
+  (players, gameResults, users, currentUserId, playerId): PlayerScore | undefined => {
     const player = players[playerId]
     if (!player) {
       return undefined
     }
     const user = users[playerId]
-    const playerResults = gameResults?.[playerId] || { roundScore: 0, gameScore: 0 }
+    const playerResults = gameResults?.[playerId]
 
     return {
-      id: playerId,
       username: user ? userLabel(user) : '',
       avatar: user ? userAvatarUrl(user) : getRandomAvatar(playerId),
-      roundPoints: [playerResults.roundScore],
-      totalPoints: playerResults.gameScore,
-      isPlayer: playerId === currentUserId,
+      roundScore: playerResults?.roundScore ?? 0,
+      gameScore: playerResults?.gameScore ?? 0,
+      isViewer: playerId === currentUserId,
       isHost: player.isHost,
       status: player.status,
     }

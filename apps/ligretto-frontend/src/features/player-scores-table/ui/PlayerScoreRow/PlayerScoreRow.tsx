@@ -1,42 +1,47 @@
+import { useCallback } from 'react'
 import type { FC } from 'react'
-import last from 'lodash/last'
+import { useDispatch, useSelector } from 'react-redux'
 import PersonRemoveOutlinedIcon from '@mui/icons-material/PersonRemoveOutlined'
 import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined'
 import { Grid, IconButton, Typography, useMediaQuery, useTheme } from '@memebattle/ui'
-import type { PlayerStatus } from '@memebattle/ligretto-shared'
+import { kickFromRoomEmitAction } from '@memebattle/ligretto-shared'
+
+import { gameIdSelector } from '#ducks/game'
 import { Avatar } from '#shared/ui/Avatar'
 import { NameBadge } from '#shared/ui/NameBadge'
+import type { All } from '#types/store'
 
 import { columnsProps } from '../columnsProps'
 import { PlayersScoresTableCell } from '../PlayersScoresTableCell'
 import { PlayersScoresTableRow } from '../PlayersScoresTableRow'
 import { PlayerStatusPill } from '../PlayerStatusPill'
+import { formatRoundPoints } from '../formatRoundPoints'
+import { canKickPlayerSelector, playerRowSelector } from './PlayerScoreRow.selectors'
 
-export interface PlayersScoresTablePlayer {
-  id: string
-  username: string
-  avatar?: string
-  roundPoints: number[]
-  totalPoints: number
-  isPlayer: boolean
-  isHost?: boolean
-  status?: PlayerStatus
+interface PlayerScoreRowProps {
+  playerId: string
 }
 
-interface PlayerScoreRowProps extends PlayersScoresTablePlayer {
-  /** Offers to remove this player from the room */
-  onKickClick?: () => void
-}
-
-const formatRoundPoints = (points = 0) => (points > 0 ? `+${points}` : String(points))
-
-export const PlayerScoreRow: FC<PlayerScoreRowProps> = ({ username, roundPoints, totalPoints, avatar, isPlayer, isHost, status, onKickClick }) => {
+export const PlayerScoreRow: FC<PlayerScoreRowProps> = ({ playerId }) => {
+  const dispatch = useDispatch()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
-  const lastRoundPoints = last(roundPoints) ?? 0
+  const gameId = useSelector(gameIdSelector)
+  const player = useSelector((state: All) => playerRowSelector(state, playerId))
+  const canKick = useSelector((state: All) => canKickPlayerSelector(state, playerId))
+
+  const handleKickClick = useCallback(() => {
+    dispatch(kickFromRoomEmitAction({ gameId, userId: playerId }))
+  }, [dispatch, gameId, playerId])
+
+  if (!player) {
+    return null
+  }
+
+  const { username, avatar, roundScore, gameScore, isViewer, isHost, status } = player
 
   return (
-    <PlayersScoresTableRow sx={{ bgcolor: isPlayer ? 'primary.main' : 'background.lighter' }} data-test-id="PlayersScoresTable-PlayersScoresTableRow">
+    <PlayersScoresTableRow sx={{ bgcolor: isViewer ? 'primary.main' : 'background.lighter' }} data-test-id="PlayersScoresTable-PlayersScoresTableRow">
       <Grid container spacing={2} sx={{ flex: 1 }}>
         {!isMobile && (
           <PlayersScoresTableCell size={columnsProps.avatar}>
@@ -53,14 +58,14 @@ export const PlayerScoreRow: FC<PlayerScoreRowProps> = ({ username, roundPoints,
               Host
             </NameBadge>
           )}
-          {isPlayer && <NameBadge>You</NameBadge>}
-          {onKickClick && (
+          {isViewer && <NameBadge>You</NameBadge>}
+          {canKick && (
             <IconButton
               size="small"
               color="inherit"
               aria-label={`Remove ${username} from the room`}
               title="Remove from the room"
-              onClick={onKickClick}
+              onClick={handleKickClick}
               sx={{ ml: 'auto', flexShrink: 0 }}
               data-test-id="PlayersScoresTable-KickButton"
             >
@@ -68,19 +73,17 @@ export const PlayerScoreRow: FC<PlayerScoreRowProps> = ({ username, roundPoints,
             </IconButton>
           )}
         </PlayersScoresTableCell>
-        {status && (
-          <PlayersScoresTableCell size={columnsProps.status}>
-            <PlayerStatusPill status={status} isCompact={isMobile} />
-          </PlayersScoresTableCell>
-        )}
+        <PlayersScoresTableCell size={columnsProps.status}>
+          <PlayerStatusPill status={status} isCompact={isMobile} />
+        </PlayersScoresTableCell>
         <PlayersScoresTableCell size={columnsProps.round} sx={{ justifyContent: 'flex-end' }}>
-          <Typography fontWeight={500} variant="h6" sx={{ color: lastRoundPoints < 0 ? 'warning.main' : 'text.primary' }}>
-            {formatRoundPoints(lastRoundPoints)}
+          <Typography fontWeight={500} variant="h6" sx={{ color: roundScore < 0 ? 'warning.main' : 'text.primary' }}>
+            {formatRoundPoints(roundScore)}
           </Typography>
         </PlayersScoresTableCell>
         <PlayersScoresTableCell size={columnsProps.total} sx={{ justifyContent: 'flex-end' }}>
           <Typography fontWeight={800} variant="h5">
-            {totalPoints}
+            {gameScore}
           </Typography>
         </PlayersScoresTableCell>
       </Grid>
