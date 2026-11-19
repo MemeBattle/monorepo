@@ -49,6 +49,7 @@
     "csstype": "catalog:",
     "history": "catalog:",
     "lodash": "catalog:",
+    "motion": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-hotkeys-hook": "catalog:",

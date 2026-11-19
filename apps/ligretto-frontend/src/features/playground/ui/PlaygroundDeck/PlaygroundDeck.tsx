@@ -1,12 +1,23 @@
 import { useCallback } from 'react'
 import { useDispatch, useSelector, useStore } from 'react-redux'
 import { canPlaceCardOnDeck, putCardAction, putCardFromStackOpenDeck, type Card as PlayerCard, type CardsDeck } from '@memebattle/ligretto-shared'
-import last from 'lodash/last'
 import { Card, CardPlace } from '#entities/card'
 import { useDroppableTarget, type CardDragTarget } from '#features/cardInteraction'
+import { CardViewTransition } from '#features/cardAnimation'
+import { styled } from '@mui/material/styles'
 import { gameIdSelector, playgroundDecksSelector } from '#ducks/game'
 import type { All } from '#types/store'
 import { cardByInteractionTarget } from '../../model/cardByInteractionTarget'
+
+const BelowCardLayer = styled('div')({
+  display: 'flex',
+})
+
+const TopCardLayer = styled('div')({
+  position: 'absolute',
+  top: 0,
+  left: 0,
+})
 
 interface PlaygroundDeckProps {
   cardDeck: CardsDeck | null | undefined
@@ -38,7 +49,9 @@ export const PlaygroundDeck = ({ cardDeck, deckIndex }: PlaygroundDeckProps) => 
     [deckIndex, dispatch, gameId, store],
   )
   const { id: dropId, onClick, setNodeRef } = useDroppableTarget({ type: 'playground', index: deckIndex }, placeCard)
-  const card = last(cardDeck?.cards)
+  const cards = cardDeck?.cards ?? []
+  const top = cards[cards.length - 1]
+  const below = cards[cards.length - 2]
 
   return (
     <CardPlace
@@ -49,7 +62,19 @@ export const PlaygroundDeck = ({ cardDeck, deckIndex }: PlaygroundDeckProps) => 
       data-card-drop-target={dropId}
       data-card-interaction-element
     >
-      {card ? <Card size="large" {...card} /> : null}
+      {below ? (
+        // Only seen while the top card flies in: it must not take focus or be read out as a second card of the deck.
+        <BelowCardLayer inert>
+          <Card size="large" {...below} />
+        </BelowCardLayer>
+      ) : null}
+      {top ? (
+        <TopCardLayer>
+          <CardViewTransition key={top.id} name={top.id}>
+            <Card size="large" {...top} />
+          </CardViewTransition>
+        </TopCardLayer>
+      ) : null}
     </CardPlace>
   )
 }

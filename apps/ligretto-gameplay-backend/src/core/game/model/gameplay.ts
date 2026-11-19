@@ -14,7 +14,9 @@ const CARD_VALUES = Array.from({ length: 10 }, (_, index) => index + 1)
 
 export const createInitialPlayerCards = (playerId: string): Card[] =>
   shuffled(
-    [CardColors.red, CardColors.blue, CardColors.green, CardColors.yellow].flatMap(color => CARD_VALUES.map(value => ({ value, color, playerId }))),
+    [CardColors.red, CardColors.blue, CardColors.green, CardColors.yellow].flatMap(color =>
+      CARD_VALUES.map(value => ({ id: `card:${playerId}:${color}:${value}`, value, color, playerId })),
+    ),
   )
 
 /** 5 cards in a row for 2 players, 4 for 3, 3 for 4 and more. */
