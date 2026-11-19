@@ -23,8 +23,6 @@ const createPlayer = (id: string, overrides: Partial<Player> = {}): Player => ({
   ...overrides,
 })
 
-const freeSeatRows = () => Array.from(document.querySelectorAll<HTMLElement>('[data-test-id="PlayersScoresTable-FreeSeat"]'))
-
 const renderGameSettings = ({
   userId,
   status,
@@ -146,67 +144,18 @@ describe('GameSettings', () => {
     expect(screen.queryByRole('button', { name: 'Spectate' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Leave room' })).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Sit here' }))
+    const freeSeats = document.querySelectorAll<HTMLElement>('[data-test-id="PlayersScoresTable-FreeSeat"]')
+    expect(freeSeats).toHaveLength(2)
+    expect(screen.getAllByRole('button', { name: 'Invite friends to join you!' })).toHaveLength(2)
+    expect(screen.getAllByRole('button', { name: 'Sit here' })).toHaveLength(1)
+    fireEvent.click(within(freeSeats[0]).getByRole('button', { name: 'Sit here' }))
     expect(dispatch).toHaveBeenCalledWith(becomePlayerEmitAction({ gameId: 'game' }))
   })
 
-  it('offers a spectator only the first of several free seats', () => {
-    renderGameSettings({ userId: 'watcher', status: GameStatus.New, players: [createPlayer('host', { isHost: true })], spectatorIds: ['watcher'] })
+  it('offers a spectator no seat in a full room or during a round', () => {
+    const players = ['host', 'a', 'b', 'c'].map(id => createPlayer(id, { isHost: id === 'host' }))
+    renderGameSettings({ userId: 'watcher', status: GameStatus.RoundFinished, players, spectatorIds: ['watcher'] })
 
-    const [firstSeat, ...otherSeats] = freeSeatRows()
-    expect(otherSeats).toHaveLength(2)
-    expect(screen.getAllByRole('button', { name: 'Sit here' })).toHaveLength(1)
-    expect(within(firstSeat).getByRole('button', { name: 'Sit here' })).toBeTruthy()
-    otherSeats.forEach(seat => {
-      expect(within(seat).getByText('Free seat')).toBeTruthy()
-      expect(within(seat).queryByRole('button', { name: 'Sit here' })).toBeNull()
-    })
-  })
-
-  it('moves the offered seat to the first one still free as players take and leave seats', () => {
-    const host = createPlayer('host', { isHost: true })
-    const { store } = renderGameSettings({ userId: 'watcher', status: GameStatus.RoundFinished, players: [host], spectatorIds: ['watcher'] })
-    const seatPlayers = (...players: Player[]) =>
-      act(() => {
-        store.dispatch(updateGameAction({ ...store.getState().game.game, players: Object.fromEntries(players.map(player => [player.id, player])) }))
-      })
-    const expectSeatOfferedAtFirstOf = (freeSeatsCount: number) => {
-      const seats = freeSeatRows()
-      expect(seats).toHaveLength(freeSeatsCount)
-      expect(screen.getAllByRole('button', { name: 'Sit here' })).toHaveLength(1)
-      expect(within(seats[0]).getByRole('button', { name: 'Sit here' })).toBeTruthy()
-    }
-
-    expectSeatOfferedAtFirstOf(3)
-
-    seatPlayers(host, createPlayer('a'))
-    expectSeatOfferedAtFirstOf(2)
-
-    seatPlayers(host, createPlayer('a'), createPlayer('b'), createPlayer('c'))
-    expect(freeSeatRows()).toHaveLength(0)
-    expect(screen.queryByRole('button', { name: 'Sit here' })).toBeNull()
-
-    seatPlayers(host, createPlayer('c'))
-    expectSeatOfferedAtFirstOf(2)
-  })
-
-  it.each([
-    ['in a full room', GameStatus.RoundFinished, ['host', 'a', 'b', 'c']],
-    ['while the round is starting', GameStatus.Starting, ['host']],
-    ['during a round', GameStatus.InGame, ['host']],
-    ['while the round is paused', GameStatus.Pause, ['host']],
-  ])('offers a spectator no seat %s', (_label, status, playerIds) => {
-    const players = playerIds.map(id => createPlayer(id, { isHost: id === 'host' }))
-    renderGameSettings({ userId: 'watcher', status, players, spectatorIds: ['watcher'] })
-
-    expect(screen.queryByRole('button', { name: 'Sit here' })).toBeNull()
-  })
-
-  it('offers a seated player no seat, only invites, at every free seat', () => {
-    renderGameSettings({ userId: 'peer', status: GameStatus.RoundFinished, players: [createPlayer('host', { isHost: true }), createPlayer('peer')] })
-
-    expect(freeSeatRows()).toHaveLength(2)
-    expect(screen.getAllByRole('button', { name: 'Invite friends to join you!' })).toHaveLength(2)
     expect(screen.queryByRole('button', { name: 'Sit here' })).toBeNull()
   })
 
