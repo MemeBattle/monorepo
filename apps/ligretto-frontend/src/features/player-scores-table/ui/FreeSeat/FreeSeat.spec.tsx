@@ -42,7 +42,7 @@ const renderFreeSeat = (viewer: 'spectator' | 'player') => {
 
   render(
     <Provider store={store}>
-      <FreeSeat />
+      <FreeSeat offersSeat />
     </Provider>,
   )
 

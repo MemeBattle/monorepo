@@ -12,7 +12,11 @@ import { PlayersScoresTableCell } from '../PlayersScoresTableCell'
 import { PlayersScoresTableRow } from '../PlayersScoresTableRow'
 import { RoomInviteLink } from '../RoomInviteLink/RoomInviteLink'
 
-export const FreeSeat = () => {
+export interface FreeSeatProps {
+  offersSeat?: boolean
+}
+
+export const FreeSeat = ({ offersSeat = false }: FreeSeatProps) => {
   const dispatch = useDispatch()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
@@ -39,7 +43,7 @@ export const FreeSeat = () => {
         <PlayersScoresTableCell size={{ xs: 12, sm: 'auto' }}>
           <RoomInviteLink />
         </PlayersScoresTableCell>
-        {isSpectator && (
+        {offersSeat && isSpectator && (
           <PlayersScoresTableCell size="auto">
             <Button
               onClick={handleTakeSeat}

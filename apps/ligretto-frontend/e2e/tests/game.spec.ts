@@ -149,7 +149,8 @@ test.describe('Roles between rounds', () => {
     await expect(await gamePageUser2.getPlayerReadyButton()).toBeHidden()
     await expect(gamePageUser1.getTakeSeatButtons()).toHaveCount(0)
 
-    await gamePageUser2.getTakeSeatButtons().first().click()
+    await expect(gamePageUser2.getTakeSeatButtons()).toHaveCount(1)
+    await gamePageUser2.getTakeSeatButtons().click()
 
     await expect(await gamePageUser1.getPlayersList()).toHaveCount(2)
     await expect(await gamePageUser2.getPlayerReadyButton()).toBeVisible()

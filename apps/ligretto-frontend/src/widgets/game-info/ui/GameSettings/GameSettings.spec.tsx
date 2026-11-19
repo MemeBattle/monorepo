@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { Provider } from 'react-redux'
 import { MemoryRouter } from 'react-router'
@@ -144,9 +144,11 @@ describe('GameSettings', () => {
     expect(screen.queryByRole('button', { name: 'Spectate' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Leave room' })).toBeTruthy()
 
-    const seats = screen.getAllByRole('button', { name: 'Sit here' })
-    expect(seats).toHaveLength(2)
-    fireEvent.click(seats[0])
+    const freeSeats = document.querySelectorAll<HTMLElement>('[data-test-id="PlayersScoresTable-FreeSeat"]')
+    expect(freeSeats).toHaveLength(2)
+    expect(screen.getAllByRole('button', { name: 'Invite friends to join you!' })).toHaveLength(2)
+    expect(screen.getAllByRole('button', { name: 'Sit here' })).toHaveLength(1)
+    fireEvent.click(within(freeSeats[0]).getByRole('button', { name: 'Sit here' }))
     expect(dispatch).toHaveBeenCalledWith(becomePlayerEmitAction({ gameId: 'game' }))
   })
 

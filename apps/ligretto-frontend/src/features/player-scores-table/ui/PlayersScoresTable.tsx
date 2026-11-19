@@ -109,7 +109,7 @@ export const PlayersScoresTable: FC<PlayersScoresTableProps> = ({ players, freeS
         )
       })}
       {times(freeSeatsCount, index => (
-        <FreeSeat key={`free-seat-${index}`} />
+        <FreeSeat key={`free-seat-${index}`} offersSeat={index === 0} />
       ))}
     </Box>
   )
