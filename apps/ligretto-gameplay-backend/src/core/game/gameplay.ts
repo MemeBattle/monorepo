@@ -2,7 +2,7 @@ import type { Game as GameState, UUID } from '@memebattle/ligretto-shared'
 import { GameStatus, updateGameAction } from '@memebattle/ligretto-shared'
 import type { AnyAction } from '../actions'
 import { canMutateGameplay, putCard, putCardFromStackOpenDeck, takeFromLigrettoDeck, takeFromStackDeck } from './model/gameplay'
-import { beginStarting, canResumeRound, canStartRound, closeRound, dealRound, isRoundInProgress, resumeRound, scoreRound } from './model/room'
+import { beginStarting, canResumeRound, canStartRound, closeRound, finishStarting, resumeRound, scoreRound } from './model/room'
 import type { RoundToSave } from '../ports'
 
 interface GameplayOptions {
@@ -25,15 +25,13 @@ export class Gameplay {
     this.broadcast = broadcast
   }
 
-  /** The deal is saved at once and stays hidden until the countdown ends. */
+  /** Nothing is dealt until the countdown ends, and then to whoever holds a seat at that moment. */
   startRound(userId: UUID) {
     const state = this.getState()
     if (!canStartRound(state, userId)) {
       return
     }
-    const starting = beginStarting(state)
-    this.save(dealRound(starting))
-    this.broadcast(updateGameAction(starting))
+    this.show(beginStarting(state))
     this.startCountdown(state.config.startingDelayInSec)
   }
 
@@ -83,13 +81,17 @@ export class Gameplay {
 
   private startCountdown(countdownInSec: number) {
     this.stop()
-    this.countdown = setTimeout(() => {
+    const countdown = setTimeout(() => {
+      if (this.countdown !== countdown) {
+        return
+      }
       this.countdown = undefined
       const state = this.getState()
-      if (isRoundInProgress(state)) {
-        this.broadcast(updateGameAction(state))
+      if (state.status === GameStatus.Starting) {
+        this.show(finishStarting(state))
       }
     }, countdownInSec * 1_000)
+    this.countdown = countdown
   }
 
   private show(next: GameState) {

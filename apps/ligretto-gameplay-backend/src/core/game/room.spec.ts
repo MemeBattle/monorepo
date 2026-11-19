@@ -433,7 +433,7 @@ describe('Room', () => {
       expect(room.state.players.host?.status).toBe(PlayerStatus.DontReadyToPlay)
     })
 
-    it('makes a player who was ready before a round started an in-game player when they return during it', () => {
+    it('comes back not ready during a countdown, and is dealt in when it ends', async () => {
       const room = roomOf(
         gameInRound({
           status: GameStatus.New,
@@ -446,6 +446,29 @@ describe('Room', () => {
       )
       goOffline(room, 'ghost')
       room.gameplay.startRound('host')
+
+      join(room, 'ghost')
+      expect(room.state.players.ghost).toMatchObject({ status: PlayerStatus.DontReadyToPlay, cards: [] })
+
+      await vi.advanceTimersByTimeAsync(4_000)
+      expect(room.state.players.ghost?.status).toBe(PlayerStatus.InGame)
+      expect(room.state.players.ghost?.cards).toHaveLength(4)
+    })
+
+    it('makes a player who was offline when a round was dealt an in-game player when they return during it', async () => {
+      const room = roomOf(
+        gameInRound({
+          status: GameStatus.New,
+          players: {
+            host: playerOf('host', { isHost: true }),
+            ghost: playerOf('ghost', { status: PlayerStatus.ReadyToPlay }),
+            peer: playerOf('peer'),
+          },
+        }),
+      )
+      goOffline(room, 'ghost')
+      room.gameplay.startRound('host')
+      await vi.advanceTimersByTimeAsync(4_000)
 
       join(room, 'ghost')
 
@@ -530,6 +553,148 @@ describe('Room', () => {
       join(room, 'host')
 
       expect(room.state.players.host?.isHost).toBe(true)
+    })
+  })
+
+  describe('during the countdown', () => {
+    const emptyHand = {
+      cards: [],
+      ligrettoDeck: { isHidden: true, cards: [] },
+      stackOpenDeck: { isHidden: true, cards: [] },
+      stackDeck: { isHidden: true, cards: [] },
+    }
+    /** Online players with readiness of their own, a watcher, and a countdown long enough to outlast the grace period. */
+    const counting = (...extraPlayers: string[]) => {
+      const room = roomOf(
+        gameInRound({
+          status: GameStatus.RoundFinished,
+          players: {
+            host: playerOf('host', { isHost: true, status: PlayerStatus.ReadyToPlay, cards: [card] }),
+            peer: playerOf('peer', { status: PlayerStatus.DontReadyToPlay, cards: [card] }),
+            ...Object.fromEntries(extraPlayers.map(id => [id, playerOf(id, { status: PlayerStatus.ReadyToPlay, cards: [card] })])),
+          },
+          spectators: { watcher: { id: 'watcher' } },
+          config: { playersMaxCount: 4, startingDelayInSec: 60, maxCardsOnTable: 12 },
+        }),
+        [new FakeConnection('game', 'host'), new FakeConnection('game', 'peer'), new FakeConnection('game', 'watcher')],
+      )
+      room.gameplay.startRound('host')
+      for (const connection of connections) {
+        connection.sent = []
+      }
+      return room
+    }
+    /** Every snapshot anybody was sent, as connections or as updates. */
+    const snapshots = () =>
+      connections.flatMap(connection =>
+        connection.sent.flatMap(({ type, payload }) =>
+          type === updateGameAction.type
+            ? [payload as GameState]
+            : type === connectToRoomSuccessAction.type
+              ? [(payload as { game: GameState }).game]
+              : [],
+        ),
+      )
+    const expectNothingDealt = (game: GameState) => {
+      expect(game.status).toBe(GameStatus.Starting)
+      expect(game.playground).toEqual(clearedTable)
+      for (const player of Object.values(game.players)) {
+        expect(player).toMatchObject(emptyHand)
+      }
+    }
+
+    it('seats a newcomer as a spectator, with seats free, and shows them the countdown', () => {
+      const room = counting()
+
+      const newcomer = join(room, 'newcomer')
+
+      expect(room.state.spectators).toEqual({ watcher: { id: 'watcher' }, newcomer: { id: 'newcomer' } })
+      expect(newcomer.sent).toEqual([connectToRoomSuccessAction({ game: room.state }), updateGameAction(room.state)])
+      expect(snapshots().length).toBeGreaterThan(0)
+      snapshots().forEach(expectNothingDealt)
+      expect(room.state.players.host).toMatchObject({ isHost: true, status: PlayerStatus.ReadyToPlay })
+      expect(room.state.players.peer).toMatchObject({ isHost: false, status: PlayerStatus.DontReadyToPlay })
+    })
+
+    it('shows a player connecting again within the grace period the countdown, with their status kept', () => {
+      const room = counting()
+      room.disconnect('peer')
+
+      const again = join(room, 'peer')
+
+      expect(again.sent[0]).toEqual(connectToRoomSuccessAction({ game: room.state }))
+      snapshots().forEach(expectNothingDealt)
+      expect(room.state.players.peer?.status).toBe(PlayerStatus.DontReadyToPlay)
+      expect(vi.getTimerCount()).toBe(1)
+    })
+
+    it('shows a player coming back after the grace period the countdown, not ready', () => {
+      const room = counting('third')
+      goOffline(room, 'third')
+
+      join(room, 'third')
+
+      expect(snapshots().length).toBeGreaterThan(1)
+      snapshots().forEach(expectNothingDealt)
+      expect(room.state.players.third?.status).toBe(PlayerStatus.DontReadyToPlay)
+    })
+
+    it('shows a host leaving, with the role passed on and the countdown kept', () => {
+      const room = counting('third')
+
+      room.leave('host')
+
+      expect(snapshots().length).toBeGreaterThan(0)
+      snapshots().forEach(expectNothingDealt)
+      expect(room.state.players.peer).toMatchObject({ isHost: true, status: PlayerStatus.DontReadyToPlay })
+      expect(room.state.players.third).toMatchObject({ isHost: false, status: PlayerStatus.ReadyToPlay })
+    })
+
+    it('shows a host going offline, with the role passed on and the countdown kept', () => {
+      const room = counting('third')
+
+      goOffline(room, 'host')
+
+      expect(snapshots().length).toBeGreaterThan(0)
+      snapshots().forEach(expectNothingDealt)
+      expect(room.state.players.host).toMatchObject({ isHost: false, status: PlayerStatus.Disconnected })
+      expect(room.state.players.peer?.isHost).toBe(true)
+    })
+
+    it('shows a spectator going away', () => {
+      const room = counting()
+
+      goOffline(room, 'watcher')
+
+      expect(room.state.spectators).toEqual({})
+      expect(snapshots().length).toBeGreaterThan(0)
+      snapshots().forEach(expectNothingDealt)
+    })
+
+    it('shows a refused readiness to nobody and changes nothing', () => {
+      const room = counting()
+      const before = structuredClone(room.state)
+
+      room.setReadiness('peer', PlayerStatus.ReadyToPlay)
+
+      expect(room.state).toEqual(before)
+      expect(snapshots()).toEqual([])
+    })
+
+    it('shows a round given up with nothing dealt, and lets it start again', async () => {
+      const room = counting()
+
+      room.leave('peer')
+      expect(room.state.status).toBe(GameStatus.RoundFinished)
+      expect(room.state.players.host).toMatchObject({ isHost: true, status: PlayerStatus.DontReadyToPlay, ...emptyHand })
+
+      join(room, 'peer')
+      room.gameplay.startRound('host')
+      expect(room.state.status).toBe(GameStatus.Starting)
+      await vi.advanceTimersByTimeAsync(60_000)
+
+      expect(room.state.status).toBe(GameStatus.InGame)
+      expect(room.state.players.peer?.cards).toHaveLength(5)
     })
   })
 

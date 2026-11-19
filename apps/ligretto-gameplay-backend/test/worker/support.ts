@@ -95,11 +95,14 @@ export const openClient = async (worker: Fetcher, path: string, userId: string) 
     throw new Error(`No socket: ${response.status}`)
   }
   const received: Array<{ type: string; payload?: unknown }> = []
+  /** When each message in `received` arrived, by the same position. */
+  const receivedAt: number[] = []
   const closes: Array<{ code: number; reason: string }> = []
   let notify = () => {}
   socket.addEventListener('message', event => {
     if (typeof event.data === 'string' && event.data !== 'pong') {
       received.push(JSON.parse(event.data))
+      receivedAt.push(Date.now())
     }
     notify()
   })
@@ -126,6 +129,7 @@ export const openClient = async (worker: Fetcher, path: string, userId: string) 
   return {
     socket,
     received,
+    receivedAt,
     closes,
     send: (action: { type: string; payload?: unknown }) => socket.send(JSON.stringify(action)),
     closed: () => until(() => closes[0]),

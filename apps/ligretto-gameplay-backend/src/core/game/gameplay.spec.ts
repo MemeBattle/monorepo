@@ -5,6 +5,13 @@ import { FakeConnection } from '../ports.fake'
 import { gameInRound, playerOf } from './ports.fake'
 
 const clearedTable = { decks: new Array(12).fill(null), droppedDecks: [] }
+const emptyHand = {
+  cards: [],
+  ligrettoDeck: { isHidden: true, cards: [] },
+  stackOpenDeck: { isHidden: true, cards: [] },
+  stackDeck: { isHidden: true, cards: [] },
+}
+const card = { color: CardColors.red, value: 1, playerId: 'host' }
 
 describe('Gameplay', () => {
   /** Someone watching the room, to see what it shows. */
@@ -30,93 +37,105 @@ describe('Gameplay', () => {
       gameInRound({
         status,
         players: {
-          host: playerOf('host', { isHost: true, status: PlayerStatus.DontReadyToPlay }),
+          host: playerOf('host', { isHost: true, status: PlayerStatus.ReadyToPlay }),
           peer: playerOf('peer', { status: PlayerStatus.DontReadyToPlay }),
         },
       })
+    const withLongCountdown = (state: GameState): GameState => ({ ...state, config: { ...state.config, startingDelayInSec: 60 } })
+    const updatesSent = () => watcher.sentOfType(updateGameAction).map(({ payload }) => payload as GameState)
 
-    it('shows Starting and deals at once', () => {
+    it('shows Starting with nothing dealt, and keeps it until the countdown ends', async () => {
       const room = roomOf(between())
 
       room.gameplay.startRound('host')
 
+      const starting = {
+        ...between(),
+        status: GameStatus.Starting,
+        players: { host: { ...between().players.host!, ...emptyHand }, peer: { ...between().players.peer!, ...emptyHand } },
+        playground: clearedTable,
+      }
+      expect(room.state).toEqual(starting)
+      expect(watcher.sent).toEqual([updateGameAction(starting)])
+
+      await vi.advanceTimersByTimeAsync(3_999)
+      expect(room.state).toEqual(starting)
       expect(watcher.sent).toHaveLength(1)
-      expect((watcher.sent[0].payload as GameState).status).toBe(GameStatus.Starting)
+    })
+
+    it('deals when the countdown ends, and shows the deal once', async () => {
+      const room = roomOf(between())
+      room.gameplay.startRound('host')
+      watcher.sent = []
+
+      await vi.advanceTimersByTimeAsync(4_000)
+
       expect(room.state.status).toBe(GameStatus.InGame)
       expect(room.state.players.host).toMatchObject({ status: PlayerStatus.InGame })
       expect(room.state.players.host?.cards).toHaveLength(5)
       expect(room.state.players.host?.ligrettoDeck.cards).toHaveLength(10)
       expect(room.state.players.host?.stackDeck.cards).toHaveLength(25)
       expect(room.state.playground).toEqual(clearedTable)
-    })
-
-    it('shows the deal when the countdown ends', async () => {
-      const room = roomOf(between())
-      room.gameplay.startRound('host')
-      watcher.sent = []
-
-      await vi.advanceTimersByTimeAsync(3_999)
-      expect(watcher.sent).toEqual([])
-
-      await vi.advanceTimersByTimeAsync(1)
       expect(watcher.sent).toEqual([updateGameAction(room.state)])
+
+      await vi.advanceTimersByTimeAsync(60_000)
+      expect(watcher.sent).toHaveLength(1)
     })
 
-    it('shows no deal for a round that ended during the countdown', async () => {
-      const room = roomOf(between())
+    it('hides the hands of the finished round during the countdown of the next', async () => {
+      const leftover = playerOf('host', {
+        isHost: true,
+        status: PlayerStatus.DontReadyToPlay,
+        cards: [card],
+        ligrettoDeck: { isHidden: true, cards: [card] },
+      })
+      const room = roomOf({ ...between(GameStatus.RoundFinished), players: { ...between().players, host: leftover } })
+
       room.gameplay.startRound('host')
 
-      room.leave('host')
-      watcher.sent = []
+      expect(room.state.status).toBe(GameStatus.Starting)
+      expect(room.state.players.host).toEqual({ ...leftover, ...emptyHand })
+
       await vi.advanceTimersByTimeAsync(4_000)
-
-      expect(watcher.sent).toEqual([])
-    })
-
-    it('shows the deal of a new round on its own countdown, not on the one it replaced', async () => {
-      const room = roomOf(between(GameStatus.RoundFinished))
-      room.gameplay.startRound('host')
-      vi.advanceTimersByTime(3_000)
-      room.leave('peer')
-      join(room, 'peer')
-      room.gameplay.startRound('host')
-      watcher.sent = []
-
-      await vi.advanceTimersByTimeAsync(3_999)
-      expect(watcher.sent).toEqual([])
-
-      await vi.advanceTimersByTimeAsync(1)
-      expect(watcher.sent).toEqual([updateGameAction(room.state)])
-    })
-
-    it('shows no deal for a room closed during the countdown', async () => {
-      const room = roomOf(between())
-      room.gameplay.startRound('host')
-
-      room.close()
-      watcher.sent = []
-      await vi.advanceTimersByTimeAsync(4_000)
-
-      expect(watcher.sent).toEqual([])
-    })
-
-    it('starts the next round from a finished round', () => {
-      const room = roomOf(between(GameStatus.RoundFinished))
-
-      room.gameplay.startRound('host')
-
       expect(room.state.status).toBe(GameStatus.InGame)
       expect(room.state.players.host?.ligrettoDeck.cards).toHaveLength(10)
     })
 
-    it('keeps a disconnected player disconnected through the deal, with a hand to return to', () => {
+    it('deals to the players seated when the countdown ends, sized for how many they are', async () => {
+      const room = roomOf({ ...between(), players: { ...between().players, third: playerOf('third', { status: PlayerStatus.DontReadyToPlay }) } })
+      room.gameplay.startRound('host')
+
+      room.leave('third')
+      join(room, 'newcomer')
+      await vi.advanceTimersByTimeAsync(4_000)
+
+      expect(Object.keys(room.state.players)).toEqual(['host', 'peer'])
+      expect(room.state.spectators).toEqual({ newcomer: { id: 'newcomer' } })
+      expect(room.state.players.host?.cards).toHaveLength(5)
+      expect(room.state.players.peer?.cards).toHaveLength(5)
+    })
+
+    it('keeps a disconnected player disconnected through the deal, with a hand to return to', async () => {
       const ghost = playerOf('ghost', { status: PlayerStatus.Disconnected })
       const room = roomOf({ ...between(), players: { ...between().players, ghost } })
 
       room.gameplay.startRound('host')
+      expect(room.state.players.ghost).toEqual({ ...ghost, ...emptyHand })
 
+      await vi.advanceTimersByTimeAsync(4_000)
       expect(room.state.players.ghost?.status).toBe(PlayerStatus.Disconnected)
       expect(room.state.players.ghost?.ligrettoDeck.cards).toHaveLength(10)
+    })
+
+    it('counts a player within the grace period as online, and deals them in', async () => {
+      const room = roomOf(between())
+      room.gameplay.startRound('host')
+
+      room.disconnect('peer')
+      await vi.advanceTimersByTimeAsync(4_000)
+
+      expect(room.state.status).toBe(GameStatus.InGame)
+      expect(room.state.players.peer?.ligrettoDeck.cards).toHaveLength(10)
     })
 
     it.each([
@@ -131,16 +150,112 @@ describe('Gameplay', () => {
 
       expect(room.state).toEqual(before)
       expect(watcher.sent).toEqual([])
+      expect(vi.getTimerCount()).toBe(0)
     })
 
-    it('pauses when a player goes offline during the countdown', () => {
-      const room = roomOf({ ...between(), config: { playersMaxCount: 4, startingDelayInSec: 60, maxCardsOnTable: 12 } })
+    it('refuses every move, readiness, resume and another start during the countdown, and deals on time', async () => {
+      const room = roomOf(between())
+      room.gameplay.startRound('host')
+      watcher.sent = []
+      const starting = structuredClone(room.state)
+      await vi.advanceTimersByTimeAsync(2_000)
+
+      for (const userId of ['host', 'peer']) {
+        room.gameplay.putCard(userId, 0, 0)
+        room.gameplay.putCardFromStack(userId, 0)
+        room.gameplay.takeFromStack(userId)
+        expect(room.gameplay.takeFromLigretto(userId)).toBeUndefined()
+        room.setReadiness(userId, PlayerStatus.ReadyToPlay)
+        room.gameplay.resumeRound(userId)
+        room.gameplay.startRound(userId)
+      }
+
+      expect(room.state).toEqual(starting)
+      expect(watcher.sent).toEqual([])
+      expect(vi.getTimerCount()).toBe(1)
+
+      await vi.advanceTimersByTimeAsync(2_000)
+      expect(room.state.status).toBe(GameStatus.InGame)
+      expect(updatesSent().map(({ status }) => status)).toEqual([GameStatus.InGame])
+    })
+
+    it('gives up the round when a player goes offline and fewer than two are online, and never deals it', async () => {
+      const room = roomOf(withLongCountdown(between()))
       room.gameplay.startRound('host')
 
       room.disconnect('peer')
-      vi.advanceTimersByTime(DISCONNECT_GRACE_PERIOD_MS)
+      await vi.advanceTimersByTimeAsync(DISCONNECT_GRACE_PERIOD_MS)
 
-      expect(room.state.status).toBe(GameStatus.Pause)
+      expect(room.state.status).toBe(GameStatus.RoundFinished)
+      expect(room.state.players.host).toMatchObject({ status: PlayerStatus.DontReadyToPlay, cards: [] })
+      expect(room.state.players.peer).toMatchObject({ status: PlayerStatus.Disconnected, cards: [] })
+      expect(vi.getTimerCount()).toBe(0)
+
+      watcher.sent = []
+      await vi.advanceTimersByTimeAsync(60_000)
+      room.gameplay.resumeRound('host')
+      expect(watcher.sent).toEqual([])
+      expect(room.state.status).toBe(GameStatus.RoundFinished)
+    })
+
+    it('keeps counting down when one of three goes offline, and deals them in', async () => {
+      const room = roomOf(
+        withLongCountdown({ ...between(), players: { ...between().players, third: playerOf('third', { status: PlayerStatus.DontReadyToPlay }) } }),
+      )
+      room.gameplay.startRound('host')
+
+      room.disconnect('third')
+      await vi.advanceTimersByTimeAsync(DISCONNECT_GRACE_PERIOD_MS)
+      expect(room.state.status).toBe(GameStatus.Starting)
+      expect(room.state.players.third).toMatchObject({ status: PlayerStatus.Disconnected, cards: [] })
+
+      await vi.advanceTimersByTimeAsync(60_000)
+      expect(room.state.status).toBe(GameStatus.InGame)
+      expect(room.state.players.third?.status).toBe(PlayerStatus.Disconnected)
+      expect(room.state.players.third?.cards).toHaveLength(4)
+    })
+
+    it('shows no deal for a round given up during the countdown', async () => {
+      const room = roomOf(between())
+      room.gameplay.startRound('host')
+
+      room.leave('host')
+      watcher.sent = []
+      await vi.advanceTimersByTimeAsync(4_000)
+
+      expect(room.state.status).toBe(GameStatus.RoundFinished)
+      expect(room.state.players.peer?.cards).toEqual([])
+      expect(watcher.sent).toEqual([])
+    })
+
+    it('shows the deal of a new round on its own countdown, not on the one it replaced', async () => {
+      const room = roomOf(between(GameStatus.RoundFinished))
+      room.gameplay.startRound('host')
+      vi.advanceTimersByTime(3_000)
+      room.leave('peer')
+      join(room, 'peer')
+      room.gameplay.startRound('host')
+      watcher.sent = []
+
+      await vi.advanceTimersByTimeAsync(3_999)
+      expect(room.state.status).toBe(GameStatus.Starting)
+      expect(watcher.sent).toEqual([])
+
+      await vi.advanceTimersByTimeAsync(1)
+      expect(watcher.sent).toEqual([updateGameAction(room.state)])
+      expect(room.state.status).toBe(GameStatus.InGame)
+    })
+
+    it('shows no deal for a room closed during the countdown', async () => {
+      const room = roomOf(between())
+      room.gameplay.startRound('host')
+
+      room.close()
+      watcher.sent = []
+      await vi.advanceTimersByTimeAsync(4_000)
+
+      expect(watcher.sent).toEqual([])
+      expect(room.state.status).toBe(GameStatus.Starting)
     })
   })
 
@@ -170,6 +285,72 @@ describe('Gameplay', () => {
       room.close()
 
       expect(vi.getTimerCount()).toBe(0)
+    })
+
+    it('stops with a round given up', () => {
+      const room = roomOf(between())
+      room.gameplay.startRound('host')
+
+      room.leave('peer')
+
+      expect(vi.getTimerCount()).toBe(0)
+    })
+
+    /** The callback of the countdown a start schedules, to run by hand as a timer that fires despite being cleared would. */
+    const startCapturingCountdown = (room: Room) => {
+      const scheduled = vi.spyOn(globalThis, 'setTimeout')
+      room.gameplay.startRound('host')
+      const [callback, delay] = scheduled.mock.calls.at(-1)!
+      scheduled.mockRestore()
+      expect(delay).toBe(4_000)
+      return callback as () => void
+    }
+
+    it('deals nothing from a replaced countdown that fires anyway, and deals the new round on its own schedule', async () => {
+      const room = roomOf(between())
+      const stale = startCapturingCountdown(room)
+      await vi.advanceTimersByTimeAsync(3_000)
+      room.leave('peer')
+      join(room, 'peer')
+
+      stale()
+      expect(room.state.status).toBe(GameStatus.RoundFinished)
+
+      room.gameplay.startRound('host')
+      const restarted = structuredClone(room.state)
+      watcher.sent = []
+
+      stale()
+      expect(room.state).toEqual(restarted)
+      expect(room.state.status).toBe(GameStatus.Starting)
+      expect(watcher.sent).toEqual([])
+
+      await vi.advanceTimersByTimeAsync(1_000)
+      expect(room.state).toEqual(restarted)
+      expect(watcher.sent).toEqual([])
+
+      await vi.advanceTimersByTimeAsync(2_999)
+      expect(room.state).toEqual(restarted)
+      expect(watcher.sent).toEqual([])
+
+      await vi.advanceTimersByTimeAsync(1)
+      expect(room.state.status).toBe(GameStatus.InGame)
+      expect(watcher.sent).toEqual([updateGameAction(room.state)])
+      expect(vi.getTimerCount()).toBe(0)
+    })
+
+    it('deals nothing from the countdown of a closed room that fires anyway', () => {
+      const room = roomOf(between())
+      const stale = startCapturingCountdown(room)
+      room.close()
+      const closed = structuredClone(room.state)
+      watcher.sent = []
+
+      stale()
+
+      expect(room.state).toEqual(closed)
+      expect(room.state.status).toBe(GameStatus.Starting)
+      expect(watcher.sent).toEqual([])
     })
   })
 
@@ -217,7 +398,6 @@ describe('Gameplay', () => {
   })
 
   describe('moves', () => {
-    const card = { color: CardColors.red, value: 1, playerId: 'host' }
     const withHost = (overrides: Partial<Player>) =>
       gameInRound({ players: { host: playerOf('host', { isHost: true, ...overrides }), peer: playerOf('peer') } })
 
@@ -383,11 +563,13 @@ describe('Gameplay', () => {
       expect(room.gameplay.takeFromLigretto('host')).toBeUndefined()
     })
 
-    it('lets the next round start straight away', () => {
+    it('lets the next round start straight away', async () => {
       const room = claimed()
 
       room.gameplay.startRound('host')
+      expect(room.state.status).toBe(GameStatus.Starting)
 
+      await vi.advanceTimersByTimeAsync(4_000)
       expect(room.state.status).toBe(GameStatus.InGame)
       expect(room.state.players.host?.ligrettoDeck.cards).toHaveLength(10)
     })
