@@ -1,4 +1,5 @@
 import { useMemo, type Ref } from 'react'
+import last from 'lodash/last'
 import { styled } from '@mui/material/styles'
 import { Stack } from '@memebattle/ui'
 import type { Card as OpponentCard, UUID } from '@memebattle/ligretto-shared'
@@ -6,6 +7,7 @@ import { PlayerStatus } from '@memebattle/ligretto-shared'
 
 import { Player } from '../Player'
 import { Card, CardPlace } from '#entities/card'
+import { CardViewTransition } from '#features/cardAnimation'
 
 import { getRandomAvatar } from '#shared/ui/Avatar/getRandomAvatar'
 
@@ -41,7 +43,7 @@ export interface OpponentCardsProps {
 }
 
 export const Opponent = ({ stackOpenDeckCards, cards, avatar, username, status, id, ref }: OpponentCardsProps) => {
-  const stackOpenDeckCard = useMemo(() => (stackOpenDeckCards.length ? stackOpenDeckCards.slice(-1)[0] : {}), [stackOpenDeckCards])
+  const stackOpenDeckCard = last(stackOpenDeckCards)
   const avatarImg = useMemo(() => avatar ?? getRandomAvatar(id), [avatar, id])
   const isDisconnected = status === PlayerStatus.Disconnected
 
@@ -60,11 +62,21 @@ export const Opponent = ({ stackOpenDeckCards, cards, avatar, username, status, 
           }}
         >
           <CardPlace size="small">
-            <Card size="small" isDisabled {...stackOpenDeckCard} />
+            {stackOpenDeckCard ? (
+              <CardViewTransition key={stackOpenDeckCard.id} name={stackOpenDeckCard.id}>
+                <Card isDisabled size="small" {...stackOpenDeckCard} />
+              </CardViewTransition>
+            ) : (
+              <Card size="small" isDisabled />
+            )}
           </CardPlace>
           {cards.map((card, index) => (
             <CardPlace size="small" key={index}>
-              {card ? <Card isDisabled size="small" {...card} /> : null}
+              {card ? (
+                <CardViewTransition key={card.id} name={card.id}>
+                  <Card isDisabled size="small" {...card} />
+                </CardViewTransition>
+              ) : null}
             </CardPlace>
           ))}
         </Stack>

@@ -49,6 +49,13 @@ describe('createInitialPlayerCards', () => {
     expect(new Set(cards.map(key)).size).toBe(40)
     expect(cards.every(current => current.playerId === 'host' && current.value >= 1 && current.value <= 10)).toBe(true)
   })
+
+  it('gives every card an id no other card on the table has', () => {
+    const cards = ['host', 'guest'].flatMap(createInitialPlayerCards)
+
+    expect(cards.every(current => typeof current.id === 'string')).toBe(true)
+    expect(new Set(cards.map(current => current.id)).size).toBe(80)
+  })
 })
 
 describe('dealHand', () => {

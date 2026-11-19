@@ -5,6 +5,7 @@ import { CardsRow } from '#entities/card/ui/CardsRow'
 import { playerCardsSelector, Hotkey } from '#ducks/game'
 import { Card, CardPlace, CardHotkeyBadge } from '#entities/card'
 import { useCardHotkey, useDraggableCard } from '#features/cardInteraction'
+import { CardViewTransition } from '#features/cardAnimation'
 import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
 
 interface PlayerRowCardProps {
@@ -21,18 +22,21 @@ const PlayerRowCard = ({ card, index, hotkey }: PlayerRowCardProps) => {
 
   return (
     <CardHotkeyBadge hotkey={hotkey}>
-      <Card
-        {...card}
-        {...listeners}
-        ref={setNodeRef}
-        data-card-drag-source
-        data-card-drag-id={dragId}
-        data-card-interaction-element
-        isDarkened={isDimmed}
-        isSelected={isActive}
-        onClick={onCardActivate}
-        isInvisible={isDragging}
-      />
+      {/* A dragged card is already over its deck when it is dropped: it must not fly there again from the hand. */}
+      <CardViewTransition name={card.id} share={isDragging ? 'none' : 'auto'}>
+        <Card
+          {...card}
+          {...listeners}
+          ref={setNodeRef}
+          data-card-drag-source
+          data-card-drag-id={dragId}
+          data-card-interaction-element
+          isDarkened={isDimmed}
+          isSelected={isActive}
+          onClick={onCardActivate}
+          isInvisible={isDragging}
+        />
+      </CardViewTransition>
     </CardHotkeyBadge>
   )
 }
@@ -44,7 +48,7 @@ export const PlayerRowCardsContainer = () => {
   return (
     <CardsRow>
       {playerCards?.map((card, index) => (
-        <CardPlace key={index}>{card && <PlayerRowCard card={card} index={index} hotkey={hotkeys[index]} />}</CardPlace>
+        <CardPlace key={index}>{card && <PlayerRowCard key={card.id} card={card} index={index} hotkey={hotkeys[index]} />}</CardPlace>
       ))}
     </CardsRow>
   )

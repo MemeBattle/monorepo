@@ -14,6 +14,7 @@ export enum OpponentPositions {
 
 // TODO: Fix required fields
 export interface Card {
+  id?: string
   color?: CardColors
   value: number
   hidden?: boolean

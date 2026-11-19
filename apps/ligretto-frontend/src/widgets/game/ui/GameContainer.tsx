@@ -7,6 +7,7 @@ import { gameStatusSelector, isPlayerSpectatorSelector, opponentsSelector, start
 import { GameStatus } from '@memebattle/ligretto-shared'
 import { ScreenCountdown } from './ScreenCountdown'
 import { CardInteractionProvider } from '#features/cardInteraction'
+import { CardAnimationProvider } from '#features/cardAnimation'
 
 const gamePageContainerSelector = createSelector(
   [gameStatusSelector, isPlayerSpectatorSelector, startingDelayInSecSelector, opponentsSelector],
@@ -23,21 +24,24 @@ export const GameContainer = () => {
   const isInteractionEnabled = !isPlayerSpectator && gameStatus === GameStatus.InGame
 
   return (
-    <CardInteractionProvider enabled={isInteractionEnabled}>
-      {gameStatus === GameStatus.Starting && <ScreenCountdown timeToGo={startingDelayInSec} />}
-      <GameGrid centerElement={<Playground />} bottomElement={isPlayerSpectator ? null : <CardsPanelContainer />}>
-        {opponents.map(opponent => (
-          <Opponent
-            id={opponent.id}
-            avatar={opponent.avatar}
-            status={opponent.status}
-            username={opponent.username}
-            key={opponent.id}
-            cards={opponent.cards}
-            stackOpenDeckCards={opponent.stackOpenDeck.cards}
-          />
-        ))}
-      </GameGrid>
-    </CardInteractionProvider>
+    // Only in play: a new round deals the same cards again, and they must not fly from the table back to the hands.
+    <CardAnimationProvider enabled={gameStatus === GameStatus.InGame}>
+      <CardInteractionProvider enabled={isInteractionEnabled}>
+        {gameStatus === GameStatus.Starting && <ScreenCountdown timeToGo={startingDelayInSec} />}
+        <GameGrid centerElement={<Playground />} bottomElement={isPlayerSpectator ? null : <CardsPanelContainer />}>
+          {opponents.map(opponent => (
+            <Opponent
+              id={opponent.id}
+              avatar={opponent.avatar}
+              status={opponent.status}
+              username={opponent.username}
+              key={opponent.id}
+              cards={opponent.cards}
+              stackOpenDeckCards={opponent.stackOpenDeck.cards}
+            />
+          ))}
+        </GameGrid>
+      </CardInteractionProvider>
+    </CardAnimationProvider>
   )
 }
