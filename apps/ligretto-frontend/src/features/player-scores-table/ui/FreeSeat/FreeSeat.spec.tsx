@@ -10,7 +10,7 @@ import { initialState } from '#ducks/game'
 import { createMockStore } from '#testing/lib/createMockStore'
 import { FreeSeat } from './FreeSeat'
 
-const renderFreeSeat = (viewer: 'spectator' | 'player') => {
+const renderFreeSeat = (viewer: 'spectator' | 'player', { offersSeat = true } = {}) => {
   const store = createMockStore({
     preloadedState: {
       auth: { ...authInitialState, userId: 'viewer', isBootstrapped: true },
@@ -42,7 +42,7 @@ const renderFreeSeat = (viewer: 'spectator' | 'player') => {
 
   render(
     <Provider store={store}>
-      <FreeSeat />
+      <FreeSeat offersSeat={offersSeat} />
     </Provider>,
   )
 
@@ -61,6 +61,14 @@ describe('FreeSeat', () => {
 
   it('offers a seated player only the invite', () => {
     renderFreeSeat('player')
+
+    expect(screen.getByText('Free seat')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Invite friends to join you!' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Sit here' })).toBeNull()
+  })
+
+  it('offers a spectator only the invite at a seat that does not offer itself', () => {
+    renderFreeSeat('spectator', { offersSeat: false })
 
     expect(screen.getByText('Free seat')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Invite friends to join you!' })).toBeTruthy()
