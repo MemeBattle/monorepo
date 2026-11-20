@@ -50,6 +50,7 @@ export const GameSettingsContainer = () => {
       playersCount={playersCount}
       playersMaxCount={playersMaxCount}
       canStartGame={currentPlayer?.isHost ?? false}
+      isSpectatorBetweenRounds={!currentPlayer && isBetweenRounds(gameStatus)}
       canToggleReady={!!currentPlayer && currentPlayer.status !== PlayerStatus.Disconnected && isBetweenRounds(gameStatus)}
       onReadyClick={handleReadyClick}
       onStartClick={handleStartClick}

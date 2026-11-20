@@ -29,7 +29,7 @@ const createPlayer = (id: string, status: PlayerStatus, isHost = false): GamePla
   stackDeck: { isHidden: true, cards: [] },
 })
 
-const createStoryStore = (viewerId: string, gameStatus: GameStatus, players: GamePlayer[]) =>
+const createStoryStore = (viewerId: string, gameStatus: GameStatus, players: GamePlayer[], spectators = spectatorIds) =>
   createMockStore({
     preloadedState: {
       auth: { ...authInitialState, userId: viewerId, isBootstrapped: true },
@@ -48,7 +48,7 @@ const createStoryStore = (viewerId: string, gameStatus: GameStatus, players: Gam
           name: 'Friday night',
           status: gameStatus,
           players: Object.fromEntries(players.map(player => [player.id, player])),
-          spectators: Object.fromEntries(spectatorIds.map(id => [id, { id }])),
+          spectators: Object.fromEntries(spectators.map(id => [id, { id }])),
         },
       },
     },
@@ -91,6 +91,7 @@ const meta: Meta<typeof GameSettings> = {
     playersMaxCount: 4,
     canStartGame: false,
     canToggleReady: false,
+    isSpectatorBetweenRounds: false,
     isStartDisabled: false,
     isPlayerReadyToPlay: false,
     onReadyClick: () => void 0,
@@ -112,7 +113,13 @@ export const Player: Story = {
   decorators: withStore(createStoryStore('marta', GameStatus.RoundFinished, playersBetweenRounds)),
 }
 
+export const PlayerSpectating: Story = {
+  args: { playersCount: 2, isSpectatorBetweenRounds: true },
+  decorators: withStore(createStoryStore('marta', GameStatus.RoundFinished, playersBetweenRounds.slice(0, 2), [...spectatorIds, 'marta'])),
+}
+
 export const Spectator: Story = {
+  args: { isSpectatorBetweenRounds: true },
   decorators: withStore(createStoryStore('anya', GameStatus.RoundFinished, playersBetweenRounds)),
 }
 
@@ -123,5 +130,15 @@ export const Paused: Story = {
 
 export const Narrow: Story = {
   ...Host,
+  globals: { viewport: { value: 'mobile1', isRotated: false } },
+}
+
+export const PlayerNarrow: Story = {
+  ...Player,
+  globals: { viewport: { value: 'mobile1', isRotated: false } },
+}
+
+export const PlayerSpectatingNarrow: Story = {
+  ...PlayerSpectating,
   globals: { viewport: { value: 'mobile1', isRotated: false } },
 }

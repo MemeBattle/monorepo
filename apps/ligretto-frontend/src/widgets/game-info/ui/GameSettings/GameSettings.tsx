@@ -21,6 +21,8 @@ interface GameSettingsProps {
   canStartGame: boolean
   /** The viewer is a seated player between rounds */
   canToggleReady: boolean
+  /** The viewer watches between rounds, when they may take a seat */
+  isSpectatorBetweenRounds: boolean
   isStartDisabled: boolean
   isPlayerReadyToPlay: boolean
   onStartClick: () => void
@@ -69,6 +71,7 @@ export const GameSettings = ({
   playersMaxCount,
   canStartGame,
   canToggleReady,
+  isSpectatorBetweenRounds,
   isStartDisabled,
   isPlayerReadyToPlay,
   onReadyClick,
@@ -129,6 +132,12 @@ export const GameSettings = ({
             data-test-id="GameSettings-ReadyButton"
           >
             {isPlayerReadyToPlay ? 'Not ready' : "I'm ready"}
+          </Button>
+        )}
+        {isSpectatorBetweenRounds && (
+          // Holds the Ready button's place, so taking a seat or watching again does not reflow the actions above.
+          <Button aria-hidden tabIndex={-1} size="large" variant="outlined" sx={{ visibility: 'hidden', borderWidth: 2 }}>
+            {'\u00a0'}
           </Button>
         )}
         {canStartGame && (

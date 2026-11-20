@@ -40,21 +40,34 @@ export const FreeSeat = ({ offersSeat = false }: FreeSeatProps) => {
             Free seat
           </Typography>
         </PlayersScoresTableCell>
-        <PlayersScoresTableCell size={{ xs: 12, sm: 'auto' }}>
-          <RoomInviteLink />
+        <PlayersScoresTableCell size="auto">
+          <RoomInviteLink isCompact={isMobile} />
         </PlayersScoresTableCell>
         {offersSeat && isSpectator && (
           <PlayersScoresTableCell size="auto">
-            <Button
-              onClick={handleTakeSeat}
-              variant="contained"
-              color="secondary"
-              startIcon={<ArrowForwardRoundedIcon />}
-              sx={{ fontWeight: 800 }}
-              data-test-id="PlayersScoresTable-TakeSeatButton"
-            >
-              Sit here
-            </Button>
+            {isMobile ? (
+              <Button
+                onClick={handleTakeSeat}
+                aria-label="Sit here"
+                variant="contained"
+                color="secondary"
+                sx={{ minWidth: '2.75rem', height: '2.75rem', p: 0 }}
+                data-test-id="PlayersScoresTable-TakeSeatButton"
+              >
+                <ArrowForwardRoundedIcon />
+              </Button>
+            ) : (
+              <Button
+                onClick={handleTakeSeat}
+                variant="contained"
+                color="secondary"
+                startIcon={<ArrowForwardRoundedIcon />}
+                sx={{ fontWeight: 800 }}
+                data-test-id="PlayersScoresTable-TakeSeatButton"
+              >
+                Sit here
+              </Button>
+            )}
           </PlayersScoresTableCell>
         )}
       </Grid>
