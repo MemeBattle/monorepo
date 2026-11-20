@@ -1,5 +1,17 @@
 # Ligretto
 
+Ligretto is three apps and three packages:
+
+- `apps/ligretto-frontend` — the React SPA players open.
+- `apps/ligretto-core-backend` — the HTTP service: CAS sign-in, player profiles, games and rounds.
+- `apps/ligretto-gameplay-backend` — the game server: rooms and rounds over WebSockets.
+- `packages/ligretto-shared` — the actions, DTOs and types the frontend and the gameplay backend exchange.
+- `packages/ligretto-core-client` — the generated client of the core backend's API, used by the frontend and the
+  gameplay backend.
+- `packages/ligretto-auth` — the server side of talking to CAS, used by both backends.
+
+Each app has its own `AGENTS.md`; this document covers running them together.
+
 ## Start all
 
 You need Docker with Compose and Node; no Rust toolchain.

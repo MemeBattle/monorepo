@@ -20,3 +20,5 @@ Read [docs/CODE.md](./docs/CODE.md) before adding or changing any code or docume
 Read [docs/TESTS.md](./docs/TESTS.md) before adding, changing or deleting a test, and when deciding whether a change needs a test.
 
 Read [docs/naming-convention.md](./docs/naming-convention.md) before creating or renaming a React component, its file, its directory or its stories file.
+
+Read [docs/ligretto.md](./docs/ligretto.md) before working on Ligretto: anything under `apps/ligretto-*` or `packages/ligretto-*`.
