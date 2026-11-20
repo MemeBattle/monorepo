@@ -11,6 +11,8 @@ import {
   createRoomSuccessAction,
   endRoundAction,
   GameStatus,
+  kickedFromRoomAction,
+  kickFromRoomEmitAction,
   leaveFromRoomEmitAction,
   PlayerStatus,
   removeRoomAction,
@@ -831,6 +833,82 @@ describe('gameplay on Durable Objects', () => {
         await second.waitFor(connectToRoomErrorAction)
         expect((await second.closed()).reason).toBe('left the room')
         await host.until(() => (latestGame(host).players.peer === undefined ? true : undefined))
+      })
+
+      it('sends every connection of a kicked user out, frees the seat in the Lobby and leaves other rooms alone', async () => {
+        const { lobby, id, clients } = await roomOf('host', 'peer')
+        const [host, peer] = clients
+        const secondTab = track(await joinRoom(id, 'peer'))
+        const other = await createRoom(lobby)
+        const inOtherRoom = track(await joinRoom(other.id, 'peer'))
+        const seenInOtherRoom = inOtherRoom.received.length
+        const seenByLobby = lobby.received.length
+
+        host.send(kickFromRoomEmitAction({ gameId: id, userId: 'peer' }))
+
+        for (const tab of [peer, secondTab]) {
+          expect((await tab.waitFor(kickedFromRoomAction)).payload).toEqual({ roomUuid: id })
+          await tab.waitFor(connectToRoomErrorAction)
+          expect((await tab.closed()).reason).toBe('left the room')
+        }
+        await host.until(() => (latestGame(host).players.peer === undefined ? true : undefined))
+        await lobby.until(() =>
+          lobby.received
+            .slice(seenByLobby)
+            .some(
+              ({ type, payload }) =>
+                type === updateRoomsAction.type && (payload as { rooms: Room[] }).rooms.some(room => room.uuid === id && room.playersCount === 1),
+            )
+            ? true
+            : undefined,
+        )
+        expect(inOtherRoom.received).toHaveLength(seenInOtherRoom)
+        expect(inOtherRoom.closes).toEqual([])
+      })
+
+      it('ignores a kick from someone who is not the host', async () => {
+        const { clients } = await roomOf('host', 'peer')
+        const [host, peer] = clients
+        const id = latestGame(host).id
+
+        peer.send(kickFromRoomEmitAction({ gameId: id, userId: 'host' }))
+        peer.send(setPlayerStatusEmitAction({ gameId: id, status: PlayerStatus.ReadyToPlay }))
+
+        await host.until(() => (latestGame(host).players.peer?.status === PlayerStatus.ReadyToPlay ? true : undefined))
+        expect(latestGame(host).players.host).toBeDefined()
+        expect(host.received.some(({ type }) => type === kickedFromRoomAction.type)).toBe(false)
+        expect(host.closes).toEqual([])
+      })
+
+      it('lets a kicked user come back through the room link', async () => {
+        const { id, clients } = await roomOf('host', 'peer')
+        const [host, peer] = clients
+
+        host.send(kickFromRoomEmitAction({ gameId: id, userId: 'peer' }))
+        await peer.closed()
+
+        track(await joinRoom(id, 'peer'))
+        await host.until(() => (latestGame(host).players.peer ? true : undefined))
+      })
+
+      it('ignores what was still in flight on a socket the object closed, after its user joined again', async () => {
+        const { id, clients, stub } = await roomOf('host', 'peer')
+        const [host, peer] = clients
+        let closedByTheObject: WebSocket | undefined
+        await runInDurableObject(stub, (_instance, state) => {
+          closedByTheObject = state.getWebSockets(id).find(socket => (socket.deserializeAttachment() as { userId: string }).userId === 'peer')
+        })
+        host.send(kickFromRoomEmitAction({ gameId: id, userId: 'peer' }))
+        await peer.closed()
+        const rejoined = track(await joinRoom(id, 'peer'))
+        await host.until(() => (latestGame(host).players.peer ? true : undefined))
+
+        await runInDurableObject(stub, instance => instance.webSocketMessage(closedByTheObject!, JSON.stringify(leaveFromRoomEmitAction())))
+        host.send(setPlayerStatusEmitAction({ gameId: id, status: PlayerStatus.ReadyToPlay }))
+
+        await host.until(() => (latestGame(host).players.host?.status === PlayerStatus.ReadyToPlay ? true : undefined))
+        expect(latestGame(host).players.peer).toBeDefined()
+        expect(rejoined.closes).toEqual([])
       })
 
       it('closes a silent socket at a sweep, and keeps one that answered the heartbeat', async () => {

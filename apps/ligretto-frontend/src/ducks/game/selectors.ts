@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit'
-import { PlayerStatus } from '@memebattle/ligretto-shared'
+import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 
 import type { All } from '#types/store'
 import { currentUserIdSelector } from '#ducks/auth'
@@ -43,6 +43,13 @@ export const playerStackDeckCardsSelector = (state: All) => playerSelector(state
 export const playerLigrettoDeckCardsSelector = (state: All) => playerSelector(state)?.ligrettoDeck.cards
 export const playerLigrettoDeckHiddenSelector = (state: All) => playerSelector(state)?.ligrettoDeck.isHidden
 export const playerStatusSelector = (state: All) => playerSelector(state)?.status
+
+/** The server decides, and refuses anything else: this only spares the user controls that would do nothing. */
+export const canKickParticipantsSelector = createSelector(
+  [playerSelector, gameStatusSelector],
+  (player, status) =>
+    !!player?.isHost && player.status !== PlayerStatus.Disconnected && (status === GameStatus.New || status === GameStatus.RoundFinished),
+)
 
 export const isPlayerSpectatorSelector = (state: All) => {
   const currentPlayerId = currentUserIdSelector(state)

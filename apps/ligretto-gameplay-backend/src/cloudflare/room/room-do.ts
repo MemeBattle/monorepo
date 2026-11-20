@@ -14,8 +14,11 @@ import { rejectMissingRoom } from '../refuse-socket'
 import { restoreRoom } from './restore-room'
 import { heartbeatAutoResponse, isOpen, SocketConnection } from '../socket-connection'
 
-/** Survives hibernation with the socket. Limited to 16 KiB by the runtime. */
-type RoomAttachment = { userId: string; roomId: string; acceptedAt: number }
+/**
+ * Survives hibernation with the socket. Limited to 16 KiB by the runtime. `revoked` is set when the object closes the
+ * socket: its user may have joined again since, and what is still in flight on it must not act for them.
+ */
+type RoomAttachment = { userId: string; roomId: string; acceptedAt: number; revoked?: true }
 
 /** A client pings every 20 s, so this is two missed pings and a slow third. */
 const SILENT_SOCKET_TIMEOUT_MS = 45_000
@@ -27,6 +30,12 @@ const SWEEP_INTERVAL_MS = 30_000
 type RoomCallResult = ReturnType<typeof handleAction>
 
 const attachmentOf = (socket: WebSocket) => socket.deserializeAttachment() as RoomAttachment
+
+/** The object is done with the socket, whatever its user does next. */
+const revoke = (socket: WebSocket, code: number, reason: string) => {
+  socket.serializeAttachment({ ...attachmentOf(socket), revoked: true } satisfies RoomAttachment)
+  new SocketConnection(socket).close(code, reason)
+}
 
 const participantIdsOf = (room: Room) => [...Object.keys(room.state.players), ...Object.keys(room.state.spectators)]
 
@@ -99,6 +108,7 @@ export class RoomDO extends DurableObject<Env> {
   private addRoom(state: GameState, results: GameResults | undefined, emptySince: number | undefined) {
     const room = new Room(state, {
       broadcast: (action, exceptUserId) => this.broadcast(state.id, action, exceptUserId),
+      sendTo: (userId, action) => this.sendTo(state.id, userId, action),
       results,
     })
     this.rooms.set(state.id, { room, emptySince })
@@ -130,14 +140,17 @@ export class RoomDO extends DurableObject<Env> {
     if (!action) {
       return
     }
-    const { roomId, userId } = attachmentOf(socket)
+    const { roomId, userId, revoked } = attachmentOf(socket)
+    if (revoked) {
+      return
+    }
     const connection = new SocketConnection(socket)
 
     const hosted = this.liveRoom(roomId)
 
     if (!hosted) {
       connection.send(connectToRoomErrorAction())
-      connection.close(1000, 'room not found')
+      revoke(socket, 1000, 'room not found')
       return
     }
     this.run(hosted, room => handleAction({ room, userId }, action))
@@ -225,7 +238,7 @@ export class RoomDO extends DurableObject<Env> {
     hosted.removing = true
     hosted.room.close()
     for (const socket of this.openSockets(roomId)) {
-      new SocketConnection(socket).close(1000, 'room deleted')
+      revoke(socket, 1000, 'room deleted')
     }
 
     // Nobody is waited for: the room is over, or the room has been empty for long enough.
@@ -245,9 +258,8 @@ export class RoomDO extends DurableObject<Env> {
   private closeUsersWhoLeft(room: Room) {
     for (const socket of this.openSockets(room.id)) {
       if (!room.hasParticipant(attachmentOf(socket).userId)) {
-        const connection = new SocketConnection(socket)
-        connection.send(connectToRoomErrorAction())
-        connection.close(1000, 'left the room')
+        new SocketConnection(socket).send(connectToRoomErrorAction())
+        revoke(socket, 1000, 'left the room')
       }
     }
   }
@@ -291,7 +303,7 @@ export class RoomDO extends DurableObject<Env> {
       const { roomId, userId, acceptedAt } = attachmentOf(socket)
       const lastHeard = Math.max(this.ctx.getWebSocketAutoResponseTimestamp(socket)?.getTime() ?? 0, acceptedAt)
       if (Date.now() - lastHeard > SILENT_SOCKET_TIMEOUT_MS) {
-        new SocketConnection(socket).close(1001, 'no heartbeat')
+        revoke(socket, 1001, 'no heartbeat')
         this.connectionClosed(roomId, userId)
       }
     }
@@ -317,6 +329,14 @@ export class RoomDO extends DurableObject<Env> {
 
   private connectedUserIds(roomId: UUID) {
     return [...new Set(this.openSockets(roomId).map(socket => attachmentOf(socket).userId))]
+  }
+
+  private sendTo(roomId: UUID, userId: UUID, action: AnyAction) {
+    for (const socket of this.openSockets(roomId)) {
+      if (attachmentOf(socket).userId === userId) {
+        new SocketConnection(socket).send(action)
+      }
+    }
   }
 
   private broadcast(roomId: UUID, action: AnyAction, exceptUserId?: UUID) {

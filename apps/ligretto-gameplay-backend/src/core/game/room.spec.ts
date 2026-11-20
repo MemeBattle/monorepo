@@ -5,6 +5,7 @@ import {
   connectToRoomSuccessAction,
   endRoundAction,
   GameStatus,
+  kickedFromRoomAction,
   PlayerStatus,
   updateGameAction,
   userJoinToRoomAction,
@@ -14,7 +15,7 @@ import {
 import { DISCONNECT_GRACE_PERIOD_MS, Room } from './room'
 import { createGame } from './model/room'
 import { FakeConnection } from '../ports.fake'
-import { broadcastTo, gameInRound, playerOf } from './ports.fake'
+import { broadcastTo, gameInRound, playerOf, sendToUserOf } from './ports.fake'
 
 const clearedTable = { decks: new Array(12).fill(null), droppedDecks: [] }
 const gameResults: GameResults = { host: { roundScore: 2, gameScore: 2 } }
@@ -27,6 +28,7 @@ describe('Room', () => {
     connections.push(...connected)
     return new Room(structuredClone(state), {
       broadcast: broadcastTo(connections),
+      sendTo: sendToUserOf(connections),
     })
   }
   const join = (room: Room, userId: string) => {
@@ -194,7 +196,7 @@ describe('Room', () => {
     })
 
     it('sends the table it was restored with to someone joining', () => {
-      const room = new Room(finished(), { broadcast: broadcastTo(connections), results: gameResults })
+      const room = new Room(finished(), { broadcast: broadcastTo(connections), sendTo: sendToUserOf(connections), results: gameResults })
 
       expect(join(room, 'host').sent.at(-1)).toEqual(endRoundAction(gameResults))
     })
@@ -213,7 +215,7 @@ describe('Room', () => {
       const peer = new FakeConnection('game', 'peer')
       connections.push(host, peer)
       const state = gameInRound({ status: GameStatus.RoundFinished })
-      const room = new Room(state, { broadcast: broadcastTo(connections), results: gameResults })
+      const room = new Room(state, { broadcast: broadcastTo(connections), sendTo: sendToUserOf(connections), results: gameResults })
 
       room.showToEveryone()
 
@@ -346,6 +348,139 @@ describe('Room', () => {
       room.leave('peer')
 
       expect(vi.getTimerCount()).toBe(0)
+    })
+  })
+
+  describe('kicking', () => {
+    const betweenRounds = (status = GameStatus.New) =>
+      gameInRound({
+        status,
+        players: {
+          host: playerOf('host', { isHost: true, status: PlayerStatus.DontReadyToPlay }),
+          peer: playerOf('peer', { status: PlayerStatus.ReadyToPlay }),
+        },
+        spectators: { watcher: { id: 'watcher' } },
+      })
+    const connected = (...userIds: string[]) => userIds.map(userId => new FakeConnection('game', userId))
+
+    it.each([GameStatus.New, GameStatus.RoundFinished])(
+      'removes a player in %s, tells every tab of theirs and shows the others the freed seat',
+      status => {
+        const [host, watcher, peerTab, peerOtherTab] = connected('host', 'watcher', 'peer', 'peer')
+        const room = roomOf(betweenRounds(status), [host, watcher, peerTab, peerOtherTab])
+
+        room.kick('host', 'peer')
+
+        expect(room.hasParticipant('peer')).toBe(false)
+        expect(room.state.status).toBe(status)
+        expect(peerTab.sent).toEqual([kickedFromRoomAction({ roomUuid: 'game' })])
+        expect(peerOtherTab.sent).toEqual([kickedFromRoomAction({ roomUuid: 'game' })])
+        expect(host.sent).toEqual([updateGameAction(room.state)])
+        expect(watcher.sent).toEqual([updateGameAction(room.state)])
+      },
+    )
+
+    it('removes a spectator out of the room, not just out of a seat', () => {
+      const [host, watcher] = connected('host', 'watcher')
+      const room = roomOf(betweenRounds(), [host, watcher])
+
+      room.kick('host', 'watcher')
+
+      expect(room.hasParticipant('watcher')).toBe(false)
+      expect(watcher.sent).toEqual([kickedFromRoomAction({ roomUuid: 'game' })])
+    })
+
+    it('removes a player during their grace period, and nothing marks them offline afterwards', () => {
+      const [host] = connected('host')
+      const room = roomOf(betweenRounds(), [host])
+      room.disconnect('peer')
+
+      room.kick('host', 'peer')
+
+      expect(vi.getTimerCount()).toBe(0)
+      expect(room.hasParticipant('peer')).toBe(false)
+    })
+
+    it('removes a player already offline', () => {
+      const room = roomOf(betweenRounds())
+      goOffline(room, 'peer')
+
+      room.kick('host', 'peer')
+
+      expect(room.hasParticipant('peer')).toBe(false)
+    })
+
+    it('lets a kicked user join again as a newcomer', () => {
+      const room = roomOf(betweenRounds())
+      room.kick('host', 'peer')
+
+      join(room, 'peer')
+
+      expect(room.state.players.peer).toMatchObject({ isHost: false, status: PlayerStatus.DontReadyToPlay })
+    })
+
+    it.each([
+      ['a countdown', GameStatus.Starting],
+      ['a running round', GameStatus.InGame],
+      ['a paused round', GameStatus.Pause],
+    ])('removes nobody during %s and tells nobody', (_label, status) => {
+      const [host, peer, watcher] = connected('host', 'peer', 'watcher')
+      const room = roomOf(betweenRounds(status), [host, peer, watcher])
+      const before = structuredClone(room.state)
+
+      room.kick('host', 'peer')
+      room.kick('host', 'watcher')
+
+      expect(room.state).toEqual(before)
+      expect([...host.sent, ...peer.sent, ...watcher.sent]).toEqual([])
+    })
+
+    it.each([
+      ['a player who is not the host', 'peer', 'watcher'],
+      ['a spectator', 'watcher', 'peer'],
+      ['the host removing themselves', 'host', 'host'],
+      ['the host naming someone not in the room', 'host', 'stranger'],
+    ])('changes nothing for %s', (_label, actorId, targetId) => {
+      const [host, peer, watcher] = connected('host', 'peer', 'watcher')
+      const room = roomOf(betweenRounds(), [host, peer, watcher])
+      const before = structuredClone(room.state)
+
+      room.kick(actorId, targetId)
+
+      expect(room.state).toEqual(before)
+      expect([...host.sent, ...peer.sent, ...watcher.sent]).toEqual([])
+    })
+
+    it('does not let a former host remove anyone once the role moved on', () => {
+      const room = roomOf(betweenRounds())
+      goOffline(room, 'host')
+      expect(room.state.players.peer?.isHost).toBe(true)
+      join(room, 'host')
+
+      room.kick('host', 'peer')
+
+      expect(room.hasParticipant('peer')).toBe(true)
+    })
+
+    it('tells nobody anything on a repeated kick', () => {
+      const [host, peer] = connected('host', 'peer')
+      const room = roomOf(betweenRounds(), [host, peer])
+      room.kick('host', 'peer')
+      host.sent = []
+      peer.sent = []
+
+      room.kick('host', 'peer')
+
+      expect([...host.sent, ...peer.sent]).toEqual([])
+    })
+
+    it('comes too late once the host started the round', () => {
+      const room = roomOf(betweenRounds())
+      room.gameplay.startRound('host')
+
+      room.kick('host', 'peer')
+
+      expect(room.hasParticipant('peer')).toBe(true)
     })
   })
 
@@ -554,6 +689,7 @@ describe('Room', () => {
     it('keeps the table of the last round for someone joining after a change', () => {
       const room = new Room(intermission({ ...intermission().players, peer: playerOf('peer') }), {
         broadcast: broadcastTo(connections),
+        sendTo: sendToUserOf(connections),
         results: { host: { roundScore: 2, gameScore: 2 }, peer: { roundScore: 1, gameScore: 5 } },
       })
       room.becomeSpectator('peer')

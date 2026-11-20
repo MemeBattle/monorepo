@@ -6,6 +6,9 @@ import type { FakeConnection } from '../ports.fake'
 export const broadcastTo = (connections: FakeConnection[]) => (action: AnyAction, exceptUserId?: string) =>
   connections.filter(connection => connection.userId !== exceptUserId).forEach(connection => connection.send(action))
 
+export const sendToUserOf = (connections: FakeConnection[]) => (userId: string, action: AnyAction) =>
+  connections.filter(connection => connection.userId === userId).forEach(connection => connection.send(action))
+
 export const playerOf = (id: string, overrides: Partial<Player> = {}): Player => ({
   id,
   isHost: false,

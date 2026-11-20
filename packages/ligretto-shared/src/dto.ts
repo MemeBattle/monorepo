@@ -16,6 +16,15 @@ export interface ConnectToRoom {
   roomUuid: string
 }
 
+export interface KickFromRoom {
+  gameId: Game['id']
+  userId: Player['id']
+}
+
+export interface KickedFromRoom {
+  roomUuid: Game['id']
+}
+
 export interface ConnectToRoomSuccess {
   game: Game
 }

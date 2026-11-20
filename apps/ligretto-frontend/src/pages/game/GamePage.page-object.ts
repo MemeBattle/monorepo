@@ -35,6 +35,10 @@ export class GamePage {
     return this.page.getByTestId('PlayersScoresTable-PlayersScoresTableRow')
   }
 
+  getKickButtons() {
+    return this.page.getByTestId('PlayersScoresTable-KickButton')
+  }
+
   getDisconnectedBadges() {
     return this.page.getByTitle(/\(disconnected\)$/)
   }

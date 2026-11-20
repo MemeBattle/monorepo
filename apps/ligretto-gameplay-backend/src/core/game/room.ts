@@ -3,6 +3,7 @@ import {
   connectToRoomErrorAction,
   connectToRoomSuccessAction,
   endRoundAction,
+  kickedFromRoomAction,
   updateGameAction,
   userJoinToRoomAction,
 } from '@memebattle/ligretto-shared'
@@ -16,6 +17,7 @@ import {
   becomeSpectator,
   canBecomePlayer,
   canBecomeSpectator,
+  canKick,
   canSetReadiness,
   isRoundInProgress,
   joinsAsSpectator,
@@ -32,6 +34,8 @@ export const DISCONNECT_GRACE_PERIOD_MS = 5_000
 interface RoomOptions {
   /** To everyone in the room, or to everyone but one user. */
   broadcast(action: AnyAction, exceptUserId?: UUID): void
+  /** To every connection of one user in the room. */
+  sendTo(userId: UUID, action: AnyAction): void
   /** The table of the last round, for a room that comes back. */
   results?: GameResults
 }
@@ -40,14 +44,16 @@ interface RoomOptions {
 export class Room {
   readonly gameplay: Gameplay
   private readonly broadcast: RoomOptions['broadcast']
+  private readonly sendTo: RoomOptions['sendTo']
   /** Plain timers: a room that comes back already counts whoever has no socket as offline. */
   private readonly disconnectTimers = new Map<UUID, ReturnType<typeof setTimeout>>()
   private current: GameState
   private results?: GameResults
 
-  constructor(state: GameState, { broadcast, results }: RoomOptions) {
+  constructor(state: GameState, { broadcast, sendTo, results }: RoomOptions) {
     this.current = state
     this.broadcast = broadcast
+    this.sendTo = sendTo
     this.results = results
     this.gameplay = new Gameplay({ getState: () => this.current, save: next => this.save(next), broadcast })
   }
@@ -118,6 +124,17 @@ export class Room {
     if (Object.keys(this.current.players).length > 0) {
       this.broadcast(updateGameAction(this.current))
     }
+  }
+
+  /** The host removes someone between rounds. They may come back through the room link like anyone else. */
+  kick(hostId: UUID, targetId: unknown) {
+    if (!canKick(this.current, hostId, targetId)) {
+      return
+    }
+    this.stopDisconnectTimer(targetId)
+    this.sendTo(targetId, kickedFromRoomAction({ roomUuid: this.id }))
+    this.save(leaveRoom(this.current, targetId))
+    this.broadcast(updateGameAction(this.current), targetId)
   }
 
   setReadiness(userId: UUID, status: PlayerStatus) {

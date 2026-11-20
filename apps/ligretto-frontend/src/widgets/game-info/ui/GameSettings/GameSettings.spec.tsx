@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { Provider } from 'react-redux'
 import { MemoryRouter } from 'react-router'
 import type { Player } from '@memebattle/ligretto-shared'
-import { becomePlayerEmitAction, becomeSpectatorEmitAction, GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
+import { becomePlayerEmitAction, becomeSpectatorEmitAction, GameStatus, kickFromRoomEmitAction, PlayerStatus } from '@memebattle/ligretto-shared'
 
 import { authInitialState } from '#ducks/auth/authSlice'
 import { createMockStore } from '#testing/lib/createMockStore'
@@ -128,6 +128,70 @@ describe('GameSettings', () => {
     expect(screen.queryByRole('button', { name: 'Resume' })).toBeNull()
     expect(screen.queryByRole('button', { name: "I'm ready" })).toBeNull()
     expect(screen.getByRole('button', { name: 'Leave room' })).toBeTruthy()
+  })
+
+  describe('removing someone from the room', () => {
+    const roomBetweenRounds = (status: GameStatus = GameStatus.New) => ({
+      status,
+      players: [createPlayer('host', { isHost: true }), createPlayer('peer', { status: PlayerStatus.ReadyToPlay })],
+      spectatorIds: ['watcher'],
+    })
+    const removeButtons = () => screen.queryAllByRole('button', { name: /^Remove .*from the room$/ })
+
+    it.each([GameStatus.New, GameStatus.RoundFinished])('lets the host remove a player and a spectator in %s, never themselves', status => {
+      const { dispatch } = renderGameSettings({ userId: 'host', ...roomBetweenRounds(status) })
+
+      expect(removeButtons()).toHaveLength(2)
+
+      removeButtons().forEach(button => fireEvent.click(button))
+
+      expect(dispatch).toHaveBeenCalledWith(kickFromRoomEmitAction({ gameId: 'game', userId: 'peer' }))
+      expect(dispatch).toHaveBeenCalledWith(kickFromRoomEmitAction({ gameId: 'game', userId: 'watcher' }))
+    })
+
+    it('offers nothing to a player who is not the host', () => {
+      renderGameSettings({ userId: 'peer', ...roomBetweenRounds() })
+      expect(removeButtons()).toHaveLength(0)
+    })
+
+    it('offers nothing to a spectator', () => {
+      renderGameSettings({ userId: 'watcher', ...roomBetweenRounds() })
+      expect(removeButtons()).toHaveLength(0)
+    })
+
+    it('offers nothing while a round is paused', () => {
+      renderGameSettings({
+        userId: 'host',
+        status: GameStatus.Pause,
+        players: [createPlayer('host', { isHost: true, status: PlayerStatus.InGame }), createPlayer('peer', { status: PlayerStatus.Disconnected })],
+        spectatorIds: ['watcher'],
+      })
+
+      expect(removeButtons()).toHaveLength(0)
+    })
+
+    it('frees the seat once the room says the player is gone', () => {
+      const { store } = renderGameSettings({
+        userId: 'host',
+        status: GameStatus.New,
+        players: [createPlayer('host', { isHost: true }), createPlayer('peer')],
+      })
+      expect(screen.getAllByText('Free seat')).toHaveLength(2)
+
+      act(() => {
+        store.dispatch(
+          updateGameAction({
+            ...store.getState().game.game,
+            players: { host: createPlayer('host', { isHost: true }) },
+          }),
+        )
+      })
+
+      expect(screen.getByText('1/4 players')).toBeTruthy()
+      expect(screen.getAllByText('Free seat')).toHaveLength(3)
+      expect(removeButtons()).toHaveLength(0)
+      expect((screen.getByRole('button', { name: 'Start' }) as HTMLButtonElement).disabled).toBe(true)
+    })
   })
 
   it('marks the spectator who is viewing and offers them a free seat, not the controls of a player', () => {

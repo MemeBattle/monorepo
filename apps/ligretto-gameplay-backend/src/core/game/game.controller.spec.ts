@@ -4,6 +4,8 @@ import {
   becomeSpectatorEmitAction,
   CardColors,
   GameStatus,
+  kickedFromRoomAction,
+  kickFromRoomEmitAction,
   leaveFromRoomEmitAction,
   PlayerStatus,
   putCardAction,
@@ -19,7 +21,7 @@ import {
 import { Room } from './room'
 import { handleAction } from './game.controller'
 import { FakeConnection } from '../ports.fake'
-import { broadcastTo, gameInRound, playerOf } from './ports.fake'
+import { broadcastTo, gameInRound, playerOf, sendToUserOf } from './ports.fake'
 
 const card = { color: CardColors.red, value: 1, playerId: 'host' }
 
@@ -35,6 +37,7 @@ describe('the game controller', () => {
   const seed = (state: GameState) => {
     room = new Room(structuredClone(state), {
       broadcast: broadcastTo(connections),
+      sendTo: sendToUserOf(connections),
     })
   }
   const send = (connection: FakeConnection, action: { type: string; payload?: unknown }) => handleAction({ room, userId: connection.userId }, action)
@@ -197,6 +200,49 @@ describe('the game controller', () => {
       seed(gameInRound())
 
       expect(() => send(open('host'), { type: 'constructor' })).not.toThrow()
+    })
+  })
+
+  describe('a kick', () => {
+    const between = () => gameInRound({ status: GameStatus.RoundFinished })
+
+    it('takes the target out of the room when the connection belongs to the host', () => {
+      seed(between())
+      const target = open('peer')
+
+      send(open('host'), kickFromRoomEmitAction({ gameId: 'game', userId: 'peer' }))
+
+      expect(room.hasParticipant('peer')).toBe(false)
+      expect(target.sent).toEqual([kickedFromRoomAction({ roomUuid: 'game' })])
+    })
+
+    it('acts as the user of the connection, whoever the payload names', () => {
+      seed(between())
+
+      send(open('peer'), { type: kickFromRoomEmitAction.type, payload: { gameId: 'game', userId: 'host', hostId: 'host' } })
+
+      expect(room.hasParticipant('host')).toBe(true)
+    })
+
+    it('ignores a kick naming another room', () => {
+      seed(between())
+
+      send(open('host'), kickFromRoomEmitAction({ gameId: 'other-room', userId: 'peer' }))
+
+      expect(room.hasParticipant('peer')).toBe(true)
+    })
+
+    it.each([
+      ['no payload', undefined],
+      ['no target', { gameId: 'game' }],
+      ['a target that is not an id', { gameId: 'game', userId: ['peer'] }],
+    ])('ignores a kick with %s', (_label, payload) => {
+      seed(between())
+      const before = structuredClone(room.state)
+
+      send(open('host'), { type: kickFromRoomEmitAction.type, payload })
+
+      expect(room.state).toEqual(before)
     })
   })
 

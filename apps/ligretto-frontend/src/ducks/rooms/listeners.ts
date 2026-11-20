@@ -1,4 +1,4 @@
-import { type TypedStartListening } from '@reduxjs/toolkit'
+import { isAnyOf, type TypedStartListening } from '@reduxjs/toolkit'
 import { replace, push } from 'redux-first-history'
 import { generatePath } from 'react-router'
 
@@ -10,6 +10,7 @@ import {
   connectToRoomErrorAction,
   connectToRoomEmitAction,
   createRoomSuccessAction,
+  kickedFromRoomAction,
 } from '@memebattle/ligretto-shared'
 
 import { routes } from '#shared/constants'
@@ -56,7 +57,7 @@ export function addListeners(startListener: TypedStartListening<{ rooms: RoomsSt
   })
 
   startListener({
-    actionCreator: connectToRoomErrorAction,
+    matcher: isAnyOf(connectToRoomErrorAction, kickedFromRoomAction),
     effect: (_action, listenerApi) => {
       listenerApi.dispatch(replace(routes.HOME))
     },
