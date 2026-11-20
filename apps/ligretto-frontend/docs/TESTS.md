@@ -1,6 +1,6 @@
 # Tests
 
-What gets a unit test in this package and how it is written.
+What gets a unit test in this package, how it is written, and what the e2e suite may rely on.
 
 ## What gets a unit test
 
@@ -21,6 +21,9 @@ What gets a unit test in this package and how it is written.
   view: render the screen the user would be on, trigger what the user does, assert what the user sees. When a flow
   spans the API and the socket and no single screen shows it, it is an e2e scenario, not a unit test. Logic that
   deserves a test of its own is extracted into a pure function and tested there.
-- Declarative code: markup without logic, route tables, type and schema declarations, lists of constants.
-- Configuration: `vite.config.ts`, `playwright.config.ts`, `cloudflare.config.ts`, `wrangler.config.ts`, the env
-  files.
+
+## E2E
+
+Playwright may stub a network call with `page.route` (`e2e/lib/stubAuthMe.ts`). The app itself serves nothing for the
+tests, no page, store or route of its own: the same suite runs daily against production
+(`.github/workflows/ligretto-schedule-e2e.yml`), where it would not exist.

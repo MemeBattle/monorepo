@@ -60,10 +60,3 @@ ComponentName
 -- ComponentName.tsx
 -- ComponentName.stories.tsx
 ```
-
-### 'Smart' components (Containers)
-
-'Smart' component (Container) - components connected to redux.
-
-**Smart** components should have a '_Container_' postfix. For example
-_'CardContainer'_
