@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { Provider } from 'react-redux'
+import { MemoryRouter } from 'react-router'
 import type { Player as GamePlayer } from '@memebattle/ligretto-shared'
 import { GameStatus, PlayerStatus } from '@memebattle/ligretto-shared'
 
@@ -7,6 +8,7 @@ import { authInitialState } from '#ducks/auth/authSlice'
 import { initialState } from '#ducks/game'
 import { createMockStore } from '#testing/lib/createMockStore'
 import { GameSettings } from './GameSettings'
+import { GameSettingsModal } from '../GameSettingsModal'
 
 const users = [
   { sub: 'god', name: 'GOD' },
@@ -125,3 +127,23 @@ export const Narrow: Story = {
   ...Host,
   globals: { viewport: { value: 'mobile1', isRotated: false } },
 }
+
+const modalStory = (viewport: { value: string; isRotated: boolean }): Story => ({
+  render: () => <GameSettingsModal isOpen />,
+  decorators: [
+    Story => (
+      <Provider store={createStoryStore('god', GameStatus.RoundFinished, playersBetweenRounds)}>
+        <MemoryRouter>
+          <Story />
+        </MemoryRouter>
+      </Provider>
+    ),
+  ],
+  globals: { viewport },
+})
+
+export const ModalMobile = modalStory({ value: 'mobile2', isRotated: false })
+
+export const ModalMobileLandscape = modalStory({ value: 'mobile2', isRotated: true })
+
+export const ModalDesktop = modalStory({ value: 'desktop', isRotated: false })
