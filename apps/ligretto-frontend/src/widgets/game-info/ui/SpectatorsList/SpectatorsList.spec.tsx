@@ -36,7 +36,13 @@ const renderSpectatorsList = ({
   const store = createMockStore({
     preloadedState: {
       auth: { ...authInitialState, userId, isBootstrapped: true },
-      users: { ids: ['watcher'], entities: { watcher: { sub: 'watcher', name: 'Anya', accountType: 'full', avatarUrl: null } } },
+      users: {
+        ids: ['watcher', 'other'],
+        entities: {
+          watcher: { sub: 'watcher', name: 'Anya', accountType: 'full', avatarUrl: null },
+          other: { sub: 'other', name: 'Kostya', accountType: 'full', avatarUrl: null },
+        },
+      },
       game: {
         ...initialState,
         game: {
@@ -68,6 +74,13 @@ describe('SpectatorsList', () => {
     expect(screen.getByText('Anya')).toBeTruthy()
     expect(screen.getByText('You')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Spectate' })).toBeNull()
+  })
+
+  it('lists the viewer last, where the Spectate button stood', () => {
+    renderSpectatorsList({ userId: 'watcher', spectatorIds: ['watcher', 'other'] })
+
+    const names = screen.getAllByText(/^(Anya|Kostya)$/).map(element => element.textContent)
+    expect(names).toEqual(['Kostya', 'Anya'])
   })
 
   it('shows nothing when nobody watches and the viewer cannot spectate', () => {

@@ -27,9 +27,15 @@ export const FreeSeat = ({ offersSeat = false }: FreeSeatProps) => {
     dispatch(becomePlayerEmitAction({ gameId }))
   }, [dispatch, gameId])
 
+  const inviteCell = (
+    <PlayersScoresTableCell size={{ xs: 12, sm: 'auto' }}>
+      <RoomInviteLink />
+    </PlayersScoresTableCell>
+  )
+
   return (
     <PlayersScoresTableRow sx={{ border: `1px dashed ${alpha(theme.palette.common.white, 0.35)}` }} data-test-id="PlayersScoresTable-FreeSeat">
-      <Grid container spacing={2} sx={{ flex: 1 }}>
+      <Grid container columnSpacing={2} rowSpacing={0} sx={{ flex: 1 }}>
         {!isMobile && (
           <PlayersScoresTableCell size={columnsProps.avatar}>
             <Box width="3rem" height="3rem" borderRadius="50%" border={`1px dashed ${alpha(theme.palette.common.white, 0.5)}`} />
@@ -40,13 +46,12 @@ export const FreeSeat = ({ offersSeat = false }: FreeSeatProps) => {
             Free seat
           </Typography>
         </PlayersScoresTableCell>
-        <PlayersScoresTableCell size={{ xs: 12, sm: 'auto' }}>
-          <RoomInviteLink />
-        </PlayersScoresTableCell>
+        {!isMobile && inviteCell}
         {offersSeat && isSpectator && (
           <PlayersScoresTableCell size="auto">
             <Button
               onClick={handleTakeSeat}
+              size={isMobile ? 'small' : 'medium'}
               variant="contained"
               color="secondary"
               startIcon={<ArrowForwardRoundedIcon />}
@@ -57,6 +62,8 @@ export const FreeSeat = ({ offersSeat = false }: FreeSeatProps) => {
             </Button>
           </PlayersScoresTableCell>
         )}
+        {/* On a phone the invite link takes the second line, under the label and Sit here, so the seat fits the fixed row height. */}
+        {isMobile && inviteCell}
       </Grid>
     </PlayersScoresTableRow>
   )
