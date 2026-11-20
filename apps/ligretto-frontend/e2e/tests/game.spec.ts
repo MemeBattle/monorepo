@@ -1,4 +1,4 @@
-import { test, expect, type Browser } from '@playwright/test'
+import { test, expect, devices, type Browser } from '@playwright/test'
 import { GamePage } from '#pages/game/GamePage.page-object.ts'
 import { HomePage } from '#pages/home/HomePage.page-object.ts'
 
@@ -191,6 +191,70 @@ test.describe('Roles between rounds', () => {
     await expect(gamePageUser2.getOpponents()).toHaveCount(1)
 
     await Promise.all([contextUser1.close(), contextUser2.close()])
+  })
+})
+
+test.describe('Game settings layout', () => {
+  test('stays a centered dialog on desktop, even in a short window, and fills a phone screen in both orientations', async ({
+    browser,
+    page,
+  }, testInfo) => {
+    test.setTimeout(60_000)
+    const safeAreaInsets = { top: 0, right: 47, bottom: 21, left: 47 }
+    await (await page.context().newCDPSession(page)).send('Emulation.setSafeAreaInsetsOverride', { insets: safeAreaInsets })
+    const homePage = new HomePage(page)
+    await homePage.visitHomeUrl()
+    await (await homePage.getRoomNameInput()).click()
+    await (await homePage.getRoomNameInput()).fill(`Layout-${testInfo.retry}-${Date.now().toString(36)}`)
+    await (await homePage.getCreateGameButton()).click()
+
+    const desktopGamePage = new GamePage(page)
+    await expect(await desktopGamePage.getStartButton()).toBeVisible()
+    const desktopGameSettings = await desktopGamePage.getGameSettings()
+    for (const viewport of [
+      { width: 1280, height: 720 },
+      { width: 1280, height: 580 },
+    ]) {
+      await page.setViewportSize(viewport)
+      await expect
+        .poll(async () => {
+          const { x, y, width, height } = (await desktopGameSettings.boundingBox())!
+          return { centered: Math.abs(x - (viewport.width - width) / 2) < 1, insetX: x > 0, insetY: y > 0 && y + height < viewport.height }
+        })
+        .toEqual({ centered: true, insetX: true, insetY: true })
+      await expect(desktopGameSettings).toHaveCSS('padding', '32px')
+      await expect(desktopGameSettings).toHaveCSS('border-radius', '8px')
+    }
+
+    const phoneContext = await browser.newContext({ ...devices['Pixel 5'] })
+    const phonePage = await phoneContext.newPage()
+    await (await phoneContext.newCDPSession(phonePage)).send('Emulation.setSafeAreaInsetsOverride', { insets: safeAreaInsets })
+    await phonePage.goto(page.url())
+    const phoneGamePage = new GamePage(phonePage)
+    const phoneGameSettings = await phoneGamePage.getGameSettings()
+    const phoneButtons = [await phoneGamePage.getPlayerReadyButton(), await phoneGamePage.getExitButton()]
+    await expect(phoneButtons[0]).toBeVisible()
+    for (const viewport of [
+      { width: 393, height: 851 },
+      { width: 851, height: 393 },
+      { width: 568, height: 320 },
+    ]) {
+      await phonePage.setViewportSize(viewport)
+      await expect
+        .poll(async () => {
+          const { x, y, width, height } = (await phoneGameSettings.boundingBox())!
+          return { x, width, coversHeight: y <= 0 && y + height >= viewport.height }
+        })
+        .toEqual({ x: 0, width: viewport.width, coversHeight: true })
+      await expect(phoneGameSettings).toHaveCSS('padding', '16px 63px 37px')
+
+      for (const button of phoneButtons) {
+        await button.click({ trial: true })
+        await expect(button).toBeInViewport({ ratio: 0.9 })
+      }
+    }
+
+    await phoneContext.close()
   })
 })
 
