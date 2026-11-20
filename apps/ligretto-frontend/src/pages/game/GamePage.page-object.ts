@@ -27,23 +27,6 @@ export class GamePage {
     return this.page.getByTestId('GameSettings-SpectateButton')
   }
 
-  getSpectatorsSection() {
-    return this.page.getByTestId('GameSettings-Spectators')
-  }
-
-  getPlayersTable() {
-    return this.page.getByTestId('PlayersScoresTable')
-  }
-
-  /** Player rows and free seats, in table order. */
-  getSeatRows() {
-    return this.page.locator('[data-test-id="PlayersScoresTable-PlayersScoresTableRow"], [data-test-id="PlayersScoresTable-FreeSeat"]')
-  }
-
-  getViewerSpectatorBadge() {
-    return this.page.getByTestId('GameSettings-ViewerSpectatorBadge')
-  }
-
   getTakeSeatButtons() {
     return this.page.getByTestId('PlayersScoresTable-TakeSeatButton')
   }

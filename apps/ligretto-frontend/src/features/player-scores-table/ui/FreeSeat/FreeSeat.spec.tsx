@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Provider } from 'react-redux'
 import { becomePlayerEmitAction, PlayerStatus } from '@memebattle/ligretto-shared'
 
@@ -49,11 +49,40 @@ const renderFreeSeat = (viewer: 'spectator' | 'player') => {
   return { dispatch }
 }
 
+const emulateNarrowScreen = () => {
+  vi.stubGlobal('matchMedia', (media: string) => ({
+    matches: true,
+    media,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }))
+}
+
 describe('FreeSeat', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('lets a spectator take the seat, and still invite friends', () => {
     const { dispatch } = renderFreeSeat('spectator')
 
     expect(screen.getByRole('button', { name: 'Invite friends to join you!' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Sit here' }))
+
+    expect(dispatch).toHaveBeenCalledWith(becomePlayerEmitAction({ gameId: 'room-1' }))
+  })
+
+  it('keeps the names of the icon-only invite and Sit here on a narrow screen', () => {
+    emulateNarrowScreen()
+    const { dispatch } = renderFreeSeat('spectator')
+
+    expect(screen.getByRole('button', { name: 'Invite friends to join you!' })).toBeTruthy()
+    expect(screen.queryByText('Invite friends to join you!')).toBeNull()
+    expect(screen.queryByText('Sit here')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Sit here' }))
 
     expect(dispatch).toHaveBeenCalledWith(becomePlayerEmitAction({ gameId: 'room-1' }))

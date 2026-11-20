@@ -5,7 +5,7 @@ export const PlayersScoresTableRow = ({ sx, ...props }: BoxProps) => (
   <Box
     display="flex"
     alignItems="center"
-    sx={[{ height: { xs: '5.25rem', sm: '4.5rem' }, borderRadius: 3, px: 2, mb: 1 }, ...(Array.isArray(sx) ? sx : [sx])] as BoxProps['sx']}
+    sx={[{ height: '4.5rem', borderRadius: 3, px: 2, mb: 1 }, ...(Array.isArray(sx) ? sx : [sx])] as BoxProps['sx']}
     {...props}
   />
 )

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { generatePath } from 'react-router'
 import Tooltip from '@mui/material/Tooltip'
-import { Box, Link } from '@memebattle/ui'
+import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined'
+import { Box, IconButton, Link } from '@memebattle/ui'
 
 import { gameIdSelector } from '#ducks/game'
 import { routes } from '#shared/constants'
@@ -27,7 +28,9 @@ const visuallyHidden = {
   whiteSpace: 'nowrap',
 } as const
 
-export const RoomInviteLink = () => {
+const INVITE_LABEL = 'Invite friends to join you!'
+
+export const RoomInviteLink = ({ isCompact = false }: { isCompact?: boolean }) => {
   const gameId = useSelector(gameIdSelector)
   const [feedback, setFeedback] = useState<Feedback>()
   const hideFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -54,16 +57,22 @@ export const RoomInviteLink = () => {
   return (
     <>
       <Tooltip title={message} open={Boolean(feedback)} describeChild arrow disableFocusListener disableHoverListener disableTouchListener>
-        <Link
-          component="button"
-          variant="body2"
-          color="inherit"
-          underline="hover"
-          onClick={handleClick}
-          sx={{ minHeight: '2.75rem', textAlign: 'start', opacity: 0.85 }}
-        >
-          Invite friends to join you!
-        </Link>
+        {isCompact ? (
+          <IconButton color="inherit" aria-label={INVITE_LABEL} onClick={handleClick} sx={{ width: '2.75rem', height: '2.75rem', opacity: 0.85 }}>
+            <ShareOutlinedIcon />
+          </IconButton>
+        ) : (
+          <Link
+            component="button"
+            variant="body2"
+            color="inherit"
+            underline="hover"
+            onClick={handleClick}
+            sx={{ minHeight: '2.75rem', textAlign: 'start', opacity: 0.85 }}
+          >
+            {INVITE_LABEL}
+          </Link>
+        )}
       </Tooltip>
       {/* A tooltip is not a live region; this one, mounted empty, lets screen readers announce the feedback. */}
       <Box component="span" role="status" sx={visuallyHidden}>

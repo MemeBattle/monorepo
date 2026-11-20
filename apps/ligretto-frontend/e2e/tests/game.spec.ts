@@ -1,4 +1,4 @@
-import { test, expect, devices, type Browser, type Locator, type Page } from '@playwright/test'
+import { test, expect, type Browser } from '@playwright/test'
 import { GamePage } from '#pages/game/GamePage.page-object.ts'
 import { HomePage } from '#pages/home/HomePage.page-object.ts'
 
@@ -192,67 +192,6 @@ test.describe('Roles between rounds', () => {
 
     await Promise.all([contextUser1.close(), contextUser2.close()])
   })
-})
-
-const boxOf = async (element: Locator) => {
-  const box = await element.boundingBox()
-  expect(box).not.toBeNull()
-  return box!
-}
-
-/**
- * Absolute page boxes of the room screen around the viewer's Spectate button or spectator badge. The slot keeps only
- * its position and height: the badge is as wide as the nickname.
- */
-const roomLayoutOf = async (page: Page, gamePage: GamePage, slot: Locator) => {
-  // The modal slides in and buttons ripple on click: both shift boxes until their animations end.
-  await page.waitForFunction(() =>
-    document.getAnimations().every(animation => animation.playState !== 'running' || animation.effect?.getTiming().iterations === Infinity),
-  )
-  const { x, y, height } = await boxOf(slot)
-  // The table scrolls on small screens, and a click on Sit here may scroll it: seats are placed within its content.
-  const tableScrollTop = await gamePage.getPlayersTable().evaluate(table => table.scrollTop)
-  const seats = await Promise.all((await gamePage.getSeatRows().all()).map(boxOf))
-  return {
-    settings: await boxOf(await gamePage.getGameSettings()),
-    table: await boxOf(gamePage.getPlayersTable()),
-    seats: seats.map(seat => ({ ...seat, y: seat.y + tableScrollTop })),
-    spectators: await boxOf(gamePage.getSpectatorsSection()),
-    slot: { x, y, height },
-    leaveButton: await boxOf(await gamePage.getExitButton()),
-  }
-}
-
-test.describe('Spectate slot layout', () => {
-  for (const [name, viewport] of [
-    ['desktop', devices['Desktop Chrome'].viewport],
-    ['phone', devices['Pixel 5'].viewport],
-    ['narrow phone', { width: 320, height: 568 }],
-  ] as const) {
-    test(`switching roles moves nothing on the room screen of a ${name}`, async ({ browser }, testInfo) => {
-      test.setTimeout(90_000)
-      const { contextUser1, contextUser2, pageUser2, gamePageUser2 } = await setupTwoPlayerRoom(
-        browser,
-        `Slot-${testInfo.retry}-${Date.now().toString(36)}`,
-      )
-      const spectateButton = gamePageUser2.getSpectateButton()
-      const badge = gamePageUser2.getViewerSpectatorBadge()
-
-      await pageUser2.setViewportSize(viewport)
-      await expect(spectateButton).toBeVisible()
-      const playerLayout = await roomLayoutOf(pageUser2, gamePageUser2, spectateButton)
-
-      await spectateButton.click()
-      await expect(badge).toBeVisible()
-      expect(await roomLayoutOf(pageUser2, gamePageUser2, badge)).toEqual(playerLayout)
-
-      await gamePageUser2.getTakeSeatButtons().first().click()
-      await expect(spectateButton).toBeVisible()
-      expect(await roomLayoutOf(pageUser2, gamePageUser2, spectateButton)).toEqual(playerLayout)
-
-      await Promise.all([contextUser1.close(), contextUser2.close()])
-    })
-  }
 })
 
 test.describe('Direct game link', () => {

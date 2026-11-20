@@ -27,15 +27,9 @@ export const FreeSeat = ({ offersSeat = false }: FreeSeatProps) => {
     dispatch(becomePlayerEmitAction({ gameId }))
   }, [dispatch, gameId])
 
-  const inviteCell = (
-    <PlayersScoresTableCell size={{ xs: 12, sm: 'auto' }}>
-      <RoomInviteLink />
-    </PlayersScoresTableCell>
-  )
-
   return (
     <PlayersScoresTableRow sx={{ border: `1px dashed ${alpha(theme.palette.common.white, 0.35)}` }} data-test-id="PlayersScoresTable-FreeSeat">
-      <Grid container columnSpacing={2} rowSpacing={0} sx={{ flex: 1 }}>
+      <Grid container spacing={2} sx={{ flex: 1 }}>
         {!isMobile && (
           <PlayersScoresTableCell size={columnsProps.avatar}>
             <Box width="3rem" height="3rem" borderRadius="50%" border={`1px dashed ${alpha(theme.palette.common.white, 0.5)}`} />
@@ -46,24 +40,36 @@ export const FreeSeat = ({ offersSeat = false }: FreeSeatProps) => {
             Free seat
           </Typography>
         </PlayersScoresTableCell>
-        {!isMobile && inviteCell}
+        <PlayersScoresTableCell size="auto">
+          <RoomInviteLink isCompact={isMobile} />
+        </PlayersScoresTableCell>
         {offersSeat && isSpectator && (
           <PlayersScoresTableCell size="auto">
-            <Button
-              onClick={handleTakeSeat}
-              size={isMobile ? 'small' : 'medium'}
-              variant="contained"
-              color="secondary"
-              startIcon={<ArrowForwardRoundedIcon />}
-              sx={{ fontWeight: 800 }}
-              data-test-id="PlayersScoresTable-TakeSeatButton"
-            >
-              Sit here
-            </Button>
+            {isMobile ? (
+              <Button
+                onClick={handleTakeSeat}
+                aria-label="Sit here"
+                variant="contained"
+                color="secondary"
+                sx={{ minWidth: '2.75rem', height: '2.75rem', p: 0 }}
+                data-test-id="PlayersScoresTable-TakeSeatButton"
+              >
+                <ArrowForwardRoundedIcon />
+              </Button>
+            ) : (
+              <Button
+                onClick={handleTakeSeat}
+                variant="contained"
+                color="secondary"
+                startIcon={<ArrowForwardRoundedIcon />}
+                sx={{ fontWeight: 800 }}
+                data-test-id="PlayersScoresTable-TakeSeatButton"
+              >
+                Sit here
+              </Button>
+            )}
           </PlayersScoresTableCell>
         )}
-        {/* On a phone the invite link takes the second line, under the label and Sit here, so the seat fits the fixed row height. */}
-        {isMobile && inviteCell}
       </Grid>
     </PlayersScoresTableRow>
   )
