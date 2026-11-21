@@ -181,8 +181,7 @@ export function AnchoredDescription({ description, targets }: AnchoredDescriptio
   }
 
   if (placement.mode === 'playground') {
-    // Beside the board or under it the bubble ends up over the board's cells on some widths; above it,
-    // it only ever covers the opponents, which this step keeps blurred.
+    // Beside or under the board the bubble covers its cells on some widths.
     return <AboveBoardBubble text={text} targetRef={targetRef} />
   }
 

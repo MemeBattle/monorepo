@@ -28,11 +28,7 @@ export const sCurvePath: OnboardingArrowPathBuilder = ({ from, to, chord, normal
   return `M ${from.x} ${from.y} C ${c1x} ${c1y} ${c2x} ${c2y} ${to.x} ${to.y}`
 }
 
-/**
- * Leaves `from` heading down, runs across, and drops onto `to` vertically: the second control point
- * sits straight above `to`, so the arrowhead always points down whichever side the target is on.
- * For a target below and off to the side of the bubble, where an arc would come in flat.
- */
+/** The second control point sits straight above `to`, so the arrow lands on it vertically from either side. */
 export const dropPath: OnboardingArrowPathBuilder = ({ from, to }) => {
   const dx = to.x - from.x
   const dy = to.y - from.y

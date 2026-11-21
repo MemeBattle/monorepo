@@ -41,7 +41,6 @@ import { OnboardingPlayground } from './OnboardingPlayground'
 
 interface OnboardingCardPanelProps {
   stackRef: RefObject<HTMLDivElement | null>
-  /** The face-down deck of the hand, apart from its open card. */
   stackDeckRef: RefObject<HTMLDivElement | null>
   playerRowRef: RefObject<HTMLDivElement | null>
   ligrettoRef: RefObject<HTMLDivElement | null>
@@ -209,10 +208,16 @@ function OnboardingPageBody() {
       >
         <GameGrid
           centerElement={
-            // Below the `md` breakpoint MobileGameGrid stacks zones in a column: the table takes the whole band
-            // between the opponents and the player's cards and centres in it, as in the game.
-            <Box sx={{ marginTop: { xs: '1.5rem', md: 0 }, flex: { xs: 1, md: 'none' }, display: 'flex' }}>
-              <Layer id="playgroundCards" sx={{ flex: 1, display: 'flex' }}>
+            <Box
+              sx={{
+                marginTop: { xs: '1.5rem', md: 0 },
+                flex: { xs: 1, md: 'none' },
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Layer id="playgroundCards">
                 <OnboardingPlayground ref={playgroundRef} game={game} placement={placement} onPlace={handlePlace} deckRefs={playgroundDeckRefs} />
               </Layer>
             </Box>
@@ -246,8 +251,7 @@ function OnboardingPageBody() {
 
         {config.isNextButtonVisible ? (
           <Box
-            // Below `sm` the opponents fill the top and the cards panel drops the player badge, which leaves the
-            // bottom-right corner free; from `sm` up the badge takes that corner and the top has room again.
+            // From `sm` up the player badge takes the bottom-right corner; below it the opponents fill the top.
             sx={{
               position: 'absolute',
               zIndex: 3,

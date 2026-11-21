@@ -34,10 +34,7 @@ export interface AnchoredStepDescription {
   placement: DescriptionPlacement
   /** Narrow fallback: the target sits on the board, above the bottom-anchored bubble. */
   isTargetAbove?: boolean
-  /**
-   * Narrow fallback from `sm` up: the arrow leaves this side of the bubble instead of its bottom. For a
-   * target off to the side of the centred bubble, where an arrow from the bottom would come in flat.
-   */
+  /** Narrow fallback from `sm` up: the arrow leaves this side of the bubble, for a target far off to that side. */
   wideArrowFrom?: 'left' | 'right'
 }
 
