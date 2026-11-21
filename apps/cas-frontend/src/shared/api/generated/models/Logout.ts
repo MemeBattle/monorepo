@@ -3,9 +3,9 @@
 * Do not edit manually.
 */
 
-type LogoutStatus204 = unknown;
+export type LogoutStatus204 = unknown;
 
-type LogoutStatus403 = {
+export type LogoutStatus403 = {
     error: {
         code: "cross_site_request";
         /**
@@ -16,7 +16,7 @@ type LogoutStatus403 = {
     };
 };
 
-type LogoutStatus500 = {
+export type LogoutStatus500 = {
     error: {
         code: "internal_error";
         /**
@@ -27,7 +27,7 @@ type LogoutStatus500 = {
     };
 };
 
-type LogoutStatus503 = {
+export type LogoutStatus503 = {
     error: {
         code: ("database_busy" | "database_unavailable");
         /**
@@ -51,3 +51,8 @@ export type LogoutResponses = {
     "500": LogoutStatus500;
     "503": LogoutStatus503;
 };
+
+/**
+ * @description Union of all possible responses
+*/
+export type LogoutResponse = (LogoutStatus204 | LogoutStatus403 | LogoutStatus500 | LogoutStatus503);

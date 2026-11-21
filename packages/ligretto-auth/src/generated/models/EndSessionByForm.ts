@@ -3,13 +3,13 @@
 * Do not edit manually.
 */
 
-type EndSessionByFormStatus302 = unknown;
+export type EndSessionByFormStatus302 = unknown;
 
-type EndSessionByFormStatus400 = string;
+export type EndSessionByFormStatus400 = string;
 
-type EndSessionByFormStatus500Html = string;
+export type EndSessionByFormStatus500Html = string;
 
-type EndSessionByFormStatus500Json = {
+export type EndSessionByFormStatus500Json = {
     error: {
         code: "internal_error";
         /**
@@ -20,15 +20,15 @@ type EndSessionByFormStatus500Json = {
     };
 };
 
-type EndSessionByFormStatus500 = (EndSessionByFormStatus500Html | EndSessionByFormStatus500Json);
+export type EndSessionByFormStatus500 = (EndSessionByFormStatus500Html | EndSessionByFormStatus500Json);
 
-type EndSessionByFormStatus503 = string;
+export type EndSessionByFormStatus503 = string;
 
 /**
  * @description The parameters `GET` takes in its query.
  * @type string
 */
-type EndSessionByFormBody = string;
+export type EndSessionByFormBody = string;
 
 export type EndSessionByFormOptions = {
     body: EndSessionByFormBody;
@@ -49,3 +49,8 @@ export type EndSessionByFormResponses = {
     });
     "503": EndSessionByFormStatus503;
 };
+
+/**
+ * @description Union of all possible responses
+*/
+export type EndSessionByFormResponse = (EndSessionByFormStatus302 | EndSessionByFormStatus400 | EndSessionByFormStatus500 | EndSessionByFormStatus503);

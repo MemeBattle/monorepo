@@ -37,9 +37,9 @@ export type Discovery = {
  * @description The discovery document. It advertises the whole SSO milestone, including\nthe endpoints later tickets add, so that it stays the same across their\nreleases (ADR 0009 (f)).
  * @type object
 */
-type DiscoveryStatus200 = Discovery;
+export type DiscoveryStatus200 = Discovery;
 
-type DiscoveryStatus500 = {
+export type DiscoveryStatus500 = {
     error: {
         code: "internal_error";
         /**
@@ -61,3 +61,8 @@ export type DiscoveryResponses = {
     "200": DiscoveryStatus200;
     "500": DiscoveryStatus500;
 };
+
+/**
+ * @description Union of all possible responses
+*/
+export type DiscoveryResponse = (DiscoveryStatus200 | DiscoveryStatus500);

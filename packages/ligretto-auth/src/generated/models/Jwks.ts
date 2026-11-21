@@ -17,9 +17,9 @@ export type Jwks = {
  * @description A JWK Set: the body of `/oidc/jwks.json`.
  * @type object
 */
-type JwksStatus200 = Jwks;
+export type JwksStatus200 = Jwks;
 
-type JwksStatus500 = {
+export type JwksStatus500 = {
     error: {
         code: "internal_error";
         /**
@@ -41,3 +41,8 @@ export type JwksResponses = {
     "200": JwksStatus200;
     "500": JwksStatus500;
 };
+
+/**
+ * @description Union of all possible responses
+*/
+export type JwksResponse = (JwksStatus200 | JwksStatus500);

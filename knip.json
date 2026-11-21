@@ -1,5 +1,10 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignore": [
+    "apps/cas-frontend/src/shared/api/generated/**",
+    "packages/ligretto-auth/src/generated/**",
+    "packages/ligretto-core-client/src/generated/**"
+  ],
   "workspaces": {
     ".": {
       "entry": [".storybook/{main,preview}.{ts,tsx}"]
