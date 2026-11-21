@@ -41,9 +41,9 @@ const DesktopGameGrid: React.FC<React.PropsWithChildren<RoomGridProps>> = ({ chi
           {opponentsArray?.length === 1 || opponentsArray?.length === 3 || opponentsArray?.length === 4 ? opponentsArray[0] : null}
         </Box>
       ) : null}
-      <Box gridArea="middleLeft">{opponentsArray && opponentsArray.length > 1 && opponentsArray[opponentsArray?.length === 3 ? 1 : 0]}</Box>
+      <Box gridArea="middleLeft">{opponentsArray && opponentsArray.length > 1 && opponentsArray[opponentsArray.length >= 3 ? 1 : 0]}</Box>
       <Box gridArea="middleCenter">{centerElement}</Box>
-      <Box gridArea="middleRight">{opponentsArray && opponentsArray.length > 1 && opponentsArray[opponentsArray?.length === 3 ? 2 : 1]}</Box>
+      <Box gridArea="middleRight">{opponentsArray && opponentsArray.length > 1 && opponentsArray[opponentsArray.length >= 3 ? 2 : 1]}</Box>
       <Box alignSelf="end" justifySelf="center" gridArea="bottom">
         {bottomElement || (opponentsArray?.length === 4 ? opponentsArray[3] : null)}
       </Box>
