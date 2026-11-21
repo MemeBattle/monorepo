@@ -71,7 +71,7 @@ const codesOf = (document: OpenApiDocument, schema: Schema | undefined): (string
 }
 
 /** Every `(operation, status, code)` the document declares, `operation` being `'<METHOD> <path>'`. */
-export const declaredPairs = (document: OpenApiDocument): string[] =>
+const declaredPairs = (document: OpenApiDocument): string[] =>
   Object.entries(document.paths).flatMap(([path, item]) =>
     METHODS.filter(method => item[method] !== undefined).flatMap(method =>
       Object.entries(item[method].responses).flatMap(([status, response]) =>

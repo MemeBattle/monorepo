@@ -29,7 +29,6 @@
     "react-i18next": "catalog:",
     "remark-parse": "catalog:",
     "remark-rehype": "catalog:",
-    "sharp": "catalog:",
     "unified": "catalog:"
   },
   "devDependencies": {

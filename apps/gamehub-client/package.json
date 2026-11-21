@@ -17,8 +17,7 @@
     "lodash": "catalog:",
     "next": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:",
-    "sharp": "catalog:"
+    "react-dom": "catalog:"
   },
   "devDependencies": {
     "@types/lodash": "catalog:",
