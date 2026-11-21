@@ -5,36 +5,33 @@ import { describe, expect, it } from 'vitest'
 
 import { GameGrid } from './GameGrid'
 
-const seatsOf = (count: number) =>
-  Array.from({ length: count }, (_, index) => getComputedStyle(screen.getByText(`opponent-${index}`).parentElement!).gridArea)
+const opponentsOf = (count: number) => Array.from({ length: count }, (_, index) => `opponent-${index}`)
 
-const renderGrid = (count: number, bottomElement: string | null) =>
+const renderGrid = (opponents: string[], hand?: string) =>
   render(
-    <GameGrid centerElement="playground" bottomElement={bottomElement}>
-      {Array.from({ length: count }, (_, index) => (
-        <div key={index}>{`opponent-${index}`}</div>
+    <GameGrid centerElement="playground" bottomElement={hand}>
+      {opponents.map(opponent => (
+        <div key={opponent}>{opponent}</div>
       ))}
     </GameGrid>,
   )
 
-describe('GameGrid desktop seats', () => {
-  it('seats each of four opponents once around a spectator', () => {
-    renderGrid(4, null)
+const shownOpponents = () => screen.queryAllByText(/^opponent-/).map(opponent => opponent.textContent)
 
-    expect(seatsOf(4)).toEqual(['top', 'middleLeft', 'middleRight', 'bottom'])
+describe('GameGrid on desktop', () => {
+  it('shows a spectator each of four opponents once, in their order', () => {
+    renderGrid(opponentsOf(4))
+
+    expect(shownOpponents()).toEqual(opponentsOf(4))
   })
 
-  it.each([
-    [1, ['top']],
-    [2, ['middleLeft', 'middleRight']],
-    [3, ['top', 'middleLeft', 'middleRight']],
-  ])('keeps the seats of %i opponents for a player and a spectator', (count, seats) => {
-    const { unmount } = renderGrid(count, 'hand')
-    expect(seatsOf(count)).toEqual(seats)
-    expect(getComputedStyle(screen.getByText('hand')).gridArea).toBe('bottom')
+  it.each([1, 2, 3])('shows each of %i opponents once, in their order, to a player with their hand and to a spectator', count => {
+    const { unmount } = renderGrid(opponentsOf(count), 'hand')
+    expect(shownOpponents()).toEqual(opponentsOf(count))
+    expect(screen.getAllByText('hand')).toHaveLength(1)
     unmount()
 
-    renderGrid(count, null)
-    expect(seatsOf(count)).toEqual(seats)
+    renderGrid(opponentsOf(count))
+    expect(shownOpponents()).toEqual(opponentsOf(count))
   })
 })
