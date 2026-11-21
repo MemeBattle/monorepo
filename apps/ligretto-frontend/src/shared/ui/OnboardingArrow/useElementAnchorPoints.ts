@@ -1,6 +1,6 @@
 import { useState, useEffect, type RefObject } from 'react'
 
-export type AnchorPoint = 'top' | 'bottom' | 'left' | 'right' | 'center'
+export type AnchorPoint = 'top' | 'bottom' | 'left' | 'right' | 'center' | 'bottomLeft'
 
 export interface Point {
   x: number
@@ -26,6 +26,8 @@ function getAnchor(rect: DOMRect, anchor: AnchorPoint): Point {
       return { x: rect.right, y: cy }
     case 'center':
       return { x: cx, y: cy }
+    case 'bottomLeft':
+      return { x: rect.left, y: rect.bottom }
   }
 }
 

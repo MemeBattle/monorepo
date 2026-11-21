@@ -4,7 +4,6 @@
 export enum OnboardingStep {
   Opponents = 'opponents',
   Playground = 'playground',
-  Cards = 'cards',
   Stack = 'stack',
   Row = 'row',
   Ligretto = 'ligretto',

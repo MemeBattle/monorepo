@@ -13,7 +13,6 @@ export interface OnboardingScriptEntry {
  */
 export const ONBOARDING_SCRIPT: ReadonlyArray<OnboardingScriptEntry> = [
   { event: OnboardingEvent.NextStep, step: OnboardingStep.Playground },
-  { event: OnboardingEvent.NextStep, step: OnboardingStep.Cards },
   { event: OnboardingEvent.NextStep, step: OnboardingStep.Stack },
   { event: OnboardingEvent.NextStep, step: OnboardingStep.Row },
   { event: OnboardingEvent.NextStep, step: OnboardingStep.Ligretto },

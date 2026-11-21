@@ -81,7 +81,6 @@ const reachableStates = async () => {
 const INTRO_STEPS: ReadonlyArray<OnboardingStep> = [
   OnboardingStep.Opponents,
   OnboardingStep.Playground,
-  OnboardingStep.Cards,
   OnboardingStep.Stack,
   OnboardingStep.Row,
   OnboardingStep.Ligretto,

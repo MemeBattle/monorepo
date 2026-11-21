@@ -18,8 +18,6 @@ export type DescriptionTargets = Record<DescriptionTargetId, RefObject<HTMLEleme
 const PLAYGROUND_GAP = 48
 /** A beside-the-playground bubble is centred this many pixels above the target's top. */
 const BESIDE_TARGET_LIFT = 84
-/** The playground-step bubble sits this far above the board's vertical centre. */
-const PLAYGROUND_SIDE_LIFT = 148
 /** Gap between the top of the board and the bubble in the band above it. */
 const ABOVE_BOARD_GAP = 44
 /** Minimal distance a bubble keeps from the container edges before its text rewraps. */
@@ -103,9 +101,8 @@ function FloatingBubble({ text, getReference, placement, mainAxisOffset, crossAx
 }
 
 /**
- * The playground step keeps the old non-floating fallback: the bubble is centred
- * horizontally in the container (so it can never run off an edge) and lifted
- * into the band above the board.
+ * The playground step's bubble: centred horizontally in the container (so it can never run off an
+ * edge) and lifted into the band above the board.
  */
 function AboveBoardBubble({ text, targetRef }: { text: string; targetRef: RefObject<HTMLElement | null> }) {
   const containerRef = useOnboardingContainerRef()
@@ -136,7 +133,7 @@ export function AnchoredDescription({ description, targets }: AnchoredDescriptio
   const playgroundRef = targets.playground
   const hasRoomBeside = useHasRoomBesidePlayground(playgroundRef)
 
-  const { text, placement, isTargetAbove } = description
+  const { text, placement, isTargetAbove, wideArrowFrom } = description
   const targetRef = targets[description.target]
 
   const isLevelWithTarget = placement.mode === 'besidePlayground' && placement.isLevelWithTarget
@@ -169,7 +166,7 @@ export function AnchoredDescription({ description, targets }: AnchoredDescriptio
 
   if (placement.mode === 'besidePlayground') {
     if (!hasRoomBeside) {
-      return <BottomAnchoredDescription text={text} targetRef={targetRef} isTargetAbove={isTargetAbove} />
+      return <BottomAnchoredDescription text={text} targetRef={targetRef} isTargetAbove={isTargetAbove} wideArrowFrom={wideArrowFrom} />
     }
     return (
       <FloatingBubble
@@ -184,29 +181,13 @@ export function AnchoredDescription({ description, targets }: AnchoredDescriptio
   }
 
   if (placement.mode === 'playground') {
-    if (hasRoomBeside) {
-      return (
-        <FloatingBubble
-          text={text}
-          getReference={() => targetRef.current}
-          placement="left"
-          mainAxisOffset={PLAYGROUND_GAP}
-          crossAxisOffset={-PLAYGROUND_SIDE_LIFT}
-          arrow={{ to: targetRef, fromAnchor: 'bottom', toAnchor: 'left' }}
-        />
-      )
-    }
-    // In a single column the free strip is under the board; on the desktop grid the board is only
-    // a few pixels above the cards panel, so the hint goes into the band above it instead.
-    return isNarrow ? (
-      <BottomAnchoredDescription text={text} targetRef={targetRef} isTargetAbove={isTargetAbove} />
-    ) : (
-      <AboveBoardBubble text={text} targetRef={targetRef} />
-    )
+    // Beside the board or under it the bubble ends up over the board's cells on some widths; above it,
+    // it only ever covers the opponents, which this step keeps blurred.
+    return <AboveBoardBubble text={text} targetRef={targetRef} />
   }
 
   return isNarrow ? (
-    <BottomAnchoredDescription text={text} targetRef={targetRef} isTargetAbove={isTargetAbove} />
+    <BottomAnchoredDescription text={text} targetRef={targetRef} isTargetAbove={isTargetAbove} wideArrowFrom={wideArrowFrom} />
   ) : (
     <FloatingBubble
       text={text}

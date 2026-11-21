@@ -309,8 +309,7 @@ export class OnboardingStateMachine extends StateMachine<OnboardingStep, Onboard
       transitions: [
         // Intro steps: the user just clicks the "next" button
         t(OnboardingStep.Opponents, OnboardingEvent.NextStep, OnboardingStep.Playground),
-        t(OnboardingStep.Playground, OnboardingEvent.NextStep, OnboardingStep.Cards),
-        t(OnboardingStep.Cards, OnboardingEvent.NextStep, OnboardingStep.Stack),
+        t(OnboardingStep.Playground, OnboardingEvent.NextStep, OnboardingStep.Stack),
         t(OnboardingStep.Stack, OnboardingEvent.NextStep, OnboardingStep.Row),
         t(OnboardingStep.Row, OnboardingEvent.NextStep, OnboardingStep.Ligretto),
         t(OnboardingStep.Ligretto, OnboardingEvent.NextStep, OnboardingStep.FirstCard),
