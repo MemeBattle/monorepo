@@ -30,7 +30,7 @@ export interface OnboardingArrowProps {
  *
  * Shape is fully controlled by the `path` prop — any `OnboardingArrowPathBuilder`
  * function. Built-in presets (`arcPath`, `sCurvePath`, `lassoPath`,
- * `spiralPath`, `wavePath`) are exported alongside the component.
+ * `spiralPath`, `wavePath`, `dropPath`) live in `buildPath`.
  *
  * Figma: https://www.figma.com/design/zLXO12ISnORKAut0uduasj/Ligretto?node-id=1036-348
  */

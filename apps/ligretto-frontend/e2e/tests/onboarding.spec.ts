@@ -100,11 +100,10 @@ test.describe('Onboarding', () => {
     })
 
     await test.step('the round end shows the board with the empty ligretto deck before the results', async () => {
-      await expect(page.getByText('Раунд закончился: ты выложил все карты из колоды Лигретто!')).toBeVisible()
+      await expect(page.getByText('Раунд закончился: твоя колода Лигретто опустела!')).toBeVisible()
       await expect(onboarding.getLigrettoDeckCount()).toHaveText('В колоде: 0')
       await expect(onboarding.getOutline()).toBeVisible()
       // Blue opened deck 5, the red one took the first free deck, the opponent's green pile the next one
-      await expect(onboarding.getPlaygroundDeck(1)).toBeVisible()
       await expect(onboarding.getPlaygroundDeck(1)).toHaveText('5')
       await expect(page.getByTestId('PlayersScoresTable')).toBeHidden()
 

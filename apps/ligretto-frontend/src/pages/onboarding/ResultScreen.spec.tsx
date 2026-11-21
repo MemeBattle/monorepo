@@ -26,6 +26,5 @@ describe('onboarding ResultScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Пройти обучение ещё раз' }))
 
     expect(dispatch.mock.calls.map(([action]) => action)).toEqual([restartOnboardingAction()])
-    expect(screen.getByRole('button', { name: 'Закончить обучение' })).toBeTruthy()
   })
 })

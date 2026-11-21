@@ -125,8 +125,8 @@ interface AnchoredDescriptionProps {
 
 /**
  * Renders the description of an onboarding step according to its `placement`
- * from the step config. Every mode falls back to the shared bottom-anchored
- * bubble when there is no room for the wide-screen layout.
+ * from the step config. Every mode except `playground` falls back to the shared
+ * bottom-anchored bubble when there is no room for the wide-screen layout.
  */
 export function AnchoredDescription({ description, targets }: AnchoredDescriptionProps) {
   const isNarrow = useIsNarrowLayout()

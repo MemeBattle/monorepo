@@ -26,7 +26,7 @@ interface BottomAnchoredDescriptionProps {
 }
 
 /**
- * Narrow-screen variant shared by every description.
+ * Narrow-screen variant shared by every description except the playground one.
  *
  * The board is laid out in a single column — opponents on top, then the playground, then the
  * player's cards — so there is no room beside a target. The bubble goes into

@@ -12,8 +12,8 @@ export type OutlineTargetId = 'stack' | 'row' | 'ligretto'
 export type DescriptionTargetId = 'stack' | 'stackDeck' | 'row' | 'ligretto' | 'playground' | 'opponentDeck' | 'card0' | 'card1' | 'card2'
 
 /**
- * Wide-screen placement of a description bubble. Narrow screens always fall
- * back to the shared bottom-anchored variant (above the player's cards panel).
+ * Wide-screen placement of a description bubble. Narrow screens fall back to the
+ * shared bottom-anchored variant (above the player's cards panel), except `playground`.
  */
 type DescriptionPlacement =
   /** Bubble right above the target, arrow straight down. */
@@ -279,7 +279,7 @@ export const STEP_CONFIGS: Record<OnboardingStep, StepConfig> = {
       kind: 'anchored',
       target: 'ligretto',
       placement: { mode: 'besidePlayground', side: 'right' },
-      text: 'Раунд закончился: ты выложил все карты из колоды Лигретто!',
+      text: 'Раунд закончился: твоя колода Лигретто опустела!',
     },
   },
   [OnboardingStep.Result]: {
