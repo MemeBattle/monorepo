@@ -69,7 +69,7 @@ export interface RequestOptions {
 }
 
 /** A `RegisterPublicKeyCredential` as webauthn-rs deserialises it. */
-export interface RegistrationAnswer {
+interface RegistrationAnswer {
   id: string
   rawId: string
   type: 'public-key'
@@ -78,7 +78,7 @@ export interface RegistrationAnswer {
 }
 
 /** A `PublicKeyCredential` as webauthn-rs deserialises it. */
-export interface AssertionAnswer {
+interface AssertionAnswer {
   id: string
   rawId: string
   type: 'public-key'

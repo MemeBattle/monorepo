@@ -23,9 +23,7 @@
     "ts-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@mui/icons-material": "catalog:",
-    "@mui/material": "catalog:",
-    "@mui/system": "catalog:"
+    "@mui/material": "catalog:"
   },
   "devDependencies": {
     "@storybook/react": "catalog:",
