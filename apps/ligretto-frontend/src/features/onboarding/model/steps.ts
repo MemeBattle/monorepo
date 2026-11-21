@@ -4,7 +4,6 @@
 export enum OnboardingStep {
   Opponents = 'opponents',
   Playground = 'playground',
-  Cards = 'cards',
   Stack = 'stack',
   Row = 'row',
   Ligretto = 'ligretto',
@@ -20,7 +19,10 @@ export enum OnboardingStep {
   OpponentTurn = 'opponentTurn',
   OpponentTurnSecondCard = 'opponentTurnSecondCard',
   OpponentTurnCycledInfo = 'opponentTurnCycledInfo',
+  AdditionalLigrettoCard = 'additionalLigrettoCard',
+  AdditionalRowCard = 'additionalRowCard',
   FinalLigrettoCard = 'finalLigrettoCard',
+  RoundEnd = 'roundEnd',
   Result = 'result',
 }
 

@@ -58,7 +58,10 @@ export function TouchHint({ children }: PropsWithChildren) {
       >
         {({ TransitionProps }) => (
           <Fade {...TransitionProps}>
-            <Box marginTop="-1.2rem">
+            <Box
+              // On phones the button sits at the bottom edge with no room below it, so the hand covers its centre.
+              sx={{ marginTop: { xs: '-2.3rem', sm: '-1.2rem' }, marginLeft: { xs: '0.4rem', sm: 0 } }}
+            >
               <AnimatedTouchAppIcon fontSize="large" />
             </Box>
           </Fade>

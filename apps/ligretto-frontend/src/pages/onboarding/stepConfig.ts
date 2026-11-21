@@ -9,11 +9,11 @@ export type LayerId = 'playerCards' | 'playgroundCards' | 'opponent'
 export type OutlineTargetId = 'stack' | 'row' | 'ligretto'
 
 /** Elements a description bubble can be anchored to and point at. */
-export type DescriptionTargetId = 'stack' | 'row' | 'ligretto' | 'playground' | 'opponentDeck' | 'card0' | 'card1' | 'card2'
+export type DescriptionTargetId = 'stack' | 'stackDeck' | 'row' | 'ligretto' | 'playground' | 'opponentDeck' | 'card0' | 'card1' | 'card2'
 
 /**
- * Wide-screen placement of a description bubble. Narrow screens always fall
- * back to the shared bottom-anchored variant (above the player's cards panel).
+ * Wide-screen placement of a description bubble. Narrow screens fall back to the
+ * shared bottom-anchored variant (above the player's cards panel), except `playground`.
  */
 type DescriptionPlacement =
   /** Bubble right above the target, arrow straight down. */
@@ -24,7 +24,7 @@ type DescriptionPlacement =
    * centred on the target itself (a target on the board).
    */
   | { mode: 'besidePlayground'; side: 'left' | 'right'; isLevelWithTarget?: boolean }
-  /** The playground step itself: beside the board, or in the band above it. */
+  /** The playground step itself: always in the band above the board, at every width. */
   | { mode: 'playground' }
 
 export interface AnchoredStepDescription {
@@ -34,6 +34,8 @@ export interface AnchoredStepDescription {
   placement: DescriptionPlacement
   /** Narrow fallback: the target sits on the board, above the bottom-anchored bubble. */
   isTargetAbove?: boolean
+  /** Narrow fallback from `sm` up: the arrow leaves this side of the bubble, for a target far off to that side. */
+  wideArrowFrom?: 'left' | 'right'
 }
 
 type StepDescription =
@@ -86,15 +88,8 @@ export const STEP_CONFIGS: Record<OnboardingStep, StepConfig> = {
       kind: 'anchored',
       target: 'playground',
       placement: { mode: 'playground' },
-      isTargetAbove: true,
       text: 'Это общий стол.\nСюда будем выкладывать карты',
     },
-  },
-  [OnboardingStep.Cards]: {
-    ...baseStepConfig,
-    raisedLayers: ['playerCards'],
-    isNextButtonVisible: true,
-    description: { kind: 'anchored', target: 'row', placement: { mode: 'aboveTarget', offset: 160 }, text: 'Это твои карты' },
   },
   [OnboardingStep.Stack]: {
     ...baseStepConfig,
@@ -150,8 +145,9 @@ export const STEP_CONFIGS: Record<OnboardingStep, StepConfig> = {
     isStackDeckHighlighted: true,
     description: {
       kind: 'anchored',
-      target: 'stack',
+      target: 'stackDeck',
       placement: { mode: 'besidePlayground', side: 'left' },
+      wideArrowFrom: 'left',
       text: 'Если из ряда выложить нечего, воспользуйся колодой в руке',
     },
   },
@@ -238,6 +234,29 @@ export const STEP_CONFIGS: Record<OnboardingStep, StepConfig> = {
     isOverlayHidden: true,
     description: { kind: 'anchored', target: 'stack', placement: { mode: 'besidePlayground', side: 'left' }, text: CYCLED_INFO_TEXT },
   },
+  [OnboardingStep.AdditionalLigrettoCard]: {
+    ...baseStepConfig,
+    raisedLayers: ['playerCards', 'opponent'],
+    isOverlayHidden: true,
+    isLigrettoHighlighted: true,
+    description: {
+      kind: 'anchored',
+      target: 'ligretto',
+      placement: { mode: 'besidePlayground', side: 'right' },
+      text: 'Соперник выложил зелёную четвёрку. Освободилось место в ряду — выкладывай карту из колоды Лигретто!',
+    },
+  },
+  [OnboardingStep.AdditionalRowCard]: {
+    ...baseStepConfig,
+    raisedLayers: ['playerCards', 'opponent'],
+    isOverlayHidden: true,
+    description: {
+      kind: 'anchored',
+      target: 'card1',
+      placement: { mode: 'besidePlayground', side: 'left' },
+      text: 'Зелёная пятёрка ложится на четвёрку соперника. Выкладывай её на стол!',
+    },
+  },
   [OnboardingStep.FinalLigrettoCard]: {
     ...baseStepConfig,
     raisedLayers: ['playerCards', 'opponent'],
@@ -248,6 +267,19 @@ export const STEP_CONFIGS: Record<OnboardingStep, StepConfig> = {
       target: 'ligretto',
       placement: { mode: 'besidePlayground', side: 'right' },
       text: 'Освободилось место в ряду. Выкладывай карту из колоды Лигретто!',
+    },
+  },
+  [OnboardingStep.RoundEnd]: {
+    ...baseStepConfig,
+    raisedLayers: ['playerCards', 'playgroundCards', 'opponent'],
+    isOverlayHidden: true,
+    isNextButtonVisible: true,
+    outlineTarget: 'ligretto',
+    description: {
+      kind: 'anchored',
+      target: 'ligretto',
+      placement: { mode: 'besidePlayground', side: 'right' },
+      text: 'Раунд закончился: твоя колода Лигретто опустела!',
     },
   },
   [OnboardingStep.Result]: {

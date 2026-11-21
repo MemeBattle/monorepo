@@ -30,6 +30,7 @@ const PLACEMENT_BY_STEP: Partial<Record<OnboardingStep, OnboardingPlacement>> = 
   [OnboardingStep.GameStartedCycledInfo]: PUT_SECOND_CARD,
   [OnboardingStep.OpponentTurnSecondCard]: PUT_THIRD_CARD,
   [OnboardingStep.OpponentTurnCycledInfo]: PUT_THIRD_CARD,
+  [OnboardingStep.AdditionalRowCard]: PUT_SECOND_CARD,
 }
 
 export const getOnboardingPlacement = (step: OnboardingStep, allowedEvents: OnboardingEvent[]): OnboardingPlacement | undefined => {

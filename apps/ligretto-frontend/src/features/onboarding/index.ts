@@ -10,6 +10,7 @@ export {
   putStackCardAction,
   onboardingGameSelector,
   nextStepOnboardingAction,
+  restartOnboardingAction,
   nextStackCardAction,
   onboardingStepSelector,
   onboardingResultsSelector,

@@ -28,6 +28,17 @@ export const sCurvePath: OnboardingArrowPathBuilder = ({ from, to, chord, normal
   return `M ${from.x} ${from.y} C ${c1x} ${c1y} ${c2x} ${c2y} ${to.x} ${to.y}`
 }
 
+/** The second control point sits straight above `to`, so the arrow lands on it vertically from either side. */
+export const dropPath: OnboardingArrowPathBuilder = ({ from, to }) => {
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  const c1x = from.x + dx * 0.1
+  const c1y = from.y + dy * 0.9
+  const c2x = to.x
+  const c2y = from.y + dy * 0.1
+  return `M ${from.x} ${from.y} C ${c1x} ${c1y} ${c2x} ${c2y} ${to.x} ${to.y}`
+}
+
 export const lassoPath: OnboardingArrowPathBuilder = ({ from, to, chord, normal, tangent, curvature, twist }) => {
   const swing = chord * curvature * 1.8 * twist
   const c1x = from.x + tangent.x * chord * 0.2 + normal.x * swing

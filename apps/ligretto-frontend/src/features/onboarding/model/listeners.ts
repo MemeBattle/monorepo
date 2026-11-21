@@ -11,6 +11,7 @@ import {
   putThirdCardAction,
   putStackCardAction,
   nextStackCardAction,
+  restartOnboardingAction,
 } from './slice'
 import { All } from '@fsmoothy/core'
 import type { RouterActions } from 'redux-first-history'
@@ -45,6 +46,10 @@ const mapActionTypeToEvent: Record<string, OnboardingEvent> = {
 export function addListeners(startListener: TypedStartListening<unknown>) {
   startListener({
     predicate(action: UnknownAction) {
+      if (restartOnboardingAction.match(action)) {
+        return true
+      }
+
       if (isLocationChangeAction(action)) {
         return !!matchPath(routes.ONBOARDING, action.payload.location.pathname)
       }
@@ -52,15 +57,23 @@ export function addListeners(startListener: TypedStartListening<unknown>) {
       return false
     },
     effect: async (_action, listenerApi) => {
-      // Re-entering /onboarding restarts the onboarding: cancel the previous loop.
+      // Re-entering /onboarding or the replay button restarts the onboarding: cancel the previous loop.
       listenerApi.cancelActiveListeners()
 
       const fsm = new OnboardingStateMachine()
 
-      listenerApi.dispatch(setOnboardingState(await toOnboardingState(fsm)))
+      // The state is built asynchronously; a run cancelled meanwhile by a restart must not overwrite the fresh one.
+      const publishState = async (machine: OnboardingStateMachine) => {
+        const state = await toOnboardingState(machine)
+        if (!listenerApi.signal.aborted) {
+          listenerApi.dispatch(setOnboardingState(state))
+        }
+      }
+
+      await publishState(fsm)
 
       fsm.on(All, async function (this: OnboardingStateMachine) {
-        listenerApi.dispatch(setOnboardingState(await toOnboardingState(this)))
+        await publishState(this)
       })
 
       while (true) {
