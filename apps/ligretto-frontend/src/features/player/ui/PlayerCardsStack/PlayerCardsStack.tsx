@@ -1,10 +1,13 @@
 import { CardsRow } from '#entities/card/ui/CardsRow'
 import { PlayerStackDeck } from './PlayerStackDeck'
 import { PlayerStackOpenDeck } from './PlayerStackOpenDeck'
+import { StackTurnProvider } from './StackTurnProvider'
 
 export const PlayerCardsStack = () => (
-  <CardsRow>
-    <PlayerStackOpenDeck />
-    <PlayerStackDeck />
-  </CardsRow>
+  <StackTurnProvider>
+    <CardsRow>
+      <PlayerStackOpenDeck />
+      <PlayerStackDeck />
+    </CardsRow>
+  </StackTurnProvider>
 )

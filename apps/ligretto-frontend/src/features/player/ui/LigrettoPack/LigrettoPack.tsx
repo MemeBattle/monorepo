@@ -1,9 +1,10 @@
 import { type Ref } from 'react'
+import last from 'lodash/last'
 import { Typography } from '@memebattle/ui'
 import type { Card as PlayerCards } from '@memebattle/ligretto-shared'
 
 import type { Hotkey } from '#ducks/game'
-import { CardPlace, Card, CardHotkeyBadge } from '#entities/card'
+import { CardPlace, Card, CardHotkeyBadge, CardViewTransition } from '#entities/card'
 
 import styles from './LigrettoPack.module.scss'
 
@@ -30,21 +31,28 @@ export const LigrettoPack = ({
   isDisabled,
   ref,
   dataTestId,
-}: LigrettoPackProps) => (
-  <div ref={ref} data-test-id={dataTestId} className={styles.ligrettoPack}>
-    <div className={styles.cardWrapper}>
-      <CardPlace>
-        <CardHotkeyBadge hotkey={hotkey}>
-          <Card
-            {...ligrettoDeckCards[0]}
-            isHidden={isDeckHidden && ligrettoDeckCards.length > 0}
-            onClick={onLigrettoDeckCardClick}
-            isHighlighted={isHighlighted}
-            isDisabled={isDisabled}
-          />
-        </CardHotkeyBadge>
-      </CardPlace>
+}: LigrettoPackProps) => {
+  // The server deals from the end of the deck.
+  const top = last(ligrettoDeckCards)
+
+  return (
+    <div ref={ref} data-test-id={dataTestId} className={styles.ligrettoPack}>
+      <div className={styles.cardWrapper}>
+        <CardPlace>
+          <CardHotkeyBadge hotkey={hotkey}>
+            <CardViewTransition key={top?.id} name={top?.id} isFaceDown={isDeckHidden}>
+              <Card
+                {...top}
+                isHidden={isDeckHidden && top !== undefined}
+                onClick={onLigrettoDeckCardClick}
+                isHighlighted={isHighlighted}
+                isDisabled={isDisabled}
+              />
+            </CardViewTransition>
+          </CardHotkeyBadge>
+        </CardPlace>
+      </div>
+      <Typography sx={{ fontSize: { xs: '0.625rem', sm: '1rem' } }}>В колоде: {count}</Typography>
     </div>
-    <Typography sx={{ fontSize: { xs: '0.625rem', sm: '1rem' } }}>В колоде: {count}</Typography>
-  </div>
-)
+  )
+}

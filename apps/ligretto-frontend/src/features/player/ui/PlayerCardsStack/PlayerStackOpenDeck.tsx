@@ -5,6 +5,7 @@ import { useSelector } from 'react-redux'
 import { Hotkey, playerStackOpenDeckCardsSelector } from '#ducks/game'
 import { Card, CardHotkeyBadge, CardPlace, CardViewTransition } from '#entities/card'
 import { useCardHotkey, useDraggableCard } from '#features/cardInteraction'
+import { useStackTurn } from './StackTurnContext'
 
 const OpenCard = ({ card }: { card: PlayerCard }) => {
   const { id: dragId, isActive, isDimmed, isDragging, listeners, setNodeRef, toggleActiveTarget } = useDraggableCard({ type: 'open-stack' }, card)
@@ -32,10 +33,12 @@ const OpenCard = ({ card }: { card: PlayerCard }) => {
 
 export const PlayerStackOpenDeck = () => {
   const cards = useSelector(playerStackOpenDeckCardsSelector)
+  const turn = useStackTurn()
   if (!cards) {
     return null
   }
-  const card = last(cards)
+  // Held back for the frame the new top lies on the stack, so it flies here from there.
+  const card = turn && !turn.isArriving ? undefined : last(cards)
 
   return (
     <CardPlace>
