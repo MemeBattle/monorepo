@@ -10,6 +10,27 @@ const SHARED_TRANSITION = { type: 'tween', duration: 0.14, ease: [0.2, 0.8, 0.2,
 // deck it leaves.
 const FLIP_TRANSITION = { type: 'tween', duration: 0.2, ease: 'easeInOut' } satisfies Transition
 
+interface CardTurnProps extends PropsWithChildren {
+  to: 'up' | 'down'
+  onTurned?: () => void
+}
+
+/** The face (`children`) and the card back, back to back, turning from one to the other. */
+const CardTurn = ({ to, onTurned, children }: CardTurnProps) => (
+  <m.div
+    initial={{ rotateY: to === 'up' ? 180 : 0 }}
+    animate={{ rotateY: to === 'up' ? 0 : 180 }}
+    transition={FLIP_TRANSITION}
+    onAnimationComplete={onTurned}
+    style={{ display: 'flex', position: 'relative', transformStyle: 'preserve-3d', transformPerspective: 600 }}
+  >
+    <div style={{ display: 'flex', backfaceVisibility: 'hidden' }}>{children}</div>
+    <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
+      <CardBackFace />
+    </div>
+  </m.div>
+)
+
 interface CardViewTransitionProps extends PropsWithChildren {
   /** A card leaving one place and a card entering another under the same name in one commit fly between the two. */
   name: string | undefined
@@ -17,13 +38,24 @@ interface CardViewTransitionProps extends PropsWithChildren {
   share?: 'auto' | 'none'
   /** The card lies face down here: when it next appears face up, it turns over on the way. */
   isFaceDown?: boolean
+  /** The card arrives face up and turns face down on the way here; `children` is its face. */
+  isTurningDown?: boolean
+  /** Called once the card has turned face down. */
+  onTurnedDown?: () => void
 }
 
 /**
  * The shared element part of React's `<ViewTransition>`, done with Motion layout animations: they run on the
  * synchronous updates react-redux makes, which a view transition never starts on.
  */
-export const CardViewTransition = ({ name, share = 'auto', isFaceDown = false, children }: CardViewTransitionProps) => {
+export const CardViewTransition = ({
+  name,
+  share = 'auto',
+  isFaceDown = false,
+  isTurningDown = false,
+  onTurnedDown,
+  children,
+}: CardViewTransitionProps) => {
   const { isEnabled, faceDownNames } = useContext(CardAnimationContext)
   const isShared = isEnabled && share !== 'none'
   // Decided once, on mount: the card arrives face down from its last place and turns over on the way here.
@@ -46,7 +78,7 @@ export const CardViewTransition = ({ name, share = 'auto', isFaceDown = false, c
   return (
     <m.div
       layoutId={isShared ? name : undefined}
-      transition={isTurningUp ? FLIP_TRANSITION : SHARED_TRANSITION}
+      transition={isTurningUp || isTurningDown ? FLIP_TRANSITION : SHARED_TRANSITION}
       onLayoutAnimationStart={() => zIndex.set(10)}
       onLayoutAnimationComplete={() => zIndex.set(0)}
       style={{
@@ -58,17 +90,11 @@ export const CardViewTransition = ({ name, share = 'auto', isFaceDown = false, c
       }}
     >
       {isTurningUp ? (
-        <m.div
-          initial={{ rotateY: 180 }}
-          animate={{ rotateY: 0 }}
-          transition={FLIP_TRANSITION}
-          style={{ display: 'flex', position: 'relative', transformStyle: 'preserve-3d', transformPerspective: 600 }}
-        >
-          <div style={{ display: 'flex', backfaceVisibility: 'hidden' }}>{children}</div>
-          <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
-            <CardBackFace />
-          </div>
-        </m.div>
+        <CardTurn to="up">{children}</CardTurn>
+      ) : isTurningDown ? (
+        <CardTurn to="down" onTurned={onTurnedDown}>
+          {children}
+        </CardTurn>
       ) : (
         children
       )}
