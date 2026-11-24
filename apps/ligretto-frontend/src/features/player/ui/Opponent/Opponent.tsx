@@ -6,8 +6,7 @@ import type { Card as OpponentCard, UUID } from '@memebattle/ligretto-shared'
 import { PlayerStatus } from '@memebattle/ligretto-shared'
 
 import { Player } from '../Player'
-import { Card, CardPlace } from '#entities/card'
-import { CardViewTransition } from '#features/cardAnimation'
+import { Card, CardPlace, CardViewTransition } from '#entities/card'
 
 import { getRandomAvatar } from '#shared/ui/Avatar/getRandomAvatar'
 

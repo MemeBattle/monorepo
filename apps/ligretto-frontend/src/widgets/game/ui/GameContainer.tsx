@@ -7,7 +7,7 @@ import { gameStatusSelector, isPlayerSpectatorSelector, opponentsSelector, start
 import { GameStatus } from '@memebattle/ligretto-shared'
 import { ScreenCountdown } from './ScreenCountdown'
 import { CardInteractionProvider } from '#features/cardInteraction'
-import { CardAnimationProvider } from '#features/cardAnimation'
+import { CardAnimationProvider } from '#entities/card'
 
 const gamePageContainerSelector = createSelector(
   [gameStatusSelector, isPlayerSpectatorSelector, startingDelayInSecSelector, opponentsSelector],

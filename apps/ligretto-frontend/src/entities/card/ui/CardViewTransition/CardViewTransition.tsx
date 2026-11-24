@@ -2,7 +2,7 @@ import { useContext, type PropsWithChildren } from 'react'
 import { useMotionValue, type Transition } from 'motion/react'
 import * as m from 'motion/react-m'
 
-import { CardAnimationContext } from './CardAnimationContext'
+import { CardAnimationContext } from '../CardAnimationProvider/CardAnimationContext'
 
 const SHARED_TRANSITION = { type: 'tween', duration: 0.14, ease: [0.2, 0.8, 0.2, 1] } satisfies Transition
 

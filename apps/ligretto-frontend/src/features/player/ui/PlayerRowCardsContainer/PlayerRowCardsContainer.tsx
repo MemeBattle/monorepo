@@ -3,9 +3,8 @@ import { useSelector } from 'react-redux'
 import { CardsRow } from '#entities/card/ui/CardsRow'
 
 import { playerCardsSelector, Hotkey } from '#ducks/game'
-import { Card, CardPlace, CardHotkeyBadge } from '#entities/card'
+import { Card, CardPlace, CardHotkeyBadge, CardViewTransition } from '#entities/card'
 import { useCardHotkey, useDraggableCard } from '#features/cardInteraction'
-import { CardViewTransition } from '#features/cardAnimation'
 import type { Card as PlayerCard } from '@memebattle/ligretto-shared'
 
 interface PlayerRowCardProps {
