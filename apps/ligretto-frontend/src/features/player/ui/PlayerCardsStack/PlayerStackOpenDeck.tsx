@@ -3,9 +3,8 @@ import last from 'lodash/last'
 import { useSelector } from 'react-redux'
 
 import { Hotkey, playerStackOpenDeckCardsSelector } from '#ducks/game'
-import { Card, CardHotkeyBadge, CardPlace } from '#entities/card'
+import { Card, CardHotkeyBadge, CardPlace, CardViewTransition } from '#entities/card'
 import { useCardHotkey, useDraggableCard } from '#features/cardInteraction'
-import { CardViewTransition } from '#features/cardAnimation'
 
 const OpenCard = ({ card }: { card: PlayerCard }) => {
   const { id: dragId, isActive, isDimmed, isDragging, listeners, setNodeRef, toggleActiveTarget } = useDraggableCard({ type: 'open-stack' }, card)
