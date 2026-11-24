@@ -6,9 +6,9 @@ import { CardBackFace } from '../Card/CardBackFace'
 import { CardAnimationContext } from '../CardAnimationProvider/CardAnimationContext'
 
 const SHARED_TRANSITION = { type: 'tween', duration: 0.14, ease: [0.2, 0.8, 0.2, 1] } satisfies Transition
-// Long enough for the turn to be seen: at the table flight's 140 ms it reads as a blink. Symmetric, so the card is
-// edge-on mid-flight: an ease-out would show the back only while the card still covers the deck it leaves.
-const FLIP_TRANSITION = { type: 'tween', duration: 0.4, ease: 'easeInOut' } satisfies Transition
+// Symmetric, so the card is edge-on mid-flight: an ease-out would show the back only while the card still covers the
+// deck it leaves.
+const FLIP_TRANSITION = { type: 'tween', duration: 0.2, ease: 'easeInOut' } satisfies Transition
 
 interface CardViewTransitionProps extends PropsWithChildren {
   /** A card leaving one place and a card entering another under the same name in one commit fly between the two. */
